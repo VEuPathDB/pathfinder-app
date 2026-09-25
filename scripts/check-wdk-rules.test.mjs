@@ -120,11 +120,25 @@ test("a renamed vitest case is rejected", () => {
   assert.match(errors[0], /named test not found in tests\/sample\.test\.ts -> rejects cycles/);
 });
 
-test("undefined citations are caught in rest/ and pathfinder/ too", () => {
-  const errors = errorsFor("prose-dirs");
+test("undefined citations are caught in every folder of the bundle", () => {
+  const errors = errorsFor("prose-dirs").sort();
   assert.equal(errors.length, 2);
-  assert.match(errors[0], /rest\/a\.md: cites undefined rule WDK-PARAM-404/);
-  assert.match(errors[1], /pathfinder\/b\.md: cites undefined rule WDK-VOCAB-500/);
+  assert.match(errors[0], /pathfinder\/b\.md: cites undefined rule WDK-VOCAB-500/);
+  assert.match(errors[1], /rest\/a\.md: cites undefined rule WDK-PARAM-404/);
+});
+
+test("a citation in a prose file at the bundle root is checked", () => {
+  assert.deepEqual(errorsFor("bundle-root-prose"), [
+    "divergences.md: cites undefined rule WDK-MAP-404",
+  ]);
+});
+
+test("a rule a cited repository defines is named with it and not resolved here", () => {
+  const coverage = new Coverage();
+  const root = join(FIXTURES, "cited-rule-in-prose");
+
+  assert.deepEqual(collect(root, root, coverage), []);
+  assert.equal(coverage.citedRules, 3);
 });
 
 test("a withdrawn rule needs no class, upstream or anchor", () => {

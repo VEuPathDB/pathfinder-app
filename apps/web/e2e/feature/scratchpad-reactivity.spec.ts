@@ -1,18 +1,18 @@
 /**
- * Scratchpad rail E2E — verifies the client reacts to the agent's
+ * Notes rail E2E: verifies the client reacts to the agent's
  * `note(...)` tool call mid-stream.
  *
  * The real pipeline is bypassed via `page.route()` so we can deterministically
  * emit exactly the SSE chunks the client cares about:
  *
- *   - `data-scratchpad-updated` → invalidates the scratchpad notes query
+ *   - `data-scratchpad-updated` -> invalidates the scratchpad notes query
  *
  * and control the paged scratchpad GET responses. Full backend pipeline
  * coverage lives in the integration test
  * `apps/api/src/pathfinder/tests/integration/chat/test_multi_turn_pipeline.py`
  * (see the `test_scratchpad_note_persists_across_turns` test).
  *
- * Strict selectors only — testids on the panel, note card, pin button, and
+ * Strict selectors only - testids on the panel, note card, pin button, and
  * delete button (added surgically to `ScratchpadPanel.tsx`).
  */
 
@@ -107,10 +107,10 @@ function scratchpadChatStream(): string {
   ].join("");
 }
 
-test.describe("Scratchpad rail", () => {
+test.describe("Notes rail", () => {
   test.describe.configure({ mode: "serial" });
 
-  test("scratchpad panel shows note created by agent mid-stream", async ({
+  test("notes panel shows note created by agent mid-stream", async ({
     page,
     context,
   }) => {
@@ -154,9 +154,9 @@ test.describe("Scratchpad rail", () => {
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
 
-    // Open the scratchpad rail panel up-front — empty state first.
+    // Open the notes rail panel up-front: empty state first.
     const openScratchpadButton = page.getByRole("button", {
-      name: "Open Scratchpad",
+      name: "Open Notes",
       exact: true,
     });
     await expect(openScratchpadButton).toBeVisible({ timeout: 15_000 });
@@ -166,7 +166,7 @@ test.describe("Scratchpad rail", () => {
     await expect(panel).toBeVisible();
     await expect(page.getByTestId("scratchpad-empty")).toBeVisible();
 
-    // Send any message — our chat-route stub emits `data-scratchpad-updated`
+    // Send any message - our chat-route stub emits `data-scratchpad-updated`
     // regardless of prompt text.
     await composer.click();
     await composer.pressSequentially("trigger scratchpad note", { delay: 10 });
@@ -183,7 +183,7 @@ test.describe("Scratchpad rail", () => {
     expect(notesVersion).toBeGreaterThan(0);
   });
 
-  test("user can pin and delete a scratchpad note", async ({ page, context }) => {
+  test("user can pin and delete a note", async ({ page, context }) => {
     const siteId = await entrySiteId(context, BASE_URL);
     const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
@@ -235,8 +235,8 @@ test.describe("Scratchpad rail", () => {
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
 
-    // Open the scratchpad rail.
-    await page.getByRole("button", { name: "Open Scratchpad", exact: true }).click();
+    // Open the notes rail.
+    await page.getByRole("button", { name: "Open Notes", exact: true }).click();
 
     const note = page.getByTestId(`scratchpad-note-${NOTE_ID}`);
     await expect(note).toBeVisible({ timeout: 15_000 });

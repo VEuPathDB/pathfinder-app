@@ -12,7 +12,7 @@ import { Figure } from "@/features/conversation/thread/Figure";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { tableNumberFor } from "./tableNumbers";
 
-const TRUNCATED_NOTE = "large result sets, overlap is a lower bound";
+const TRUNCATED_NOTE = "large results, overlap is a lower bound";
 
 const COLUMNS = [
   { head: "Variant" },

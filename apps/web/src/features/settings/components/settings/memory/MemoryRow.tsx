@@ -3,15 +3,23 @@
 import { Trash2 } from "lucide-react";
 import type { MemoryItem } from "@pathfinder/shared";
 
+import { cn } from "@/lib/utils/cn";
+
 interface MemoryRowProps {
   item: MemoryItem;
+  focused?: boolean;
   onEdit: (item: MemoryItem) => void;
   onDelete: (item: MemoryItem) => void;
   onToggleAutoRetrieve: (item: MemoryItem, next: boolean) => void;
 }
 
+function scrollIntoView(node: HTMLElement | null): void {
+  node?.scrollIntoView({ block: "center" });
+}
+
 export function MemoryRow({
   item,
+  focused = false,
   onEdit,
   onDelete,
   onToggleAutoRetrieve,
@@ -30,8 +38,13 @@ export function MemoryRow({
       <button
         type="button"
         data-testid="memory-row-body"
+        aria-current={focused ? "true" : undefined}
+        ref={focused ? scrollIntoView : undefined}
         onClick={() => onEdit(item)}
-        className="flex-1 min-w-0 text-left transition hover:bg-muted/40 rounded-md px-1.5 py-0.5"
+        className={cn(
+          "flex-1 min-w-0 text-left transition hover:bg-muted/40 rounded-md px-1.5 py-0.5",
+          focused && "bg-primary/10 ring-1 ring-primary/40",
+        )}
       >
         <div className="truncate text-sm font-medium text-foreground">{v.name}</div>
         {v.summary !== "" && (

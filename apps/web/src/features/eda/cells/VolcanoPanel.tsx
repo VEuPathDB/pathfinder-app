@@ -1,12 +1,14 @@
 "use client";
 
 import type { EdaViz } from "@pathfinder/shared";
+import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
 
+import type { VolcanoThresholds } from "@/lib/components/charts/types";
 import { VolcanoChart } from "@/lib/components/charts/VolcanoChart";
+import { higherIn } from "@/lib/eda/comparison";
 import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
 import { useEdaStore } from "@/state/eda";
 
-import { VolcanoControls } from "./VolcanoControls";
 import {
   formatEffectSize,
   formatPValue,
@@ -16,28 +18,45 @@ import {
 
 const CHART_HEIGHT = 260;
 
+function sideOf(
+  thresholds: VolcanoThresholds,
+  comparison: EdaComparison | null | undefined,
+): string {
+  switch (thresholds.direction) {
+    case "upAndDown":
+      return "Higher in either group";
+    case "upOnly":
+      return higherIn(comparison, "B");
+    case "downOnly":
+      return higherIn(comparison, "A");
+  }
+}
+
+/** The cut the analysis stores, in words. The site's volcano cell edits it. */
+function cutSentence(
+  thresholds: VolcanoThresholds,
+  comparison: EdaComparison | null | undefined,
+): string {
+  return `${sideOf(thresholds, comparison)}, |effect size| >= ${String(thresholds.effectSizeThreshold)}, p <= ${String(thresholds.significanceThreshold)}`;
+}
+
 export function VolcanoPanel({ payload }: { payload: EdaViz }) {
   const thresholds = useEdaStore((s) => s.volcanoThresholds);
-  const setVolcanoThresholds = useEdaStore((s) => s.setVolcanoThresholds);
   const points = payload.points;
-  const selection = selectVolcanoGenes(points, thresholds, "adjustedPValue");
+  const selection = selectVolcanoGenes(points, thresholds);
   const byId = pointsById(points);
   const listed = selection.selected.slice(0, READOUT_LIMIT);
 
   return (
     <div className="space-y-3">
-      <VolcanoControls
-        thresholds={thresholds}
-        resetToken={payload}
-        comparison={payload.comparison}
-        onChange={setVolcanoThresholds}
-      />
+      <p data-testid="eda-volcano-cut" className="text-xs text-muted-foreground">
+        {cutSentence(thresholds, payload.comparison)}
+      </p>
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="min-w-0 flex-1">
           <VolcanoChart
             points={points}
             thresholds={thresholds}
-            significanceField="adjustedPValue"
             effectSizeLabel={payload.effectSizeLabel}
             comparison={payload.comparison}
             height={CHART_HEIGHT}
@@ -49,14 +68,14 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
             data-testid="eda-volcano-selection"
             className="text-xs text-muted-foreground"
           >
-            {`${String(selection.selected.length)} ${selection.selected.length === 1 ? "gene" : "genes"} selected, ${String(payload.retainedPoints)} of ${String(payload.totalPoints)} retained by the compute`}
+            {`${String(selection.selected.length)} ${selection.selected.length === 1 ? "gene" : "genes"} selected, ${String(payload.retainedPoints)} of ${String(payload.totalPoints)} retained by the comparison`}
           </p>
           <table className="mt-2 w-full text-left text-[11px]">
             <thead className="text-muted-foreground">
               <tr>
                 <th className="font-normal">Gene</th>
                 <th className="font-normal">Effect</th>
-                <th className="font-normal">Adjusted p</th>
+                <th className="font-normal">p</th>
               </tr>
             </thead>
             <tbody>
@@ -68,9 +87,7 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
                     <td className="pr-2">
                       {point === undefined ? "" : formatEffectSize(point.effectSize)}
                     </td>
-                    <td>
-                      {point === undefined ? "" : formatPValue(point.adjustedPValue)}
-                    </td>
+                    <td>{point === undefined ? "" : formatPValue(point.pValue)}</td>
                   </tr>
                 );
               })}

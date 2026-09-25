@@ -1,5 +1,5 @@
 {
-  "_doc": "Shared FE/BE parity fixtures for graph operation appliers. Each case asserts both implementations produce the same post-state for the same op against the same initial graph. Edit both tests when adding cases. combine_labels holds the name each operator gives a combine that no researcher named.",
+  "_doc": "Shared FE/BE parity fixtures for graph operation appliers. Each case asserts both implementations produce the same post-state for the same op against the same initial graph. Edit both tests when adding cases. combine_labels holds the name each operator gives a combine that no researcher named; retired_combine_labels holds the names an earlier release gave, which are not a researcher's either.",
   "cases": [
     {
       "name": "delete-leaf-of-nested-combine-collapse",
@@ -467,9 +467,10 @@
     "INTERSECT": "Intersect",
     "UNION": "Union",
     "MINUS": "Minus",
-    "RMINUS": "Minus (reversed)",
+    "RMINUS": "Right minus",
     "LONLY": "Left only",
     "RONLY": "Right only",
-    "COLOCATE": "Colocated"
-  }
+    "COLOCATE": "Colocate"
+  },
+  "retired_combine_labels": ["Minus (reversed)", "Colocated"]
 }

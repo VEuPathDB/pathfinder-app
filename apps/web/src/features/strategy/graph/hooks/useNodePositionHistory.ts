@@ -3,7 +3,6 @@ import type { Node } from "@xyflow/react";
 import type { Step } from "@pathfinder/shared";
 
 type NodeData = {
-  isUnsaved?: boolean;
   step?: Step;
   message?: string;
 };

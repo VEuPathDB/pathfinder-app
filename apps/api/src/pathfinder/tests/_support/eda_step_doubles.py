@@ -28,11 +28,15 @@ from veupathdb.eda import (
     EdaStudyDetailResponse,
     EdaSubsetDescriptor,
     EdaVariableSpec,
+    EdaVisualization,
+    EdaVolcanoConfiguration,
+    EdaVolcanoDescriptor,
 )
+from veupathdb.testing.eda_fixtures import recorded_distribution
 
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda import gene_subset
 from pathfinder.services.eda.gene_subset import GeneCount
 from pathfinder.services.strategies.commit import CommitResult
@@ -48,6 +52,7 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_DATASET,
     PHENOTYPE_ENTITY,
     fixture,
+    gene_id_distribution,
 )
 
 WDK_STRATEGY_ID = 330423363
@@ -61,10 +66,23 @@ TEMPERATURE_VARIABLE = "VAR_081ab087"
 _SENSE_COUNT_VARIABLE = "SEQUENCE_READ_COUNT_SENSE"
 _GENE_ID_VARIABLE = "VEUPATHDB_GENE_ID"
 
-# The distinct gene ids each study answers under its example subset, against
-# the distinct gene ids of its whole gene entity.
-PHENOTYPE_GENES = GeneCount(count=5595, unfiltered_count=5803)
-DE_GENES = GeneCount(count=842, unfiltered_count=5720)
+
+def _recorded_genes(study_fixture: str) -> GeneCount:
+    """The distinct gene ids the site answered under the study's example subset."""
+    filtered, whole = (
+        recorded_distribution(
+            gene_id_distribution(study_fixture, filtered=subset)
+        ).statistics
+        for subset in (True, False)
+    )
+    return GeneCount(
+        count=filtered.num_distinct_values,
+        unfiltered_count=whole.num_distinct_values,
+    )
+
+
+PHENOTYPE_GENES = _recorded_genes("study_detail_phenotype")
+DE_GENES = _recorded_genes("study_detail_de")
 
 # One sample filter and no computation, as the researcher reads the refusal.
 SAMPLE_ONLY_REFUSAL = (
@@ -119,9 +137,23 @@ def phenotype_subset() -> EdaAnalysisDetail:
     )
 
 
-def _computation(group_a: Sequence[str], group_b: Sequence[str]) -> EdaComputation:
+def _computation(
+    group_a: Sequence[str],
+    group_b: Sequence[str],
+    volcano: EdaVolcanoConfiguration | None,
+) -> EdaComputation:
     return EdaComputation(
         computation_id="c1",
+        visualizations=(
+            []
+            if volcano is None
+            else [
+                EdaVisualization(
+                    visualization_id="v1",
+                    descriptor=EdaVolcanoDescriptor(configuration=volcano),
+                )
+            ]
+        ),
         descriptor=EdaDifferentialExpressionDescriptor(
             configuration=EdaDifferentialExpressionConfig(
                 identifier_variable=EdaVariableSpec(
@@ -148,8 +180,10 @@ def de_analysis(
     with_computation: bool = False,
     group_a: Sequence[str] = ("febrile",),
     group_b: Sequence[str] = ("normal",),
+    volcano: EdaVolcanoConfiguration | None = None,
 ) -> EdaAnalysisDetail:
-    """An analysis of the RNA-Seq study, with its comparison when it holds one."""
+    """An analysis of the RNA-Seq study, with its comparison and the volcano cut
+    it stores when it holds them."""
     return EdaAnalysisDetail(
         analysis_id=ANALYSIS_ID,
         display_name="heat shock subset",
@@ -158,7 +192,9 @@ def de_analysis(
         num_computations=int(with_computation),
         descriptor=EdaAnalysisDescriptor(
             subset=EdaSubsetDescriptor(descriptor=list(filters)),
-            computations=([_computation(group_a, group_b)] if with_computation else []),
+            computations=(
+                [_computation(group_a, group_b, volcano)] if with_computation else []
+            ),
         ),
     )
 

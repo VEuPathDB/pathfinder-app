@@ -1,20 +1,12 @@
-import type { APIRequestContext, BrowserContext } from "@playwright/test";
+import type { APIRequestContext, APIResponse, BrowserContext } from "@playwright/test";
 import { request } from "@playwright/test";
 
-/**
- * `csrf_middleware` rejects a cookie-authenticated request that is not GET,
- * HEAD or OPTIONS and carries no `X-Requested-With`. Every mutating call made
- * outside the app's own fetch layer must send this.
- */
+/** The header the api's CSRF check requires on every cookie-authenticated write. */
 export const CSRF_HEADERS = { "X-Requested-With": "XMLHttpRequest" } as const;
 
 /**
- * Create an authenticated API client for postcondition verification.
- *
- * Takes the browser context's whole storage state, so the client carries both
- * `pathfinder-auth` (PathFinder identity) and `Authorization` (the registered
- * VEuPathDB token every WDK-backed route needs). This client is for ASSERTING
- * server-side state after UI actions, never for setup.
+ * A client that asserts server state after UI actions, carrying the context's
+ * `pathfinder-auth` and `Authorization` cookies. It never sets anything up.
  */
 export async function createApiClient(
   context: BrowserContext,
@@ -28,6 +20,48 @@ export async function createApiClient(
 }
 
 export type ApiClient = APIRequestContext;
+
+/** The sites `e2e-sites.yaml` serves: the portal and the five component sites. */
+export const E2E_SITE_IDS = [
+  "veupathdb",
+  "plasmodb",
+  "toxodb",
+  "cryptodb",
+  "tritrypdb",
+  "fungidb",
+] as const;
+
+/** One row of a conversations list. */
+export interface ConversationRow {
+  id: string;
+  siteId: string;
+  wdkStrategyId?: number | null;
+  isSaved?: boolean;
+}
+
+/**
+ * The array a list route answers. A problem body fails with its status and
+ * detail, so a refused list never reads as an empty or undefined one.
+ */
+export async function listBody<T>(resp: APIResponse, what: string): Promise<T[]> {
+  const body: unknown = await resp.json();
+  if (!Array.isArray(body)) {
+    throw new Error(`${what} answered ${resp.status()}: ${JSON.stringify(body)}`);
+  }
+  return body as T[];
+}
+
+/** The active or dismissed conversations of one site, as its sidebar lists them. */
+export async function listConversations(
+  api: APIRequestContext,
+  siteId: string,
+  list: "active" | "dismissed" = "active",
+): Promise<ConversationRow[]> {
+  const path =
+    list === "active" ? "/api/v1/conversations" : "/api/v1/conversations/dismissed";
+  const resp = await api.get(`${path}?siteId=${siteId}`);
+  return listBody(resp, `${path} on ${siteId}`);
+}
 
 interface PersistedMessage {
   role: "user" | "assistant";
@@ -112,12 +146,7 @@ export async function fetchUserMessageIds(
     .filter((id) => id !== "");
 }
 
-/**
- * Reduce a conversation's persisted event snapshot into role-tagged
- * messages. The conversation detail endpoint no longer embeds messages;
- * chat history is reconstructed from the `events/snapshot` chunk stream
- * (user-message chunks + per-turn assistant text-delta chunks).
- */
+/** The conversation's messages, rebuilt from its `events/snapshot` chunks. */
 export async function fetchConversationMessages(
   api: APIRequestContext,
   conversationId: string | null,
@@ -152,11 +181,35 @@ export async function fetchConversationMessages(
   return messages;
 }
 
+/** The gene-set list of every site the suite serves, and the unscoped one. */
+function geneSetListUrls(baseURL: string): string[] {
+  return [
+    `${baseURL}/api/v1/gene-sets`,
+    ...E2E_SITE_IDS.map((siteId) => `${baseURL}/api/v1/gene-sets?siteId=${siteId}`),
+  ];
+}
+
+/** Delete every gene set of the calling user, on every site the suite serves. */
+async function clearGeneSets(req: APIRequestContext, baseURL: string): Promise<void> {
+  await Promise.all(
+    geneSetListUrls(baseURL).map(async (url) => {
+      const geneSets = await listBody<{ id: string }>(await req.get(url), url);
+      await Promise.all(
+        geneSets.map(async (gs) =>
+          deleted(
+            await req.delete(`${baseURL}/api/v1/gene-sets/${gs.id}`, {
+              headers: CSRF_HEADERS,
+            }),
+            `gene set ${gs.id}`,
+          ),
+        ),
+      );
+    }),
+  );
+}
+
 /**
  * Delete all gene sets for the current user via the API.
- *
- * Cleans gene sets across all VEuPathDB sites (default + site-specific)
- * to prevent cross-site pollution between tests.
  *
  * Uses `page.context().request` so cookies are shared with the browser.
  * Call from `beforeEach` in specs that assert gene-set counts, for test isolation.
@@ -165,24 +218,44 @@ export async function clearAllGeneSets(
   context: BrowserContext,
   baseURL: string,
 ): Promise<void> {
-  const req = context.request;
-  const siteIds = [undefined, "plasmodb", "toxodb", "cryptodb", "fungidb", "tritrypdb"];
-  await Promise.all(
-    siteIds.map(async (siteId) => {
-      const url =
-        siteId != null && siteId !== ""
-          ? `${baseURL}/api/v1/gene-sets?siteId=${siteId}`
-          : `${baseURL}/api/v1/gene-sets`;
-      const listResp = await req.get(url);
-      if (!listResp.ok()) return;
-      const geneSets = (await listResp.json()) as { id: string }[];
-      await Promise.all(
-        geneSets.map((gs) =>
-          req.delete(`${baseURL}/api/v1/gene-sets/${gs.id}`, {
-            headers: CSRF_HEADERS,
-          }),
+  await clearGeneSets(context.request, baseURL);
+}
+
+/** A delete that neither succeeded nor found the row gone fails with its answer. */
+async function deleted(resp: APIResponse, what: string): Promise<void> {
+  if (resp.ok() || resp.status() === 404) return;
+  throw new Error(`deleting ${what} answered ${resp.status()}: ${await resp.text()}`);
+}
+
+/**
+ * Delete the calling user's gene sets and every conversation, WDK strategies
+ * included. A conversation that inserts a saved strategy goes before the saved
+ * one, which the api refuses to delete while another conversation uses it.
+ */
+export async function clearUserData(
+  req: APIRequestContext,
+  baseURL: string,
+): Promise<void> {
+  await clearGeneSets(req, baseURL);
+  const rows: ConversationRow[] = [];
+  for (const path of ["/api/v1/conversations", "/api/v1/conversations/dismissed"]) {
+    rows.push(
+      ...(await listBody<ConversationRow>(await req.get(`${baseURL}${path}`), path)),
+    );
+  }
+  for (const saved of [false, true]) {
+    await Promise.all(
+      rows
+        .filter((row) => (row.isSaved === true) === saved)
+        .map(async (row) =>
+          deleted(
+            await req.delete(
+              `${baseURL}/api/v1/conversations/${row.id}?deleteFromWdk=true`,
+              { headers: CSRF_HEADERS },
+            ),
+            `conversation ${row.id}`,
+          ),
         ),
-      );
-    }),
-  );
+    );
+  }
 }

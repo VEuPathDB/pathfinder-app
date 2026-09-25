@@ -6,7 +6,12 @@ from __future__ import annotations
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
+from pathfinder.ai.lead.card_reply import CardReply
+
 PROPOSAL_TOOL = "propose_changes"
+ADOPT_TOOL = "adopt_separating_strategy"
+# The cards that offer work: a yes runs it, a no ends the turn as it stood.
+OFFER_TOOLS: frozenset[str] = frozenset({PROPOSAL_TOOL, ADOPT_TOOL})
 
 
 class Proposal(CamelModel):
@@ -40,8 +45,22 @@ class Proposal(CamelModel):
             *(f"- {change}" for change in self.proposed_changes),
         ]
         if note:
-            lines.append(f"The researcher's note: {note}")
+            lines.append(f"The researcher's comment: {note}")
         return "\n".join(lines)
+
+
+class CardProposal(Proposal):
+    """A proposal as the card call carries it, with the reply above the card."""
+
+    reply: CardReply
+
+
+class AdoptionArgs(CamelModel):
+    """The one argument an adoption card is called with."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    task_id: str
 
 
 class DeclinedProposal(Proposal):
@@ -50,4 +69,12 @@ class DeclinedProposal(Proposal):
     note: str = ""
 
 
-__all__ = ["PROPOSAL_TOOL", "DeclinedProposal", "Proposal"]
+__all__ = [
+    "ADOPT_TOOL",
+    "OFFER_TOOLS",
+    "PROPOSAL_TOOL",
+    "AdoptionArgs",
+    "CardProposal",
+    "DeclinedProposal",
+    "Proposal",
+]

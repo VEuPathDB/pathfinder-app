@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 
+import { APIError } from "@/lib/api/http";
 import { SiteAuth } from "./SiteAuth";
 import { logoutVeupathdb } from "@/lib/api/veupathdb-auth";
 
@@ -61,6 +62,31 @@ describe("SiteAuth", () => {
     expect(screen.getByText("Logged in as Dr. Rivera")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /log out/i }));
     await waitFor(() => expect(mockLogout.mock.calls).toEqual([["plasmodb"]]));
+  });
+
+  it("says why a log out failed and stays signed in", async () => {
+    mockLogout.mockRejectedValueOnce(
+      new APIError("Could not connect to plasmodb (ReadTimeout).", {
+        status: 502,
+        statusText: "Bad Gateway",
+        url: "http://localhost:3000/api/v1/veupathdb/auth/logout",
+        data: {
+          type: "/errors/WDK_ERROR",
+          title: "Site error",
+          status: 502,
+          detail: "Could not connect to plasmodb (ReadTimeout).",
+          code: "WDK_ERROR",
+        },
+      }),
+    );
+    renderAuth({ signedIn: true, name: "Dr. Rivera" });
+
+    await userEvent.click(screen.getByRole("button", { name: /log out/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Log out failed: Could not connect to plasmodb (ReadTimeout).",
+    );
+    expect(screen.getByText("Logged in as Dr. Rivera")).toBeTruthy();
   });
 
   it("shows an em-dash when the signed-in user has no name", () => {

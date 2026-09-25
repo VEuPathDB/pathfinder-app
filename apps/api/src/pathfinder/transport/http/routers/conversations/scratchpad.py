@@ -30,7 +30,7 @@ class ScratchpadPatchRequest(CamelModel):
 @router.get(
     "/{conversation_id}/scratchpad/notes",
     response_model=list[Note],
-    summary="List scratchpad notes for the conversation.",
+    summary="List the notes for the conversation.",
 )
 async def list_scratchpad_notes(
     conversation_id: UUID,
@@ -43,7 +43,7 @@ async def list_scratchpad_notes(
 @router.patch(
     "/{conversation_id}/scratchpad/notes/{note_id}",
     response_model=Note,
-    summary="Pin or unpin a scratchpad note.",
+    summary="Pin or unpin a note.",
 )
 async def patch_scratchpad_note(
     conversation_id: UUID,
@@ -63,7 +63,7 @@ async def patch_scratchpad_note(
 @router.delete(
     "/{conversation_id}/scratchpad/notes/{note_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete a scratchpad note.",
+    summary="Delete a note.",
 )
 async def delete_scratchpad_note(
     conversation_id: UUID,

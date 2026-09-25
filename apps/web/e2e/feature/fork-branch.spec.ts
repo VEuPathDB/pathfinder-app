@@ -3,7 +3,7 @@ import { test, expect } from "../fixtures/test";
 /**
  * Feature: branching a conversation from a message.
  *
- * Branching is a per-message action ("Branch to a new chat from here" on an
+ * Branching is a per-message action ("Branch to a new conversation from here" on an
  * assistant reply) that forks the conversation into a brand-new chat, copying
  * the prior context. Verified end-to-end against the real fork endpoint.
  */

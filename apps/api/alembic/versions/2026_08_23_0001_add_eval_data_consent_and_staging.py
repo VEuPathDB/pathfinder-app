@@ -12,7 +12,7 @@ its user and thread, a promoted row names neither and holds no extract.
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -37,74 +37,80 @@ _LINKAGE_ENDS_AT_PROMOTION = (
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column(
+        sqlalchemy.Column(
             "eval_data_consent",
-            sa.Boolean(),
+            sqlalchemy.Boolean(),
             nullable=False,
-            server_default=sa.text("true"),
+            server_default=sqlalchemy.text("true"),
         ),
     )
     op.add_column(
         "users",
-        sa.Column("eval_notice_seen_at", sa.DateTime(timezone=True), nullable=True),
+        sqlalchemy.Column(
+            "eval_notice_seen_at", sqlalchemy.DateTime(timezone=True), nullable=True
+        ),
     )
 
     op.create_table(
         "eval_staged_cases",
-        sa.Column("id", sa.CHAR(length=36), nullable=False),
-        sa.Column("user_id", sa.CHAR(length=36), nullable=True),
-        sa.Column(
+        sqlalchemy.Column("id", sqlalchemy.CHAR(length=36), nullable=False),
+        sqlalchemy.Column("user_id", sqlalchemy.CHAR(length=36), nullable=True),
+        sqlalchemy.Column(
             "source_conversation_id",
             postgresql.UUID(as_uuid=True),
             nullable=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "application_id",
-            sa.String(length=64),
+            sqlalchemy.String(length=64),
             nullable=False,
             server_default="pathfinder",
         ),
-        sa.Column("site_id", sa.String(length=50), nullable=False),
-        sa.Column("assistant_id", sa.String(length=64), nullable=False),
-        sa.Column("content_hash", sa.String(length=64), nullable=False),
-        sa.Column("extract", postgresql.JSONB(), nullable=True),
-        sa.Column(
+        sqlalchemy.Column("site_id", sqlalchemy.String(length=50), nullable=False),
+        sqlalchemy.Column("assistant_id", sqlalchemy.String(length=64), nullable=False),
+        sqlalchemy.Column("content_hash", sqlalchemy.String(length=64), nullable=False),
+        sqlalchemy.Column("extract", postgresql.JSONB(), nullable=True),
+        sqlalchemy.Column(
             "status",
-            sa.String(length=16),
+            sqlalchemy.String(length=16),
             nullable=False,
             server_default="staged",
         ),
-        sa.Column("corpus_name", sa.String(length=128), nullable=True),
-        sa.Column(
+        sqlalchemy.Column("corpus_name", sqlalchemy.String(length=128), nullable=True),
+        sqlalchemy.Column(
             "staged_at",
-            sa.DateTime(timezone=True),
+            sqlalchemy.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=sqlalchemy.text("now()"),
         ),
-        sa.Column("promoted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
+        sqlalchemy.Column(
+            "promoted_at", sqlalchemy.DateTime(timezone=True), nullable=True
+        ),
+        sqlalchemy.PrimaryKeyConstraint("id"),
+        sqlalchemy.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sqlalchemy.ForeignKeyConstraint(
             ["source_conversation_id"],
             ["conversations.id"],
             ondelete="CASCADE",
         ),
-        sa.CheckConstraint(
+        sqlalchemy.CheckConstraint(
             "status IN ('staged', 'promoted')",
             name="ck_eval_staged_cases_status",
         ),
-        sa.CheckConstraint(
+        sqlalchemy.CheckConstraint(
             _LINKAGE_ENDS_AT_PROMOTION,
             name="ck_eval_staged_cases_linkage_ends_at_promotion",
         ),
-        sa.UniqueConstraint("content_hash", name="uq_eval_staged_cases_content_hash"),
+        sqlalchemy.UniqueConstraint(
+            "content_hash", name="uq_eval_staged_cases_content_hash"
+        ),
     )
     op.create_index(
         "ix_eval_staged_cases_source_conversation",
         "eval_staged_cases",
         ["source_conversation_id"],
         unique=True,
-        postgresql_where=sa.text("source_conversation_id IS NOT NULL"),
+        postgresql_where=sqlalchemy.text("source_conversation_id IS NOT NULL"),
     )
     op.create_index(
         "ix_eval_staged_cases_user_id",

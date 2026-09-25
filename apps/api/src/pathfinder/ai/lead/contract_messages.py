@@ -7,11 +7,15 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from assistant_core.graph.tool_summary import count_noun
+
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.turn_records import CreatedControlSet
+from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.orthology import OrganismChange
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
 
@@ -32,12 +36,22 @@ def unrecorded_offer_message() -> str:
     """Why a reply that ends on a question and records nothing is refused."""
     return (
         "Your reply ends with a question and records nothing, so a yes on the "
-        "next turn accepts nothing the thread holds. When it offers further "
-        "work, put the offer on a proposal card: write the reply as text and, in "
-        "the same response, call ``propose_changes`` with the question in one "
+        "next turn accepts nothing the conversation holds. When it offers further "
+        "work, put the offer on a proposal card: call ``propose_changes`` with "
+        "the reply as its ``reply``, the question in one "
         "sentence and each concrete change a yes makes. When it asks the user "
         "for a value, record the question in ``asked_questions`` with the value "
         "you recommend. Otherwise end the reply without a question."
+    )
+
+
+def misnamed_deletion_message(claimed: str, deleted: Sequence[NamedStep]) -> str:
+    """Why a reply that names a step the turn did not delete is refused."""
+    removed = ", ".join(step.described() for step in deleted)
+    return (
+        f"Your reply says it removed the {claimed} step, and that step is still "
+        f"in the strategy. This turn deleted {removed}. Name the step that was "
+        f"deleted, by its title."
     )
 
 
@@ -47,7 +61,7 @@ def off_topic_essay_message(max_chars: int) -> str:
         f"This turn asks for something PathFinder does not do, and your reply "
         f"answers it. Write the redirect instead: two sentences, under "
         f"{max_chars} characters, naming what PathFinder does - strategies on "
-        f"the VEuPathDB databases, EDA, exports - and inviting the "
+        f"the VEuPathDB sites, EDA, exports - and inviting the "
         f"user to rephrase. No code block, no draft, no answer to what was "
         f"asked."
     )
@@ -208,36 +222,74 @@ def unretrieved_source_message(absent: Sequence[str]) -> str:
 
 _COPY_THE_CARD = (
     "Control counts and control gene ids are read from the control tests, the "
-    "scored comparisons and the sweeps this turn ran, and from the evidence "
-    "card of the last check. Copy them; never restate one from memory. When "
-    "none of them holds a control result, report no control result."
+    "scored comparisons and the sweeps this turn ran, from the evidence card "
+    "of the last check, and from the separation offer this reply's card "
+    "carries or the conversation adopted. A count of sampled genes that fit is read from the "
+    "sample the check judged. Copy them; never restate one from memory. When "
+    "none of them holds a result, report no result."
 )
 
 
 def unbacked_evidence_message(found: Sequence[str]) -> str:
-    """Why a reply that states a control result no test of this turn holds is refused."""
+    """Why a reply that states a result no check of this turn holds is refused."""
     return " ".join(
         [
             *found,
             _COPY_THE_CARD,
             (
-                "Return the same reply with every control count and control gene id "
-                "taken from the evidence card, or leave out what the card does not hold."
+                "Return the same reply with every control count, control gene id "
+                "and sampled-gene count taken from the evidence card, or leave out "
+                "what the card does not hold."
             ),
         ]
     )
 
 
+def unread_gene_sentence(gene_id: str) -> str:
+    """Why a sampled gene whose record the turn did not read cannot stand."""
+    return (
+        f"The review lists sampled gene `{gene_id}`, and no read_gene_record "
+        f"call of this turn read its record."
+    )
+
+
+def unretrieved_review_source_sentence(reference: str) -> str:
+    """Why a source no read of this turn returned cannot stand on the card."""
+    return f"The review cites {reference}, and no read of this turn returned it."
+
+
+def misnumbered_requirement_sentence(row: RequirementCheck, messages: int) -> str:
+    """Why a requirement row that names a message the request lacks is refused."""
+    return (
+        f"The requirement '{row.text}' names message {row.turn}, and the request "
+        f"has {count_noun(messages, 'message')}."
+    )
+
+
+def misnamed_answer_sentence(
+    row: RequirementCheck, answer: str, held: Sequence[str]
+) -> str:
+    """Why a requirement row answered by an id the strategy lacks is refused."""
+    return (
+        f"The requirement '{row.text}' is answered by {answer}, which names no "
+        f"step of the strategy; it holds {', '.join(held) or 'no step'}."
+    )
+
+
 def unbacked_digest_message(found: Sequence[str]) -> str:
-    """Why a digest that states a control result no test of this turn holds is refused."""
+    """Why a digest that states what no read of this turn holds is refused."""
     return " ".join(
         [
             *found,
             _COPY_THE_CARD,
             (
-                "Return the same digest with every control count and control gene id "
-                "in ``prose``, ``key_findings`` and ``caveats`` taken from those "
-                "results, or leave out what they do not hold."
+                "A sampled gene is one whose record read_gene_record returned this "
+                "turn, and a source is one research_literature_search, "
+                "research_web_search or read_gene_record returned this turn. A "
+                "requirement names its message by the number the request block "
+                "gives it. Return the same digest with every control count, "
+                "control gene id, sampled gene and source taken from what this "
+                "turn read, or leave out what it did not."
             ),
         ]
     )
@@ -314,3 +366,62 @@ def unnamed_search_message(
             f"item, as written here or in your words, keeping the term."
         )
     return " ".join(sentences)
+
+
+def unnamed_record_organism_message(change: OrganismChange) -> str:
+    """Why a reply about records another organism holds, not naming it, is refused.
+
+    A count read as the seed's organism is a count of genes the researcher did
+    not search.
+    """
+    records = ", ".join(change.records)
+    return (
+        f"The strategy's records are genes of {records}, and the seed searched "
+        f"{', '.join(change.seed)}. Your reply does not say whose genes these "
+        f"are. Name {records} beside the count, in full or with the genus "
+        f"abbreviated."
+    )
+
+
+def unreported_requirement_message(rows: Sequence[RequirementCheck]) -> str:
+    """Why a reply silent about a requirement its check found unmet is refused.
+
+    A reply that names only what the strategy meets reads as a strategy that
+    meets everything the researcher asked.
+    """
+    listed = "; ".join(f"'{row.text}' ({row.status}: {row.note})" for row in rows)
+    return (
+        f"The check reports requirements the strategy does not meet: {listed}. "
+        f"Your reply does not name them. Name each as written here, and say what "
+        f"the strategy returns without it."
+    )
+
+
+def unstated_qualifier_message(words: Sequence[str]) -> str:
+    """Why a reply that is silent about a requirement no search could state is refused.
+
+    The strategy was built without it, so a reply that stays silent reads as
+    a strategy that honours it.
+    """
+    listed = ", ".join(f"'{word}'" for word in words)
+    return (
+        f"The request states {listed}, and no search this pass read has a "
+        f"parameter that states it, so the strategy does not. Say so in the "
+        f"reply, naming each word, and what the strategy returns without it."
+    )
+
+
+def counted_in_the_wrong_unit_message(
+    record_type: str, noun: str, counts: Sequence[int]
+) -> str:
+    """Why a reply that names a step count in the record type's own noun is refused.
+
+    The site counts a transcript strategy in genes, so "145 transcripts" reads
+    as more transcripts than genes and misstates the count.
+    """
+    written = " and ".join(f"{count:,} {record_type}s" for count in counts)
+    wanted = " and ".join(f"{count:,} {noun}s" for count in counts)
+    return (
+        f"The strategy holds {record_type} records, and the site counts them in "
+        f"{noun}s: your reply writes {written}. Write {wanted}."
+    )

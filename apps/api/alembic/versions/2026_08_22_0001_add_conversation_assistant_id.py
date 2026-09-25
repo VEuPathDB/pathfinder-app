@@ -10,7 +10,7 @@ a thread never changes assistant, so the column is additive with a default.
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_08_22_0001"
@@ -24,9 +24,9 @@ _DEFAULT_ASSISTANT_ID = "pathfinder"
 def upgrade() -> None:
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "assistant_id",
-            sa.String(length=64),
+            sqlalchemy.String(length=64),
             nullable=False,
             server_default=_DEFAULT_ASSISTANT_ID,
         ),

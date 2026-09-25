@@ -113,6 +113,9 @@ def render_structure(node: StructureNode, spec: OperationalSpec) -> str:
             inner = render_structure(node.inputs[0], spec) if node.inputs else "?"
             return f"{name}({inner})"
         return name
+    if node.kind == "copy":
+        inner = render_structure(node.inputs[0], spec) if node.inputs else "?"
+        return f"COPY {inner}"
     op = node.operator.value if node.operator else "?"
     inner = f" {op} ".join(render_structure(child, spec) for child in node.inputs)
     return f"({inner})"
@@ -276,16 +279,53 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
     ]
 
 
+def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstraint]:
+    """The words a criterion states that no search its pass read can state.
+
+    Each is the researcher's own word, so it stands unmet and blocks until a
+    search states it.
+    """
+    if spec is None:
+        return []
+    return [
+        GroundedConstraint(
+            constraint=Constraint(
+                kind=ConstraintKind.OTHER,
+                requested_value=word,
+                label=criterion.text[:_UNEXPRESSED_LABEL],
+                source=ConstraintSource.USER_EXPLICIT,
+                hard=True,
+            ),
+            status=ConstraintStatus.UNGROUNDABLE,
+            note=(
+                f"{criterion.title} cannot state '{word}', and no search the "
+                f"framing pass read has a parameter that does"
+            ),
+        )
+        for criterion in spec.criteria
+        for word in criterion.unexpressed_qualifiers
+    ]
+
+
+def unexpressed_words(spec: OperationalSpec | None) -> list[str]:
+    """Every word a criterion of the spec states and no search it read can state."""
+    if spec is None:
+        return []
+    return [word for c in spec.criteria for word in c.unexpressed_qualifiers]
+
+
+_UNEXPRESSED_LABEL = 120
+
 # How many requirements the pinned summary prints before it counts the rest.
 _STATED_WINDOW = 20
 
 
-def _windowed(lines: list[str]) -> list[str]:
-    """The most recent lines, with a count of the ones left out."""
+def _windowed(lines: list[str], *, how: str) -> list[str]:
+    """The most recent lines, with a count of the ones left out and how they came."""
     elided = max(0, len(lines) - _STATED_WINDOW)
     if not elided:
         return lines
-    return [f"- ({elided} more stated earlier)", *lines[elided:]]
+    return [f"- ({elided} more {how} earlier)", *lines[elided:]]
 
 
 class ConstraintSection(CamelModel):
@@ -310,6 +350,7 @@ class ConstraintSection(CamelModel):
         """One line per requirement the thread captured for the user."""
         return _windowed(
             [f"- {c.label} ({c.kind}): {c.requested_value!r}" for c in self.composed],
+            how="captured",
         )
 
     def render_stated(self) -> list[str]:
@@ -336,6 +377,7 @@ class ConstraintSection(CamelModel):
                 )
                 for g in stated
             ],
+            how="stated",
         )
 
     @computed

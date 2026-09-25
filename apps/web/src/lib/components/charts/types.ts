@@ -7,7 +7,6 @@ export interface VolcanoPointInput {
 }
 
 export type VolcanoDirection = "upOnly" | "downOnly" | "upAndDown";
-export type VolcanoSignificanceField = "adjustedPValue" | "pValue";
 
 export interface VolcanoThresholds {
   effectSizeThreshold: number;

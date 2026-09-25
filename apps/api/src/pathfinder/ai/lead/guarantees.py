@@ -32,6 +32,7 @@ class Reversibility(StrEnum):
 
 
 TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
+    "adopt_separating_strategy": Reversibility.REVISIONED_WRITE,
     "build_control_set": Reversibility.UNREVISIONED_WRITE,
     "build_strategy": Reversibility.REVISIONED_WRITE,
     "classify_user_intent": Reversibility.IN_STATE,
@@ -47,6 +48,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "frame_problem": Reversibility.IN_STATE,
     "get_live_strategy_state": Reversibility.READ,
     "list_control_sets": Reversibility.READ,
+    "read_control_set": Reversibility.READ,
     "read_gene_ids_from_gene_set": Reversibility.READ,
     "read_gene_ids_from_strategy": Reversibility.READ,
     "read_gene_record": Reversibility.READ,
@@ -61,6 +63,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "run_eda_compute": Reversibility.DURABLE,
     "save_gene_set": Reversibility.UNREVISIONED_WRITE,
     "search_eda_studies": Reversibility.READ,
+    "separate_controls": Reversibility.DURABLE,
     "set_eda_filters": Reversibility.UNREVISIONED_WRITE,
     "verify_strategy": Reversibility.IN_STATE,
 }
@@ -110,7 +113,7 @@ def render_machine_guarantees(tools: Mapping[str, Tool[LeadDeps]]) -> str:
         "",
         (
             f"- Every write to the strategy appends a revision, and the researcher"
-            f" can revert the thread to any earlier one. The tools that write it:"
+            f" can revert the conversation to any earlier one. The tools that write it:"
             f" {_named(revisioned)}."
         ),
         (

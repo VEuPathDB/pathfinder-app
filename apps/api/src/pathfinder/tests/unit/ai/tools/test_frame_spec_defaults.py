@@ -22,8 +22,9 @@ from veupathdb_mcp.catalog import (
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.recorded_searches import serve_qualifier_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -100,6 +101,7 @@ async def _bind(
     monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
+    serve_qualifier_reads(monkeypatch, lambda name: WDKSearch(url_segment=name))
     no_count(monkeypatch)
     return returned(
         await set_criterion_as_read(

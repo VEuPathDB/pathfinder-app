@@ -1,6 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { siteShortName } from "@pathfinder/shared";
 import {
   AlertTriangle,
   Bookmark,
@@ -54,7 +55,7 @@ interface NavSpec {
 }
 
 const NAV: NavSpec[] = [
-  { slug: "conversation", icon: MessageCircle, label: "Chat" },
+  { slug: "conversation", icon: MessageCircle, label: "Conversation" },
   { slug: "saved", icon: Bookmark, label: "Saved strategies" },
 ];
 
@@ -175,8 +176,7 @@ function SiteSwitcherButton({
   const components = sites.filter((s) => !s.isPortal);
   const portal = sites.filter((s) => s.isPortal);
   const currentDown = siteIsDown(sites, siteId);
-  const currentName = sites.find((s) => s.id === siteId)?.displayName ?? siteId;
-  const unreachable = `${CANNOT_REACH} ${currentName}`;
+  const unreachable = `${CANNOT_REACH} ${siteShortName(siteId)}`;
 
   const pick = (id: string) => {
     setSelectedSite(id);
@@ -191,7 +191,7 @@ function SiteSwitcherButton({
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Switch database"
+              aria-label="Switch site"
               className="relative p-0"
             >
               <SiteIcon siteId={siteId} size={22} />
@@ -206,7 +206,7 @@ function SiteSwitcherButton({
           </DropdownMenuTrigger>
         </TooltipTrigger>
         <TooltipContent side="right">
-          {currentDown ? unreachable : "Switch database"}
+          {currentDown ? unreachable : "Switch site"}
         </TooltipContent>
       </Tooltip>
       <DropdownMenuContent

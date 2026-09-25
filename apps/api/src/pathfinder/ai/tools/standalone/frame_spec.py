@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from assistant_core.graph.tool_summary import count_noun, with_summary
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
@@ -29,39 +27,43 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     ensure_search_registered,
     register_search,
     search_display_name,
-    what_it_finds,
 )
-from pathfinder.ai.tools.standalone._frame_count import (
-    criterion_line,
-    record_and_count_criterion,
-)
+from pathfinder.ai.tools.standalone._frame_count import record_and_count_criterion
 from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_bound_analysis,
     refuse_a_search_the_criterion_cannot_use,
     refuse_a_waiting_criterion,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import (
+    CriterionCall,
     DeclaredAssumption,
     ParamProposals,
-    _CriterionCall,
-    _phyletic_overrides,
-    _radio_overrides,
-    _refuse_bad_assumptions,
-    _refuse_undecided,
-    _refuse_unknown_names,
-    _refuse_unmatched_values,
+    phyletic_overrides,
+    radio_overrides,
+    refuse_bad_assumptions,
+    refuse_undecided,
+    refuse_unknown_names,
+    refuse_unmatched_values,
+)
+from pathfinder.ai.tools.standalone._frame_qualifiers import (
+    qualifiers_no_search_states,
+    refuse_a_qualifier_the_search_drops,
 )
 from pathfinder.ai.tools.standalone._frame_rationale import (
     SearchChoice,
     rationale_for,
+)
+from pathfinder.ai.tools.standalone._frame_result import (
+    SetCriterionResult,
+    criterion_return,
 )
 from pathfinder.ai.tools.standalone._frame_roles import (
     refuse_a_transform_on_a_saved_strategy,
 )
 from pathfinder.ai.tools.standalone._frame_saved import bind_saved_criterion
 from pathfinder.ai.tools.standalone._frame_sheet import (
-    _open_sheet,
-    _reconcile_dependents,
+    open_parameter_sheet,
+    reconcile_dependents,
 )
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
 from pathfinder.domain.strategy.operational_spec import (
@@ -69,46 +71,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
     OpenSlot,
-    ParameterAlternatives,
 )
-from pathfinder.domain.strategy.step_rationale import SearchRationale
-from pathfinder.services.strategies.saved_library import SavedStrategyListing
-
-
-class SetCriterionResult(CamelModel):
-    """Result of binding a criterion to a WDK search and resolving its params."""
-
-    criterion_id: str
-    search_name: str
-    # The search's name on the site, and its one-line summary once bound: what
-    # the step runs, which is what the reply names.
-    what_runs: str = ""
-    # The saved strategy this criterion reuses as its input, when it names one.
-    saved_strategy: SavedStrategyListing | None = None
-    # Every visible parameter name mapped to null, in sheet order.
-    params_template: dict[str, None] = Field(default_factory=dict)
-    # True when this call opened the parameter sheet. Nothing is recorded then:
-    # the sheet is pinned in the instructions and the next call decides it.
-    sheet_pinned: bool = False
-    # Name -> bound value, not just the names. A binding can be syntactically
-    # "resolved" and semantically wrong (WDK ships `*reductase` as GenesByText's
-    # example default), and reporting only names makes that invisible to the
-    # model, the ledger, and the user until the step silently returns zero rows.
-    resolved_params: dict[str, str] = Field(default_factory=dict)
-    # Params the search defaulted. State these to the user with their values.
-    defaulted_params: list[str] = Field(default_factory=list)
-    open_slots: list[OpenSlot] = Field(default_factory=list)
-    # The records this binding matches, or null when no count was read.
-    result_count: int | None = None
-    # Filled only when the binding matches no record: one entry per vocabulary
-    # parameter that holds values this binding did not take.
-    alternatives: list[ParameterAlternatives] = Field(default_factory=list)
-    # Dependent params whose vocabulary changed once the parents were bound.
-    # A non-empty list means nothing was recorded; decide these and re-call.
-    # The fresh vocabulary is on the pinned sheet.
-    redecide: list[str] = Field(default_factory=list)
-    # Why the criterion runs this search, against what the catalog answered.
-    rationale: SearchRationale | None = None
 
 
 async def _record_type(ctx: RunContext[AgentDeps], search_name: str) -> str:
@@ -278,16 +241,20 @@ async def set_criterion(
         await refuse_a_search_the_criterion_cannot_use(
             ctx, record_type, definition, stated, None
         )
+        unread = await refuse_a_qualifier_the_search_drops(
+            ctx, record_type, definition, stated
+        )
         register_search(state, definition, record_type)
-        return _criterion_return(
+        return criterion_return(
             ctx,
             SetCriterionResult(
                 criterion_id=criterion_id,
                 search_name=search_name,
-                params_template=_open_sheet(
+                params_template=open_parameter_sheet(
                     state, criterion_id, search_name, definition
                 ),
                 sheet_pinned=True,
+                unread_searches=unread,
             ),
             record_type,
             definition,
@@ -297,19 +264,27 @@ async def set_criterion(
     await refuse_a_search_the_criterion_cannot_use(
         ctx, record_type, definition, stated, params
     )
+    qualifiers = await qualifiers_no_search_states(
+        ctx, record_type, definition, stated, params
+    )
     await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
     infos = await fetch_at({})
-    call = _CriterionCall(
+    call = CriterionCall(
         criterion_id=criterion_id, search_name=search_name, text=text, params=params
     )
-    _refuse_unknown_names(call, infos)
-    _refuse_undecided(call, infos)
-    _refuse_bad_assumptions(call, assumed or [], infos)
-    phyletic = _phyletic_overrides(definition, call, infos)
-    radio = _radio_overrides(definition, call, infos)
-    _refuse_unmatched_values(
-        call, infos, PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset()
+    refuse_unknown_names(call, infos)
+    refuse_undecided(call, infos)
+    refuse_bad_assumptions(call, assumed or [], infos)
+    phyletic = phyletic_overrides(definition, call, infos)
+    radio = radio_overrides(definition, call, infos)
+    await refuse_unmatched_values(
+        ctx.deps.site_id,
+        definition,
+        call,
+        infos,
+        PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset(),
+        state,
     )
     # A null proposal states no value, so it leaves the param to resolution.
     # The derived pattern replaces the two lists it was derived from.
@@ -337,12 +312,15 @@ async def set_criterion(
             f"is right."
         )
         raise ModelRetry(msg)
-    redecide = await _reconcile_dependents(fetch_at, infos, resolved, call, state)
+    redecide = await reconcile_dependents(fetch_at, infos, resolved, call, state)
     if redecide:
-        return _criterion_return(
+        return criterion_return(
             ctx,
             SetCriterionResult(
-                criterion_id=criterion_id, search_name=search_name, redecide=redecide
+                criterion_id=criterion_id,
+                search_name=search_name,
+                redecide=redecide,
+                unread_searches=qualifiers.unread,
             ),
             record_type,
             definition,
@@ -385,13 +363,14 @@ async def set_criterion(
                 for e in assumed or []
             ],
             rationale=rationale,
+            unexpressed_qualifiers=qualifiers.unexpressed,
         ),
         record_type=record_type,
         definition=definition,
         resolved=canonical,
         infos=infos,
     )
-    return _criterion_return(
+    return criterion_return(
         ctx,
         SetCriterionResult(
             criterion_id=criterion_id,
@@ -404,49 +383,8 @@ async def set_criterion(
             result_count=count,
             alternatives=alternatives,
             rationale=rationale,
+            unread_searches=qualifiers.unread,
         ),
         record_type,
         definition,
     )
-
-
-def _criterion_return(
-    ctx: RunContext[AgentDeps],
-    result: SetCriterionResult,
-    record_type: str,
-    definition: WDKSearch,
-) -> ToolReturn[SetCriterionResult]:
-    """The bound criterion, or the parameters the call still leaves open.
-
-    The sheet's own heading carries the summary, so the sheet-opening return
-    stays short enough to survive history elision.
-    """
-    name = search_display_name(definition)
-    runs = name if result.sheet_pinned else f"{name}: {what_it_finds(definition)}"
-    result = result.model_copy(update={"what_runs": runs})
-    if result.sheet_pinned:
-        return with_summary(
-            result,
-            f"{result.criterion_id}: sheet pinned, "
-            f"{count_noun(len(result.params_template), 'parameter')} to decide",
-            ctx=ctx,
-            status="warn",
-        )
-    pending = len(result.redecide) + len(result.open_slots)
-    if pending:
-        return with_summary(
-            result,
-            f"{result.criterion_id}: {count_noun(pending, 'parameter')} still open",
-            ctx=ctx,
-            status="warn",
-        )
-    line, status = criterion_line(
-        result.criterion_id,
-        result.search_name,
-        record_type,
-        result.result_count,
-        result.alternatives,
-    )
-    if result.rationale is not None:
-        line = f"{line}, {result.rationale.short}"
-    return with_summary(result, line, ctx=ctx, status=status)

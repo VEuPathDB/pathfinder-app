@@ -4,28 +4,11 @@ import { useStore } from "@tanstack/react-form";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { ColocationFormValues } from "../schema/colocationSchema";
+import {
+  DEFAULT_COLOCATION,
+  type ColocationFormValues,
+} from "../schema/colocationSchema";
 import { useColocationForm, type ColocationForm } from "../hooks/useColocationForm";
-
-export const DEFAULT_COLOCATION: ColocationFormValues = {
-  operation: "overlaps",
-  strand: "either strand",
-  output: "a",
-  regionA: "exact",
-  beginA: "start",
-  beginDirectionA: "+",
-  beginOffsetA: 0,
-  endA: "stop",
-  endDirectionA: "+",
-  endOffsetA: 0,
-  regionB: "exact",
-  beginB: "start",
-  beginDirectionB: "+",
-  beginOffsetB: 0,
-  endB: "stop",
-  endDirectionB: "+",
-  endOffsetB: 0,
-};
 
 export function resolveParams(
   params: Partial<ColocationFormValues> | null | undefined,

@@ -140,7 +140,7 @@ async def _run_stopped_turn(
         return ""
 
     monkeypatch.setattr(turn_runner, "watch_for_cancel", _no_poll)
-    monkeypatch.setattr(turn_runner, "generate_conversation_title", _no_title)
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", _no_title)
     cancel_event = asyncio.Event()
     await turn_runner._run_turn_with_context(
         request=turn_runner.TurnRequest(body=_body(conversation_id), user_id=user_id),

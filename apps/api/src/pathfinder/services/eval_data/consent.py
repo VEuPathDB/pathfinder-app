@@ -46,7 +46,7 @@ def _settings_of(user: User) -> PrivacySettings:
 async def _load(session: AsyncSession, user_id: UUID) -> User:
     user = await session.get(User, user_id)
     if user is None:
-        raise NotFoundError(title="User not found", detail=str(user_id))
+        raise NotFoundError(title="Account not found", detail=str(user_id))
     return user
 
 

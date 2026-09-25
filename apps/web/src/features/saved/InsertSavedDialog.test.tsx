@@ -82,8 +82,8 @@ describe("InsertSavedDialog", () => {
       "insert-saved-pick-11",
       "insert-saved-pick-22",
     ]);
-    expect(within(picks[0]!).getByText("Alpha set")).toBeTruthy();
-    expect(within(picks[0]!).getByText("2 steps · transcript")).toBeTruthy();
+    expect(within(picks[0]!).getByText("Alpha set")).toBeVisible();
+    expect(within(picks[0]!).getByText("2 steps")).toBeVisible();
   });
 
   it("keeps Insert disabled until a strategy is picked", async () => {

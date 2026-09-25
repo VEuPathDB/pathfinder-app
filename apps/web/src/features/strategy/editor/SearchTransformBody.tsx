@@ -47,6 +47,7 @@ export function SearchTransformBody({
           state.selectedSearch?.displayName ?? step.searchName ?? "Pick a search"
         }
         searchOptions={state.searchOptions}
+        recordTypes={state.recordTypeOptions}
         onChange={onSearchChange}
       />
 
@@ -124,11 +125,13 @@ function SearchSection({
   currentSearchName,
   currentSearchDisplay,
   searchOptions,
+  recordTypes,
   onChange,
 }: {
   currentSearchName: string | null;
   currentSearchDisplay: string;
   searchOptions: StepEditorState["searchOptions"];
+  recordTypes: StepEditorState["recordTypeOptions"];
   onChange: (next: string | null) => void;
 }) {
   return (
@@ -138,6 +141,7 @@ function SearchSection({
       </p>
       <SearchPicker
         searches={searchOptions}
+        recordTypes={recordTypes}
         value={currentSearchName}
         onChange={onChange}
         placeholder={currentSearchDisplay}

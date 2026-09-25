@@ -20,6 +20,7 @@ from veupathdb.eda import (
     EdaStudyDetailResponse,
     EdaSubsetDescriptor,
 )
+from veupathdb.testing.eda_fixtures import recorded_distribution
 
 from pathfinder.services.eda import gene_subset
 from pathfinder.services.eda.authoring import SubsetRejectedError
@@ -47,27 +48,11 @@ from pathfinder.tests._support.eda_wire import (
     DE_STUDY,
     PHENOTYPE_DATASET,
     PHENOTYPE_ENTITY,
+    eda_transport,
     fixture,
 )
 
 _STUDY = EdaStudyDetailResponse.model_validate(fixture("study_detail_de")).study
-
-# The service's answers for the gene id under one sense-count filter and under
-# none: 5,114 rows hold 842 genes, and 68,640 rows are 12 samples of 5,720 genes.
-_FILTERED = {
-    "subsetSize": 5114,
-    "numVarValues": 5114,
-    "numDistinctValues": 842,
-    "numDistinctEntityRecords": 5114,
-    "numMissingCases": 0,
-}
-_WHOLE = {
-    "subsetSize": 68640,
-    "numVarValues": 68640,
-    "numDistinctValues": 5720,
-    "numDistinctEntityRecords": 68640,
-    "numMissingCases": 0,
-}
 
 
 @pytest.fixture
@@ -109,8 +94,8 @@ async def test_a_gene_count_is_the_distinct_gene_ids_and_not_the_rows(
     def handler(request: httpx.Request) -> httpx.Response:
         filters = json.loads(request.content)["filters"]
         asked.append((request.url.path, filters))
-        statistics = _FILTERED if filters else _WHOLE
-        return httpx.Response(200, json={"histogram": [], "statistics": statistics})
+        subset = "filtered" if filters else "unfiltered"
+        return httpx.Response(200, json=fixture(f"gene_id_distribution_de_{subset}"))
 
     client = EdaClient(base_url=BASE_URL, transport=httpx.MockTransport(handler))
     monkeypatch.setattr(gene_subset, "get_eda_client", lambda _site: client)
@@ -122,13 +107,39 @@ async def test_a_gene_count_is_the_distinct_gene_ids_and_not_the_rows(
         filters=[gene_filter()],
     )
 
-    assert counted == GeneCount(count=842, unfiltered_count=5720)
+    filtered_rows = recorded_distribution("gene_id_distribution_de_filtered")
+    assert counted == DE_GENES
+    assert counted.count < filtered_rows.statistics.subset_size
     path = (
         f"/eda/studies/{DE_STUDY}/entities/{COUNTS_ENTITY}"
         "/variables/VEUPATHDB_GENE_ID/distribution"
     )
     assert [entry[0] for entry in asked] == [path, path]
     assert [len(entry[1]) for entry in asked] == [1, 0]
+
+
+async def test_the_recorded_deployment_answers_the_recorded_gene_ids(
+    token: None,
+) -> None:
+    """Both gene-id distributions are the bodies recorded from the site."""
+    del token
+    transport = eda_transport(study_id=DE_STUDY, study_fixture="study_detail_de")
+    client = EdaClient(base_url=BASE_URL, transport=transport)
+
+    answered = [
+        await client.distribution(
+            study_id=DE_STUDY,
+            entity_id=COUNTS_ENTITY,
+            variable_id="VEUPATHDB_GENE_ID",
+            filters=filters,
+        )
+        for filters in ([gene_filter()], [])
+    ]
+
+    assert answered == [
+        recorded_distribution("gene_id_distribution_de_filtered"),
+        recorded_distribution("gene_id_distribution_de_unfiltered"),
+    ]
 
 
 async def test_an_export_reads_the_study_once_and_asks_both_counts_at_once(
@@ -152,8 +163,8 @@ async def test_an_export_reads_the_study_once_and_asks_both_counts_at_once(
             both_asked.set()
         await asyncio.wait_for(both_asked.wait(), timeout=1)
         events.append(f"answer {len(filters)}")
-        statistics = _FILTERED if filters else _WHOLE
-        return httpx.Response(200, json={"histogram": [], "statistics": statistics})
+        subset = "filtered" if filters else "unfiltered"
+        return httpx.Response(200, json=fixture(f"gene_id_distribution_de_{subset}"))
 
     client = EdaClient(base_url=BASE_URL, transport=httpx.MockTransport(handler))
     monkeypatch.setattr(gene_subset, "get_study_detail_for_dataset", read_study)
@@ -187,7 +198,7 @@ async def test_a_refused_count_cancels_its_sibling_and_raises_the_services_error
         except asyncio.CancelledError:
             sibling.append("cancelled")
             raise
-        return httpx.Response(200, json={"histogram": [], "statistics": _WHOLE})
+        return httpx.Response(200, json=fixture("gene_id_distribution_de_unfiltered"))
 
     client = EdaClient(base_url=BASE_URL, transport=httpx.MockTransport(handler))
     monkeypatch.setattr(gene_subset, "get_eda_client", lambda _site: client)
@@ -258,16 +269,17 @@ async def test_a_sample_subset_beside_a_computation_names_the_volcano_cut(
 async def test_a_gene_subset_that_selects_no_gene_is_counted_in_genes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The denominator is the study's 5,720 genes, never its 68,640 rows."""
+    """The denominator is the study's distinct genes, never its rows."""
+    whole = DE_GENES.unfiltered_count
     counted = wire_gene_count(
-        monkeypatch, study=de_study, genes=GeneCount(count=0, unfiltered_count=5720)
+        monkeypatch, study=de_study, genes=GeneCount(count=0, unfiltered_count=whole)
     )
 
     refusal = await _refusal([sample_filter(), gene_filter()])
 
     held = (
-        "The subset selects 0 of the 5,720 genes on pfal3D7 htseq counts, so "
-        "there is no step to export and nothing was written."
+        f"The subset selects 0 of the {whole:,} genes on pfal3D7 htseq counts, "
+        "so there is no step to export and nothing was written."
     )
     assert refusal.detail == (
         f"{held} Widen the filters on pfal3D7 htseq counts, or run a "

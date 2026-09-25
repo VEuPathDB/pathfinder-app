@@ -56,6 +56,9 @@ LEAD_FINAL: dict[str, Any] = {
     "strategyChanged": False,
 }
 
+# The reply a scripted card call carries, as every card call must.
+CARD_REPLY = "The strategy holds what the turn built, and one refinement is open."
+
 TEST_INSTRUCTIONS = "Call the tool the script names, then return the typed output."
 
 

@@ -13,7 +13,13 @@ from assistant_core.conversation.ui_message_reducer import USER_MESSAGE_CHUNK_TY
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
-from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.evidence import (
+    Citation,
+    EvidenceCard,
+    RequirementCheck,
+    SampledGene,
+    VerificationReview,
+)
 from pathfinder.evals.extract import ExtractedTurn, ExtractedVerification
 from pathfinder.evals.redaction import redact_text
 
@@ -48,6 +54,7 @@ class DigestView(CamelModel):
     key_findings: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
     pending_checks: list[str] = Field(default_factory=list)
+    review: VerificationReview = Field(default_factory=VerificationReview)
 
 
 class VerificationView(CamelModel):
@@ -108,6 +115,45 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
     ]
 
 
+def _redacted_row(row: RequirementCheck) -> RequirementCheck:
+    return row.model_copy(
+        update={"text": redact_text(row.text), "note": redact_text(row.note)}
+    )
+
+
+def _redacted_gene(gene: SampledGene) -> SampledGene:
+    return gene.model_copy(
+        update={
+            "product": redact_text(gene.product),
+            "organism": redact_text(gene.organism),
+            "why": redact_text(gene.why),
+        }
+    )
+
+
+def _redacted_source(cited: Citation) -> Citation:
+    return cited.model_copy(
+        update={
+            "label": redact_text(cited.label),
+            "why": redact_text(cited.why),
+            "url": None if cited.url is None else redact_text(cited.url),
+            "doi": None if cited.doi is None else redact_text(cited.doi),
+            "pmid": None if cited.pmid is None else redact_text(cited.pmid),
+        }
+    )
+
+
+def _redacted_review(review: VerificationReview) -> VerificationReview:
+    """The review with every text on it redacted; gene ids are not identity."""
+    return review.model_copy(
+        update={
+            "requirements": [_redacted_row(row) for row in review.requirements],
+            "sampled_genes": [_redacted_gene(g) for g in review.sampled_genes],
+            "sources": [_redacted_source(cited) for cited in review.sources],
+        }
+    )
+
+
 def _redacted(card: EvidenceCard) -> EvidenceCard:
     """The card with every text on it redacted; counts and ids are not identity."""
     verdict = card.verdict
@@ -143,6 +189,7 @@ def _redacted(card: EvidenceCard) -> EvidenceCard:
                     ),
                 }
             ),
+            "review": _redacted_review(card.review),
         }
     )
 
@@ -175,6 +222,7 @@ def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | No
         key_findings=[redact_text(line) for line in latest.key_findings],
         caveats=[redact_text(line) for line in latest.caveats],
         pending_checks=latest.pending_checks,
+        requirements=[_redacted_row(row) for row in latest.review.requirements],
         evidence=read_evidence(rows),
     )
 

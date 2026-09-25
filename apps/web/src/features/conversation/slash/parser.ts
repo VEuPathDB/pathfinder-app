@@ -30,3 +30,23 @@ export function fuzzyPrefix(
   const aliases = candidate.aliases ?? [];
   return aliases.some((a) => a.toLowerCase().startsWith(lower));
 }
+
+export function filterCommands<T extends { name: string; aliases?: string[] }>(
+  commands: readonly T[],
+  token: string,
+): T[] {
+  return commands.filter((c) => fuzzyPrefix(token, c));
+}
+
+/**
+ * The token of a slash input that no command's name or alias starts with, or
+ * null. The token is the text after the opening slash, up to the first space.
+ */
+export function unknownCommandToken(
+  value: string,
+  commands: readonly { name: string; aliases?: string[] }[],
+): string | null {
+  const parsed = parseSlashInput(value);
+  if (parsed === null || parsed.token === "") return null;
+  return filterCommands(commands, parsed.token).length === 0 ? parsed.token : null;
+}

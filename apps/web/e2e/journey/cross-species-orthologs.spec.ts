@@ -33,8 +33,7 @@ test.describe("Cross-Species Orthologs Journey", () => {
       return (await resp.json()) as GeneSetRow[];
     };
 
-    // ── Phase 1: PlasmoDB, chat and a saved gene set ─────────────
-
+    // Phase 1: PlasmoDB, chat and a saved gene set
     await chatPage.goto();
     await sitePicker.selectSite("plasmodb");
 
@@ -55,8 +54,7 @@ test.describe("Cross-Species Orthologs Journey", () => {
     expect(saved?.siteId).toBe("plasmodb");
     expect(saved?.geneCount).toBe(SAVED_IDS.length);
 
-    // ── Phase 2: ToxoDB does not carry the PlasmoDB set ──────────
-
+    // Phase 2: ToxoDB does not carry the PlasmoDB set
     await sitePicker.selectSite("toxodb");
     await sitePicker.expectCurrentSite("toxodb");
 
@@ -70,8 +68,7 @@ test.describe("Cross-Species Orthologs Journey", () => {
     const toxoSets = await setsOn("toxodb");
     expect(toxoSets.map((gs) => gs.id)).not.toContain(saved?.id);
 
-    // ── Phase 3: back on PlasmoDB, the set is intact ─────────────
-
+    // Phase 3: back on PlasmoDB, the set is intact
     await sitePicker.selectSite("plasmodb");
     await sitePicker.expectCurrentSite("plasmodb");
 

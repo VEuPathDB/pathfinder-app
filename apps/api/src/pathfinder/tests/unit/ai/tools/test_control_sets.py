@@ -13,9 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathfinder.ai.tools.standalone import control_sets
 from pathfinder.ai.tools.standalone.control_sets import (
     BuiltControlSet,
+    ControlSetIds,
     ControlSetSummary,
     build_control_set,
     list_control_sets,
+    read_control_set,
     read_gene_ids_from_gene_set,
     read_gene_ids_from_strategy,
 )
@@ -231,3 +233,43 @@ class TestAWdkStrategyIdIsARetry:
             )
 
         assert "conversation" in str(err.value).lower()
+
+
+_SAVED_SET = "3f9c2b10-5a4e-4d8e-9b1a-2c7d6e5f4a31"
+
+
+async def test_read_control_set_returns_both_lists_of_the_saved_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    positives = [f"PF3D7_{n:07d}" for n in range(100600, 100680)]
+    negatives = [f"PF3D7_{n:07d}" for n in range(111300, 111340)]
+
+    async def _get(
+        _session: AsyncSession, control_set_id: UUID, user_id: UUID
+    ) -> ControlSetResponse:
+        del user_id
+        return _stored(
+            control_set_id=str(control_set_id),
+            name="PF3D7 signal peptide controls",
+            positive_ids=positives,
+            negative_ids=negatives,
+        )
+
+    monkeypatch.setattr(control_sets, "get_control_set", _get)
+
+    out = returned(
+        await read_control_set(detached_lead_context(), _SAVED_SET), ControlSetIds
+    )
+
+    assert (out.control_set_id, out.name) == (
+        _SAVED_SET,
+        "PF3D7 signal peptide controls",
+    )
+    assert (out.positive_ids, out.negative_ids) == (positives, negatives)
+
+
+async def test_read_control_set_refuses_an_id_that_is_not_a_control_set() -> None:
+    with pytest.raises(ModelRetry) as raised:
+        await read_control_set(detached_lead_context(), _WDK_STRATEGY_ID)
+
+    assert "control_set_id must be a PathFinder control set id" in str(raised.value)

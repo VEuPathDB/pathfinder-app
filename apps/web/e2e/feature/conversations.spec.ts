@@ -1,8 +1,9 @@
 import { test, expect } from "../fixtures/test";
-import { fetchConversationMessages } from "../fixtures/api-client";
+import { fetchConversationMessages, listConversations } from "../fixtures/api-client";
+import { currentSiteId } from "../pages/navigation";
 
 /**
- * Feature: Conversations — CRUD verified against real PostgreSQL.
+ * Feature: Conversations - CRUD verified against real PostgreSQL.
  */
 test.describe("Conversations", () => {
   test.describe.configure({ mode: "serial" });
@@ -21,7 +22,7 @@ test.describe("Conversations", () => {
     await chatPage.expectAssistantMessage(/\[mock\]/);
     await sidebarPage.expectAtLeastOneConversation();
 
-    // API confirms strategy exists with messages — use captured ID for isolation
+    // API confirms strategy exists with messages - use captured ID for isolation
     const strategyId = chatPage.lastStrategyId;
     expect(strategyId).toBeTruthy();
 
@@ -32,19 +33,19 @@ test.describe("Conversations", () => {
 
   test("create new conversation via button persists to DB", async ({
     chatPage,
+    page,
     apiClient,
   }) => {
     await chatPage.send("first conversation");
     await chatPage.expectAssistantMessage(/\[mock\]/);
 
-    const midResp = await apiClient.get("/api/v1/conversations");
-    const midCount = (await midResp.json()).length;
+    const siteId = currentSiteId(page);
+    const midCount = (await listConversations(apiClient, siteId)).length;
 
     await chatPage.newChat();
     await expect(chatPage.composer).toBeVisible();
 
-    const afterResp = await apiClient.get("/api/v1/conversations");
-    expect((await afterResp.json()).length).toBe(midCount + 1);
+    expect(await listConversations(apiClient, siteId)).toHaveLength(midCount + 1);
   });
 
   test("rename conversation persists to PostgreSQL", async ({
@@ -104,10 +105,12 @@ test.describe("Conversations", () => {
     });
 
     // API confirms soft-deleted (moved to dismissed).
-    const dismissedResp = await apiClient.get("/api/v1/conversations/dismissed");
-    expect(dismissedResp.ok()).toBeTruthy();
-    const dismissed = (await dismissedResp.json()) as { id: string }[];
-    expect(dismissed.some((d) => d.id === conversationId)).toBeTruthy();
+    const dismissed = await listConversations(
+      apiClient,
+      currentSiteId(page),
+      "dismissed",
+    );
+    expect(dismissed.map((d) => d.id)).toContain(conversationId);
   });
 
   test("search conversations filters list", async ({ chatPage, sidebarPage }) => {

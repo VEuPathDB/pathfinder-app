@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { siteDisplayName } from "@pathfinder/shared";
+import { siteShortName } from "@pathfinder/shared";
 
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { ConversationItem } from "@/features/sidebar/components/conversationSidebarTypes";
+import { useSettingsStore } from "@/state/useSettingsStore";
 
 interface DeleteConversationModalProps {
   target: ConversationItem | null;
@@ -27,18 +28,23 @@ export function DeleteConversationModal({
   onClose,
   onConfirmDelete,
 }: DeleteConversationModalProps) {
-  const [deleteLinkedStrategy, setDeleteLinkedStrategy] = useState(false);
+  const deleteFromWdk = useSettingsStore((s) => s.deleteFromWdk);
+  const hasStrategy = target?.chat.wdkStrategyId != null;
+  const startsChecked = deleteFromWdk && hasStrategy;
+  const [deleteLinkedStrategy, setDeleteLinkedStrategy] = useState(startsChecked);
   const [lastTargetId, setLastTargetId] = useState<string | null>(null);
 
-  // Reset the opt-in whenever the target changes (render-time, no effect).
+  // Each new target starts from the Advanced setting (render-time, no effect).
   const currentId = target?.id ?? null;
   if (currentId !== lastTargetId) {
     setLastTargetId(currentId);
-    if (deleteLinkedStrategy) setDeleteLinkedStrategy(false);
+    setDeleteLinkedStrategy(startsChecked);
   }
 
-  const hasStrategy = target?.chat.wdkStrategyId != null;
-  const dbName = target != null ? siteDisplayName(target.siteId) : "";
+  const dbName = target != null ? siteShortName(target.siteId) : "";
+  const outcome = deleteLinkedStrategy
+    ? `This also deletes the strategy on ${dbName}, and the conversation cannot be restored.`
+    : "It moves to Recently deleted and can be restored later.";
   const whose =
     target?.chat.wdkStrategyCreatedHere === true
       ? `PathFinder created this strategy in ${dbName}.`
@@ -57,9 +63,9 @@ export function DeleteConversationModal({
           <DialogDescription>
             Delete{" "}
             <span className="font-semibold text-foreground">
-              &ldquo;{target?.title}&rdquo;
+              &quot;{target?.title}&quot;
             </span>
-            ? It moves to Recently deleted and can be restored later.
+            ? {outcome}
           </DialogDescription>
         </DialogHeader>
         {hasStrategy && (
@@ -80,6 +86,14 @@ export function DeleteConversationModal({
                 {whose} Deleting it is permanent, and the conversation will not be
                 recoverable.
               </p>
+              {deleteFromWdk && (
+                <p
+                  data-testid="delete-linked-strategy-default"
+                  className="text-xs text-muted-foreground"
+                >
+                  Starts checked because Also delete on VEuPathDB is on in Settings.
+                </p>
+              )}
             </div>
           </label>
         )}

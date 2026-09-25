@@ -28,6 +28,7 @@ from pydantic_ai.messages import ModelMessage, ModelRequest, ToolCallPart
 from pathfinder.ai.models.mock.arc_args import (
     attached_gene_list,
     consult_args,
+    sweep_controls,
     variant_args,
 )
 from pathfinder.ai.models.mock.prose_arcs import (
@@ -38,12 +39,18 @@ from pathfinder.ai.models.mock.prose_arcs import (
     lead_final,
     prose_only_sequence,
 )
+from pathfinder.ai.models.mock.separation_arc import (
+    asks_for_a_separation,
+    separation_sequence,
+)
 from pathfinder.ai.models.mock.specs import (
     SpecPlan,
+    alt_organism_for,
     combined_spec,
     go_spec,
     interpro_spec,
     organism_for,
+    round_trip_spec,
     single_spec,
 )
 
@@ -57,7 +64,7 @@ FEEDBACK_PROSE = (
     "will re-verify."
 )
 _VARIANT_PROSE = (
-    "I ran both search variants and compared their result sets above. Tell me "
+    "I ran both search variants and compared their results above. Tell me "
     "which direction you'd like to carry into the strategy."
 )
 _SAVE_GENE_SET_PROSE = (
@@ -78,7 +85,7 @@ _LOOP_PROSE = (
     "stopped there."
 )
 _BUILD_REFUSED_PROSE = (
-    "**Nothing was built.** This thread already has a strategy, and "
+    "**Nothing was built.** This conversation already has a strategy, and "
     "build_strategy refuses to replace one: every step id would change. Tell "
     "me what to change and I will call edit_strategy on the steps you name, "
     "or say to start over and I will clear the strategy first."
@@ -88,10 +95,10 @@ _EDIT_PROSE = (
     "is unchanged, and the steps behind them keep the ids they had."
 )
 _REMEMBER_PROSE = (
-    "Stored for future sessions: your default organism. I built nothing - say "
+    "Stored for future conversations: your default organism. I built nothing - say "
     "the word and I will turn it into a strategy."
 )
-_RECALL_PROSE = "This thread already carries: "
+_RECALL_PROSE = "This conversation already carries: "
 _RECALL_NOTHING = "no ledger yet"
 
 # Markers are deliberately specific to the journeys' turn prompts so generic
@@ -103,6 +110,7 @@ _BUILD_MARKERS = ("3d7", "trophozoite", "derisi", "create step", "create delegat
 _FEEDBACK_MARKERS = ("interpro", "pf00069", "ec 2.7")
 _GO_MARKERS = ("go term strategy", "protein kinase go genes")
 _COMBINED_MARKERS = ("comprehensive kinase strategy", "all parameter types")
+_ORTHOLOGY_MARKERS = ("syntenic orthologs",)
 _VARIANT_MARKERS = ("compare two search variants", "compare search variants")
 _CONSULT_MARKERS = ("consult me before planning", "ask me design questions")
 # The FRAME arc that asks for one catalog listing over and over, which is what
@@ -114,7 +122,7 @@ _EDIT_MARKERS = ("keep the rest", "swap the organism", "substitute the organism"
 # and a retry after a failed task. Every one of them asks for a build.
 _ASSENT_MARKERS = ("yes, rerun", "run the differential expression now")
 # A request to store a preference. It asks for no strategy.
-_REMEMBER_MARKERS = ("please remember", "remember for future sessions")
+_REMEMBER_MARKERS = ("please remember", "remember for future")
 # A request to read the thread's own record back. The Lead answers from the
 # Ledger, so a branch's inherited state is visible in the reply.
 _RECALL_MARKERS = ("recap what i have asked",)
@@ -125,10 +133,11 @@ _SAVE_GENE_SET_IDS = ("PF3D7_0709000", "PF3D7_1133400")
 _EXPORT_MARKERS = ("export the gene set",)
 _EXPORT_GENE_SET_ID = "gs_mock_export"
 # An outright request to tune a built step: the approval-gated durable sweep.
-_SWEEP_MARKERS = ("tune the parameters of",)
+_SWEEP_MARKERS = ("tune the parameters of", "recover as many of my positive controls")
 _SWEEP_STEP_ID = 440230693
 _SWEEP_POSITIVES = ("PF3D7_0102600",)
 _SWEEP_BUDGET = 6
+_SWEEP_REPLY = "[mock] I will sweep the step's settings against your controls."
 _SWEEP_PROSE = (
     "The sweep is running. I will report the winning setting and its score "
     "when it reports."
@@ -164,6 +173,8 @@ def spec_for(text: str, site_id: str) -> SpecPlan:
         return go_spec(organism)
     if has_any(lowered, _COMBINED_MARKERS):
         return combined_spec(organism)
+    if has_any(lowered, _ORTHOLOGY_MARKERS):
+        return round_trip_spec(organism, alt_organism_for(site_id))
     return single_spec(organism)
 
 
@@ -239,6 +250,8 @@ def _lead_sequence(messages: list[ModelMessage]) -> list[ToolCallPart]:
         return _build_branch(messages, raw, _build_classification(messages))
     if has_any(raw.lower(), _RECALL_MARKERS):
         return _recall_sequence(messages)
+    if asks_for_a_separation(raw.lower()):
+        return separation_sequence(messages)
     attached = attached_gene_list(joined_user_text(messages))
     if attached is not None:
         return [
@@ -320,7 +333,8 @@ def _kept_sequence(
                 "optimize_search_parameters",
                 {
                     "wdk_step_id": _SWEEP_STEP_ID,
-                    "positive_controls": list(_SWEEP_POSITIVES),
+                    "reply": _SWEEP_REPLY,
+                    **sweep_controls(lowered, _SWEEP_POSITIVES),
                     "budget": _SWEEP_BUDGET,
                 },
             ),

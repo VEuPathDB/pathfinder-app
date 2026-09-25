@@ -3,11 +3,11 @@
  * 12.3 of `docs/superpowers/specs/2026-04-22-strategy-graph-editor-overhaul-design.md`).
  *
  * Per CLAUDE.md: only the LLM is mocked. Real WDK, real Postgres, real Redis.
- * Each test is self-contained — no shared state across tests in this file.
+ * Each test is self-contained - no shared state across tests in this file.
  *
- * The walkthrough threads a saved gold strategy from chat → rail → strategy
- * page → step editor → combine creation → venn picker → edge context menu →
- * keyboard shortcuts → back to chat. The 20 numbered steps in spec section
+ * The walkthrough threads a saved gold strategy from chat -> rail -> strategy
+ * page -> step editor -> combine creation -> venn picker -> edge context menu ->
+ * keyboard shortcuts -> back to chat. The 20 numbered steps in spec section
  * 12.3 are split across the tests below so each test exercises one slice of
  * the overhaul without relying on prior-test state.
  */
@@ -41,7 +41,7 @@ async function seedStrategy(
   return { conversationId, firstStepId };
 }
 
-test.describe("Strategy overhaul — walkthrough", () => {
+test.describe("Strategy overhaul - walkthrough", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ chatPage }) => {
@@ -224,7 +224,7 @@ test.describe("Strategy overhaul — walkthrough", () => {
     await graphPage.expectEditorSheetOpen();
   });
 
-  test("topbar 'Back to chat' returns to /conversation/[id]", async ({
+  test("topbar 'Back to conversation' returns to /conversation/[id]", async ({
     chatPage,
     graphPage,
     page,

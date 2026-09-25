@@ -1,0 +1,17 @@
+{
+  "provider": "anthropic",
+  "refusal": "no_credit",
+  "status": 400,
+  "body": {
+    "type": "error",
+    "error": {
+      "type": "invalid_request_error",
+      "message": "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."
+    },
+    "request_id": "req_011CfNpwUF2EyutLVNRMzz7q"
+  },
+  "provenance": "recorded",
+  "source": "the deployment's Anthropic key, on an account with no credit",
+  "model": "anthropic:claude-haiku-4-5",
+  "read_at": "2026-09-24T19:36:33.849060Z"
+}

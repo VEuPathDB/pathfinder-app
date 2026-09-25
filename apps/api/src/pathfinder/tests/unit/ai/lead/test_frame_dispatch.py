@@ -227,8 +227,9 @@ async def test_a_needs_user_result_over_an_empty_draft_is_not_a_retry(
 async def test_an_exhausted_budget_still_reports_the_draft(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def _fake(**kwargs: Any) -> None:
+    async def _fake(*, deps: LeadDeps, **kwargs: Any) -> None:
         del kwargs
+        deps.last_phase_stop = PhaseStop(role="frame", reason=PhaseStopReason.BUDGET)
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 

@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: VERIFY shows its evidence, and the workbench yields to the site
-description: Every finished check emits one evidence card assembled from records (the control tests the turn ran, the build's step counts, one read of the strategy on the site, the references each criterion was bound on), a reply or a digest that states a control result no test holds is refused once, and the workbench tab is removed because the site offers what it duplicated.
+description: Every finished check emits one evidence card assembled from records (the control tests the turn ran, the build's step counts, one read of the strategy on the site, the references each criterion was bound on) beside the checker's review as the turn's reads let it stand, a reply or a digest that states a control result no test holds is refused once, and the workbench tab is removed because the site offers what it duplicated.
 tags: [verification, evidence, controls, workbench, wdk-alignment, turn-contract]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -16,7 +16,7 @@ status: stable
 finished check, after the digest is recorded and held to the build. A check that parks on a
 durable call emits nothing; the resumed check emits the card once. The payload is
 `EvidenceCard` (`domain/evidence.py`), assembled by `assemble_evidence_card`
-(`ai/lead/evidence_card.py`), which takes no model output:
+(`ai/lead/evidence_card.py`). Every field but `review` takes no model output:
 
 | Field | Read from |
 |---|---|
@@ -27,6 +27,7 @@ durable call emits nothing; the resumed check emits the card once. The payload i
 | `strategyUrl` | `SiteInfo.strategy_url(strategy, root step)`, the step page whose Analyze results tab runs GO, pathway and word enrichment |
 | `citations` | `Criterion.rationale.sources`, the references FRAME cited when it bound the criterion; a DOI links to doi.org, a PMID to PubMed, anything else that is no web address is text |
 | `verdict` | the digest's success and pending checks after `_digest_the_build_supports`, and the ledger's own sentence when it refused a success |
+| `review` | the checker's requirement rows, sampled genes and sources, held to the turn's reads and to the structure ([VERIFY reviews the intent, the genes and the sources](verify-reviews-the-intent-the-genes-and-the-sources.md)) |
 
 The card of the last check is kept on `StrategyDomainState.last_evidence_card`, so a later
 message can restate its results while the strategy holds the revision the check judged

@@ -8,9 +8,42 @@ function score(similarity: number | null | undefined): string {
   return similarity == null ? "not scored" : similarity.toFixed(2);
 }
 
+type MeasuredRationale = Extract<Rationale, { kind: "controls" }>;
+
+/** A step a separation run chose: the controls its own step returned. */
+function MeasuredReason({ rationale }: { rationale: MeasuredRationale }) {
+  const sources = rationale.sources ?? [];
+  return (
+    <div className="mb-3 space-y-1 text-xs" data-testid="step-rationale">
+      <p className="font-medium text-foreground">Chosen by the controls</p>
+      <p className="text-muted-foreground" data-testid="step-rationale-counts">
+        {rationale.short}, {rationale.resultSize.toLocaleString("en-US")} genes
+      </p>
+      <p className="text-muted-foreground">
+        from <span>{rationale.basis}</span>
+        {sources.map((source) => (
+          <span key={source}>
+            {" "}
+            <a
+              href={source}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              {source}
+            </a>
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
 /** Why the step runs what it runs: the search choice against what the catalog
- * answered, or the compute an analysis step's document holds. */
+ * answered, the controls a separation run measured it with, or the compute an
+ * analysis step's document holds. */
 export function StepRationale({ rationale }: { rationale: Rationale }) {
+  if (rationale.kind === "controls") return <MeasuredReason rationale={rationale} />;
   if (rationale.kind === "analysis") {
     return (
       <div className="mb-3 space-y-1 text-xs" data-testid="step-rationale">

@@ -10,7 +10,7 @@ from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.step_rationale import SearchRationale, StepRationale
+from pathfinder.domain.strategy.step_rationale import ChosenRationale, StepRationale
 
 __all__ = [
     "AddedSearch",
@@ -50,7 +50,7 @@ class StepWords(CamelModel):
 
     criterion_texts: dict[str, str] = Field(default_factory=dict)
     analysis_kinds: dict[str, OnErrorOmit[StampedKind]] = Field(default_factory=dict)
-    rationales: dict[str, OnErrorOmit[SearchRationale]] = Field(default_factory=dict)
+    rationales: dict[str, OnErrorOmit[ChosenRationale]] = Field(default_factory=dict)
 
     @classmethod
     def of(cls, ast: StrategyAst) -> StepWords:
@@ -67,7 +67,7 @@ class StepWords(CamelModel):
 
     def rationale_of(
         self, step_id: str, search_name: str | None
-    ) -> SearchRationale | None:
+    ) -> ChosenRationale | None:
         """Why the step runs its search, while it runs the search it was chosen for."""
         chosen = self.rationales.get(step_id)
         return (

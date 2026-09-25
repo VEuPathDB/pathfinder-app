@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import UUID
 
 revision: str = "2026_04_21_0001"
 down_revision: str | Sequence[str] | None = "2026_04_20_0001"
@@ -21,7 +21,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "conversation_events",
-        sa.Column("turn_id", PGUUID(as_uuid=True), nullable=True),
+        sqlalchemy.Column("turn_id", UUID(as_uuid=True), nullable=True),
     )
     op.create_index(
         "conversation_events_conversation_turn_idx",

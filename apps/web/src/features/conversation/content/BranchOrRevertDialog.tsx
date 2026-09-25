@@ -44,10 +44,10 @@ export function BranchOrRevertDialog({
           <div className="flex items-start gap-3 rounded-md border border-border p-3">
             <GitBranch className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             <div>
-              <div className="font-medium">Branch to a new chat</div>
+              <div className="font-medium">Branch to a new conversation</div>
               <div className="text-xs text-muted-foreground">
-                Keep this conversation intact. Fork into a new chat with history up to
-                this point and send the edit there.
+                Keep this conversation intact. Fork into a new conversation with history
+                up to this point and send the edit there.
               </div>
             </div>
           </div>
@@ -57,9 +57,9 @@ export function BranchOrRevertDialog({
               aria-hidden
             />
             <div>
-              <div className="font-medium">Revert this chat</div>
+              <div className="font-medium">Revert this conversation</div>
               <div className="text-xs text-muted-foreground">
-                Delete every message after this point in this chat. Scratchpad notes and
+                Delete every message after this point in this conversation. Notes and
                 pending tasks from those turns are also removed. The strategy goes back
                 to what it was at this message; a later version stays in your VEuPathDB
                 account. Saved gene sets are kept.

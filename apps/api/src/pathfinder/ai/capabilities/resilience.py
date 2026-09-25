@@ -8,8 +8,7 @@ from typing import Any
 
 from assistant_core.platform.logging import get_logger
 from langgraph.errors import GraphInterrupt
-from pydantic import BaseModel, ConfigDict
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from pydantic_ai.capabilities.abstract import AbstractCapability
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
@@ -54,7 +53,7 @@ _BUILD_STRATEGY_TOPLEVEL_ALLOWED = frozenset(
 def _shape_error_hint(
     tool_name: str,
     args: object,
-    error: PydanticValidationError,
+    error: ValidationError,
 ) -> str | None:
     if not isinstance(args, dict):
         return None
@@ -90,7 +89,7 @@ _PARAM_VALUE_SHAPE_ERROR_TYPES = frozenset(
 
 def _param_value_shape_hint(
     args: dict[str, object],
-    error: PydanticValidationError,
+    error: ValidationError,
 ) -> str | None:
     bad: list[tuple[str, object]] = []
     for entry in error.errors():
@@ -120,7 +119,7 @@ def _param_value_shape_hint(
 
 def _build_strategy_misplaced_hint(
     args: object,
-    error: PydanticValidationError,
+    error: ValidationError,
 ) -> str | None:
     if not isinstance(args, dict):
         return None
@@ -147,7 +146,7 @@ def _build_strategy_misplaced_hint(
 def _wrapped_args_hint(
     tool_name: str,
     args: object,
-    error: PydanticValidationError,
+    error: ValidationError,
 ) -> str | None:
     if not isinstance(args, dict) or len(args) != 1:
         return None
@@ -306,10 +305,10 @@ class ToolResilience(AbstractCapability[AgentDeps]):
         call: ToolCallPart,
         tool_def: ToolDefinition,
         args: Any,
-        error: PydanticValidationError | ModelRetry,
+        error: ValidationError | ModelRetry,
     ) -> Any:
         del ctx, call
-        if isinstance(error, PydanticValidationError):
+        if isinstance(error, ValidationError):
             hint = _shape_error_hint(tool_def.name, args, error)
             if hint is not None:
                 raise ModelRetry(hint) from error

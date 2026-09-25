@@ -367,6 +367,30 @@ class TestApplyDuplicateStep:
                 ),
             )
 
+    @pytest.mark.parametrize(
+        ("source", "kind"),
+        [("c", "combine"), ("t", "transform")],
+    )
+    def test_refuses_a_source_that_is_not_a_search(
+        self, source: str, kind: str
+    ) -> None:
+        graph = graph_with([transform("t", combine("c", leaf("a"), leaf("b")))])
+
+        with pytest.raises(ApplyError) as refused:
+            apply_operation(
+                graph,
+                DuplicateStepOp(
+                    source_step_id=source,
+                    duplicate_step_id="dup",
+                    combine_step_id="cmb",
+                ),
+            )
+
+        assert str(refused.value) == (
+            f"only a search step can be duplicated; step {source!r} is a {kind}"
+        )
+        assert set(graph.steps) == {"t", "c", "a", "b"}
+
 
 PARITY_FIXTURE = (
     Path(__file__).resolve().parents[8] / "packages" / "spec" / "operations_parity.json"

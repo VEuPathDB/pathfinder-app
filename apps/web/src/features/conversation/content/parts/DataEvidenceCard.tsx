@@ -4,6 +4,10 @@ import type { ReactElement } from "react";
 import type { ControlSetEvidence, EvidenceCard } from "@pathfinder/shared";
 
 import { EvidenceCardBody } from "@/features/conversation/rail/EvidenceCardBody";
+import {
+  requirementCountLine,
+  sampleCountLine,
+} from "@/features/conversation/rail/EvidenceReview";
 import { Figure } from "@/features/conversation/thread/Figure";
 
 function setClause(set: ControlSetEvidence | null | undefined, kind: string): string[] {
@@ -13,10 +17,16 @@ function setClause(set: ControlSetEvidence | null | undefined, kind: string): st
 
 /** The counts the card holds, in one sentence under the figure. */
 function caption(card: EvidenceCard): string {
-  const clauses = card.controls.flatMap((test) => [
-    ...setClause(test.positive, "positive"),
-    ...setClause(test.negative, "negative"),
-  ]);
+  const rows = card.review?.requirements ?? [];
+  const genes = card.review?.sampledGenes ?? [];
+  const clauses = [
+    ...(rows.length > 0 ? [requirementCountLine(rows)] : []),
+    ...(genes.length > 0 ? [sampleCountLine(genes)] : []),
+    ...card.controls.flatMap((test) => [
+      ...setClause(test.positive, "positive"),
+      ...setClause(test.negative, "negative"),
+    ]),
+  ];
   const noun = card.steps.length === 1 ? "step" : "steps";
   const steps = {
     read: `${card.steps.length} ${noun} counted on the site`,

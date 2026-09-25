@@ -15,7 +15,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import ConfigDict, Field, model_validator
 
-from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.evidence import EvidenceCard, RequirementCheck
 from pathfinder.domain.strategy.step_rationale import StepRationale
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.redaction import assert_redacted
@@ -61,9 +61,7 @@ class ExtractedStrategy(CamelModel):
             stored.name or "",
             stored.description or "",
             *words.criterion_texts.values(),
-            *(text for reason in reasons for text in (reason.reason, reason.term)),
-            *(r.query for r in words.rationales.values()),
-            *(source for r in words.rationales.values() for source in r.sources),
+            *(text for reason in reasons for text in reason.texts()),
         ]
 
 
@@ -77,6 +75,8 @@ class ExtractedVerification(CamelModel):
     key_findings: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
     pending_checks: list[str] = Field(default_factory=list)
+    # One row per requirement the researcher stated, as the check judged it.
+    requirements: list[RequirementCheck] = Field(default_factory=list)
     evidence: EvidenceCard | None = None
 
     @property
@@ -105,6 +105,9 @@ class EvalExtract(CamelModel):
             assert_redacted(self.verification.reason)
             for line in (*self.verification.key_findings, *self.verification.caveats):
                 assert_redacted(line)
+            for row in self.verification.requirements:
+                assert_redacted(row.text)
+                assert_redacted(row.note)
             evidence = self.verification.evidence
             for text in evidence.texts() if evidence is not None else []:
                 assert_redacted(text)

@@ -14,7 +14,6 @@ from assistant_core.conversation.serde import (
     checkpoint_types,
 )
 from assistant_core.graph.turn_state import (
-    DurableCall,
     DurableTaskResult,
     PendingApproval,
     PendingDurableCall,
@@ -23,7 +22,11 @@ from assistant_core.graph.turn_state import (
     UserQuestionAnswer,
 )
 from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
-from pydantic_ai.ui.vercel_ai.request_types import TextUIPart, ToolApprovalResponded
+from pydantic_ai.ui.vercel_ai.request_types import (
+    FileUIPart,
+    TextUIPart,
+    ToolApprovalResponded,
+)
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import CombineOp
 
@@ -38,6 +41,7 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
+from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
@@ -58,6 +62,15 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.tests._support.separation import (
+    ATTACHED_CONTROLS,
+    TASK_ID,
+    recorded_offer,
+)
+from pathfinder.tests.unit.ai.conversation._checkpoint_samples import (
+    pending_approval,
+    pending_durable_call,
+)
 
 
 def _overview(record_type: str) -> SearchOverview:
@@ -78,58 +91,6 @@ def _memory() -> MemoryValue:
         summary="OBPs are odorant binding proteins",
         content={"detail": "vectorbase"},
         created_at=datetime(2026, 8, 7, tzinfo=UTC),
-    )
-
-
-def _pending_durable_call() -> PendingDurableCall:
-    return PendingDurableCall(
-        phase="verification",
-        tool_call_id="call_verify_strategy",
-        tool_name="verify_strategy",
-        tool_args={"reason": "test the built step against the controls"},
-        prior_messages_json='[{"kind":"request","parts":[]}]',
-        durable_calls=[
-            DurableCall(
-                tool_call_id="call_run_control_tests_on_step",
-                tool_name="run_control_tests_on_step",
-                args={"wdk_step_id": 440299573},
-                task_id=UUID("0c6100d2-0000-4000-8000-000000000001"),
-                durable_tool_name="run_control_tests_on_step",
-            ),
-        ],
-        sub_agent=SubAgentApprovalPending(
-            role="verification",
-            approvals=[
-                SubAgentApprovalCall(
-                    tool_call_id="call_run_control_tests_on_step",
-                    tool_name="run_control_tests_on_step",
-                    args={"wdk_step_id": 440299573},
-                ),
-            ],
-            messages_json='[{"kind":"response","parts":[]}]',
-        ),
-    )
-
-
-def _pending_approval() -> PendingApproval:
-    return PendingApproval(
-        phase="verification",
-        tool_call_id="call_verify_strategy",
-        tool_name="verify_strategy",
-        tool_args={"reason": "optimize the fold change"},
-        prior_messages_json='[{"kind":"request","parts":[]}]',
-        user_message_id=UUID("01a011a9-5c65-74b2-8813-215ab5b382fa"),
-        sub_agent=SubAgentApprovalPending(
-            role="verification",
-            approvals=[
-                SubAgentApprovalCall(
-                    tool_call_id="call_optimize_search_parameters",
-                    tool_name="optimize_search_parameters",
-                    args={"settings": {"budget": 8}},
-                ),
-            ],
-            messages_json='[{"kind":"response","parts":[]}]',
-        ),
     )
 
 
@@ -248,7 +209,16 @@ def _domain() -> StrategyDomainState:
                 hard=False,
             ),
         ],
+        separation_offers={str(TASK_ID): recorded_offer()},
+        attached_controls=ATTACHED_CONTROLS,
     )
+
+
+_TABLE_PNG = FileUIPart(
+    media_type="image/png",
+    filename="table.png",
+    url="data:image/png;base64,iVBORw0KGgo=",
+)
 
 
 def _populated_state() -> PipelineState:
@@ -259,13 +229,13 @@ def _populated_state() -> PipelineState:
         mode="strategy",
         user_message_id=uuid4(),
         user_prompt="find drug targets",
-        user_parts=[TextUIPart(text="find drug targets", state="done")],
+        user_parts=[_TABLE_PNG, TextUIPart(text="find drug targets", state="done")],
         turn_trace_id=str(uuid4()),
         turn_created_at="2026-08-21T00:00:00+00:00",
         turn_start_event_id=7,
         turn_total_tokens=1234,
         turn_total_cost_usd=Decimal("0.0042"),
-        pending_approval=_pending_approval(),
+        pending_approval=pending_approval(),
         approval_responses={
             "call_verify_strategy": ToolApprovalResponded(
                 id="call_verify_strategy",
@@ -288,16 +258,17 @@ def _populated_state() -> PipelineState:
 
 SAMPLES: dict[type, object] = {
     TextUIPart: TextUIPart(text="hello"),
+    FileUIPart: _TABLE_PNG,
     ToolApprovalResponded: ToolApprovalResponded(id="call_1", approved=True),
     MemoryValue: _memory(),
-    PendingApproval: _pending_approval(),
-    PendingDurableCall: _pending_durable_call(),
+    PendingApproval: pending_approval(),
+    PendingDurableCall: pending_durable_call(),
     DurableTaskResult: DurableTaskResult(
         task_id=UUID("0c6100d2-0000-4000-8000-000000000001"),
         status="success",
         result={"genesTested": 5511},
     ),
-    SubAgentApprovalPending: _pending_approval().sub_agent,
+    SubAgentApprovalPending: pending_approval().sub_agent,
     SubAgentApprovalCall: SubAgentApprovalCall(
         tool_call_id="call_delete_step",
         tool_name="delete_step",
@@ -322,6 +293,8 @@ SAMPLES: dict[type, object] = {
     OperationalSpec: _spec(),
     StaleBuild: StaleBuild(added_nodes=["s3"]),
     StrategyDomainState: _domain(),
+    SeparationOffer: recorded_offer(),
+    AttachedControls: ATTACHED_CONTROLS,
 }
 
 
@@ -372,6 +345,8 @@ def test_the_pathfinder_spec_declares_its_state_types() -> None:
         OperationalSpec,
         StaleBuild,
         StrategyDomainState,
+        SeparationOffer,
+        AttachedControls,
     }
 
 

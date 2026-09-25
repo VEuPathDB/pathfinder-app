@@ -19,7 +19,7 @@ from pydantic_ai.messages import (
 from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.agents.pinned_sheets import PINNED_SHEETS_MAX_CHARS
-from pathfinder.ai.graph import state as graph_state
+from pathfinder.ai.graph import state
 from pathfinder.ai.lead import lead_pins
 from pathfinder.ai.lead.lead_pins import pinned_eda_sheet
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -29,8 +29,8 @@ from pathfinder.ai.tools.standalone._eda_models import (
     EdaFiltersResult,
 )
 from pathfinder.domain.eda_parts import EdaAnalysisState, EdaFilterSheetEntry
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda import binding
-from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.tests._support.eda_doubles import (
     ANALYSIS_ID,
     RevisionCounter,
@@ -358,5 +358,5 @@ def _tool_imports(module: ModuleType) -> list[str]:
 def test_the_sheet_the_checkpoint_and_the_pin_share_is_a_domain_shape() -> None:
     """A shape two packages hold is the domain's, not a tool return's."""
     assert EdaFilterSheetEntry.__module__ == "pathfinder.domain.eda_parts"
-    assert _tool_imports(graph_state) == []
+    assert _tool_imports(state) == []
     assert _tool_imports(lead_pins) == []

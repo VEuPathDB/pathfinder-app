@@ -3,6 +3,7 @@
 /** The four tiers of data clearing a user can ask for, widest last. */
 import { useState } from "react";
 import { toast } from "sonner";
+import { siteShortName } from "@pathfinder/shared";
 import { requestVoid } from "@/lib/api/http";
 import { listStrategies } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
@@ -26,7 +27,7 @@ function reportPurge(deleted: PurgeCounts): void {
     toast.error("Not everything was deleted", {
       description: `${done} Could not delete: ${String(
         deleted.wdkStrategiesKept,
-      )}. The chats and runs that used them were kept, so you can try again. ${memories}`,
+      )}. The conversations and runs that used them were kept, so you can try again. ${memories}`,
     });
     return;
   }
@@ -38,6 +39,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
   const [wdkConfirmText, setWdkConfirmText] = useState("");
   const { run, error } = useAsyncAction();
+  const siteName = siteShortName(siteId);
 
   const clearStrategies = async () => {
     setClearing("strategies");
@@ -100,7 +102,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
 
       <DangerAction
         label="Clear strategies"
-        description={`Remove every chat for ${siteId} from PathFinder. A chat linked to a VEuPathDB strategy is dismissed instead, and the strategy itself stays. Gene sets, runs and control sets are untouched.`}
+        description={`Remove every conversation for ${siteName} from PathFinder. A conversation linked to a VEuPathDB strategy moves to Recently deleted instead, and the strategy itself stays. Gene sets, runs and control sets are untouched.`}
         loading={clearing === "strategies"}
         confirmed={confirmAction === "strategies"}
         onConfirm={() => setConfirmAction("strategies")}
@@ -112,7 +114,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
 
       <DangerAction
         label="Clear site data"
-        description={`Delete the gene sets, runs and control sets for ${siteId}, and dismiss every chat on it. The investigations from ${siteId} still waiting for review go with them. A dismissed chat can be restored from the sidebar. VEuPathDB strategies and your memories stay.`}
+        description={`Delete the gene sets, runs and control sets for ${siteName}, and move every conversation on it to Recently deleted. The investigations from ${siteName} still waiting for review go with them. A conversation in Recently deleted can be restored from the sidebar. VEuPathDB strategies and your memories stay.`}
         loading={clearing === "site"}
         confirmed={confirmAction === "site"}
         onConfirm={() => setConfirmAction("site")}
@@ -124,7 +126,7 @@ export function DataSettings({ siteId }: DataSettingsProps) {
 
       <DangerAction
         label="Clear ALL data"
-        description="Delete the gene sets, runs and control sets on every site, and your memories with them. The investigations still waiting for review go too. Every chat is dismissed rather than deleted, and can be restored from the sidebar. VEuPathDB strategies are kept but hidden from sync. Your monthly spend counter and exports stay."
+        description="Delete the gene sets, runs and control sets on every site, and your memories with them. The investigations still waiting for review go too. Every conversation moves to Recently deleted, and can be restored from the sidebar. VEuPathDB strategies are kept but hidden from sync. Your monthly spend counter and exports stay."
         loading={clearing === "all-local"}
         confirmed={confirmAction === "all-local"}
         onConfirm={() => setConfirmAction("all-local")}
@@ -147,9 +149,9 @@ export function DataSettings({ siteId }: DataSettingsProps) {
             >
               Delete everything locally, memories and the investigations still waiting
               for review included, <strong>and</strong> the strategies PathFinder
-              created in VEuPathDB. A chat or a run whose strategy the site keeps is
-              kept too, so you can try again. Your monthly spend counter and exports
-              stay. This cannot be undone.
+              created in VEuPathDB. A conversation or a run whose strategy the site
+              keeps is kept too, so you can try again. Your monthly spend counter and
+              exports stay. This cannot be undone.
             </div>
           </div>
           {confirmAction === "all-wdk" ? (

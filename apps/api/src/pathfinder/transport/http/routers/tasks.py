@@ -10,11 +10,18 @@ from assistant_core.tasks.queries import (
     list_task_rows,
 )
 from fastapi import APIRouter, Depends, Query
+from pydantic import TypeAdapter
 
 from pathfinder.platform.security import get_current_user
-from pathfinder.transport.http.schemas.tasks import TaskListItem, TaskListResponse
+from pathfinder.transport.http.schemas.tasks import (
+    TaskListItem,
+    TaskListResponse,
+    TaskStatus,
+)
 
 router = APIRouter(prefix="/api/v1/conversations", tags=["tasks"])
+
+_STATUS = TypeAdapter[TaskStatus](TaskStatus)
 
 
 @router.get("/{conversation_id}/tasks", response_model=TaskListResponse)
@@ -27,7 +34,7 @@ async def list_tasks(
             alias="status",
             description=(
                 "Comma-separated status filter "
-                "(pending, running, resuming, complete, failed)"
+                "(pending, running, result_ready, resuming, complete, failed)"
             ),
         ),
     ] = None,
@@ -46,7 +53,7 @@ async def list_tasks(
         TaskListItem(
             task_id=task.id,
             tool_name=task.tool_name,
-            status=task.status,
+            status=_STATUS.validate_python(task.status),
             estimated_duration_seconds=task.estimated_duration_seconds,
             created_at=task.created_at,
             started_at=task.started_at,

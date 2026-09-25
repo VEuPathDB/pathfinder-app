@@ -18,6 +18,7 @@ from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.ai.tools.standalone.eda_step import EdaStepCreated
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -25,7 +26,6 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
 )
 from pathfinder.domain.strategy.operations.apply import apply_operation
-from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.services.eda.export import eda_step_request, exported_analysis
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.eda_step_doubles import (

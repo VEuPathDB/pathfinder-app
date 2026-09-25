@@ -42,11 +42,11 @@ function fatalText(status: Exclude<BlockingStatus, { kind: "booting" }>): {
   }
   if (status.kind === "no-sites") {
     return {
-      title: "No database is responding",
+      title: "No site is responding",
       detail:
         status.sites.length > 0
-          ? `None of these databases answered: ${status.sites.join(", ")}.`
-          : "No database is configured.",
+          ? `None of these sites answered: ${status.sites.join(", ")}.`
+          : "No site is configured.",
     };
   }
   return {

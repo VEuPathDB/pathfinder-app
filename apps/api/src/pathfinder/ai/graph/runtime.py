@@ -15,6 +15,7 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.domain.strategy.step_words import step_words
@@ -76,14 +77,24 @@ class Context(TurnContext):
 
 
 class VerificationScope(CamelModel):
-    """What the user asked verification to answer, and which check this is."""
+    """What the researcher asked verification to answer, and which check this is."""
 
-    # The researcher's request, with any clarification, that the verdict answers.
-    request: str = ""
+    # Every message the researcher wrote for the request, oldest first. A
+    # requirement row names its message by its number in this list.
+    messages: list[str] = Field(default_factory=list)
+    # The requirements the ledger holds as the researcher's own, one line each.
+    stated: list[str] = Field(default_factory=list)
+    # One line per word a criterion states that no search it runs can state.
+    unexpressed: list[str] = Field(default_factory=list)
+    # One line per stated combination the structure contradicts.
+    breaches: list[str] = Field(default_factory=list)
     # The Lead's dispatch call this check answers.
     check_id: str = ""
     # The evidence card of the thread's last check, which a digest may restate.
     last_card: EvidenceCard | None = None
+    # The controls an adopted separation was measured against, which the check
+    # tests the strategy with.
+    controls: AttachedControls | None = None
 
 
 class AgentDeps(AssistantDeps):

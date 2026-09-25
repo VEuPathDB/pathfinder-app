@@ -138,7 +138,7 @@ export function MemoryEditor({ open, item, onSave, onCancel }: MemoryEditorProps
               className="h-4 w-4 accent-primary"
             />
             <span className="text-xs font-medium text-muted-foreground">
-              Auto-retrieve in future chats
+              Auto-retrieve in future conversations
             </span>
           </label>
         </div>

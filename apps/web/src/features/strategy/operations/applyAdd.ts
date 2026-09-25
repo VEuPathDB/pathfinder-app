@@ -1,7 +1,8 @@
 import type { Step, Strategy } from "@pathfinder/shared";
 import { findParent } from "./utils";
 import { patchSteps } from "./_patch";
-import { operatorName } from "@/features/strategy/graph/utils/stepTitle";
+import { operatorLabel } from "@/features/strategy/operators";
+import { inferStepKind } from "@/features/strategy/graph/kind";
 import type { GraphOperation } from "@/lib/types/graphOperation";
 import type { ApplyResult } from "./types";
 
@@ -87,6 +88,13 @@ export function applyDuplicateStep(
 ): ApplyResult {
   const source = strategy.steps.find((s) => s.id === op.sourceStepId);
   if (!source) return { kind: "rejected", reason: `Step ${op.sourceStepId} not found` };
+  const kind = inferStepKind(source);
+  if (kind !== "search") {
+    return {
+      kind: "rejected",
+      reason: `Only a search step can be duplicated; step ${source.id} is a ${kind}`,
+    };
+  }
 
   const duplicate: Step = {
     ...source,
@@ -99,7 +107,7 @@ export function applyDuplicateStep(
   const combine: Step = {
     id: op.combineStepId,
     kind: "combine",
-    displayName: op.combineDisplayName ?? operatorName("INTERSECT"),
+    displayName: op.combineDisplayName ?? operatorLabel("INTERSECT"),
     operator: "INTERSECT",
     recordType: source.recordType ?? null,
     primaryInputStepId: op.sourceStepId,

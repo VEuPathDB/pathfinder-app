@@ -255,3 +255,78 @@ def test_an_attachment_part_starts_on_its_own_line() -> None:
         "Which of them encode proteins with a signal peptide?\n\n"
         "Attached gene-ID list from msp-set.csv: PF3D7_0102200, PF3D7_0207600"
     )
+
+
+_PNG_URL = "data:image/png;base64,iVBORw0KGgo="
+
+
+def _user(text: str, *files: dict[str, str]) -> dict[str, object]:
+    return {
+        "id": str(uuid4()),
+        "role": "user",
+        "parts": [{"type": "text", "text": text}, *files],
+    }
+
+
+def _file(filename: str) -> dict[str, str]:
+    return {
+        "type": "file",
+        "mediaType": "image/png",
+        "filename": filename,
+        "url": _PNG_URL,
+    }
+
+
+def test_the_last_user_message_keeps_its_files() -> None:
+    body = ChatRequestBody.model_validate(
+        _body(messages=[_user("which genes are in this image?", _file("table.png"))])
+    )
+
+    assert [(f.filename, f.media_type, f.url) for f in body.last_user_files] == [
+        ("table.png", "image/png", _PNG_URL)
+    ]
+
+
+def test_an_earlier_message_carries_no_file() -> None:
+    """The worker reads earlier turns from the checkpoint, so their bytes are not
+    carried again."""
+    body = ChatRequestBody.model_validate(
+        _body(messages=[_user("first", _file("old.png")), _user("second")])
+    )
+
+    assert [part.type for m in body.messages for part in m.parts] == ["text", "text"]
+
+
+def test_the_logged_user_parts_are_the_text_then_each_file() -> None:
+    body = ChatRequestBody.model_validate(
+        _body(messages=[_user("read this", _file("table.png"))])
+    )
+
+    assert body.last_user_parts == [
+        {"type": "text", "text": "read this"},
+        {
+            "type": "file",
+            "mediaType": "image/png",
+            "filename": "table.png",
+            "url": _PNG_URL,
+        },
+    ]
+
+
+def test_a_message_of_files_alone_logs_no_empty_text() -> None:
+    body = ChatRequestBody.model_validate(
+        _body(
+            messages=[
+                {"id": str(uuid4()), "role": "user", "parts": [_file("table.png")]}
+            ]
+        )
+    )
+
+    assert body.last_user_parts == [
+        {
+            "type": "file",
+            "mediaType": "image/png",
+            "filename": "table.png",
+            "url": _PNG_URL,
+        },
+    ]

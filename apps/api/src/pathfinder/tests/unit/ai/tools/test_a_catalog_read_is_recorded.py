@@ -10,7 +10,10 @@ from veupathdb_mcp.catalog import SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone.catalog import search_for_searches
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+from pathfinder.tests.unit.ai.tools.conftest import (
+    agent_run_context,
+    serve_no_other_sites,
+)
 
 
 def _match(name: str, display_name: str, similarity: float | None) -> SearchMatch:
@@ -38,6 +41,7 @@ async def test_a_read_keeps_its_hits_with_their_similarity(
             ]
         ),
     )
+    serve_no_other_sites(monkeypatch)
     state = AgentToolState()
 
     await search_for_searches(

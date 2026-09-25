@@ -21,15 +21,14 @@ const BUILD_TURN_BUDGET_MS = 180_000;
  * - Full-page editor at `/conversation/[id]/strategy` with a CanvasTopbar +
  *   CanvasControls + SelectionActionBar
  * - Right-anchored Sheet step editor (auto-saves; no Save button)
- * - Combine creation by drag → INTERSECT default → Sheet opens with venn picker
+ * - Combine creation by drag -> INTERSECT default -> Sheet opens with venn picker
  */
 export class GraphPage {
   constructor(private page: Page) {}
 
   private buildBudgetGranted = false;
 
-  // ── Rail panel (read-only step list on /conversation/[id]) ──────
-
+  // Rail panel (read-only step list on /conversation/[id])
   /** The vertical step list panel rendered in the right rail. */
   get railPanel(): Locator {
     return this.page.getByTestId("rail-strategy-panel");
@@ -113,14 +112,13 @@ export class GraphPage {
     return this.railStepRows.count();
   }
 
-  // ── Strategy page chrome (/conversation/[id]/strategy) ──────────
-
+  // Strategy page chrome (/conversation/[id]/strategy)
   /** The CanvasTopbar mounted on the /strategy route. */
   get strategyPageTopbar(): Locator {
     return this.page.getByTestId("canvas-topbar");
   }
 
-  /** "Back to chat" button in the canvas topbar. */
+  /** "Back to conversation" button in the canvas topbar. */
   get strategyPageBackButton(): Locator {
     return this.page.getByTestId("canvas-topbar-back");
   }
@@ -130,7 +128,7 @@ export class GraphPage {
     return this.page.getByTestId("canvas-topbar-step-count");
   }
 
-  /** Sync state pill in the canvas topbar (idle/saving/error/paused). */
+  /** Sync state pill in the canvas topbar (idle/saving/error). */
   get strategyPageSyncState(): Locator {
     return this.page.getByTestId("canvas-topbar-sync-state");
   }
@@ -155,8 +153,7 @@ export class GraphPage {
     return this.page.getByTestId("validation-alert");
   }
 
-  // ── Editor Sheet (right-anchored, opens on step click) ───────────
-
+  // Editor Sheet (right-anchored, opens on step click)
   /** The Sheet container (Radix Dialog) with the step editor inside. */
   get editorSheet(): Locator {
     return this.page.getByTestId("step-editor-sheet");
@@ -167,7 +164,7 @@ export class GraphPage {
     return this.page.getByTestId("step-editor-footer");
   }
 
-  /** Editor sync state indicator (data-sync-state="idle|saving|error|paused"). */
+  /** Editor sync state indicator (data-sync-state="idle|saving|error"). */
   get editorSyncState(): Locator {
     return this.page.getByTestId("step-editor-sync-state");
   }
@@ -177,15 +174,13 @@ export class GraphPage {
     return this.editorSheet.getByLabel("Step name");
   }
 
-  // ── Edge context menu ────────────────────────────────────────────
-
+  // Edge context menu
   /** Operator grid inside the edge context menu (Popover). */
   get edgeContextMenuOperatorGrid(): Locator {
     return this.page.getByTestId("edge-context-menu-operator-grid");
   }
 
-  // ── ReactFlow nodes (canvas) ─────────────────────────────────────
-
+  // ReactFlow nodes (canvas)
   /** All strategy graph nodes in the ReactFlow canvas. */
   get nodes(): Locator {
     return this.page.locator("[data-testid^='rf-node-']");
@@ -258,16 +253,15 @@ export class GraphPage {
     const labelByOp: Record<typeof op, string> = {
       UNION: "Set operator to Union",
       INTERSECT: "Set operator to Intersect",
-      MINUS: "Set operator to A only",
-      RMINUS: "Set operator to B only",
+      MINUS: "Set operator to Minus",
+      RMINUS: "Set operator to Right minus",
     };
     await this.edgeContextMenuOperatorGrid
       .getByRole("menuitemradio", { name: labelByOp[op] })
       .click();
   }
 
-  // ── Navigation helpers ──────────────────────────────────────────
-
+  // Navigation helpers
   /** Navigate directly to the strategy editor route for a conversation. */
   async goToStrategy(siteId: string, conversationId: string) {
     await this.page.goto(`/${siteId}/conversation/${conversationId}/strategy`);
@@ -288,8 +282,7 @@ export class GraphPage {
     );
   }
 
-  // ── Compound assertions ──────────────────────────────────────────
-
+  // Compound assertions
   /**
    * Assert the rail panel with steps is visible (planning artifact applied).
    *

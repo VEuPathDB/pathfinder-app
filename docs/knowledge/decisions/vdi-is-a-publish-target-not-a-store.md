@@ -25,7 +25,9 @@ the publication.
   per-site override.
 - Service: `services/gene_sets/vdi.py`, two functions. `publish_to_vdi` loads the set,
   uploads it and records the id. `vdi_publication_status` reads the three status axes on
-  demand. PathFinder runs no polling loop.
+  demand. PathFinder runs no polling loop for a published gene set. A researcher's own
+  uploads are listed the same way, on demand
+  ([A private dataset is uploaded on the site and analysed here](a-private-dataset-is-uploaded-on-the-site-and-analysed-here.md)).
 - Transport: `POST` and `GET /api/v1/gene-sets/{id}/vdi-publication`, both behind the
   registered-login gate.
 - UI: one button on the gene-set figure in the thread (`content/parts/DataGeneSet.tsx`),

@@ -3,7 +3,6 @@
     "control_set": {
       "name": "Surface Invasion Controls",
       "negative_ids": [
-        "Cgd2_2990",
         "cgd1_1660",
         "cgd1_2270",
         "cgd1_300",
@@ -15,28 +14,29 @@
         "cgd2_2200",
         "cgd2_280",
         "cgd2_2870",
+        "Cgd2_2990",
         "cgd2_3000",
         "cgd2_350",
         "cgd2_4260"
       ],
       "positive_ids": [
+        "cgd1_3220",
         "cgd1_3500",
-        "cgd8_150",
-        "cgd8_540",
-        "cgd6_1300",
-        "cgd6_1660",
         "cgd1_3510",
+        "cgd1_3690",
+        "cgd1_890",
+        "cgd2_3660",
+        "cgd2_420",
+        "cgd2_430",
+        "cgd2_440",
+        "cgd2_450",
+        "cgd2_770",
+        "cgd3_3470",
         "cgd3_720",
-        "cgd7_4020",
-        "cgd6_1080",
-        "cgd7_4330",
-        "cgd1_1100",
-        "cgd1_1170",
-        "cgd1_220",
-        "cgd1_2240",
-        "cgd1_2490"
+        "cgd4_2190",
+        "cgd4_32"
       ],
-      "provenance_notes": "Positive: TRAP/TSP family adhesins, surface glycoproteins, and secreted proteases involved in invasion. Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "provenance_notes": "Positive set: the first 15 genes the site returns for this seed's own tree (CryptoDB build 71, read 2026-09-24). Negative set: the first 15 genes annotated to structural constituent of ribosome (GO:0003735) that the tree does not return (ribosomal proteins, housekeeping).",
       "tags": [
         "invasion",
         "TRAP",
@@ -47,7 +47,16 @@
         "sporozoite"
       ]
     },
-    "description": "10-node strategy modeling the molecular toolkit C. parvum Iowa II sporozoites use to invade intestinal epithelial cells. Combines secreted proteins with enzymatic activity (kinases + proteases), surface-anchored transmembrane proteins, thrombospondin-related adhesive proteins (TRAP/TSP family), and mucin-like glycoproteins. These are prime vaccine and drug targets for cryptosporidiosis.",
+    "description": "11-node strategy modeling the molecular toolkit C. parvum Iowa II sporozoites use to invade intestinal epithelial cells. Combines secreted proteins with enzymatic activity (kinases + proteases), surface-anchored transmembrane proteins, thrombospondin-related adhesive proteins (TRAP/TSP family), and mucin-like glycoproteins. These are prime vaccine and drug targets for cryptosporidiosis.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 15,
+      "positives_total": 15,
+      "root_count": 33,
+      "site_build": "71"
+    },
     "name": "CpIowaII Surface Invasion Machinery",
     "record_type": "transcript",
     "site_id": "cryptodb",
@@ -146,40 +155,36 @@
     "control_set": {
       "name": "Drug Target Enzyme Controls",
       "negative_ids": [
-        "Cgd2_2990",
         "cgd1_1660",
+        "cgd1_1860",
+        "cgd1_2130",
         "cgd1_2270",
         "cgd1_300",
         "cgd1_3000",
+        "cgd1_3480",
         "cgd1_850",
+        "cgd2_1160",
         "cgd2_120",
-        "cgd2_130",
-        "cgd2_170",
-        "cgd2_2200",
-        "Cgd2_2990",
-        "cgd1_1660",
-        "cgd1_2130",
-        "cgd1_2270",
-        "cgd1_300"
+        "cgd2_130"
       ],
       "positive_ids": [
-        "cgd1_1350",
-        "cgd1_1670",
-        "cgd1_190",
-        "cgd1_2410",
-        "cgd1_2710",
-        "cgd1_280",
-        "cgd1_3440",
-        "cgd1_360",
-        "cgd1_40",
-        "cgd1_530",
-        "cgd1_1100",
+        "cgd1_1110",
+        "cgd1_1130",
+        "cgd1_1140",
         "cgd1_1170",
-        "cgd1_220",
-        "cgd1_2240",
-        "cgd1_2490"
+        "cgd1_1180",
+        "cgd1_1220",
+        "cgd1_1270",
+        "cgd1_1300",
+        "cgd1_1330",
+        "cgd1_1350",
+        "cgd1_1370",
+        "cgd1_1380",
+        "cgd1_1490",
+        "cgd1_1540",
+        "cgd1_1620"
       ],
-      "provenance_notes": "Positive: oxidoreductases and proteases with EC annotations (parasite-specific metabolic enzymes). Negative: ribosomal (GO:0003735) + translation (GO:0006412). All gene IDs verified against live CryptoDB API March 2026.",
+      "provenance_notes": "Positive set: the first 15 genes the site returns for this seed's own tree (CryptoDB build 71, read 2026-09-24). Negative set: the first 11 genes annotated to structural constituent of ribosome (GO:0003735) or translation (GO:0006412) that the tree does not return (ribosomal and translation genes).",
       "tags": [
         "drug-target",
         "enzyme",
@@ -191,7 +196,16 @@
         "mitosome"
       ]
     },
-    "description": "8-node strategy to find parasite-specific enzyme drug targets in C. parvum Iowa II. Cryptosporidium has a remarkably reduced metabolome (no functional mitochondria, uses a mitosome; lacks the apicoplast found in other apicomplexans). This makes its unique enzymes especially attractive as drug targets. Combines oxidoreductases, transferases, hydrolases, and ligases, then subtracts translation machinery to focus on metabolic enzymes divergent from host.",
+    "description": "9-node strategy to find parasite-specific enzyme drug targets in C. parvum Iowa II. Cryptosporidium has a remarkably reduced metabolome (no functional mitochondria, uses a mitosome; lacks the apicoplast found in other apicomplexans). This makes its unique enzymes especially attractive as drug targets. Combines oxidoreductases, transferases, hydrolases, and ligases, then subtracts translation machinery to focus on metabolic enzymes divergent from host.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 11,
+      "positives_recovered": 15,
+      "positives_total": 15,
+      "root_count": 1066,
+      "site_build": "71"
+    },
     "name": "CpIowaII Drug Target Enzymes",
     "record_type": "transcript",
     "site_id": "cryptodb",
@@ -323,7 +337,16 @@
         "public-health"
       ]
     },
-    "description": "7-node strategy probing the oocyst development program in C. parvum Iowa II. Oocysts are the chlorine-resistant environmental transmission stage -- understanding their wall formation is critical for water treatment and public health. Combines oocyst wall proteins (COWPs), cysteine-rich secreted proteins, transcriptional regulators (DNA binding), and stress response (heat shock proteins) that orchestrate oocyst maturation.",
+    "description": "9-node strategy probing the oocyst development program in C. parvum Iowa II. Oocysts are the chlorine-resistant environmental transmission stage -- understanding their wall formation is critical for water treatment and public health. Combines oocyst wall proteins (COWPs), cysteine-rich secreted proteins, transcriptional regulators (DNA binding), and stress response (heat shock proteins) that orchestrate oocyst maturation.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 16,
+      "positives_total": 16,
+      "root_count": 169,
+      "site_build": "71"
+    },
     "name": "CpIowaII Oocyst Development Program",
     "record_type": "transcript",
     "site_id": "cryptodb",
@@ -406,7 +429,6 @@
     "control_set": {
       "name": "Metabolic Enzyme Controls",
       "negative_ids": [
-        "Cgd2_2990",
         "cgd1_1660",
         "cgd1_2270",
         "cgd1_300",
@@ -418,28 +440,28 @@
         "cgd2_2200",
         "cgd2_280",
         "cgd2_2870",
+        "Cgd2_2990",
         "cgd2_3000",
         "cgd2_350",
         "cgd2_4260"
       ],
       "positive_ids": [
-        "Cgd7_260",
         "cgd1_1350",
-        "cgd1_2190",
-        "cgd1_2550",
-        "cgd1_2560",
         "cgd1_3050",
+        "cgd1_40",
         "cgd1_520",
         "cgd1_540",
         "cgd1_700",
-        "cgd2_1360",
-        "cgd1_1350",
-        "cgd1_1670",
-        "cgd1_190",
-        "cgd1_2410",
-        "cgd1_2710"
+        "cgd2_2400",
+        "cgd2_250",
+        "cgd2_2680",
+        "cgd2_3870",
+        "cgd2_3960",
+        "cgd2_4240",
+        "cgd2_60",
+        "cgd2_70"
       ],
-      "provenance_notes": "Positive: transporters with EC annotations (nutrient salvage enzymes), oxidoreductases (metabolic). Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "provenance_notes": "Positive set: the first 14 genes the site returns for this seed's own tree (CryptoDB build 71, read 2026-09-24). Negative set: the first 15 genes annotated to structural constituent of ribosome (GO:0003735) that the tree does not return (ribosomal proteins, housekeeping).",
       "tags": [
         "metabolic",
         "nutrient-salvage",
@@ -449,7 +471,16 @@
         "reduced-metabolism"
       ]
     },
-    "description": "6-node strategy mapping the metabolic enzyme landscape of C. parvum Iowa II. This obligate intracellular parasite has a drastically reduced metabolome -- it lacks a functional mitochondrion (uses a mitosome for FeS cluster assembly) and lacks the apicoplast organelle found in Plasmodium and Toxoplasma. Intersects EC-annotated metabolic enzymes (transferases, hydrolases, oxidoreductases) with transporter genes to identify nutrient salvage pathways critical for parasite survival.",
+    "description": "7-node strategy mapping the metabolic enzyme landscape of C. parvum Iowa II. This obligate intracellular parasite has a drastically reduced metabolome -- it lacks a functional mitochondrion (uses a mitosome for FeS cluster assembly) and lacks the apicoplast organelle found in Plasmodium and Toxoplasma. Intersects EC-annotated metabolic enzymes (transferases, hydrolases, oxidoreductases) with transporter genes to identify nutrient salvage pathways critical for parasite survival.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 14,
+      "positives_total": 14,
+      "root_count": 54,
+      "site_build": "71"
+    },
     "name": "CpIowaII Metabolic Enzyme Landscape",
     "record_type": "transcript",
     "site_id": "cryptodb",
@@ -518,7 +549,6 @@
     "control_set": {
       "name": "Secreted Effector Controls",
       "negative_ids": [
-        "Cgd2_2990",
         "cgd1_1660",
         "cgd1_2270",
         "cgd1_300",
@@ -530,28 +560,29 @@
         "cgd2_2200",
         "cgd2_280",
         "cgd2_2870",
+        "Cgd2_2990",
         "cgd2_3000",
         "cgd2_350",
         "cgd2_4260"
       ],
       "positive_ids": [
-        "cgd5_4580",
-        "cgd5_4590",
-        "cgd5_4600",
-        "cgd5_4610",
-        "cgd6_5480",
-        "cgd6_5490",
-        "cgd1_1680",
-        "cgd2_2760",
-        "cgd2_920",
-        "cgd2_930",
-        "cgd3_4260",
-        "cgd3_4270",
-        "cgd5_2020",
-        "cgd7_4310",
-        "Cgd5_40"
+        "cgd1_140",
+        "cgd1_150",
+        "cgd1_160",
+        "cgd1_2240",
+        "cgd1_2400",
+        "cgd1_3690",
+        "cgd1_3850",
+        "cgd1_650",
+        "cgd2_3320",
+        "cgd2_3660",
+        "cgd3_10",
+        "cgd3_4180",
+        "cgd3_4190",
+        "cgd3_4210",
+        "cgd4_2110"
       ],
-      "provenance_notes": "Positive: MEDLE family effectors, insulinase-like proteases, and diverse secreted proteins. Negative: ribosomal proteins (GO:0003735, housekeeping). All gene IDs verified against live CryptoDB API March 2026.",
+      "provenance_notes": "Positive set: the first 15 genes the site returns for this seed's own tree (CryptoDB build 71, read 2026-09-24). Negative set: the first 15 genes annotated to structural constituent of ribosome (GO:0003735) that the tree does not return (ribosomal proteins, housekeeping).",
       "tags": [
         "effector",
         "MEDLE",
@@ -562,7 +593,16 @@
         "signal-peptide"
       ]
     },
-    "description": "5-node strategy identifying the secreted effector repertoire of C. parvum Iowa II. Cryptosporidium exports proteins into the host cell cytoplasm to subvert host defenses and manipulate cell signaling. Key families include MEDLE proteins, insulinase-like proteases (expanded in subtelomeric regions), secreted GGC proteins, and cysteine proteases (cryptopains). Filters for signal peptide plus effector annotations, then removes ribosomal housekeeping genes.",
+    "description": "7-node strategy identifying the secreted effector repertoire of C. parvum Iowa II. Cryptosporidium exports proteins into the host cell cytoplasm to subvert host defenses and manipulate cell signaling. Key families include MEDLE proteins, insulinase-like proteases (expanded in subtelomeric regions), secreted GGC proteins, and cysteine proteases (cryptopains). Filters for signal peptide plus effector annotations, then removes ribosomal housekeeping genes.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 15,
+      "positives_total": 15,
+      "root_count": 61,
+      "site_build": "71"
+    },
     "name": "CpIowaII Secreted Effector Repertoire",
     "record_type": "transcript",
     "site_id": "cryptodb",
@@ -682,6 +722,15 @@
       ]
     },
     "description": "Simple 1-node baseline strategy: all protein kinase activity (GO:0004672) genes in C. parvum Iowa II. Serves as a reference for comparison with more complex multi-step strategies. Includes calcium-dependent protein kinases (CDPKs), cyclin-dependent kinases, MAP kinases, and other Ser/Thr kinases.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 20,
+      "positives_recovered": 20,
+      "positives_total": 20,
+      "root_count": 88,
+      "site_build": "71"
+    },
     "name": "CpIowaII Baseline Kinases",
     "record_type": "transcript",
     "site_id": "cryptodb",

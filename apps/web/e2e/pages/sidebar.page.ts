@@ -98,9 +98,9 @@ export class SidebarPage {
     return ids[0] ?? "";
   }
 
-  // ── Dismissed section ──────────────────────────────────────────
+  // Recently deleted section
 
-  /** The "Dismissed (N)" toggle button. */
+  /** The "Recently deleted (N)" toggle button. */
   get dismissedToggle(): Locator {
     return this.page.getByTestId("dismissed-toggle");
   }
@@ -117,7 +117,7 @@ export class SidebarPage {
     );
   }
 
-  /** Expand the dismissed section (idempotent — no-op if already expanded). */
+  /** Expand the Recently deleted section; a no-op when it is already open. */
   async expandDismissed() {
     await expect(this.dismissedToggle).toBeVisible({ timeout: 15_000 });
     // The rows are in the DOM only while the section is open, so their count
@@ -137,7 +137,7 @@ export class SidebarPage {
 
   /** Assert the dismissed toggle shows the expected count. */
   async expectDismissedCount(count: number) {
-    await expect(this.dismissedToggle).toContainText(`Dismissed (${count})`, {
+    await expect(this.dismissedToggle).toContainText(`Recently deleted (${count})`, {
       timeout: 15_000,
     });
   }

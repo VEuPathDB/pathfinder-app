@@ -15,7 +15,7 @@ vi.mock("./echartsRegistry", () => ({
 }));
 
 import { VolcanoChart } from "./VolcanoChart";
-import { VOLCANO_POINT_SAMPLE } from "@/lib/eda/volcanoSelection";
+import { VOLCANO_POINT_SAMPLE } from "@/lib/eda/__fixtures__/volcanoSample";
 
 const flush = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 
@@ -26,7 +26,6 @@ const props = {
     significanceThreshold: 0.05,
     direction: "upAndDown" as const,
   },
-  significanceField: "adjustedPValue" as const,
   effectSizeLabel: "log2(Fold Change)",
   height: 280,
   testId: "eda-viz-volcano",

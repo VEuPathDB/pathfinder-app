@@ -111,15 +111,15 @@ describe("StartupScreen", () => {
     render(
       <StartupScreen status={{ kind: "no-sites", sites: ["veupathdb", "toxodb"] }} />,
     );
-    expect(screen.getByText(/no database is responding/i)).toBeInTheDocument();
+    expect(screen.getByText(/no site is responding/i)).toBeInTheDocument();
     expect(screen.getByText(/veupathdb, toxodb/)).toBeInTheDocument();
     expect(screen.getByText(/report this to an administrator/i)).toBeInTheDocument();
   });
 
   it("says the deployment configures no database when the site list is empty", () => {
     render(<StartupScreen status={{ kind: "no-sites", sites: [] }} />);
-    expect(screen.getByText(/no database is responding/i)).toBeInTheDocument();
-    expect(screen.getByText(/no database is configured/i)).toBeInTheDocument();
+    expect(screen.getByText(/no site is responding/i)).toBeInTheDocument();
+    expect(screen.getByText(/no site is configured/i)).toBeInTheDocument();
   });
 
   it("surfaces an unreachable error and tells the user to report it", () => {

@@ -31,7 +31,9 @@ describe("BranchMessageAction", () => {
   it("pushes the fork's chat url built from the path's site id", async () => {
     render(<BranchMessageAction />);
 
-    fireEvent.click(screen.getByRole("button", { name: /branch to a new chat/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /branch to a new conversation/i }),
+    );
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(chatUrl("plasmodb", "fork-9"));

@@ -1,8 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
-import { useEventListener } from "usehooks-ts";
 
 import {
   Tooltip,
@@ -13,6 +11,7 @@ import {
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
+import { filterCommands } from "./parser";
 import type { Command, CommandContext } from "./types";
 
 export interface SlashPopoverProps {
@@ -20,11 +19,12 @@ export interface SlashPopoverProps {
   query: string;
   commands: Command[];
   ctx?: CommandContext;
+  activeIdx: number;
   onSelect: (command: Command) => void;
-  onDismiss: () => void;
+  onHover: (index: number) => void;
 }
 
-function disabledReasonFor(
+export function disabledReasonFor(
   command: Command,
   ctx: CommandContext | undefined,
 ): string | null {
@@ -33,69 +33,20 @@ function disabledReasonFor(
   return resolver(ctx);
 }
 
-function filterCommands(commands: Command[], query: string): Command[] {
-  const lower = query.toLowerCase();
-  if (lower === "") return commands;
-  return commands.filter((c) => {
-    if (c.name.toLowerCase().startsWith(lower)) return true;
-    const aliases = c.aliases ?? [];
-    return aliases.some((a) => a.toLowerCase().startsWith(lower));
-  });
-}
-
 export function SlashPopover({
   open,
   query,
   commands,
   ctx,
+  activeIdx,
   onSelect,
-  onDismiss,
+  onHover,
 }: SlashPopoverProps) {
   const filtered = filterCommands(commands, query);
-
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [filterKey, setFilterKey] = useState("");
-  const listRef = useRef<HTMLDivElement>(null);
   const entrance = useEntrance({
     initial: { opacity: 0, y: 6 },
     exit: { opacity: 0, y: 6 },
     transition: { duration: 0.12 },
-  });
-
-  // Render-time reset: when the filtered set changes identity we restart at 0
-  // instead of firing an effect after paint.
-  const nextFilterKey = `${query}|${filtered.length}`;
-  if (filterKey !== nextFilterKey) {
-    setFilterKey(nextFilterKey);
-    setActiveIdx(0);
-  }
-
-  useEventListener("keydown", (event) => {
-    if (!open) return;
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIdx((i) => (filtered.length === 0 ? 0 : (i + 1) % filtered.length));
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIdx((i) =>
-        filtered.length === 0 ? 0 : (i - 1 + filtered.length) % filtered.length,
-      );
-      return;
-    }
-    if (event.key === "Enter" || event.key === "Tab") {
-      const cmd = filtered[activeIdx];
-      if (cmd !== undefined && disabledReasonFor(cmd, ctx) === null) {
-        event.preventDefault();
-        onSelect(cmd);
-      }
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onDismiss();
-    }
   });
 
   return (
@@ -103,9 +54,10 @@ export function SlashPopover({
       {open && filtered.length > 0 && (
         <motion.div
           key="slash-popover"
-          ref={listRef}
           {...entrance}
           animate={{ opacity: 1, y: 0 }}
+          role="listbox"
+          aria-label="Slash commands"
           data-testid="slash-popover"
           className={cn(
             "absolute bottom-full left-0 right-0 z-20 mb-2",
@@ -116,14 +68,17 @@ export function SlashPopover({
           <TooltipProvider delayDuration={150}>
             {filtered.map((cmd, i) => {
               const disabled = disabledReasonFor(cmd, ctx);
+              const aliases = cmd.aliases ?? [];
               const row = (
                 <button
                   key={cmd.name}
                   type="button"
+                  role="option"
+                  aria-selected={i === activeIdx}
                   data-testid={`slash-item-${cmd.name}`}
                   data-disabled={disabled !== null ? "true" : undefined}
                   disabled={disabled !== null}
-                  onMouseEnter={() => setActiveIdx(i)}
+                  onMouseEnter={() => onHover(i)}
                   onClick={() => {
                     if (disabled !== null) return;
                     onSelect(cmd);
@@ -142,6 +97,11 @@ export function SlashPopover({
                   <span className="truncate text-[12px] text-muted-foreground">
                     {cmd.description}
                   </span>
+                  {aliases.length > 0 && (
+                    <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">
+                      {aliases.map((a) => `/${a}`).join(" ")}
+                    </span>
+                  )}
                 </button>
               );
               if (disabled === null) return row;

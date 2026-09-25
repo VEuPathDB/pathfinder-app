@@ -47,7 +47,7 @@ describe("MiniVenn", () => {
 
   it("falls back to separated circles + arrow for COLOCATE", () => {
     const { container } = render(<MiniVenn operator={combineOpEnum.COLOCATE} />);
-    expect(screen.getByRole("img", { name: "colocate operator" })).toHaveAttribute(
+    expect(screen.getByRole("img", { name: "Colocate operator" })).toHaveAttribute(
       "data-mode",
       "colocate",
     );

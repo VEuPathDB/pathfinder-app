@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { siteShortName } from "@pathfinder/shared";
 import { AlertTriangle } from "lucide-react";
 
 import { sitesOptions } from "@/lib/api/sites";
@@ -15,7 +16,6 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
   const { data: sites } = useQuery(sitesOptions());
   const rows = sites ?? [];
   const site = rows.find((row) => row.id === siteId);
-  const displayName = site?.displayName ?? siteId;
   const reason = site?.unavailableReason ?? null;
   const alternatives = rows.filter((row) => row.available && row.id !== siteId);
 
@@ -27,7 +27,7 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
     >
       <AlertTriangle className="mx-auto h-7 w-7 text-amber-500" />
       <p className="mt-3 text-sm font-medium text-foreground">
-        Couldn&apos;t reach {displayName}
+        Couldn&apos;t reach {siteShortName(siteId)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
         {reason !== null
@@ -36,9 +36,7 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
       </p>
       {alternatives.length > 0 && (
         <>
-          <p className="mt-4 text-xs font-medium text-foreground">
-            Try another database:
-          </p>
+          <p className="mt-4 text-xs font-medium text-foreground">Try another site:</p>
           <ul className="mt-2 space-y-1 text-xs">
             {alternatives.map((row) => (
               <li key={row.id}>

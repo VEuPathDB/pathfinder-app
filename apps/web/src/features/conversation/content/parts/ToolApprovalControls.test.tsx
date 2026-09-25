@@ -148,7 +148,49 @@ describe("findToolApproval", () => {
   });
 });
 
+const ASKED = "Delete step 'Transform by Orthology' (GenesByOrthologs, 142 genes)?";
+
+function summaryPart(summary: string): UIMessage["parts"][number] {
+  return {
+    type: "data-tool-summary",
+    data: { toolCallId: "call-1", summary, status: "ok" },
+  };
+}
+
 describe("ToolApprovalControls", () => {
+  it("names the step a delete removes by the line written when it asked", () => {
+    renderControls([pendingPart("tool-delete_step"), summaryPart(ASKED)]);
+    expect(screen.getByTestId("approval-card-title")).toHaveTextContent(ASKED);
+  });
+
+  it("keeps the asked line on a replayed card after the step is gone", () => {
+    renderControls([
+      {
+        type: "tool-delete_step",
+        toolCallId: "call-1",
+        state: "output-available",
+        input: { stepId: "c_orthologs_pvivax_p01" },
+        output: { ok: true },
+        approval: { id: "appr-1", approved: true },
+      },
+      summaryPart(ASKED),
+      summaryPart("Deleted c_orthologs_pvivax_p01, 3 steps left"),
+    ]);
+    expect(screen.getByTestId("tool-approval-decision")).toHaveTextContent(
+      `Approved: ${ASKED}`,
+    );
+  });
+
+  it("keeps the bespoke question of a tool the api does not name", () => {
+    renderControls([
+      pendingPart("tool-clear_strategy"),
+      summaryPart("Cleared 3 steps"),
+    ]);
+    expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
+      "Clear the strategy? This removes every step from this conversation and from VEuPathDB.",
+    );
+  });
+
   it("asks the question in one card that names the tool", () => {
     renderControls([pendingPart("tool-delete_step")]);
     expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
@@ -161,7 +203,7 @@ describe("ToolApprovalControls", () => {
   it("names what a deletion removes instead of the standing sentence", () => {
     renderControls([pendingPart("tool-clear_strategy")]);
     expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
-      "Clear the strategy? This removes every step from this thread and from VEuPathDB.",
+      "Clear the strategy? This removes every step from this conversation and from VEuPathDB.",
     );
     expect(screen.getByTestId("approval-card-title")).not.toHaveTextContent(
       "needs your approval before it runs",
@@ -214,6 +256,12 @@ describe("ToolApprovalControls", () => {
 
   it("renders nothing for propose_changes, which the proposal card owns", () => {
     renderControls([pendingPart("tool-propose_changes")]);
+    expect(screen.queryByTestId("tool-approval-controls")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
+  });
+
+  it("renders nothing for adopt_separating_strategy, which the separation card owns", () => {
+    renderControls([pendingPart("tool-adopt_separating_strategy")]);
     expect(screen.queryByTestId("tool-approval-controls")).not.toBeInTheDocument();
     expect(screen.queryByTestId("tool-approval-decision")).not.toBeInTheDocument();
   });

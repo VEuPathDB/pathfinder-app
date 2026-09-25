@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type {
-  CheckedStepCount,
-  ControlSetEvidence,
-  ControlTestEvidence,
-  CriterionCitations,
-  EvidenceCard,
+import {
+  siteShortName,
+  type CheckedStepCount,
+  type ControlSetEvidence,
+  type ControlTestEvidence,
+  type CriterionCitations,
+  type EvidenceCard,
 } from "@pathfinder/shared";
 
 import { CountOfIds } from "@/features/conversation/thread/CountOfIds";
@@ -18,6 +19,7 @@ import {
 import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
 import { referenceHref } from "./evidenceCards";
+import { EvidenceReview } from "./EvidenceReview";
 
 type ControlKind = "positive" | "negative";
 
@@ -203,9 +205,9 @@ function Citations({
   );
 }
 
-function SiteLinks({ url }: { url: string }): ReactElement {
+function SiteLinks({ url, siteId }: { url: string; siteId: string }): ReactElement {
   const target = useSiteLinkTarget();
-  const host = new URL(url).host;
+  const site = siteShortName(siteId);
   const link = "text-primary underline-offset-2 hover:underline";
   return (
     <div className="flex flex-col gap-0.5 text-xs">
@@ -214,12 +216,13 @@ function SiteLinks({ url }: { url: string }): ReactElement {
         href={url}
         target={target}
         rel="noopener noreferrer"
+        aria-label={`Open in ${site}`}
         className={link}
       >
-        {`Open the strategy on ${host}`}
+        {`Open in ${site}`}
       </a>
       <a href={url} target={target} rel="noopener noreferrer" className={link}>
-        {`Run GO, pathway or word enrichment on ${host}`}
+        {`Run GO, pathway or word enrichment in ${site}`}
       </a>
     </div>
   );
@@ -259,8 +262,11 @@ export function EvidenceCardBody({
           )}
         </div>
       ) : null}
+      <EvidenceReview review={card.review} />
       <Citations cited={card.citations} />
-      {card.strategyUrl == null ? null : <SiteLinks url={card.strategyUrl} />}
+      {card.strategyUrl == null ? null : (
+        <SiteLinks url={card.strategyUrl} siteId={card.siteId} />
+      )}
     </div>
   );
 }

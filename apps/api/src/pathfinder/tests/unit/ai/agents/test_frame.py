@@ -155,3 +155,43 @@ def test_frame_instructions_bind_only_a_search_that_states_the_criterion() -> No
 
     assert ("Bind a search only if its summary states what the criterion asks.") in text
     assert 'do not bind the nearest one: set disposition="needs_user"' in text
+
+
+def test_frame_instructions_keep_the_source_genes_by_a_round_trip() -> None:
+    text = _normalized(_FRAME_INSTRUCTIONS)
+    assert '`{"kind": "copy", "inputs": [<subtree>]}`' in text
+    assert (
+        "the source INTERSECT a transform back to the source organism over a "
+        "transform to X over a copy of the source"
+    ) in text
+    assert "a word of the criterion that a parameter states" in text
+    assert "is recorded unmet" in text
+
+
+def test_frame_instructions_allow_the_profile_only_without_synteny() -> None:
+    # Without synteny, the profile and the round trip read the same OrthoMCL groups.
+    text = _normalized(_FRAME_INSTRUCTIONS)
+    assert 'without "syntenic", may bind the phylogenetic-profile search' in text
+    assert "the same OrthoMCL groups as the round trip in one step" in text
+
+
+def test_frame_instructions_say_another_sites_experiment_never_binds() -> None:
+    assert (
+        "Its last entry may be `otherSites`: experiments on other VEuPathDB sites, "
+        "each labelled with its site. They inform and never bind: none is a search "
+        "on this site. To use one, `read_experiment(dataset_id)` answers its card, "
+        "whose record URL and PMIDs you may cite in `why.sources`; then search this "
+        "site for its condition, stage or organism."
+    ) in _normalized(_FRAME_INSTRUCTIONS)
+
+
+def test_frame_offers_the_orthologs_when_two_organisms_cannot_intersect() -> None:
+    # Gene ids of two species never match, so the refused INTERSECT is answered
+    # with the transform that carries one set into the other organism.
+    assert (
+        "An INTERSECT of genes of two organisms is refused by `set_structure`: "
+        "gene ids of two species never match. Do not re-scope the request to one "
+        'organism: set disposition="needs_user" and ask whether to carry one set '
+        'to its orthologs in the other organism, with dimension "organism" and '
+        "that transform as the recommended value."
+    ) in _normalized(_FRAME_INSTRUCTIONS)

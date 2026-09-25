@@ -69,7 +69,7 @@ async def add_step_filter(
 ) -> ToolReturn[StepOkResponse | ToolErrorPayload]:
     """Attach or update a WDK filter on a step.
 
-    Filters narrow a step's result set without changing its search.
+    Filters narrow a step's results without changing its search.
     If a filter with the same name already exists it is replaced.
 
     Args:

@@ -21,20 +21,15 @@ import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/Inse
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { cn } from "@/lib/utils/cn";
+import { COMBINE_OP_LABELS } from "@pathfinder/shared";
 
 type Operator = NonNullable<InsertSavedRequest["operator"]>;
 
-const OPERATORS: ReadonlyArray<{ value: Operator; label: string }> = [
-  { value: "INTERSECT", label: "INTERSECT (A ∩ B)" },
-  { value: "UNION", label: "UNION (A ∪ B)" },
-  { value: "MINUS", label: "MINUS (A − B)" },
-  { value: "RMINUS", label: "RMINUS (B − A)" },
-];
+const OPERATORS: readonly Operator[] = ["INTERSECT", "UNION", "MINUS", "RMINUS"];
 
 /** The operator a select reports, or the default when it names none. */
 function operatorOf(value: string): Operator {
-  const known = OPERATORS.find((op) => op.value === value);
-  return known?.value ?? "INTERSECT";
+  return OPERATORS.find((op) => op === value) ?? "INTERSECT";
 }
 
 interface InsertSavedDialogProps {
@@ -102,7 +97,7 @@ function InsertSavedDialogBody({
     onSuccess: (data) => {
       void refetchStrategy(queryClient, conversationId);
       void queryClient.invalidateQueries({
-        queryKey: ["conversations", "list", siteId],
+        queryKey: listStrategiesQueryOptions({ siteId }).queryKey,
       });
       toast.success("Saved strategy inserted", {
         description: data.insertedSavedName,
@@ -148,7 +143,6 @@ function InsertSavedDialogBody({
                     <span className="block text-sm font-medium">{c.name}</span>
                     <span className="block text-xs text-muted-foreground">
                       {c.stepCount ?? 0} {(c.stepCount ?? 0) === 1 ? "step" : "steps"}
-                      {c.recordType != null ? ` · ${c.recordType}` : ""}
                     </span>
                   </span>
                 </button>
@@ -172,8 +166,8 @@ function InsertSavedDialogBody({
             className="h-8 flex-1 rounded-md border border-input bg-transparent px-2 text-sm outline-none focus:ring-2 focus:ring-ring"
           >
             {OPERATORS.map((op) => (
-              <option key={op.value} value={op.value}>
-                {op.label}
+              <option key={op} value={op}>
+                {COMBINE_OP_LABELS[op]}
               </option>
             ))}
           </select>

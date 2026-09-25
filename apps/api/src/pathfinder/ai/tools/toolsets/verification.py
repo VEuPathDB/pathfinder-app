@@ -19,6 +19,7 @@ from pathfinder.ai.tools.standalone.gene import (
     lookup_gene_records,
     resolve_gene_ids_to_records,
 )
+from pathfinder.ai.tools.standalone.gene_record import read_gene_record
 from pathfinder.ai.tools.standalone.gene_sets import list_gene_sets, save_gene_set
 from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
 from pathfinder.ai.tools.standalone.results import (
@@ -79,6 +80,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             Tool(run_control_tests_on_step, sequential=True, max_retries=3),
             run_control_tests_on_search,
             lookup_gene_records,
+            read_gene_record,
             get_ai_expression_summary,
             resolve_gene_ids_to_records,
             save_gene_set,

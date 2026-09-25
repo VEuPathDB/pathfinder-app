@@ -38,7 +38,7 @@ describe("HoverActions delete affordance", () => {
     expect(onDelete.mock.calls).toEqual([["interpro_or_go"]]);
   });
 
-  it("the kebab 'Duplicate step' invokes onDuplicate once with the exact step id", async () => {
+  it("the kebab 'Intersect with a copy' invokes onDuplicate once with the exact step id", async () => {
     const onDuplicate = vi.fn();
     render(
       <HoverActions
@@ -48,11 +48,34 @@ describe("HoverActions delete affordance", () => {
     );
 
     await userEvent.click(screen.getByTestId("rf-more-interpro_kinases"));
-    await userEvent.click(
-      await screen.findByRole("menuitem", { name: /duplicate step/i }),
+    const item = await screen.findByRole("menuitem", { name: "Intersect with a copy" });
+    expect(item).toHaveAttribute(
+      "title",
+      "Adds a copy of this step and intersects it with the original, so the copy's parameters can be changed.",
     );
+    await userEvent.click(item);
 
     expect(onDuplicate.mock.calls).toEqual([["interpro_kinases"]]);
+  });
+
+  it("offers no copy of a combine, whose copy would have no inputs", async () => {
+    render(
+      <HoverActions
+        step={makeStep({
+          id: "c1",
+          kind: "combine",
+          operator: "UNION",
+          primaryInputStepId: "a",
+          secondaryInputStepId: "b",
+        })}
+        onDuplicate={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByTestId("rf-more-c1"));
+    const labels = (await screen.findAllByRole("menuitem")).map((el) =>
+      el.textContent.trim(),
+    );
+    expect(labels).not.toContain("Intersect with a copy");
   });
 
   it("offers no destructive action when its handlers are unwired", async () => {
@@ -63,7 +86,7 @@ describe("HoverActions delete affordance", () => {
     );
     expect(labels).toContain("Copy step ID");
     expect(labels).not.toContain("Delete step");
-    expect(labels).not.toContain("Duplicate step");
+    expect(labels).not.toContain("Intersect with a copy");
   });
 
   it("nests the kebab inside the toolbar the onNodeClick guard keys on", () => {

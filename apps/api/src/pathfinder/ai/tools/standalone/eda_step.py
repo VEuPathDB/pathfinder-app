@@ -50,7 +50,7 @@ from pathfinder.ai.tools.standalone.stream_parts import (
     strategy_link_chunk,
 )
 from pathfinder.domain.eda_parts import EdaEffectDirection
-from pathfinder.domain.eda_thread import EdaExport
+from pathfinder.domain.eda_thread import ConversationAnalysisView, EdaExport
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
@@ -58,7 +58,7 @@ from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.domain.strategy.step_words import StampedKind, StepWords, step_words
-from pathfinder.services.eda.binding import ConversationAnalysisView, read_analysis
+from pathfinder.services.eda.binding import read_analysis
 from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
 from pathfinder.services.eda.direction import selection_sentence
 from pathfinder.services.eda.gene_subset import (
@@ -159,7 +159,7 @@ def _landed(
 def _the_graph(session: StrategySession) -> StrategyGraph:
     graph = get_graph(session, None)
     if graph is None:
-        title = "No active strategy graph"
+        title = "No active strategy"
         detail = "The conversation holds no strategy to add the step to."
         raise ValidationError(title=title, detail=detail)
     return graph
@@ -309,7 +309,7 @@ async def create_eda_step(
     refused and nothing is written.
 
     Available once ``preview_eda_subset`` has counted the open analysis, on
-    this message or an earlier one, so the number you export is one the thread
+    this message or an earlier one, so the number you export is one the conversation
     measured.
 
     Args:

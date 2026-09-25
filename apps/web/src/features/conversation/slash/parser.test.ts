@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 
-import { fuzzyPrefix, matchCommandName, parseSlashInput } from "./parser";
+import {
+  fuzzyPrefix,
+  matchCommandName,
+  parseSlashInput,
+  unknownCommandToken,
+} from "./parser";
 
 describe("parseSlashInput", () => {
   it("returns null unless the slash opens the input", () => {
@@ -52,5 +57,29 @@ describe("fuzzyPrefix", () => {
   });
   it("returns false for non-prefix", () => {
     expect(fuzzyPrefix("xx", { name: "export" })).toBe(false);
+  });
+});
+
+describe("unknownCommandToken", () => {
+  const COMMANDS = [{ name: "export" }, { name: "help", aliases: ["?"] }];
+
+  it("names a token no command or alias starts with", () => {
+    expect(unknownCommandToken("/xyz", COMMANDS)).toBe("xyz");
+    expect(unknownCommandToken("/xyz and more", COMMANDS)).toBe("xyz");
+    expect(unknownCommandToken("/home/user/genes.csv", COMMANDS)).toBe(
+      "home/user/genes.csv",
+    );
+  });
+
+  it("names nothing for a command, an alias, a prefix or a bare slash", () => {
+    expect(
+      ["/export", "/?", "/he", "/HELP", "/", "/ note"].map((value) =>
+        unknownCommandToken(value, COMMANDS),
+      ),
+    ).toEqual([null, null, null, null, null, null]);
+  });
+
+  it("names nothing for text the slash does not open", () => {
+    expect(unknownCommandToken("say /xyz", COMMANDS)).toBe(null);
   });
 });

@@ -12,7 +12,7 @@ describe("ShortcutsOverlay", () => {
     expect(screen.getByText("Canvas")).toBeInTheDocument();
     expect(screen.getByText("Selection")).toBeInTheDocument();
     expect(screen.getByText("Navigation")).toBeInTheDocument();
-    expect(screen.getByText("Re-layout graph")).toBeInTheDocument();
+    expect(screen.getByText("Tidy layout")).toBeInTheDocument();
     expect(screen.getByText("Quick switcher")).toBeInTheDocument();
   });
 

@@ -9,10 +9,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from pathfinder.persistence.models import GUID
 
@@ -44,61 +43,67 @@ def upgrade() -> None:
 
     op.create_table(
         "conversations",
-        sa.Column("id", PGUUID(as_uuid=True), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", UUID(as_uuid=True), primary_key=True),
+        sqlalchemy.Column(
             "user_id",
             GUID(),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("site_id", sa.String(50), nullable=False, server_default=""),
-        sa.Column("name", sa.String(255), nullable=False, server_default=""),
-        sa.Column("record_type", sa.String(100), nullable=True),
-        sa.Column("wdk_strategy_id", sa.Integer, nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "site_id", sqlalchemy.String(50), nullable=False, server_default=""
+        ),
+        sqlalchemy.Column(
+            "name", sqlalchemy.String(255), nullable=False, server_default=""
+        ),
+        sqlalchemy.Column("record_type", sqlalchemy.String(100), nullable=True),
+        sqlalchemy.Column("wdk_strategy_id", sqlalchemy.Integer, nullable=True),
+        sqlalchemy.Column(
             "is_saved",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
-        sa.Column("pipeline", JSONB, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("pipeline", JSONB, nullable=True),
+        sqlalchemy.Column(
             "step_count",
-            sa.Integer,
+            sqlalchemy.Integer,
             nullable=False,
             server_default="0",
         ),
-        sa.Column("plan", JSONB, nullable=False, server_default="{}"),
-        sa.Column("estimated_size", sa.Integer, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("plan", JSONB, nullable=False, server_default="{}"),
+        sqlalchemy.Column("estimated_size", sqlalchemy.Integer, nullable=True),
+        sqlalchemy.Column(
             "gene_set_id",
-            sa.String(50),
-            sa.ForeignKey("gene_sets.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("gene_sets.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "gene_set_auto_imported",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "experiment_id",
-            sa.String(50),
-            sa.ForeignKey("experiments.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("experiments.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column("dismissed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "dismissed_at", sqlalchemy.DateTime(timezone=True), nullable=True
+        ),
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
     )
@@ -112,28 +117,28 @@ def upgrade() -> None:
         "conversations",
         ["wdk_strategy_id"],
         unique=True,
-        postgresql_where=sa.text("wdk_strategy_id IS NOT NULL"),
+        postgresql_where=sqlalchemy.text("wdk_strategy_id IS NOT NULL"),
     )
 
     op.create_table(
         "messages",
-        sa.Column("id", PGUUID(as_uuid=True), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", UUID(as_uuid=True), primary_key=True),
+        sqlalchemy.Column(
             "conversation_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("role", sa.String, nullable=False),
-        sa.Column("parts", JSONB, nullable=False, server_default="[]"),
-        sa.Column("metadata", JSONB, nullable=False, server_default="{}"),
-        sa.Column(
+        sqlalchemy.Column("role", sqlalchemy.String, nullable=False),
+        sqlalchemy.Column("parts", JSONB, nullable=False, server_default="[]"),
+        sqlalchemy.Column("metadata", JSONB, nullable=False, server_default="{}"),
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
-        sa.CheckConstraint(
+        sqlalchemy.CheckConstraint(
             "role IN ('user', 'assistant', 'system')",
             name="ck_messages_role",
         ),
@@ -146,44 +151,44 @@ def upgrade() -> None:
 
     op.create_table(
         "background_tasks",
-        sa.Column("id", PGUUID(as_uuid=True), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", UUID(as_uuid=True), primary_key=True),
+        sqlalchemy.Column(
             "conversation_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "user_id",
             GUID(),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("tool_name", sa.Text, nullable=False),
-        sa.Column("status", sa.Text, nullable=False),
-        sa.Column("args", JSONB, nullable=False, server_default="{}"),
-        sa.Column("result", JSONB, nullable=True),
-        sa.Column("error", sa.Text, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("tool_name", sqlalchemy.Text, nullable=False),
+        sqlalchemy.Column("status", sqlalchemy.Text, nullable=False),
+        sqlalchemy.Column("args", JSONB, nullable=False, server_default="{}"),
+        sqlalchemy.Column("result", JSONB, nullable=True),
+        sqlalchemy.Column("error", sqlalchemy.Text, nullable=True),
+        sqlalchemy.Column(
             "estimated_duration_seconds",
-            sa.Integer,
+            sqlalchemy.Integer,
             nullable=False,
             server_default="0",
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "started_at",
-            sa.DateTime(timezone=True),
+            sqlalchemy.DateTime(timezone=True),
             nullable=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "completed_at",
-            sa.DateTime(timezone=True),
+            sqlalchemy.DateTime(timezone=True),
             nullable=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
     )
@@ -195,25 +200,27 @@ def upgrade() -> None:
 
     op.create_table(
         "task_progress",
-        sa.Column(
+        sqlalchemy.Column(
             "id",
-            sa.BigInteger,
+            sqlalchemy.BigInteger,
             primary_key=True,
             autoincrement=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "task_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("background_tasks.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("background_tasks.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("percent", sa.Float, nullable=False),
-        sa.Column("message", sa.Text, nullable=False, server_default=""),
-        sa.Column("data", JSONB, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("percent", sqlalchemy.Float, nullable=False),
+        sqlalchemy.Column(
+            "message", sqlalchemy.Text, nullable=False, server_default=""
+        ),
+        sqlalchemy.Column("data", JSONB, nullable=True),
+        sqlalchemy.Column(
             "emitted_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
     )
@@ -225,29 +232,29 @@ def upgrade() -> None:
 
     op.create_table(
         "conversation_events",
-        sa.Column(
+        sqlalchemy.Column(
             "id",
-            sa.Integer,
+            sqlalchemy.Integer,
             primary_key=True,
             autoincrement=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "conversation_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "task_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("background_tasks.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("background_tasks.id", ondelete="CASCADE"),
             nullable=True,
         ),
-        sa.Column("chunk", JSONB, nullable=False),
-        sa.Column(
+        sqlalchemy.Column("chunk", JSONB, nullable=False),
+        sqlalchemy.Column(
             "emitted_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
     )
@@ -264,29 +271,29 @@ def upgrade() -> None:
 
     op.create_table(
         "checkpoint_labels",
-        sa.Column("thread_id", sa.Text, nullable=False),
-        sa.Column("checkpoint_id", sa.Text, nullable=False),
-        sa.Column("user_id", PGUUID(as_uuid=True), nullable=False),
-        sa.Column("label", sa.Text, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("thread_id", sqlalchemy.Text, nullable=False),
+        sqlalchemy.Column("checkpoint_id", sqlalchemy.Text, nullable=False),
+        sqlalchemy.Column("user_id", UUID(as_uuid=True), nullable=False),
+        sqlalchemy.Column("label", sqlalchemy.Text, nullable=True),
+        sqlalchemy.Column(
             "pinned",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("thread_id", "checkpoint_id", "user_id"),
+        sqlalchemy.PrimaryKeyConstraint("thread_id", "checkpoint_id", "user_id"),
     )
     op.create_index(
         "checkpoint_labels_thread_idx",
@@ -296,33 +303,33 @@ def upgrade() -> None:
 
     op.create_table(
         "memory_tombstones",
-        sa.Column(
+        sqlalchemy.Column(
             "id",
-            sa.Integer,
+            sqlalchemy.Integer,
             primary_key=True,
             autoincrement=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "user_id",
             GUID(),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("kind", sa.String(32), nullable=False),
-        sa.Column("content_hash", sa.String(64), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("kind", sqlalchemy.String(32), nullable=False),
+        sqlalchemy.Column("content_hash", sqlalchemy.String(64), nullable=False),
+        sqlalchemy.Column(
             "reason",
-            sa.String(32),
+            sqlalchemy.String(32),
             nullable=False,
             server_default="user_deleted",
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "deleted_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.text("now()"),
             nullable=False,
         ),
-        sa.UniqueConstraint(
+        sqlalchemy.UniqueConstraint(
             "user_id",
             "kind",
             "content_hash",

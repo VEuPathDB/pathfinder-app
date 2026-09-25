@@ -31,6 +31,7 @@ from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph
 
 __all__ = [
+    "COPY_UNSTATED",
     "EditPlan",
     "UnsupportedEditError",
     "combine_step_id",
@@ -42,6 +43,12 @@ __all__ = [
 
 class UnsupportedEditError(Exception):
     """The edit does not map onto the steps the strategy already holds."""
+
+
+COPY_UNSTATED = (
+    "the edited structure holds a copy whose criteria are not all bound; a copy "
+    "is stated as criteria of its own once every criterion it restates binds"
+)
 
 
 @dataclass
@@ -101,6 +108,8 @@ def target(node: StructureNode, plan: EditPlan) -> StrategyStepNode:
         return _live_or_added_node(criterion_for(plan, node), plan)
     if node.kind == "transform":
         return _target_transform(node, plan)
+    if node.kind == "copy":
+        raise UnsupportedEditError(COPY_UNSTATED)
     return _target_combine(node, plan)
 
 

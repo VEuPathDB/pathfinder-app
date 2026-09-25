@@ -49,7 +49,13 @@ describe("getZeroResultSuggestions", () => {
     it("always includes the two broad suggestions", () => {
       const suggestions = getZeroResultSuggestions(makeSearchStep());
       expect(suggestions[0]).toContain("Relax overly strict parameters");
-      expect(suggestions[1]).toContain("Verify organism");
+      expect(suggestions[1]).toContain("Check that the organism");
+    });
+
+    it("names a search's data source an experiment, never a dataset", () => {
+      const joined = getZeroResultSuggestions(makeSearchStep()).join(" ");
+      expect(joined).toContain("experiment");
+      expect(joined).not.toMatch(/dataset/i);
     });
   });
 
@@ -118,7 +124,9 @@ describe("getZeroResultSuggestions", () => {
         const suggestions = getZeroResultSuggestions(
           makeCombineStep(combineOpEnum.INTERSECT),
         );
-        expect(suggestions).toContainEqual(expect.stringContaining("change INTERSECT"));
+        expect(suggestions).toContainEqual(
+          "If you expected results from either input, change Intersect to Union.",
+        );
       });
     });
 
@@ -129,10 +137,10 @@ describe("getZeroResultSuggestions", () => {
         combineOpEnum.RMINUS,
         combineOpEnum.RONLY,
       ] as const) {
-        it(`suggests verifying MINUS direction for ${op}`, () => {
+        it(`suggests checking the direction for ${op}`, () => {
           const suggestions = getZeroResultSuggestions(makeCombineStep(op));
           expect(suggestions).toContainEqual(
-            expect.stringContaining("verify MINUS direction"),
+            "If you expected the other input removed, check the direction: swap Minus and Right minus.",
           );
         });
       }
@@ -144,7 +152,7 @@ describe("getZeroResultSuggestions", () => {
           makeCombineStep(combineOpEnum.COLOCATE),
         );
         expect(suggestions).toContainEqual(
-          expect.stringContaining("widen the region offsets"),
+          "For Colocate, widen the region offsets and check the feature types.",
         );
       });
     });
@@ -155,8 +163,8 @@ describe("getZeroResultSuggestions", () => {
           makeCombineStep(combineOpEnum.UNION),
         );
         const joined = suggestions.join(" ");
-        expect(joined).not.toContain("change INTERSECT");
-        expect(joined).not.toContain("verify MINUS direction");
+        expect(joined).not.toContain("change Intersect");
+        expect(joined).not.toContain("check the direction");
         expect(joined).not.toContain("widen the region offsets");
       });
     });

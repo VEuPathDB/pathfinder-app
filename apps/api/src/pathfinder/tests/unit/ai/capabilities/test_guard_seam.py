@@ -23,6 +23,7 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.agents.tool_vocabulary import (
+    DISCOVERY_CALL_CAPS,
     READ_ONLY_TOOLS,
     SEARCH_LOOKUP_TOOLS,
     build_tool_repetition_guard,
@@ -154,6 +155,12 @@ def test_every_watched_name_is_a_tool_some_agent_offers() -> None:
 def test_the_study_catalog_reads_are_watched() -> None:
     """A study search repeated on the same query reads the same catalog."""
     assert {"search_eda_studies", "describe_eda_study"} <= READ_ONLY_TOOLS
+
+
+def test_another_sites_experiment_read_is_watched_and_capped() -> None:
+    """A card read with the same id answers the same card, so a run reads six."""
+    assert "read_experiment" in READ_ONLY_TOOLS
+    assert DISCOVERY_CALL_CAPS["read_experiment"] == 6
 
 
 def test_the_watched_research_names_carry_the_source_prefix() -> None:

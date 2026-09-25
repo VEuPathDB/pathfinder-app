@@ -9,7 +9,7 @@ Revises: 2026_09_05_0001
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_09_13_0001"
@@ -21,9 +21,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "conversation_analyses",
-        sa.Column(
+        sqlalchemy.Column(
             "subset_previewed",
-            sa.Boolean(),
+            sqlalchemy.Boolean(),
             nullable=False,
             server_default="false",
         ),

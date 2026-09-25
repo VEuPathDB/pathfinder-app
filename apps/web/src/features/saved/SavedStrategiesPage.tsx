@@ -5,28 +5,24 @@ import { siteShortName } from "@pathfinder/shared";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  queryOptions,
-  useMutation,
-  useQueryClient,
-  useSuspenseQuery,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Bookmark, ExternalLink, MessageSquarePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { client } from "@/lib/api/client";
 import { insertSavedStrategy } from "@/lib/api/conversations";
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
+import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
 import { toUserMessage } from "@/lib/api/errors";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { chatRoot, chatUrl } from "@/lib/routes";
 import { countNoun } from "@/lib/utils/countNoun";
 import { useRightRailStore } from "@/state/useRightRailStore";
+import { DeleteSavedStrategyDialog } from "./DeleteSavedStrategyDialog";
 
 interface SavedStrategiesPageProps {
   siteId: string;
@@ -40,29 +36,11 @@ export function SavedStrategiesPage({ siteId }: SavedStrategiesPageProps) {
   );
 }
 
-function consumerCountsOptions(siteId: string) {
-  return queryOptions({
-    queryKey: ["saved-strategy-consumers", siteId] as const,
-    queryFn: async () => {
-      const resp = await client<{ counts: Record<string, number> }>({
-        method: "get",
-        url: `/api/v1/conversations/saved-strategy-consumers`,
-        params: { siteId },
-      });
-      // Pydantic camelCase serializes int keys as strings - coerce.
-      const out: Record<number, number> = {};
-      for (const [k, v] of Object.entries(resp.data.counts)) {
-        const id = Number(k);
-        if (Number.isFinite(id)) out[id] = v;
-      }
-      return out;
-    },
-  });
-}
-
 function SavedStrategiesPageInner({ siteId }: SavedStrategiesPageProps) {
   const { data: all } = useSuspenseQuery(listStrategiesQueryOptions({ siteId }));
-  const { data: counts } = useSuspenseQuery(consumerCountsOptions(siteId));
+  const { data: consumers } = useSuspenseQuery(
+    getSavedStrategyConsumerCountsSuspenseQueryOptions({ siteId }),
+  );
   const saved = all.filter((c) => c.isSaved === true);
   const [filter, setFilter] = useState("");
   const filtered =
@@ -103,7 +81,9 @@ function SavedStrategiesPageInner({ siteId }: SavedStrategiesPageProps) {
                 conv={conv}
                 siteId={siteId}
                 consumerCount={
-                  conv.wdkStrategyId != null ? (counts[conv.wdkStrategyId] ?? 0) : 0
+                  conv.wdkStrategyId != null
+                    ? (consumers.counts[String(conv.wdkStrategyId)] ?? 0)
+                    : 0
                 }
               />
             ))}
@@ -132,7 +112,7 @@ function EmptyState({ hasAny, siteId }: { hasAny: boolean; siteId: string }) {
           className="text-primary underline-offset-2 hover:underline"
           href={chatRoot(siteId)}
         >
-          start a new chat
+          start a new conversation
         </Link>{" "}
         to build one.
       </p>
@@ -140,13 +120,20 @@ function EmptyState({ hasAny, siteId }: { hasAny: boolean; siteId: string }) {
   );
 }
 
+/** How many other conversations insert the saved strategy. */
+function inUse(count: number): string {
+  return count === 1
+    ? "Used in 1 conversation"
+    : `Used in ${String(count)} conversations`;
+}
+
 /** The reason an insert failed, plus the fate of the chat it opened for it. */
 async function discarded(conversationId: string, reason: string): Promise<string> {
   try {
     await deleteStrategy(conversationId);
-    return `${reason} The empty chat it opened was removed.`;
+    return `${reason} The empty conversation it opened was removed.`;
   } catch {
-    return `${reason} The empty chat it opened is still in the sidebar.`;
+    return `${reason} The empty conversation it opened is still in the sidebar.`;
   }
 }
 
@@ -162,14 +149,16 @@ function SavedRow({
   const router = useRouter();
   const queryClient = useQueryClient();
   const openRailPanel = useRightRailStore((s) => s.openPanelId);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const del = useMutation({
-    mutationFn: () => deleteStrategy(conv.id, { deleteFromWdk: true, cascade: true }),
+    mutationFn: () => deleteStrategy(conv.id, { deleteFromWdk: true }),
     onSuccess: () => {
       void queryClient.invalidateQueries({
-        queryKey: ["conversations", "list", siteId],
+        queryKey: listStrategiesQueryOptions({ siteId }).queryKey,
       });
       void queryClient.invalidateQueries({
-        queryKey: ["saved-strategy-consumers", siteId],
+        queryKey: getSavedStrategyConsumerCountsSuspenseQueryOptions({ siteId })
+          .queryKey,
       });
       toast.success("Saved strategy deleted", { description: conv.name });
     },
@@ -196,19 +185,19 @@ function SavedRow({
     },
     onSuccess: (conversationId) => {
       void queryClient.invalidateQueries({
-        queryKey: ["conversations", "list", siteId],
+        queryKey: listStrategiesQueryOptions({ siteId }).queryKey,
       });
       // The new thread has no messages yet, so the strategy panel is the only
       // place the inserted steps are visible on arrival.
       openRailPanel(conversationId, "strategy", {});
-      toast.success("Inserted into a new chat", { description: conv.name });
+      toast.success("Inserted into a new conversation", { description: conv.name });
       router.push(chatUrl(siteId, conversationId));
     },
     onError: (error) => {
       void queryClient.invalidateQueries({
-        queryKey: ["conversations", "list", siteId],
+        queryKey: listStrategiesQueryOptions({ siteId }).queryKey,
       });
-      toast.error(`Could not use "${conv.name}" in a new chat`, {
+      toast.error(`Could not use "${conv.name}" in a new conversation`, {
         description: toUserMessage(error),
       });
     },
@@ -237,15 +226,11 @@ function SavedRow({
           {size != null
             ? ` · ${size.toLocaleString()} ${countNoun(conv.recordType, size)}`
             : ""}
-          {conv.recordType != null ? ` · ${conv.recordType}` : ""}
         </span>
       </button>
       {consumerCount > 0 && (
-        <span
-          className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary"
-          title={`${consumerCount} other conversation(s) import this saved strategy`}
-        >
-          {consumerCount} consumer{consumerCount === 1 ? "" : "s"}
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+          {inUse(consumerCount)}
         </span>
       )}
       {conv.wdkStrategyId != null && (
@@ -261,7 +246,7 @@ function SavedRow({
           {!useInNewChat.isPending && (
             <MessageSquarePlus className="h-4 w-4" aria-hidden />
           )}
-          {useInNewChat.isPending ? "Inserting..." : "Use in new chat"}
+          {useInNewChat.isPending ? "Inserting..." : "Use in a new conversation"}
         </Button>
       )}
       {conv.wdkUrl != null && conv.wdkUrl !== "" && (
@@ -280,13 +265,25 @@ function SavedRow({
         type="button"
         variant="ghost"
         size="sm"
-        onClick={() => del.mutate()}
-        disabled={del.isPending}
+        onClick={() => setConfirmingDelete(true)}
+        disabled={del.isPending || consumerCount > 0}
+        title={
+          consumerCount > 0
+            ? `${inUse(consumerCount)}; remove it from them before deleting it.`
+            : undefined
+        }
         aria-label="Delete saved strategy"
         data-testid={`saved-strategy-delete-${conv.id}`}
       >
         <Trash2 className="h-4 w-4" aria-hidden />
       </Button>
+      <DeleteSavedStrategyDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        name={conv.name}
+        siteId={siteId}
+        onConfirm={() => del.mutate()}
+      />
     </li>
   );
 }

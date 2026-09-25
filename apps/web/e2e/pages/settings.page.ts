@@ -2,18 +2,16 @@ import { type Locator, type Page, expect } from "@playwright/test";
 
 type SettingsTab = "Model" | "Data" | "Advanced" | "Seeding";
 
-/** The class the active tab alone carries. */
-const ACTIVE_TAB = /border-primary/;
-
 export class SettingsPage {
   constructor(private page: Page) {}
 
+  /** The settings modal by its title; the learning notice also names Settings. */
   private dialog(): Locator {
-    return this.page.getByRole("dialog").filter({ hasText: /settings/i });
+    return this.page.getByRole("dialog", { name: "Settings", exact: true });
   }
 
   tab(tabName: SettingsTab): Locator {
-    return this.dialog().getByRole("button", { name: tabName, exact: true });
+    return this.dialog().getByRole("tab", { name: tabName, exact: true });
   }
 
   /** Open settings via the nav rail settings button. */
@@ -31,16 +29,16 @@ export class SettingsPage {
   /** Switch to a tab and wait for it to become the active one. */
   async openTab(tabName: SettingsTab) {
     await this.tab(tabName).click();
-    await expect(this.tab(tabName)).toHaveClass(ACTIVE_TAB);
+    await expect(this.tab(tabName)).toHaveAttribute("aria-selected", "true");
   }
 
   /** One tab is active and no other is. */
   async expectOnlyTabActive(tabName: SettingsTab) {
     for (const tab of ["Model", "Data", "Advanced", "Seeding"] as const) {
       if (tab === tabName) {
-        await expect(this.tab(tab)).toHaveClass(ACTIVE_TAB);
+        await expect(this.tab(tab)).toHaveAttribute("aria-selected", "true");
       } else {
-        await expect(this.tab(tab)).not.toHaveClass(ACTIVE_TAB);
+        await expect(this.tab(tab)).toHaveAttribute("aria-selected", "false");
       }
     }
   }

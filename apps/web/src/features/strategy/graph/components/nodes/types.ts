@@ -2,7 +2,6 @@ import type { Step } from "@pathfinder/shared";
 
 export type StepNodeData = {
   step: Step;
-  isUnsaved?: boolean | undefined;
   isOrphan?: boolean | undefined;
   showOutputHandle?: boolean | undefined;
   showPrimaryInputHandle?: boolean | undefined;
@@ -17,7 +16,6 @@ export type StepNodeData = {
 export type StepNodeProps = {
   step: Step;
   selected: boolean;
-  isUnsaved?: boolean | undefined;
   isOrphan?: boolean | undefined;
   showOutputHandle?: boolean | undefined;
   showPrimaryInputHandle?: boolean | undefined;

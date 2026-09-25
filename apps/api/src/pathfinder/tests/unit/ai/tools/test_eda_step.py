@@ -294,7 +294,7 @@ async def test_a_session_with_no_graph_fails_loudly(
     with pytest.raises(ValidationError) as excinfo:
         await eda_step.create_eda_step(lead_ctx)
 
-    assert excinfo.value.title == "No active strategy graph"
+    assert excinfo.value.title == "No active strategy"
     assert excinfo.value.detail == (
         "The conversation holds no strategy to add the step to."
     )
@@ -463,13 +463,14 @@ async def test_a_subset_that_selects_no_genes_is_not_exported(
         monkeypatch,
         detail=phenotype_subset(),
         commit=commit,
-        genes=GeneCount(count=0, unfiltered_count=5803),
+        genes=GeneCount(count=0, unfiltered_count=PHENOTYPE_GENES.unfiltered_count),
     )
 
     with pytest.raises(ModelRetry) as refusal:
         await eda_step.create_eda_step(lead_ctx)
 
-    assert "0 of the 5,803 genes on Gene Phenotype Data" in str(refusal.value)
+    whole = PHENOTYPE_GENES.unfiltered_count
+    assert f"0 of the {whole:,} genes on Gene Phenotype Data" in str(refusal.value)
     assert "run_eda_compute" in str(refusal.value)
     assert committed == []
     assert [(c.study_id, c.entity_id) for c in counted] == [

@@ -11,6 +11,9 @@ import {
   editMemory,
   listMemories,
 } from "@/features/settings/api/memories";
+import { toUserMessage } from "@/lib/api/errors";
+import { MEMORY_KIND_LABELS, memorySections } from "@/lib/memoryKinds";
+import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 
 import { MemoryEditor } from "./memory/MemoryEditor";
 import { MemorySearch } from "./memory/MemorySearch";
@@ -22,6 +25,7 @@ export function MemorySettings() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<MemoryItem | null>(null);
   const [offset, setOffset] = useState<number>(0);
+  const focused = useMemoryFocusStore((s) => s.focused);
 
   const { data, isPending, error, isFetching } = useQuery({
     queryKey: ["memories", "list", offset] as const,
@@ -32,44 +36,51 @@ export function MemorySettings() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["memories"] });
 
+  const [failure, setFailure] = useState<string | null>(null);
+
   const editMutation = useMutation({
     mutationFn: async (args: {
-      key: string;
-      kind: MemoryItem["value"]["kind"];
+      item: MemoryItem;
       body: MemoryEditRequest;
-    }) => editMemory(args.key, args.kind, args.body),
+      action: "save" | "change auto-retrieve for";
+    }) => editMemory(args.item.key, args.item.value.kind, args.body),
+    onMutate: () => setFailure(null),
     onSuccess: () => invalidate(),
+    onError: (err, { item, action }) => {
+      setFailure(`Could not ${action} "${item.value.name}": ${toUserMessage(err)}`);
+    },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (args: { key: string; kind: MemoryItem["value"]["kind"] }) =>
-      deleteMemory(args.key, args.kind),
+    mutationFn: async (item: MemoryItem) => deleteMemory(item.key, item.value.kind),
+    onMutate: () => setFailure(null),
     onSuccess: () => invalidate(),
+    onError: (err, item) => {
+      setFailure(`Could not delete "${item.value.name}": ${toUserMessage(err)}`);
+    },
   });
 
   const handleEditSave = (body: MemoryEditRequest) => {
     if (editing == null) return;
-    editMutation.mutate({
-      key: editing.key,
-      kind: editing.value.kind,
-      body,
-    });
-    setEditing(null);
+    editMutation.mutate(
+      { item: editing, body, action: "save" },
+      { onSuccess: () => setEditing(null) },
+    );
   };
 
   const handleDelete = (mem: MemoryItem) => {
     const ok = window.confirm(
-      `Delete "${mem.value.name}"? This is recorded as a tombstone so the memory will not re-appear automatically.`,
+      `Delete "${mem.value.name}"? PathFinder will not save it again on its own.`,
     );
     if (!ok) return;
-    deleteMutation.mutate({ key: mem.key, kind: mem.value.kind });
+    deleteMutation.mutate(mem);
   };
 
   const handleToggleAutoRetrieve = (mem: MemoryItem, next: boolean) => {
     editMutation.mutate({
-      key: mem.key,
-      kind: mem.value.kind,
+      item: mem,
       body: { autoRetrieve: next },
+      action: "change auto-retrieve for",
     });
   };
 
@@ -81,6 +92,15 @@ export function MemorySettings() {
         onToggleAutoRetrieve={handleToggleAutoRetrieve}
       />
 
+      {failure != null && (
+        <div
+          role="alert"
+          className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+        >
+          {failure}
+        </div>
+      )}
+
       {isPending && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
@@ -90,53 +110,29 @@ export function MemorySettings() {
 
       {error != null && (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          Failed to load memories:{" "}
-          {error instanceof Error ? error.message : "unknown error"}
+          Failed to load memories: {toUserMessage(error)}
         </div>
       )}
 
       {data != null && (
         <div className="space-y-2">
-          <MemorySection
-            title="Gene set notes"
-            items={data.geneSetNotes}
-            onEdit={(m) => setEditing(m)}
-            onDelete={handleDelete}
-            onToggleAutoRetrieve={handleToggleAutoRetrieve}
-          />
-          <MemorySection
-            title="Strategies"
-            items={data.strategies}
-            onEdit={(m) => setEditing(m)}
-            onDelete={handleDelete}
-            onToggleAutoRetrieve={handleToggleAutoRetrieve}
-          />
-          <MemorySection
-            title="Preferences"
-            items={data.preferences}
-            onEdit={(m) => setEditing(m)}
-            onDelete={handleDelete}
-            onToggleAutoRetrieve={handleToggleAutoRetrieve}
-          />
-          <MemorySection
-            title="Knowledge"
-            items={data.knowledge}
-            onEdit={(m) => setEditing(m)}
-            onDelete={handleDelete}
-            onToggleAutoRetrieve={handleToggleAutoRetrieve}
-          />
-          <MemorySection
-            title="Cases"
-            items={data.cases}
-            onEdit={(m) => setEditing(m)}
-            onDelete={handleDelete}
-            onToggleAutoRetrieve={handleToggleAutoRetrieve}
-          />
+          {memorySections(data).map(({ kind, items }) => (
+            <MemorySection
+              key={kind}
+              title={MEMORY_KIND_LABELS[kind].many}
+              items={items}
+              focusedKey={focused?.kind === kind ? focused.key : null}
+              defaultOpen={focused?.kind === kind}
+              onEdit={(m) => setEditing(m)}
+              onDelete={handleDelete}
+              onToggleAutoRetrieve={handleToggleAutoRetrieve}
+            />
+          ))}
 
           {(data.hasMore || offset > 0) && (
             <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
               <span>
-                Showing rows {offset + 1}-{offset + PAGE_SIZE} per namespace
+                Showing memories {offset + 1}-{offset + PAGE_SIZE} of each kind
               </span>
               <div className="flex gap-2">
                 {offset > 0 && (

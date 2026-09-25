@@ -1,7 +1,7 @@
 import { test, expect } from "../fixtures/test";
 
 /**
- * Feature: Phase 2a/2b chat flows — exploratory variant comparison, the
+ * Feature: Phase 2a/2b chat flows - exploratory variant comparison, the
  * consult_user design-question gate, and attaching a gene-ID file to seed a
  * control set. Only the LLM is mocked; variant runs and gene-ID resolution hit
  * real WDK.

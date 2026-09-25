@@ -19,7 +19,7 @@ from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
-from pathfinder.ai.tools.standalone import export, gene_sets
+from pathfinder.ai.tools.standalone import export, gene_record, gene_sets
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
@@ -170,7 +170,11 @@ def test_the_clear_docstring_does_not_claim_the_provenance_is_lost() -> None:
 async def test_clearing_empties_the_strategy_the_lead_can_see() -> None:
     ctx = _ctx()
 
-    result = await clear_strategy(ctx, confirm=True)
+    result = await clear_strategy(
+        ctx,
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
 
     session = ctx.deps.runtime.strategy_session
     graph = session.get_graph(None)
@@ -186,7 +190,11 @@ async def test_clearing_without_confirmation_is_a_retry() -> None:
     ctx = _ctx()
 
     with pytest.raises(ModelRetry):
-        await clear_strategy(ctx, confirm=False)
+        await clear_strategy(
+            ctx,
+            confirm=False,
+            reply="I will make this change and report what it takes with it.",
+        )
 
     graph = ctx.deps.runtime.strategy_session.get_graph(None)
     assert graph is not None
@@ -362,7 +370,7 @@ async def test_the_record_tool_answers_the_site_the_turn_runs_on(
         tool_call_id="call_record",
     )
 
-    result = await lead_tools.read_gene_record(ctx, "TGME49_233460")
+    result = await gene_record.read_gene_record(ctx, "TGME49_233460")
 
     assert the_record == [("plasmodb", "TGME49_233460")]
     assert returned(result, GeneRecordSummary).product == "SAG-related sequence SRS29B"
@@ -376,8 +384,8 @@ async def test_a_record_read_is_a_source_the_turn_retrieved() -> None:
         tool_call_id="call_record",
     )
 
-    await lead_tools.read_gene_record(ctx, "TGME49_233460")
-    await lead_tools.read_gene_record(ctx, "TGME49_233460")
+    await gene_record.read_gene_record(ctx, "TGME49_233460")
+    await gene_record.read_gene_record(ctx, "TGME49_233460")
 
     assert ctx.deps.state.turn_markers.retrieved_sources == [
         "https://toxodb.org/toxo/app/record/gene/TGME49_233460",

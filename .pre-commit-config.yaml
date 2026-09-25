@@ -79,7 +79,13 @@ repos:
         entry: bash -c "node scripts/check-punctuation.mjs && node --test scripts/check-punctuation.test.mjs"
         language: system
         pass_filenames: false
-        files: ^(apps/(api/src|web/src)/|packages/shared-ts/src/|scripts/)
+        files: ^(apps/(api/src|web/src|web/e2e)/|packages/shared-ts/src/|scripts/)
+      - id: vocabulary
+        name: one name per concept (copy and model text, and the checker)
+        entry: bash -c "node scripts/check-vocabulary.mjs && node --test scripts/check-vocabulary.test.mjs"
+        language: system
+        pass_filenames: false
+        files: ^(apps/(api/src|web/src)/|docs/knowledge/conventions/vocabulary\.md$|scripts/check-vocabulary\.(mjs|test\.mjs)$)
       - id: quadlets
         name: check the deployment units (and the checker)
         entry: bash -c "node scripts/check-quadlets.mjs && node --test scripts/check-quadlets.test.mjs"
@@ -157,7 +163,7 @@ repos:
         files: ^apps/api/pyproject\.toml$
         stages: [pre-push]
       - id: shared-ts-openapi
-        name: generated types freshness (shared-ts)
+        name: the committed spec generates types that compile (shared-ts)
         entry: bash -c "cd packages/shared-ts && yarn check:generated"
         language: system
         pass_filenames: false

@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
+import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
 import { revertToMessage } from "@pathfinder/shared/generated/hooks/useRevertToMessage";
 import { submitProductAction } from "@pathfinder/shared/generated/hooks/useSubmitProductAction";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
@@ -78,7 +79,7 @@ export function EditComposerBranchOrRevert() {
         }),
         refetchStrategy(queryClient, conversationId),
         queryClient.invalidateQueries({
-          queryKey: ["conversations", conversationId, "scratchpad"],
+          queryKey: listScratchpadNotesQueryOptions(conversationId).queryKey,
         }),
       ]);
       setPendingSubmission({

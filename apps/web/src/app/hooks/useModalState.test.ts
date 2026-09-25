@@ -1,9 +1,14 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { useModalState } from "./useModalState";
+
+afterEach(() => {
+  act(() => useMemoryFocusStore.getState().clearFocus());
+});
 
 describe("useModalState", () => {
   it("starts with all modals closed", () => {
@@ -75,5 +80,31 @@ describe("the settings modal", () => {
       result.current.openSettings("memory");
     });
     expect(result.current.settingsTab).toBe("memory");
+  });
+});
+
+describe("a focused memory", () => {
+  it("opens the settings modal on the memory tab", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => useMemoryFocusStore.getState().focusMemory("case:9b73", "case"));
+    expect(result.current.showSettings).toBe(true);
+    expect(result.current.settingsTab).toBe("memory");
+  });
+
+  it("is dropped when the modal closes", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => useMemoryFocusStore.getState().focusMemory("case:9b73", "case"));
+    act(() => result.current.closeSettings());
+    expect(result.current.showSettings).toBe(false);
+    expect(useMemoryFocusStore.getState().focused).toBeNull();
+  });
+
+  it("is dropped by a tab change, which keeps the modal open on that tab", () => {
+    const { result } = renderHook(() => useModalState());
+    act(() => useMemoryFocusStore.getState().focusMemory("case:9b73", "case"));
+    act(() => result.current.setSettingsTab("model"));
+    expect(result.current.showSettings).toBe(true);
+    expect(result.current.settingsTab).toBe("model");
+    expect(useMemoryFocusStore.getState().focused).toBeNull();
   });
 });

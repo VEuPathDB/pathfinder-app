@@ -76,7 +76,6 @@ src/pathfinder/
     control_sets.py          #   Control-set CRUD over the repository
     conversations/           #   Conversation lifecycle, fork, revert, cancellation, scratchpad
     eda/                     #   EDA study catalog, subsetting, compute, export
-    enrichment/              #   The hypergeometric statistic the evidence card reports
     eval.py                  #   Thesis evaluation: gold strategies and their gene ids
     eval_data/               #   Eval staging and promotion
     experiment/              #   Experiment engine (evaluate), scored and variant comparisons, seeds
@@ -85,6 +84,7 @@ src/pathfinder/
     parameter_optimization/  #   Parameter sweeps, scoring, builders
     quota.py                 #   Per-user monthly USD quota
     research/                #   Literature retrieval
+    separation/              #   A separation run's result as the offer PathFinder shows and builds
     strategies/              #   Strategy lifecycle: build, commit, materialize, push, sync, revisions
     tasks/                   #   Background task rows and their queries
     user_data.py             #   Purges a user's data

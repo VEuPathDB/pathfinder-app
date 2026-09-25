@@ -23,9 +23,7 @@ function Markdown({ children }: { children: string }) {
 // What runs the criterion: its search, or the analysis it waits for.
 function runsLabel(crit: Criterion): string {
   if (crit.searchName != null && crit.searchName !== "") return crit.searchName;
-  if (crit.needsAnalysisOn != null) {
-    return `analysis workflow on ${crit.needsAnalysisOn}`;
-  }
+  if (crit.needsAnalysisOn != null) return "waits for a study analysis";
   return "(unbound)";
 }
 
@@ -52,7 +50,11 @@ function CriterionCard({ crit }: { crit: Criterion }) {
       {crit.rationale?.short != null && (
         <p
           className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground"
-          title={crit.rationale.reason}
+          title={
+            crit.rationale.kind === "controls"
+              ? crit.rationale.basis
+              : crit.rationale.reason
+          }
           data-testid="criterion-why"
         >
           why: {crit.rationale.short}

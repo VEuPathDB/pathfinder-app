@@ -11,7 +11,7 @@ import pytest
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.db import async_session_factory
 from sqlalchemy import select
-from veupathdb.eda import EdaAnalysisDetail
+from veupathdb.eda import EdaAnalysisDetail, EdaVolcanoConfiguration
 from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.persistence.models import ConversationStrategy, User
@@ -19,7 +19,6 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.responses import ConversationResponse
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.binding import mutated_analysis_state
-from pathfinder.services.eda.compute import VolcanoThresholds
 from pathfinder.services.eda.gene_subset import NoGeneSubsetError
 from pathfinder.services.eda.steps import export_analysis_step
 from pathfinder.tests._support.eda_doubles import ANALYSIS_ID
@@ -66,6 +65,7 @@ async def test_a_subset_export_adds_the_generic_subset_step(
             session=session,
             conversation_id=conversation_id,
             user_id=user_id,
+            reads_the_volcano=False,
         )
 
     step = await added_step(conversation_id)
@@ -78,15 +78,24 @@ async def test_a_subset_export_adds_the_generic_subset_step(
     assert ConversationResponse.model_validate(refreshed).id == conversation_id
 
 
-async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
+async def test_a_volcano_export_adds_the_compute_step_with_the_stored_cut(
     thread: tuple[UUID, UUID],
     open_analysis: Open,
     hermetic_wdk: list[Any],
 ) -> None:
-    """The thresholds the researcher chose ride in the analysis spec."""
+    """The cut the analysis stores rides in the analysis spec."""
     conversation_id, user_id = thread
     await open_analysis(
-        conversation_id, de_analysis(filters=[sample_filter()], with_computation=True)
+        conversation_id,
+        de_analysis(
+            filters=[sample_filter()],
+            with_computation=True,
+            volcano=EdaVolcanoConfiguration(
+                effect_size_threshold=2.0,
+                significance_threshold=0.01,
+                effect_direction="upOnly",
+            ),
+        ),
     )
 
     async with async_session_factory() as session:
@@ -94,11 +103,7 @@ async def test_a_volcano_export_adds_the_compute_step_with_the_thresholds(
             session=session,
             conversation_id=conversation_id,
             user_id=user_id,
-            thresholds=VolcanoThresholds(
-                effect_size_threshold=2.0,
-                significance_threshold=0.01,
-                effect_direction="upOnly",
-            ),
+            reads_the_volcano=True,
         )
 
     step = await added_step(conversation_id)
@@ -130,6 +135,7 @@ async def test_the_exported_step_is_persisted_on_the_thread(
             session=session,
             conversation_id=conversation_id,
             user_id=user_id,
+            reads_the_volcano=False,
         )
 
     async with async_session_factory() as session:
@@ -157,6 +163,7 @@ async def test_a_subset_of_samples_is_refused_and_writes_no_step(
                 session=session,
                 conversation_id=conversation_id,
                 user_id=user_id,
+                reads_the_volcano=False,
             )
 
     assert refusal.value.status == 422
@@ -190,6 +197,7 @@ async def test_an_export_on_an_unbound_thread_is_refused(
                 session=session,
                 conversation_id=conversation_id,
                 user_id=user_id,
+                reads_the_volcano=False,
             )
     assert excinfo.value.status == 409
 
@@ -243,6 +251,7 @@ async def test_an_export_beside_an_existing_strategy_is_a_detached_root_and_is_n
             session=session,
             conversation_id=conversation_id,
             user_id=user_id,
+            reads_the_volcano=False,
         )
 
     ast = await persisted_ast(conversation_id)
@@ -294,6 +303,7 @@ async def test_an_export_on_a_thread_with_no_strategy_begins_it(
             session=session,
             conversation_id=conversation_id,
             user_id=user_id,
+            reads_the_volcano=False,
         )
 
     ast = await persisted_ast(conversation_id)

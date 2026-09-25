@@ -157,7 +157,8 @@ describe("StepResults", () => {
     mockGetStepRecords.mockResolvedValue(page(0, 1, 1));
     renderResults({ wdkStepId: 22 });
 
-    const open = await screen.findByRole("link", { name: /Open in PlasmoDB/ });
+    const open = await screen.findByRole("link", { name: "Open in PlasmoDB" });
+    expect(open).toHaveAttribute("aria-label", "Open in PlasmoDB");
     expect(open.getAttribute("href")).toBe(STEP_URL);
     expect(open.getAttribute("rel")).toBe("noreferrer");
   });

@@ -7,6 +7,8 @@ from assistant_core.platform.types import JSONArray
 from pydantic import BaseModel
 from veupathdb.errors import VEuPathDBError
 
+from pathfinder.domain.provider_keys import KeyRefusal
+
 
 class ErrorCode(StrEnum):
     """Application error codes."""
@@ -63,6 +65,9 @@ class ErrorCode(StrEnum):
     PROVIDER_NOT_CONFIGURED = "PROVIDER_NOT_CONFIGURED"
     PROVIDER_UNREACHABLE = "PROVIDER_UNREACHABLE"
     PROVIDER_KEYS_DISABLED = "PROVIDER_KEYS_DISABLED"
+    # A file the user attached to a message
+    ATTACHMENT_TOO_LARGE = "ATTACHMENT_TOO_LARGE"
+    ATTACHMENT_NOT_READABLE = "ATTACHMENT_NOT_READABLE"
 
 
 class ProblemDetail(BaseModel):
@@ -318,21 +323,54 @@ class ProviderKeyError(AppError):
     """
 
 
+def _refused_title(name: str, refusal: KeyRefusal) -> str:
+    match refusal:
+        case KeyRefusal.NO_CREDIT:
+            return f"Your {name} key has no credit"
+        case KeyRefusal.FORBIDDEN:
+            return f"Your {name} key is not permitted"
+        case _:
+            return f"{name} refused your key"
+
+
+def _refused_detail(name: str, refusal: KeyRefusal) -> str:
+    in_settings = f"your {name} key in {_KEYS_IN_SETTINGS}."
+    match refusal:
+        case KeyRefusal.NO_CREDIT:
+            return (
+                "This key has no credit, so nothing ran on it. Add credit to the "
+                f"{name} account, or replace or remove {in_settings}"
+            )
+        case KeyRefusal.FORBIDDEN:
+            return (
+                f"{name} does not permit this key to run the model, so nothing "
+                f"ran on it. Replace or remove {in_settings}"
+            )
+        case _:
+            return (
+                f"{name} refused the key you added, so nothing ran on it. "
+                f"Replace or remove {in_settings}"
+            )
+
+
 class ProviderKeyRefusedError(ProviderKeyError):
     """The provider refused the researcher's key, so nothing may run on it.
 
     Nothing falls back to the deployment's key.
     """
 
-    def __init__(self, provider_name: str, *, status: int = 409) -> None:
+    def __init__(
+        self,
+        provider_name: str,
+        refusal: KeyRefusal = KeyRefusal.INVALID,
+        *,
+        status: int = 409,
+    ) -> None:
         super().__init__(
             code=ErrorCode.PROVIDER_KEY_REFUSED,
-            title=f"{provider_name} refused your key",
+            title=_refused_title(provider_name, refusal),
             status=status,
-            detail=(
-                f"{provider_name} refused the key you added, so nothing ran on it. "
-                f"Replace or remove your {provider_name} key in {_KEYS_IN_SETTINGS}."
-            ),
+            detail=_refused_detail(provider_name, refusal),
         )
 
 
@@ -350,6 +388,13 @@ class ProviderKeyUnreadableError(ProviderKeyError):
                 f"{_KEYS_IN_SETTINGS}."
             ),
         )
+
+
+def refused_key_error(provider_name: str, refusal: KeyRefusal) -> ProviderKeyError:
+    """The refusal a request or a turn meets on a key marked ``refusal``."""
+    if refusal is KeyRefusal.UNREADABLE:
+        return ProviderKeyUnreadableError(provider_name)
+    return ProviderKeyRefusedError(provider_name, refusal)
 
 
 class ProviderNotConfiguredError(ProviderKeyError):
@@ -396,6 +441,30 @@ class ProviderKeysDisabledError(AppError):
             title="Personal keys are off",
             status=403,
             detail="This deployment does not accept personal provider keys.",
+        )
+
+
+class AttachmentTooLargeError(AppError):
+    """A message carries more attachment bytes, or more attachments, than a turn takes."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(
+            code=ErrorCode.ATTACHMENT_TOO_LARGE,
+            title="Attachment too large",
+            status=413,
+            detail=detail,
+        )
+
+
+class AttachmentNotReadableError(AppError):
+    """An attachment of a kind the model that reads the message cannot read."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(
+            code=ErrorCode.ATTACHMENT_NOT_READABLE,
+            title="Attachment not readable",
+            status=422,
+            detail=detail,
         )
 
 

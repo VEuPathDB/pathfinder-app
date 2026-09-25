@@ -11,7 +11,7 @@ import {
 test.describe("Comprehensive multi-param strategy lifecycle", () => {
   test.use({ viewport: { width: 1680, height: 900 } });
 
-  test("scoping → build 5-step all-param strategy → verify → optimize → edit every param type → operator flip → delete → Q&A", async ({
+  test("scoping -> build 5-step all-param strategy -> verify -> optimize -> edit every param type -> operator flip -> delete -> Q&A", async ({
     page,
     chatPage,
     graphPage,
@@ -24,7 +24,7 @@ test.describe("Comprehensive multi-param strategy lifecycle", () => {
     await chatPage.newChat("plasmodb");
 
     await chatPage.send(
-      "I'm studying P. falciparum kinases — how strict on 'doesn't vary much' should I be?",
+      "I'm studying P. falciparum kinases - how strict on 'doesn't vary much' should I be?",
     );
     await chatPage.expectClarifyingQuestions();
 

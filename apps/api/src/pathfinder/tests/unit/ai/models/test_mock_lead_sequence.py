@@ -322,7 +322,7 @@ def test_the_recall_arc_answers_with_the_section_it_read() -> None:
     seq = arcs._lead_sequence(msgs)
 
     assert _prose(seq) == (
-        "This thread already carries: ## Frame (full)\n- goal: kinases"
+        "This conversation already carries: ## Frame (full)\n- goal: kinases"
     )
 
 

@@ -1,16 +1,17 @@
 import type { Step } from "@pathfinder/shared";
 import { inferStepKind } from "@/features/strategy/graph";
 import { combineOpEnum } from "@pathfinder/shared";
+import { operatorLabel } from "@/features/strategy/operators";
 
 export function getZeroResultSuggestions(step: Step): string[] {
   const suggestions: string[] = [];
 
   // Broad, always-relevant suggestions
   suggestions.push(
-    "Relax overly strict parameters/filters (broader thresholds, stages, datasets).",
+    "Relax overly strict parameters/filters (broader thresholds, stages, experiments).",
   );
   suggestions.push(
-    "Verify organism / life stage / strain matches the dataset/search you picked.",
+    "Check that the organism / life stage / strain matches the experiment or search you picked.",
   );
 
   const kind = inferStepKind(step);
@@ -18,7 +19,7 @@ export function getZeroResultSuggestions(step: Step): string[] {
     const op = step.operator;
     if (op === combineOpEnum.INTERSECT) {
       suggestions.push(
-        "If you expected results from either branch, change INTERSECT (AND) to UNION (OR).",
+        `If you expected results from either input, change ${operatorLabel(combineOpEnum.INTERSECT)} to ${operatorLabel(combineOpEnum.UNION)}.`,
       );
     } else if (
       op === combineOpEnum.MINUS ||
@@ -27,11 +28,11 @@ export function getZeroResultSuggestions(step: Step): string[] {
       op === combineOpEnum.RONLY
     ) {
       suggestions.push(
-        "If you expected to remove the other branch, verify MINUS direction (swap MINUS vs RMINUS).",
+        `If you expected the other input removed, check the direction: swap ${operatorLabel(combineOpEnum.MINUS)} and ${operatorLabel(combineOpEnum.RMINUS)}.`,
       );
     } else if (op === combineOpEnum.COLOCATE) {
       suggestions.push(
-        "For COLOCATE/NEAR, widen the region offsets and verify feature types.",
+        `For ${operatorLabel(combineOpEnum.COLOCATE)}, widen the region offsets and check the feature types.`,
       );
     }
     suggestions.push("Check that both input steps are non-zero before combining.");
@@ -44,7 +45,7 @@ export function getZeroResultSuggestions(step: Step): string[] {
     );
   } else {
     suggestions.push(
-      "Try an alternative search with similar meaning (broader keyword / different dataset).",
+      "Try an alternative search with similar meaning (broader keyword / different experiment).",
     );
   }
 

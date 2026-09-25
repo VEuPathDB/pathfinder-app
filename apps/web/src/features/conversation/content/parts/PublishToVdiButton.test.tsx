@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import type { GeneSet, VdiPublicationStatus } from "@pathfinder/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { APIError } from "@/lib/api/http";
 import { createTestWrapper } from "@/lib/query/testing";
 
 const mockPublish = vi.hoisted(() => vi.fn());
@@ -151,9 +152,9 @@ describe("PublishToVdiButton", () => {
     );
     await user.click(screen.getByRole("button", { name: "Confirm publish" }));
 
-    await waitFor(() => {
-      expect(screen.getByText("PlasmoDB refused the upload")).toBeTruthy();
-    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "PlasmoDB refused the upload",
+    );
     expect(
       screen.getByRole("button", { name: /Publish to VEuPathDB workspace/ }),
     ).toBeTruthy();
@@ -166,12 +167,25 @@ describe("PublishToVdiButton", () => {
     renderButton(geneSet({ vdiId: VDI_ID }));
 
     await waitFor(() => {
-      expect(screen.getByText("Upload success, import queued")).toBeTruthy();
+      expect(screen.getByText("Uploaded; the site imports it next")).toBeVisible();
     });
     expect(mockGetStatus).toHaveBeenCalledWith("gs-1");
     expect(
       screen.queryByRole("button", { name: /Publish to VEuPathDB workspace/ }),
     ).toBeNull();
+  });
+
+  it.each([
+    [{ upload: "running", importStatus: null }, "Uploading to the site..."],
+    [{ importStatus: "in-progress" }, "The site is importing the dataset..."],
+    [{ importStatus: "complete" }, "Imported; the site is installing it..."],
+  ] as const)("names the stage the dataset is in: %j", async (stage, line) => {
+    mockGetStatus.mockResolvedValue(
+      status({ installed: false, isTerminal: false, installedTargets: [], ...stage }),
+    );
+    renderButton(geneSet({ vdiId: VDI_ID }));
+
+    expect(await screen.findByText(line)).toBeVisible();
   });
 
   it("a site that could not install the dataset says so", async () => {
@@ -183,5 +197,22 @@ describe("PublishToVdiButton", () => {
     await waitFor(() => {
       expect(screen.getByText("The site could not install this dataset")).toBeTruthy();
     });
+  });
+
+  it("says why the status could not be read instead of reading forever", async () => {
+    const detail = "The published dataset for gene set gs-1 no longer exists.";
+    mockGetStatus.mockRejectedValue(
+      new APIError("Not Found", {
+        status: 404,
+        statusText: "Not Found",
+        url: "/api/v1/gene-sets/gs-1/vdi-publication",
+        data: { title: "Not Found", status: 404, detail },
+      }),
+    );
+    renderButton(geneSet({ vdiId: VDI_ID }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(detail);
+    expect(screen.queryByText("Reading publication status...")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Open dataset/ })).toBeNull();
   });
 });

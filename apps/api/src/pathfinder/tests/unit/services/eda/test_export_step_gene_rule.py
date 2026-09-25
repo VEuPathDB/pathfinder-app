@@ -16,7 +16,6 @@ from pathfinder.domain.strategy.operations import AddLeafOp
 from pathfinder.domain.strategy.operations.types import GraphOperation
 from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.eda import steps
-from pathfinder.services.eda.compute import VolcanoThresholds
 from pathfinder.services.eda.gene_subset import NoGeneSubsetError
 from pathfinder.tests._support.eda_doubles import no_gene_study
 from pathfinder.tests._support.eda_step_doubles import (
@@ -91,12 +90,12 @@ def _leaves(applied: list[GraphOperation]) -> list[AddLeafOp]:
     return leaves
 
 
-async def _export(thresholds: VolcanoThresholds | None = None) -> dict[str, Any]:
+async def _export(*, reads_the_volcano: bool = False) -> dict[str, Any]:
     return await steps.export_analysis_step(
         session=AsyncSession(),
         conversation_id=uuid4(),
         user_id=uuid4(),
-        thresholds=thresholds,
+        reads_the_volcano=reads_the_volcano,
     )
 
 
@@ -147,14 +146,12 @@ async def test_a_gene_subset_is_exported(monkeypatch: pytest.MonkeyPatch) -> Non
     ]
 
 
-async def test_a_computed_analysis_with_thresholds_is_exported(
+async def test_a_computed_analysis_exports_its_volcano(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     applied = _wire(monkeypatch, [sample_filter()], with_computation=True)
 
-    await _export(
-        VolcanoThresholds(effect_size_threshold=1.0, significance_threshold=0.05)
-    )
+    await _export(reads_the_volcano=True)
 
     leaves = _leaves(applied)
     assert [leaf.step.search_name for leaf in leaves] == ["GenesByEdaVizWithCompute"]

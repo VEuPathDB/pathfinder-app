@@ -12,7 +12,7 @@ def test_the_envelope_always_carries_the_analysis_key() -> None:
     """A missing key and a null analysis are different answers to the tab."""
     schema = EdaAnalysisPatchResponse.model_json_schema()
 
-    assert schema["required"] == ["analysis", "job", "step"]
+    assert schema["required"] == ["analysis", "step"]
 
 
 def test_the_analysis_key_is_nullable() -> None:
@@ -24,25 +24,23 @@ def test_the_analysis_key_is_nullable() -> None:
 
 
 def test_an_unbound_answer_serializes_the_analysis_key() -> None:
-    dumped = EdaAnalysisPatchResponse(analysis=None, job=None, step=None).model_dump(
+    dumped = EdaAnalysisPatchResponse(analysis=None, step=None).model_dump(
         by_alias=True
     )
 
-    assert set(dumped) == {"analysis", "job", "step"}
+    assert set(dumped) == {"analysis", "step"}
     assert dumped["analysis"] is None
 
 
-def test_the_thread_read_always_carries_both_keys() -> None:
+def test_the_conversation_read_always_carries_the_analysis_key() -> None:
     """The tab hydrates from one snapshot, so the key is never absent."""
     schema = ConversationEdaResponse.model_json_schema()
 
-    assert schema["required"] == ["analysis", "descriptor"]
+    assert schema["required"] == ["analysis"]
     assert {"type": "null"} in schema["properties"]["analysis"]["anyOf"]
 
 
-def test_an_unbound_thread_read_serializes_both_keys_as_null() -> None:
-    dumped = ConversationEdaResponse(analysis=None, descriptor=None).model_dump(
-        by_alias=True
-    )
+def test_an_unbound_conversation_read_serializes_the_key_as_null() -> None:
+    dumped = ConversationEdaResponse(analysis=None).model_dump(by_alias=True)
 
-    assert dumped == {"analysis": None, "descriptor": None}
+    assert dumped == {"analysis": None}

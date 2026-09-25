@@ -30,19 +30,27 @@ from pathfinder.ai.tools.standalone import (
     eda_compute,
     experiment,
     optimization,
+    separation,
     strategy_edits,
 )
 from pathfinder.assistants.site_help.agent import build_site_help_agent
+from pathfinder.services.separation.offer import separation_report
+from pathfinder.tests._support.separation import (
+    SIGNAL_PEPTIDE,
+    TASK_ID,
+    recorded_separation,
+)
 from pathfinder.tests.unit.ai.tools.conftest import summary_chunks
 
 _SUMMARY_BUILDERS = frozenset({"with_summary", "summary_chunks"})
 
 # A sub-agent dispatch's line rides the data-sub-agent-call payload, so a
 # summary naming its call would patch nothing. An accepted proposal is an edit
-# dispatch drawn the same way.
+# dispatch drawn the same way, and an accepted separation is the build's.
 _SUB_AGENT_DISPATCH_MODULES = frozenset(
     {
         "pathfinder.ai.lead.frame_dispatch",
+        "pathfinder.ai.lead.lead_adoption",
         "pathfinder.ai.lead.lead_proposal",
         "pathfinder.ai.lead.sub_agent_dispatch",
         "pathfinder.ai.lead.verify_dispatch",
@@ -60,12 +68,13 @@ _SHARED_BODIES: dict[str, Callable[..., Any]] = {
     "delete_step": strategy_edits.delete_the_step
 }
 
-# The three durable tools never run their own body: the summary is built from
+# The four durable tools never run their own body: the summary is built from
 # the resumed payload instead, so it is driven rather than read.
 _DURABLE_BUILDERS: dict[str, Callable[[Any, UUID, str | None], list[BaseChunk]]] = {
     "run_control_tests_on_step": experiment._control_test_chunks_from_result,
     "optimize_search_parameters": optimization._sweep_chunks_from_result,
     "run_eda_compute": eda_compute._compute_chunks_from_result,
+    "separate_controls": separation._separation_chunks_from_result,
 }
 
 
@@ -301,10 +310,29 @@ _RESUMED: dict[str, dict[str, Any]] = {
         "positiveMissedIds": ["PF3D7_0000008", "PF3D7_0000009"],
     },
     "optimize_search_parameters": {
-        "variants": [{}, {}],
+        "variants": [
+            {
+                "variantId": f"v{index}",
+                "status": "success",
+                "params": {
+                    "signalp_version": {
+                        "type": "single-pick-vocabulary",
+                        "value": version,
+                    }
+                },
+                "score": score,
+            }
+            for index, (version, score) in enumerate(
+                [("SignalP-6.0", 0.4), ("SignalP-4.1", 0.5)]
+            )
+        ],
         "best": {"score": 0.5},
         "objective": "mcc",
+        "searchName": "GenesWithSignalPeptide",
     },
+    "separate_controls": separation_report(
+        recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID
+    ).model_dump(by_alias=True, mode="json"),
     "run_eda_compute": {
         "genesTested": 5511,
         "retainedUp": 900,

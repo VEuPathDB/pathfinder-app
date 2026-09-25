@@ -42,6 +42,7 @@ from pathfinder.services.conversations.responses import (
 )
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.dataset_sources import save_dataset_sources
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
     insert_saved_into_conversation,
@@ -97,7 +98,7 @@ async def get_ast(
     if not strategy_ast:
         raise NotFoundError(
             code=ErrorCode.STRATEGY_NOT_FOUND,
-            title="Strategy has no plan AST",
+            title="The strategy has no steps",
         )
     return strategy_ast
 
@@ -110,11 +111,11 @@ async def restore(
     conversation = await get_owned_conversation(repo, conversation_id, user_id)
     if conversation.dismissed_at is None:
         raise ValidationError(
-            detail="Strategy is not dismissed",
+            detail="The conversation is not in Recently deleted.",
             errors=[
                 {
                     "path": "strategyId",
-                    "message": "Not dismissed",
+                    "message": "Not in Recently deleted",
                     "code": "INVALID_STATE",
                 },
             ],
@@ -183,6 +184,7 @@ async def apply_operation(
     # A thread the caller does not own takes no lock. The state is read again
     # inside the lock, because another writer may have moved it since.
     await get_owned_thread_or_404(repo, conversation_id, user_id)
+    op = await save_dataset_sources(site_id, op)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
         locked_repo = ConversationRepository(locked)
         conversation, strategy = await get_owned_thread_or_404(

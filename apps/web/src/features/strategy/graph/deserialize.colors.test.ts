@@ -61,13 +61,9 @@ describe("deserializeStrategyToGraph edge paint", () => {
     const positions = new Map(
       ["a", "b", "c"].map((id, i) => [id, { x: 200 + i * 300, y: 200 }] as const),
     );
-    const { edges } = deserializeStrategyToGraph(
-      COMBINE,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: positions },
-    );
+    const { edges } = deserializeStrategyToGraph(COMBINE, undefined, {
+      computedPositions: positions,
+    });
     const primary = edges.find((e) => e.id === "a-c-primary");
     const secondary = edges.find((e) => e.id === "b-c-secondary");
 

@@ -10,6 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { COPY_STEP_ACTION, hasACopy } from "@/features/strategy/copyStep";
+import { inferStepKind } from "@/features/strategy/graph/kind";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -70,14 +72,15 @@ export function HoverActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={4}>
-          {onDuplicate != null && (
+          {onDuplicate != null && hasACopy(inferStepKind(step)) && (
             <DropdownMenuItem
+              title={COPY_STEP_ACTION.title}
               onSelect={(event) => {
                 event.stopPropagation();
                 onDuplicate(step.id);
               }}
             >
-              Duplicate step
+              {COPY_STEP_ACTION.label}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem onSelect={copyId}>Copy step ID</DropdownMenuItem>

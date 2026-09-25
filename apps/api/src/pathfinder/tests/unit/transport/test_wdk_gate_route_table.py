@@ -54,12 +54,11 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         # EDA: every route reads the caller's own EDA account, and resolving
         # the analysis user goes through WDK.
         ("GET", "/api/v1/eda/studies"),
-        ("GET", "/api/v1/eda/studies/{dataset_id}"),
-        ("POST", "/api/v1/eda/count"),
-        ("POST", "/api/v1/eda/distribution"),
         ("POST", "/api/v1/eda/viz"),
         ("GET", "/api/v1/conversations/{conversation_id}/eda"),
         ("PATCH", "/api/v1/conversations/{conversation_id}/eda"),
+        # The researcher's own datasets live in their VEuPathDB workspace.
+        ("GET", "/api/v1/eda/datasets"),
         # Eval: both routes build or read a WDK strategy in the caller's account.
         ("POST", "/api/v1/eval/build-gold"),
         ("POST", "/api/v1/eval/strategy-gene-ids"),

@@ -13,7 +13,10 @@ from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.reply_claims import machine_words
-from pathfinder.ai.tools.standalone.graph_helpers import build_step_response
+from pathfinder.ai.tools.standalone.graph_helpers import (
+    build_step_response,
+    counted_records,
+)
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.domain.strategy.step_words import AddedSearch
@@ -52,7 +55,6 @@ def lead_turn_budget_message() -> str:
     )
 
 
-_GENE_RECORD_TYPES = frozenset({"gene", "transcript"})
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s")
 
 
@@ -90,8 +92,9 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
     )
     if count is None:
         return _with_link(f'{held}; the final step is "{title}".', url)
-    noun = "gene" if graph.record_type in _GENE_RECORD_TYPES else "record"
-    returns = f'the final step "{title}" returns {count_noun(count, noun)}'
+    returns = (
+        f'the final step "{title}" returns {counted_records(count, graph.record_type)}'
+    )
     return _with_link(f"{held}; {returns}.", url)
 
 

@@ -3,7 +3,6 @@
 import {
   Ban,
   BookOpen,
-  FileText,
   HelpCircle,
   LineChart,
   Plus,
@@ -11,73 +10,37 @@ import {
   Trash,
 } from "lucide-react";
 
-import { exportCommand, importCommand } from "./commandsIO";
-import { fetchJson } from "./registryUtils";
-import type { Command } from "./types";
+import { chatRoot } from "@/lib/routes";
+
+import { exportCommand, importCommand, renameCommand } from "./commandsIO";
+import type { Command, CommandContext } from "./types";
+
+const NO_STRATEGY = "This conversation has no strategy yet.";
+
+function needsStrategy(ctx: CommandContext): string | null {
+  return ctx.stepCount === 0 ? NO_STRATEGY : null;
+}
 
 export const commands: Command[] = [
   {
     kind: "deterministic",
     name: "new",
-    description: "Clear composer (start fresh message)",
+    description: "Start a new conversation",
     icon: <Plus className="size-3.5" aria-hidden />,
     params: [],
-    run: () => ({
-      kind: "prefill",
-      text: "",
-      submit: false,
-    }),
+    run: (_values, ctx) => ({ kind: "navigate", href: chatRoot(ctx.siteId) }),
   },
-  {
-    kind: "deterministic",
-    name: "rename",
-    description: "Rename this chat",
-    icon: <FileText className="size-3.5" aria-hidden />,
-    params: [
-      {
-        kind: "text",
-        name: "name",
-        label: "New name",
-        placeholder: "Descriptive chat title",
-      },
-    ],
-    run: async (values, ctx) => {
-      const name = values["name"]?.trim() ?? "";
-      if (name.length === 0) {
-        return {
-          kind: "toast",
-          type: "error",
-          message: "Name cannot be empty.",
-        };
-      }
-      await fetchJson(`/api/v1/conversations/${ctx.conversationId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ name }),
-      });
-      return {
-        kind: "toast",
-        type: "success",
-        message: `Renamed to "${name}".`,
-      };
-    },
-  },
+  renameCommand,
   exportCommand,
   importCommand,
   {
     kind: "deterministic",
     name: "help",
     aliases: ["?"],
-    description: "List available slash commands",
+    description: "List the slash commands",
     icon: <HelpCircle className="size-3.5" aria-hidden />,
     params: [],
-    run: () => {
-      const lines = commands.map((c) => `- /${c.name} - ${c.description}`);
-      return {
-        kind: "toast",
-        type: "info",
-        message: `Slash commands:\n${lines.join("\n")}`,
-      };
-    },
+    run: () => ({ kind: "prefill", text: "/" }),
   },
   {
     kind: "llm-prefill",
@@ -85,6 +48,7 @@ export const commands: Command[] = [
     description: "Clear the current strategy",
     icon: <Trash className="size-3.5 text-destructive" aria-hidden />,
     params: [],
+    disabledReason: needsStrategy,
     prompt: () =>
       "Clear the current strategy by calling clear_strategy with confirm=true.",
     autoSubmit: true,
@@ -95,6 +59,7 @@ export const commands: Command[] = [
     description: "Analyze the current strategy and suggest next steps",
     icon: <LineChart className="size-3.5" aria-hidden />,
     params: [],
+    disabledReason: needsStrategy,
     prompt: () =>
       "Analyze my current strategy. Summarize topology and step flow, any " +
       "weak spots or redundant steps, concrete improvement suggestions, " +
@@ -118,10 +83,11 @@ export const commands: Command[] = [
     description: "Diagnose why my strategy returns 0 results",
     icon: <Ban className="size-3.5" aria-hidden />,
     params: [],
+    disabledReason: needsStrategy,
     prompt: () =>
-      "Diagnose my current strategy. Walk through each step, call " +
-      "get_estimated_size on each, and identify where results collapse. " +
-      "Suggest the likely cause and concrete fixes.",
+      "Diagnose my current strategy. Call get_live_strategy_state, walk through " +
+      "each step's count, and identify where results collapse. Suggest the " +
+      "likely cause and concrete fixes.",
     autoSubmit: false,
   },
   {
@@ -137,6 +103,7 @@ export const commands: Command[] = [
         placeholder: "step id, name, or position",
       },
     ],
+    disabledReason: needsStrategy,
     prompt: (values) => {
       const hint = (values["stepHint"] ?? "").trim();
       if (hint === "") {
@@ -147,11 +114,3 @@ export const commands: Command[] = [
     autoSubmit: false,
   },
 ];
-
-export function findCommand(name: string): Command | undefined {
-  const lower = name.toLowerCase();
-  return commands.find((c) => {
-    if (c.name.toLowerCase() === lower) return true;
-    return c.aliases?.some((a) => a.toLowerCase() === lower) ?? false;
-  });
-}

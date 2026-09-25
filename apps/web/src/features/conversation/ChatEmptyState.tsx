@@ -4,7 +4,7 @@ import { AuiIf, ThreadPrimitive } from "@assistant-ui/react";
 import { motion } from "motion/react";
 import { Settings2, X } from "lucide-react";
 
-import { siteDisplayName } from "@pathfinder/shared";
+import { siteShortName } from "@pathfinder/shared";
 
 import suggestedQuestions from "@/features/conversation/data/suggestedQuestions.json";
 import {
@@ -35,7 +35,6 @@ const suggestionEase = [0.22, 1, 0.36, 1] as const;
 
 export function ChatEmptyState({ assistantId }: { assistantId: string }) {
   const siteId = useSessionStore((s) => s.selectedSite);
-  const displayName = siteDisplayName(siteId);
   const hintDismissed = useSettingsStore((s) => s.firstRunHintDismissed);
   const dismissHint = useSettingsStore((s) => s.dismissFirstRunHint);
   const choice = assistantChoice(assistantId);
@@ -82,7 +81,7 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
             className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground"
             data-testid="chat-empty-blurb"
           >
-            {choice.blurb(displayName)}
+            {choice.blurb(siteShortName(siteId))}
           </motion.p>
         )}
 
@@ -94,12 +93,8 @@ export function ChatEmptyState({ assistantId }: { assistantId: string }) {
           >
             <Settings2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             <div className="flex-1">
-              Running on the default provider + orchestrator. Tweak models, tiers, and
-              the orchestrator in{" "}
-              <span className="font-medium text-foreground">
-                Settings -&gt; AI Engine
-              </span>
-              .
+              Running on the default provider and models. Change the models and tiers in{" "}
+              <span className="font-medium text-foreground">Settings -&gt; Model</span>.
             </div>
             <button
               type="button"

@@ -6,7 +6,7 @@ export class SitePickerComponent {
   readonly switcherTrigger: Locator;
 
   constructor(private page: Page) {
-    this.switcherTrigger = page.getByRole("button", { name: /switch database/i });
+    this.switcherTrigger = page.getByRole("button", { name: /switch site/i });
   }
 
   /** Switch to `siteId` and wait for the router to put it in the URL. Picking

@@ -1,6 +1,8 @@
 import { useForm } from "@tanstack/react-form";
-import type { ColocationFormValues } from "../schema/colocationSchema";
-import { DEFAULT_COLOCATION } from "../components/ColocationEditor";
+import {
+  DEFAULT_COLOCATION,
+  type ColocationFormValues,
+} from "../schema/colocationSchema";
 
 export function useColocationForm(initialValues?: Partial<ColocationFormValues>) {
   const defaults: ColocationFormValues = { ...DEFAULT_COLOCATION, ...initialValues };

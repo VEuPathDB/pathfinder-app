@@ -26,8 +26,8 @@ from veupathdb.eda import (
 )
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.jobs.impls import eda_compute_impl
-from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.services.eda import authoring, binding
 from pathfinder.tests._support.eda_wire import (
     DE_ENTITY_SIZES,

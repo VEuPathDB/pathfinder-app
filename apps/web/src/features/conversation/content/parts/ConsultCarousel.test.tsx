@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { UIMessage } from "ai";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
@@ -107,7 +107,7 @@ describe("the consult card names its own controls", () => {
 
   it("names the note field", () => {
     renderCarousel();
-    expect(screen.getByRole("textbox", { name: "Add a note" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Add a comment" })).toBeInTheDocument();
   });
 
   it("names a free-text answer field after its purpose", async () => {
@@ -179,5 +179,28 @@ describe("the answers the carousel collects reach the turn", () => {
         ],
       },
     });
+  });
+});
+
+describe("the consult card can be skipped", () => {
+  beforeEach(() => {
+    useConsultAnswersStore.setState({ byApprovalId: {} });
+  });
+
+  it("declines the questions with no answers from any slide", () => {
+    const addToolApprovalResponse = vi.fn();
+    render(
+      <ConsultCarouselView
+        pending={pendingOf(pendingMessage())}
+        chat={{ ...chatStub(), addToolApprovalResponse }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Skip these questions" }));
+
+    expect(addToolApprovalResponse.mock.calls).toEqual([
+      [{ id: "approval-1", approved: false }],
+    ]);
+    expect(useConsultAnswersStore.getState().byApprovalId).toEqual({});
   });
 });

@@ -12,6 +12,8 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
@@ -125,8 +127,9 @@ async def test_1b_a_budget_stop_that_asks_nothing_passes(
     """Case (b): the stopped pass is reported from the draft, never refused."""
     thread = _fresh_thread(monkeypatch)
 
-    async def _stopped(**kwargs: object) -> None:
+    async def _stopped(*, deps: LeadDeps, **kwargs: object) -> None:
         del kwargs
+        deps.last_phase_stop = PhaseStop(role="frame", reason=PhaseStopReason.BUDGET)
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _stopped)
     result = await thread.frame()

@@ -8,8 +8,7 @@ and re-stating the same edit asks for no operation at all.
 
 from __future__ import annotations
 
-from hypothesis import assume, given, settings
-from hypothesis import strategies as st
+from hypothesis import assume, given, settings, strategies
 from veupathdb.domain.parameters import NumberValue, ParamValue, to_wire
 from veupathdb.domain.strategy import CombineOp, StepKind, StrategyStepNode
 
@@ -231,7 +230,7 @@ def _is_idempotent(after: OperationalSpec, after_graph: StrategyGraph) -> None:
 
 
 @PROFILE
-@given(root=strategy_trees(), position=st.integers(min_value=0, max_value=20))
+@given(root=strategy_trees(), position=strategies.integers(min_value=0, max_value=20))
 def test_a_new_leaf_leaves_every_other_step_exactly_as_it_was(
     root: StrategyStepNode, position: int
 ) -> None:
@@ -251,7 +250,7 @@ def test_a_new_leaf_leaves_every_other_step_exactly_as_it_was(
 
 
 @PROFILE
-@given(root=strategy_trees(), position=st.integers(min_value=0, max_value=20))
+@given(root=strategy_trees(), position=strategies.integers(min_value=0, max_value=20))
 def test_one_value_moved_reaches_its_step_and_no_other(
     root: StrategyStepNode, position: int
 ) -> None:
@@ -274,7 +273,7 @@ def test_one_value_moved_reaches_its_step_and_no_other(
 
 
 @PROFILE
-@given(root=strategy_trees(), position=st.integers(min_value=0, max_value=20))
+@given(root=strategy_trees(), position=strategies.integers(min_value=0, max_value=20))
 def test_one_dropped_leaf_takes_only_its_own_subtree(
     root: StrategyStepNode, position: int
 ) -> None:
@@ -299,7 +298,7 @@ def test_one_dropped_leaf_takes_only_its_own_subtree(
 
 
 @PROFILE
-@given(root=strategy_trees(), position=st.integers(min_value=0, max_value=20))
+@given(root=strategy_trees(), position=strategies.integers(min_value=0, max_value=20))
 def test_one_flipped_operator_moves_that_combine_and_nothing_else(
     root: StrategyStepNode, position: int
 ) -> None:

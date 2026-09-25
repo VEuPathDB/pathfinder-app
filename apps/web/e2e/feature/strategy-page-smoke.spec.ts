@@ -1,7 +1,7 @@
 /**
  * Smoke test for the strategy overhaul UI surfaces.
  *
- * Bypasses the chat planning flow — seeds a strategy via direct API POST,
+ * Bypasses the chat planning flow - seeds a strategy via direct API POST,
  * then exercises the new /strategy route, CanvasTopbar, rail panel, and
  * editor Sheet. Useful when the chat infrastructure is unavailable.
  */

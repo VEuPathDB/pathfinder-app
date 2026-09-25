@@ -162,8 +162,9 @@ def test_verify_reads_the_intent_as_the_request_and_the_users_constraints() -> N
     guidance = " ".join(_VERIFICATION_INSTRUCTIONS.split())
 
     assert (
-        "The intent you verify is the researcher's request, pinned under its own "
-        "heading, plus the user-explicit constraints in the ledger."
+        "The intent you verify is every message the researcher wrote for this "
+        "request, pinned under its own heading, plus the user-explicit constraints "
+        "in the ledger."
     ) in guidance
     assert "where it and the request differ, the request decides" in guidance
     assert "A criterion the spec dropped is not part of the intent" in guidance

@@ -13,7 +13,6 @@ export function StepNode({ data, selected }: NodeProps<Node<StepNodeData>>) {
   const props: StepNodeProps = {
     step: data.step,
     selected,
-    isUnsaved: data.isUnsaved,
     isOrphan: data.isOrphan,
     showOutputHandle: data.showOutputHandle,
     showPrimaryInputHandle: data.showPrimaryInputHandle,

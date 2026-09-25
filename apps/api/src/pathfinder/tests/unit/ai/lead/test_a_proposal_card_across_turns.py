@@ -20,7 +20,7 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.lead import lead_proposal
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.lead_proposal import propose_changes
-from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, DeclinedProposal, Proposal
+from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, CardProposal, DeclinedProposal
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -50,12 +50,13 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
 
 CALL_ID = "call_propose"
 SPECIFIC = "c_specific_at_3h"
-THE_CARD = Proposal(
+THE_CARD = CardProposal(
     question="Refine the strategy with the two checks verification asked for?",
     proposed_changes=[
         "Require detection in the merozoite proteome",
         "Exclude genes highly expressed at the other time points",
     ],
+    reply="The check found two limits, and both are refinements a yes applies.",
 )
 
 

@@ -287,6 +287,37 @@ def test_a_named_parameter_the_run_kept_passes() -> None:
     assert score_case(case, observed).passed
 
 
+def _transform(syntenic: str, over: StrategyStepNode) -> StrategyStepNode:
+    return StrategyStepNode(
+        search_name="GenesByOrthologs",
+        parameters={"isSyntenic": MultiPickValue(values=[syntenic])},
+        primary_input=over,
+    )
+
+
+def test_every_step_of_a_named_search_is_held_to_the_value() -> None:
+    """A round trip runs the transform twice; each leg carries the parameter."""
+    case = _case(
+        ExpectedOutcome(
+            builds_strategy=True,
+            parameters={"GenesByOrthologs": {"isSyntenic": "yes"}},
+        ),
+    )
+    observed = ObservedOutcome(
+        built_strategy=True,
+        tree=tree_from_ast(
+            _ast(_transform("no", _transform("yes", _leaf("GenesByTaxon"))))
+        ),
+        reply_text="",
+    )
+
+    score = score_case(case, observed)
+
+    assert [(d.field, d.expected, d.actual) for d in score.differences] == [
+        ("parameters.GenesByOrthologs.isSyntenic", "yes", "no")
+    ]
+
+
 def test_the_score_carries_the_distance_when_both_shapes_are_known() -> None:
     case = _case(
         ExpectedOutcome(

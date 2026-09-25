@@ -1,6 +1,6 @@
 {
   "provider": "google",
-  "model": "google:gemini-3.5-flash-lite",
+  "refusal": "invalid",
   "status": 400,
   "body": {
     "error": {
@@ -24,5 +24,8 @@
       ]
     }
   },
-  "recorded_at": "2026-09-24T07:09:29.863751Z"
+  "provenance": "recorded",
+  "source": "a made-up key",
+  "model": "google:gemini-3.5-flash-lite",
+  "read_at": "2026-09-24T19:36:45.951285Z"
 }

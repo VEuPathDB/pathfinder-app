@@ -9,11 +9,15 @@ from __future__ import annotations
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 
+from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
+
 __all__ = [
     "DISCOVERY_CALL_CAPS",
     "READ_ONLY_TOOLS",
     "SEARCH_LOOKUP_TOOLS",
+    "VERIFICATION_CALL_CAPS",
     "build_tool_repetition_guard",
+    "build_verification_repetition_guard",
 ]
 
 # Inspectors: the same call with the same arguments returns the same answer,
@@ -25,6 +29,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_record_types",
         "list_searches",
         "search_for_searches",
+        "read_experiment",
         "search_example_plans",
         "get_search_overview",
         "get_parameter_options",
@@ -51,6 +56,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "read_ledger_section",
         "get_live_strategy_state",
         "list_control_sets",
+        "read_control_set",
     }
 )
 
@@ -71,9 +77,17 @@ SEARCH_LOOKUP_TOOLS: frozenset[str] = frozenset(
 # the arguments.
 DISCOVERY_CALL_CAPS: dict[str, int] = {
     "search_eda_studies": 6,
+    "read_experiment": 6,
     "research_web_search": 12,
     "research_literature_search": 12,
     "search_for_searches": 12,
+}
+
+
+# A check reads the record of each gene it samples, and no more.
+VERIFICATION_CALL_CAPS: dict[str, int] = {
+    **DISCOVERY_CALL_CAPS,
+    "read_gene_record": SAMPLED_GENE_LIMIT,
 }
 
 
@@ -82,4 +96,12 @@ def build_tool_repetition_guard() -> ToolRepetitionGuard:
     return ToolRepetitionGuard(
         read_only_tools=READ_ONLY_TOOLS,
         call_caps=DISCOVERY_CALL_CAPS,
+    )
+
+
+def build_verification_repetition_guard() -> ToolRepetitionGuard:
+    """The guard of one check, which also caps its gene record reads."""
+    return ToolRepetitionGuard(
+        read_only_tools=READ_ONLY_TOOLS,
+        call_caps=VERIFICATION_CALL_CAPS,
     )

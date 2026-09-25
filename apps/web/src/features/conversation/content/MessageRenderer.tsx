@@ -43,6 +43,8 @@ import { FailureNotice } from "./FailureNotice";
 import { SupersededBadge } from "./SupersededBadge";
 import { ConsultCarousel } from "./parts/ConsultCarousel";
 import { ProposalCard } from "./parts/ProposalCard";
+import { SeparationCard } from "./parts/SeparationCard";
+import { UserAttachments } from "./parts/UserAttachments";
 import { StoppedNotice } from "./StoppedNotice";
 import { dataPartRenderers } from "./dataPartRegistry";
 import { messageAnchorId } from "../thread/messageAnchor";
@@ -103,6 +105,16 @@ function ProposeChangesToolPart(props: TraceAnchorProps) {
   );
 }
 
+// The separation card renders where its adoption call sits, the same way.
+function AdoptSeparationToolPart(props: TraceAnchorProps) {
+  return (
+    <>
+      <TraceAnchor {...props} />
+      <SeparationCard toolCallId={props.toolCallId} />
+    </>
+  );
+}
+
 const contentComponents = {
   Text,
   Reasoning: ReasoningPart,
@@ -111,6 +123,7 @@ const contentComponents = {
       think: TraceAnchor,
       consult_user: ConsultUserToolPart,
       propose_changes: ProposeChangesToolPart,
+      adopt_separating_strategy: AdoptSeparationToolPart,
     },
     Fallback: TraceAnchor,
   },
@@ -128,6 +141,7 @@ export function UserMessage() {
   return (
     <motion.div {...entrance} animate={MESSAGE_SETTLED}>
       <Message from="user">
+        <UserAttachments />
         <MessageContent>
           <MessagePrimitive.Content components={contentComponents} />
         </MessageContent>

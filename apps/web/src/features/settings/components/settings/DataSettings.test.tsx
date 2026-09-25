@@ -71,16 +71,16 @@ describe("DataSettings", () => {
     render(<DataSettings siteId="plasmodb" />);
 
     expect(screen.getByTestId("wdk-purge-description")).toHaveTextContent(
-      "Delete everything locally, memories and the investigations still waiting for review included, and the strategies PathFinder created in VEuPathDB. A chat or a run whose strategy the site keeps is kept too, so you can try again. Your monthly spend counter and exports stay. This cannot be undone.",
+      "Delete everything locally, memories and the investigations still waiting for review included, and the strategies PathFinder created in VEuPathDB. A conversation or a run whose strategy the site keeps is kept too, so you can try again. Your monthly spend counter and exports stay. This cannot be undone.",
     );
   });
 
-  it("says what clearing strategies does to the chats on this site", () => {
+  it("says what clearing strategies does to the conversations on this site", () => {
     render(<DataSettings siteId="plasmodb" />);
 
     expect(
       screen.getByText(
-        "Remove every chat for plasmodb from PathFinder. A chat linked to a VEuPathDB strategy is dismissed instead, and the strategy itself stays. Gene sets, runs and control sets are untouched.",
+        "Remove every conversation for PlasmoDB from PathFinder. A conversation linked to a VEuPathDB strategy moves to Recently deleted instead, and the strategy itself stays. Gene sets, runs and control sets are untouched.",
       ),
     ).toBeVisible();
   });
@@ -90,7 +90,7 @@ describe("DataSettings", () => {
 
     expect(
       screen.getByText(
-        "Delete the gene sets, runs and control sets for plasmodb, and dismiss every chat on it. The investigations from plasmodb still waiting for review go with them. A dismissed chat can be restored from the sidebar. VEuPathDB strategies and your memories stay.",
+        "Delete the gene sets, runs and control sets for PlasmoDB, and move every conversation on it to Recently deleted. The investigations from PlasmoDB still waiting for review go with them. A conversation in Recently deleted can be restored from the sidebar. VEuPathDB strategies and your memories stay.",
       ),
     ).toBeVisible();
   });
@@ -100,7 +100,7 @@ describe("DataSettings", () => {
 
     expect(
       screen.getByText(
-        "Delete the gene sets, runs and control sets on every site, and your memories with them. The investigations still waiting for review go too. Every chat is dismissed rather than deleted, and can be restored from the sidebar. VEuPathDB strategies are kept but hidden from sync. Your monthly spend counter and exports stay.",
+        "Delete the gene sets, runs and control sets on every site, and your memories with them. The investigations still waiting for review go too. Every conversation moves to Recently deleted, and can be restored from the sidebar. VEuPathDB strategies are kept but hidden from sync. Your monthly spend counter and exports stay.",
       ),
     ).toBeVisible();
   });
@@ -133,7 +133,7 @@ describe("DataSettings", () => {
     expect(mockError).not.toHaveBeenCalled();
   });
 
-  it("reports the strategies it could not delete and that their chats were kept", async () => {
+  it("reports the strategies it could not delete and that their conversations were kept", async () => {
     await clearAllWithWdk(
       counts({ wdkStrategies: 1, wdkStrategiesKept: 2, memories: 12 }),
     );
@@ -144,7 +144,7 @@ describe("DataSettings", () => {
           "Not everything was deleted",
           {
             description:
-              "VEuPathDB strategies deleted: 1. Could not delete: 2. The chats and runs that used them were kept, so you can try again. Memories deleted: 12.",
+              "VEuPathDB strategies deleted: 1. Could not delete: 2. The conversations and runs that used them were kept, so you can try again. Memories deleted: 12.",
           },
         ],
       ]);

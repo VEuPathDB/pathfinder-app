@@ -237,6 +237,12 @@ def _apply_duplicate_step(
     op: DuplicateStepOp,
 ) -> ApplyResult:
     source = _require(graph, op.source_step_id, "step")
+    if source.kind is not StepKind.SEARCH:
+        msg = (
+            "only a search step can be duplicated; "
+            f"step {source.id!r} is a {source.kind.value}"
+        )
+        raise ApplyError(msg)
     _reject_existing(graph, op.duplicate_step_id, "duplicate id")
     _reject_existing(graph, op.combine_step_id, "combine id")
 

@@ -10,7 +10,7 @@ A conversation gets a side row only when it holds strategy state. A JSON
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -58,61 +58,63 @@ _HOLDS_STRATEGY = """
 """
 
 
-def _conversations() -> sa.TableClause:
-    return sa.table(
+def _conversations() -> sqlalchemy.TableClause:
+    return sqlalchemy.table(
         "conversations",
-        sa.column("id"),
-        *(sa.column(name) for name in _MOVED_COLUMNS),
+        sqlalchemy.column("id"),
+        *(sqlalchemy.column(name) for name in _MOVED_COLUMNS),
     )
 
 
-def _strategies() -> sa.TableClause:
-    return sa.table(
+def _strategies() -> sqlalchemy.TableClause:
+    return sqlalchemy.table(
         "conversation_strategies",
-        sa.column("conversation_id"),
-        *(sa.column(name) for name in _MOVED_COLUMNS),
+        sqlalchemy.column("conversation_id"),
+        *(sqlalchemy.column(name) for name in _MOVED_COLUMNS),
     )
 
 
 def upgrade() -> None:
     op.create_table(
         "conversation_strategies",
-        sa.Column(
+        sqlalchemy.Column(
             "conversation_id",
-            sa.dialects.postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            sqlalchemy.dialects.postgresql.UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             primary_key=True,
         ),
-        sa.Column("record_type", sa.String(100), nullable=True),
-        sa.Column("wdk_strategy_id", sa.Integer, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("record_type", sqlalchemy.String(100), nullable=True),
+        sqlalchemy.Column("wdk_strategy_id", sqlalchemy.Integer, nullable=True),
+        sqlalchemy.Column(
             "is_saved",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
-        sa.Column("step_count", sa.Integer, nullable=False, server_default="0"),
-        sa.Column("strategy_ast", JSONB, nullable=False, server_default="{}"),
-        sa.Column("estimated_size", sa.Integer, nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "step_count", sqlalchemy.Integer, nullable=False, server_default="0"
+        ),
+        sqlalchemy.Column("strategy_ast", JSONB, nullable=False, server_default="{}"),
+        sqlalchemy.Column("estimated_size", sqlalchemy.Integer, nullable=True),
+        sqlalchemy.Column(
             "gene_set_id",
-            sa.String(50),
-            sa.ForeignKey("gene_sets.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("gene_sets.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "gene_set_auto_imported",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "experiment_id",
-            sa.String(50),
-            sa.ForeignKey("experiments.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("experiments.id", ondelete="SET NULL"),
             nullable=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "imported_saved_strategy_ids",
             JSONB,
             nullable=False,
@@ -130,19 +132,19 @@ def upgrade() -> None:
         "conversation_strategies",
         ["wdk_strategy_id"],
         unique=True,
-        postgresql_where=sa.text("wdk_strategy_id IS NOT NULL"),
+        postgresql_where=sqlalchemy.text("wdk_strategy_id IS NOT NULL"),
     )
 
     conversations = _conversations()
-    moved = sa.select(
+    moved = sqlalchemy.select(
         conversations.c.id,
         *(
-            sa.text(_NORMALIZED_AST)
+            sqlalchemy.text(_NORMALIZED_AST)
             if name == "strategy_ast"
             else conversations.c[name]
             for name in _MOVED_COLUMNS
         ),
-    ).where(sa.text(_HOLDS_STRATEGY))
+    ).where(sqlalchemy.text(_HOLDS_STRATEGY))
     op.execute(
         _strategies()
         .insert()
@@ -160,63 +162,65 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.add_column(
         "conversations",
-        sa.Column("record_type", sa.String(100), nullable=True),
+        sqlalchemy.Column("record_type", sqlalchemy.String(100), nullable=True),
     )
     op.add_column(
         "conversations",
-        sa.Column("wdk_strategy_id", sa.Integer, nullable=True),
+        sqlalchemy.Column("wdk_strategy_id", sqlalchemy.Integer, nullable=True),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "is_saved",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
     )
     op.add_column(
         "conversations",
-        sa.Column("step_count", sa.Integer, nullable=False, server_default="0"),
+        sqlalchemy.Column(
+            "step_count", sqlalchemy.Integer, nullable=False, server_default="0"
+        ),
     )
     op.add_column(
         "conversations",
-        sa.Column("strategy_ast", JSONB, nullable=False, server_default="{}"),
+        sqlalchemy.Column("strategy_ast", JSONB, nullable=False, server_default="{}"),
     )
     op.add_column(
         "conversations",
-        sa.Column("estimated_size", sa.Integer, nullable=True),
+        sqlalchemy.Column("estimated_size", sqlalchemy.Integer, nullable=True),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "gene_set_id",
-            sa.String(50),
-            sa.ForeignKey("gene_sets.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("gene_sets.id", ondelete="SET NULL"),
             nullable=True,
         ),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "gene_set_auto_imported",
-            sa.Boolean,
+            sqlalchemy.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "experiment_id",
-            sa.String(50),
-            sa.ForeignKey("experiments.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("experiments.id", ondelete="SET NULL"),
             nullable=True,
         ),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "imported_saved_strategy_ids",
             JSONB,
             nullable=False,
@@ -243,6 +247,6 @@ def downgrade() -> None:
         "conversations",
         ["wdk_strategy_id"],
         unique=True,
-        postgresql_where=sa.text("wdk_strategy_id IS NOT NULL"),
+        postgresql_where=sqlalchemy.text("wdk_strategy_id IS NOT NULL"),
     )
     op.drop_table("conversation_strategies")

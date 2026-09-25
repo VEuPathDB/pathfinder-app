@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
-from pathfinder.ai.lead.reply_claims import CitedSource
-from pathfinder.ai.lead.turn_contract import OFF_TOPIC_REPLY_MAX_CHARS, reconcile
+from pathfinder.ai.lead.turn_contract import (
+    OFF_TOPIC_REPLY_MAX_CHARS,
+    LeadResponse,
+    reconcile,
+)
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.evidence import SourceReference
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.tests._support.run_context import run_context_for
@@ -376,7 +383,7 @@ class TestTheSourcesTheReplyLists:
         report = reply(
             "The SRS family is reviewed there.",
             sources=[
-                CitedSource(
+                SourceReference(
                     kind="literature",
                     label="SAG1-related sequences",
                     doi="10.1016/j.molbiopara.2006.01.001",
@@ -393,7 +400,7 @@ class TestTheSourcesTheReplyLists:
         report = reply(
             "The SRS family is reviewed there.",
             sources=[
-                CitedSource(
+                SourceReference(
                     kind="literature",
                     label="A review nobody read",
                     doi="10.1000/invented.2026.99",
@@ -402,6 +409,15 @@ class TestTheSourcesTheReplyLists:
         )
 
         assert kinds(deps, report) == ["unretrieved_source"]
+
+    def test_a_source_the_reader_cannot_open_is_refused(self) -> None:
+        with pytest.raises(ValidationError, match="a url, a DOI or a PMID"):
+            LeadResponse.model_validate(
+                {
+                    "prose": "A review says so.",
+                    "sources": [{"kind": "literature", "label": "A review"}],
+                }
+            )
 
     def test_a_doi_written_only_in_the_prose_is_not_scanned(self) -> None:
         deps = reading_deps()
@@ -415,7 +431,7 @@ class TestTheSourcesTheReplyLists:
         report = reply(
             "The record says one exon.",
             sources=[
-                CitedSource(
+                SourceReference(
                     kind="record",
                     label="TGME49_233460 on ToxoDB",
                     url=_RECORD_URL,
@@ -432,7 +448,7 @@ class TestTheSourcesTheReplyLists:
         report = reply(
             "The review states it.",
             sources=[
-                CitedSource(
+                SourceReference(
                     kind="literature",
                     label="SAG1-related sequences",
                     url="https://doi.org/10.1016/j.molbiopara.2006.01.001",

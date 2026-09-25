@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/test";
 import { combineId, combineNode } from "../fixtures/ast";
 
 test.describe("Operator change persists to AST", () => {
-  test("UI flip UNION→INTERSECT lands in the persisted AST", async ({
+  test("UI flip UNION->INTERSECT lands in the persisted AST", async ({
     chatPage,
     graphPage,
     sitePicker,
@@ -12,7 +12,7 @@ test.describe("Operator change persists to AST", () => {
     await sitePicker.selectSite("plasmodb");
     await chatPage.newChat("plasmodb");
 
-    // One planning round → the two-leaf spec (GenesByText UNION GenesByTaxon).
+    // One planning round -> the two-leaf spec (GenesByText UNION GenesByTaxon).
     await chatPage.send(
       "Build a strategy for P. falciparum 3D7 kinases using InterPro PF00069 and GO terms.",
     );
@@ -38,7 +38,7 @@ test.describe("Operator change persists to AST", () => {
       { timeout: 30_000 },
     );
 
-    // The persisted AST must now carry INTERSECT — the assertion the
+    // The persisted AST must now carry INTERSECT - the assertion the
     // flagship journey is missing.
     await expect
       .poll(async () => (await combineNode(await apiClient.get(astUrl))).operator, {

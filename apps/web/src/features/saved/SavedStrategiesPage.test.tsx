@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
+import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 
 import { SavedStrategiesPage } from "./SavedStrategiesPage";
@@ -62,21 +63,25 @@ function conv(over: Partial<ConversationResponse>): ConversationResponse {
 
 function renderPage(
   convs: ConversationResponse[],
-  counts: Record<number, number> = {},
-): void {
+  counts: Record<string, number> = {},
+): QueryClient {
   const qc = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Infinity, gcTime: Infinity },
     },
   });
   qc.setQueryData(listStrategiesQueryOptions({ siteId: "plasmodb" }).queryKey, convs);
-  qc.setQueryData(["saved-strategy-consumers", "plasmodb"], counts);
+  qc.setQueryData(
+    getSavedStrategyConsumerCountsSuspenseQueryOptions({ siteId: "plasmodb" }).queryKey,
+    { counts },
+  );
   const ui: ReactElement = (
     <QueryClientProvider client={qc}>
       <SavedStrategiesPage siteId="plasmodb" />
     </QueryClientProvider>
   );
   render(ui);
+  return qc;
 }
 
 afterEach(cleanup);
@@ -117,7 +122,7 @@ const INSERT_RESULT = {
 
 describe("SavedStrategiesPage", () => {
   it("lists only saved strategies with their step count, size and record type", async () => {
-    renderPage([KINASES, DRAFT, PHOSPH], { 101: 0, 202: 0 });
+    renderPage([KINASES, DRAFT, PHOSPH], { "101": 0, "202": 0 });
     const list = await screen.findByTestId("saved-strategies-list");
 
     const rows = within(list).getAllByRole("listitem");
@@ -125,7 +130,8 @@ describe("SavedStrategiesPage", () => {
 
     const kinaseRow = screen.getByTestId("saved-strategy-k1");
     expect(kinaseRow).toHaveTextContent("Kinase sweep");
-    expect(kinaseRow).toHaveTextContent("3 steps · 1,234 genes · transcript");
+    expect(kinaseRow).toHaveTextContent("3 steps · 1,234 genes");
+    expect(kinaseRow).not.toHaveTextContent("transcript");
 
     const phosphRow = screen.getByTestId("saved-strategy-p1");
     expect(phosphRow).toHaveTextContent("1 step");
@@ -133,14 +139,19 @@ describe("SavedStrategiesPage", () => {
     expect(screen.queryByTestId("saved-strategy-d1")).toBeNull();
   });
 
-  it("shows the consumer badge with the imported-by count", async () => {
-    renderPage([KINASES], { 101: 3 });
+  it("says how many other conversations use it and refuses its delete", async () => {
+    renderPage([KINASES], { "101": 3 });
     const row = await screen.findByTestId("saved-strategy-k1");
-    expect(within(row).getByText("3 consumers").textContent).toBe("3 consumers");
+    expect(within(row).getByText("Used in 3 conversations")).toBeVisible();
+    const del = screen.getByTestId("saved-strategy-delete-k1");
+    expect(del).toBeDisabled();
+    expect(del.getAttribute("title")).toBe(
+      "Used in 3 conversations; remove it from them before deleting it.",
+    );
   });
 
   it("filters the visible rows by name", async () => {
-    renderPage([KINASES, PHOSPH], { 101: 0, 202: 0 });
+    renderPage([KINASES, PHOSPH], { "101": 0, "202": 0 });
     await screen.findByTestId("saved-strategies-list");
 
     await userEvent.type(screen.getByTestId("saved-strategies-filter"), "phosph");
@@ -160,12 +171,12 @@ describe("SavedStrategiesPage", () => {
 
   it("points the empty-state chat link at the chat root of the site", async () => {
     renderPage([DRAFT]);
-    const link = await screen.findByRole("link", { name: "start a new chat" });
+    const link = await screen.findByRole("link", { name: "start a new conversation" });
     expect(link.getAttribute("href")).toBe(chatRoot("plasmodb"));
   });
 
   it("opens the row's conversation at its chat route", async () => {
-    renderPage([KINASES], { 101: 0 });
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByText("Kinase sweep"));
@@ -173,21 +184,51 @@ describe("SavedStrategiesPage", () => {
     expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "k1")]]);
   });
 
-  it("deletes a saved strategy from WDK with cascade on click", async () => {
-    renderPage([KINASES], { 101: 0 });
+  it("asks before a delete and says the site loses the strategy too", async () => {
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-delete-k1"));
 
-    await waitFor(() =>
-      expect(mockDelete.mock.calls).toEqual([
-        ["k1", { deleteFromWdk: true, cascade: true }],
-      ]),
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByRole("heading")).toHaveTextContent(
+      'Delete "Kinase sweep"?',
     );
+    expect(dialog).toHaveTextContent(
+      "This also deletes the strategy on PlasmoDB, and PathFinder cannot restore it.",
+    );
+    expect(mockDelete.mock.calls).toEqual([]);
   });
 
-  it("Use in new chat opens a chat that starts from the saved strategy", async () => {
-    renderPage([KINASES], { 101: 0 });
+  it("deletes the saved strategy on the site once confirmed", async () => {
+    const qc = renderPage([KINASES], { "101": 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-delete-k1"));
+    const dialog = await screen.findByRole("alertdialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() =>
+      expect(mockDelete.mock.calls).toEqual([["k1", { deleteFromWdk: true }]]),
+    );
+    const listKey = listStrategiesQueryOptions({ siteId: "plasmodb" }).queryKey;
+    await waitFor(() => expect(qc.getQueryState(listKey)?.isInvalidated).toBe(true));
+  });
+
+  it("deletes nothing when the researcher cancels", async () => {
+    renderPage([KINASES], { "101": 0 });
+    await screen.findByTestId("saved-strategy-k1");
+
+    await userEvent.click(screen.getByTestId("saved-strategy-delete-k1"));
+    const dialog = await screen.findByRole("alertdialog");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(mockDelete.mock.calls).toEqual([]);
+  });
+
+  it("Use in a new conversation opens one that starts from the saved strategy", async () => {
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
@@ -216,7 +257,7 @@ describe("SavedStrategiesPage", () => {
 
   it("removes the chat it opened when the insert is refused", async () => {
     mockInsert.mockRejectedValueOnce(new Error(INSERT_REFUSAL));
-    renderPage([KINASES], { 101: 0 });
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
@@ -228,7 +269,7 @@ describe("SavedStrategiesPage", () => {
 
   it("names the saved strategy, the reason and what it removed", async () => {
     mockInsert.mockRejectedValueOnce(new Error(INSERT_REFUSAL));
-    renderPage([KINASES], { 101: 0 });
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
@@ -236,9 +277,9 @@ describe("SavedStrategiesPage", () => {
     await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
     expect(mockToastError.mock.calls).toEqual([
       [
-        'Could not use "Kinase sweep" in a new chat',
+        'Could not use "Kinase sweep" in a new conversation',
         {
-          description: `${INSERT_REFUSAL} The empty chat it opened was removed.`,
+          description: `${INSERT_REFUSAL} The empty conversation it opened was removed.`,
         },
       ],
     ]);
@@ -247,14 +288,14 @@ describe("SavedStrategiesPage", () => {
   it("says the chat is still there when it cannot be removed", async () => {
     mockInsert.mockRejectedValueOnce(new Error(INSERT_REFUSAL));
     mockDelete.mockRejectedValueOnce(new Error("HTTP 500"));
-    renderPage([KINASES], { 101: 0 });
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
 
     await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1));
     expect(mockToastError.mock.calls[0]?.[1]).toEqual({
-      description: `${INSERT_REFUSAL} The empty chat it opened is still in the sidebar.`,
+      description: `${INSERT_REFUSAL} The empty conversation it opened is still in the sidebar.`,
     });
   });
 
@@ -266,7 +307,7 @@ describe("SavedStrategiesPage", () => {
           finish = () => resolve(INSERT_RESULT);
         }),
     );
-    renderPage([KINASES], { 101: 0 });
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));
@@ -285,7 +326,7 @@ describe("SavedStrategiesPage", () => {
   });
 
   it("opens the new conversation with its strategy on show", async () => {
-    renderPage([KINASES], { 101: 0 });
+    renderPage([KINASES], { "101": 0 });
     await screen.findByTestId("saved-strategy-k1");
 
     await userEvent.click(screen.getByTestId("saved-strategy-use-k1"));

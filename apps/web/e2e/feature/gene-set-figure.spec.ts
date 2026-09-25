@@ -31,6 +31,9 @@ test.describe("Gene set figure", () => {
     const figure = page.getByTestId("data-gene-set");
     await expect(figure).toContainText(SAVED_SET, { timeout: 90_000 });
     await chatPage.expectIdle();
+    await expect(figure.getByTestId("figure-caption")).toHaveText(
+      /^\d[\d,]* genes on PlasmoDB$/,
+    );
 
     await expect(
       figure.getByRole("button", { name: /Publish to VEuPathDB workspace/ }),

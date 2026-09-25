@@ -159,14 +159,14 @@ async def insert_saved_into_conversation(
     if graph is None:
         raise ValidationError(
             title="no active strategy",
-            detail="cannot insert into a conversation with no active graph",
+            detail="cannot insert into a conversation with no strategy",
         )
     if target_step_id and target_step_id not in graph.steps:
         raise NotFoundError(
             code=ErrorCode.STEP_NOT_FOUND,
             title="step not found",
             detail=(
-                f"step {target_step_id!r} not in active graph "
+                f"step {target_step_id!r} not in the active strategy "
                 f"(available: {sorted(graph.steps)[:20]})"
             ),
         )

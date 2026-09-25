@@ -3,28 +3,21 @@
 import { ArrowLeftRight } from "lucide-react";
 import { useRef } from "react";
 import { useDebounceCallback } from "usehooks-ts";
+import { combineOpEnum, type CombineOp } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { operatorLabel } from "@/features/strategy/operators";
 import { useVennState } from "../hooks/useVennState";
 import { VennSvg, type VennRegion } from "./VennSvg";
 
 const ON_CHANGE_DEBOUNCE_MS = 600;
 const DEBOUNCE_MS = 1000;
 
-const PRETTY: Record<string, string> = {
-  INTERSECT: "Intersect",
-  UNION: "Union",
-  MINUS: "A only",
-  RMINUS: "B only",
-  LONLY: "Just A",
-  RONLY: "Just B",
-  COLOCATE: "Colocate",
-};
-
-const CYCLE: Record<VennRegion, [string, string]> = {
-  A: ["LONLY", "MINUS"],
-  LENS: ["INTERSECT", "UNION"],
-  B: ["RONLY", "RMINUS"],
+/** The operators a click on each region steps through, all of them offered ones. */
+const CYCLE: Record<VennRegion, readonly [CombineOp, ...CombineOp[]]> = {
+  A: [combineOpEnum.MINUS],
+  LENS: [combineOpEnum.INTERSECT, combineOpEnum.UNION],
+  B: [combineOpEnum.RMINUS],
 };
 
 interface VennPickerProps {
@@ -41,7 +34,7 @@ export function VennPicker({
   bLabel = "B",
 }: VennPickerProps) {
   const venn = useVennState(operator);
-  const lastClickRef = useRef<{ region: VennRegion; ts: number; index: 0 | 1 } | null>(
+  const lastClickRef = useRef<{ region: VennRegion; ts: number; index: number } | null>(
     null,
   );
 
@@ -70,9 +63,10 @@ export function VennPicker({
     const last = lastClickRef.current;
     const isRapidRepeat =
       last !== null && last.region === region && now - last.ts < DEBOUNCE_MS;
-    const nextIndex: 0 | 1 = isRapidRepeat ? (last.index === 0 ? 1 : 0) : 0;
+    const cycle = CYCLE[region];
+    const nextIndex = isRapidRepeat ? (last.index + 1) % cycle.length : 0;
     lastClickRef.current = { region, ts: now, index: nextIndex };
-    click(CYCLE[region][nextIndex]);
+    click(cycle[nextIndex] ?? cycle[0]);
   };
 
   const showA = venn.swappedLabels ? bLabel : aLabel;
@@ -108,10 +102,8 @@ export function VennPicker({
 
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-foreground" data-slot="venn-readout">
-          Operator: <span className="font-semibold">{venn.operator}</span>{" "}
-          <span className="text-muted-foreground">
-            ({PRETTY[venn.operator] ?? venn.operator})
-          </span>
+          Operator:{" "}
+          <span className="font-semibold">{operatorLabel(venn.operator)}</span>
         </p>
         <Button
           type="button"
@@ -135,8 +127,8 @@ export function VennPicker({
           variant="outline"
           size="sm"
         >
-          <ToggleGroupItem value="COLOCATE" aria-label="Colocate">
-            Colocate...
+          <ToggleGroupItem value="COLOCATE" aria-label={operatorLabel("COLOCATE")}>
+            {operatorLabel("COLOCATE")}
           </ToggleGroupItem>
         </ToggleGroup>
       </div>

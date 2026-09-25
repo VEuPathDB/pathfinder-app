@@ -15,7 +15,6 @@ export function SearchNode(props: StepNodeProps) {
   const {
     step,
     selected,
-    isUnsaved = false,
     isOrphan = false,
     showOutputHandle = false,
     enterDelayIndex,
@@ -31,7 +30,6 @@ export function SearchNode(props: StepNodeProps) {
       kind="search"
       step={step}
       selected={selected}
-      isUnsaved={isUnsaved}
       isOrphan={isOrphan}
       width={SEARCH_NODE_WIDTH}
       height={

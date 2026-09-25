@@ -12,7 +12,8 @@ from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.tool_payloads import TransformListing
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides
 from pathfinder.domain.strategy.operational_spec import CriterionRole
 from pathfinder.tests._support.catalog_reads import listing

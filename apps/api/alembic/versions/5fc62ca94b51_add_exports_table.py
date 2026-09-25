@@ -8,7 +8,7 @@ Create Date: 2026-04-14 12:18:35.494732
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -23,21 +23,23 @@ def upgrade() -> None:
     """Upgrade schema."""
     op.create_table(
         "exports",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sqlalchemy.Column(
             "user_id",
-            sa.CHAR(36),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.CHAR(36),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("filename", sa.String(255), nullable=False),
-        sa.Column("content_type", sa.String(64), nullable=False),
-        sa.Column("data", sa.LargeBinary, nullable=False),
-        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("filename", sqlalchemy.String(255), nullable=False),
+        sqlalchemy.Column("content_type", sqlalchemy.String(64), nullable=False),
+        sqlalchemy.Column("data", sqlalchemy.LargeBinary, nullable=False),
+        sqlalchemy.Column(
+            "expires_at", sqlalchemy.DateTime(timezone=True), nullable=False
+        ),
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )

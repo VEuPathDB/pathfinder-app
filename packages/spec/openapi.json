@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a15"
+    "version": "0.2.0a16"
   },
   "paths": {
     "/health": {
@@ -1740,7 +1740,7 @@
         "tags": [
           "scratchpad"
         ],
-        "summary": "List scratchpad notes for the conversation.",
+        "summary": "List the notes for the conversation.",
         "operationId": "list_scratchpad_notes_api_v1_conversations__conversation_id__scratchpad_notes_get",
         "security": [
           {
@@ -1813,7 +1813,7 @@
         "tags": [
           "scratchpad"
         ],
-        "summary": "Pin or unpin a scratchpad note.",
+        "summary": "Pin or unpin a note.",
         "operationId": "patch_scratchpad_note_api_v1_conversations__conversation_id__scratchpad_notes__note_id__patch",
         "security": [
           {
@@ -1899,7 +1899,7 @@
         "tags": [
           "scratchpad"
         ],
-        "summary": "Delete a scratchpad note.",
+        "summary": "Delete a note.",
         "operationId": "delete_scratchpad_note_api_v1_conversations__conversation_id__scratchpad_notes__note_id__delete",
         "security": [
           {
@@ -3184,251 +3184,13 @@
         }
       }
     },
-    "/api/v1/eda/studies/{dataset_id}": {
-      "get": {
-        "tags": [
-          "eda"
-        ],
-        "summary": "Get Eda Study",
-        "description": "One study's entity tree, and one entity's variables when named.",
-        "operationId": "get_eda_study_api_v1_eda_studies__dataset_id__get",
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "dataset_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Dataset Id"
-            }
-          },
-          {
-            "name": "entityId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Entityid"
-            }
-          },
-          {
-            "name": "siteId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "title": "Siteid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EdaStudyDetailResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/eda/count": {
-      "post": {
-        "tags": [
-          "eda"
-        ],
-        "summary": "Count Eda Subset",
-        "description": "The subset's size on one entity, against that entity's whole size.",
-        "operationId": "count_eda_subset_api_v1_eda_count_post",
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "siteId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "title": "Siteid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EdaCountRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EdaCountResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/eda/distribution": {
-      "post": {
-        "tags": [
-          "eda"
-        ],
-        "summary": "Read Eda Distribution",
-        "description": "One variable's histogram under the subset the request names.",
-        "operationId": "read_eda_distribution_api_v1_eda_distribution_post",
-        "security": [
-          {
-            "APIKeyCookie": []
-          },
-          {
-            "HTTPBearer": []
-          },
-          {
-            "APIKeyHeader": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "siteId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "title": "Siteid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EdaDistributionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EdaDistributionSeries"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/eda/viz": {
       "post": {
         "tags": [
           "eda"
         ],
         "summary": "Read Eda Viz",
-        "description": "The bound analysis's volcano under one cut. It starts no compute.",
+        "description": "The bound analysis's volcano under the cut it stores. It starts no compute.\n\n``site_id`` gates the route on the page's site; the volcano is read on the\nsite the analysis is bound to.",
         "operationId": "read_eda_viz_api_v1_eda_viz_post",
         "security": [
           {
@@ -3509,7 +3271,7 @@
           "eda"
         ],
         "summary": "Get Conversation Eda",
-        "description": "The analysis this thread has open, with the upstream descriptor.",
+        "description": "The analysis this conversation has open, read from the site on every call.",
         "operationId": "get_conversation_eda_api_v1_conversations__conversation_id__eda_get",
         "security": [
           {
@@ -3595,7 +3357,7 @@
           "eda"
         ],
         "summary": "Patch Conversation Eda",
-        "description": "Mutate the thread's bound analysis: bind, subset, compute, export, unbind.",
+        "description": "Bind a study, export the analysis as a step, or unbind.",
         "operationId": "patch_conversation_eda_api_v1_conversations__conversation_id__eda_patch",
         "security": [
           {
@@ -3648,12 +3410,6 @@
                     "$ref": "#/components/schemas/EdaBindAction"
                   },
                   {
-                    "$ref": "#/components/schemas/EdaSetFiltersAction"
-                  },
-                  {
-                    "$ref": "#/components/schemas/EdaRunComputeAction"
-                  },
-                  {
                     "$ref": "#/components/schemas/EdaExportStepAction"
                   },
                   {
@@ -3664,8 +3420,6 @@
                   "propertyName": "action",
                   "mapping": {
                     "bind": "#/components/schemas/EdaBindAction",
-                    "set-filters": "#/components/schemas/EdaSetFiltersAction",
-                    "run-compute": "#/components/schemas/EdaRunComputeAction",
                     "export-step": "#/components/schemas/EdaExportStepAction",
                     "unbind": "#/components/schemas/EdaUnbindAction"
                   }
@@ -3704,6 +3458,67 @@
           "404": {
             "description": "Not Found",
             "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/eda/datasets": {
+      "get": {
+        "tags": [
+          "eda"
+        ],
+        "summary": "List Own Datasets",
+        "description": "The researcher's count uploads on this site, and the site page that takes new ones.",
+        "operationId": "list_own_datasets_api_v1_eda_datasets_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 50,
+              "title": "Siteid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EdaOwnDatasetListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetail"
@@ -5482,10 +5297,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Comma-separated status filter (pending, running, resuming, complete, failed)",
+              "description": "Comma-separated status filter (pending, running, result_ready, resuming, complete, failed)",
               "title": "Status"
             },
-            "description": "Comma-separated status filter (pending, running, resuming, complete, failed)"
+            "description": "Comma-separated status filter (pending, running, result_ready, resuming, complete, failed)"
           }
         ],
         "responses": {
@@ -6263,6 +6078,109 @@
         "title": "ComparedSearch",
         "description": "A search the catalog answered beside the bound one, as that answer scored it."
       },
+      "ControlsRationale": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "controls",
+            "title": "Kind",
+            "default": "controls"
+          },
+          "taskId": {
+            "type": "string",
+            "title": "Taskid"
+          },
+          "searchName": {
+            "type": "string",
+            "title": "Searchname"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "thread",
+              "literature",
+              "enrichment",
+              "annotation",
+              "catalog"
+            ],
+            "title": "Source"
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "informs": {
+            "type": "string",
+            "enum": [
+              "recovering",
+              "excluding",
+              "neither"
+            ],
+            "title": "Informs"
+          },
+          "recovered": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Recovered"
+          },
+          "positives": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Positives"
+          },
+          "admitted": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Admitted"
+          },
+          "negatives": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Negatives"
+          },
+          "resultSize": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Resultsize"
+          },
+          "term": {
+            "type": "string",
+            "title": "Term",
+            "description": "The count that decides the choice.",
+            "readOnly": true
+          },
+          "short": {
+            "type": "string",
+            "title": "Short",
+            "description": "The label every surface shows.",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "taskId",
+          "searchName",
+          "source",
+          "basis",
+          "informs",
+          "recovered",
+          "positives",
+          "admitted",
+          "negatives",
+          "resultSize",
+          "term",
+          "short"
+        ],
+        "title": "ControlsRationale",
+        "description": "Why a criterion runs its search: the controls it separated, as WDK counted them.\n\nEvery count is the criterion's own measured step, never a model's estimate."
+      },
       "ConversationDuplicateResponse": {
         "properties": {
           "id": {
@@ -6293,25 +6211,14 @@
                 "type": "null"
               }
             ]
-          },
-          "descriptor": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/JSONObject"
-              },
-              {
-                "type": "null"
-              }
-            ]
           }
         },
         "type": "object",
         "required": [
-          "analysis",
-          "descriptor"
+          "analysis"
         ],
         "title": "ConversationEdaResponse",
-        "description": "The thread's bound analysis, as the tab hydrates from it.\n\n``analysis`` is the same state the PATCH answers and the\n``data-eda.analysis-state`` part carry, so one reducer serves all three.\nBoth keys are always present and nullable; both are null on a thread with\nno analysis open."
+        "description": "The conversation's bound analysis, as the tab hydrates from it.\n\n``analysis`` is the same state the PATCH answers and the\n``data-eda.analysis-state`` part carry, so one reducer serves all three.\nThe key is always present, and null when no analysis is open."
       },
       "ConversationResponse": {
         "properties": {
@@ -7470,16 +7377,6 @@
               }
             ]
           },
-          "job": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EdaJobRefResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "step": {
             "anyOf": [
               {
@@ -7494,7 +7391,6 @@
         "type": "object",
         "required": [
           "analysis",
-          "job",
           "step"
         ],
         "title": "EdaAnalysisPatchResponse",
@@ -7585,6 +7481,27 @@
               }
             ],
             "title": "Analysisurl"
+          },
+          "compute": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EdaComputeSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modificationTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modificationtime"
           }
         },
         "type": "object",
@@ -7604,7 +7521,7 @@
           "canExportRows"
         ],
         "title": "EdaAnalysisState",
-        "description": "The open analysis, as both surfaces re-render it after every mutation.\n\n``revision`` is the mutation counter of the binding; ``None`` means\nunknown and the store's reconcile rule then takes the last write.\n``filters`` entries are the wire filter objects, kept as JSON because\nthis package cannot import the integrations union. ``analysis_url`` opens\nthe analysis in the site's own explorer; the thread log holds parts that\ncarry none, so it is optional."
+        "description": "The open analysis, as both surfaces re-render it after every mutation.\n\n``revision`` is the mutation counter of the binding; ``None`` means\nunknown and the store's reconcile rule then takes the last write.\n``filters`` entries are the wire filter objects, kept as JSON because\nthis package cannot import the integrations union. ``analysis_url`` opens\nthe analysis in the site's own explorer; the thread log holds parts that\ncarry none, so it is optional. ``compute`` is the comparison the analysis\nholds, or None when it holds none. ``modification_time`` is the time the\nservice stamped on the document this state was read from; a part logged\nbefore it was recorded carries None."
       },
       "EdaBindAction": {
         "properties": {
@@ -7636,37 +7553,6 @@
         "title": "EdaBindAction",
         "description": "Open an analysis on a study and bind it to this thread."
       },
-      "EdaComparator": {
-        "properties": {
-          "variable": {
-            "$ref": "#/components/schemas/EdaVariableSpec"
-          },
-          "groupA": {
-            "items": {
-              "$ref": "#/components/schemas/EdaLabeledRange"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Groupa"
-          },
-          "groupB": {
-            "items": {
-              "$ref": "#/components/schemas/EdaLabeledRange"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Groupb"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "variable",
-          "groupA",
-          "groupB"
-        ],
-        "title": "EdaComparator"
-      },
       "EdaComparison": {
         "properties": {
           "groupA": {
@@ -7692,267 +7578,50 @@
         "title": "EdaComparison",
         "description": "The labels of the two sample groups one compute compares.\n\n``group_a`` is the reference, so a positive effect size is higher in\n``group_b``."
       },
-      "EdaCountRequest": {
+      "EdaComputeSummary": {
         "properties": {
-          "datasetId": {
+          "method": {
             "type": "string",
-            "title": "Datasetid"
+            "title": "Method"
           },
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "filters": {
-            "items": {
-              "$ref": "#/components/schemas/EdaFilter"
-            },
-            "type": "array",
-            "title": "Filters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "datasetId",
-          "entityId"
-        ],
-        "title": "EdaCountRequest",
-        "description": "Count one entity's records under a filter array."
-      },
-      "EdaCountResponse": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "count": {
-            "type": "integer",
-            "title": "Count"
-          },
-          "unfilteredCount": {
-            "type": "integer",
-            "title": "Unfilteredcount"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "count",
-          "unfilteredCount"
-        ],
-        "title": "EdaCountResponse"
-      },
-      "EdaDateRangeFilter": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "type": {
-            "type": "string",
-            "const": "dateRange",
-            "title": "Type",
-            "default": "dateRange"
-          },
-          "min": {
-            "type": "string",
-            "title": "Min"
-          },
-          "max": {
-            "type": "string",
-            "title": "Max"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "min",
-          "max"
-        ],
-        "title": "EdaDateRangeFilter",
-        "description": "Bounds carry a time: a bare YYYY-MM-DD is a server error."
-      },
-      "EdaDateSetFilter": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "type": {
-            "type": "string",
-            "const": "dateSet",
-            "title": "Type",
-            "default": "dateSet"
-          },
-          "dateSet": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Dateset"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "dateSet"
-        ],
-        "title": "EdaDateSetFilter"
-      },
-      "EdaDifferentialExpressionConfig": {
-        "properties": {
           "identifierVariable": {
-            "$ref": "#/components/schemas/EdaVariableSpec"
+            "type": "string",
+            "title": "Identifiervariable"
           },
           "valueVariable": {
-            "$ref": "#/components/schemas/EdaVariableSpec"
-          },
-          "comparator": {
-            "$ref": "#/components/schemas/EdaComparator"
-          },
-          "differentialExpressionMethod": {
             "type": "string",
-            "enum": [
-              "DESeq",
-              "limma"
-            ],
-            "title": "Differentialexpressionmethod",
-            "default": "DESeq"
+            "title": "Valuevariable"
           },
-          "pValueFloor": {
+          "comparatorVariable": {
             "type": "string",
-            "title": "Pvaluefloor",
-            "default": "1e-200"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "identifierVariable",
-          "valueVariable",
-          "comparator"
-        ],
-        "title": "EdaDifferentialExpressionConfig",
-        "description": "The compute's own configuration. There is no collectionVariable here."
-      },
-      "EdaDifferentialExpressionDescriptor": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "differentialexpression",
-            "title": "Type",
-            "default": "differentialexpression"
+            "title": "Comparatorvariable"
           },
-          "configuration": {
-            "$ref": "#/components/schemas/EdaDifferentialExpressionConfig"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "configuration"
-        ],
-        "title": "EdaDifferentialExpressionDescriptor",
-        "description": "A differential-expression compute whose configuration is complete."
-      },
-      "EdaDistributionRequest": {
-        "properties": {
-          "datasetId": {
-            "type": "string",
-            "title": "Datasetid"
-          },
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "filters": {
-            "items": {
-              "$ref": "#/components/schemas/EdaFilter"
-            },
-            "type": "array",
-            "title": "Filters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "datasetId",
-          "entityId",
-          "variableId"
-        ],
-        "title": "EdaDistributionRequest",
-        "description": "One variable's histogram under a filter array."
-      },
-      "EdaDistributionSeries": {
-        "properties": {
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "variableDisplayName": {
-            "type": "string",
-            "title": "Variabledisplayname"
-          },
-          "labels": {
+          "groupA": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Labels"
+            "title": "Groupa"
           },
-          "values": {
+          "groupB": {
             "items": {
-              "type": "number"
+              "type": "string"
             },
             "type": "array",
-            "title": "Values"
-          },
-          "subsetSize": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Subsetsize"
-          },
-          "numVarValues": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Numvarvalues"
-          },
-          "numMissingCases": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Nummissingcases"
-          },
-          "isMultiValued": {
-            "type": "boolean",
-            "title": "Ismultivalued"
+            "title": "Groupb"
           }
         },
         "type": "object",
         "required": [
-          "variableId",
-          "variableDisplayName",
-          "labels",
-          "values",
-          "subsetSize",
-          "numVarValues",
-          "numMissingCases",
-          "isMultiValued"
+          "method",
+          "identifierVariable",
+          "valueVariable",
+          "comparatorVariable",
+          "groupA",
+          "groupB"
         ],
-        "title": "EdaDistributionSeries",
-        "description": "One variable's histogram under the current subset.\n\n``num_var_values`` can exceed ``subset_size`` on a multi-valued variable,\nso a percentage needs its denominator named."
+        "title": "EdaComputeSummary",
+        "description": "The analysis's comparison, each variable by the name the study gives it."
       },
       "EdaEntityCount": {
         "properties": {
@@ -7985,52 +7654,6 @@
         "title": "EdaEntityCount",
         "description": "One entity's subset size against its unfiltered size."
       },
-      "EdaEntityResponse": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "displayName": {
-            "type": "string",
-            "title": "Displayname"
-          },
-          "displayNamePlural": {
-            "type": "string",
-            "title": "Displaynameplural"
-          },
-          "parentEntityId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parententityid"
-          },
-          "variableCount": {
-            "type": "integer",
-            "title": "Variablecount"
-          },
-          "hasGeneId": {
-            "type": "boolean",
-            "title": "Hasgeneid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "displayName",
-          "displayNamePlural",
-          "parentEntityId",
-          "variableCount",
-          "hasGeneId"
-        ],
-        "title": "EdaEntityResponse",
-        "description": "One table of records in the study's tree."
-      },
       "EdaExportStepAction": {
         "properties": {
           "action": {
@@ -8038,402 +7661,91 @@
             "const": "export-step",
             "title": "Action"
           },
-          "thresholds": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/VolcanoThresholds"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "action"
-        ],
-        "title": "EdaExportStepAction",
-        "description": "Export the analysis's genes as a step in the thread's strategy."
-      },
-      "EdaFilter": {
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/EdaStringSetFilter"
-          },
-          {
-            "$ref": "#/components/schemas/EdaNumberSetFilter"
-          },
-          {
-            "$ref": "#/components/schemas/EdaDateSetFilter"
-          },
-          {
-            "$ref": "#/components/schemas/EdaNumberRangeFilter"
-          },
-          {
-            "$ref": "#/components/schemas/EdaDateRangeFilter"
-          },
-          {
-            "$ref": "#/components/schemas/EdaLongitudeRangeFilter"
-          },
-          {
-            "$ref": "#/components/schemas/EdaMultiFilter"
-          }
-        ],
-        "discriminator": {
-          "propertyName": "type",
-          "mapping": {
-            "dateRange": "#/components/schemas/EdaDateRangeFilter",
-            "dateSet": "#/components/schemas/EdaDateSetFilter",
-            "longitudeRange": "#/components/schemas/EdaLongitudeRangeFilter",
-            "multiFilter": "#/components/schemas/EdaMultiFilter",
-            "numberRange": "#/components/schemas/EdaNumberRangeFilter",
-            "numberSet": "#/components/schemas/EdaNumberSetFilter",
-            "stringSet": "#/components/schemas/EdaStringSetFilter"
-          }
-        }
-      },
-      "EdaJobRefResponse": {
-        "properties": {
-          "jobId": {
-            "type": "string",
-            "title": "Jobid"
-          },
-          "taskId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Taskid"
-          },
-          "appName": {
-            "type": "string",
-            "title": "Appname"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          }
-        },
-        "type": "object",
-        "required": [
-          "jobId",
-          "taskId",
-          "appName",
-          "status"
-        ],
-        "title": "EdaJobRefResponse",
-        "description": "The compute job a run-compute action addressed."
-      },
-      "EdaLabeledRange": {
-        "properties": {
-          "label": {
-            "type": "string",
-            "title": "Label"
-          },
-          "min": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Min"
-          },
-          "max": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "label"
-        ],
-        "title": "EdaLabeledRange",
-        "description": "A comparator bin. ``min``/``max`` are declared required and are optional."
-      },
-      "EdaLongitudeRangeFilter": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "type": {
-            "type": "string",
-            "const": "longitudeRange",
-            "title": "Type",
-            "default": "longitudeRange"
-          },
-          "left": {
-            "type": "number",
-            "title": "Left"
-          },
-          "right": {
-            "type": "number",
-            "title": "Right"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "left",
-          "right"
-        ],
-        "title": "EdaLongitudeRangeFilter",
-        "description": "``left == right`` is a no-op that keeps every row."
-      },
-      "EdaMultiFilter": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "type": {
-            "type": "string",
-            "const": "multiFilter",
-            "title": "Type",
-            "default": "multiFilter"
-          },
-          "operation": {
+          "source": {
             "type": "string",
             "enum": [
-              "union",
-              "intersect"
+              "volcano",
+              "subset"
             ],
-            "title": "Operation"
-          },
-          "subFilters": {
-            "items": {
-              "$ref": "#/components/schemas/EdaSubFilter"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Subfilters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "operation",
-          "subFilters"
-        ],
-        "title": "EdaMultiFilter",
-        "description": "The one nested type, and the only way to express OR."
-      },
-      "EdaNumberRangeFilter": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "type": {
-            "type": "string",
-            "const": "numberRange",
-            "title": "Type",
-            "default": "numberRange"
-          },
-          "min": {
-            "type": "number",
-            "title": "Min"
-          },
-          "max": {
-            "type": "number",
-            "title": "Max"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "min",
-          "max"
-        ],
-        "title": "EdaNumberRangeFilter"
-      },
-      "EdaNumberSetFilter": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "type": {
-            "type": "string",
-            "const": "numberSet",
-            "title": "Type",
-            "default": "numberSet"
-          },
-          "numberSet": {
-            "items": {
-              "type": "number"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Numberset"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "numberSet"
-        ],
-        "title": "EdaNumberSetFilter"
-      },
-      "EdaRunComputeAction": {
-        "properties": {
-          "action": {
-            "type": "string",
-            "const": "run-compute",
-            "title": "Action"
-          },
-          "computation": {
-            "$ref": "#/components/schemas/EdaDifferentialExpressionDescriptor"
+            "title": "Source"
           }
         },
         "type": "object",
         "required": [
           "action",
-          "computation"
+          "source"
         ],
-        "title": "EdaRunComputeAction",
-        "description": "Submit or poll the analysis's compute. Idempotent per input hash."
+        "title": "EdaExportStepAction",
+        "description": "Export the analysis's genes as a step in the thread's strategy.\n\n``volcano`` exports the genes of the cut the analysis stores; ``subset``\nexports the genes its filters keep."
       },
-      "EdaSetFiltersAction": {
+      "EdaOwnDatasetListResponse": {
         "properties": {
-          "action": {
-            "type": "string",
-            "const": "set-filters",
-            "title": "Action"
-          },
-          "filters": {
+          "datasets": {
             "items": {
-              "$ref": "#/components/schemas/EdaFilter"
+              "$ref": "#/components/schemas/EdaOwnDatasetResponse"
             },
             "type": "array",
-            "title": "Filters"
+            "title": "Datasets"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "title": "Uploadurl"
           }
         },
         "type": "object",
         "required": [
-          "action"
+          "datasets",
+          "uploadUrl"
         ],
-        "title": "EdaSetFiltersAction",
-        "description": "Replace the bound analysis's subset."
+        "title": "EdaOwnDatasetListResponse",
+        "description": "The uploads, newest first, and the site page where the researcher uploads."
       },
-      "EdaStringSetFilter": {
+      "EdaOwnDatasetResponse": {
         "properties": {
-          "entityId": {
+          "vdiId": {
             "type": "string",
-            "title": "Entityid"
+            "title": "Vdiid"
           },
-          "variableId": {
+          "name": {
             "type": "string",
-            "title": "Variableid"
+            "title": "Name"
           },
-          "type": {
+          "created": {
             "type": "string",
-            "const": "stringSet",
-            "title": "Type",
-            "default": "stringSet"
+            "format": "date-time",
+            "title": "Created"
           },
-          "stringSet": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Stringset"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "stringSet"
-        ],
-        "title": "EdaStringSetFilter"
-      },
-      "EdaStudyDetailResponse": {
-        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "installing",
+              "waiting",
+              "installed",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
           "datasetId": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Datasetid"
-          },
-          "studyId": {
-            "type": "string",
-            "title": "Studyid"
-          },
-          "displayName": {
-            "type": "string",
-            "title": "Displayname"
-          },
-          "entities": {
-            "items": {
-              "$ref": "#/components/schemas/EdaEntityResponse"
-            },
-            "type": "array",
-            "title": "Entities"
-          },
-          "variables": {
-            "items": {
-              "$ref": "#/components/schemas/EdaVariableResponse"
-            },
-            "type": "array",
-            "title": "Variables"
-          },
-          "geneEntityId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Geneentityid"
-          },
-          "geneEntityProblem": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Geneentityproblem"
           },
           "canSubset": {
             "type": "boolean",
@@ -8446,18 +7758,17 @@
         },
         "type": "object",
         "required": [
+          "vdiId",
+          "name",
+          "created",
+          "state",
+          "message",
           "datasetId",
-          "studyId",
-          "displayName",
-          "entities",
-          "variables",
-          "geneEntityId",
-          "geneEntityProblem",
           "canSubset",
           "canExportRows"
         ],
-        "title": "EdaStudyDetailResponse",
-        "description": "A study's entity tree and its filterable variables."
+        "title": "EdaOwnDatasetResponse",
+        "description": "One of the researcher's uploads. ``dataset_id`` is set once the study opens."
       },
       "EdaStudyListResponse": {
         "properties": {
@@ -8512,6 +7823,24 @@
           "canExportRows": {
             "type": "boolean",
             "title": "Canexportrows"
+          },
+          "sites": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sites"
+          },
+          "notHere": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nothere"
           }
         },
         "type": "object",
@@ -8524,33 +7853,12 @@
           "sourceType",
           "relevance",
           "canSubset",
-          "canExportRows"
+          "canExportRows",
+          "sites",
+          "notHere"
         ],
         "title": "EdaStudySummaryResponse",
         "description": "One study as the tab's picker lists it."
-      },
-      "EdaSubFilter": {
-        "properties": {
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "stringSet": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Stringset"
-          }
-        },
-        "type": "object",
-        "required": [
-          "variableId",
-          "stringSet"
-        ],
-        "title": "EdaSubFilter",
-        "description": "A multiFilter child. The parent's entity applies and the set is a string set."
       },
       "EdaUnbindAction": {
         "properties": {
@@ -8566,171 +7874,6 @@
         ],
         "title": "EdaUnbindAction",
         "description": "Clear the thread's binding. The upstream analysis is kept.\n\nUnbinding an unbound thread answers 200 with a null analysis; the only\n404 in the handler is the ownership check."
-      },
-      "EdaVariableResponse": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          },
-          "displayName": {
-            "type": "string",
-            "title": "Displayname"
-          },
-          "variableType": {
-            "type": "string",
-            "title": "Variabletype"
-          },
-          "filterType": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filtertype"
-          },
-          "dataShape": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Datashape"
-          },
-          "isMultiValued": {
-            "type": "boolean",
-            "title": "Ismultivalued"
-          },
-          "vocabulary": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Vocabulary"
-          },
-          "vocabularyTotal": {
-            "type": "integer",
-            "title": "Vocabularytotal"
-          },
-          "vocabularyNote": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Vocabularynote"
-          },
-          "rangeMin": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rangemin"
-          },
-          "rangeMax": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rangemax"
-          },
-          "dateMin": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Datemin"
-          },
-          "dateMax": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Datemax"
-          },
-          "subFilterVariableIds": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Subfiltervariableids"
-          },
-          "hideFrom": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Hidefrom"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId",
-          "displayName",
-          "variableType",
-          "filterType",
-          "dataShape",
-          "isMultiValued",
-          "vocabulary",
-          "vocabularyTotal",
-          "vocabularyNote",
-          "rangeMin",
-          "rangeMax",
-          "dateMin",
-          "dateMax",
-          "subFilterVariableIds",
-          "hideFrom"
-        ],
-        "title": "EdaVariableResponse",
-        "description": "One filterable variable, with the exact filter type it takes."
-      },
-      "EdaVariableSpec": {
-        "properties": {
-          "entityId": {
-            "type": "string",
-            "title": "Entityid"
-          },
-          "variableId": {
-            "type": "string",
-            "title": "Variableid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entityId",
-          "variableId"
-        ],
-        "title": "EdaVariableSpec"
       },
       "EdaVizPointResponse": {
         "properties": {
@@ -8782,39 +7925,14 @@
       },
       "EdaVizRequest": {
         "properties": {
-          "datasetId": {
-            "type": "string",
-            "title": "Datasetid"
-          },
           "chart": {
             "type": "string",
             "const": "volcano",
             "title": "Chart"
-          },
-          "effectSizeThreshold": {
-            "type": "number",
-            "title": "Effectsizethreshold",
-            "default": 1.0
-          },
-          "significanceThreshold": {
-            "type": "number",
-            "title": "Significancethreshold",
-            "default": 0.05
-          },
-          "effectDirection": {
-            "type": "string",
-            "enum": [
-              "upOnly",
-              "downOnly",
-              "upAndDown"
-            ],
-            "title": "Effectdirection",
-            "default": "upAndDown"
           }
         },
         "type": "object",
         "required": [
-          "datasetId",
           "chart"
         ],
         "title": "EdaVizRequest",
@@ -9440,6 +8558,8 @@
         "type": "string",
         "enum": [
           "invalid",
+          "no_credit",
+          "forbidden",
           "unreadable"
         ],
         "title": "KeyRefusal",
@@ -9756,6 +8876,16 @@
           "supportsReasoning": {
             "type": "boolean",
             "title": "Supportsreasoning",
+            "default": false
+          },
+          "supportsImages": {
+            "type": "boolean",
+            "title": "Supportsimages",
+            "default": false
+          },
+          "supportsDocuments": {
+            "type": "boolean",
+            "title": "Supportsdocuments",
             "default": false
           },
           "contextSize": {
@@ -11865,12 +10995,16 @@
                   },
                   {
                     "$ref": "#/components/schemas/AnalysisRationale"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ControlsRationale"
                   }
                 ],
                 "discriminator": {
                   "propertyName": "kind",
                   "mapping": {
                     "analysis": "#/components/schemas/AnalysisRationale",
+                    "controls": "#/components/schemas/ControlsRationale",
                     "search": "#/components/schemas/SearchRationale"
                   }
                 }
@@ -12621,6 +11755,14 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "result_ready",
+              "resuming",
+              "complete",
+              "failed"
+            ],
             "title": "Status"
           },
           "estimatedDurationSeconds": {
@@ -14026,7 +13168,15 @@
             "title": "Siteid"
           },
           "upload": {
-            "$ref": "#/components/schemas/VdiUploadStatus"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VdiUploadStatus"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Upload"
           },
           "importStatus": {
             "anyOf": [
@@ -14034,9 +13184,13 @@
                 "$ref": "#/components/schemas/VdiImportStatus"
               },
               {
+                "type": "string"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Importstatus"
           },
           "installedTargets": {
             "items": {
@@ -14088,35 +13242,6 @@
         ],
         "title": "VdiVisibility",
         "description": "Who may see a dataset once it is installed."
-      },
-      "VolcanoThresholds": {
-        "properties": {
-          "effectSizeThreshold": {
-            "type": "number",
-            "title": "Effectsizethreshold"
-          },
-          "significanceThreshold": {
-            "type": "number",
-            "title": "Significancethreshold"
-          },
-          "effectDirection": {
-            "type": "string",
-            "enum": [
-              "upOnly",
-              "downOnly",
-              "upAndDown"
-            ],
-            "title": "Effectdirection",
-            "default": "upAndDown"
-          }
-        },
-        "type": "object",
-        "required": [
-          "effectSizeThreshold",
-          "significanceThreshold"
-        ],
-        "title": "VolcanoThresholds",
-        "description": "The volcano cut both surfaces and the export share."
       },
       "WDKDatasetParser": {
         "properties": {
@@ -14440,7 +13565,9 @@
           "PROVIDER_KEY_UNREADABLE",
           "PROVIDER_NOT_CONFIGURED",
           "PROVIDER_UNREACHABLE",
-          "PROVIDER_KEYS_DISABLED"
+          "PROVIDER_KEYS_DISABLED",
+          "ATTACHMENT_TOO_LARGE",
+          "ATTACHMENT_NOT_READABLE"
         ],
         "title": "ErrorCode",
         "type": "string"
@@ -14729,6 +13856,16 @@
             },
             "title": "Noderesults",
             "type": "array"
+          },
+          "organismChange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrganismChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "BuildOutcome",
@@ -14895,6 +14032,75 @@
         ],
         "title": "CheckedStepCount",
         "type": "object"
+      },
+      "Citation": {
+        "description": "One source the check retrieved, and what it settles.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/CitationKind"
+          },
+          "label": {
+            "description": "What the reader sees: the gene id and the site for a record, the title for a paper or a page.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "doi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doi"
+          },
+          "pmid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pmid"
+          },
+          "why": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "why"
+        ],
+        "title": "Citation",
+        "type": "object"
+      },
+      "CitationKind": {
+        "enum": [
+          "record",
+          "literature",
+          "web"
+        ],
+        "type": "string"
       },
       "Constraint": {
         "properties": {
@@ -15586,12 +14792,34 @@
           "rationale": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/SearchRationale"
+                "discriminator": {
+                  "mapping": {
+                    "controls": "#/components/schemas/ControlsRationale",
+                    "search": "#/components/schemas/SearchRationale"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SearchRationale"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ControlsRationale"
+                  }
+                ]
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Rationale"
+          },
+          "unexpressedQualifiers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unexpressedqualifiers",
+            "type": "array"
           }
         },
         "required": [
@@ -15739,6 +14967,64 @@
           "reason"
         ],
         "title": "DroppedCriterion",
+        "type": "object"
+      },
+      "EdaDistributionSeries": {
+        "description": "One variable's histogram under the current subset.\n\n``num_var_values`` can exceed ``subset_size`` on a multi-valued variable,\nso a percentage needs its denominator named.",
+        "properties": {
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "variableDisplayName": {
+            "title": "Variabledisplayname",
+            "type": "string"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Labels",
+            "type": "array"
+          },
+          "values": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "subsetSize": {
+            "minimum": 0,
+            "title": "Subsetsize",
+            "type": "integer"
+          },
+          "numVarValues": {
+            "minimum": 0,
+            "title": "Numvarvalues",
+            "type": "integer"
+          },
+          "numMissingCases": {
+            "minimum": 0,
+            "title": "Nummissingcases",
+            "type": "integer"
+          },
+          "isMultiValued": {
+            "title": "Ismultivalued",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "variableId",
+          "variableDisplayName",
+          "labels",
+          "values",
+          "subsetSize",
+          "numVarValues",
+          "numMissingCases",
+          "isMultiValued"
+        ],
+        "title": "EdaDistributionSeries",
         "type": "object"
       },
       "EdaSubsetPreviewPart": {
@@ -16027,6 +15313,9 @@
           },
           "verdict": {
             "$ref": "#/components/schemas/EvidenceVerdict"
+          },
+          "review": {
+            "$ref": "#/components/schemas/VerificationReview"
           }
         },
         "required": [
@@ -16185,6 +15474,14 @@
         ],
         "title": "FrameSection",
         "type": "object"
+      },
+      "GeneFit": {
+        "enum": [
+          "yes",
+          "no",
+          "unclear"
+        ],
+        "type": "string"
       },
       "GeneSet": {
         "properties": {
@@ -16491,6 +15788,165 @@
         "title": "LeadUsagePayload",
         "type": "object"
       },
+      "LeafContribution": {
+        "description": "What the offered tree loses or gains without one of its criteria.\n\nEach list is read by dropping the criterion and evaluating the rest of the\ntree over the measured control sets.",
+        "properties": {
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "onlyRecovers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Onlyrecovers",
+            "type": "array"
+          },
+          "holdsBack": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Holdsback",
+            "type": "array"
+          },
+          "onlyExcludes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Onlyexcludes",
+            "type": "array"
+          },
+          "bringsIn": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Bringsin",
+            "type": "array"
+          },
+          "positiveChange": {
+            "description": "The change in returned positives when the criterion is dropped.",
+            "readOnly": true,
+            "title": "Positivechange",
+            "type": "integer"
+          },
+          "negativeChange": {
+            "description": "The change in returned negatives when the criterion is dropped.",
+            "readOnly": true,
+            "title": "Negativechange",
+            "type": "integer"
+          },
+          "line": {
+            "description": "The two changes as the card's column reads them.",
+            "readOnly": true,
+            "title": "Line",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "displayName",
+          "onlyRecovers",
+          "holdsBack",
+          "onlyExcludes",
+          "bringsIn",
+          "positiveChange",
+          "negativeChange",
+          "line"
+        ],
+        "title": "LeafContribution",
+        "type": "object"
+      },
+      "MeasuredCriterion": {
+        "description": "One measured candidate as the figure shows it.",
+        "properties": {
+          "candidateId": {
+            "title": "Candidateid",
+            "type": "string"
+          },
+          "searchName": {
+            "title": "Searchname",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "thread",
+              "literature",
+              "enrichment",
+              "annotation",
+              "catalog"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "resultSize": {
+            "title": "Resultsize",
+            "type": "integer"
+          },
+          "recovered": {
+            "title": "Recovered",
+            "type": "integer"
+          },
+          "positives": {
+            "title": "Positives",
+            "type": "integer"
+          },
+          "admitted": {
+            "title": "Admitted",
+            "type": "integer"
+          },
+          "negatives": {
+            "title": "Negatives",
+            "type": "integer"
+          },
+          "informs": {
+            "enum": [
+              "recovering",
+              "excluding",
+              "neither"
+            ],
+            "title": "Informs",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidateId",
+          "searchName",
+          "displayName",
+          "source",
+          "basis",
+          "resultSize",
+          "recovered",
+          "positives",
+          "admitted",
+          "negatives",
+          "informs"
+        ],
+        "title": "MeasuredCriterion",
+        "type": "object"
+      },
       "MemoryEntryDraft": {
         "properties": {
           "name": {
@@ -16528,56 +15984,6 @@
           "summary"
         ],
         "title": "MemoryEntryDraft",
-        "type": "object"
-      },
-      "MemoryRetrievedItem": {
-        "description": "One recalled memory in the memory-retrieved chunk.",
-        "properties": {
-          "key": {
-            "title": "Key",
-            "type": "string"
-          },
-          "kind": {
-            "title": "Kind",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "summary": {
-            "title": "Summary",
-            "type": "string"
-          },
-          "score": {
-            "title": "Score",
-            "type": "number"
-          }
-        },
-        "required": [
-          "key",
-          "kind",
-          "name",
-          "summary",
-          "score"
-        ],
-        "title": "MemoryRetrievedItem",
-        "type": "object"
-      },
-      "MemoryRetrievedPayload": {
-        "properties": {
-          "memories": {
-            "items": {
-              "$ref": "#/components/schemas/MemoryRetrievedItem"
-            },
-            "title": "Memories",
-            "type": "array"
-          }
-        },
-        "required": [
-          "memories"
-        ],
-        "title": "MemoryRetrievedPayload",
         "type": "object"
       },
       "NodeResult": {
@@ -16640,6 +16046,29 @@
           "status"
         ],
         "title": "NodeResult",
+        "type": "object"
+      },
+      "OfferedLeaf": {
+        "description": "One criterion of the offered tree, and the controls its own step returned.",
+        "properties": {
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/ControlTestEvidence"
+          }
+        },
+        "required": [
+          "criterionId",
+          "displayName",
+          "controls"
+        ],
+        "title": "OfferedLeaf",
         "type": "object"
       },
       "OpenSlot": {
@@ -16748,6 +16177,31 @@
         "title": "OperationalSpec",
         "type": "object"
       },
+      "OrganismChange": {
+        "description": "The organisms the seed searched and the ones the records now belong to.",
+        "properties": {
+          "seed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Seed",
+            "type": "array"
+          },
+          "records": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seed",
+          "records"
+        ],
+        "title": "OrganismChange",
+        "type": "object"
+      },
       "PairwiseOverlap": {
         "properties": {
           "a": {
@@ -16845,6 +16299,181 @@
           "proposedChanges"
         ],
         "title": "Proposal",
+        "type": "object"
+      },
+      "RecalledMemoriesPayload": {
+        "properties": {
+          "memories": {
+            "items": {
+              "$ref": "#/components/schemas/RecalledMemory"
+            },
+            "title": "Memories",
+            "type": "array"
+          }
+        },
+        "required": [
+          "memories"
+        ],
+        "title": "RecalledMemoriesPayload",
+        "type": "object"
+      },
+      "RecalledMemory": {
+        "description": "One memory a turn recalled, with the thread that wrote it and when.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "gene_set_note",
+              "strategy",
+              "preference",
+              "knowledge",
+              "case"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "sourceConversationId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceconversationid"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "name",
+          "summary",
+          "createdAt"
+        ],
+        "title": "RecalledMemory",
+        "type": "object"
+      },
+      "RequirementCheck": {
+        "description": "One requirement the researcher stated, and what in the strategy answers it.",
+        "properties": {
+          "text": {
+            "description": "The requirement in the researcher's own words.",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "turn": {
+            "description": "The number of the researcher's message that stated it.",
+            "minimum": 1,
+            "title": "Turn",
+            "type": "integer"
+          },
+          "answeredBy": {
+            "description": "The criterion ids or step ids that answer it.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Answeredby",
+            "type": "array"
+          },
+          "how": {
+            "$ref": "#/components/schemas/RequirementHow",
+            "description": "search: a search states it. parameter: a parameter value states it. structure: a combine states it. transform: a transform step states it. analysis: a study analysis states it."
+          },
+          "status": {
+            "$ref": "#/components/schemas/RequirementStatus",
+            "description": "met: the strategy states it. unmet: the strategy can state it and does not. unexpressed: no search the site offers can state it."
+          },
+          "note": {
+            "default": "",
+            "description": "One line: the parameter value or the combine, or why nothing.",
+            "maxLength": 300,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "turn",
+          "how",
+          "status"
+        ],
+        "title": "RequirementCheck",
+        "type": "object"
+      },
+      "RequirementHow": {
+        "enum": [
+          "search",
+          "parameter",
+          "structure",
+          "transform",
+          "analysis"
+        ],
+        "type": "string"
+      },
+      "RequirementStatus": {
+        "enum": [
+          "met",
+          "unmet",
+          "unexpressed"
+        ],
+        "type": "string"
+      },
+      "SampledGene": {
+        "description": "One gene of the result, read from its record and judged against the request.",
+        "properties": {
+          "geneId": {
+            "minLength": 1,
+            "title": "Geneid",
+            "type": "string"
+          },
+          "product": {
+            "default": "",
+            "title": "Product",
+            "type": "string"
+          },
+          "organism": {
+            "default": "",
+            "title": "Organism",
+            "type": "string"
+          },
+          "fits": {
+            "$ref": "#/components/schemas/GeneFit"
+          },
+          "why": {
+            "description": "One line naming the evidence read: a sampled value, the product, a GO term, an expression value.",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "geneId",
+          "fits",
+          "why"
+        ],
+        "title": "SampledGene",
         "type": "object"
       },
       "SavedStrategyRef": {
@@ -17032,6 +16661,218 @@
         "title": "ScratchpadUpdatedPayload",
         "type": "object"
       },
+      "SeparationOffer": {
+        "description": "The strategy a separation run offers, and the counts the site returned for it.",
+        "properties": {
+          "taskId": {
+            "title": "Taskid",
+            "type": "string"
+          },
+          "siteId": {
+            "title": "Siteid",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "exact",
+              "similar"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/OperationalSpec"
+          },
+          "positive": {
+            "$ref": "#/components/schemas/ControlSetEvidence"
+          },
+          "negative": {
+            "$ref": "#/components/schemas/ControlSetEvidence"
+          },
+          "enrichment": {
+            "$ref": "#/components/schemas/ControlEnrichment"
+          },
+          "resultSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultsize"
+          },
+          "separates": {
+            "title": "Separates",
+            "type": "boolean"
+          },
+          "predictedMatchesRead": {
+            "title": "Predictedmatchesread",
+            "type": "boolean"
+          },
+          "leaves": {
+            "items": {
+              "$ref": "#/components/schemas/OfferedLeaf"
+            },
+            "title": "Leaves",
+            "type": "array"
+          },
+          "contributions": {
+            "description": "What each criterion adds, left to right.",
+            "items": {
+              "$ref": "#/components/schemas/LeafContribution"
+            },
+            "readOnly": true,
+            "title": "Contributions",
+            "type": "array"
+          },
+          "question": {
+            "description": "The card's one sentence, written from the counts.",
+            "readOnly": true,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "siteId",
+          "mode",
+          "spec",
+          "positive",
+          "negative",
+          "enrichment",
+          "resultSize",
+          "separates",
+          "predictedMatchesRead",
+          "leaves",
+          "contributions",
+          "question"
+        ],
+        "title": "SeparationOffer",
+        "type": "object"
+      },
+      "SeparationReport": {
+        "description": "What one separation run measured, what it offers, and what it cost.",
+        "properties": {
+          "taskId": {
+            "title": "Taskid",
+            "type": "string"
+          },
+          "siteId": {
+            "title": "Siteid",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "exact",
+              "similar"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "offer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeparationOffer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "measured": {
+            "items": {
+              "$ref": "#/components/schemas/MeasuredCriterion"
+            },
+            "title": "Measured",
+            "type": "array"
+          },
+          "skippedByReason": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "not_a_gene_search",
+                "transform",
+                "needs_an_analysis",
+                "takes_a_gene_list",
+                "unbound_required",
+                "vocabulary_miss",
+                "wdk_refused",
+                "budget",
+                "duplicate",
+                "source_skipped"
+              ]
+            },
+            "title": "Skippedbyreason",
+            "type": "object"
+          },
+          "skippedExamples": {
+            "items": {
+              "$ref": "#/components/schemas/SkippedCriterion"
+            },
+            "maxItems": 8,
+            "title": "Skippedexamples",
+            "type": "array"
+          },
+          "unresolvedPositive": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unresolvedpositive",
+            "type": "array"
+          },
+          "unresolvedNegative": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unresolvednegative",
+            "type": "array"
+          },
+          "shortfall": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Shortfall",
+            "type": "array"
+          },
+          "chargedRequests": {
+            "title": "Chargedrequests",
+            "type": "integer"
+          },
+          "budget": {
+            "title": "Budget",
+            "type": "integer"
+          },
+          "informativeCount": {
+            "description": "The measured searches that tell the positives from the negatives.",
+            "readOnly": true,
+            "title": "Informativecount",
+            "type": "integer"
+          },
+          "summary": {
+            "description": "One line of the result, from its counts.",
+            "readOnly": true,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taskId",
+          "siteId",
+          "mode",
+          "offer",
+          "measured",
+          "chargedRequests",
+          "budget",
+          "informativeCount",
+          "summary"
+        ],
+        "title": "SeparationReport",
+        "type": "object"
+      },
       "SiteRead": {
         "enum": [
           "read",
@@ -17039,6 +16880,59 @@
           "not_read"
         ],
         "type": "string"
+      },
+      "SkippedCriterion": {
+        "description": "A candidate the run did not measure, and why.",
+        "properties": {
+          "searchName": {
+            "title": "Searchname",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "thread",
+              "literature",
+              "enrichment",
+              "annotation",
+              "catalog"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "not_a_gene_search",
+              "transform",
+              "needs_an_analysis",
+              "takes_a_gene_list",
+              "unbound_required",
+              "vocabulary_miss",
+              "wdk_refused",
+              "budget",
+              "duplicate",
+              "source_skipped"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "searchName",
+          "source",
+          "basis",
+          "reason"
+        ],
+        "title": "SkippedCriterion",
+        "type": "object"
       },
       "SpecDiff": {
         "properties": {
@@ -17259,12 +17153,14 @@
         "type": "object"
       },
       "StructureNode": {
+        "description": "One node of the stated tree.\n\nA copy restates the subtree it holds, which the tree states elsewhere, and\nis stated as criteria of its own before anything builds it.",
         "properties": {
           "kind": {
             "enum": [
               "leaf",
               "combine",
-              "transform"
+              "transform",
+              "copy"
             ],
             "title": "Kind",
             "type": "string"
@@ -17837,7 +17733,7 @@
             "description": "Control-flow signal: 'done' = investigation is complete; 'awaiting_user' = the turn ends; 'handoff' = transition to the next sub-agent."
           },
           "prose": {
-            "description": "User-facing assistant message shown in the chat thread.",
+            "description": "User-facing assistant message shown in the conversation.",
             "maxLength": 4000,
             "minLength": 1,
             "title": "Prose",
@@ -17921,6 +17817,9 @@
             "title": "Constraintreport",
             "type": "array"
           },
+          "review": {
+            "$ref": "#/components/schemas/VerificationReview"
+          },
           "remember": {
             "description": "Durable findings worth a later turn, each with a recall-friendly name such as \"P. falciparum kinome size\", counts or identifiers in its content, and tags naming an organism, a technique or a dataset. The site id is added automatically.",
             "items": {
@@ -17938,6 +17837,40 @@
           "success"
         ],
         "title": "VerificationDigest",
+        "type": "object"
+      },
+      "VerificationReview": {
+        "description": "What the check read against the researcher's words: each stated\nrequirement, a sample of the genes, and the sources it retrieved.",
+        "properties": {
+          "requirements": {
+            "description": "One row per requirement the researcher stated, in any message.",
+            "items": {
+              "$ref": "#/components/schemas/RequirementCheck"
+            },
+            "maxItems": 20,
+            "title": "Requirements",
+            "type": "array"
+          },
+          "sampledGenes": {
+            "description": "The root step's genes whose record this check read.",
+            "items": {
+              "$ref": "#/components/schemas/SampledGene"
+            },
+            "maxItems": 8,
+            "title": "Sampledgenes",
+            "type": "array"
+          },
+          "sources": {
+            "description": "Each paper or page a research read of this turn returned.",
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "maxItems": 10,
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "title": "VerificationReview",
         "type": "object"
       },
       "VerificationSection": {
@@ -18106,7 +18039,7 @@
           "memoryRetrieved": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/MemoryRetrievedPayload"
+                "$ref": "#/components/schemas/RecalledMemoriesPayload"
               },
               {
                 "type": "null"
@@ -18137,6 +18070,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ScratchpadUpdatedPayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "separationResult": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeparationReport"
               },
               {
                 "type": "null"
@@ -18328,6 +18271,37 @@
         "title": "EdaAnalysisDescriptor",
         "type": "object"
       },
+      "EdaComparator": {
+        "additionalProperties": true,
+        "properties": {
+          "variable": {
+            "$ref": "#/components/schemas/EdaVariableSpec"
+          },
+          "groupA": {
+            "items": {
+              "$ref": "#/components/schemas/EdaLabeledRange"
+            },
+            "minItems": 1,
+            "title": "Groupa",
+            "type": "array"
+          },
+          "groupB": {
+            "items": {
+              "$ref": "#/components/schemas/EdaLabeledRange"
+            },
+            "minItems": 1,
+            "title": "Groupb",
+            "type": "array"
+          }
+        },
+        "required": [
+          "variable",
+          "groupA",
+          "groupB"
+        ],
+        "title": "EdaComparator",
+        "type": "object"
+      },
       "EdaComputation": {
         "additionalProperties": true,
         "properties": {
@@ -18377,6 +18351,282 @@
           }
         ]
       },
+      "EdaDateRangeFilter": {
+        "description": "Bounds carry a time: a bare YYYY-MM-DD is a server error.",
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "dateRange",
+            "default": "dateRange",
+            "title": "Type",
+            "type": "string"
+          },
+          "min": {
+            "title": "Min",
+            "type": "string"
+          },
+          "max": {
+            "title": "Max",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "min",
+          "max"
+        ],
+        "title": "EdaDateRangeFilter",
+        "type": "object"
+      },
+      "EdaDateSetFilter": {
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "dateSet",
+            "default": "dateSet",
+            "title": "Type",
+            "type": "string"
+          },
+          "dateSet": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Dateset",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "dateSet"
+        ],
+        "title": "EdaDateSetFilter",
+        "type": "object"
+      },
+      "EdaDifferentialExpressionConfig": {
+        "additionalProperties": true,
+        "description": "The compute's own configuration. There is no collectionVariable here.",
+        "properties": {
+          "identifierVariable": {
+            "$ref": "#/components/schemas/EdaVariableSpec"
+          },
+          "valueVariable": {
+            "$ref": "#/components/schemas/EdaVariableSpec"
+          },
+          "comparator": {
+            "$ref": "#/components/schemas/EdaComparator"
+          },
+          "differentialExpressionMethod": {
+            "default": "DESeq",
+            "enum": [
+              "DESeq",
+              "limma"
+            ],
+            "title": "Differentialexpressionmethod",
+            "type": "string"
+          },
+          "pValueFloor": {
+            "default": "1e-200",
+            "title": "Pvaluefloor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifierVariable",
+          "valueVariable",
+          "comparator"
+        ],
+        "title": "EdaDifferentialExpressionConfig",
+        "type": "object"
+      },
+      "EdaDifferentialExpressionDescriptor": {
+        "additionalProperties": true,
+        "description": "A differential-expression compute whose configuration is complete.",
+        "properties": {
+          "type": {
+            "const": "differentialexpression",
+            "default": "differentialexpression",
+            "title": "Type",
+            "type": "string"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/EdaDifferentialExpressionConfig"
+          }
+        },
+        "required": [
+          "configuration"
+        ],
+        "title": "EdaDifferentialExpressionDescriptor",
+        "type": "object"
+      },
+      "EdaFilter": {
+        "discriminator": {
+          "mapping": {
+            "dateRange": "#/components/schemas/EdaDateRangeFilter",
+            "dateSet": "#/components/schemas/EdaDateSetFilter",
+            "longitudeRange": "#/components/schemas/EdaLongitudeRangeFilter",
+            "multiFilter": "#/components/schemas/EdaMultiFilter",
+            "numberRange": "#/components/schemas/EdaNumberRangeFilter",
+            "numberSet": "#/components/schemas/EdaNumberSetFilter",
+            "stringSet": "#/components/schemas/EdaStringSetFilter"
+          },
+          "propertyName": "type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/EdaStringSetFilter"
+          },
+          {
+            "$ref": "#/components/schemas/EdaNumberSetFilter"
+          },
+          {
+            "$ref": "#/components/schemas/EdaDateSetFilter"
+          },
+          {
+            "$ref": "#/components/schemas/EdaNumberRangeFilter"
+          },
+          {
+            "$ref": "#/components/schemas/EdaDateRangeFilter"
+          },
+          {
+            "$ref": "#/components/schemas/EdaLongitudeRangeFilter"
+          },
+          {
+            "$ref": "#/components/schemas/EdaMultiFilter"
+          }
+        ]
+      },
+      "EdaLabeledRange": {
+        "additionalProperties": true,
+        "description": "A comparator bin. ``min``/``max`` are declared required and are optional.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "min": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min"
+          },
+          "max": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "EdaLabeledRange",
+        "type": "object"
+      },
+      "EdaLongitudeRangeFilter": {
+        "description": "``left == right`` is a no-op that keeps every row.",
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "longitudeRange",
+            "default": "longitudeRange",
+            "title": "Type",
+            "type": "string"
+          },
+          "left": {
+            "title": "Left",
+            "type": "number"
+          },
+          "right": {
+            "title": "Right",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "left",
+          "right"
+        ],
+        "title": "EdaLongitudeRangeFilter",
+        "type": "object"
+      },
+      "EdaMultiFilter": {
+        "description": "The one nested type, and the only way to express OR.",
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "multiFilter",
+            "default": "multiFilter",
+            "title": "Type",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "union",
+              "intersect"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "subFilters": {
+            "items": {
+              "$ref": "#/components/schemas/EdaSubFilter"
+            },
+            "minItems": 1,
+            "title": "Subfilters",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "operation",
+          "subFilters"
+        ],
+        "title": "EdaMultiFilter",
+        "type": "object"
+      },
       "EdaNumberRange": {
         "additionalProperties": true,
         "properties": {
@@ -18394,6 +18644,73 @@
           "max"
         ],
         "title": "EdaNumberRange",
+        "type": "object"
+      },
+      "EdaNumberRangeFilter": {
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "numberRange",
+            "default": "numberRange",
+            "title": "Type",
+            "type": "string"
+          },
+          "min": {
+            "title": "Min",
+            "type": "number"
+          },
+          "max": {
+            "title": "Max",
+            "type": "number"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "min",
+          "max"
+        ],
+        "title": "EdaNumberRangeFilter",
+        "type": "object"
+      },
+      "EdaNumberSetFilter": {
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "numberSet",
+            "default": "numberSet",
+            "title": "Type",
+            "type": "string"
+          },
+          "numberSet": {
+            "items": {
+              "type": "number"
+            },
+            "minItems": 1,
+            "title": "Numberset",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "numberSet"
+        ],
+        "title": "EdaNumberSetFilter",
         "type": "object"
       },
       "EdaOtherComputeDescriptor": {
@@ -18482,6 +18799,62 @@
         "title": "EdaPassDescriptor",
         "type": "object"
       },
+      "EdaStringSetFilter": {
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "type": {
+            "const": "stringSet",
+            "default": "stringSet",
+            "title": "Type",
+            "type": "string"
+          },
+          "stringSet": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Stringset",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId",
+          "stringSet"
+        ],
+        "title": "EdaStringSetFilter",
+        "type": "object"
+      },
+      "EdaSubFilter": {
+        "description": "A multiFilter child. The parent's entity applies and the set is a string set.",
+        "properties": {
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          },
+          "stringSet": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Stringset",
+            "type": "array"
+          }
+        },
+        "required": [
+          "variableId",
+          "stringSet"
+        ],
+        "title": "EdaSubFilter",
+        "type": "object"
+      },
       "EdaSubsetDescriptor": {
         "additionalProperties": true,
         "properties": {
@@ -18497,6 +18870,24 @@
           }
         },
         "title": "EdaSubsetDescriptor",
+        "type": "object"
+      },
+      "EdaVariableSpec": {
+        "properties": {
+          "entityId": {
+            "title": "Entityid",
+            "type": "string"
+          },
+          "variableId": {
+            "title": "Variableid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entityId",
+          "variableId"
+        ],
+        "title": "EdaVariableSpec",
         "type": "object"
       },
       "EdaVisualization": {

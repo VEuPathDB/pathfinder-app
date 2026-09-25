@@ -20,7 +20,7 @@ Create Date: 2026-05-07 12:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -65,24 +65,24 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.add_column(
         "users",
-        sa.Column(
+        sqlalchemy.Column(
             "specialist_model_defaults",
             postgresql.JSONB(),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=sqlalchemy.text("'{}'::jsonb"),
         ),
     )
     op.add_column(
         "users",
-        sa.Column(
+        sqlalchemy.Column(
             "supervisor_model_id",
-            sa.String(length=128),
+            sqlalchemy.String(length=128),
             nullable=True,
         ),
     )
     op.add_column(
         "users",
-        sa.Column(
+        sqlalchemy.Column(
             "pipeline_config",
             postgresql.JSONB(),
             nullable=True,
@@ -90,7 +90,7 @@ def downgrade() -> None:
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "specialist_mode",
             postgresql.JSONB(),
             nullable=True,
@@ -98,17 +98,17 @@ def downgrade() -> None:
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "supervisor_model_id",
-            sa.String(length=128),
+            sqlalchemy.String(length=128),
             nullable=True,
         ),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "pipeline",
-            sa.JSON(),
+            sqlalchemy.JSON(),
             nullable=True,
         ),
     )

@@ -231,7 +231,7 @@ test.describe("Mock Engine Response Correctness", () => {
     await chatPage.expectAssistantMessage(/\[mock\].*hello world/i);
     await chatPage.expectIdle();
 
-    // The response should echo the message with [mock] prefix —
+    // The response should echo the message with [mock] prefix -
     // no tool calls, no strategy updates, no graph changes.
     // (We verify no graph appears by checking the assistant message content
     // rather than DB state, since DB state can leak from prior serial suites.)

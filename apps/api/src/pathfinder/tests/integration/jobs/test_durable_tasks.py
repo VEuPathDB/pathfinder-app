@@ -1,3 +1,5 @@
+"""Every declared durable tool is a job on the durable queue, and each defers."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -34,6 +36,7 @@ def test_durable_tasks_registered_on_verification_queue() -> None:
         "durable:run_control_tests_on_step",
         "durable:optimize_search_parameters",
         "durable:run_eda_compute",
+        "durable:separate_controls",
     }
     assert names <= set(procrastinate_app.tasks)
     assert {procrastinate_app.tasks[name].queue for name in names} == {
@@ -54,5 +57,6 @@ async def test_durable_tasks_can_be_deferred(
             )
             for tool in declared_durable_tools()
         ]
-    assert len(job_ids) == 3
+    assert len(job_ids) == 4
+    assert len(set(job_ids)) == 4
     assert all(job_id > 0 for job_id in job_ids)

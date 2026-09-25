@@ -18,29 +18,29 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     what_it_finds,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import (
+    CriterionCall,
     ParamProposals,
-    _CriterionCall,
-    _refuse_unmatched_value,
-    _values_of,
+    refuse_unmatched_value,
 )
+from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
 
 
 def _decided_here(info: ParameterInfo, params: ParamProposals) -> bool:
     """The proposal for this param names an entry of the vocabulary shown here."""
     if info.name not in params:
         return False
-    values = _values_of(params[info.name])
+    values = proposal_values(params[info.name])
     options = info.vocabulary()
     return bool(values) and all(
         match_exact_option(options, value) is not None for value in values
     )
 
 
-async def _reconcile_dependents(
+async def reconcile_dependents(
     fetch_at: ParamFetcher,
     infos: list[ParameterInfo],
     resolved: ResolvedParams,
-    call: _CriterionCall,
+    call: CriterionCall,
     state: AgentToolState,
 ) -> list[str]:
     """Visible dependent params to decide again under the parents' vocabulary.
@@ -70,7 +70,7 @@ async def _reconcile_dependents(
         if changed and not asked and not _decided_here(info, call.params):
             stale.append(info)
         elif options and info.param_kind != "filter":
-            _refuse_unmatched_value(call, info, options)
+            refuse_unmatched_value(call, info, options)
     for info in stale:
         state.mark_redecided(call.criterion_id, call.search_name, info.name)
     if not stale:
@@ -81,7 +81,7 @@ async def _reconcile_dependents(
     return [info.name for info in stale]
 
 
-def _open_sheet(
+def open_parameter_sheet(
     state: AgentToolState, criterion_id: str, search_name: str, definition: WDKSearch
 ) -> dict[str, None]:
     """Pin the parameter sheet for one criterion and answer with its template."""

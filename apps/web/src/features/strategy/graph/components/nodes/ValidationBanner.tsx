@@ -7,7 +7,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import type { StepSnapshot } from "@/state/strategy/useStepSnapshot";
-import { CornerDot } from "./CornerDot";
 
 export type ValidationBannerProps = {
   step: Step;
@@ -55,7 +54,10 @@ export function ValidationBanner({
           }}
           className="absolute -left-1 -top-1 z-20 h-4 w-4 rounded-full"
         >
-          <CornerDot variant="error" />
+          <span
+            data-corner-dot="error"
+            className="absolute -left-1 -top-1 z-10 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background"
+          />
         </button>
       </HoverCardTrigger>
       <HoverCardContent

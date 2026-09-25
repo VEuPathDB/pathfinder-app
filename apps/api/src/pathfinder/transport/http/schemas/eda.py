@@ -6,15 +6,13 @@ from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from pydantic import ConfigDict, Discriminator, Field
+from pydantic import ConfigDict, Discriminator
 
 from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
     EdaComparison,
     EdaEffectDirection,
 )
-from pathfinder.services.eda import EdaDifferentialExpressionDescriptor, EdaFilter
-from pathfinder.services.eda.compute import VolcanoThresholds
 
 
 class EdaStudySummaryResponse(CamelModel):
@@ -31,97 +29,21 @@ class EdaStudySummaryResponse(CamelModel):
     relevance: float
     can_subset: bool
     can_export_rows: bool
+    # The genomics sites that publish the study, ["portal"] when none does, and
+    # empty when the index that knows them does not answer.
+    sites: list[str]
+    # Why the study does not open on this site, or None when it does.
+    not_here: str | None
 
 
 class EdaStudyListResponse(CamelModel):
     studies: list[EdaStudySummaryResponse]
 
 
-class EdaVariableResponse(CamelModel):
-    """One filterable variable, with the exact filter type it takes."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    entity_id: str
-    variable_id: str
-    display_name: str
-    variable_type: str
-    filter_type: str | None
-    data_shape: str | None
-    is_multi_valued: bool
-    vocabulary: list[str]
-    vocabulary_total: int
-    vocabulary_note: str | None
-    range_min: float | None
-    range_max: float | None
-    date_min: str | None
-    date_max: str | None
-    sub_filter_variable_ids: list[str]
-    hide_from: list[str]
-
-
-class EdaEntityResponse(CamelModel):
-    """One table of records in the study's tree."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    entity_id: str
-    display_name: str
-    display_name_plural: str
-    parent_entity_id: str | None
-    variable_count: int
-    has_gene_id: bool
-
-
-class EdaStudyDetailResponse(CamelModel):
-    """A study's entity tree and its filterable variables."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    dataset_id: str
-    study_id: str
-    display_name: str
-    entities: list[EdaEntityResponse]
-    variables: list[EdaVariableResponse]
-    gene_entity_id: str | None
-    gene_entity_problem: str | None
-    can_subset: bool
-    can_export_rows: bool
-
-
-class EdaCountRequest(CamelModel):
-    """Count one entity's records under a filter array."""
-
-    dataset_id: str
-    entity_id: str
-    filters: list[EdaFilter] = Field(default_factory=list)
-
-
-class EdaCountResponse(CamelModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    entity_id: str
-    count: int
-    unfiltered_count: int
-
-
-class EdaDistributionRequest(CamelModel):
-    """One variable's histogram under a filter array."""
-
-    dataset_id: str
-    entity_id: str
-    variable_id: str
-    filters: list[EdaFilter] = Field(default_factory=list)
-
-
 class EdaVizRequest(CamelModel):
     """The volcano the bound analysis's compute already produced."""
 
-    dataset_id: str
     chart: Literal["volcano"]
-    effect_size_threshold: float = 1.0
-    significance_threshold: float = 0.05
-    effect_direction: EdaEffectDirection = "upAndDown"
 
 
 class EdaVizPointResponse(CamelModel):
@@ -149,16 +71,14 @@ class EdaVizResponse(CamelModel):
 
 
 class ConversationEdaResponse(CamelModel):
-    """The thread's bound analysis, as the tab hydrates from it.
+    """The conversation's bound analysis, as the tab hydrates from it.
 
     ``analysis`` is the same state the PATCH answers and the
     ``data-eda.analysis-state`` part carry, so one reducer serves all three.
-    Both keys are always present and nullable; both are null on a thread with
-    no analysis open.
+    The key is always present, and null when no analysis is open.
     """
 
     analysis: EdaAnalysisState | None
-    descriptor: JSONObject | None
 
 
 class EdaBindAction(CamelModel):
@@ -170,25 +90,15 @@ class EdaBindAction(CamelModel):
     purpose: str = "EDA analysis"
 
 
-class EdaSetFiltersAction(CamelModel):
-    """Replace the bound analysis's subset."""
-
-    action: Literal["set-filters"]
-    filters: list[EdaFilter] = Field(default_factory=list)
-
-
-class EdaRunComputeAction(CamelModel):
-    """Submit or poll the analysis's compute. Idempotent per input hash."""
-
-    action: Literal["run-compute"]
-    computation: EdaDifferentialExpressionDescriptor
-
-
 class EdaExportStepAction(CamelModel):
-    """Export the analysis's genes as a step in the thread's strategy."""
+    """Export the analysis's genes as a step in the thread's strategy.
+
+    ``volcano`` exports the genes of the cut the analysis stores; ``subset``
+    exports the genes its filters keep.
+    """
 
     action: Literal["export-step"]
-    thresholds: VolcanoThresholds | None = None
+    source: Literal["volcano", "subset"]
 
 
 class EdaUnbindAction(CamelModel):
@@ -202,24 +112,9 @@ class EdaUnbindAction(CamelModel):
 
 
 ConversationEdaPatchRequest = Annotated[
-    EdaBindAction
-    | EdaSetFiltersAction
-    | EdaRunComputeAction
-    | EdaExportStepAction
-    | EdaUnbindAction,
+    EdaBindAction | EdaExportStepAction | EdaUnbindAction,
     Discriminator("action"),
 ]
-
-
-class EdaJobRefResponse(CamelModel):
-    """The compute job a run-compute action addressed."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    job_id: str
-    task_id: str | None
-    app_name: str
-    status: str
 
 
 class EdaAnalysisPatchResponse(CamelModel):
@@ -229,5 +124,4 @@ class EdaAnalysisPatchResponse(CamelModel):
     """
 
     analysis: EdaAnalysisState | None
-    job: EdaJobRefResponse | None
     step: JSONObject | None

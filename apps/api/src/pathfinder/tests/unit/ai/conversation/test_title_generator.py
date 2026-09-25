@@ -7,6 +7,7 @@ from typing import cast
 import pytest
 from assistant_core.platform.types import ModelProvider
 
+from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.conversation.title_generator import (
     MAX_TITLE_CHARS,
     MAX_TITLE_WORDS,
@@ -69,10 +70,14 @@ class TestTrimTitle:
 class TestGenerateConversationTitle:
     @pytest.mark.asyncio
     async def test_empty_message_short_circuits_to_default(self) -> None:
-        assert await generate_conversation_title("", MOCK_MODEL) == "New conversation"
-        assert (
-            await generate_conversation_title("   ", MOCK_MODEL) == "New conversation"
+        meter = SpendMeter()
+        assert await generate_conversation_title("", MOCK_MODEL, meter) == (
+            "New conversation"
         )
+        assert await generate_conversation_title("   ", MOCK_MODEL, meter) == (
+            "New conversation"
+        )
+        assert meter.spent == []
 
     @pytest.mark.asyncio
     async def test_unknown_provider_falls_back(self) -> None:
@@ -80,6 +85,7 @@ class TestGenerateConversationTitle:
         out = await generate_conversation_title(
             "Find malaria genes",
             MOCK_MODEL,
+            SpendMeter(),
             provider=bogus,
         )
         assert out == "Find malaria genes"

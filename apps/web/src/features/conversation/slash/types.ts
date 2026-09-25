@@ -1,9 +1,9 @@
+import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 export interface SelectOption {
   value: string;
   label: string;
-  description?: string;
 }
 
 export type ParamDef =
@@ -12,14 +12,6 @@ export type ParamDef =
       name: string;
       label: string;
       options: SelectOption[];
-      optionsFn?: undefined;
-    }
-  | {
-      kind: "select";
-      name: string;
-      label: string;
-      options?: undefined;
-      optionsFn: (ctx: CommandContext) => Promise<SelectOption[]> | SelectOption[];
     }
   | {
       kind: "text";
@@ -33,12 +25,6 @@ export type ParamDef =
       label: string;
       placeholder?: string;
       rows?: number;
-    }
-  | {
-      kind: "file";
-      name: string;
-      label: string;
-      accept: string;
     };
 
 export type ParamValues = Record<string, string>;
@@ -46,18 +32,19 @@ export type ParamValues = Record<string, string>;
 export interface CommandContext {
   conversationId: string;
   siteId: string;
-  /** Step count from the current strategy. Used by deterministic
-   * commands to enforce preconditions (e.g. `/clear` requires ≥1 step). */
   stepCount: number;
+  /** False on a draft chat, which has no row to read or change. */
+  conversationExists: boolean;
+  queryClient: QueryClient;
 }
 
-interface DeterministicHandlerResult {
+interface ToastResult {
   kind: "toast";
   type: "success" | "error" | "info";
   message: string;
 }
 
-interface DeterministicDownloadResult {
+interface DownloadResult {
   kind: "download";
   url: string;
   filename: string;
@@ -66,14 +53,15 @@ interface DeterministicDownloadResult {
 interface PrefillResult {
   kind: "prefill";
   text: string;
-  submit?: boolean;
+}
+
+interface NavigateResult {
+  kind: "navigate";
+  href: string;
 }
 
 export type CommandResult =
-  | DeterministicHandlerResult
-  | DeterministicDownloadResult
-  | PrefillResult
-  | { kind: "noop" };
+  ToastResult | DownloadResult | PrefillResult | NavigateResult;
 
 type DisabledReasonResolver = (ctx: CommandContext) => string | null;
 

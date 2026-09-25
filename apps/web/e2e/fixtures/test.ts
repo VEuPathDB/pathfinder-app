@@ -1,5 +1,10 @@
 import { test as base } from "@playwright/test";
-import { type ApiClient, CSRF_HEADERS, createApiClient } from "./api-client";
+import {
+  type ApiClient,
+  CSRF_HEADERS,
+  clearUserData,
+  createApiClient,
+} from "./api-client";
 import { ChatPage } from "../pages/chat.page";
 import { SidebarPage } from "../pages/sidebar.page";
 import { GraphPage } from "../pages/graph.page";
@@ -28,15 +33,11 @@ type WorkerFixtures = {
 export const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
-  // ── Worker-scoped ──────────────────────────────────────────────
+  // Worker-scoped
 
   /**
-   * Per-worker authentication.
-   *
-   * Each Playwright worker calls `/dev/login?user_id=worker-{N}` to get its own
-   * isolated PathFinder user, and carries the registered VEuPathDB token in the
-   * `Authorization` cookie the API reads for every WDK call. Workers never share
-   * gene sets, strategies, or conversations.
+   * Each worker signs in as its own PathFinder user (`/dev/login?user_id=worker-{N}`)
+   * and carries the registered VEuPathDB token in the `Authorization` cookie.
    */
   workerStorageState: [
     async ({ browser }, use, workerInfo) => {
@@ -47,24 +48,24 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       // Always re-authenticate to ensure a clean session.
       fs.mkdirSync(dir, { recursive: true });
 
-      const page = await browser.newPage();
-      await page.goto(BASE_URL);
-      await page
-        .context()
-        .addCookies([{ name: "Authorization", value: wdkTestToken(), url: BASE_URL }]);
+      // No page loads the app here: its own auth refresh would race the dev
+      // login for the session cookie the storage state saves.
+      const context = await browser.newContext();
+      await context.addCookies([
+        { name: "Authorization", value: wdkTestToken(), url: BASE_URL },
+      ]);
 
-      const resp = await page
-        .context()
-        .request.post(`${BASE_URL}/api/v1/dev/login?user_id=worker-${id}`, {
-          headers: CSRF_HEADERS,
-        });
+      const resp = await context.request.post(
+        `${BASE_URL}/api/v1/dev/login?user_id=worker-${id}`,
+        { headers: CSRF_HEADERS },
+      );
       if (!resp.ok()) {
         throw new Error(`dev-login failed for worker-${id}: ${resp.status()}`);
       }
 
       // Acknowledge the first-login eval-data notice once per worker, the way
       // a researcher does, so it is not over the app in every later spec.
-      const req = page.context().request;
+      const req = context.request;
       const noticeResp = await req.patch(`${BASE_URL}/api/v1/me/privacy`, {
         headers: CSRF_HEADERS,
         data: { noticeSeen: true },
@@ -76,60 +77,10 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       }
 
       // Clean up stale data from previous runs for THIS worker's user.
-      const strategiesResp = await req.get(`${BASE_URL}/api/v1/conversations`);
-      if (strategiesResp.ok()) {
-        const strategies = (await strategiesResp.json()) as { id: string }[];
-        await Promise.all(
-          strategies.map((s) =>
-            req.delete(`${BASE_URL}/api/v1/conversations/${s.id}?deleteFromWdk=true`, {
-              headers: CSRF_HEADERS,
-            }),
-          ),
-        );
-      }
-      // Also purge dismissed (soft-deleted) strategies from prior runs.
-      const dismissedResp = await req.get(`${BASE_URL}/api/v1/conversations/dismissed`);
-      if (dismissedResp.ok()) {
-        const dismissed = (await dismissedResp.json()) as { id: string }[];
-        await Promise.all(
-          dismissed.map((d) =>
-            req.delete(`${BASE_URL}/api/v1/conversations/${d.id}?deleteFromWdk=true`, {
-              headers: CSRF_HEADERS,
-            }),
-          ),
-        );
-      }
-      // Clean gene sets across ALL sites (default + site-specific).
-      const workerSiteIds = [
-        undefined,
-        "plasmodb",
-        "toxodb",
-        "cryptodb",
-        "fungidb",
-        "tritrypdb",
-      ];
-      await Promise.all(
-        workerSiteIds.map(async (siteId) => {
-          const url =
-            siteId != null && siteId !== ""
-              ? `${BASE_URL}/api/v1/gene-sets?siteId=${siteId}`
-              : `${BASE_URL}/api/v1/gene-sets`;
-          const resp = await req.get(url);
-          if (resp.ok()) {
-            const geneSets = (await resp.json()) as { id: string }[];
-            await Promise.all(
-              geneSets.map((gs) =>
-                req.delete(`${BASE_URL}/api/v1/gene-sets/${gs.id}`, {
-                  headers: CSRF_HEADERS,
-                }),
-              ),
-            );
-          }
-        }),
-      );
+      await clearUserData(req, BASE_URL);
 
-      await page.context().storageState({ path: fileName });
-      await page.close();
+      await context.storageState({ path: fileName });
+      await context.close();
 
       await use(fileName);
     },
@@ -142,71 +93,18 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
    */
   storageState: ({ workerStorageState }, use) => use(workerStorageState),
 
-  // ── Test-scoped: auto-cleanup ─────────────────────────────────
+  // Test-scoped: auto-cleanup
 
   /** Clear gene sets, strategies, and dismissed strategies before each test. */
   _autoCleanup: [
     async ({ context }, use) => {
-      const req = context.request;
-      // Clean gene sets across ALL sites (default + site-specific).
-      const allSiteIds = [
-        undefined,
-        "plasmodb",
-        "toxodb",
-        "cryptodb",
-        "fungidb",
-        "tritrypdb",
-      ];
-      await Promise.all(
-        allSiteIds.map(async (siteId) => {
-          const url =
-            siteId != null && siteId !== ""
-              ? `${BASE_URL}/api/v1/gene-sets?siteId=${siteId}`
-              : `${BASE_URL}/api/v1/gene-sets`;
-          const resp = await req.get(url);
-          if (resp.ok()) {
-            const geneSets = (await resp.json()) as { id: string }[];
-            await Promise.all(
-              geneSets.map((gs) =>
-                req.delete(`${BASE_URL}/api/v1/gene-sets/${gs.id}`, {
-                  headers: CSRF_HEADERS,
-                }),
-              ),
-            );
-          }
-        }),
-      );
-      // Force hard-delete (deleteFromWdk=true) so WDK-linked strategies
-      // don't get soft-deleted and accumulate in the dismissed list.
-      const strategiesResp = await req.get(`${BASE_URL}/api/v1/conversations`);
-      if (strategiesResp.ok()) {
-        const strategies = (await strategiesResp.json()) as { id: string }[];
-        await Promise.all(
-          strategies.map((s) =>
-            req.delete(`${BASE_URL}/api/v1/conversations/${s.id}?deleteFromWdk=true`, {
-              headers: CSRF_HEADERS,
-            }),
-          ),
-        );
-      }
-      // Purge dismissed (soft-deleted) strategies from prior tests/retries.
-      const dismissedResp = await req.get(`${BASE_URL}/api/v1/conversations/dismissed`);
-      if (dismissedResp.ok()) {
-        const dismissed = (await dismissedResp.json()) as { id: string }[];
-        await Promise.all(
-          dismissed.map((d) =>
-            req.delete(`${BASE_URL}/api/v1/conversations/${d.id}?deleteFromWdk=true`, {
-              headers: CSRF_HEADERS,
-            }),
-          ),
-        );
-      }
+      await clearUserData(context.request, BASE_URL);
       await use(undefined);
     },
     { auto: true },
   ],
 
-  // ── Test-scoped: page objects ──────────────────────────────────
+  // Test-scoped: page objects
   chatPage: async ({ page }, use) => {
     await use(new ChatPage(page));
   },
@@ -227,7 +125,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(new SettingsPage(page));
   },
 
-  // ── Test-scoped: API client for postcondition verification ─────
+  // Test-scoped: API client for postcondition verification
   apiClient: async ({ page, context }, use) => {
     const baseURL = page.url().startsWith("http")
       ? new URL(page.url()).origin

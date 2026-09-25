@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_04_18_0002"
@@ -20,38 +20,38 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column("monthly_cost_limit_usd", sa.Float(), nullable=True),
+        sqlalchemy.Column("monthly_cost_limit_usd", sqlalchemy.Float(), nullable=True),
     )
 
     op.create_table(
         "monthly_usage",
-        sa.Column("id", sa.CHAR(36), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", sqlalchemy.CHAR(36), primary_key=True),
+        sqlalchemy.Column(
             "user_id",
-            sa.CHAR(36),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.CHAR(36),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("period_start", sa.Date(), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("period_start", sqlalchemy.Date(), nullable=False),
+        sqlalchemy.Column(
             "total_cost_usd",
-            sa.Numeric(12, 6),
+            sqlalchemy.Numeric(12, 6),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sqlalchemy.text("0"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "total_tokens",
-            sa.BigInteger(),
+            sqlalchemy.BigInteger(),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sqlalchemy.text("0"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
-        sa.UniqueConstraint(
+        sqlalchemy.UniqueConstraint(
             "user_id", "period_start", name="monthly_usage_user_period_key"
         ),
     )

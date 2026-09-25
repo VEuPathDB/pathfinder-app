@@ -34,7 +34,7 @@ export function PasteTab({ text, onTextChange, name }: PasteTabProps) {
         <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
           {ids.length === 1 ? "1 ID" : `${String(ids.length)} IDs`}
         </Badge>
-        <span>Source: idList</span>
+        <span>The site saves these IDs as a new list.</span>
       </div>
     </div>
   );
@@ -50,10 +50,8 @@ export function DefaultTab({ defaultIds, isApplied, onApply }: DefaultTabProps) 
   return (
     <div className="space-y-2">
       <div className="rounded-md border border-border bg-muted/30 p-2 font-mono text-xs">
-        {defaultIds.length === 0
-          ? "(default list is empty)"
-          : defaultIds.slice(0, 12).join(", ") +
-            (defaultIds.length > 12 ? ` ...+${String(defaultIds.length - 12)}` : "")}
+        {defaultIds.slice(0, 12).join(", ") +
+          (defaultIds.length > 12 ? ` ...+${String(defaultIds.length - 12)}` : "")}
       </div>
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">
@@ -69,24 +67,21 @@ export function DefaultTab({ defaultIds, isApplied, onApply }: DefaultTabProps) 
   );
 }
 
-interface UploadTabProps {
+export interface UploadedFile {
   fileName: string;
+  idCount: number;
+}
+
+interface UploadTabProps {
+  upload: UploadedFile | null;
   onFileSelected: (file: File, content: string) => void;
 }
 
-export function UploadTab({ fileName, onFileSelected }: UploadTabProps) {
+export function UploadTab({ upload, onFileSelected }: UploadTabProps) {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content =
-        typeof reader.result === "string"
-          ? reader.result
-          : new TextDecoder().decode(reader.result ?? new ArrayBuffer(0));
-      onFileSelected(file, content);
-    };
-    reader.readAsText(file);
+    void file.text().then((content) => onFileSelected(file, content));
   };
   return (
     <div className="space-y-2">
@@ -95,7 +90,7 @@ export function UploadTab({ fileName, onFileSelected }: UploadTabProps) {
         className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground hover:bg-muted/50"
       >
         <FileUpIcon className="size-4" aria-hidden />
-        <span>{fileName !== "" ? `Replace (${fileName})` : "Choose file"}</span>
+        <span>{upload !== null ? "Replace file" : "Choose file"}</span>
       </label>
       <input
         id="dataset-file-input"
@@ -105,13 +100,16 @@ export function UploadTab({ fileName, onFileSelected }: UploadTabProps) {
         className="sr-only"
         onChange={handleChange}
       />
-      {fileName !== "" && (
-        <div className="text-xs text-muted-foreground">
-          Selected file: <span className="font-mono">{fileName}</span>
+      {upload !== null && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-mono">{upload.fileName}</span>
+          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+            {upload.idCount === 1 ? "1 ID" : `${String(upload.idCount)} IDs`}
+          </Badge>
         </div>
       )}
       <p className="text-[11px] text-muted-foreground">
-        Plain text file: one ID per line, or comma-separated.
+        Plain text or CSV file: one ID per line, the ID in the first column.
       </p>
     </div>
   );
@@ -130,16 +128,18 @@ export function BasketTab({ value, onChange, name }: BasketTabProps) {
         htmlFor={`${name}-basket-name`}
         className="block text-xs text-muted-foreground"
       >
-        Basket name
+        Basket record type
       </label>
       <Input
         id={`${name}-basket-name`}
-        aria-label="Basket name"
+        aria-label="Basket record type"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="e.g. Genes"
+        placeholder="transcript"
       />
-      <p className="text-xs text-muted-foreground">Source: basket</p>
+      <p className="text-xs text-muted-foreground">
+        The site reads the records in your basket of this type; genes are transcript.
+      </p>
     </div>
   );
 }
@@ -157,10 +157,16 @@ export function StrategyTab({ value, onChange }: StrategyTabProps) {
     meta: { shownInline: true },
   });
 
-  const options: ComboboxOption[] = (data ?? []).map((conv) => ({
-    value: conv.id,
-    label: conv.name === "" ? `Untitled (${conv.id.slice(0, 8)})` : conv.name,
-  }));
+  const options: ComboboxOption[] = (data ?? []).flatMap((conv) =>
+    conv.wdkStrategyId == null
+      ? []
+      : [
+          {
+            value: String(conv.wdkStrategyId),
+            label: conv.name === "" ? `Untitled (${conv.id.slice(0, 8)})` : conv.name,
+          },
+        ],
+  );
 
   return (
     <div className="space-y-2">
@@ -175,10 +181,12 @@ export function StrategyTab({ value, onChange }: StrategyTabProps) {
         value={value === "" ? null : value}
         onChange={(next) => onChange(next ?? "")}
         placeholder={isPending ? "Loading..." : "Select a strategy..."}
-        emptyMessage="No strategies available for this site."
+        emptyMessage="No strategy on this site is built yet."
         searchPlaceholder="Search strategies..."
       />
-      <p className="text-[11px] text-muted-foreground">Source: strategy</p>
+      <p className="text-[11px] text-muted-foreground">
+        The site reads the IDs this strategy answers.
+      </p>
     </div>
   );
 }

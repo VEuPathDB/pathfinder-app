@@ -2,7 +2,7 @@ export const TOOL_LABELS: Record<string, string> = {
   // Orchestration and inspection
   read_ledger_section: "Read progress",
   classify_user_intent: "Read the request",
-  consult_user: "Ask the user",
+  consult_user: "Ask you",
   propose_changes: "Propose changes",
   recover_failed_steps: "Repair steps",
   think: "Think",
@@ -23,6 +23,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_parameter_options: "Read parameter options",
   lookup_phyletic_codes: "Look up phyletic codes",
   search_example_plans: "Find example plans",
+  read_experiment: "Read another site's experiment",
   describe_site: "Describe site",
   list_veupathdb_sites: "List VEuPathDB sites",
   // Studies
@@ -38,8 +39,11 @@ export const TOOL_LABELS: Record<string, string> = {
   compare_variants_scored: "Score variants",
   build_control_set: "Build control set",
   list_control_sets: "List control sets",
+  read_control_set: "Read control set",
   read_gene_ids_from_gene_set: "Gene ids from gene set",
   read_gene_ids_from_strategy: "Gene ids from strategy",
+  separate_controls: "Separate the controls",
+  adopt_separating_strategy: "Build the measured strategy",
   // Strategy
   build_strategy: "Build the strategy",
   verify_strategy: "Check the strategy",
@@ -87,6 +91,10 @@ export const TOOL_LABELS: Record<string, string> = {
   // Research, served by the research tool source
   research_web_search: "Web search",
   research_literature_search: "Literature search",
+  // Site help, served by the wdk tool source
+  wdk_list_record_types: "List record types",
+  wdk_search_for_searches: "Find searches",
+  wdk_run_control_tests_on_search: "Run control tests",
 };
 
 /**
@@ -107,11 +115,30 @@ export function humanizeToolName(name: string): string {
  */
 export const TOOL_APPROVAL_PROMPTS: Record<string, string> = {
   clear_strategy:
-    "Clear the strategy? This removes every step from this thread and from VEuPathDB.",
+    "Clear the strategy? This removes every step from this conversation and from VEuPathDB.",
+  separate_controls:
+    "Run the separation? It measures candidate searches against your controls " +
+    "on the site and takes about five minutes.",
 };
 
+/**
+ * The approvals whose question the api writes when it asks, from the live
+ * strategy, as the call's first summary line.
+ */
+const ASKED_BY_THE_API: ReadonlySet<string> = new Set([
+  "delete_step",
+  "replace_subtree",
+]);
+
+/** The line that names what one call acts on, when the api wrote one for it. */
+export function approvalSubjectFor(name: string, asked: string | null): string | null {
+  return ASKED_BY_THE_API.has(name) ? asked : null;
+}
+
 /** The approval question for one tool call, ready to render. */
-export function approvalPromptFor(name: string): string {
+export function approvalPromptFor(name: string, asked: string | null = null): string {
+  const subject = approvalSubjectFor(name, asked);
+  if (subject !== null) return subject;
   const bespoke = TOOL_APPROVAL_PROMPTS[name];
   if (bespoke !== undefined) return bespoke;
   return `${humanizeToolName(name)} needs your approval before it runs.`;

@@ -149,10 +149,16 @@ def test_an_unnamed_combine_is_answered_under_its_operators_name() -> None:
 class TestTheStrategyLineNamesWhatItCounted:
     """``count_summary`` states a size in the records the strategy holds."""
 
-    def test_one_record_is_not_written_as_a_plural(self) -> None:
+    def test_one_step_and_one_gene_are_not_written_as_plurals(self) -> None:
         line, status = count_summary(1, 1, "transcript")
 
-        assert line == "1 steps, 1 transcript"
+        assert line == "1 step, 1 gene"
+        assert status == "ok"
+
+    def test_a_transcript_answer_is_counted_in_genes(self) -> None:
+        line, status = count_summary(1, 479, "transcript")
+
+        assert line == "1 step, 479 genes"
         assert status == "ok"
 
     def test_the_noun_is_the_record_type_the_strategy_holds(self) -> None:
@@ -164,21 +170,21 @@ class TestTheStrategyLineNamesWhatItCounted:
     def test_a_large_count_is_written_for_a_reader(self) -> None:
         line, _ = count_summary(2, 9_667, "transcript")
 
-        assert line == "2 steps, 9,667 transcripts"
+        assert line == "2 steps, 9,667 genes"
 
     def test_a_strategy_that_holds_nothing_reports_empty(self) -> None:
         line, status = count_summary(2, 0, "transcript")
 
-        assert line == "2 steps, 0 transcripts"
+        assert line == "2 steps, 0 genes"
         assert status == "empty"
 
     def test_a_count_nobody_measured_is_not_spent_as_a_zero(self) -> None:
-        line, status = count_summary(2, None, "transcript")
+        line, status = count_summary(1, None, "transcript")
 
-        assert line == "2 steps, count not available"
+        assert line == "1 step, count not available"
         assert status == "warn"
 
     def test_a_graph_with_no_record_type_still_names_what_it_counted(self) -> None:
         line, _ = count_summary(1, 5, None)
 
-        assert line == "1 steps, 5 records"
+        assert line == "1 step, 5 records"

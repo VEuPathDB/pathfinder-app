@@ -39,10 +39,10 @@ class DeleteSurface(StrEnum):
     BUILDING = "building"
 
 
-def _the_way_to_clear(surface: DeleteSurface, whole: str) -> str:
-    """How this caller removes the whole thing, since no single delete does."""
+def _the_way_to_clear(surface: DeleteSurface) -> str:
+    """How this caller removes every step, since no single delete does."""
     if surface is DeleteSurface.LEAD:
-        return f"call clear_strategy to remove the whole {whole}"
+        return "call clear_strategy to remove every step of the conversation"
     return "stop and report it to the Lead, which can clear the strategy"
 
 
@@ -94,10 +94,10 @@ def _refuse_an_ambiguous_root(
     if graph.subtree_size(step_id) == 1:
         return
     msg = (
-        f"{step_id} is one of the {len(graph.roots)} roots this thread holds, "
+        f"{step_id} is one of the {len(graph.roots)} roots this conversation holds, "
         f"and no push says which of them the strategy is: "
         f"{roots_by_size(graph)}. Nothing was removed. Name a step under the "
-        f"one you mean, or {_the_way_to_clear(surface, 'thread')}."
+        f"one you mean, or {_the_way_to_clear(surface)}."
     )
     raise ModelRetry(msg)
 

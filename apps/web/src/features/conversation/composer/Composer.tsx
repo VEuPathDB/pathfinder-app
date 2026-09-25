@@ -1,27 +1,25 @@
 "use client";
 
-import {
-  AttachmentPrimitive,
-  ComposerPrimitive,
-  useAui,
-  useAuiState,
-} from "@assistant-ui/react";
-import { FileText, Paperclip, Send, Square, X } from "lucide-react";
-import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { ComposerPrimitive, useAuiState } from "@assistant-ui/react";
+import { Send, Square } from "lucide-react";
+import { useRef } from "react";
 
 import { ParamStepper } from "@/features/conversation/slash/ParamStepper";
 import { SlashPopover } from "@/features/conversation/slash/SlashPopover";
-import { commands, findCommand } from "@/features/conversation/slash/registry";
-import type { Command, CommandResult } from "@/features/conversation/slash/types";
-import { parseSlashInput } from "@/features/conversation/slash/parser";
-import { beginConversation } from "@/features/conversation/api/beginConversation";
-import { toUserMessage } from "@/lib/api/errors";
+import { commands } from "@/features/conversation/slash/registry";
+import { useSlashCommands } from "@/features/conversation/slash/useSlashCommands";
 import { getAuthHeaders } from "@/lib/api/http";
-import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
-import { useConversationDetail } from "@/state/useConversationExists";
+import {
+  useConversationDetail,
+  useConversationExists,
+} from "@/state/useConversationExists";
 import { useSessionStore } from "@/state/useSessionStore";
 
+import {
+  AttachButton,
+  ComposerAttachmentList,
+  useAttachmentRefusal,
+} from "./ComposerAttachments";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
 import {
   SIGN_IN_TO_BUILD,
@@ -96,31 +94,18 @@ function ConversationUsageFooter() {
   );
 }
 
-function GeneIdAttachmentChip() {
-  return (
-    <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs">
-      <FileText className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-      <span className="max-w-[12rem] truncate">
-        <AttachmentPrimitive.Name />
-      </span>
-      <AttachmentPrimitive.Remove
-        aria-label="Remove attachment"
-        className="ml-0.5 rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <X className="size-3" />
-      </AttachmentPrimitive.Remove>
-    </div>
-  );
-}
-
-export function Composer({ conversationId }: { conversationId: string }) {
-  const aui = useAui();
-  const text = useAuiState((s) => s.composer.text);
-  const attachmentCount = useAuiState((s) => s.composer.attachments.length);
+export function Composer({
+  conversationId,
+  assistantId,
+}: {
+  conversationId: string;
+  assistantId: string;
+}) {
   const siteId = useSessionStore((s) => s.selectedSite);
   const payment = useComposerBlock(conversationId);
   const signedIn = useVeupathdbSignedIn();
   const blocked = payment.blocked || !signedIn;
+  const attachmentRefusal = useAttachmentRefusal();
   const isRunning = useAuiState((s) => s.thread.isRunning);
   const lastSendAt = useRef(0);
   const requestServerCancel = (): void => {
@@ -137,92 +122,13 @@ export function Composer({ conversationId }: { conversationId: string }) {
     requestServerCancel();
   };
   const { data: conversationDetail } = useConversationDetail(conversationId);
-  const stepCount = conversationDetail?.steps.length ?? 0;
-
-  const [pendingCommand, setPendingCommand] = useState<Command | null>(null);
-
-  const parsed = parseSlashInput(text);
-  const showPopover = pendingCommand === null && parsed !== null && parsed.rest === "";
-
-  async function runCommand(command: Command, values: Record<string, string>) {
-    const ctx = { conversationId, siteId, stepCount };
-
-    try {
-      await beginConversation(conversationId, { siteId });
-    } catch (err) {
-      const retry = (): void => void runCommand(command, values);
-      if (!handleWdkAuthRefusal(err, retry)) {
-        toast.error(toUserMessage(err, "Failed to start conversation"));
-      }
-      return;
-    }
-
-    if (command.kind === "llm-prefill") {
-      aui.composer().setText(command.prompt(values, ctx));
-      if (command.autoSubmit === true) {
-        aui.composer().send();
-      }
-      setPendingCommand(null);
-      return;
-    }
-
-    try {
-      const result: CommandResult = await command.run(values, ctx);
-      aui.composer().setText("");
-      setPendingCommand(null);
-      handleResult(result);
-    } catch (err) {
-      aui.composer().setText("");
-      setPendingCommand(null);
-      const msg = err instanceof Error ? err.message : "Command failed";
-      toast.error(msg);
-    }
-  }
-
-  function handleResult(result: CommandResult) {
-    if (result.kind === "toast") {
-      if (result.type === "success") toast.success(result.message);
-      else if (result.type === "error") toast.error(result.message);
-      else toast.info(result.message);
-      return;
-    }
-    if (result.kind === "download") {
-      const a = document.createElement("a");
-      a.href = result.url;
-      a.download = result.filename;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      toast.success(`Downloading ${result.filename}`);
-      return;
-    }
-    if (result.kind === "prefill") {
-      aui.composer().setText(result.text);
-      if (result.submit === true) aui.composer().send();
-    }
-  }
-
-  function selectCommand(command: Command) {
-    if (command.params.length === 0) {
-      void runCommand(command, {});
-      return;
-    }
-    setPendingCommand(command);
-  }
-
-  function dismissPopover() {
-    aui.composer().setText("");
-  }
-
-  const exactMatch =
-    parsed !== null && parsed.token !== "" ? findCommand(parsed.token) : null;
-  const wantsDirectRun =
-    exactMatch !== null &&
-    exactMatch !== undefined &&
-    parsed !== null &&
-    parsed.rest === "";
+  const conversationExists = useConversationExists(conversationId);
+  const slash = useSlashCommands({
+    conversationId,
+    siteId,
+    stepCount: conversationDetail?.steps.length ?? 0,
+    conversationExists,
+  });
 
   return (
     <ComposerPrimitive.Root
@@ -230,24 +136,23 @@ export function Composer({ conversationId }: { conversationId: string }) {
       className="relative mx-auto flex w-full max-w-3xl flex-col gap-1 border-t bg-card px-4 pb-2 pt-3"
     >
       <SlashPopover
-        open={showPopover}
-        query={parsed?.token ?? ""}
+        open={slash.menuOpen}
+        query={slash.query}
         commands={commands}
-        ctx={{ conversationId, siteId, stepCount }}
-        onSelect={selectCommand}
-        onDismiss={dismissPopover}
+        ctx={slash.ctx}
+        activeIdx={slash.activeIdx}
+        onSelect={slash.select}
+        onHover={slash.setActiveIdx}
       />
       <ParamStepper
-        open={pendingCommand !== null}
-        command={pendingCommand}
-        ctx={{ conversationId, siteId, stepCount }}
+        open={slash.pendingCommand !== null}
+        command={slash.pendingCommand}
         onComplete={(values) => {
-          if (pendingCommand !== null) void runCommand(pendingCommand, values);
+          if (slash.pendingCommand !== null) {
+            void slash.run(slash.pendingCommand, values);
+          }
         }}
-        onCancel={() => {
-          setPendingCommand(null);
-          aui.composer().setText("");
-        }}
+        onCancel={slash.cancel}
       />
       <PaymentBanners conversationId={conversationId} />
       <VeupathdbSignInRequired />
@@ -266,28 +171,26 @@ export function Composer({ conversationId }: { conversationId: string }) {
           className="max-h-36 w-full resize-none overflow-y-auto bg-transparent p-3 text-sm outline-none disabled:cursor-not-allowed"
           autoFocus
           disabled={blocked}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && wantsDirectRun) {
-              e.preventDefault();
-              selectCommand(exactMatch);
+          onKeyDown={(event) => {
+            if (
+              attachmentRefusal !== null &&
+              event.key === "Enter" &&
+              !event.shiftKey
+            ) {
+              event.preventDefault();
+              return;
             }
+            slash.onKeyDown(event);
           }}
         />
-        {attachmentCount > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-2 pt-2">
-            <ComposerPrimitive.Attachments>
-              {() => <GeneIdAttachmentChip />}
-            </ComposerPrimitive.Attachments>
-          </div>
+        {slash.refusal !== null && (
+          <p role="alert" className="px-3 text-xs text-destructive">
+            {slash.refusal}
+          </p>
         )}
+        <ComposerAttachmentList assistantId={assistantId} refusal={attachmentRefusal} />
         <div className="flex items-center justify-between p-2">
-          <ComposerPrimitive.AddAttachment
-            data-testid="add-attachment"
-            aria-label="Attach gene-ID file"
-            className="inline-flex items-center gap-1.5 rounded-md border border-input px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground disabled:opacity-50"
-          >
-            <Paperclip className="h-4 w-4" /> Attach
-          </ComposerPrimitive.AddAttachment>
+          <AttachButton assistantId={assistantId} />
           {isRunning ? (
             <ComposerPrimitive.Cancel
               data-testid="stop-button"
@@ -301,8 +204,12 @@ export function Composer({ conversationId }: { conversationId: string }) {
             <ComposerPrimitive.Send
               data-testid="send-button"
               aria-label="Send"
-              disabled={blocked}
-              onClick={() => {
+              disabled={blocked || attachmentRefusal !== null}
+              onClick={(event) => {
+                if (slash.refuseUnknown()) {
+                  event.preventDefault();
+                  return;
+                }
                 lastSendAt.current = Date.now();
               }}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground shadow-[var(--shadow-card)] transition-transform hover:-translate-y-px disabled:opacity-50 disabled:hover:translate-y-0"

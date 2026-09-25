@@ -12,6 +12,7 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
     render_structure,
 )
+from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.strategy.operational_spec import Criterion
 
 
@@ -109,6 +110,8 @@ def render_build_full(section: BuildSection) -> str:
         f"- wdk_strategy_id: {o.wdk_strategy_id}",
         f"- root_count: {o.root_count}",
     ]
+    if o.organism_change is not None:
+        parts.append(f"- records: {o.organism_change.line()}")
     if o.failed_steps:
         parts.append("\n### Failed steps")
         parts.extend(
@@ -143,4 +146,31 @@ def render_verification_full(section: VerificationSection) -> str:
     if d.caveats:
         parts.append("\n### Caveats")
         parts.extend(f"- {c}" for c in d.caveats)
+    parts.extend(_review_lines(d.review))
     return "\n".join(parts)
+
+
+def _review_lines(review: VerificationReview) -> list[str]:
+    """Each requirement row, each sampled gene and each source of the check."""
+    lines: list[str] = []
+    if review.requirements:
+        lines.append("\n### Requirements")
+        lines.extend(
+            f"- [{row.status}] {row.text} (message {row.turn}, {row.how}; answered "
+            f"by {', '.join(row.answered_by) or 'nothing'}): {row.note}"
+            for row in review.requirements
+        )
+    if review.sampled_genes:
+        lines.append("\n### Sampled genes")
+        lines.extend(
+            f"- {gene.gene_id}, {gene.product} ({gene.organism}): fits {gene.fits} "
+            f"- {gene.why}"
+            for gene in review.sampled_genes
+        )
+    if review.sources:
+        lines.append("\n### Sources")
+        lines.extend(
+            f"- {cited.label} ({', '.join(cited.references())}): {cited.why}"
+            for cited in review.sources
+        )
+    return lines

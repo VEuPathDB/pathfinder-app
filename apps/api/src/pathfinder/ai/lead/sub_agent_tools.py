@@ -31,6 +31,7 @@ from pathfinder.ai.agents.verification import (
 )
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.models.mock import get_mock_model
@@ -39,6 +40,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
 )
+from pathfinder.domain.strategy.orthology import restate_copies
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
@@ -341,6 +343,16 @@ class LeadDeps:
         return self.runtime.user_id
 
     @property
+    def site_id(self) -> str:
+        """The site this turn acts on."""
+        return self.runtime.site_id
+
+    @property
+    def turn_markers(self) -> TurnMarkers:
+        """What this turn has done so far, which every sub-agent shares."""
+        return self.state.turn_markers
+
+    @property
     def step_count(self) -> int:
         """How many steps the strategy of this thread holds now."""
         graph = self.runtime.strategy_session.get_graph(None)
@@ -353,4 +365,4 @@ def apply_agent_state(deps: LeadDeps, agent_deps: AgentDeps) -> None:
     )
     draft = agent_deps.agent_state.operational_spec_draft
     if draft.criteria or draft.dropped:
-        deps.state.domain.operational_spec = draft
+        deps.state.domain.operational_spec = restate_copies(draft)

@@ -11,7 +11,7 @@ code, which is the honest outcome of removing the column that named them.
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.engine import Connection
 
@@ -43,7 +43,7 @@ _DELETE_OLD_STORE_ROWS = "DELETE FROM store WHERE prefix LIKE :old_like"
 
 def _table_exists(connection: Connection, name: str) -> bool:
     found = connection.scalar(
-        sa.text("SELECT to_regclass(:qualified)"),
+        sqlalchemy.text("SELECT to_regclass(:qualified)"),
         {"qualified": f"public.{name}"},
     )
     return found is not None
@@ -51,7 +51,7 @@ def _table_exists(connection: Connection, name: str) -> bool:
 
 def _column_names(connection: Connection, table: str) -> list[str]:
     rows = connection.execute(
-        sa.text(
+        sqlalchemy.text(
             "SELECT column_name FROM information_schema.columns "
             "WHERE table_schema = 'public' AND table_name = :table "
             "ORDER BY ordinal_position",
@@ -61,7 +61,7 @@ def _column_names(connection: Connection, table: str) -> list[str]:
     return [str(row[0]) for row in rows]
 
 
-def _copy_statement(table: str, columns: list[str]) -> sa.Insert:
+def _copy_statement(table: str, columns: list[str]) -> sqlalchemy.Insert:
     """Copy every column the table has, so no value can be left behind.
 
     The column list comes from the catalog because the store DDL grows over
@@ -69,18 +69,22 @@ def _copy_statement(table: str, columns: list[str]) -> sa.Insert:
     raises instead of being skipped, so the delete that follows can never
     remove a memory that was not copied.
     """
-    store = sa.table(table, *(sa.column(name) for name in columns))
-    moved_prefix = sa.bindparam("add", type_=sa.String) + sa.func.substr(
+    store = sqlalchemy.table(table, *(sqlalchemy.column(name) for name in columns))
+    moved_prefix = sqlalchemy.bindparam(
+        "add", type_=sqlalchemy.String
+    ) + sqlalchemy.func.substr(
         store.c.prefix,
-        sa.bindparam("cut", type_=sa.Integer),
+        sqlalchemy.bindparam("cut", type_=sqlalchemy.Integer),
     )
     selected = [
         moved_prefix if column == "prefix" else store.c[column] for column in columns
     ]
-    return sa.insert(store).from_select(
+    return sqlalchemy.insert(store).from_select(
         columns,
-        sa.select(*selected).where(
-            store.c.prefix.like(sa.bindparam("old_like", type_=sa.String)),
+        sqlalchemy.select(*selected).where(
+            store.c.prefix.like(
+                sqlalchemy.bindparam("old_like", type_=sqlalchemy.String)
+            ),
         ),
     )
 
@@ -107,7 +111,7 @@ def move_store_namespaces(
         columns = _column_names(connection, table)
         connection.execute(_copy_statement(table, columns), params)
     connection.execute(
-        sa.text(_DELETE_OLD_STORE_ROWS),
+        sqlalchemy.text(_DELETE_OLD_STORE_ROWS),
         {"old_like": params["old_like"]},
     )
 
@@ -116,9 +120,9 @@ def upgrade() -> None:
     for table in _OWNED_TABLES:
         op.add_column(
             table,
-            sa.Column(
+            sqlalchemy.Column(
                 "application_id",
-                sa.String(length=64),
+                sqlalchemy.String(length=64),
                 nullable=False,
                 server_default=DEFAULT_APPLICATION_ID,
             ),

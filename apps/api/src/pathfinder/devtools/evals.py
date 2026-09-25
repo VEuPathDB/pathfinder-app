@@ -148,7 +148,9 @@ def _list_corpus() -> int:
 
 def _run(args: argparse.Namespace) -> int:
     summary = asyncio.run(
-        run_corpus(run_root=RUN_ROOT, only=args.only, mock=not args.real),
+        run_corpus(
+            run_root=RUN_ROOT, only=args.only, mock=not args.real, effort=args.effort
+        ),
     )
     if args.out:
         payload = summary.model_dump(by_alias=True, mode="json")
@@ -224,6 +226,12 @@ def _build_parser() -> argparse.ArgumentParser:
             "run against the configured provider instead of the deterministic "
             "one; needs WDK_DEV_EMAIL and WDK_DEV_PASSWORD"
         ),
+    )
+    run.add_argument(
+        "--effort",
+        choices=chat.EFFORTS,
+        default=None,
+        help="reasoning effort for every role (else each role's tier effort)",
     )
     return parser
 

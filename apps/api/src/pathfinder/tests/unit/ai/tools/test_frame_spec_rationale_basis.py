@@ -7,7 +7,8 @@ import pytest
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._rationale_catalog import (
@@ -45,8 +46,10 @@ def _site(monkeypatch: pytest.MonkeyPatch) -> None:
             "Percentile",
             "sets Percentile to 90",
             (
-                "c_gpi: Percentile is not a parameter of GenesByExportPrediction; "
-                "its sheet holds organism, min_exportpred_score."
+                "c_gpi: Percentile is not a parameter of GenesByExportPrediction. "
+                "With basis parameter the term is the display name of a parameter "
+                "this call sets: Organism. A value goes in the reason, never in "
+                "the term."
             ),
         ),
         (
@@ -232,3 +235,39 @@ async def test_a_source_this_turn_never_retrieved_is_refused(
     refusal = await refused(state, why)
 
     assert "PMID:18267088" in refusal
+
+
+# The reason's two rules are named together, so one retry can meet both.
+
+_LONG_TAIL = (
+    ", which the request names as the genome to search, and the catalog "
+    "answered this search first among the exported-protein searches it ranked"
+)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("reason", "problem"),
+    [
+        ("sets the genome searched", "does not hold the term"),
+        (f"sets Organism to P. falciparum 3D7{_LONG_TAIL}", "holds 173 characters"),
+        (
+            f"sets the genome searched to P. falciparum 3D7{_LONG_TAIL}",
+            "holds 184 characters and does not hold the term",
+        ),
+    ],
+)
+async def test_a_reason_is_refused_with_every_rule_it_must_meet(
+    monkeypatch: pytest.MonkeyPatch, reason: str, problem: str
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, SIGNAL)
+
+    refusal = await refused(state, choice("parameter", "Organism", reason))
+
+    assert refusal == (
+        f"c_gpi: the reason must hold the term Organism and fit in 160 "
+        f"characters; this one {problem}. Write one line of at most 160 "
+        f"characters around Organism, so a reply that repeats it says what "
+        f"decided. Nothing was recorded."
+    )

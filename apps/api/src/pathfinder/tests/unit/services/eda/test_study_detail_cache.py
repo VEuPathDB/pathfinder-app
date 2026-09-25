@@ -1,4 +1,4 @@
-"""A cached study detail is addressed by the version its listing reports."""
+"""A cached curated study detail is addressed by the content hash its listing reports."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def _overview(*, sha: str, modified: str) -> EdaStudyOverview:
         id="STUDY_a",
         dataset_id="DS_a",
         sha1hash=sha,
-        source_type="curated" if sha else "user_submitted",
+        source_type="curated",
         display_name="Alpha",
         last_modified=modified,
     )
@@ -68,28 +68,3 @@ async def test_a_new_sha1hash_refetches_the_detail(detail_calls: list[str]) -> N
         "plasmodb", _overview(sha="h2", modified="2026-05-27T20:00:00-04:00")
     )
     assert detail_calls == ["/eda/studies/STUDY_a", "/eda/studies/STUDY_a"]
-
-
-async def test_a_user_study_refetches_on_a_new_last_modified(
-    detail_calls: list[str],
-) -> None:
-    """A user study carries an empty sha1hash, so lastModified is the signal."""
-    await catalog.get_study_detail(
-        "plasmodb", _overview(sha="", modified="2026-05-27T20:00:00-04:00")
-    )
-    await catalog.get_study_detail(
-        "plasmodb", _overview(sha="", modified="2026-05-28T20:00:00-04:00")
-    )
-    assert detail_calls == ["/eda/studies/STUDY_a", "/eda/studies/STUDY_a"]
-
-
-async def test_an_unchanged_user_study_is_fetched_once(
-    detail_calls: list[str],
-) -> None:
-    await catalog.get_study_detail(
-        "plasmodb", _overview(sha="", modified="2026-05-27T20:00:00-04:00")
-    )
-    await catalog.get_study_detail(
-        "plasmodb", _overview(sha="", modified="2026-05-27T20:00:00-04:00")
-    )
-    assert detail_calls == ["/eda/studies/STUDY_a"]

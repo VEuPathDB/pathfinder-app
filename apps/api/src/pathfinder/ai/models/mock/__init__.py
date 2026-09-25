@@ -32,6 +32,7 @@ from pathfinder.ai.models.mock.arcs import (
     verification_succeeds,
 )
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
+from pathfinder.ai.models.mock.separation_arc import adopted_check
 from pathfinder.ai.models.mock.specs import (
     CriterionReply,
     SpecPlan,
@@ -42,6 +43,7 @@ from pathfinder.ai.models.mock.specs import (
     organism_for,
     verification_delta,
 )
+from pathfinder.ai.models.mock.verify_arc import review, review_call
 
 LEAD = "lead"
 FRAME = "frame"
@@ -120,14 +122,25 @@ def _control_test_call() -> ToolCallPart:
 
 
 def _verification_script(messages: list[ModelMessage]) -> ToolCallPart:
+    adopted = adopted_check(messages)
+    if adopted is not None:
+        return adopted
     text = current_user_text.get()
     if has_any(text.lower(), _CONTROLS_MARKERS) and _CONTROL_TEST not in (
         acted_tool_names(messages)
     ):
         return _control_test_call()
+    reading = review_call(messages)
+    if reading is not None:
+        return reading
     success = verification_succeeds(text)
     prose = SUCCESS_PROSE if success else FEEDBACK_PROSE
-    return terminal_call(verification_delta(success=success, prose=prose))
+    organism = organism_for(current_scope_id.get())
+    return terminal_call(
+        verification_delta(
+            success=success, prose=prose, review=review(messages, organism)
+        )
+    )
 
 
 def _execution_script(messages: list[ModelMessage]) -> ToolCallPart:

@@ -13,9 +13,10 @@ from collections.abc import Collection
 from pydantic_ai import RunContext
 from pydantic_ai.tools import ToolDefinition
 
+from pathfinder.ai.graph._lead_answers import is_pure_approval
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import BUILDING_INTENTS, IntentClassification
-from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
+from pathfinder.ai.lead.proposal import ADOPT_TOOL, PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 
 # The tools that write: they frame, materialize, patch or check a strategy, or
@@ -34,16 +35,13 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
     }
 )
 
-# What a turn reaches before it says what the message asks: the classification
-# itself, the two reads of what the thread holds, the gene record read, the two
-# research reads, both ways to keep something the user names, the export of a
-# gene set the user already saved, and the proposal card,
-# which a typed yes accepts before any classification. Every other tool waits
-# for the classification.
+# The reads, the saves and the two offer cards a turn reaches before it is
+# classified; a typed yes accepts an offer card first. Every other tool waits.
 UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
     {
         "classify_user_intent",
         PROPOSAL_TOOL,
+        ADOPT_TOOL,
         "read_ledger_section",
         "get_live_strategy_state",
         "read_gene_record",
@@ -56,9 +54,25 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
     }
 )
 
-# What a turn outside PathFinder's scope reaches. The answer is a redirect the
-# instructions state, so the turn writes it and calls nothing.
-OFF_TOPIC_TOOLS: frozenset[str] = frozenset()
+DECLINED_OFFER_REFUSAL = (
+    "You declined the last offer. Say what to change, or ask me to offer it again."
+)
+
+
+def bare_assent_refusal(deps: LeadDeps) -> str | None:
+    """The reply to a bare yes that follows a declined offer, or None.
+
+    A declined offer is accepted only on a new card. A yes that re-enters no
+    parked call and answers no open question has nothing to accept, so the
+    turn ends on this reply.
+    """
+    state = deps.state
+    domain = state.domain
+    if domain.declined_proposal is None or state.resumes_parked_call:
+        return None
+    if domain.open_questions or not is_pure_approval(state.user_prompt):
+        return None
+    return DECLINED_OFFER_REFUSAL
 
 
 def turn_is_classified(deps: LeadDeps) -> bool:
@@ -134,12 +148,26 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     return frozenset(unmet)
 
 
+def _answered_card(deps: LeadDeps) -> frozenset[str]:
+    """The tool of the Lead's own card this turn answers, or nothing.
+
+    A typed answer arrives as a new message, so its turn is not classified
+    yet; the answer still reaches the card's call.
+    """
+    parked = deps.state.pending_approval
+    if parked is None or parked.sub_agent is not None:
+        return frozenset()
+    return frozenset({parked.tool_name})
+
+
 def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[str]:
     """Which of ``names`` this turn's state lets the Lead reach."""
     if not turn_is_classified(deps):
-        return frozenset(name for name in names if name in UNCLASSIFIED_TOOLS)
+        reachable = UNCLASSIFIED_TOOLS | _answered_card(deps)
+        return frozenset(name for name in names if name in reachable)
     if turn_is_off_topic(deps):
-        return frozenset(name for name in names if name in OFF_TOPIC_TOOLS)
+        # The answer is the redirect the instructions state, so it calls nothing.
+        return frozenset()
     if not turn_builds(deps):
         return frozenset(name for name in names if name not in BUILDING_TOOLS)
     unmet = unmet_preconditions(deps)
@@ -157,13 +185,12 @@ def apply_tool_preconditions(
 
 __all__ = [
     "BUILDING_TOOLS",
-    "OFF_TOPIC_TOOLS",
+    "DECLINED_OFFER_REFUSAL",
     "UNCLASSIFIED_TOOLS",
     "apply_tool_preconditions",
+    "bare_assent_refusal",
     "tools_the_turn_offers",
     "turn_builds",
-    "turn_is_classified",
     "turn_is_off_topic",
     "unmet_preconditions",
-    "verification_pending",
 ]

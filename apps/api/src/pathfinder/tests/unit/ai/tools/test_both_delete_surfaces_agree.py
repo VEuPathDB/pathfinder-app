@@ -44,7 +44,11 @@ async def _through_the_lead(session: StrategySession, step_id: str) -> Any:
         strategy_session=session,
         tool_call_id="call_delete",
     )
-    return await lead_tools.delete_step(run_ctx, step_id=step_id)
+    return await lead_tools.delete_step(
+        run_ctx,
+        step_id=step_id,
+        reply="I will make this change and report what it takes with it.",
+    )
 
 
 async def _through_the_sub_agent(session: StrategySession, step_id: str) -> Any:

@@ -1,4 +1,4 @@
-"""Every card of a response is held whole and written after the reply beside it."""
+"""Every card of a response is held whole and written after the reply it carries."""
 
 from __future__ import annotations
 
@@ -59,7 +59,11 @@ def _started(call_id: str, tool_name: str) -> ToolInputStartChunk:
 
 
 def _available(call_id: str, tool_name: str) -> ToolInputAvailableChunk:
-    return ToolInputAvailableChunk(tool_call_id=call_id, tool_name=tool_name, input={})
+    return ToolInputAvailableChunk(
+        tool_call_id=call_id,
+        tool_name=tool_name,
+        input={"reply": f"The reply card {call_id} carries."},
+    )
 
 
 def _asked(call_id: str) -> ToolApprovalRequestChunk:
@@ -71,13 +75,14 @@ REPLY = ["text-start:", "text-delta:", "text-end:"]
 
 def _card(call_id: str) -> list[str]:
     return [
+        *REPLY,
         f"tool-input-start:{call_id}",
         f"tool-input-available:{call_id}",
         f"tool-approval-request:{call_id}",
     ]
 
 
-def test_two_cards_of_one_response_are_written_whole_after_the_reply() -> None:
+def test_two_cards_of_one_response_are_written_each_after_its_reply() -> None:
     chunks = [
         *_reply("t"),
         _started("A", "consult_user"),
@@ -91,7 +96,6 @@ def test_two_cards_of_one_response_are_written_whole_after_the_reply() -> None:
 
     assert _written(CardHold(), chunks) == [
         "finish-step:",
-        *REPLY,
         *_card("A"),
         *_card("B"),
     ]
@@ -119,7 +123,6 @@ def test_a_denied_response_drops_its_reply_and_every_card() -> None:
     assert _written(CardHold(), chunks) == [
         "finish-step:",
         "finish-step:",
-        *REPLY,
         *_card("C"),
     ]
 
@@ -130,8 +133,8 @@ def test_a_call_beside_a_card_is_written_at_once() -> None:
         assert hold.admit(chunk) == []
 
     beside = [
-        _started("D", "delete_step"),
-        _available("D", "delete_step"),
+        _started("D", "verify_strategy"),
+        _available("D", "verify_strategy"),
         _asked("D"),
     ]
     assert [_labels(hold.admit(chunk)) for chunk in beside] == [
@@ -140,7 +143,6 @@ def test_a_call_beside_a_card_is_written_at_once() -> None:
         ["tool-approval-request:D"],
     ]
     assert _written(hold, [_available("C", PROPOSAL_TOOL), _asked("C")]) == [
-        *REPLY,
         *_card("C"),
     ]
 

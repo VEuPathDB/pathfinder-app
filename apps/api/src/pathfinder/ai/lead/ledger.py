@@ -23,6 +23,8 @@ from pathfinder.ai.lead.ledger_sections import (
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import DeclinedProposal
+from pathfinder.ai.lead.turn_briefing import ANALYSIS_CHANGED_AFTER_THE_CARD
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.combination_check import first_combination_violation
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
@@ -166,6 +168,9 @@ class InvestigationLedger(CamelModel):
     # Why the last dispatch of this turn ended without a delta. It stays off the
     # wire: the Lead's prose is what a reader needs, not a second copy of it.
     phase_stop: PhaseStop | None = Field(default=None, exclude=True)
+    # The analysis the thread holds open. It stays off the wire: the thread's
+    # own card shows it to a reader.
+    open_analysis: OpenEdaAnalysis | None = Field(default=None, exclude=True)
 
     def _drop_reasons(self) -> list[str]:
         """Each dropped criterion with the reason the drop recorded.
@@ -258,11 +263,29 @@ class InvestigationLedger(CamelModel):
             lines.extend(
                 ["### Recommended by you, not replaced by the user", *recommended]
             )
+        lines.extend(self._open_analysis_lines())
         lines.extend(self._declined_proposal_lines())
         return "\n".join(lines)
 
+    def _open_analysis_lines(self) -> list[str]:
+        """The analysis the thread holds open, and whether it moved past its card."""
+        analysis = self.open_analysis
+        if analysis is None:
+            return []
+        counted = "counted" if analysis.subset_previewed else "not counted"
+        return [
+            "",
+            "## Open analysis",
+            f"- {analysis.dataset_id} ({analysis.analysis_id}), subset {counted}",
+            *(
+                [f"- {ANALYSIS_CHANGED_AFTER_THE_CARD}"]
+                if analysis.changed_after_the_card
+                else []
+            ),
+        ]
+
     def _declined_proposal_lines(self) -> list[str]:
-        """The card the researcher said no to. A later yes does not accept it."""
+        """The card the researcher said no to, until a later card is accepted."""
         declined = self.declined_proposal
         if declined is None:
             return []
@@ -271,8 +294,12 @@ class InvestigationLedger(CamelModel):
             "## Declined proposal",
             f"- asked: {declined.question}",
             *(f"  - {change}" for change in declined.proposed_changes),
-            *([f"- the researcher's note: {declined.note}"] if declined.note else []),
-            "- a bare yes does not accept it: offer it again on a new card",
+            *(
+                [f"- the researcher's comment: {declined.note}"]
+                if declined.note
+                else []
+            ),
+            "- it is offered again only on a new card",
         ]
 
     def render_section(self, section: str) -> str:

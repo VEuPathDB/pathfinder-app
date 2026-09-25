@@ -250,7 +250,7 @@ class TestTheStepsOutsideTheStrategy:
         )
 
         assert pinned is not None
-        assert pinned.startswith("This thread holds 2 roots and no push says")
+        assert pinned.startswith("This conversation holds 2 roots and no push says")
         assert "step_c1 (3 steps)" in pinned
         assert "step_da5a2302 (1 step)" in pinned
         assert "Steps outside the strategy" not in pinned

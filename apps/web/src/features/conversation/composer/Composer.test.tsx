@@ -36,6 +36,20 @@ function StubRuntimeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+let runCalls = 0;
+
+function CountingRuntimeProvider({ children }: { children: ReactNode }) {
+  const runtime = useLocalRuntime({
+    async run() {
+      runCalls += 1;
+      return { content: [] };
+    },
+  });
+  return (
+    <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>
+  );
+}
+
 function HangingRuntimeProvider({ children }: { children: ReactNode }) {
   const runtime = useLocalRuntime({
     async run() {
@@ -67,7 +81,11 @@ function makeChat(messages: UIMessage[]): ChatHelpers {
 
 function renderComposer(
   signedIn: boolean,
-  options?: { hangingRuntime?: boolean; messages?: UIMessage[] },
+  options?: {
+    hangingRuntime?: boolean;
+    countingRuntime?: boolean;
+    messages?: UIMessage[];
+  },
 ) {
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryData(
@@ -75,11 +93,15 @@ function renderComposer(
     { signedIn },
   );
   const Runtime =
-    options?.hangingRuntime === true ? HangingRuntimeProvider : StubRuntimeProvider;
+    options?.hangingRuntime === true
+      ? HangingRuntimeProvider
+      : options?.countingRuntime === true
+        ? CountingRuntimeProvider
+        : StubRuntimeProvider;
   return render(
     <Runtime>
       <ChatHelpersProvider value={makeChat(options?.messages ?? [])}>
-        <Composer conversationId="test-conversation" />
+        <Composer conversationId="test-conversation" assistantId="pathfinder" />
       </ChatHelpersProvider>
     </Runtime>,
     { wrapper: Wrapper },
@@ -216,5 +238,112 @@ describe("the conversation usage footer names its scope", () => {
   it("renders nothing when the conversation has no usage", () => {
     renderComposer(true);
     expect(screen.queryByTestId("conversation-usage")).toBe(null);
+  });
+});
+
+describe("a slash command takes the Enter key alone", () => {
+  function typeAndEnter(value: string): HTMLElement {
+    const input = screen.getByTestId("message-input");
+    fireEvent.change(input, { target: { value } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    return input;
+  }
+
+  it("runs /help once and sends nothing", async () => {
+    runCalls = 0;
+    renderComposer(true, { countingRuntime: true });
+    const input = typeAndEnter("/help");
+    await waitFor(() => expect(input).toHaveValue("/"));
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      "/newStart a new conversation",
+      "/renameRename this conversation",
+      "/exportExport the strategy, this conversation, or your latest gene set/save /download",
+      "/importImport a gene set from pasted IDs",
+      "/helpList the slash commands/?",
+      "/clearClear the current strategy",
+      "/analyzeAnalyze the current strategy and suggest next steps",
+      "/summarizeSummarize this conversation",
+      "/diagnoseDiagnose why my strategy returns 0 results",
+      "/explainExplain a specific step",
+    ]);
+    expect(runCalls).toBe(0);
+  });
+
+  it("runs the highlighted command for a typed prefix and sends nothing", async () => {
+    runCalls = 0;
+    renderComposer(true, { countingRuntime: true });
+    const input = typeAndEnter("/hel");
+    await waitFor(() => expect(input).toHaveValue("/"));
+    expect(runCalls).toBe(0);
+  });
+
+  it("prefills /summarize without sending it", async () => {
+    runCalls = 0;
+    renderComposer(true, { countingRuntime: true });
+    const input = typeAndEnter("/summarize");
+    await waitFor(() =>
+      expect((input as HTMLTextAreaElement).value).toMatch(
+        /^Summarize this conversation so far/,
+      ),
+    );
+    expect(runCalls).toBe(0);
+  });
+
+  it("moves the highlight with the arrow keys", () => {
+    renderComposer(true, { countingRuntime: true });
+    const input = screen.getByTestId("message-input");
+    fireEvent.change(input, { target: { value: "/" } });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    const [, second] = screen.getAllByRole("option");
+    expect(second).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("refuses an unknown command, keeps its text and sends nothing", async () => {
+    runCalls = 0;
+    renderComposer(true, { countingRuntime: true });
+    const input = typeAndEnter("/xyz");
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "No command /xyz. Type / to see the list.",
+    );
+    expect(input).toHaveValue("/xyz");
+    expect(runCalls).toBe(0);
+  });
+
+  it("refuses an unknown command sent with the Send button", async () => {
+    runCalls = 0;
+    renderComposer(true, { countingRuntime: true });
+    const input = screen.getByTestId("message-input");
+    fireEvent.change(input, { target: { value: "/xyz" } });
+    fireEvent.click(screen.getByTestId("send-button"));
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "No command /xyz. Type / to see the list.",
+    );
+    expect(input).toHaveValue("/xyz");
+    expect(runCalls).toBe(0);
+  });
+
+  it("drops the refusal once the text changes", async () => {
+    renderComposer(true, { countingRuntime: true });
+    const input = typeAndEnter("/xyz");
+    await screen.findByRole("alert");
+    fireEvent.change(input, { target: { value: "/xy" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(input).toHaveValue("/xy");
+  });
+
+  it("sends a message whose slash does not open it", async () => {
+    runCalls = 0;
+    renderComposer(true, { countingRuntime: true });
+    typeAndEnter("compare with /xyz");
+    await waitFor(() => expect(runCalls).toBe(1));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("closes the list on Escape", () => {
+    renderComposer(true, { countingRuntime: true });
+    const input = screen.getByTestId("message-input");
+    fireEvent.change(input, { target: { value: "/ren" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input).toHaveValue("");
   });
 });

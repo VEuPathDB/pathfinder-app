@@ -72,7 +72,7 @@ async def save_subtree_as_strategy(
     if graph is None:
         raise ValidationError(
             title="no active strategy",
-            detail="cannot save a substrategy when the conversation has no graph",
+            detail="cannot save a substrategy when the conversation has no strategy",
         )
 
     source_node = graph.steps.get(source_step_id)
@@ -81,7 +81,7 @@ async def save_subtree_as_strategy(
             code=ErrorCode.NOT_FOUND,
             title="step not found",
             detail=(
-                f"step {source_step_id!r} not found in the active graph "
+                f"step {source_step_id!r} not found in the active strategy "
                 f"(available: {sorted(graph.steps)[:20]})"
             ),
         )

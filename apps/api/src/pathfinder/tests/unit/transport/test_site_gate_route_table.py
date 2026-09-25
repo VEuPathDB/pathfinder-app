@@ -42,10 +42,9 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         ("GET", "/api/v1/sites/{siteId}/strategies"),
         # EDA: the study set the request names lives on the site.
         ("GET", "/api/v1/eda/studies"),
-        ("GET", "/api/v1/eda/studies/{dataset_id}"),
-        ("POST", "/api/v1/eda/count"),
-        ("POST", "/api/v1/eda/distribution"),
         ("POST", "/api/v1/eda/viz"),
+        # A researcher's datasets are installed into the site the request names.
+        ("GET", "/api/v1/eda/datasets"),
         # Strategy writes: every one of them runs a step on the site.
         ("POST", "/api/v1/conversations/{strategyId:uuid}/operations"),
         ("POST", "/api/v1/conversations/{strategyId:uuid}/refresh-counts"),

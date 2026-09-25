@@ -51,9 +51,7 @@ describe("SiteUnavailableNotice", () => {
   it("names the site, says what happened, and links every site that is available", () => {
     draw("veupathdb", [PORTAL_DOWN, site({ id: "toxodb", displayName: "ToxoDB" })]);
 
-    expect(
-      screen.getByText("Couldn't reach VEuPathDB Portal (All organisms)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(
       screen.getByText(
         "PathFinder cannot use this site right now: the site did not answer in time. It keeps trying every minute, so this may clear on its own.",
@@ -71,10 +69,10 @@ describe("SiteUnavailableNotice", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("names the site id and offers no link when the site list is not loaded", () => {
+  it("names the site by its short name and offers no link when the site list is not loaded", () => {
     draw("veupathdb", undefined);
 
-    expect(screen.getByText("Couldn't reach veupathdb")).toBeInTheDocument();
+    expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(screen.queryAllByRole("link")).toEqual([]);
   });
 });

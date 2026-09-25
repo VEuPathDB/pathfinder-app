@@ -82,8 +82,8 @@ def _require_graph(deps: StrategyMutationContext) -> StrategyGraph:
     graph = deps.strategy_session.get_graph(None)
     if graph is None:
         raise ValidationError(
-            title="No active strategy graph",
-            detail="apply_and_commit requires an initialized graph in the session",
+            title="No active strategy",
+            detail="apply_and_commit requires a strategy in the session",
         )
     return graph
 

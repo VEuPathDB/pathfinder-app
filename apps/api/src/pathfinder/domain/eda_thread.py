@@ -7,10 +7,22 @@ strategy.
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.eda_parts import EdaEffectDirection, EdaEntityCount
+
+
+class ConversationAnalysisView(BaseModel):
+    """Read shape of a thread's bound analysis."""
+
+    model_config = ConfigDict(frozen=True, from_attributes=True, extra="forbid")
+
+    site_id: str
+    dataset_id: str
+    analysis_id: str
+    revision: int
+    subset_previewed: bool = False
 
 
 class OpenEdaAnalysis(CamelModel):
@@ -18,11 +30,14 @@ class OpenEdaAnalysis(CamelModel):
 
     ``subset_previewed`` says whether a preview has counted this analysis on
     any message of the thread, so an export can follow the count.
+    ``changed_after_the_card`` says the document moved after the card the
+    thread shows, through another surface or on the site.
     """
 
     dataset_id: str
     analysis_id: str
     subset_previewed: bool = False
+    changed_after_the_card: bool = False
 
 
 class EdaAnalysisFacts(CamelModel):

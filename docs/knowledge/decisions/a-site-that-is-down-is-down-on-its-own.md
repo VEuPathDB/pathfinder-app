@@ -82,7 +82,7 @@ every route that reaches a site without the gate, with the reason.
 **The site selection warns.** `SiteResponse` carries `available` and
 `unavailableReason`, computed from the readiness state at request time. The nav
 rail's site menu keeps a degraded site selectable, since the researcher's saved
-work is local, and marks it "Not responding"; the trigger carries the same mark
+work is local, and marks it "Couldn't reach"; the trigger carries the same mark
 when the current site is degraded. The sites query refetches every 60 s, matching
 the retry, so a recovered site clears its mark without a reload.
 

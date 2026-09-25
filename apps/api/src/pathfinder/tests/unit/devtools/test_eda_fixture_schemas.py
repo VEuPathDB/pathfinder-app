@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from pydantic import JsonValue, TypeAdapter, ValidationError
-from veupathdb.devtools.eda_capture import ANALYSIS_CAPTURES
+from veupathdb.devtools.eda_capture import ANALYSIS_CAPTURES, DISTRIBUTION_CAPTURES
 from veupathdb.devtools.eda_schemas import (
     BINDINGS,
     LIBRARY_FILE,
@@ -69,10 +69,12 @@ def test_every_recorded_fixture_binds_a_type_the_library_declares() -> None:
 
 
 def test_the_binding_table_is_total_over_the_fixture_manifest() -> None:
-    """The client records the analysis documents, and this manifest the rest."""
-    assert {binding.fixture for binding in BINDINGS} == {
-        fixture.name for fixture in FIXTURES
-    } | {capture.name for capture in ANALYSIS_CAPTURES}
+    """The client records the analyses and the distributions, this manifest the rest."""
+    assert {binding.fixture for binding in BINDINGS} == (
+        {fixture.name for fixture in FIXTURES}
+        | {capture.name for capture in ANALYSIS_CAPTURES}
+        | {capture.name for capture in DISTRIBUTION_CAPTURES}
+    )
 
 
 def test_the_bound_types_reach_fifty_one_of_the_pinned_library() -> None:

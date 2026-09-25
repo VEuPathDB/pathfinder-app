@@ -302,7 +302,7 @@ describe("message dispatch", () => {
     expect(screen.getByText("log2(Fold Change)").tagName).toBe("FIGCAPTION");
     expect(screen.getByTestId("eda-viz-volcano")).toHaveAttribute("role", "img");
     expect(screen.getByTestId("eda-viz-volcano-selection")).toHaveTextContent(
-      "0 genes selected at these thresholds - 1,543 of 5,511 retained by the compute",
+      "0 genes selected at these thresholds - 1,543 of 5,511 retained by the comparison",
     );
     expect(screen.getByTestId("eda-viz-volcano-dropped")).toHaveTextContent(
       "1 point without a p-value was not plotted",

@@ -1,0 +1,15 @@
+{
+  "provider": "google",
+  "refusal": "no_credit",
+  "status": 402,
+  "body": {
+    "error": {
+      "code": 402,
+      "message": "Your Prepay credit balance is depleted."
+    }
+  },
+  "provenance": "documented",
+  "source": "https://ai.google.dev/gemini-api/docs/troubleshooting",
+  "model": null,
+  "read_at": "2026-09-24T19:40:00Z"
+}

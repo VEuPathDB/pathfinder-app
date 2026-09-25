@@ -45,7 +45,7 @@ _NO_STEP_TO_SAVE_FROM = (
 )
 
 _A_LIST_AND_A_STEP = (
-    "A pasted gene list carries no strategy step. Leave step_id out to save "
+    "A pasted list of gene ids carries no strategy step. Leave step_id out to save "
     "these ids as a list, or leave gene_ids out to save the genes of that step."
 )
 
@@ -137,7 +137,7 @@ async def save_gene_set(
     """Save a gene set the user can export, publish and test controls against.
 
     This is the save the user asks for when they say "save these genes as a
-    gene set": the set appears in the thread, and it returns the id the export
+    gene set": the set appears in the conversation, and it returns the id the export
     and control tools take. ``remember`` stores a note and creates nothing.
 
     Args:

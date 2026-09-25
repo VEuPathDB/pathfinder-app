@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import base64
+import mimetypes
+from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
 from assistant_core.graph.turn_state import UserQuestionAnswer
 from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.platform.types import ReasoningEffort
 from pydantic import ConfigDict, Field
 from pydantic_ai.ui.vercel_ai.request_types import (
     DataUIPart,
+    FileUIPart,
     TextUIPart,
     ToolApprovalResponded,
     ToolApprovalRespondedPart,
@@ -124,6 +130,7 @@ class BodyCtx(CamelModel):
     site_id: str
     mode: str = "strategy"
     phase_models: dict[str, str] = Field(default_factory=dict)
+    phase_reasoning: dict[str, ReasoningEffort] = Field(default_factory=dict)
 
 
 def _body(ctx: BodyCtx, message: UIMessage) -> ChatRequestBody:
@@ -132,14 +139,36 @@ def _body(ctx: BodyCtx, message: UIMessage) -> ChatRequestBody:
         site_id=ctx.site_id,
         mode=ctx.mode,
         phase_models=ctx.phase_models,
+        phase_reasoning=ctx.phase_reasoning,
         messages=[message],
     )
 
 
-def user_body(ctx: BodyCtx, *, message_id: UUID, text: str) -> ChatRequestBody:
+def attached_file(path: Path) -> FileUIPart:
+    """A local file as the composer attaches one: inline, typed by its name."""
+    media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+    encoded = base64.b64encode(path.read_bytes()).decode()
+    return FileUIPart(
+        media_type=media_type,
+        filename=path.name,
+        url=f"data:{media_type};base64,{encoded}",
+    )
+
+
+def user_body(
+    ctx: BodyCtx,
+    *,
+    message_id: UUID,
+    text: str,
+    files: Sequence[FileUIPart] = (),
+) -> ChatRequestBody:
     return _body(
         ctx,
-        UIMessage(id=str(message_id), role="user", parts=[TextUIPart(text=text)]),
+        UIMessage(
+            id=str(message_id),
+            role="user",
+            parts=[TextUIPart(text=text), *files],
+        ),
     )
 
 

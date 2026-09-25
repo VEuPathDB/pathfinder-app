@@ -11,7 +11,7 @@
  * tests (see `test_dispatcher_interrupt.py`, the `durable/` suite, and
  * `test_events_endpoint.py`).
  *
- * Note: this file intentionally avoids the `ChatPage` page-object model —
+ * Note: this file intentionally avoids the `ChatPage` page-object model -
  * several of its `data-testid` selectors (`message-composer`,
  * `message-input`, `send-button`) no longer exist in the post-AI-SDK-v6
  * composer and are pre-existing breakage outside this task's scope. The
@@ -60,7 +60,7 @@ test.describe("Durable verification TaskCard", () => {
     const strategyId = await openStrategy(context, siteId);
 
     // Background-task progress is rendered from chunks delivered on the chat
-    // event stream (data-background-task-started → data-task-progress →
+    // event stream (data-background-task-started -> data-task-progress ->
     // data-task-completed), each by its own typed part renderer.
     const chatStream = [
       sseFrame({

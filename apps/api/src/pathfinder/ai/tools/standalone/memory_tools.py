@@ -118,7 +118,7 @@ async def remember(
     if store_raw is None or user_id is None:
         return with_summary(
             "memory store unavailable",
-            "Memory is unavailable on this thread",
+            "Memory is unavailable on this conversation",
             ctx=ctx,
             status="warn",
         )

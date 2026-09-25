@@ -49,14 +49,14 @@ export function ScratchpadPanel({ conversationId }: ScratchpadPanelProps) {
   const unpinned = notes.filter((n) => !isPinned(n));
 
   return (
-    <RailPanelShell title="Scratchpad">
+    <RailPanelShell title="Notes">
       <div data-testid="scratchpad-panel" className="contents">
         {notes.length === 0 && (
           <div
             data-testid="scratchpad-empty"
             className="px-3 py-8 text-center text-sm text-muted-foreground"
           >
-            No notes yet. The agent will save findings here as it works.
+            No notes yet. The assistant saves findings here as it works.
           </div>
         )}
         {pinned.length > 0 && (

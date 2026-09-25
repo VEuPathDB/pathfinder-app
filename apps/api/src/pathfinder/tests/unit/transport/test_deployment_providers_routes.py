@@ -37,15 +37,16 @@ async def _get(path: str) -> dict[str, Any]:
 
 @pytest.mark.usefixtures("_anthropic_only")
 async def test_a_model_is_enabled_where_the_deployment_holds_its_key() -> None:
+    """Every provider the catalog lists is disabled, except the one with a key.
+
+    The local model list is a deployment file, so the providers are read
+    from the catalog and never named here.
+    """
     body = await _get("/api/v1/models")
 
     enabled = {m["provider"]: m["enabled"] for m in body["models"]}
-    assert enabled == {
-        "openai": False,
-        "anthropic": True,
-        "google": False,
-        "ollama": False,
-    }
+    assert enabled == {provider: provider == "anthropic" for provider in enabled}
+    assert {"openai", "anthropic", "google"} <= set(enabled)
 
 
 async def test_the_mock_deployment_offers_every_model() -> None:

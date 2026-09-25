@@ -29,6 +29,7 @@ from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
 from pathfinder.ai.lead.guarantees import machine_guarantees_pin
 from pathfinder.ai.lead.intent_gate import apply_tool_preconditions
+from pathfinder.ai.lead.lead_adoption import adopt_separating_strategy
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.lead_pins import (
     pinned_eda_sheet,
@@ -46,7 +47,6 @@ from pathfinder.ai.lead.lead_tools import (
     export_gene_set,
     get_live_strategy_state,
     list_gene_sets,
-    read_gene_record,
     read_ledger_section,
     remember,
     save_gene_set,
@@ -65,11 +65,17 @@ from pathfinder.ai.lead.verify_dispatch import verify_strategy
 from pathfinder.ai.tools.standalone.control_sets import (
     build_control_set,
     list_control_sets,
+    read_control_set,
     read_gene_ids_from_gene_set,
     read_gene_ids_from_strategy,
 )
-from pathfinder.ai.tools.standalone.optimization import optimize_search_parameters
+from pathfinder.ai.tools.standalone.gene_record import read_gene_record
+from pathfinder.ai.tools.standalone.optimization import (
+    optimize_search_parameters,
+    sweep_can_run,
+)
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
+from pathfinder.ai.tools.standalone.separation import separate_controls
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
 from pathfinder.ai.tools.toolsets._dynamic import (
@@ -108,6 +114,7 @@ def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
                 sequential=True,
                 requires_approval=True,
                 max_retries=3,
+                args_validator=sweep_can_run,
             ),
         ],
     )
@@ -148,6 +155,7 @@ def build_lead_agent() -> LeadAgent:
             Tool(compare_search_variants),
             Tool(build_control_set),
             Tool(list_control_sets),
+            Tool(read_control_set),
             Tool(read_gene_ids_from_gene_set),
             Tool(read_gene_ids_from_strategy),
             Tool(compare_variants_scored),
@@ -155,6 +163,13 @@ def build_lead_agent() -> LeadAgent:
             Tool(delete_step, requires_approval=True),
             Tool(consult_user, requires_approval=True),
             Tool(propose_changes, requires_approval=True),
+            Tool(
+                separate_controls,
+                sequential=True,
+                requires_approval=True,
+                max_retries=3,
+            ),
+            Tool(adopt_separating_strategy, requires_approval=True),
         ],
         toolsets=[eda.build_toolset(), build_sweep_toolset(), turn_tool_sources],
         capabilities=agent_capabilities(

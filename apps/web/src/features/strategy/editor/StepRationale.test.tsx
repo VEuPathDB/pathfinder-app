@@ -32,6 +32,23 @@ const COMPUTED: Rationale = {
   short: "computed by DESeq",
 };
 
+const MEASURED: Rationale = {
+  kind: "controls",
+  taskId: "0c6100d2-0000-4000-8000-00000000a16a",
+  searchName: "GenesByGoTerm",
+  source: "literature",
+  basis: "exported proteins",
+  sources: ["https://doi.org/10.1038/nature03069"],
+  informs: "recovering",
+  recovered: 42,
+  positives: 80,
+  admitted: 0,
+  negatives: 40,
+  resultSize: 637,
+  term: "42 of 80 positives",
+  short: "recovers 42 of 80 positives, admits 0 of 40 negatives",
+};
+
 describe("StepRationale", () => {
   afterEach(() => cleanup());
 
@@ -59,5 +76,19 @@ describe("StepRationale", () => {
     expect(within(block).getByText("Why these genes").tagName).toBe("P");
     expect(within(block).getByText(COMPUTED.reason).tagName).toBe("P");
     expect(within(block).queryByTestId("step-rationale-query")).toBeNull();
+  });
+
+  it("gives a measured step the counts its own step returned and the paper", () => {
+    render(<StepRationale rationale={MEASURED} />);
+
+    const block = screen.getByTestId("step-rationale");
+    expect(within(block).getByText("Chosen by the controls").tagName).toBe("P");
+    expect(within(block).getByTestId("step-rationale-counts")).toHaveTextContent(
+      "recovers 42 of 80 positives, admits 0 of 40 negatives, 637 genes",
+    );
+    expect(within(block).getByText("exported proteins").tagName).toBe("SPAN");
+    expect(within(block).getByRole("link").getAttribute("href")).toBe(
+      "https://doi.org/10.1038/nature03069",
+    );
   });
 });

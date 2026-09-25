@@ -1,5 +1,6 @@
 /**
- * Journey 3: a completed compute exports a step the strategy rail lists.
+ * Journey 3: the figure of the agent's compute exports a step the strategy
+ * rail lists.
  *
  * The export PATCH is answered in the browser, so the step exists only in the
  * query cache the export wrote. The walk back to the thread is therefore a
@@ -11,15 +12,12 @@ import type { BrowserContext } from "@playwright/test";
 import { test, expect, BASE_URL } from "../fixtures/test";
 import { CSRF_HEADERS } from "../fixtures/api-client";
 import {
-  analysisState,
-  COMPUTE_JOB,
-  DATASET_ID,
+  COMPARED_ANALYSIS,
   edaJson,
   EXPORTED_STEP,
   exportedStrategy,
   routeEdaReads,
   SITE_ID,
-  TEMPERATURE_VAR,
 } from "../fixtures/eda";
 
 async function openConversation(context: BrowserContext): Promise<string> {
@@ -35,64 +33,34 @@ async function openConversation(context: BrowserContext): Promise<string> {
 }
 
 test.describe("EDA export as a strategy step", () => {
-  test("a completed compute exports a step the strategy rail lists", async ({
+  test("the figure of a compute exports a step the strategy rail lists", async ({
     page,
     context,
   }) => {
     const conversationId = await openConversation(context);
     await routeEdaReads(page);
 
-    const actions: string[] = [];
+    const actions: { action: string; thresholds?: unknown }[] = [];
     await page.route(`**/api/v1/conversations/${conversationId}/eda`, async (route) => {
       if (route.request().method() === "GET") {
-        await route.fulfill(edaJson({ analysis: null, descriptor: null }));
+        await route.fulfill(edaJson({ analysis: COMPARED_ANALYSIS }));
         return;
       }
-      const body = route.request().postDataJSON() as { action: string };
-      actions.push(body.action);
-      if (body.action === "run-compute") {
-        await route.fulfill(
-          edaJson({
-            analysis: analysisState({ revision: 1, numComputations: 1 }),
-            job: COMPUTE_JOB,
-            step: null,
-          }),
-        );
-        return;
-      }
-      if (body.action === "export-step") {
-        await route.fulfill(
-          edaJson({
-            analysis: analysisState({ revision: 2, numComputations: 1 }),
-            job: null,
-            step: exportedStrategy(conversationId),
-          }),
-        );
-        return;
-      }
+      const body = route.request().postDataJSON() as {
+        action: string;
+        thresholds?: unknown;
+      };
+      actions.push(body);
       await route.fulfill(
-        edaJson({ analysis: analysisState(), job: null, step: null }),
+        edaJson({
+          analysis: { ...COMPARED_ANALYSIS, revision: 3 },
+          step: exportedStrategy(conversationId),
+        }),
       );
     });
 
     await page.goto(`/${SITE_ID}/conversation/${conversationId}/eda`);
-    await page.getByTestId("eda-study-search").fill("heat shock");
-    await page.getByTestId(`eda-study-row-${DATASET_ID}`).click();
-    await expect(page.getByTestId("eda-compute-cell")).toBeVisible({ timeout: 20_000 });
-
-    await page.getByLabel("Comparator variable").selectOption(TEMPERATURE_VAR);
-    await page
-      .getByRole("group", { name: "Reference group (A)" })
-      .getByRole("checkbox", { name: "normal" })
-      .click();
-    await page
-      .getByRole("group", { name: "Comparison group (B)" })
-      .getByRole("checkbox", { name: "febrile" })
-      .click();
-    await page.getByRole("button", { name: "Run compute" }).click();
-    await expect(page.getByTestId("eda-compute-complete")).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(page.getByTestId("eda-viz-volcano")).toBeVisible({ timeout: 60_000 });
 
     const exportButton = page.getByRole("button", { name: "Export as step" });
     await expect(exportButton).toBeEnabled({ timeout: 20_000 });
@@ -105,7 +73,8 @@ test.describe("EDA export as a strategy step", () => {
     await expect(page.getByTestId("eda-export-step-name")).toHaveText(
       `Exported: ${EXPORTED_STEP.displayName}`,
     );
-    expect(actions).toEqual(["bind", "run-compute", "export-step"]);
+    // The export names the volcano; the server writes the cut the analysis stores.
+    expect(actions).toEqual([{ action: "export-step", source: "volcano" }]);
 
     // Client-side navigation back to the thread keeps the query cache the
     // export wrote the strategy into.

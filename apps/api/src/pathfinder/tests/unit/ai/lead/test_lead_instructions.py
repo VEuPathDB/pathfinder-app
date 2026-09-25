@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
+from pathfinder.ai.lead.lead_proposal import propose_changes
 
 
 def _flat(text: str) -> str:
@@ -249,7 +250,8 @@ def test_an_offer_of_further_work_is_a_proposal_card() -> None:
     assert "An offer of further work is a proposal card" in instructions
     assert "call ``propose_changes``" in instructions
     assert "Be liberal with proposals" in instructions
-    assert "never taken from a bare yes" in instructions
+    assert "declined is offered again only on a new card" in instructions
+    assert "bare yes" not in instructions
     assert "make the LAST sentence an offer" not in instructions
 
 
@@ -282,3 +284,64 @@ def test_an_enrichment_request_is_answered_with_the_site_link() -> None:
 
     assert "GO, pathway and word enrichment run on the site, not here." in instructions
     assert "the site's Analyze results tab runs it" in instructions
+
+
+def test_a_skipped_question_card_is_never_asked_again() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert (
+        "A ``consult_user`` call that comes back denied holds questions the "
+        "researcher skipped: never ask them again" in instructions
+    )
+
+
+def test_a_delete_picks_the_step_by_the_words_the_user_used() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert (
+        "an intersection step is the INTERSECT combine, never a transform above it"
+        in instructions
+    )
+    assert "The reply names the deleted step by the title the card shows" in (
+        instructions
+    )
+
+
+def test_a_sweep_is_offered_on_its_own_card_with_the_controls() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert (
+        "A request to optimize or tune a built step's settings against the "
+        "researcher's controls is a sweep too" in instructions
+    )
+    assert "never offer a sweep on a ``propose_changes`` card" in instructions
+    assert (
+        "the control set the conversation saved as ``control_set_id``" in instructions
+    )
+
+
+def test_the_proposal_card_sends_a_run_to_its_own_tool() -> None:
+    described = _flat(propose_changes.__doc__ or "")
+
+    assert (
+        "Never offer a sweep, a separation or a control test on this card" in described
+    )
+
+
+def test_a_no_on_a_delete_card_is_final_for_the_message() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert (
+        "A No on the card is final for this message: never ask for that delete again "
+        "under it" in instructions
+    )
+
+
+def test_the_delete_paragraph_says_what_a_combine_delete_takes() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert (
+        "Deleting a combine keeps its first input in its place and removes its "
+        "second input with it" in instructions
+    )
+    assert "no delete does that" in instructions

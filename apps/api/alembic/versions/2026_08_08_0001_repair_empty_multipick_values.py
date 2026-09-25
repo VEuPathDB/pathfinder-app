@@ -16,7 +16,7 @@ import json
 from collections.abc import Sequence
 from typing import Any
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_08_08_0001"
@@ -62,7 +62,7 @@ def _repair(node: Any) -> tuple[Any, int]:
 def upgrade() -> None:
     connection = op.get_bind()
     rows = connection.execute(
-        sa.text(
+        sqlalchemy.text(
             "SELECT id, strategy_ast FROM conversations "
             "WHERE strategy_ast::text LIKE '%\"[]\"%'"
         )
@@ -73,7 +73,7 @@ def upgrade() -> None:
         if fixed == 0:
             continue
         connection.execute(
-            sa.text(
+            sqlalchemy.text(
                 "UPDATE conversations SET strategy_ast = CAST(:ast AS jsonb) "
                 "WHERE id = :id"
             ),

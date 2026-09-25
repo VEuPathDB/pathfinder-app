@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { siteDisplayName, siteShortName } from "@pathfinder/shared";
+import { siteShortName } from "@pathfinder/shared";
 
 describe("siteShortName", () => {
-  // A button reads "View in PlasmoDB". The long form carries the organism in
+  // A link reads "Open in PlasmoDB". The long form carries the organism in
   // parentheses, which belongs in a picker rather than on a link.
   it("gives the brand name, not the long form", () => {
     expect(siteShortName("plasmodb")).toBe("PlasmoDB");
@@ -12,10 +12,8 @@ describe("siteShortName", () => {
     expect(siteShortName("veupathdb")).toBe("VEuPathDB");
   });
 
-  it("is shorter than the long form for a component site", () => {
-    expect(siteShortName("toxodb").length).toBeLessThan(
-      siteDisplayName("toxodb").length,
-    );
+  it("names a component site by its brand alone", () => {
+    expect(siteShortName("toxodb")).toBe("ToxoDB");
   });
 
   it("falls back to the id for a site it does not know", () => {
@@ -24,9 +22,5 @@ describe("siteShortName", () => {
 
   it("falls back to the id for an empty site", () => {
     expect(siteShortName("")).toBe("");
-  });
-
-  it("leaves the long form alone", () => {
-    expect(siteDisplayName("plasmodb")).toBe("PlasmoDB (Plasmodium)");
   });
 });

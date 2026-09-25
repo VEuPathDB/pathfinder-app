@@ -20,10 +20,11 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_proposals import (
+    CriterionCall,
     ParamProposals,
-    _CriterionCall,
 )
 from pathfinder.domain.strategy.step_rationale import (
+    MAX_REASON_CHARS,
     ComparedSearch,
     RationaleBasis,
     SearchRationale,
@@ -47,23 +48,23 @@ class SearchChoice(CamelModel):
     )
     term: str = Field(
         description=(
-            "parameter: the parameter name you set. organism: the organism value "
-            "you set. record_type: the record type. only_match and nearest: the "
-            "phrase from the request."
+            "parameter: the name or display name of the parameter you set, never "
+            "its value. organism: the organism value you set. record_type: the "
+            "record type. only_match and nearest: the phrase from the request."
         )
     )
     reason: str = Field(
-        max_length=160,
         description=(
-            "One line, holding the term. Name another search only if the catalog "
-            "answered it."
+            f"One line of at most {MAX_REASON_CHARS} characters, holding the term. "
+            "Name another search only if the catalog answered it."
         ),
     )
     sources: list[str] = Field(
         default_factory=list,
         description=(
-            "The urls, DOIs or PMIDs a research read of this turn returned that "
-            "the choice rests on. Empty when it rests on the catalog alone."
+            "The urls, DOIs or PMIDs a research read or read_experiment returned "
+            "this turn that the choice rests on. Empty when it rests on the "
+            "catalog alone."
         ),
     )
 
@@ -84,7 +85,7 @@ class _Binding:
 
 async def rationale_for(
     ctx: RunContext[AgentDeps],
-    call: _CriterionCall,
+    call: CriterionCall,
     record_type: str,
     infos: Sequence[ParameterInfo],
     values: Mapping[str, ParamValue],
@@ -100,8 +101,12 @@ async def rationale_for(
         (c for c in state.operational_spec_draft.criteria if c.id == criterion_id),
         None,
     )
+    # The counts of a criterion the controls chose belong to the values they
+    # measured, so an edit of those values states a reason of its own.
     if why is None and held is not None and held.search_name == search_name:
-        return held.rationale
+        kept = held.rationale
+        if kept is None or kept.kind == "search":
+            return kept
     read = state.last_read_answering(search_name)
     bound = None if read is None else read.hit(search_name)
     if read is None or bound is None:
@@ -124,9 +129,7 @@ async def rationale_for(
         values=values,
     )
     term = _checked_term(why, binding)
-    held_terms = [why.term, term]
-    if not any(names_the_phrase(why.reason, t) for t in held_terms):
-        raise ModelRetry(_reason_without_term(criterion_id, term))
+    _refuse_a_reason_that_breaks_its_rules(criterion_id, why, term)
     others = [h for h in read.hits if h.name != search_name] if read.ranked else []
     return SearchRationale(
         search_name=search_name,
@@ -143,7 +146,7 @@ async def rationale_for(
         answered=len(read.hits),
         query=read.query,
         tool_call_id=read.tool_call_id,
-        sources=_retrieved(ctx, criterion_id, why.sources),
+        sources=sources_retrieved(ctx, criterion_id, why.sources),
     )
 
 
@@ -183,12 +186,7 @@ def _set_parameter(cid: str, term: str, at: _Binding) -> str:
         None,
     )
     if info is None:
-        names = ", ".join(i.name for i in at.infos)
-        msg = (
-            f"{cid}: {term} is not a parameter of {at.search_name}; its sheet "
-            f"holds {names}."
-        )
-        raise ModelRetry(msg)
+        raise ModelRetry(_not_a_parameter(cid, term, at))
     if at.params.get(info.name) is None:
         msg = (
             f"{cid}: this call leaves {term} null, so it decides nothing. Name the "
@@ -196,6 +194,33 @@ def _set_parameter(cid: str, term: str, at: _Binding) -> str:
         )
         raise ModelRetry(msg)
     return info.display_name
+
+
+def _not_a_parameter(cid: str, term: str, at: _Binding) -> str:
+    """Why the term names no parameter: the parameter a value is set on, or the
+    display names the term may take."""
+    set_here = [i for i in at.infos if at.params.get(i.name) is not None]
+    holding = next(
+        (
+            i.display_name
+            for i in set_here
+            if i.name in at.values
+            and term.casefold() in to_wire(at.values[i.name]).casefold()
+        ),
+        None,
+    )
+    if holding is not None:
+        return (
+            f"{cid}: {term} is a value this call sets on {holding}, not a "
+            f"parameter. Pass the term '{holding}' with basis parameter, and keep "
+            f"{term} in the reason."
+        )
+    names = ", ".join(i.display_name for i in set_here) or "none"
+    return (
+        f"{cid}: {term} is not a parameter of {at.search_name}. With basis "
+        f"parameter the term is the display name of a parameter this call sets: "
+        f"{names}. A value goes in the reason, never in the term."
+    )
 
 
 def _refuse_a_record_type_that_decides_nothing(
@@ -277,7 +302,7 @@ def _unseen_mentions(
     ]
 
 
-def _retrieved(
+def sources_retrieved(
     ctx: RunContext[AgentDeps], criterion_id: str, cited: Sequence[str]
 ) -> list[str]:
     """Each cited reference in the form a read of this turn returned it."""
@@ -287,8 +312,9 @@ def _retrieved(
     if absent:
         msg = (
             f"The why of {criterion_id} cites {', '.join(absent)}, and no read of "
-            f"this turn returned it. Cite only what a research read returned this "
-            f"turn, or leave sources empty; nothing was recorded."
+            f"this turn returned it. Cite only what a research read or "
+            f"read_experiment returned this turn, or leave sources empty; nothing "
+            f"was recorded."
         )
         raise ModelRetry(msg)
     return [form for form in found.values() if form is not None]
@@ -316,7 +342,8 @@ def _no_why(criterion_id: str, search_name: str, read: CatalogRead) -> str:
     return (
         f"{criterion_id} binds {search_name} with no why. Pass why with a basis "
         f"(parameter, organism, record_type, only_match or nearest), the term "
-        f"that decides it, and one line of reason holding the term. The catalog "
+        f"that decides it, and one line of reason of at most {MAX_REASON_CHARS} "
+        f"characters holding the term. The catalog "
         f"answered {len(read.hits)} searches for it, first {_top(read)}. "
         f"Nothing was recorded."
     )
@@ -331,9 +358,21 @@ def _unseen(criterion_id: str, unseen: Sequence[str], read: CatalogRead) -> str:
     )
 
 
-def _reason_without_term(criterion_id: str, term: str) -> str:
-    return (
-        f"{criterion_id}: the reason does not hold the term {term}. Write the "
-        f"reason around it, so a reply that repeats it says what decided. "
-        f"Nothing was recorded."
+def _refuse_a_reason_that_breaks_its_rules(
+    criterion_id: str, why: SearchChoice, term: str
+) -> None:
+    """A reason holds the term and fits its cap; a refusal names both rules."""
+    problems = []
+    if len(why.reason) > MAX_REASON_CHARS:
+        problems.append(f"holds {len(why.reason)} characters")
+    if not any(names_the_phrase(why.reason, t) for t in (why.term, term)):
+        problems.append("does not hold the term")
+    if not problems:
+        return
+    msg = (
+        f"{criterion_id}: the reason must hold the term {term} and fit in "
+        f"{MAX_REASON_CHARS} characters; this one {' and '.join(problems)}. Write "
+        f"one line of at most {MAX_REASON_CHARS} characters around {term}, so a "
+        f"reply that repeats it says what decided. Nothing was recorded."
     )
+    raise ModelRetry(msg)

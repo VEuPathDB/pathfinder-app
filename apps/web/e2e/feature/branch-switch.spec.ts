@@ -25,7 +25,7 @@ test.describe("Branch Switch", () => {
     const branchId = await chatPage.branchFromAssistantReply(/\[mock\]/);
     expect(branchId).not.toBe(originalId);
 
-    // Switch back to the original conversation — its messages are intact.
+    // Switch back to the original conversation - its messages are intact.
     await page.goto(`/${currentSiteId(page)}/conversation/${originalId}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 15_000 });
     await expect(

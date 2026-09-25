@@ -1,6 +1,7 @@
 "use client";
 
 import { combineOpEnum } from "@pathfinder/shared";
+import { operatorLabel } from "@/features/strategy/operators";
 
 interface MiniVennProps {
   operator: string;
@@ -63,7 +64,7 @@ export function MiniVenn({
         height={height}
         viewBox="0 0 84 56"
         role="img"
-        aria-label="colocate operator"
+        aria-label={`${operatorLabel(operator)} operator`}
         data-mode="colocate"
         className={className}
       >
@@ -120,7 +121,7 @@ export function MiniVenn({
       height={height}
       viewBox="0 0 84 56"
       role="img"
-      aria-label={`${operator.toLowerCase()} operator`}
+      aria-label={`${operatorLabel(operator)} operator`}
       className={className}
     >
       <defs>

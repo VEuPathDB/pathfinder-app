@@ -208,14 +208,14 @@ export function validateStrategySteps(steps: Step[]): StrategyGraphError[] {
     errors.push({
       code: "ORPHAN_STEP",
       severity: "info",
-      message: "Strategy graph has no root steps.",
+      message: "The strategy has no root step.",
     });
   } else if (roots.length > 1) {
     errors.push({
       code: "MULTIPLE_ROOTS",
       severity: "info",
       message:
-        "Strategy graph has more than one root; only the rooted component is pushed.",
+        "The strategy has more than one root; only the steps joined to the root are pushed.",
     });
   }
 

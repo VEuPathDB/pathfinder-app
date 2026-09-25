@@ -370,4 +370,18 @@ describe("applyOperation: duplicateStep", () => {
     const join = result.next.steps.find((x) => x.id === "join");
     expect(join?.displayName).toBe("Intersect");
   });
+
+  test("refuses a source that is not a search, as the api does", () => {
+    const s = strategy([step("a"), step("b"), step("c", "a", "b", "combine")]);
+    const result = applyOperation(s, {
+      kind: "duplicateStep",
+      sourceStepId: "c",
+      duplicateStepId: "c_copy",
+      combineStepId: "join",
+    });
+    expect(result).toEqual({
+      kind: "rejected",
+      reason: "Only a search step can be duplicated; step c is a combine",
+    });
+  });
 });

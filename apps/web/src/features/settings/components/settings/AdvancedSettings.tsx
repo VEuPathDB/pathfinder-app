@@ -29,7 +29,7 @@ export function AdvancedSettings() {
 
   function handleResetAll() {
     const confirmed = window.confirm(
-      "Reset all local settings? This clears your engine, sidebar, and app preferences and reloads the page.",
+      "Reset all local settings? This clears your model, sidebar, and app preferences and reloads the page.",
     );
     if (!confirmed) return;
     resetAllPersistedSettings();
@@ -48,8 +48,9 @@ export function AdvancedSettings() {
             className="h-4 w-4 rounded border-input text-foreground focus:ring-ring"
           />
           <span className="text-muted-foreground">
-            When enabled, deleting a strategy from the sidebar also removes it from
-            VEuPathDB
+            Deleting a conversation in the sidebar starts with Also delete strategy
+            checked, so its strategy is deleted on the site too. You can uncheck it for
+            one delete.
           </span>
         </label>
       </SettingsField>
@@ -68,7 +69,7 @@ export function AdvancedSettings() {
         </label>
       </SettingsField>
 
-      <SettingsField label="Show raw tool calls in chat">
+      <SettingsField label="Show raw tool calls in the conversation">
         <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -77,7 +78,7 @@ export function AdvancedSettings() {
             className="h-4 w-4 rounded border-input text-foreground focus:ring-ring"
           />
           <span className="text-muted-foreground">
-            Display raw JSON tool calls in the chat log
+            Display raw JSON tool calls in the conversation
           </span>
         </label>
       </SettingsField>
@@ -91,8 +92,8 @@ export function AdvancedSettings() {
           Reset all local settings
         </button>
         <p className="text-[11px] text-muted-foreground">
-          Clears engine, sidebar, and app preferences stored in this browser. Your
-          server-side preferences (orchestrator model, quota) are unaffected.
+          Clears model, sidebar, and app preferences stored in this browser. Your
+          server-side preferences (models, quota) are unaffected.
         </p>
       </div>
     </div>

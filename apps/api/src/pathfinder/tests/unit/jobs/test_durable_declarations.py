@@ -1,4 +1,4 @@
-"""The three durable tools this application declares, and the seam they ride.
+"""The four durable tools this application declares, and the seam they ride.
 
 One declaration binds the decorator, the procrastinate job and the worker body
 to one name, so a registration that names another tool is refused.
@@ -11,7 +11,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.tasks import decorator
+from assistant_core.tasks import decorator, service
 from assistant_core.tasks.declaration import (
     DurableTool,
     UndeclaredDurableToolError,
@@ -32,6 +32,7 @@ from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.eda_compute import EDA_COMPUTE
 from pathfinder.ai.tools.standalone.experiment import CONTROL_TESTS
 from pathfinder.ai.tools.standalone.optimization import PARAMETER_SWEEP
+from pathfinder.ai.tools.standalone.separation import SEPARATION
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.app import DURABLE_TASK_QUEUE
 from pathfinder.jobs.impls import register_all_tools
@@ -85,7 +86,7 @@ def dispatch(monkeypatch: pytest.MonkeyPatch) -> Iterator[_App]:
         return _TASK_ID
 
     monkeypatch.setattr(decorator, "create_background_task", _create)
-    monkeypatch.setattr(decorator, "task_app", lambda: app)
+    monkeypatch.setattr(service, "task_app", lambda: app)
     monkeypatch.setattr(decorator, "get_stream_writer", lambda: lambda _p: None)
     install_durable_job_context(WdkJobContext())
     try:
@@ -94,7 +95,7 @@ def dispatch(monkeypatch: pytest.MonkeyPatch) -> Iterator[_App]:
         reset_durable_job_context()
 
 
-def test_the_three_tools_are_declared_with_their_budgets() -> None:
+def test_the_four_tools_are_declared_with_their_budgets() -> None:
     """The declared name, queue and budget are what the worker consumes."""
     declared = {tool.tool_name: tool for tool in declared_durable_tools()}
 
@@ -102,12 +103,15 @@ def test_the_three_tools_are_declared_with_their_budgets() -> None:
         "optimize_search_parameters",
         "run_control_tests_on_step",
         "run_eda_compute",
+        "separate_controls",
     ]
     assert declared["run_control_tests_on_step"] is CONTROL_TESTS
     assert declared["optimize_search_parameters"] is PARAMETER_SWEEP
     assert declared["run_eda_compute"] is EDA_COMPUTE
+    assert declared["separate_controls"] is SEPARATION
     assert CONTROL_TESTS.estimated_duration_seconds == 180
     assert PARAMETER_SWEEP.estimated_duration_seconds == 900
+    assert SEPARATION.estimated_duration_seconds == 300
     assert CONTROL_TESTS.job_name == "durable:run_control_tests_on_step"
 
 
@@ -125,7 +129,7 @@ def test_every_declared_tool_has_a_body_on_the_worker() -> None:
 
 
 def test_a_registration_that_names_no_declaration_is_refused() -> None:
-    """The three names are one string, and a fourth name fails at registration."""
+    """The declared names are one string, and another name fails at registration."""
     invented = DurableTool(tool_name="cruncg", estimated_duration_seconds=10)
 
     async def _body(**kwargs: Any) -> dict[str, Any]:

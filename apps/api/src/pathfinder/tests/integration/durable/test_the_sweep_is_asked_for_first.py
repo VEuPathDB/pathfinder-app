@@ -1,10 +1,10 @@
-"""The Lead's sweep asks the user first, and the yes defers the durable job.
+"""The Lead's sweep asks the user on its card, and the yes defers the durable job.
 
 The whole PathFinder assistant over the real chat route, the real turn graph
 and the real registration. Only the model is a double: it plays the user's
-outright request to tune a step, which the Lead's own rule answers with the
-call. Whether the Lead offers a sweep in prose after a weak control test is
-the model's judgment; the rule it reads is held by the instruction test.
+request to tune a step, which the Lead's own rule answers with the call.
+Whether the Lead calls the sweep after a weak control test is the model's
+judgment; the rule it reads is held by the instruction test.
 """
 
 from __future__ import annotations

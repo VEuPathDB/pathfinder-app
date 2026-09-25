@@ -39,9 +39,11 @@ from pathfinder.services.eda import EdaStudyDetail
 from pathfinder.services.eda.catalog import StudyCard, StudySearch
 from pathfinder.services.eda.description import EdaPermissionFacts
 from pathfinder.tests._support.eda_doubles import permission_entry, study_of
+from pathfinder.tests._support.recorded_vdi import no_own_datasets
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_run_context,
+    serve_no_other_sites,
     summary_chunks,
     summary_of,
 )
@@ -57,6 +59,7 @@ class TestASilentZeroReportsEmpty:
             return StudySearch(cards=[], catalog_size=0)
 
         monkeypatch.setattr(eda_catalog, "search_studies", _none)
+        monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
         returned = await eda_catalog.search_eda_studies(
             lead_run_context(tool_call_id="call_1"), "heat shock"
         )
@@ -69,6 +72,7 @@ class TestASilentZeroReportsEmpty:
             return []
 
         monkeypatch.setattr(catalog, "search_for_searches", _none)
+        serve_no_other_sites(monkeypatch)
         ctx = agent_run_context()
         ctx.deps.agent_state = AgentToolState()
         returned = await search_for_searches(ctx, "nothing at all")
@@ -228,6 +232,7 @@ class TestThePinnedStrings:
             return StudySearch(cards=[card, card, card], catalog_size=120)
 
         monkeypatch.setattr(eda_catalog, "search_studies", _three)
+        monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
         returned = await eda_catalog.search_eda_studies(
             lead_run_context(tool_call_id="call_1"), "heat shock"
         )

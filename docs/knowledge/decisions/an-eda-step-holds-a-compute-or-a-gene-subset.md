@@ -28,16 +28,17 @@ sample.
   `set_eda_filters` or the two thresholds and the gene entity's id.
   `create_eda_step` raises the retry; the tab's export (`export_analysis_step`)
   answers the detail as the 422 problem.
-- The tab offers the export for both kinds. "Export as step" sends the volcano
-  cut once a compute has completed, and `thresholds: null` for an analysis that
-  holds a filter and no completed compute; a refused subset shows the 422
-  detail under the button.
+- The tab offers the export for both kinds. "Export as step" sends the cut the
+  figure was drawn at, which is the cut the analysis stores, once the figure of
+  its comparison is read, and `thresholds: null` for an analysis that holds a
+  filter and no figure; a refused subset shows the 422 detail under the button.
+  The tab edits neither the subset nor the comparison
+  ([PathFinder shows what the AI did](pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
 - The analysis's comparison is its first complete differential expression
   (`differential_expression_computations`). An analysis the site's own EDA app
   edited also holds a `pass` compute for each plain plot, and can hold a
   differential expression the app has not finished; neither is a comparison.
-  `run_eda_compute` and the tab's compute write replace the comparison, or
-  append one, and keep every other computation as the site stored it
+  `run_eda_compute` replaces the comparison, or appends one, and keep every other computation as the site stored it
   (`services/eda/comparison.py`).
 - A compute export (both thresholds) needs a comparison; `eda_step_request`
   raises `NoComputationError`, which the tool turns into a retry that names

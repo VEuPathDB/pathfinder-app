@@ -93,70 +93,6 @@ def _species(value: str) -> EdaStringSetFilter:
     )
 
 
-async def test_an_out_of_vocabulary_value_is_refused_before_the_count(
-    wire: Wire,
-) -> None:
-    """The service would answer 200 with count 0, so validation is the only guard."""
-    wired = wire(_route())
-    with pytest.raises(authoring.SubsetRejectedError) as excinfo:
-        await authoring.verified_count(
-            "plasmodb",
-            dataset_id=_DATASET,
-            entity_id=_ENTITY,
-            filters=[_species("P. vivax")],
-        )
-    await wired.close()
-    assert len(excinfo.value.messages) == 1
-    assert "P. vivax" in excinfo.value.messages[0]
-
-
-async def test_the_verified_count_is_the_service_answer(wire: Wire) -> None:
-    wired = wire(_route({True: 4011, False: 4279}))
-    counted = await authoring.verified_count(
-        "plasmodb",
-        dataset_id=_DATASET,
-        entity_id=_ENTITY,
-        filters=[_species("P. berghei")],
-    )
-    await wired.close()
-    assert counted.entity_id == _ENTITY
-    assert counted.count == 4011
-    assert counted.unfiltered_count == 4279
-
-
-async def test_a_verified_count_of_zero_is_reported_not_swallowed(
-    wire: Wire,
-) -> None:
-    wired = wire(_route({True: 0, False: 4279}))
-    counted = await authoring.verified_count(
-        "plasmodb",
-        dataset_id=_DATASET,
-        entity_id=_ENTITY,
-        filters=[_species("P. berghei")],
-    )
-    await wired.close()
-    assert counted.count == 0
-    assert counted.unfiltered_count == 4279
-
-
-async def test_a_verified_count_refuses_an_out_of_vocabulary_value(
-    wire: Wire,
-) -> None:
-    """The service answers 200 with count 0, so the predicates run first."""
-    seen: list[httpx.Request] = []
-    wired = wire(_route({True: 4011, False: 4279}, seen))
-    with pytest.raises(authoring.SubsetRejectedError) as excinfo:
-        await authoring.verified_count(
-            "plasmodb",
-            dataset_id=_DATASET,
-            entity_id=_ENTITY,
-            filters=[_species("P. vivax")],
-        )
-    await wired.close()
-    assert "P. vivax" in str(excinfo.value)
-    assert not any("/count" in r.url.path for r in seen)
-
-
 async def test_a_preview_refuses_an_out_of_vocabulary_value(
     wire: Wire,
 ) -> None:
@@ -214,7 +150,7 @@ async def test_a_filter_on_an_unknown_entity_is_reported_with_its_id(
 ) -> None:
     wired = wire(_route())
     with pytest.raises(authoring.SubsetRejectedError) as excinfo:
-        await authoring.verified_count(
+        await authoring.preview_subset(
             "plasmodb",
             dataset_id=_DATASET,
             entity_id=_ENTITY,

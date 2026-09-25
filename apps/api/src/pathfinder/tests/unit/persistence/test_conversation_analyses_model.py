@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from sqlalchemy import Table
 
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.persistence.models import (
     ConversationAnalysis,
-    ConversationAnalysisView,
 )
 
 _ANALYSES: Table = ConversationAnalysis.metadata.tables["conversation_analyses"]

@@ -1,6 +1,6 @@
 {
   "provider": "anthropic",
-  "model": "anthropic:claude-haiku-4-5",
+  "refusal": "invalid",
   "status": 401,
   "body": {
     "type": "error",
@@ -10,5 +10,8 @@
     },
     "request_id": null
   },
-  "recorded_at": "2026-09-24T07:09:29.505050Z"
+  "provenance": "recorded",
+  "source": "a made-up key",
+  "model": "anthropic:claude-haiku-4-5",
+  "read_at": "2026-09-24T19:36:45.617002Z"
 }

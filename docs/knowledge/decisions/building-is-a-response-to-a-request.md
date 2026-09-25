@@ -64,8 +64,12 @@ path as the FIRST action when the message asks it to run, rerun, build, add or
 create and the building tools are absent, and they forbid both telling the user
 that a tool is unavailable this turn and asking the user to retry the request.
 `classify_user_intent` states that such an imperative - a bare "yes, do it"
-that accepts the assistant's own offer, and a retry after a failed task,
-included - is a building classification and never a `follow_up_question`.
+typed while one of the assistant's cards waits, and a retry after a failed
+task, included - is a building classification and never a `follow_up_question`.
+An offer is never accepted from prose: the yes answers the card through
+`_lead_offers.answer_to_the_offer`, and a bare yes after a declined offer with
+no card waiting ends on `DECLINED_OFFER_REFUSAL`
+([an offer is a card](an-offer-is-a-card-not-prose.md)).
 `tests/unit/ai/lead/test_intent_gate.py::test_a_corrected_classification_unhides_the_building_tools`
 pins the unhiding,
 `tests/unit/ai/lead/test_intent_gate_preconditions.py` pins one predicate per test,

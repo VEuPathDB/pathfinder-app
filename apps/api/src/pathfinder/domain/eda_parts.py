@@ -73,6 +73,17 @@ class EdaEntityCount(CamelModel):
     unfiltered_count: int = Field(ge=0)
 
 
+class EdaComputeSummary(CamelModel):
+    """The analysis's comparison, each variable by the name the study gives it."""
+
+    method: str
+    identifier_variable: str
+    value_variable: str
+    comparator_variable: str
+    group_a: list[str]
+    group_b: list[str]
+
+
 class EdaAnalysisState(CamelModel):
     """The open analysis, as both surfaces re-render it after every mutation.
 
@@ -81,7 +92,10 @@ class EdaAnalysisState(CamelModel):
     ``filters`` entries are the wire filter objects, kept as JSON because
     this package cannot import the integrations union. ``analysis_url`` opens
     the analysis in the site's own explorer; the thread log holds parts that
-    carry none, so it is optional.
+    carry none, so it is optional. ``compute`` is the comparison the analysis
+    holds, or None when it holds none. ``modification_time`` is the time the
+    service stamped on the document this state was read from; a part logged
+    before it was recorded carries None.
     """
 
     site_id: str
@@ -98,6 +112,8 @@ class EdaAnalysisState(CamelModel):
     entity_counts: list[EdaEntityCount]
     can_export_rows: bool
     analysis_url: str | None = None
+    compute: EdaComputeSummary | None = None
+    modification_time: str | None = None
 
 
 class EdaDistributionSeries(CamelModel):

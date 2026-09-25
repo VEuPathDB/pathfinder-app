@@ -101,7 +101,7 @@ async def compare_variants_scored(
     control_set_id: str,
     objective: str = "mcc",
 ) -> ToolReturn[ScoredComparison]:
-    """Run each variant as a full scored experiment against a saved control
+    """Run each variant as a full scored run against a saved control
     set and rank them by ``objective`` (mcc | balanced_accuracy | f1 |
     precision | sensitivity). Use after the user has chosen/built a control
     set (see build_control_set / list_control_sets). Returns per-variant

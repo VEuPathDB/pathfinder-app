@@ -76,6 +76,7 @@ def test_every_declared_durable_tool_defers_under_a_recorded_name() -> None:
         "run_control_tests_on_step": "run_control_tests_on_step",
         "optimize_search_parameters": "optimize_search_parameters",
         "run_eda_compute": "run_eda_compute",
+        "separate_controls": "separate_controls",
     }
     assert set(deferring_tool_names().values()) == {
         tool.tool_name for tool in declared_durable_tools()

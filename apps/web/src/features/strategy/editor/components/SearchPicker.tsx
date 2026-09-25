@@ -1,10 +1,13 @@
 "use client";
 
-import type { Search } from "@pathfinder/shared";
+import type { RecordType, Search } from "@pathfinder/shared";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
+import { searchGroupName } from "@/features/strategy/services/searchGroups";
 
 interface SearchPickerProps {
   searches: Search[];
+  /** The site's record types. Each group of searches is headed by one. */
+  recordTypes: RecordType[];
   value: string | null;
   /** Called with the picked search name (null when cleared). */
   onChange: (nextSearchName: string | null) => void;
@@ -14,6 +17,7 @@ interface SearchPickerProps {
 
 export function SearchPicker({
   searches,
+  recordTypes,
   value,
   onChange,
   placeholder = "Pick a search...",
@@ -24,7 +28,7 @@ export function SearchPicker({
     label: s.displayName || s.name,
   }));
 
-  const recordTypeByName = new Map(searches.map((s) => [s.name, s.recordType]));
+  const groupName = searchGroupName(searches, recordTypes);
 
   return (
     <Combobox
@@ -32,11 +36,9 @@ export function SearchPicker({
       value={value}
       onChange={(next) => onChange(next)}
       placeholder={placeholder}
-      groupBy={(option) => recordTypeByName.get(option.value) ?? "other"}
-      emptyMessage="No matching searches"
+      groupBy={(option) => groupName(option.value)}
+      emptyMessage="No matching searches."
       {...(disabled !== undefined && { disabled })}
     />
   );
 }
-
-export type { Search } from "@pathfinder/shared";

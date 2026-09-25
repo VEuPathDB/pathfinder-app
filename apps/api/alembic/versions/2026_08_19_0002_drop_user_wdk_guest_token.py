@@ -11,7 +11,7 @@ column back empty; the tokens themselves are not recoverable.
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_08_19_0002"
@@ -27,5 +27,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.add_column(
         "users",
-        sa.Column("wdk_guest_token", sa.Text(), nullable=True),
+        sqlalchemy.Column("wdk_guest_token", sqlalchemy.Text(), nullable=True),
     )

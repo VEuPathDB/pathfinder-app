@@ -1,0 +1,27 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "method": "GET",
+    "url": "https://plasmodb.org/eda/permissions",
+    "recorded_at": "2026-09-24",
+    "reads": "the owner's perDataset entry for an installed rnaseqrc upload, 1.1 s after data: complete"
+  },
+  "datasetId": "EDAUD_4xZ5Q5pV1s4IM",
+  "entry": {
+    "studyId": "STUDY_ab8a2fce33",
+    "sha1Hash": "",
+    "isUserStudy": true,
+    "displayName": "PathFinder live check stranded no label",
+    "shortDisplayName": "PathFinder live check stranded no label",
+    "type": "provider",
+    "actionAuthorization": {
+      "studyMetadata": true,
+      "subsetting": true,
+      "visualizations": true,
+      "resultsFirstPage": true,
+      "resultsAll": true
+    },
+    "isManager": true,
+    "accessRequestStatus": "unrequested"
+  }
+}

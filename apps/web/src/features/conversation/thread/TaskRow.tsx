@@ -17,10 +17,17 @@ export interface TaskRowProps {
   summary?: string | null;
 }
 
-function amountOf(outcome: TaskOutcome, pct: number, summary: string | null): string {
+/** Every task reports progress once a worker starts it, so a task with no
+ * report yet waits in the queue. */
+function amountOf(
+  outcome: TaskOutcome,
+  percent: number | null,
+  summary: string | null,
+): string {
   if (outcome === "success") return summary ?? "Completed";
   if (outcome === "failure") return "Failed";
-  return `${String(pct)}%`;
+  if (percent === null) return "Queued";
+  return `${String(Math.round(percent * 100))}%`;
 }
 
 function Badge({ outcome, pct }: { outcome: TaskOutcome; pct: number }): ReactElement {
@@ -67,7 +74,7 @@ export function TaskRow({
           data-testid="task-row-status"
           className="ml-auto min-w-0 truncate text-xs text-muted-foreground tabular-nums"
         >
-          {amountOf(outcome, pct, summary)}
+          {amountOf(outcome, percent, summary)}
         </span>
       </div>
       <div data-testid="data-task-progress" className="text-xs">

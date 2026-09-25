@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import NamedTuple
 
 import pytest
-from pydantic import TypeAdapter
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import TypeAdapter, ValidationError
 from pydantic_ai import ModelRetry
 from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import VocabOption, WDKVocabTerm
@@ -27,7 +26,7 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     ParamProposals,
     coerce_proposals,
 )
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
@@ -79,7 +78,7 @@ def test_a_nested_object_is_refused_naming_the_parameter() -> None:
 
 
 def test_the_annotation_reports_the_offending_parameter() -> None:
-    with pytest.raises(PydanticValidationError, match="ngsSnp_strain_meta"):
+    with pytest.raises(ValidationError, match="ngsSnp_strain_meta"):
         _ADAPTER.validate_python({"ngsSnp_strain_meta": {"filters": []}})
 
 

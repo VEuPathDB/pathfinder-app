@@ -27,7 +27,7 @@ const COLUMNS: ShortcutColumn[] = [
   {
     heading: "Canvas",
     entries: [
-      { keys: "R", label: "Re-layout graph" },
+      { keys: "R", label: "Tidy layout" },
       { keys: "F", label: "Fit to view" },
       { keys: "+", label: "Zoom in" },
       { keys: "−", label: "Zoom out" },
@@ -51,7 +51,7 @@ const COLUMNS: ShortcutColumn[] = [
     entries: [
       { keys: "⌘K", label: "Quick switcher" },
       { keys: "G then S", label: "Go to strategy" },
-      { keys: "G then C", label: "Go to chat" },
+      { keys: "G then C", label: "Go to conversation" },
       { keys: "Esc", label: "Close sheet / back" },
     ],
   },

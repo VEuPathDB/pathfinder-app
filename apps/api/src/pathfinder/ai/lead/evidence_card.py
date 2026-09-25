@@ -1,13 +1,7 @@
-"""The evidence card of one check, read from the records the turn already holds.
-
-The assembler takes no model output: the control tests the turn recorded, the
-build's step counts, one read of the strategy on the site, and the references
-each criterion was bound on.
-"""
+"""The evidence card of one check, read from the records the turn already holds."""
 
 from __future__ import annotations
 
-import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -20,19 +14,20 @@ from pathfinder.ai.graph.stream_events import evidence_card_event
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone.control_repeats import merged_control_tests
 from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
 from pathfinder.domain.evidence import (
     CheckedStepCount,
-    ControlEnrichment,
     ControlTestEvidence,
     CriterionCitations,
     EvidenceCard,
     EvidenceVerdict,
     SiteRead,
+    VerificationReview,
 )
 from pathfinder.domain.strategy.build_outcome import NodeResult
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.services.enrichment.stats import hypergeometric_log_sf
+from pathfinder.services.evidence.control_enrichment import with_enrichment
 from pathfinder.services.strategies.site_counts import SiteCounts, read_step_counts
 
 
@@ -53,6 +48,8 @@ class CardSources:
     spec: OperationalSpec | None
     control_tests: Sequence[ControlTestRun]
     verdict: EvidenceVerdict
+    # The checker's review, as the record of the turn lets it stand.
+    review: VerificationReview
 
 
 def _strategy_url(sources: CardSources, site: SiteCounts | None) -> str | None:
@@ -78,41 +75,18 @@ def _steps(sources: CardSources, site: SiteCounts | None) -> list[CheckedStepCou
     ]
 
 
-def _with_enrichment(tested: ControlTestEvidence) -> ControlTestEvidence:
-    """The test with the hypergeometric row, when it ran both kinds."""
-    positive, negative = tested.positive, tested.negative
-    if positive is None or negative is None:
-        return tested
-    population = positive.controls_count + negative.controls_count
-    returned = positive.returned_count + negative.returned_count
-    log_sf = hypergeometric_log_sf(
-        positive.returned_count, population, positive.controls_count, returned
-    )
-    return tested.model_copy(
-        update={
-            "enrichment": ControlEnrichment(
-                population=population,
-                positives=positive.controls_count,
-                returned=returned,
-                positives_returned=positive.returned_count,
-                p_value=min(1.0, math.exp(log_sf)),
-            )
-        }
-    )
-
-
 def _controls(sources: CardSources) -> list[ControlTestEvidence]:
-    """The latest control test of each target the judged strategy still holds."""
-    latest: dict[tuple[int | None, str], ControlTestEvidence] = {}
-    for run in sources.control_tests:
-        if run.origin != "control_test":
-            continue
-        tested = run.evidence
-        step = tested.wdk_step_id
-        if step is not None and step not in sources.live_wdk_step_ids:
-            continue
-        latest[step, tested.tested_label] = tested
-    return [_with_enrichment(tested) for tested in latest.values()]
+    """Every control id tested on each target the judged strategy still holds."""
+    tests = merged_control_tests(
+        run.evidence
+        for run in sources.control_tests
+        if run.origin == "control_test"
+        and (
+            run.evidence.wdk_step_id is None
+            or run.evidence.wdk_step_id in sources.live_wdk_step_ids
+        )
+    )
+    return [with_enrichment(tested) for tested in tests]
 
 
 def _citations(spec: OperationalSpec | None) -> list[CriterionCitations]:
@@ -151,11 +125,17 @@ def assemble_evidence_card(
         controls=_controls(sources),
         citations=_citations(sources.spec),
         verdict=sources.verdict,
+        review=sources.review,
     )
 
 
 def _sources(
-    deps: LeadDeps, *, check_id: str, revision: str, verdict: EvidenceVerdict
+    deps: LeadDeps,
+    *,
+    check_id: str,
+    revision: str,
+    verdict: EvidenceVerdict,
+    review: VerificationReview,
 ) -> CardSources:
     session = deps.runtime.strategy_session
     graph = session.get_graph(None)
@@ -174,14 +154,22 @@ def _sources(
         spec=deps.state.domain.operational_spec,
         control_tests=deps.state.turn_markers.control_tests,
         verdict=verdict,
+        review=review,
     )
 
 
 async def publish_evidence_card(
-    deps: LeadDeps, *, check_id: str, revision: str, verdict: EvidenceVerdict
+    deps: LeadDeps,
+    *,
+    check_id: str,
+    revision: str,
+    verdict: EvidenceVerdict,
+    review: VerificationReview,
 ) -> EvidenceCard:
-    """Read the site once, keep the card as the thread's last and stream it."""
-    sources = _sources(deps, check_id=check_id, revision=revision, verdict=verdict)
+    """Read the site once, keep the card as the conversation's last and stream it."""
+    sources = _sources(
+        deps, check_id=check_id, revision=revision, verdict=verdict, review=review
+    )
     site = (
         None
         if sources.wdk_strategy_id is None

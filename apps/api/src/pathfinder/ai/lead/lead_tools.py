@@ -12,6 +12,8 @@ from veupathdb import JSONObject
 
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
+from pathfinder.ai.lead.card_reply import CardReply
+from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import (
@@ -37,8 +39,6 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetListResponse,
 )
 from pathfinder.domain.memory import MemoryKind
-from pathfinder.services.gene_records import read
-from pathfinder.services.gene_records.read import GeneRecordSummary
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 
@@ -99,20 +99,20 @@ def classify_user_intent(
     A message that answers a question you asked is
     ``clarification_response``, whatever else it carries: two answers
     followed by "go ahead and build it" is still the answer to them, and
-    the request it answers is the one the thread is on. ``new_strategy``
+    the request it answers is the one the conversation is on. ``new_strategy``
     is for a message that ABANDONS that request and states a different
-    one. On a thread whose strategy holds no step it sets aside the old
+    one. On a conversation whose strategy holds no step it sets aside the old
     request, its draft, its requirements and its open questions.
 
     Any other imperative asks for a build. "Run it", "rerun the compute",
     "build the strategy", "add those genes as a step", "create the step" -
-    and a bare "yes, do it" that accepts an offer you made - are
-    ``extend_strategy`` when the thread already has a strategy, a framed
+    and a bare "yes, do it" typed while a card of yours waits - are
+    ``extend_strategy`` when the conversation already has a strategy, a framed
     draft or an open analysis, and ``new_strategy`` when it has none of
     them and answers no question of yours. A retry after a failed task is the same request
     again, so it keeps the classification that request had. None of them
     is a ``follow_up_question``: that value is for a message that asks you
-    to EXPLAIN something the thread already holds. A question whose answer is
+    to EXPLAIN something the conversation already holds. A question whose answer is
     a count, a list or a membership is a build however it is phrased.
 
     A question whose answer is the size or the members of a gene search on
@@ -120,7 +120,7 @@ def classify_user_intent(
     on chromosome 6 carry a signal peptide", "compare the gene counts of
     three organisms" - asks for a build, whatever its grammar: the search
     computes the answer and the step behind it is the provenance. It is
-    ``new_strategy`` on a thread with no strategy and ``extend_strategy``
+    ``new_strategy`` on a conversation with no strategy and ``extend_strategy``
     otherwise, never a ``follow_up_question``. A question the record or
     the literature answers - a product, a mechanism, a rate - is not one.
 
@@ -130,7 +130,7 @@ def classify_user_intent(
       asks for nothing. No imperative, no question about the data. Example:
       "I'm investigating virulence factors in Leishmania major".
     - ``memory_request``: the message asks you to keep something for later.
-      Example: "Please remember for future sessions: I always work with
+      Example: "Please remember for future conversations: I always work with
       P. falciparum 3D7 and I prefer the Su et al. strand-specific dataset."
 
     Both are answered in prose, and ``memory_request`` with one ``remember``
@@ -139,7 +139,7 @@ def classify_user_intent(
     PathFinder does its work through these tools; it writes no code and no
     general text. In scope: building, extending, editing and verifying
     strategies; EDA; exports; saved gene sets; memory;
-    questions about the databases, the searches, the parameters and the
+    questions about the sites, the searches, the parameters and the
     organisms; and the biology behind a search - what a kinase is, what a
     signal peptide is, what a p-value cutoff means here. ``off_topic`` is the
     rest: code in any language, prose or email drafting, translation, general
@@ -187,7 +187,7 @@ async def remember(
     content: dict[str, object],
     tags: list[str] | None = None,
 ) -> ToolReturn[str]:
-    """Store one thing the user asked you to keep for future sessions.
+    """Store one thing the user asked you to keep for future conversations.
 
     Use it for a stated preference (a default organism, a preferred dataset)
     and for a fact they taught you. One call per thing remembered. Storing a
@@ -219,7 +219,7 @@ async def save_gene_set(
     """Save a gene set the user can export, publish and test controls against.
 
     This is the save the user asks for when they say "save these genes as a
-    gene set". The set appears in the thread, and its id is what the export
+    gene set". The set appears in the conversation, and its id is what the export
     and control tools take. ``remember`` stores a note about a set; it creates
     none.
 
@@ -316,47 +316,12 @@ async def get_live_strategy_state(
     )
 
 
-async def read_gene_record(
+async def clear_the_strategy(
     ctx: RunContext[LeadDeps],
-    gene_id: str,
-) -> ToolReturn[GeneRecordSummary]:
-    """Read one gene's record on this site.
-
-    The record is where a fact about a named gene comes from: its product, its
-    exon and transcript counts, its chromosome, the orthologs the site lists
-    for it, and the site's own expression summary. Call it before you state
-    any of those, and cite it in ``sources``. A web page is not a record.
-
-    Args:
-        gene_id: A gene source id on this site, for example 'PF3D7_1133400'.
-    """
-    found = await read.read_gene_record(ctx.deps.runtime.site_id, gene_id)
-    ctx.deps.state.turn_markers.record_retrieved_source(found.record_url)
-    return with_summary(found, found.summary_line(), ctx=ctx)
-
-
-async def clear_strategy(
-    ctx: RunContext[LeadDeps],
-    *,
-    confirm: bool,
 ) -> ToolReturn[ClearStrategyResult]:
-    """Throw the whole strategy away so the user can start over.
-
-    This is the ONLY deliberate destructive path. Use it when the user asks to
-    scrap the strategy and begin again, and never as a way around
-    ``build_strategy``'s refusal on a thread that already has one: a request
-    that changes what the strategy asks is ``edit_strategy``.
-
-    Every step goes from this thread, and the next build creates a strategy of
-    its own on VEuPathDB instead of reusing the one that stood here. The
-    cleared state appends a revision, so a revert restores what this call
-    cleared. The user approves the call before it runs, so do not also ask in
-    prose. After it returns, frame and build afresh.
-
-    ``confirm`` must be true; the call is refused otherwise.
-    """
+    """Clear every step and set the cleared strategy's request aside."""
     inner = inner_context(ctx)
-    cleared = await conversation.clear_strategy(inner, confirm=confirm)
+    cleared = await conversation.clear_strategy(inner, confirm=True)
     state = ctx.deps.state
     state.turn_markers.edited = True
     # The cleared strategy's request goes with it. This message's own request
@@ -369,9 +334,38 @@ async def clear_strategy(
     return cleared
 
 
+async def clear_strategy(
+    ctx: RunContext[LeadDeps],
+    *,
+    reply: CardReply,
+    confirm: bool,
+) -> ToolReturn[ClearStrategyResult]:
+    """Throw the whole strategy away so the user can start over.
+
+    This is the ONLY deliberate destructive path. Use it when the user asks to
+    scrap the strategy and begin again, and never as a way around
+    ``build_strategy``'s refusal on a conversation that already has one: a request
+    that changes what the strategy asks is ``edit_strategy``.
+
+    Every step goes from this conversation, and the next build creates a strategy of
+    its own on VEuPathDB instead of reusing the one that stood here. The
+    cleared state appends a revision, so a revert restores what this call
+    cleared. The user approves the call on its card; ``reply`` streams above
+    the card and says what goes. After it returns, frame and build afresh.
+
+    ``confirm`` must be true; the call is refused otherwise.
+    """
+    del reply
+    if not confirm:
+        return await conversation.clear_strategy(inner_context(ctx), confirm=False)
+    return await clear_the_strategy(ctx)
+
+
 async def delete_step(
     ctx: RunContext[LeadDeps],
     step_id: str,
+    *,
+    reply: CardReply,
 ) -> ToolReturn[JSONObject]:
     """Remove one step from the strategy.
 
@@ -385,17 +379,29 @@ async def delete_step(
     secondary branch and the primary branch becomes the root; any other root
     leaves with every step under it. A delete no re-wiring of the graph
     performs is refused with the reason, as is any root of more than one step
-    on a thread that holds several roots and no push says which is the
+    on a conversation that holds several roots and no push says which is the
     strategy - name a step under the one you mean instead. The write appends a
     revision, so a revert restores what it removed, and the user approves the
-    call before it runs, so do not also ask in prose.
+    call on its card; ``reply`` streams above the card and says what the
+    delete takes with it.
 
     Args:
         step_id: The step to remove, by the id the strategy graph shows.
+        reply: Your reply, which the researcher reads above the card.
     """
+    del reply
     inner = inner_context(ctx)
+    session = ctx.deps.runtime.strategy_session
+    before = session.get_graph(None)
+    held = {} if before is None else dict(before.steps)
     deleted = await strategy_edits.delete_the_step(
         inner, step_id, surface=DeleteSurface.LEAD
+    )
+    after = session.get_graph(None)
+    ctx.deps.state.turn_markers.deleted_steps.extend(
+        named_step(node)
+        for held_id, node in held.items()
+        if after is None or held_id not in after.steps
     )
     ctx.deps.state.turn_markers.edited = True
     if ctx.deps.state.domain.operational_spec is not None:

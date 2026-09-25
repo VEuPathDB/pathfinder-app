@@ -26,8 +26,6 @@ FIXTURES = FIXTURE_DIR
 DATASET = "DS_53f554ec6a"
 STUDY = "STUDY_53f554ec6a"
 ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
-SPECIES = "VAR_035294d0"
-HIDDEN = "VAR_71b4a7d4"
 
 
 def fixture(name: str) -> object:
@@ -38,7 +36,6 @@ _FIXTURE_BY_SUFFIX = {
     "/permissions": "permissions.json",
     "/eda/studies": "studies_list.json",
     f"/eda/studies/{STUDY}": "study_detail_phenotype.json",
-    "/distribution": "distribution_categorical.json",
     "/statistics": "volcano_statistics.json",
 }
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai import ModelRetry, RunContext
+from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
@@ -366,3 +367,82 @@ class TestTheTreeAndTheRolesAgree:
         await set_structure(_ctx(st), root=hydrated.root)
 
         assert _drafted_root(st) == hydrated.root
+
+
+def _signal_peptide(criterion_id: str, organism: str) -> Criterion:
+    return Criterion(
+        id=criterion_id,
+        text=f"{organism} genes that have a predicted signal peptide",
+        search_name="GenesWithSignalPeptide",
+        role="seed",
+        resolved_params={"organism": MultiPickValue(values=[organism])},
+    )
+
+
+class TestAnIntersectOfTwoOrganismsIsRefusedBeforeTheBuild:
+    """Gene ids of two species never match, so the tree is refused at FRAME."""
+
+    @pytest.mark.asyncio
+    async def test_the_two_organism_intersect_is_refused(self) -> None:
+        st = AgentToolState()
+        st.frame_set_criterion(_signal_peptide("c_pf", "Plasmodium falciparum 3D7"))
+        st.frame_set_criterion(_signal_peptide("c_pv", "Plasmodium vivax P01"))
+
+        with pytest.raises(ModelRetry) as exc:
+            await set_structure(
+                _ctx(st),
+                root=_combine(CombineOp.INTERSECT, _leaf("c_pf"), _leaf("c_pv")),
+            )
+
+        assert str(exc.value) == (
+            "The structure is refused: Cannot INTERSECT steps with different "
+            "organism scopes (Plasmodium falciparum 3D7 vs Plasmodium vivax P01). "
+            "Gene IDs from different species never match, so this always returns "
+            "0 results. Scope every seed to one organism: Plasmodium falciparum "
+            "3D7 or Plasmodium vivax P01. Nothing was recorded."
+        )
+        assert st.operational_spec_draft.structure is None
+        assert not st.operational_spec_draft.ready_to_build
+
+    @pytest.mark.asyncio
+    async def test_a_union_of_two_organisms_is_written(self) -> None:
+        st = AgentToolState()
+        st.frame_set_criterion(_signal_peptide("c_pf", "Plasmodium falciparum 3D7"))
+        st.frame_set_criterion(_signal_peptide("c_pv", "Plasmodium vivax P01"))
+
+        await set_structure(
+            _ctx(st),
+            root=_combine(CombineOp.UNION, _leaf("c_pf"), _leaf("c_pv")),
+        )
+
+        assert _drafted_root(st).operator == CombineOp.UNION
+
+    @pytest.mark.asyncio
+    async def test_an_intersect_above_the_orthology_transform_is_written(self) -> None:
+        st = AgentToolState()
+        st.frame_set_criterion(_signal_peptide("c_pf", "Plasmodium falciparum 3D7"))
+        st.frame_set_criterion(_signal_peptide("c_pv", "Plasmodium vivax P01"))
+        st.frame_set_criterion(
+            Criterion(
+                id="c_to_pv",
+                text="their orthologs in Plasmodium vivax P01",
+                search_name="GenesByOrthologs",
+                role="transform",
+                resolved_params={
+                    "organism": MultiPickValue(values=["Plasmodium vivax P01"])
+                },
+            )
+        )
+
+        await set_structure(
+            _ctx(st),
+            root=_combine(
+                CombineOp.INTERSECT,
+                StructureNode(
+                    kind="transform", criterion_id="c_to_pv", inputs=[_leaf("c_pf")]
+                ),
+                _leaf("c_pv"),
+            ),
+        )
+
+        assert _drafted_root(st).operator == CombineOp.INTERSECT

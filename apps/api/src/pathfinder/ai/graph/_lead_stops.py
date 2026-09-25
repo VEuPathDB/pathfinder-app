@@ -228,6 +228,6 @@ def final_reply(
         return capture.response
     if capture.pending_approval is not None or capture.pending_durable_call is not None:
         return None
-    if capture.proposal_declined:
+    if capture.offer_declined:
         return None
     return stop_response(fallback_prose(capture, unanswered), changed=changed)

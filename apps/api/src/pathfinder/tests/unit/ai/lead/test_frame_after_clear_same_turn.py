@@ -115,7 +115,11 @@ async def test_the_clear_leaves_no_spec_and_keeps_the_turn_entry_record() -> Non
     """The cleared thread states no criteria; the entry record is still the turn's."""
     ctx = _turn_over_two_steps()
 
-    await clear_strategy(ctx, confirm=True)
+    await clear_strategy(
+        ctx,
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
 
     assert ctx.deps.state.domain.operational_spec is None
     entry = ctx.deps.state.domain.spec_before_turn
@@ -128,7 +132,11 @@ async def test_an_unconfirmed_clear_leaves_the_spec_standing() -> None:
     ctx = _turn_over_two_steps()
 
     with pytest.raises(ModelRetry, match="VALIDATION_ERROR"):
-        await clear_strategy(ctx, confirm=False)
+        await clear_strategy(
+            ctx,
+            confirm=False,
+            reply="I will make this change and report what it takes with it.",
+        )
 
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
@@ -141,7 +149,11 @@ async def test_a_frame_after_a_clear_frames_an_empty_workspace(
 ) -> None:
     """The cleared criteria are not the new pass's to account for."""
     ctx = _turn_over_two_steps()
-    await clear_strategy(ctx, confirm=True)
+    await clear_strategy(
+        ctx,
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
     spy = _frame_spy(monkeypatch)
 
     result = await run_frame(
@@ -163,7 +175,11 @@ async def test_the_ledger_reports_the_cleared_criteria_as_dropped(
 ) -> None:
     """A clear plus a fresh frame is every entry criterion dropped and one added."""
     ctx = _turn_over_two_steps()
-    await clear_strategy(ctx, confirm=True)
+    await clear_strategy(
+        ctx,
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
     _frame_spy(monkeypatch)
 
     await run_frame(deps=ctx.deps, parent_tool_call_id="t1", work_order="frame it")

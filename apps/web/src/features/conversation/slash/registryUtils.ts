@@ -2,8 +2,6 @@
 
 import type { UIMessage } from "ai";
 
-import { getAuthHeaders } from "@/lib/api/http";
-
 export function downloadTextFile(filename: string, text: string, mime: string) {
   const blob = new Blob([text], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -16,23 +14,8 @@ export function downloadTextFile(filename: string, text: string, mime: string) {
   setTimeout(() => URL.revokeObjectURL(url), 5_000);
 }
 
-export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    headers: getAuthHeaders({
-      ...(init?.headers as Record<string, string> | undefined),
-      contentType: "application/json",
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(body || `${res.status} ${res.statusText}`);
-  }
-  return (await res.json()) as T;
-}
-
 export function renderChatMarkdown(messages: UIMessage[]): string {
-  const lines: string[] = ["# Pathfinder Chat Export", ""];
+  const lines: string[] = ["# PathFinder conversation export", ""];
   for (const msg of messages) {
     lines.push(`## ${msg.role}`);
     for (const part of msg.parts) {

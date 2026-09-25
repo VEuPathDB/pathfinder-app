@@ -1,0 +1,4601 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "method": "GET",
+    "url": "https://plasmodb.org/plasmo/service/record-types/transcript?format=expanded",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-24",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searches": [
+      {
+        "urlSegment": "AllGenes",
+        "fullName": "GeneQuestions.AllGenes",
+        "displayName": "All Genes",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "TranscriptsFromGenes",
+        "fullName": "GeneQuestions.TranscriptsFromGenes",
+        "displayName": "Transform Transcripts to Genes",
+        "paramNames": [
+          "transcript_result"
+        ]
+      },
+      {
+        "urlSegment": "GenesByUserDatasetGeneList",
+        "fullName": "GeneQuestions.GenesByUserDatasetGeneList",
+        "displayName": "Gene List (User Datasets)",
+        "paramNames": [
+          "geneListUserDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesByOldAnnotation",
+        "fullName": "GeneQuestions.GenesByOldAnnotation",
+        "displayName": "Annotation Changes Since Previous PlasmoDB Release",
+        "paramNames": [
+          "plasmo_new_product",
+          "plasmo_new_cds",
+          "plasmo_new_go",
+          "plasmo_new_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRodentMalariaPhenotype",
+        "fullName": "GeneQuestions.GenesByRodentMalariaPhenotype",
+        "displayName": "Phenotypes in Rodent Malaria",
+        "paramNames": [
+          "RodMalStage",
+          "RodMalType",
+          "RodMalSuccess",
+          "RodMalPhenotype"
+        ]
+      },
+      {
+        "urlSegment": "GenesByLocation",
+        "fullName": "GeneQuestions.GenesByLocation",
+        "displayName": "Genomic Location",
+        "paramNames": [
+          "organismSinglePick",
+          "chromosomeOptional",
+          "sequenceId",
+          "start_point",
+          "end_point"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGeneType",
+        "fullName": "GeneQuestions.GenesByGeneType",
+        "displayName": "Gene Type",
+        "paramNames": [
+          "organism",
+          "geneType",
+          "includePseudogenes"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGeneModelChars",
+        "fullName": "GeneQuestions.GenesByGeneModelChars",
+        "displayName": "Gene Model Characteristics",
+        "paramNames": [
+          "organism_select_none",
+          "gene_or_transcript",
+          "gene_model_char"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEdaSubset",
+        "fullName": "GeneQuestions.GenesByEdaSubset",
+        "displayName": "Gene Dataset Filtering",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeUserDataset",
+        "fullName": "GeneQuestions.GenesByPhenotypeUserDataset",
+        "displayName": "Phenotype (User Datasets)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByDESeqUserDataset",
+        "fullName": "GeneQuestions.GenesByDESeqUserDataset",
+        "displayName": "RNA-Seq Differential Expression (User Datasets)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEdaVizWithCompute",
+        "fullName": "GeneQuestions.GenesByEdaVizWithCompute",
+        "displayName": "Gene Dataset Filtering",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_PlasmoDB_pknoA1H1_piggyBac_mutagenesis_MIS_MFS_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_PlasmoDB_pknoA1H1_piggyBac_mutagenesis_MIS_MFS_Phenotype_RSRC",
+        "displayName": "P. knowlesi A1H1 essential genes via piggyBac screen Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_PlasmoDB_Rod_Mal_Phenotype_RSRC",
+        "displayName": "RMgmDB - Rodent Malaria genetically modified Parasites Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_PlasmoDB_pfal3D7_pB_mutagenesis_MIS_MFS_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_PlasmoDB_pfal3D7_pB_mutagenesis_MIS_MFS_Phenotype_RSRC",
+        "displayName": "piggyBac insertion mutagenesis Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_PlasmoDB_pknoH_piggyBac_mutagenesis_HME_MIS_OIS_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_PlasmoDB_pknoH_piggyBac_mutagenesis_HME_MIS_OIS_Phenotype_RSRC",
+        "displayName": "P. knowlesi H essential genes via piggyBac screen Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_PlasmoDB_pfal3D7_HS_Response_Phenotype_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_PlasmoDB_pfal3D7_HS_Response_Phenotype_Phenotype_RSRC",
+        "displayName": "Heat-shock response phenotypic screen Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_PlasmoDB_pberANKA_Bushell_functional_profiling_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_PlasmoDB_pberANKA_Bushell_functional_profiling_Phenotype_RSRC",
+        "displayName": "P. berghei knockout (PlasmoGEM) growth phenotypes Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArrayEdaSubset_PlasmoDB_Crompton_Mali_AntibodyArray_RSRC",
+        "fullName": "GeneQuestions.GenesByAntibodyArrayEdaSubset_PlasmoDB_Crompton_Mali_AntibodyArray_RSRC",
+        "displayName": "Protein targets of serum antibodies in response to infection Antibody Array",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArrayEdaSubset_PlasmoDB_Kazura_Reinfection_AntibodyArray_RSRC",
+        "fullName": "GeneQuestions.GenesByAntibodyArrayEdaSubset_PlasmoDB_Kazura_Reinfection_AntibodyArray_RSRC",
+        "displayName": "Treatment-time to reinfection cohort from Kisumu area, Kenya collected in 2003 Antibody Array",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArrayEdaSubset_PlasmoDB_ICEMR_combined_AntibodyArray_RSRC",
+        "fullName": "GeneQuestions.GenesByAntibodyArrayEdaSubset_PlasmoDB_ICEMR_combined_AntibodyArray_RSRC",
+        "displayName": "International Centers of Excellence for Malaria Research Antibody Array",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArrayEdaSubset_PlasmoDB_Helb_RecentExposure_AntibodyArray_RSRC",
+        "fullName": "GeneQuestions.GenesByAntibodyArrayEdaSubset_PlasmoDB_Helb_RecentExposure_AntibodyArray_RSRC",
+        "displayName": "Antibody array of recent exposure to Plasmodium infection Antibody Array",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArrayEdaSubset_PlasmoDB_Loffler_Natural_Infection_AntibodyArray_RSRC",
+        "fullName": "GeneQuestions.GenesByAntibodyArrayEdaSubset_PlasmoDB_Loffler_Natural_Infection_AntibodyArray_RSRC",
+        "displayName": "Peptide arrays of individuals naturally exposed to Plasmodium Antibody Array",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByLongReadEvidence_pfal3D7_Stuart_Ralph_nanopore_longReadRnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByLongReadEvidence_pfal3D7_Stuart_Ralph_nanopore_longReadRnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 mixed asexual erythrocyte stages long read RNA-Seq",
+        "paramNames": [
+          "long_read_datasets",
+          "ismTypes",
+          "supporting_read_count",
+          "transcript_length"
+        ]
+      },
+      {
+        "urlSegment": "GenesByLongReadEvidence_pfal3D7_Gomes_et_al_nanopore_longReadRnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByLongReadEvidence_pfal3D7_Gomes_et_al_nanopore_longReadRnaSeq_RSRC",
+        "displayName": "P. falciparum NF54 gametocyte stages II-V long read RNA-Seq",
+        "paramNames": [
+          "long_read_datasets",
+          "ismTypes",
+          "supporting_read_count",
+          "transcript_length"
+        ]
+      },
+      {
+        "urlSegment": "GenesByLongReadEvidence_pyoeyoelii17X_Scott_Lindner_nanopore_longReadRnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByLongReadEvidence_pyoeyoelii17X_Scott_Lindner_nanopore_longReadRnaSeq_RSRC",
+        "displayName": "P. yoelii yoelii 17XNL mixed blood stage long read RNA-Seq",
+        "paramNames": [
+          "long_read_datasets",
+          "ismTypes",
+          "supporting_read_count",
+          "transcript_length"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotype_pberANKA_phenotype_Bushnell_functional_profiling_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotype_pberANKA_phenotype_Bushnell_functional_profiling_RSRC",
+        "displayName": "P. berghei knockout (PlasmoGEM) growth phenotypes",
+        "paramNames": [
+          "phenoBushnellGrowthRatesNAFeatureIds"
+        ]
+      },
+      {
+        "urlSegment": "GenesByExonCount",
+        "fullName": "GeneQuestions.GenesByExonCount",
+        "displayName": "Exon Count",
+        "paramNames": [
+          "organism",
+          "scope",
+          "num_exons_gte",
+          "num_exons_lte"
+        ]
+      },
+      {
+        "urlSegment": "GenesByParalogCount",
+        "fullName": "GeneQuestions.GenesByParalogCount",
+        "displayName": "Paralog Count",
+        "paramNames": [
+          "organism",
+          "num_paralogs"
+        ]
+      },
+      {
+        "urlSegment": "GenesByIsoelectricPoint",
+        "fullName": "GeneQuestions.GenesByIsoelectricPoint",
+        "displayName": "Isoelectric Point",
+        "paramNames": [
+          "organism",
+          "min_isoelectric_point",
+          "max_isoelectric_point"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMolecularWeight",
+        "fullName": "GeneQuestions.GenesByMolecularWeight",
+        "displayName": "Molecular Weight",
+        "paramNames": [
+          "organism",
+          "min_molecular_weight",
+          "max_molecular_weight"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySecondaryStructure",
+        "fullName": "GeneQuestions.GenesBySecondaryStructure",
+        "displayName": "Protein Secondary Structure",
+        "paramNames": [
+          "organism",
+          "min_coil",
+          "max_coil",
+          "min_strand",
+          "max_strand",
+          "min_helix",
+          "max_helix"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEcNumber",
+        "fullName": "GeneQuestions.GenesByEcNumber",
+        "displayName": "EC Number",
+        "paramNames": [
+          "organism",
+          "ec_source",
+          "ec_number_pattern",
+          "ec_wildcard"
+        ]
+      },
+      {
+        "urlSegment": "InternalGenesByEcNumber",
+        "fullName": "GeneQuestions.InternalGenesByEcNumber",
+        "displayName": "EC Number",
+        "paramNames": [
+          "ec_wildcard"
+        ]
+      },
+      {
+        "urlSegment": "GenesByIntronJunctions",
+        "fullName": "GeneQuestions.GenesByIntronJunctions",
+        "displayName": "Unannotated Intron Junctions",
+        "paramNames": [
+          "organism",
+          "min_total_unique",
+          "percent_max",
+          "max_flanking_bp"
+        ]
+      },
+      {
+        "urlSegment": "GenesByNgsSnps",
+        "fullName": "GeneQuestions.GenesByNgsSnps",
+        "displayName": "SNV Characteristics Within a Group of Samples",
+        "paramNames": [
+          "organismSinglePick",
+          "eda_sample_table_suffix",
+          "variation_sample_meta",
+          "WebServicesPath",
+          "ReadFrequencyPercent",
+          "MinPercentMinorAlleles",
+          "MinPercentIsolateCalls",
+          "snp_class",
+          "occurrences_lower",
+          "occurrences_upper",
+          "dn_ds_ratio_lower",
+          "dn_ds_ratio_upper",
+          "snp_density_lower",
+          "snp_density_upper"
+        ]
+      },
+      {
+        "urlSegment": "GenesByVariantCharacteristics",
+        "fullName": "GeneQuestions.GenesByVariantCharacteristics",
+        "displayName": "Short Variant Characteristics",
+        "paramNames": [
+          "organism_select_none",
+          "gene_variant_stats"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMassSpec",
+        "fullName": "GeneQuestions.GenesByMassSpec",
+        "displayName": "Mass Spec. Evidence",
+        "paramNames": [
+          "ms_assay",
+          "min_sequence_count",
+          "sample_vs_all",
+          "min_spectrum_count"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPTM",
+        "fullName": "GeneQuestions.GenesByPTM",
+        "displayName": "Post-Translational Modification",
+        "paramNames": [
+          "ptm_type",
+          "ptm_assay",
+          "ptm_operator",
+          "ptm_count"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithEpitopes",
+        "fullName": "GeneQuestions.GenesWithEpitopes",
+        "displayName": "Epitope Presence (IEDB)",
+        "paramNames": [
+          "organism",
+          "peptide_mismatch",
+          "taxon_match",
+          "protein_match"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySimilarity",
+        "fullName": "GeneQuestions.GenesBySimilarity",
+        "displayName": "BLAST",
+        "paramNames": [
+          "BlastDatabaseType",
+          "BlastAlgorithm",
+          "BlastDatabaseOrganism",
+          "BlastQuerySequence",
+          "BlastRecordClass",
+          "-e",
+          "-b",
+          "-filter"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMultiBlast",
+        "fullName": "GeneQuestions.GenesByMultiBlast",
+        "displayName": "BLAST",
+        "paramNames": [
+          "MultiBlastDatabaseType",
+          "BlastAlgorithm",
+          "BlastDatabaseOrganism",
+          "BlastQuerySequence",
+          "BlastJobDescription",
+          "ExpectationValue",
+          "NumQueryResults",
+          "MaxMatchesQueryRange",
+          "WordSize",
+          "ScoringMatrix",
+          "MatchMismatchScore",
+          "GapCosts",
+          "CompAdjust",
+          "FilterLowComplex",
+          "SoftMask",
+          "LowerCaseMask"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMotifSearch",
+        "fullName": "GeneQuestions.GenesByMotifSearch",
+        "displayName": "Protein Motif Pattern",
+        "paramNames": [
+          "motif_expression",
+          "motif_organism"
+        ]
+      },
+      {
+        "urlSegment": "GenesByInterproDomain",
+        "fullName": "GeneQuestions.GenesByInterproDomain",
+        "displayName": "InterPro Domain",
+        "paramNames": [
+          "organism",
+          "domain_database",
+          "domain_typeahead",
+          "domain_accession"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGoTerm",
+        "fullName": "GeneQuestions.GenesByGoTerm",
+        "displayName": "GO Term",
+        "paramNames": [
+          "organism",
+          "go_term_evidence",
+          "go_term_slim",
+          "go_typeahead",
+          "go_term"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMetabolicPathway",
+        "fullName": "GeneQuestions.GenesByMetabolicPathway",
+        "displayName": "Metabolic Pathway",
+        "paramNames": [
+          "organism",
+          "pathways_source",
+          "metabolic_pathway_id_with_genes",
+          "pathway_wildcard",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMetabolicPathwayIDKegg",
+        "fullName": "GeneQuestions.GenesByMetabolicPathwayIDKegg",
+        "displayName": "Metabolic Pathway Id- KEGG",
+        "paramNames": [
+          "organism",
+          "pathways_source",
+          "metabolic_pathway_id_with_genes",
+          "pathway_wildcard",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMetabolicPathwayHagai",
+        "fullName": "GeneQuestions.GenesByMetabolicPathwayHagai",
+        "displayName": "Metabolic Pathway - MPMP",
+        "paramNames": [
+          "org_with_Hagai_pathways",
+          "metabolic_pathway"
+        ]
+      },
+      {
+        "urlSegment": "GenesByReactionCompounds",
+        "fullName": "GeneQuestions.GenesByReactionCompounds",
+        "displayName": "Substrates/Products",
+        "paramNames": [
+          "organism",
+          "chebi_compound_id",
+          "compound_type",
+          "exact_match_only",
+          "exclude_incomplete_ec",
+          "pathways_source"
+        ]
+      },
+      {
+        "urlSegment": "GenesByTransmembraneDomains",
+        "fullName": "GeneQuestions.GenesByTransmembraneDomains",
+        "displayName": "Transmembrane Domain Count",
+        "paramNames": [
+          "organism",
+          "min_tm",
+          "max_tm"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithSignalPeptide",
+        "fullName": "GeneQuestions.GenesWithSignalPeptide",
+        "displayName": "Predicted Signal Peptide",
+        "paramNames": [
+          "organism",
+          "signalp_version"
+        ]
+      },
+      {
+        "urlSegment": "GenesByOrthologPattern",
+        "fullName": "GeneQuestions.GenesByOrthologPattern",
+        "displayName": "Orthology Phylogenetic Profile",
+        "paramNames": [
+          "profile_pattern",
+          "included_species",
+          "excluded_species",
+          "phyletic_indent_map",
+          "phyletic_term_map",
+          "organism"
+        ]
+      },
+      {
+        "urlSegment": "GeneByTranscriptID",
+        "fullName": "GeneQuestions.GeneByTranscriptID",
+        "displayName": "transcript ID",
+        "paramNames": [
+          "single_gene_id"
+        ]
+      },
+      {
+        "urlSegment": "GeneBySingleLocusTag",
+        "fullName": "GeneQuestions.GeneBySingleLocusTag",
+        "displayName": "ID",
+        "paramNames": [
+          "single_gene_id"
+        ]
+      },
+      {
+        "urlSegment": "GeneByLocusTag",
+        "fullName": "GeneQuestions.GeneByLocusTag",
+        "displayName": "List of IDs",
+        "paramNames": [
+          "ds_gene_ids"
+        ]
+      },
+      {
+        "urlSegment": "GenesByText",
+        "fullName": "GeneQuestions.GenesByText",
+        "displayName": "Text (product name, notes, etc.)",
+        "paramNames": [
+          "text_search_organism",
+          "text_expression",
+          "document_type",
+          "text_fields"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeText",
+        "fullName": "GeneQuestions.GenesByPhenotypeText",
+        "displayName": "Phenotype Text",
+        "paramNames": [
+          "text_search_organism",
+          "text_expression",
+          "document_type",
+          "text_fields"
+        ]
+      },
+      {
+        "urlSegment": "GenesByTaxon",
+        "fullName": "GeneQuestions.GenesByTaxon",
+        "displayName": "Organism",
+        "paramNames": [
+          "organism"
+        ]
+      },
+      {
+        "urlSegment": "GenesByBindingSiteFeature",
+        "fullName": "GeneQuestions.GenesByBindingSiteFeature",
+        "displayName": "TF Binding Site Evidence",
+        "paramNames": [
+          "organism",
+          "tfbs_name",
+          "tfbs_distance",
+          "tfbs_num_sites",
+          "tfbs_pvalue"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchippfal3D7_chipChipExper_Till_Voss_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchippfal3D7_chipChipExper_Till_Voss_RSRC",
+        "displayName": "HP1 localization at virulence clusters ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_pfal3D7_chipChipExper_Till_Voss_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchippfal3D7_chipChipExper_Artur_Scherf_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchippfal3D7_chipChipExper_Artur_Scherf_RSRC",
+        "displayName": "Histone modifications in Sir2 knockouts ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_pfal3D7_chipChipExper_Artur_Scherf_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_ApicoplastTargeting_RSRC",
+        "fullName": "GeneQuestions.GenesBySubcellularLocalizationpfal3D7_subcellular_localization_ApicoplastTargeting_RSRC",
+        "displayName": "Gene Lists from PlasmoAP motif for protein export to the apicoplast.",
+        "paramNames": [
+          "geneListParam",
+          "geneListDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Haldar_RSRC",
+        "fullName": "GeneQuestions.GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Haldar_RSRC",
+        "displayName": "Gene Lists from HT motif for protein export to the erythrocyte membrane.",
+        "paramNames": [
+          "geneListParam",
+          "geneListDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Cowman_RSRC",
+        "fullName": "GeneQuestions.GenesBySubcellularLocalizationpfal3D7_subcellular_localization_Cowman_RSRC",
+        "displayName": "Gene Lists from Pexel motif analysis of protein export to the erythrocyte membrane.",
+        "paramNames": [
+          "geneListParam",
+          "geneListDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_hyperLOPIT_Schizont_RSRC",
+        "fullName": "GeneQuestions.GenesBySubcellularLocalizationpfal3D7_subcellular_localization_hyperLOPIT_Schizont_RSRC",
+        "displayName": "Gene Lists from Schizont spatial proteome (hyperLOPIT)",
+        "paramNames": [
+          "geneListParam",
+          "geneListDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCWGCNAModules",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCWGCNAModules",
+        "displayName": "P. falciparum 3D7 Dual transcriptomes of malaria-infected Gambian children (RNA-Seq) WGCNA modules (functional prediction)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec",
+          "wgcnaParam",
+          "wgcnaDataset",
+          "wgcna_correlation_cutoff"
+        ]
+      },
+      {
+        "urlSegment": "GenesByNonnuclearLocation",
+        "fullName": "GeneQuestions.GenesByNonnuclearLocation",
+        "displayName": "Genomic Location (Non-nuclear)",
+        "paramNames": [
+          "org_with_nonnuclear_genes",
+          "nonnuclear_sequence",
+          "start_point",
+          "end_point"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCentromereProximity",
+        "fullName": "GeneQuestions.GenesByCentromereProximity",
+        "displayName": "Proximity to Centromeres",
+        "paramNames": [
+          "org_with_centromere_genes",
+          "max_centromere_distance",
+          "centromere_chromosome"
+        ]
+      },
+      {
+        "urlSegment": "GenesByTelomereProximity",
+        "fullName": "GeneQuestions.GenesByTelomereProximity",
+        "displayName": "Proximity to Telomeres",
+        "paramNames": [
+          "organismSinglePick",
+          "telomere_chromosomes",
+          "distanceFromTelomere"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPdbSimilarity",
+        "fullName": "GeneQuestions.GenesByPdbSimilarity",
+        "displayName": "PDB 3D Structures",
+        "paramNames": [
+          "organism",
+          "clades",
+          "pvalue_cutoff"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithStructurePrediction",
+        "fullName": "GeneQuestions.GenesWithStructurePrediction",
+        "displayName": "Pfal 3D7 Predicted 3D Structure",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesWithAlphafold",
+        "fullName": "GeneQuestions.GenesWithAlphafold",
+        "displayName": "AlphaFold Predictions",
+        "paramNames": [
+          "organismsWithAlphafold"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySingleCell",
+        "fullName": "GeneQuestions.GenesBySingleCell",
+        "displayName": "Single Cell RNA-Seq Evidence",
+        "paramNames": [
+          "organismsWithSingleCell",
+          "singleCellDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithUserComments",
+        "fullName": "GeneQuestions.GenesWithUserComments",
+        "displayName": "User Comments",
+        "paramNames": [
+          "organism_select_all"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithApolloAnnotation",
+        "fullName": "GeneQuestions.GenesWithApolloAnnotation",
+        "displayName": "Apollo Annotation Comments",
+        "paramNames": [
+          "organism_select_all"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPlasmoProteinProteinInteraction",
+        "fullName": "GeneQuestions.GenesByPlasmoProteinProteinInteraction",
+        "displayName": "Y2H Protein Interaction",
+        "paramNames": [
+          "single_gene_id",
+          "min_searches",
+          "min_observed",
+          "bait_or_prey"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Derisi_TimeSeries_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Derisi_TimeSeries_RSRC",
+        "displayName": "P.falciparum Erythrocytic expression time series (3D7, DD2, HB3) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Derisi_TimeSeries_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Derisi_TimeSeries_RSRCPercentile",
+        "displayName": "P.falciparum Erythrocytic expression time series (3D7, DD2, HB3) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProfileSimilarity",
+        "fullName": "GeneQuestions.GenesByProfileSimilarity",
+        "displayName": "P.f. Intraerythrocytic infection cycle (similarity)",
+        "paramNames": [
+          "ProfileGeneId",
+          "ProfileDistanceMethod",
+          "ProfileNumToReturn",
+          "ProfileMissingPtsPercent",
+          "profile_profile_set",
+          "ProfileSearchGoal",
+          "profile_time_shift",
+          "ProfileScaleFactor",
+          "ProfileMinPoints"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEqtlProfileSimilarity",
+        "fullName": "GeneQuestions.GenesByEqtlProfileSimilarity",
+        "displayName": "P.f. eQTL HB3-Dd2 cross (similarity)",
+        "paramNames": [
+          "ProfileGeneId",
+          "ProfileDistanceMethod",
+          "ProfileNumToReturn",
+          "ProfileMissingPtsPercent",
+          "profile_profile_set",
+          "ProfileSearchGoal",
+          "profile_time_shift",
+          "ProfileScaleFactor",
+          "ProfileMinPoints"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGametocyteProfileSimilarity",
+        "fullName": "GeneQuestions.GenesByGametocyteProfileSimilarity",
+        "displayName": "P.f. Gametocyte time course (similarity)",
+        "paramNames": [
+          "ProfileGeneId",
+          "ProfileDistanceMethod",
+          "ProfileNumToReturn",
+          "ProfileMissingPtsPercent",
+          "profile_profile_set",
+          "ProfileSearchGoal",
+          "profile_time_shift",
+          "ProfileScaleFactor",
+          "ProfileMinPoints"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEQTL_HaploGrpSimilarity",
+        "fullName": "GeneQuestions.GenesByEQTL_HaploGrpSimilarity",
+        "displayName": "P.f. eQTL HB3-Dd2 cross (similarity of associations)",
+        "paramNames": [
+          "pf_gene_id",
+          "lod_score",
+          "percentage_sim_haploblck"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEQTL_Segments",
+        "fullName": "GeneQuestions.GenesByEQTL_Segments",
+        "displayName": "P.f. eQTL HB3-Dd2 cross (association to genomic segments)",
+        "paramNames": [
+          "pf_seqid",
+          "start_point",
+          "end_point_segment",
+          "lod_score",
+          "liberal_conservative"
+        ]
+      },
+      {
+        "urlSegment": "GenesByExportPrediction",
+        "fullName": "GeneQuestions.GenesByExportPrediction",
+        "displayName": "Exported Protein",
+        "paramNames": [
+          "organism",
+          "min_exportpred_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPlasmoDbDataset",
+        "fullName": "GeneQuestions.GenesByPlasmoDbDataset",
+        "displayName": "Genes imported from PlasmoDB 4.4",
+        "paramNames": [
+          "plasmodb_4-4_dataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCopyNumber",
+        "fullName": "GeneQuestions.GenesByCopyNumber",
+        "displayName": "Copy Number (CNV)",
+        "paramNames": [
+          "organismSinglePick",
+          "eda_sample_table_suffix",
+          "cnv_sample_meta",
+          "medianOrIndividual",
+          "CNV_type",
+          "operator",
+          "copyNumber"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCopyNumberComparison",
+        "fullName": "GeneQuestions.GenesByCopyNumberComparison",
+        "displayName": "Copy Number Comparison (CNV)",
+        "paramNames": [
+          "organismSinglePick",
+          "eda_sample_table_suffix",
+          "cnv_sample_meta",
+          "medianOrIndividual",
+          "comparisonOperator"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRCProfileSimilarity",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRCProfileSimilarity",
+        "displayName": "P. falciparum 3D7 High resolution intraerythrocytic time course transcriptome by RNA-Seq RNA-Seq (similarity)",
+        "paramNames": [
+          "ProfileGeneId",
+          "ProfileDistanceMethod",
+          "ProfileNumToReturn",
+          "ProfileMissingPtsPercent",
+          "profile_profile_set",
+          "ProfileSearchGoal",
+          "profile_time_shift",
+          "ProfileScaleFactor",
+          "ProfileMinPoints"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Transcriptome in severe vs uncomplicated malaria RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Trophozoite and Schizont transcriptomes of PfBDP1HA RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_Kappe_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_Kappe_ebi_rnaSeq_RSRC",
+        "displayName": "P. yoelii yoelii 17X Salivary gland sporozoite transcriptomes: WT vs. Puf2-KO RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Stunnenberg_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Stunnenberg_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Transcriptome during intraerythrocytic development RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Transcriptomes of 7 sexual and asexual life stages RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptomes of 4 life cycle stages RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Duffy_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Duffy_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 NSR-seq Transcript Profiling of malaria-infected pregnant women and children RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Dual transcriptomes of malaria-infected Gambian children (RNA-Seq) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Blood stage transcriptome (3D7) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bunnik_Asexual_Cell_Cycle_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bunnik_Asexual_Cell_Cycle_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Polysomal and steady-state asexual stage transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Janse_Hoeijmakers_five_stages_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Janse_Hoeijmakers_five_stages_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA 5 asexual and sexual stage transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Mosquito_And_Blood_Transmitted_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Mosquito_And_Blood_Transmitted_ebi_rnaSeq_RSRC",
+        "displayName": "P. chabaudi chabaudi Trophozoite transcriptomes after mosquito transmission or direct injection into mice RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Cultured_Sporozoites_Transcriptome_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Cultured_Sporozoites_Transcriptome_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Mosquito or cultured sporozoites and blood stage transcriptome (NF54) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic cycle transcriptome (3D7) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lasonder_Bartfai_Gametocytes_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lasonder_Bartfai_Gametocytes_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Gametocyte Transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_intraerythrocyticTimeSeries_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_intraerythrocyticTimeSeries_ebi_rnaSeq_RSRC",
+        "displayName": "P. vivax P01 Transcription profile of intraerythrocytic cycle RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA Female and male gametocyte RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRC",
+        "displayName": "P. vivax P01 Hypnozoite RNA-Seq RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Ring, Oocyst and Sporozoite Transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptome of the intraerythrocytic developmental cycle RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Voorverg_Liver_HvsS_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Voorverg_Liver_HvsS_ebi_rnaSeq_RSRC",
+        "displayName": "P. cynomolgi strain M Liver stage hypnozoite vs schizont transcriptomes (primary culture) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Scherf_Hypno_Schizo_Blood_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Scherf_Hypno_Schizo_Blood_ebi_rnaSeq_RSRC",
+        "displayName": "P. cynomolgi strain M Hypnozoite, schizont and blood stage transcriptomes (laser microdissection) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2018) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Jiang_Microenvironment_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Jiang_Microenvironment_ebi_rnaSeq_RSRC",
+        "displayName": "P. vivax P01 Sporozoite transcriptome in different microenvironments RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA P. berghei transcriptome during inducible gametocytogenesis RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRC",
+        "displayName": "P. chabaudi chabaudi Transcriptomes of PcAS and PcCB from mosquito transmitted or serial blood passaged mouse infections. RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Muller_salivary_gland_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Muller_salivary_gland_rnaSeq_RSRC",
+        "displayName": "P. vivax P01 Transcriptome of P. vivax salivary gland sporozoites RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Moreno_Pb_Liver_Infection_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Moreno_Pb_Liver_Infection_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA Transcriptome during early and mid-stage P. berghei liver infection RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Wichers_Intraerythrocytic_Cycle_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Wichers_Intraerythrocytic_Cycle_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2019) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Caldelari_Ex-Erythrocytic_Stage_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Caldelari_Ex-Erythrocytic_Stage_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA Ex-erythrocytic stage transcriptomes (sporozoite, liver time course and detached cells) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Transcriptome of the asexual life stages RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRC",
+        "displayName": "P. yoelii yoelii 17X Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by DAFT-Seq (3D7, HB3, IT, 2020) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Transcriptome of sequestration phenotypes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRC",
+        "displayName": "P. vinckei vinckei CY Intraerythrocytic development cycle for P. vinckei CY RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRC",
+        "displayName": "P. chabaudi chabaudi In vivo transcriptome in mouse RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Oocyst and salivary gland sporozoite transcriptome comparison in P. falciparum RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA Transcriptomes of viable ApiAP2 mutants by directional RNA-seq RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRC",
+        "displayName": "P. berghei ANKA Dietary restriction of P berghei WT and \u0394kin parasites RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Pvivax_3_patient_IDC_2020_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Pvivax_3_patient_IDC_2020_ebi_rnaSeq_RSRC",
+        "displayName": "P. vivax P01 Patient isolates cultured through the intraerythrocytic development cycle RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRC",
+        "displayName": "P. chabaudi chabaudi IDC in SR10KO and WT (2020) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRC",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei lentum RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRC",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei petteri RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 IDC in constant temperature and darkness (2020) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_PfaI_DC_UTR_RNASeq_2020_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_PfaI_DC_UTR_RNASeq_2020_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by UTR-Seq (2020) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Heat shock response in sensitive mutants (LRR5, DHC) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 High resolution intraerythrocytic time course transcriptome by RNA-Seq RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pfal3D7_invitro_versus_mosquito_produced_sporozoite_RNASeq_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pfal3D7_invitro_versus_mosquito_produced_sporozoite_RNASeq_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 Comparison of in vitro versus aseptic mosquito produced sporozoites by RNA-seq RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "P. vivax P01 P vivax patient isolate transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "P. yoelii yoelii 17XNL 2023 Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii yoelii 17XNL RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_sporozoite_WT_Puf2_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_sporozoite_WT_Puf2_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "P. yoelii yoelii 17XNL 2023 Salivary gland sporozoite transcriptomes: WT vs. Puf2-KO mapped to P. yoelii yoelii 17XNL RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_unstranded_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_unstranded_ebi_rnaSeq_RSRC",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 2) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRC",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 1) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "P. yoelii yoelii 17X Zygote and female gametocyte transcriptome RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_RNASeq_liver_stage_Kappe_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_RNASeq_liver_stage_Kappe_rnaSeq_RSRC",
+        "displayName": "P. falciparum 3D7 RNASeq of P. falciparum liver stages throughout intrahepatocytic development RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Transcriptome in severe vs uncomplicated malaria RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Trophozoite and Schizont transcriptomes of PfBDP1HA RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_Kappe_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_Kappe_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. yoelii yoelii 17X Salivary gland sporozoite transcriptomes: WT vs. Puf2-KO RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Stunnenberg_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Stunnenberg_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Transcriptome during intraerythrocytic development RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Transcriptomes of 7 sexual and asexual life stages RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptomes of 4 life cycle stages RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Duffy_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Duffy_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 NSR-seq Transcript Profiling of malaria-infected pregnant women and children RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Dual transcriptomes of malaria-infected Gambian children (RNA-Seq) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Blood stage transcriptome (3D7) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bunnik_Asexual_Cell_Cycle_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bunnik_Asexual_Cell_Cycle_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Polysomal and steady-state asexual stage transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Janse_Hoeijmakers_five_stages_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Janse_Hoeijmakers_five_stages_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA 5 asexual and sexual stage transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Galinski_infected_Mmulatta_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Galinski_infected_Mmulatta_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. cynomolgi strain M Transcriptome of P. cynomolgi during 100-day infection in M. mulatta RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Mosquito_And_Blood_Transmitted_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Mosquito_And_Blood_Transmitted_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. chabaudi chabaudi Trophozoite transcriptomes after mosquito transmission or direct injection into mice RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Cultured_Sporozoites_Transcriptome_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Cultured_Sporozoites_Transcriptome_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Mosquito or cultured sporozoites and blood stage transcriptome (NF54) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic cycle transcriptome (3D7) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lasonder_Bartfai_Gametocytes_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lasonder_Bartfai_Gametocytes_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Gametocyte Transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_intraerythrocyticTimeSeries_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_intraerythrocyticTimeSeries_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vivax P01 Transcription profile of intraerythrocytic cycle RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA Female and male gametocyte RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vivax P01 Hypnozoite RNA-Seq RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Ring, Oocyst and Sporozoite Transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptome of the intraerythrocytic developmental cycle RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Voorverg_Liver_HvsS_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Voorverg_Liver_HvsS_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. cynomolgi strain M Liver stage hypnozoite vs schizont transcriptomes (primary culture) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Scherf_Hypno_Schizo_Blood_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Scherf_Hypno_Schizo_Blood_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. cynomolgi strain M Hypnozoite, schizont and blood stage transcriptomes (laser microdissection) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2018) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Jiang_Microenvironment_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Jiang_Microenvironment_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vivax P01 Sporozoite transcriptome in different microenvironments RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA P. berghei transcriptome during inducible gametocytogenesis RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. chabaudi chabaudi Transcriptomes of PcAS and PcCB from mosquito transmitted or serial blood passaged mouse infections. RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Muller_salivary_gland_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Muller_salivary_gland_rnaSeq_RSRCPercentile",
+        "displayName": "P. vivax P01 Transcriptome of P. vivax salivary gland sporozoites RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Moreno_Pb_Liver_Infection_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Moreno_Pb_Liver_Infection_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA Transcriptome during early and mid-stage P. berghei liver infection RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqhpil2019_Aunin_Blood_Stage_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqhpil2019_Aunin_Blood_Stage_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "H. sp. ex Piliocolobus tephrosceles 2019 Blood stage transcriptome RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Wichers_Intraerythrocytic_Cycle_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Wichers_Intraerythrocytic_Cycle_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2019) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Caldelari_Ex-Erythrocytic_Stage_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Caldelari_Ex-Erythrocytic_Stage_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA Ex-erythrocytic stage transcriptomes (sporozoite, liver time course and detached cells) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Transcriptome of the asexual life stages RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. yoelii yoelii 17X Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by DAFT-Seq (3D7, HB3, IT, 2020) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Transcriptome of sequestration phenotypes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vinckei vinckei CY Intraerythrocytic development cycle for P. vinckei CY RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. chabaudi chabaudi In vivo transcriptome in mouse RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Oocyst and salivary gland sporozoite transcriptome comparison in P. falciparum RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA Transcriptomes of viable ApiAP2 mutants by directional RNA-seq RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. berghei ANKA Dietary restriction of P berghei WT and \u0394kin parasites RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Pvivax_3_patient_IDC_2020_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Pvivax_3_patient_IDC_2020_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vivax P01 Patient isolates cultured through the intraerythrocytic development cycle RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. chabaudi chabaudi IDC in SR10KO and WT (2020) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei lentum RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei petteri RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_brucechwatti_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_brucechwatti_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vinckei vinckei CY Mixed blood stage transcriptome for P. vinckei brucechwatti RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_baforti_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_baforti_stages_Pain_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vinckei vinckei CY Mixed blood stage transcriptome for P. vinckei baforti EL RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 IDC in constant temperature and darkness (2020) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_PfaI_DC_UTR_RNASeq_2020_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_PfaI_DC_UTR_RNASeq_2020_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by UTR-Seq (2020) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Heat shock response in sensitive mutants (LRR5, DHC) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 High resolution intraerythrocytic time course transcriptome by RNA-Seq RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pfal3D7_invitro_versus_mosquito_produced_sporozoite_RNASeq_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pfal3D7_invitro_versus_mosquito_produced_sporozoite_RNASeq_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Comparison of in vitro versus aseptic mosquito produced sporozoites by RNA-seq RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. vivax P01 P vivax patient isolate transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. yoelii yoelii 17XNL 2023 Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii yoelii 17XNL RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_sporozoite_WT_Puf2_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_sporozoite_WT_Puf2_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. yoelii yoelii 17XNL 2023 Salivary gland sporozoite transcriptomes: WT vs. Puf2-KO mapped to P. yoelii yoelii 17XNL RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_unstranded_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_unstranded_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 2) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 1) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "P. yoelii yoelii 17X Zygote and female gametocyte transcriptome RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_RNASeq_liver_stage_Kappe_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_RNASeq_liver_stage_Kappe_rnaSeq_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 RNASeq of P. falciparum liver stages throughout intrahepatocytic development RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Transcriptome in severe vs uncomplicated malaria RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Trophozoite and Schizont transcriptomes of PfBDP1HA RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Stunnenberg_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Stunnenberg_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Transcriptome during intraerythrocytic development RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Transcriptomes of 7 sexual and asexual life stages RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptomes of 4 life cycle stages RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Dual transcriptomes of malaria-infected Gambian children (RNA-Seq) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Blood stage transcriptome (3D7) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bunnik_Asexual_Cell_Cycle_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bunnik_Asexual_Cell_Cycle_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Polysomal and steady-state asexual stage transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Janse_Hoeijmakers_five_stages_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Janse_Hoeijmakers_five_stages_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA 5 asexual and sexual stage transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Galinski_infected_Mmulatta_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Galinski_infected_Mmulatta_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. cynomolgi strain M Transcriptome of P. cynomolgi during 100-day infection in M. mulatta RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Mosquito_And_Blood_Transmitted_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Mosquito_And_Blood_Transmitted_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. chabaudi chabaudi Trophozoite transcriptomes after mosquito transmission or direct injection into mice RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Cultured_Sporozoites_Transcriptome_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Cultured_Sporozoites_Transcriptome_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Mosquito or cultured sporozoites and blood stage transcriptome (NF54) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic cycle transcriptome (3D7) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_intraerythrocyticTimeSeries_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_intraerythrocyticTimeSeries_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vivax P01 Transcription profile of intraerythrocytic cycle RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA Female and male gametocyte RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vivax P01 Hypnozoite RNA-Seq RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Ring, Oocyst and Sporozoite Transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptome of the intraerythrocytic developmental cycle RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Voorverg_Liver_HvsS_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Voorverg_Liver_HvsS_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. cynomolgi strain M Liver stage hypnozoite vs schizont transcriptomes (primary culture) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpcynM_Scherf_Hypno_Schizo_Blood_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpcynM_Scherf_Hypno_Schizo_Blood_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. cynomolgi strain M Hypnozoite, schizont and blood stage transcriptomes (laser microdissection) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2018) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Jiang_Microenvironment_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Jiang_Microenvironment_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vivax P01 Sporozoite transcriptome in different microenvironments RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA P. berghei transcriptome during inducible gametocytogenesis RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. chabaudi chabaudi Transcriptomes of PcAS and PcCB from mosquito transmitted or serial blood passaged mouse infections. RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Muller_salivary_gland_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Muller_salivary_gland_rnaSeq_RSRCDESeq",
+        "displayName": "P. vivax P01 Transcriptome of P. vivax salivary gland sporozoites RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Moreno_Pb_Liver_Infection_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Moreno_Pb_Liver_Infection_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA Transcriptome during early and mid-stage P. berghei liver infection RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Wichers_Intraerythrocytic_Cycle_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Wichers_Intraerythrocytic_Cycle_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2019) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Caldelari_Ex-Erythrocytic_Stage_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Caldelari_Ex-Erythrocytic_Stage_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA Ex-erythrocytic stage transcriptomes (sporozoite, liver time course and detached cells) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Transcriptome of the asexual life stages RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. yoelii yoelii 17X Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by DAFT-Seq (3D7, HB3, IT, 2020) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Transcriptome of sequestration phenotypes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vinckei vinckei CY Intraerythrocytic development cycle for P. vinckei CY RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. chabaudi chabaudi In vivo transcriptome in mouse RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Oocyst and salivary gland sporozoite transcriptome comparison in P. falciparum RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA Transcriptomes of viable ApiAP2 mutants by directional RNA-seq RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. berghei ANKA Dietary restriction of P berghei WT and \u0394kin parasites RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Pvivax_3_patient_IDC_2020_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Pvivax_3_patient_IDC_2020_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vivax P01 Patient isolates cultured through the intraerythrocytic development cycle RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. chabaudi chabaudi IDC in SR10KO and WT (2020) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei lentum RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei petteri RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 IDC in constant temperature and darkness (2020) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_PfaI_DC_UTR_RNASeq_2020_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_PfaI_DC_UTR_RNASeq_2020_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by UTR-Seq (2020) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 Heat shock response in sensitive mutants (LRR5, DHC) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_ppfal3d7_kucharski_RBC_RNAseq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 High resolution intraerythrocytic time course transcriptome by RNA-Seq RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. vivax P01 P vivax patient isolate transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. yoelii yoelii 17XNL 2023 Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii yoelii 17XNL RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_unstranded_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_unstranded_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 2) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 1) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "P. yoelii yoelii 17X Zygote and female gametocyte transcriptome RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_RNASeq_liver_stage_Kappe_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_RNASeq_liver_stage_Kappe_rnaSeq_RSRCDESeq",
+        "displayName": "P. falciparum 3D7 RNASeq of P. falciparum liver stages throughout intrahepatocytic development RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypberANKA_microarrayExpression_Waters_TimeSeries_HP-HPE_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypberANKA_microarrayExpression_Waters_TimeSeries_HP-HPE_RSRC",
+        "displayName": "P. berghei ANKA Transcript Profiling of Developmental Stages - High Producer (HP/HPE) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypvivP01_microarrayExpression_Westenberger_array_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypvivP01_microarrayExpression_Westenberger_array_RSRC",
+        "displayName": "P. vivax P01 Sporozoite Expression Profiles Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_CellCycle_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_CellCycle_RSRC",
+        "displayName": "P. falciparum 3D7 Life cycle expression data (3D7) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypvivP01_microarrayExpression_ZB_time_series_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypvivP01_microarrayExpression_ZB_time_series_RSRC",
+        "displayName": "P. vivax P01 Intraerythrocytic developmental cycle of three isolates Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_E-MTAB-673_Transcrp_Variantome_3D7_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_E-MTAB-673_Transcrp_Variantome_3D7_RSRC",
+        "displayName": "P. falciparum 3D7 Asexual blood stage transcriptomes of clonal strains Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_WBCGametocyte_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_WBCGametocyte_RSRC",
+        "displayName": "P. falciparum 3D7 Gametocyte stages I-V transcriptomes Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicspfal3D7_quantitativeMassSpec_Apicoplast_ER_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicspfal3D7_quantitativeMassSpec_Apicoplast_ER_RSRC",
+        "displayName": "P. falciparum 3D7 Apicoplast and ER Proteomes (Quantitative)(Dd2) Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicspfal3D7_quantitativeMassSpec_Chakrabarti_Phosphoproteome_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicspfal3D7_quantitativeMassSpec_Chakrabarti_Phosphoproteome_RSRC",
+        "displayName": "P. falciparum 3D7 Proteome and phosphoproteome during intraerythrocytic development (Quantitative) Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Cowman_InvasionKOs_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Cowman_InvasionKOs_RSRC",
+        "displayName": "P. falciparum 3D7 Invasion pathway knockouts Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_E-TABM-438_sir2KO_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_E-TABM-438_sir2KO_RSRC",
+        "displayName": "P. falciparum 3D7 Two Sir2 KO lines expression profiling Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_GSE10022_CQ_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_GSE10022_CQ_RSRC",
+        "displayName": "P. falciparum 3D7 Three Isogenic Lines w/ CQ Treatment: expression profiles Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Llinas_RT_Transcription_Decay_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Llinas_RT_Transcription_Decay_RSRC",
+        "displayName": "P. falciparum 3D7 Pfal3D7 real-time transcription and decay Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Pelle_sexual_commitment_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Pelle_sexual_commitment_RSRC",
+        "displayName": "P. falciparum 3D7 Sexually vs asexually committed schizont transcriptional profiles Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypberANKA_microarrayExpression_Yuda_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypberANKA_microarrayExpression_Yuda_RSRC",
+        "displayName": "P. berghei ANKA AP2-G2 knock out and WT expression profiles Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypknoH_microarrayExpression_Pkno_iRBC_Bozdech_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypknoH_microarrayExpression_Pkno_iRBC_Bozdech_RSRC",
+        "displayName": "P. knowlesi strain H Intraerythrocytic cycle expression profile: in vitro and ex vivo (Pkno PK1(A+)) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicspfal3D7_quantitativeMassSpec_Merozoite_Prot_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicspfal3D7_quantitativeMassSpec_Merozoite_Prot_RSRC",
+        "displayName": "P. falciparum 3D7 Long-lived merozoite proteome Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Birkholtz_GametocyteTimeCourse_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Birkholtz_GametocyteTimeCourse_RSRC",
+        "displayName": "P. falciparum 3D7 Gametocyte time course from commitment to maturity Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Josling_BDP_IDC_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Josling_BDP_IDC_RSRC",
+        "displayName": "P. falciparum 3D7 Transcriptome of Bromodomain protein conditional knockouts over the IDC Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypberANKA_microarrayExpression_Waters_TimeSeries_HP-HPE_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypberANKA_microarrayExpression_Waters_TimeSeries_HP-HPE_RSRCPercentile",
+        "displayName": "P. berghei ANKA Transcript Profiling of Developmental Stages - High Producer (HP/HPE) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypvivP01_microarrayExpression_Westenberger_array_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypvivP01_microarrayExpression_Westenberger_array_RSRCPercentile",
+        "displayName": "P. vivax P01 Sporozoite Expression Profiles Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_CellCycle_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_CellCycle_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Life cycle expression data (3D7) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypvivP01_microarrayExpression_ZB_time_series_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypvivP01_microarrayExpression_ZB_time_series_RSRCPercentile",
+        "displayName": "P. vivax P01 Intraerythrocytic developmental cycle of three isolates Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_E-MTAB-673_Transcrp_Variantome_3D7_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_E-MTAB-673_Transcrp_Variantome_3D7_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Asexual blood stage transcriptomes of clonal strains Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_WBCGametocyte_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Winzeler_WBCGametocyte_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Gametocyte stages I-V transcriptomes Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Cowman_InvasionKOs_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Cowman_InvasionKOs_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Invasion pathway knockouts Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_E-TABM-438_sir2KO_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_E-TABM-438_sir2KO_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Two Sir2 KO lines expression profiling Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_GSE10022_CQ_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_GSE10022_CQ_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Three Isogenic Lines w/ CQ Treatment: expression profiles Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Pelle_sexual_commitment_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Pelle_sexual_commitment_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Sexually vs asexually committed schizont transcriptional profiles Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypberANKA_microarrayExpression_Yuda_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypberANKA_microarrayExpression_Yuda_RSRCPercentile",
+        "displayName": "P. berghei ANKA AP2-G2 knock out and WT expression profiles Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypknoH_microarrayExpression_Pkno_iRBC_Bozdech_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypknoH_microarrayExpression_Pkno_iRBC_Bozdech_RSRCPercentile",
+        "displayName": "P. knowlesi strain H Intraerythrocytic cycle expression profile: in vitro and ex vivo (Pkno PK1(A+)) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Birkholtz_GametocyteTimeCourse_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Birkholtz_GametocyteTimeCourse_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Gametocyte time course from commitment to maturity Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraypfal3D7_microarrayExpression_Josling_BDP_IDC_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraypfal3D7_microarrayExpression_Josling_BDP_IDC_RSRCPercentile",
+        "displayName": "P. falciparum 3D7 Transcriptome of Bromodomain protein conditional knockouts over the IDC Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectpberANKA_quantitativeMassSpec_Modrzynska_KO_Mutants_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectpberANKA_quantitativeMassSpec_Modrzynska_KO_Mutants_RSRC",
+        "displayName": "P. berghei ANKA Proteome of ApiAP2 double vs single knockout Proteomics (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectpfal3D7_quantitativeMassSpec_Ganter_Regulated_Proteome_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectpfal3D7_quantitativeMassSpec_Ganter_Regulated_Proteome_RSRC",
+        "displayName": "P. falciparum 3D7 PfCRK4 regulated proteome at 29 and 37 hpi (quantitative) Proteomics (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarrayDirectpyoeyoelii17X_microarrayExpression_Kappe_LiverStage_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarrayDirectpyoeyoelii17X_microarrayExpression_Kappe_LiverStage_RSRC",
+        "displayName": "P. yoelii yoelii 17X Liver, mosquito and blood stage expression profiles Microarray (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarrayDirectWithConfidencepberANKA_microarrayExpression_Waters_DOZI_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarrayDirectWithConfidencepberANKA_microarrayExpression_Waters_DOZI_RSRC",
+        "displayName": "P. berghei ANKA DOZI Mutant Transcript Profile Microarray (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_fc_direct_generic_page",
+          "confidence",
+          "fold_change",
+          "regulated_dir",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarrayDirectpberANKA_microarrayExpression_Waters_DOZI_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarrayDirectpberANKA_microarrayExpression_Waters_DOZI_RSRCPercentile",
+        "displayName": "P. berghei ANKA DOZI Mutant Transcript Profile Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarrayDirectpyoeyoelii17X_microarrayExpression_Kappe_LiverStage_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarrayDirectpyoeyoelii17X_microarrayExpression_Kappe_LiverStage_RSRCPercentile",
+        "displayName": "P. yoelii yoelii 17X Liver, mosquito and blood stage expression profiles Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Tonkin_Hill_Malaria_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Transcriptome in severe vs uncomplicated malaria changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Trophozoite and Schizont transcriptomes of PfBDP1HA changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Su_strand_specific_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptomes of 4 life cycle stages changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lee_Gambian_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Dual transcriptomes of malaria-infected Gambian children (RNA-Seq) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_time_series_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic cycle transcriptome (3D7) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lasonder_Bartfai_Gametocytes_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lasonder_Bartfai_Gametocytes_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Gametocyte Transcriptomes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Female_Male_Gametocyte_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. berghei ANKA Female and male gametocyte changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_Bhatia_Hynozoite_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. vivax P01 Hypnozoite RNA-Seq changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Ring_Oocyst_Sporozoite_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Ring, Oocyst and Sporozoite Transcriptomes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Scherf_Intraerythrocytic_cycle_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Strand specific transcriptome of the intraerythrocytic developmental cycle changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Bartfai_IDC_2018_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome (2018) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Kent_Induce_Gameto_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. berghei ANKA P. berghei transcriptome during inducible gametocytogenesis changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Li_PcAS_PcCB_isolates_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. chabaudi chabaudi Transcriptomes of PcAS and PcCB from mosquito transmitted or serial blood passaged mouse infections. changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Duffy_Ring-Schiz-Tropho_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Transcriptome of the asexual life stages changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. yoelii yoelii 17X Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Chappell_IDC_DAFT_UTRSeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Intraerythrocytic development cycle transcriptome by DAFT-Seq (3D7, HB3, IT, 2020) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Kamaliddin_Sequestration_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Transcriptome of sequestration phenotypes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_Ramaprasad_IDC_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. vinckei vinckei CY Intraerythrocytic development cycle for P. vinckei CY changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_Ramaprasad_Pcha_invivo_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. chabaudi chabaudi In vivo transcriptome in mouse changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Lindner_Oocyst_Salivary_Sporo_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Oocyst and salivary gland sporozoite transcriptome comparison in P. falciparum changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Modrzynska_ApiAP2_KO_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. berghei ANKA Transcriptomes of viable ApiAP2 mutants by directional RNA-seq changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpberANKA_Mancio_Silva_dietary_transcriptome_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. berghei ANKA Dietary restriction of P berghei WT and \u0394kin parasites changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpchachabaudi_pchachabaudi_SR10KOvWT_Subudhi_RSRC_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. chabaudi chabaudi IDC in SR10KO and WT (2020) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_lentum_stages_Pain_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei lentum changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpvinvinckeiCY_pvin_petteri_stages_Pain_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. vinckei vinckei CY Life cycle stage transcriptome for P. vinckei petteri changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pf3d7_IDC2020_Subudhi_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 IDC in constant temperature and darkness (2020) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Pfal3D7_Febrile_temps_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Heat shock response in sensitive mutants (LRR5, DHC) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpfal3D7_pfal3D7_invitro_versus_mosquito_produced_sporozoite_RNASeq_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_pfal3D7_invitro_versus_mosquito_produced_sporozoite_RNASeq_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. falciparum 3D7 Comparison of in vitro versus aseptic mosquito produced sporozoites by RNA-seq changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpvivP01_pvivP01_patient_isolate_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. vivax P01 P vivax patient isolate transcriptomes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17XNL2023_Py17XNL2023_oocyst_sporozoite_Lindner_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. yoelii yoelii 17XNL 2023 Oocyst and salivary gland sporozoite transcriptome comparison in P. yoelii yoelii 17XNL changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpknoH_pknoH_Chuang_Cytoadherant_RNASeq_stranded_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. knowlesi strain H Cytoadherent and wild-type P. knowlesi (experiment 1) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqpyoeyoelii17X_pyoeyoelii17X_zygote_gametocyte_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "P. yoelii yoelii 17X Zygote and female gametocyte transcriptome changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectPValuepberANKA_quantitativeMassSpec_Modrzynska_KO_Mutants_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectPValuepberANKA_quantitativeMassSpec_Modrzynska_KO_Mutants_RSRC",
+        "displayName": "P. berghei ANKA Proteome of ApiAP2 double vs single knockout Proteomics (direct confidence comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_direct_generic_confidence",
+          "dcc_p_value",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectPValuepfal3D7_quantitativeMassSpec_Ganter_Regulated_Proteome_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectPValuepfal3D7_quantitativeMassSpec_Ganter_Regulated_Proteome_RSRC",
+        "displayName": "P. falciparum 3D7 PfCRK4 regulated proteome at 29 and 37 hpi (quantitative) Proteomics (direct confidence comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_direct_generic_confidence",
+          "dcc_p_value",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArraypfal3D7_microarrayAntibody_Loffler_Natural_Infection",
+        "fullName": "GeneQuestions.GenesByAntibodyArraypfal3D7_microarrayAntibody_Loffler_Natural_Infection",
+        "displayName": "P. falciparum 3D7 Peptide arrays of individuals naturally exposed to Plasmodium Antibody Array (p-value)",
+        "paramNames": [
+          "ref_samples_filter_metadata_loffler",
+          "comp_samples_filter_metadata_loffler",
+          "regulated_dir_immune_response",
+          "p_value"
+        ]
+      },
+      {
+        "urlSegment": "GenesByAntibodyArraypfal3D7_microarrayAntibody_Loffler_Natural_InfectionWiz",
+        "fullName": "GeneQuestions.GenesByAntibodyArraypfal3D7_microarrayAntibody_Loffler_Natural_InfectionWiz",
+        "displayName": "P. falciparum 3D7 Peptide arrays of individuals naturally exposed to Plasmodium Antibody Array (Wizard)",
+        "paramNames": [
+          "ref_samples_filter_metadata_loffler_wiz",
+          "regulated_dir_immune_response",
+          "comp_samples_filter_metadata_loffler_wiz",
+          "p_value"
+        ]
+      },
+      {
+        "urlSegment": "GenesByICEMRHostResponse",
+        "fullName": "GeneQuestions.GenesByICEMRHostResponse",
+        "displayName": "ICEMR Serum Antibody Levels",
+        "paramNames": [
+          "ref_samples_filter_metadata_all",
+          "comp_samples_filter_metadata_all",
+          "regulated_dir_immune_response",
+          "p_value"
+        ]
+      },
+      {
+        "urlSegment": "GenesByICEMRHostResponseWiz",
+        "fullName": "GeneQuestions.GenesByICEMRHostResponseWiz",
+        "displayName": "ICEMR Serum Antibody Levels (Wizard)",
+        "paramNames": [
+          "ref_samples_filter_metadata_all_wiz",
+          "comp_samples_filter_metadata_all_wiz",
+          "regulated_dir_immune_response",
+          "p_value"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqUserDataset",
+        "fullName": "GeneQuestions.GenesByRNASeqUserDataset",
+        "displayName": "RNA-Seq Fold Chg (User Datasets)",
+        "paramNames": [
+          "rna_seq_dataset",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySubcellularLocalization",
+        "fullName": "InternalGeneDatasetQuestions.GenesBySubcellularLocalization",
+        "displayName": "Subcellular Localization",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByMicroarrayEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByMicroarrayEvidence",
+        "displayName": "Microarray Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByeQTL",
+        "fullName": "InternalGeneDatasetQuestions.GenesByeQTL",
+        "displayName": "eQTL",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByRNASeqEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByRNASeqEvidence",
+        "displayName": "RNA-Seq Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByY2hInteractions",
+        "fullName": "InternalGeneDatasetQuestions.GenesByY2hInteractions",
+        "displayName": "Y2H Protein Interactions",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByChIPchip",
+        "fullName": "InternalGeneDatasetQuestions.GenesByChIPchip",
+        "displayName": "ChIP on Chip Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByPhenotypeEvidence",
+        "displayName": "Phenotype Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByLongReadEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByLongReadEvidence",
+        "displayName": "Long Read Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByProteinArray",
+        "fullName": "InternalGeneDatasetQuestions.GenesByProteinArray",
+        "displayName": "Protein Array",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByQuantitativeProteomics",
+        "fullName": "InternalGeneDatasetQuestions.GenesByQuantitativeProteomics",
+        "displayName": "Quantitative Mass Spec. Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByMassSpecEvidence",
+        "fullName": "InternalQuestions.GenesByMassSpecEvidence",
+        "displayName": "Mass Spectrometry Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByProteinStructure",
+        "fullName": "InternalQuestions.GenesByProteinStructure",
+        "displayName": "Protein Structure",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByOrthologs",
+        "fullName": "InternalQuestions.GenesByOrthologs",
+        "displayName": "Transform by Orthology",
+        "paramNames": [
+          "gene_result",
+          "organism",
+          "isSyntenic"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPathwaysTransform",
+        "fullName": "InternalQuestions.GenesByPathwaysTransform",
+        "displayName": "Transform to Genes",
+        "paramNames": [
+          "pathway_result",
+          "organism",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCompoundsTransform",
+        "fullName": "InternalQuestions.GenesByCompoundsTransform",
+        "displayName": "Transform to Genes",
+        "paramNames": [
+          "compound_result",
+          "organism",
+          "compound_type",
+          "pathways_source",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByWeightFilter",
+        "fullName": "InternalQuestions.GenesByWeightFilter",
+        "displayName": "Filter by assigned Weight",
+        "paramNames": [
+          "gene_result",
+          "min_weight",
+          "max_weight"
+        ]
+      },
+      {
+        "urlSegment": "TranscriptRecordClasses_TranscriptRecordClassByRealtimeBasket",
+        "fullName": "InternalQuestions.TranscriptRecordClasses_TranscriptRecordClassByRealtimeBasket",
+        "displayName": "Current Transcript Basket",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "TranscriptRecordClasses_TranscriptRecordClassBySnapshotBasket",
+        "fullName": "InternalQuestions.TranscriptRecordClasses_TranscriptRecordClassBySnapshotBasket",
+        "displayName": "Copy of Transcript Basket",
+        "paramNames": [
+          "TranscriptRecordClasses_TranscriptRecordClassDataset"
+        ]
+      },
+      {
+        "urlSegment": "boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "fullName": "InternalQuestions.boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "displayName": "Combine Gene results",
+        "paramNames": [
+          "bq_left_op_TranscriptRecordClasses_TranscriptRecordClass",
+          "bq_right_op_TranscriptRecordClasses_TranscriptRecordClass",
+          "bq_operator"
+        ]
+      },
+      {
+        "urlSegment": "single_record_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "fullName": "InternalQuestions.single_record_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "displayName": "Single Gene",
+        "paramNames": [
+          "primaryKeys"
+        ]
+      },
+      {
+        "urlSegment": "GeneDumpQuestion",
+        "fullName": "GeneDumpQuestions.GeneDumpQuestion",
+        "displayName": "Find genes to dump",
+        "paramNames": [
+          "gff_organism"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySequenceSourceId",
+        "fullName": "GeneDumpQuestions.GenesBySequenceSourceId",
+        "displayName": "Genomic Source ID",
+        "paramNames": [
+          "sequenceId"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySpanLogic",
+        "fullName": "SpanQuestions.GenesBySpanLogic",
+        "displayName": "Genes by Relative Location",
+        "paramNames": [
+          "span_sentence",
+          "span_operation",
+          "span_strand",
+          "span_output",
+          "region_a",
+          "region_b",
+          "span_a",
+          "span_begin_a",
+          "span_begin_direction_a",
+          "span_begin_offset_a",
+          "span_end_a",
+          "span_end_direction_a",
+          "span_end_offset_a",
+          "span_b",
+          "span_begin_b",
+          "span_begin_direction_b",
+          "span_begin_offset_b",
+          "span_end_b",
+          "span_end_direction_b",
+          "span_end_offset_b"
+        ]
+      },
+      {
+        "urlSegment": "UnifiedBlast",
+        "fullName": "UniversalQuestions.UnifiedBlast",
+        "displayName": "BLAST",
+        "paramNames": [
+          "BlastDatabaseType",
+          "BlastAlgorithm",
+          "BlastDatabaseOrganism",
+          "BlastQuerySequence",
+          "BlastRecordClass",
+          "-e",
+          "-b",
+          "-filter"
+        ]
+      },
+      {
+        "urlSegment": "SRT",
+        "fullName": "InternalQuestions2.SRT",
+        "displayName": "Sequence Retrieval Tool",
+        "paramNames": [
+          "genes_ids",
+          "contigs_ids",
+          "orfs_ids"
+        ]
+      }
+    ]
+  }
+}

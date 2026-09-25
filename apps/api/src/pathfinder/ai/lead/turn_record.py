@@ -7,7 +7,8 @@ from pydantic import ConfigDict
 from pydantic_ai import RunContext
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.turn_records import CreatedControlSet
+from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
+from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.evidence_claims import backing_results
 from pathfinder.ai.lead.intent_gate import (
@@ -15,22 +16,31 @@ from pathfinder.ai.lead.intent_gate import (
     turn_builds,
     turn_is_off_topic,
 )
-from pathfinder.ai.lead.ledger_sections import BuildSection, VerificationSection
+from pathfinder.ai.lead.ledger_sections import (
+    BuildSection,
+    VerificationSection,
+    unexpressed_words,
+)
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
+from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
-from pathfinder.domain.evidence import ControlTestEvidence
+from pathfinder.domain.evidence import (
+    ControlTestEvidence,
+    RequirementCheck,
+    SampledGene,
+)
+from pathfinder.domain.separation import offers_evidence
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
 
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
-# sub-agent, and an accepted proposal runs an edit; both are refused the same
-# way the dispatches are.
+# sub-agent, and an accepted offer runs an edit or a build; each is refused the
+# same way the dispatches are.
 DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
     "build_strategy",
-    PROPOSAL_TOOL,
+    *OFFER_TOOLS,
 }
 
 
@@ -55,11 +65,24 @@ class TurnRecord(CamelModel):
     created_control_sets: tuple[CreatedControlSet, ...]
     created_gene_sets: tuple[CreatedGeneSet, ...]
     added_searches: tuple[AddedSearch, ...] = ()
-    # The control results a reply may cite: this turn's and the last check's.
+    # The words the spec states that no search its framing pass read can state.
+    unexpressed_qualifiers: tuple[str, ...] = ()
+    # The control results a reply may cite: this turn's, the last check's and
+    # the separation offers'.
     control_results: tuple[ControlTestEvidence, ...] = ()
+    # The genes the last check of this strategy sampled, as its card shows them.
+    sampled_genes: tuple[SampledGene, ...] = ()
+    # The requirements a check of this turn found unmet or unexpressed.
+    requirements_to_report: tuple[RequirementCheck, ...] = ()
     answered_a_card: bool = False
-    # The reply is the text beside a card, and the card asks its question.
+    # The reply is the one a card call carries, and the card asks its question.
     ends_on_a_card: bool = False
+    # The steps this turn deleted, and the steps the strategy holds now.
+    deleted_steps: tuple[NamedStep, ...] = ()
+    standing_steps: tuple[NamedStep, ...] = ()
+    # The strategy's record type, and the count of each step it holds.
+    record_type: str = ""
+    step_counts: tuple[int, ...] = ()
 
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
@@ -93,11 +116,37 @@ def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
     return tuple(sorted(name for name in ctx.retries if name in offered))
 
 
-def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
-    """Everything the contract reads about the turn this reply answers."""
+def _requirements_to_report(deps: LeadDeps) -> tuple[RequirementCheck, ...]:
+    """The rows a check of this turn found unmet or unexpressed."""
+    verdict = deps.state.turn_verdict
+    if not deps.state.turn_markers.verification_dispatched or verdict is None:
+        return ()
+    return tuple(verdict.review.to_report())
+
+
+def _cited_offers(deps: LeadDeps, card_offer: str | None) -> list[ControlTestEvidence]:
+    """The reads of the offer on the turn's card and of the offer the thread adopted."""
+    domain = deps.state.domain
+    adopted = domain.attached_controls
+    return offers_evidence(
+        domain.separation_offers,
+        [card_offer, None if adopted is None else adopted.task_id],
+    )
+
+
+def turn_record(
+    ctx: RunContext[LeadDeps], *, card_offer: str | None = None
+) -> TurnRecord:
+    """Everything the contract reads about the turn this reply answers.
+
+    ``card_offer`` is the task id of the separation offer the turn's card
+    carries, or None.
+    """
     deps = ctx.deps
     markers = deps.state.turn_markers
     ledger = derive_ledger(deps.state, deps.intent)
+    card = deps.state.domain.card_of_the_strategy()
+    graph = deps.runtime.strategy_session.get_graph(None)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=markers.build_unverified,
@@ -115,9 +164,29 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         created_control_sets=tuple(markers.created_control_sets),
         created_gene_sets=tuple(markers.created_gene_sets),
         added_searches=tuple(markers.added_searches),
+        unexpressed_qualifiers=tuple(
+            unexpressed_words(deps.state.domain.operational_spec)
+        ),
         control_results=backing_results(
             (run.evidence for run in markers.control_tests),
-            deps.state.domain.card_of_the_strategy(),
+            card,
+            _cited_offers(deps, card_offer),
         ),
+        sampled_genes=() if card is None else tuple(card.review.sampled_genes),
+        requirements_to_report=_requirements_to_report(deps),
         answered_a_card=markers.consulted or markers.accepted_proposal,
+        deleted_steps=tuple(markers.deleted_steps),
+        standing_steps=()
+        if graph is None
+        else tuple(named_step(node) for node in graph.steps.values()),
+        record_type="" if graph is None else graph.record_type or "",
+        step_counts=_step_counts(deps),
     )
+
+
+def _step_counts(deps: LeadDeps) -> tuple[int, ...]:
+    """The count of each step the strategy holds, as the site answered it."""
+    sync = deps.runtime.strategy_session.sync_state
+    if sync is None:
+        return ()
+    return tuple(count for count in sync.step_counts.values() if count is not None)

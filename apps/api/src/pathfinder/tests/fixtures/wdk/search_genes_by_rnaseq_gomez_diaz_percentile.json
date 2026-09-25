@@ -1,0 +1,484 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "method": "GET",
+    "url": "https://plasmodb.org/plasmo/service/record-types/transcript/searches/GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-25",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searchData": {
+      "summary": "Find genes which are expressed in an mRNA-Seq experiment.",
+      "urlSegment": "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile",
+      "dynamicAttributes": [
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "min_percentile_chosen-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Min %ile (Within Chosen Samples)",
+          "name": "min_percentile_chosen",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_percentile_chosen-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Max %ile (Within Chosen Samples)",
+          "name": "max_percentile_chosen",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "max_percentile_chosen",
+          "direction": "DESC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "P. falciparum 3D7 Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes RNA-Seq (percentile)",
+      "fullName": "GeneQuestions.GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile",
+      "description": "Find genes which are expressed in an mRNA-Seq experiment.  For each Experiment and Sample, genes were ranked by expression level.  This search enables you to find genes w/in a specified range of values.  This search does allow you to search for genes with low levels of expression, however, care should be taken when drawing conclusions because there are many factors which may contribute to a negative result.\n<br /><br/>",
+      "defaultAttributes": [
+        "primary_key",
+        "gene_product",
+        "min_percentile_chosen",
+        "max_percentile_chosen",
+        "pfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRC_sense_pct_graph",
+        "pfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRC_antisense_pct_graph"
+      ],
+      "groups": [
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "profileset_generic",
+            "samples_percentile_generic",
+            "min_expression_percentile",
+            "max_expression_percentile",
+            "any_or_all",
+            "protein_coding_only"
+          ]
+        },
+        {
+          "displayType": "hidden",
+          "displayName": "",
+          "name": "_hidden",
+          "description": "",
+          "isVisible": false,
+          "parameters": [
+            "channel"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "newBuild": "45.0",
+      "shortDisplayName": "Pfal blood, sporo, oocyst RNA-Seq (%ile)",
+      "paramNames": [
+        "profileset_generic",
+        "samples_percentile_generic",
+        "min_expression_percentile",
+        "max_expression_percentile",
+        "any_or_all",
+        "protein_coding_only",
+        "channel"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesByGenericPercentile",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Experiment",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Choose an Experiment. An Experiment consists of a set of samples that is defined by the data provider or the analytical method. The samples within an Experiment can be compared to each other. Datasets will have multiple Experiments if the samples are generated using different biological, experimental or analytical methods: sense vs. antisense, scaled vs. non-scaled, wild-type vs. mutant.",
+          "dependentParams": [
+            "samples_percentile_generic"
+          ],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "Asexual blood stages and salivary gland sporozoite and midgut oocyst transcriptomes - Sense",
+              "Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes - Sense",
+              null
+            ],
+            [
+              "Asexual blood stages and salivary gland sporozoite and midgut oocyst transcriptomes - Antisense",
+              "Asexual blood stages, salivary gland sporozoite and midgut oocyst transcriptomes - Antisense",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "profileset_generic",
+          "initialDisplayValue": "Asexual blood stages and salivary gland sporozoite and midgut oocyst transcriptomes - Sense",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Samples",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Choose one or more sample.  Use the any/all param to indicate whether any samples should match the percentile cutoff or all samples.",
+          "dependentParams": [],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "asexual blood stages",
+              "asexual blood stages",
+              null
+            ],
+            [
+              "midgut oocysts",
+              "midgut oocysts",
+              null
+            ],
+            [
+              "salivary gland sporozoites",
+              "salivary gland sporozoites",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "samples_percentile_generic",
+          "initialDisplayValue": "[]",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Minimum expression percentile",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Lower bound on expression percentile.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "min_expression_percentile",
+          "initialDisplayValue": "80",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Maximum expression percentile",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Upper bound on expression percentile.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "max_expression_percentile",
+          "initialDisplayValue": "100",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Matches Any or All Selected Samples?",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Does the percentile range match any or all of the chosen samples?",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "any",
+              "any",
+              null
+            ],
+            [
+              "all",
+              "all",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "any_or_all",
+          "initialDisplayValue": "any",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Protein Coding Only:",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Should only protein coding genes be returned?",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "yes",
+              "protein coding",
+              null
+            ],
+            [
+              "no",
+              "all",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "protein_coding_only",
+          "initialDisplayValue": "yes",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Channel :",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": false,
+          "type": "single-pick-vocabulary",
+          "help": "For two Channel Microarray experiments, percentiles are computed on raw data.  Channel 1 corresponds to the numerator of the ratio and Channel 2 the denominator.  Often it is necessary to look at a corresponding bar graph for this study to determine which channel is approprate.  If the experiment was a two channel w/ a common reference you are most likely interested in channel 1.",
+          "dependentParams": [
+            "samples_percentile_generic"
+          ],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "Channel 1",
+              "Channel 1",
+              null
+            ],
+            [
+              "Channel 2",
+              "Channel 2",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "channel",
+          "initialDisplayValue": "Channel 1",
+          "properties": {
+            "organisms": [
+              "P. falciparum",
+              "P. vivax",
+              "P. yoelii",
+              "P. berghei",
+              "P. chabaudi",
+              "P. knowlesi"
+            ],
+            "specificAttribution": []
+          },
+          "group": "_hidden"
+        }
+      ],
+      "properties": {
+        "organisms": [
+          "P. falciparum",
+          "P. vivax",
+          "P. yoelii",
+          "P. berghei",
+          "P. chabaudi",
+          "P. knowlesi"
+        ],
+        "specificAttribution": [],
+        "displayCategory": [
+          "percentile"
+        ]
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

@@ -30,7 +30,7 @@ export const useConsultAnswersStore = createStore<ConsultAnswersState>(
       const answers = get().byApprovalId[approvalId];
       if (answers === undefined) {
         throw new Error(
-          `No consult answers are recorded for approval ${approvalId}: ` +
+          `No answers to your questions are recorded for approval ${approvalId}: ` +
             "the turn would resume with none and ask the same questions again.",
         );
       }

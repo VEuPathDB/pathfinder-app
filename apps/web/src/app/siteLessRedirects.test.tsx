@@ -80,7 +80,7 @@ describe("site-less entry points", () => {
     render(await BareConversationPage());
 
     expect(redirectMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/no database is responding/i)).toBeInTheDocument();
+    expect(screen.getByText(/no site is responding/i)).toBeInTheDocument();
     expect(screen.getByText(/veupathdb, toxodb/)).toBeInTheDocument();
   });
 

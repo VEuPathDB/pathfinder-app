@@ -1,18 +1,23 @@
-"""The conversation's bound analysis: read it, mutate its subset, clear it."""
+"""The conversation's bound analysis: bind it, read it fresh, clear it."""
 
 from __future__ import annotations
 
-import json
 from uuid import UUID
 
 import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.eda import (
+    EdaAnalysisDescriptor,
+    EdaStringSetFilter,
+    EdaSubsetDescriptor,
+)
 
 from pathfinder.persistence.repositories.conversation_analysis import (
     ConversationAnalysesRepository,
 )
 from pathfinder.tests._support.eda_wire import AnalysisStore
+from pathfinder.tests._support.published_studies import published_on
 from pathfinder.tests.integration.http._conversation_eda import (
     ANALYSIS,
     DATASET,
@@ -20,14 +25,13 @@ from pathfinder.tests.integration.http._conversation_eda import (
     SPECIES,
     STUDY,
     bind_thread,
-    empty_subset_wired,
     phenotype_wired,
     thread,
 )
 
 pytestmark = pytest.mark.asyncio
 
-__all__ = ["empty_subset_wired", "phenotype_wired", "thread"]
+__all__ = ["phenotype_wired", "thread"]
 
 
 async def test_an_unbound_thread_reads_as_no_analysis(
@@ -37,12 +41,10 @@ async def test_an_unbound_thread_reads_as_no_analysis(
     response = await client.get(f"/api/v1/conversations/{conversation_id}/eda")
     assert response.status_code == 200
     body = response.json()
-    assert set(body) == {"analysis", "descriptor"}
-    assert body["analysis"] is None
-    assert body["descriptor"] is None
+    assert body == {"analysis": None}
 
 
-async def test_a_bound_thread_reads_the_analysis_state_and_the_descriptor(
+async def test_a_bound_thread_reads_the_analysis_state(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],
     phenotype_wired: AnalysisStore,
@@ -75,7 +77,44 @@ async def test_a_bound_thread_reads_the_analysis_state_and_the_descriptor(
             "unfilteredCount": 4279,
         }
     ]
-    assert body["descriptor"]["subset"]["descriptor"][0]["stringSet"] == ["P. berghei"]
+    assert analysis["compute"] is None
+    assert set(body) == {"analysis"}
+
+
+async def test_a_read_after_the_site_edits_the_analysis_carries_the_edit(
+    thread: tuple[httpx.AsyncClient, UUID],
+    session_maker: async_sessionmaker[AsyncSession],
+    phenotype_wired: AnalysisStore,
+) -> None:
+    """The site and PathFinder share one document, and every read takes it anew."""
+    client, conversation_id = thread
+    await bind_thread(session_maker, conversation_id)
+    first = await client.get(f"/api/v1/conversations/{conversation_id}/eda")
+
+    phenotype_wired.detail = phenotype_wired.detail.model_copy(
+        update={
+            "descriptor": EdaAnalysisDescriptor(
+                subset=EdaSubsetDescriptor(
+                    descriptor=[
+                        EdaStringSetFilter(
+                            entity_id=ENTITY,
+                            variable_id=SPECIES,
+                            string_set=["P. yoelii"],
+                        )
+                    ]
+                )
+            )
+        }
+    )
+    second = await client.get(f"/api/v1/conversations/{conversation_id}/eda")
+
+    assert first.json()["analysis"]["filterSummaries"] == [
+        "Species is one of P. berghei"
+    ]
+    assert second.json()["analysis"]["filterSummaries"] == [
+        "Species is one of P. yoelii"
+    ]
+    assert phenotype_wired.patches == 0
 
 
 async def test_a_read_does_not_count_as_a_mutation(
@@ -99,40 +138,6 @@ async def test_a_read_does_not_count_as_a_mutation(
     assert bound.revision == 0
 
 
-async def test_patching_the_filters_replaces_the_subset(
-    thread: tuple[httpx.AsyncClient, UUID],
-    session_maker: async_sessionmaker[AsyncSession],
-    phenotype_wired: AnalysisStore,
-) -> None:
-    client, conversation_id = thread
-    await bind_thread(session_maker, conversation_id)
-
-    response = await client.patch(
-        f"/api/v1/conversations/{conversation_id}/eda",
-        json={
-            "action": "set-filters",
-            "filters": [
-                {
-                    "entityId": ENTITY,
-                    "variableId": SPECIES,
-                    "type": "stringSet",
-                    "stringSet": ["P. berghei"],
-                }
-            ],
-        },
-    )
-    assert response.status_code == 200
-    assert phenotype_wired.patches == 1
-    written = phenotype_wired.detail.descriptor.subset.descriptor
-    assert [f.variable_id for f in written] == [SPECIES]
-    body = response.json()
-    assert set(body) == {"analysis", "job", "step"}
-    assert body["analysis"]["numFilters"] == 1
-    assert body["analysis"]["revision"] == 1
-    assert body["job"] is None
-    assert body["step"] is None
-
-
 async def test_patching_an_unbound_thread_is_a_conflict(
     thread: tuple[httpx.AsyncClient, UUID],
 ) -> None:
@@ -140,38 +145,36 @@ async def test_patching_an_unbound_thread_is_a_conflict(
     client, conversation_id = thread
     response = await client.patch(
         f"/api/v1/conversations/{conversation_id}/eda",
-        json={"action": "set-filters", "filters": []},
+        json={"action": "export-step", "source": "subset"},
     )
     assert response.status_code == 409
     assert response.json()["code"] == "EDA_NO_OPEN_ANALYSIS"
 
 
-async def test_patching_an_invalid_filter_array_is_a_422_naming_the_value(
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"action": "set-filters", "filters": []},
+        {"action": "run-compute", "computation": {}},
+    ],
+    ids=["set-filters", "run-compute"],
+)
+async def test_an_edit_the_site_makes_is_not_an_action_here(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],
-    empty_subset_wired: AnalysisStore,
+    phenotype_wired: AnalysisStore,
+    body: dict[str, object],
 ) -> None:
-    """A value outside the vocabulary empties the subset, and the tab is told."""
-    del empty_subset_wired
+    """The subset and the compute are edited on the site, never through this route."""
     client, conversation_id = thread
     await bind_thread(session_maker, conversation_id)
 
     response = await client.patch(
-        f"/api/v1/conversations/{conversation_id}/eda",
-        json={
-            "action": "set-filters",
-            "filters": [
-                {
-                    "entityId": ENTITY,
-                    "variableId": SPECIES,
-                    "type": "stringSet",
-                    "stringSet": ["P. vivax"],
-                }
-            ],
-        },
+        f"/api/v1/conversations/{conversation_id}/eda", json=body
     )
+
     assert response.status_code == 422
-    assert "P. vivax" in json.dumps(response.json())
+    assert phenotype_wired.patches == 0
 
 
 async def test_unbinding_clears_the_binding(
@@ -211,16 +214,17 @@ async def test_bind_creates_the_upstream_analysis_and_the_row(
 ) -> None:
     """Bind writes the analysis document upstream and the row that names it."""
     client, conversation_id = thread
-    response = await client.patch(
-        f"/api/v1/conversations/{conversation_id}/eda",
-        json={"action": "bind", "siteId": "plasmodb", "datasetId": DATASET},
-    )
+    async with published_on("plasmodb", DATASET, organism="Plasmodium berghei ANKA"):
+        response = await client.patch(
+            f"/api/v1/conversations/{conversation_id}/eda",
+            json={"action": "bind", "siteId": "plasmodb", "datasetId": DATASET},
+        )
     assert response.status_code == 200
     assert len(phenotype_wired.created) == 1
     body = response.json()
     assert body["analysis"]["datasetId"] == DATASET
     assert body["analysis"]["revision"] == 1
-    assert body["job"] is None
+    assert set(body) == {"analysis", "step"}
     repo = ConversationAnalysesRepository(session_factory=session_maker)
     bound = await repo.get(conversation_id=conversation_id)
     assert bound is not None

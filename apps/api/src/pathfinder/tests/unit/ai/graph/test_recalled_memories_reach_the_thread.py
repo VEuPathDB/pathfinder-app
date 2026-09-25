@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.memory.schemas import MemoryValue
@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import no_database
 
 _MEMORY_KEY = "case:signal-peptide-and-transmembrane"
+_SOURCE = UUID("0ca0fd86-3988-44a5-bddb-db4f295f5528")
 
 
 def _stored_memory() -> StoredMemory:
@@ -40,7 +41,8 @@ def _stored_memory() -> StoredMemory:
             name="signal peptide and transmembrane",
             summary="the intersection reached 195 genes",
             content={"count": 195},
-            created_at=datetime.now(UTC),
+            source_conversation_id=_SOURCE,
+            created_at=datetime(2026, 9, 16, 13, 4, tzinfo=UTC),
         ),
         score=0.853,
     )
@@ -77,7 +79,7 @@ async def written(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
         return None
 
     async def _one_memory(*_args: Any) -> list[StoredMemory]:
-        return [_stored_memory()]
+        return [_stored_memory(), _stored_memory()]
 
     async def _pre_turn(state: PipelineState, _context: Context) -> PipelineState:
         return state
@@ -102,12 +104,32 @@ async def test_the_runner_keeps_the_recalled_memories_chunk(
     assert len(recalled) == 1
 
 
-async def test_the_kept_chunk_names_the_memory_the_turn_recalled(
+async def test_the_kept_chunk_names_each_recalled_memory_once(
+    written: list[dict[str, Any]],
+) -> None:
+    """A memory recalled twice under one key and kind is written once, unscored."""
+    (recalled,) = [c for c in written if c["type"] == "data-memory-retrieved"]
+
+    assert recalled["data"]["memories"] == [
+        {
+            "key": _MEMORY_KEY,
+            "kind": "case",
+            "name": "signal peptide and transmembrane",
+            "summary": "the intersection reached 195 genes",
+            "createdAt": "2026-09-16T13:04:00Z",
+            "sourceConversationId": str(_SOURCE),
+        }
+    ]
+
+
+async def test_the_kept_chunk_names_where_and_when_the_memory_was_written(
     written: list[dict[str, Any]],
 ) -> None:
     (recalled,) = [c for c in written if c["type"] == "data-memory-retrieved"]
+    (memory,) = recalled["data"]["memories"]
 
-    assert [m["key"] for m in recalled["data"]["memories"]] == [_MEMORY_KEY]
+    assert memory["sourceConversationId"] == str(_SOURCE)
+    assert memory["createdAt"] == "2026-09-16T13:04:00Z"
 
 
 def _bare_writer_calls(package: ModuleType) -> list[str]:

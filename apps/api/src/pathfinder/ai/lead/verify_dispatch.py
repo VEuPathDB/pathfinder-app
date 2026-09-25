@@ -4,10 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai import RunContext
 
+from pathfinder.ai.agents.tool_vocabulary import build_verification_repetition_guard
 from pathfinder.ai.graph.runtime import VerificationScope
-from pathfinder.ai.graph.state import FailureCause, VerificationDigest
+from pathfinder.ai.graph.state import (
+    FailureCause,
+    PipelineState,
+    VerificationDigest,
+)
 from pathfinder.ai.lead.answered_strategy import live_tree
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.derive import derive_ledger
@@ -15,7 +21,6 @@ from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
-    framing_goal,
 )
 from pathfinder.ai.lead.evidence_card import publish_evidence_card
 from pathfinder.ai.lead.ledger import (
@@ -23,6 +28,7 @@ from pathfinder.ai.lead.ledger import (
     digest_held_to_the_build,
     structure_contradiction,
 )
+from pathfinder.ai.lead.ledger_sections import unexpressed_words
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -30,19 +36,126 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
+from pathfinder.ai.lead.verify_review import (
+    ReviewRecord,
+    breached_rows,
+    review_held_to_the_turn,
+)
 from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
-from pathfinder.domain.evidence import EvidenceVerdict
+from pathfinder.domain.evidence import (
+    SAMPLED_GENE_LIMIT,
+    EvidenceVerdict,
+    VerificationReview,
+)
+from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
+from pathfinder.services.gene_records.read import gene_record_url
+
+
+def request_messages(state: PipelineState) -> list[str]:
+    """Every message the researcher wrote for the request, oldest first, once each."""
+    domain = state.domain
+    found = [domain.original_request, *domain.request_messages, state.user_prompt]
+    return list(dict.fromkeys(text for text in found if text))
+
+
+def review_record(deps: LeadDeps, messages: list[str]) -> ReviewRecord:
+    """What this turn holds that the check's review is held to."""
+    return ReviewRecord(
+        messages=messages,
+        requirements=deps.state.domain.requirements,
+        spec=deps.state.domain.operational_spec,
+        read_as=deps.state.turn_markers.retrieved_as,
+        record_url=lambda gene_id: gene_record_url(deps.runtime.site_id, gene_id),
+    )
 
 
 def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
     """The request this turn answers and the check that answers it, as VERIFY reads them."""
+    messages = request_messages(deps.state)
+    spec = deps.state.domain.operational_spec
+    ledger = derive_ledger(deps.state, deps.intent)
     return VerificationScope(
-        request=framing_goal(deps.state),
+        messages=messages,
+        stated=[line.removeprefix("- ") for line in ledger.constraints.render_stated()],
+        unexpressed=[
+            f"'{word}' in [{criterion.id}] {criterion.text}"
+            for criterion in (spec.criteria if spec is not None else [])
+            for word in criterion.unexpressed_qualifiers
+        ],
+        breaches=[row.note for row in breached_rows(review_record(deps, messages))],
         check_id=check_id,
         last_card=deps.state.domain.card_of_the_strategy(),
+        controls=deps.state.domain.attached_controls,
     )
+
+
+@dataclass(frozen=True)
+class RootSample:
+    """The step a check samples its genes from, and how many records it holds."""
+
+    step_id: str
+    wdk_step_id: int
+    count: int | None
+
+
+def root_sample(deps: LeadDeps) -> RootSample | None:
+    """The strategy's root on the site, or None before a push."""
+    sync = deps.runtime.strategy_session.sync_state
+    root = None if sync is None else sync.wdk_root_step_id
+    if sync is None or root is None:
+        return None
+    step_id = next((s for s, w in sync.wdk_step_ids.items() if w == root), None)
+    if step_id is None:
+        return None
+    outcome = deps.state.domain.last_build_outcome
+    return RootSample(
+        step_id=step_id,
+        wdk_step_id=root,
+        count=None if outcome is None else outcome.root_count,
+    )
+
+
+def _sample_line(root: RootSample) -> str:
+    """Where the check samples its genes, and how many records it reads."""
+    held = "" if root.count is None else f", {count_noun(root.count, 'record')}"
+    named = f"The root is {root.step_id}, step {root.wdk_step_id} on the site{held}"
+    if root.count == 0:
+        return f"{named}. It holds no gene to sample."
+    limit = (
+        SAMPLED_GENE_LIMIT
+        if root.count is None
+        else min(SAMPLED_GENE_LIMIT, root.count)
+    )
+    return (
+        f"{named}. Sample it with get_sample_records("
+        f"wdk_step_id={root.wdk_step_id}, limit={limit})."
+    )
+
+
+def work_order(
+    reason: str, controls: AttachedControls | None, root: RootSample | None
+) -> str:
+    """VERIFY's work order: the root it samples, and each control an adopted
+    strategy was measured on."""
+    lines = [
+        f"Verification work order: {reason}",
+        "Inspect the built strategy. Return a VerificationDelta.",
+    ]
+    if root is not None:
+        lines.append(_sample_line(root))
+    if controls is not None:
+        lines += [
+            (
+                "The strategy was adopted from a separation run. Run "
+                "run_control_tests_on_step on its root step with exactly these "
+                f"controls, saved as control set {controls.control_set_id}:"
+            ),
+            f"positive_controls: {', '.join(controls.positives)}",
+            f"negative_controls: {', '.join(controls.negatives)}",
+        ]
+    return "\n".join(lines)
 
 
 async def run_verification(
@@ -54,16 +167,14 @@ async def run_verification(
 ) -> VerificationDelta | SubAgentApprovalWait:
     """Run verification and record its digest, on a fresh or a resumed dispatch."""
     deps.state.turn_markers.verification_dispatched = True
-    work_order = (
-        f"Verification work order: {reason}\n"
-        "Inspect the built strategy. Return a VerificationDelta."
-    )
     agent_deps = agent_deps_for(deps)
-    agent_deps.verification_scope = verification_scope(
-        deps, check_id=parent_tool_call_id
-    )
+    scope = verification_scope(deps, check_id=parent_tool_call_id)
+    agent_deps.verification_scope = scope
+    agent_deps.tool_repetition_guard = build_verification_repetition_guard()
     delta = await stream_sub_agent(
-        run=PhaseRun("verification", work_order),
+        run=PhaseRun(
+            "verification", work_order(reason, scope.controls, root_sample(deps))
+        ),
         agent_deps=agent_deps,
         parent_tool_call_id=parent_tool_call_id,
         expected_output_type=VerificationDelta,
@@ -79,8 +190,18 @@ async def run_verification(
     graph = deps.runtime.strategy_session.get_graph(None)
     # The pending checks are the strategy's to state, never the checker's.
     pending = [] if graph is None else unread_analyses(graph)
+    review = review_held_to_the_turn(
+        delta.digest.review, review_record(deps, scope.messages)
+    )
     held = _digest_the_build_supports(
-        deps, delta.digest.model_copy(update={"pending_checks": pending})
+        deps,
+        delta.digest.model_copy(
+            update={
+                "pending_checks": pending,
+                "review": review,
+                "caveats": _with_the_misfits(delta.digest.caveats, review),
+            }
+        ),
     )
     digest = held.digest
     revision = strategy_revision(live_tree(graph))
@@ -95,8 +216,17 @@ async def run_verification(
             pending_checks=digest.pending_checks,
             refused_because=held.refused_because,
         ),
+        review=digest.review,
     )
     return VerificationDelta(digest=digest)
+
+
+def _with_the_misfits(caveats: list[str], review: VerificationReview) -> list[str]:
+    """The caveats, led by the count of sampled genes that do not fit."""
+    line = review.misfit_caveat()
+    if line is None or line in caveats:
+        return caveats
+    return [line, *caveats][:10]
 
 
 @dataclass(frozen=True)
@@ -131,14 +261,28 @@ def _digest_the_build_supports(
         deps.state.domain.requirements,
         deps.state.domain.operational_spec,
     )
-    if structural is None:
+    if structural is not None:
+        return _HeldDigest(
+            digest_held_to_the_build(
+                digest, structural, failure_cause=FailureCause.STRUCTURE_VIOLATION
+            ),
+            structural,
+        )
+    words = unexpressed_words(deps.state.domain.operational_spec)
+    if words:
+        reason = (
+            f"the request states {', '.join(repr(w) for w in words)}, and no search "
+            f"the strategy runs can state it"
+        )
+        return _HeldDigest(digest_held_to_the_build(digest, reason), reason)
+    unmet = digest.review.unmet()
+    if not unmet:
         return _HeldDigest(digest)
-    return _HeldDigest(
-        digest_held_to_the_build(
-            digest, structural, failure_cause=FailureCause.STRUCTURE_VIOLATION
-        ),
-        structural,
+    reason = (
+        f"the check reports {count_noun(len(unmet), 'requirement')} unmet: "
+        f"{', '.join(repr(row.text) for row in unmet)}"
     )
+    return _HeldDigest(digest_held_to_the_build(digest, reason), reason)
 
 
 async def verify_strategy(
@@ -150,7 +294,7 @@ async def verify_strategy(
     This sub-agent owns every post-build check, so route a user's request for
     one here through ``reason``: control tests on a step or a search;
     parameter optimization; sample records from a result; result export. Each
-    check leaves an evidence card in the thread. GO, pathway and word
+    check leaves an evidence card in the conversation. GO, pathway and word
     enrichment run on the site, from the step page the card links.
 
     Available once the strategy holds a step, and until a verification of this

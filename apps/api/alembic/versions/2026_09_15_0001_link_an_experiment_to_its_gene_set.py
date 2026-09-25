@@ -10,7 +10,7 @@ Revises: 2026_09_13_0001
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_09_15_0001"
@@ -21,7 +21,8 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.add_column(
-        "experiments", sa.Column("gene_set_id", sa.String(length=50), nullable=True)
+        "experiments",
+        sqlalchemy.Column("gene_set_id", sqlalchemy.String(length=50), nullable=True),
     )
     op.create_index("ix_experiments_gene_set_id", "experiments", ["gene_set_id"])
 

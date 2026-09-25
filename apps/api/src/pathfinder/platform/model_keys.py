@@ -45,9 +45,9 @@ from pathfinder.domain.provider_keys import (
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
     ProviderKeyRefusedError,
-    ProviderKeyUnreadableError,
     ProviderNotConfiguredError,
     ProviderUnreachableError,
+    refused_key_error,
 )
 from pathfinder.platform.key_refusals import classify_refusal
 
@@ -134,7 +134,7 @@ class GuardedModel(WrapperModel):
             refusal = classify_refusal(self._keyed, error.status_code, error.body)
             if refusal is not None:
                 self._keys.refusals[self._keyed] = refusal
-                return ProviderKeyRefusedError(PROVIDER_NAMES[self._keyed])
+                return ProviderKeyRefusedError(PROVIDER_NAMES[self._keyed], refusal)
         return ModelHTTPError(
             error.status_code, error.model_name, headers=error.headers
         )
@@ -198,14 +198,13 @@ def _users_key(
 
     A key refused before or during this turn raises; nothing falls back.
     """
-    if any(refused == provider for refused in keys.refusals):
-        raise ProviderKeyRefusedError(provider_name(provider))
+    for refused, refusal in keys.refusals.items():
+        if refused == provider:
+            raise ProviderKeyRefusedError(provider_name(provider), refusal)
     deployment = get_settings().deployment_providers
     match keys.keyring.statuses().payer(provider, deployment):
-        case RefusedKey(refusal=KeyRefusal.UNREADABLE):
-            raise ProviderKeyUnreadableError(provider_name(provider))
-        case RefusedKey():
-            raise ProviderKeyRefusedError(provider_name(provider))
+        case RefusedKey(refusal=refusal):
+            raise refused_key_error(provider_name(provider), refusal)
         case NobodyPays():
             raise ProviderNotConfiguredError(provider_name(provider))
         case _:
@@ -251,6 +250,17 @@ async def one_generation(model: Model) -> None:
         )
 
 
+def _probe_failure(provider: KeyableProvider, error: ModelHTTPError) -> Exception:
+    """A refusal refuses the key; a wait or an outage judged nothing."""
+    name = PROVIDER_NAMES[provider]
+    refusal = classify_refusal(provider, error.status_code, error.body)
+    if refusal is not None:
+        return ProviderKeyRefusedError(name, refusal, status=422)
+    if error.status_code in _WAIT_STATUSES or error.status_code >= _SERVER_ERROR:
+        return ProviderUnreachableError(name)
+    return ProviderKeyRefusedError(name, status=422)
+
+
 async def probe_key(
     provider: KeyableProvider,
     model_id: str,
@@ -267,14 +277,7 @@ async def probe_key(
     try:
         await one_generation(model)
     except ModelHTTPError as error:
-        waited = (
-            error.status_code in _WAIT_STATUSES or error.status_code >= _SERVER_ERROR
-        )
-        failure: Exception = (
-            ProviderUnreachableError(name)
-            if waited
-            else ProviderKeyRefusedError(name, status=422)
-        )
+        failure: Exception = _probe_failure(provider, error)
     except ModelAPIError:
         failure = ProviderUnreachableError(name)
     else:

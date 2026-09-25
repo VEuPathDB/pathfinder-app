@@ -16,7 +16,7 @@ from veupathdb.eda import (
 )
 
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.persistence.models import ConversationAnalysisView
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import (
     ConversationAnalysesRepository,
     read_analysis_row,
@@ -31,10 +31,12 @@ from pathfinder.services.eda.authoring import (
 from pathfinder.services.eda.catalog import get_study_detail_for_dataset
 from pathfinder.services.eda.description import (
     EdaPermissionFacts,
+    compute_summary,
     display_names,
     filter_summaries,
     permission_facts,
 )
+from pathfinder.services.eda.study_site import refuse_a_study_another_site_publishes
 from pathfinder.services.eda.urls import analysis_url
 
 _CONFLICT = 409
@@ -42,7 +44,6 @@ _CONFLICT = 409
 # The view is the read shape every caller of this module receives, so the
 # module publishes it rather than sending tools into persistence.
 __all__ = [
-    "ConversationAnalysisView",
     "NoOpenAnalysisError",
     "analysis_state",
     "apply_filters",
@@ -154,6 +155,7 @@ async def analysis_state(
     names exactly one gene entity.
     """
     gene = find_gene_entity(study, subject="strategy step")
+    names = display_names(study)
     return EdaAnalysisState(
         site_id=site_id,
         dataset_id=dataset_id,
@@ -170,7 +172,7 @@ async def analysis_state(
         ],
         filter_summaries=filter_summaries(
             analysis.descriptor.subset.descriptor,
-            display_names=display_names(study),
+            display_names=names,
         ),
         entity_counts=await subset_entity_counts(
             site_id, study=study, filters=analysis.descriptor.subset.descriptor
@@ -179,6 +181,8 @@ async def analysis_state(
         analysis_url=analysis_url(
             site_id, dataset_id=dataset_id, analysis_id=analysis.analysis_id
         ),
+        compute=compute_summary(analysis.descriptor, display_names=names),
+        modification_time=analysis.modification_time or None,
     )
 
 
@@ -192,9 +196,11 @@ async def bind_analysis(
     """Open an analysis on a study and bind it to this thread.
 
     A thread holds one analysis at a time, so this replaces whatever it had
-    open and restarts the revision.
+    open and restarts the revision. A study another site publishes is refused
+    before anything is written.
     """
     entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
+    await refuse_a_study_another_site_publishes(site_id, dataset_id, entry=entry)
     analysis_id = await open_analysis(
         site_id, dataset_id=dataset_id, display_name=display_name
     )

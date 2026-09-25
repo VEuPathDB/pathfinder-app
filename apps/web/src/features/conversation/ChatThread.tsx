@@ -58,7 +58,7 @@ export function ChatThread({
       <ChatUrlSync conversationId={conversationId} />
       <ThreadPrimitive.Root className="flex h-full min-h-0 flex-col">
         <ThreadBody assistantId={assistantId} />
-        <Composer conversationId={conversationId} />
+        <Composer conversationId={conversationId} assistantId={assistantId} />
       </ThreadPrimitive.Root>
     </>
   );

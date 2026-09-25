@@ -4,7 +4,6 @@ import type { EdaDistributionSeries, EdaSubsetPreview } from "@pathfinder/shared
 
 import { HistogramChart } from "@/lib/components/charts/HistogramChart";
 import { Figure } from "@/features/conversation/thread/Figure";
-import { useHydrateEdaPart } from "@/state/eda";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { studyNameFor } from "./analysisStateParts";
@@ -27,7 +26,6 @@ function variableName(series: EdaDistributionSeries): string {
 }
 
 export function DataEdaSubsetPreview({ data }: { data: EdaSubsetPreview }) {
-  useHydrateEdaPart({ kind: "subset-preview", data });
   const chat = useChatHelpers();
   const note = data.distributionNote ?? "";
   const series = data.distribution;

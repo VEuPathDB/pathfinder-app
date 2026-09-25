@@ -56,3 +56,12 @@ def test_a_study_step_the_site_could_not_read_is_a_pending_check() -> None:
         "did not describe: set ``success`` from the other checks and name that step "
         "in ``caveats`` as a pending check, never as passed or missing."
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
+
+
+def test_each_step_is_tested_once_with_the_whole_control_set() -> None:
+    instructions = _normalized(_VERIFICATION_INSTRUCTIONS)
+
+    assert (
+        "Test each step once, with every positive and every negative control id "
+        "in one call. Never test a subset of ids already tested on that step"
+    ) in instructions

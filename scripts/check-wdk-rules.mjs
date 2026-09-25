@@ -39,7 +39,11 @@ const STATUS_RE = /^(UNENFORCED|WITHDRAWN - .+|(?:ENFORCED|PARTIAL) by (.+))$/;
 // a citation and not resolved.
 const CITED_REPOSITORIES = ["veupathdb-py", "veupathdb-mcp", "assistant-platform"];
 const CITATION_RE = new RegExp(`^(?:${CITED_REPOSITORIES.join("|")}): `);
-const PROSE_DIRS = ["model", "rest", "pathfinder"];
+// A rule id another repository defines is cited with that repository's path
+// before the parenthesis that holds it closes, as in
+// "(WDK-STRAT-001, `veupathdb-py: docs/knowledge/wdk/rules/...`)".
+const CITED_RULE_WINDOW = 160;
+const NAMES_A_CITED_REPOSITORY = new RegExp(`(?:${CITED_REPOSITORIES.join("|")}):\\s`);
 const GITHUB_URL_RE =
   /https:\/\/(?:github\.com|raw\.githubusercontent\.com)\/[^\s)<>"'`\]]+/g;
 
@@ -86,6 +90,13 @@ function splitAnchor(anchor) {
 /** A path in one of the repositories this bundle cites. */
 function isCitation(value) {
   return CITATION_RE.test(value.trim());
+}
+
+/** Whether the rule id at `index` is named with the repository that defines it. */
+function citedWithItsRepository(text, index) {
+  const after = text.slice(index, index + CITED_RULE_WINDOW);
+  const close = after.indexOf(")");
+  return NAMES_A_CITED_REPOSITORY.test(close === -1 ? after : after.slice(0, close));
 }
 
 /** Word-bounded, so renaming `Step` to `WdkStep` does not keep the anchor green. */
@@ -196,7 +207,11 @@ export function collect(root, bundle = root, tally = null) {
         }
       }
 
-      if (statusMatch?.[2] && !isCitation(statusMatch[2])) {
+      // A test in a cited repository runs in that repository's own suite, which
+      // is never checked out beside this one, so its name is not resolved here.
+      if (statusMatch?.[2] && isCitation(statusMatch[2])) {
+        tally?.citeTest(id);
+      } else if (statusMatch?.[2]) {
         const { path, selector } = splitTestId(statusMatch[2]);
         const testFull = join(root, path);
         if (!existsSync(testFull)) {
@@ -210,16 +225,23 @@ export function collect(root, bundle = root, tally = null) {
     }
   }
 
-  for (const dir of PROSE_DIRS) {
-    for (const file of markdownIn(join(bundle, dir))) {
-      const rel = relative(root, file);
-      const text = readFileSync(file, "utf8");
-      for (const cited of new Set(text.match(CITE_RE) ?? [])) {
-        if (withdrawn.has(cited)) {
-          errors.push(`${rel}: cites withdrawn rule ${cited}, withdrawn in ${withdrawn.get(cited)}`);
-        } else if (!defined.has(cited)) {
-          errors.push(`${rel}: cites undefined rule ${cited}`);
-        }
+  for (const file of markdownIn(bundle)) {
+    const rel = relative(root, file);
+    const text = readFileSync(file, "utf8");
+    const reported = new Set();
+    for (const match of text.matchAll(CITE_RE)) {
+      const cited = match[0];
+      if (reported.has(cited) || defined.has(cited)) continue;
+      // A heading defines a rule; the rule block checks above judge it.
+      const lineStart = text.lastIndexOf("\n", match.index) + 1;
+      if (/^#+ /.test(text.slice(lineStart, match.index))) continue;
+      reported.add(cited);
+      if (withdrawn.has(cited)) {
+        errors.push(`${rel}: cites withdrawn rule ${cited}, withdrawn in ${withdrawn.get(cited)}`);
+      } else if (citedWithItsRepository(text, match.index)) {
+        tally?.citeRule(cited);
+      } else {
+        errors.push(`${rel}: cites undefined rule ${cited}`);
       }
     }
   }
@@ -252,11 +274,21 @@ export class Coverage {
     this.partial = 0;
     this.withdrawn = 0;
     this.cited = 0;
+    this.citedTests = 0;
+    this.citedRules = 0;
     this.unenforced = [];
   }
 
   cite(_id) {
     this.cited += 1;
+  }
+
+  citeTest(_id) {
+    this.citedTests += 1;
+  }
+
+  citeRule(_id) {
+    this.citedRules += 1;
   }
 
   count(id, file, ruleClass, status, reason) {
@@ -285,7 +317,9 @@ if (invokedDirectly) {
   console.log(
     `  ${coverage.total} rules: ${coverage.enforced} enforced, ` +
       `${coverage.partial} partial, ${coverage.unenforced.length} unenforced, ` +
-      `${coverage.withdrawn} withdrawn, ${coverage.cited} anchored in a cited repository`,
+      `${coverage.withdrawn} withdrawn, ${coverage.cited} anchored in a cited repository, ` +
+      `${coverage.citedTests} held by a test in a cited repository, ` +
+      `${coverage.citedRules} rule(s) of a cited repository named in the prose`,
   );
   for (const rule of coverage.unenforced) {
     console.log(`  UNENFORCED ${rule.id} (${rule.ruleClass}): ${rule.reason}`);

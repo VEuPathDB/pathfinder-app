@@ -221,3 +221,32 @@ describe("the answers an approved consult carries", () => {
     expect(out.messages).toEqual([plain]);
   });
 });
+
+describe("the files a turn carries", () => {
+  const png = {
+    type: "file" as const,
+    mediaType: "image/png",
+    filename: "table.png",
+    url: "data:image/png;base64,iVBORw0KGgo=",
+  };
+
+  it("keeps the files of the message being sent and drops those of earlier ones", () => {
+    const out = buildChatRequestBody({
+      conversationId: "c1",
+      siteId: "plasmodb",
+      id: "x",
+      trigger: "submit-message",
+      messages: [
+        { id: "u1", role: "user", parts: [{ type: "text", text: "first" }, png] },
+        { id: "a1", role: "assistant", parts: [{ type: "text", text: "seen" }] },
+        { id: "u2", role: "user", parts: [{ type: "text", text: "second" }, png] },
+      ],
+      baseBody: undefined,
+    });
+    expect(out.messages.map((m) => m.parts.map((p) => p.type))).toEqual([
+      ["text"],
+      ["text"],
+      ["text", "file"],
+    ]);
+  });
+});

@@ -24,7 +24,7 @@ from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.operations.types import AttachNewRoot
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.services.strategies import commit as commit_module
+from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import apply_operations_and_commit
 
 from ._strategy_edit_stubs import (
@@ -268,7 +268,7 @@ async def test_a_push_the_site_refuses_puts_the_graph_back(
     async def _refuses(*_args: Any, **_kwargs: Any) -> Any:
         raise ValidationError(title="Invalid", detail="min_pep: Cannot be empty.")
 
-    monkeypatch.setattr(commit_module, "push_steps_with_plan", _refuses)
+    monkeypatch.setattr(commit, "push_steps_with_plan", _refuses)
 
     with pytest.raises(ValidationError):
         await apply_operations_and_commit(

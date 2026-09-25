@@ -28,6 +28,10 @@ class KeyRefusal(StrEnum):
 
     # The provider answered that it does not accept the key.
     INVALID = "invalid"
+    # The provider answered that the key's account has no credit left.
+    NO_CREDIT = "no_credit"
+    # The provider answered that the key may not call the model.
+    FORBIDDEN = "forbidden"
     # The server secret no longer opens the stored ciphertext.
     UNREADABLE = "unreadable"
 

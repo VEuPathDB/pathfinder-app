@@ -21,6 +21,9 @@ from veupathdb.eda import (
     EdaDifferentialExpressionDescriptor,
     EdaLabeledRange,
     EdaVariableSpec,
+    EdaVisualization,
+    EdaVolcanoConfiguration,
+    EdaVolcanoDescriptor,
 )
 
 from pathfinder.persistence.repositories.conversation_analysis import (
@@ -43,11 +46,24 @@ pytestmark = pytest.mark.asyncio
 __all__ = ["eda_wired"]
 
 
-def _analysis(*, with_computation: bool) -> EdaAnalysisDetail:
+def _analysis(
+    *, with_computation: bool, volcano: EdaVolcanoConfiguration | None = None
+) -> EdaAnalysisDetail:
+    visualizations = (
+        []
+        if volcano is None
+        else [
+            EdaVisualization(
+                visualization_id="v1",
+                descriptor=EdaVolcanoDescriptor(configuration=volcano),
+            )
+        ]
+    )
     computations = (
         [
             EdaComputation(
                 computation_id="c1",
+                visualizations=visualizations,
                 descriptor=EdaDifferentialExpressionDescriptor(
                     configuration=EdaDifferentialExpressionConfig(
                         identifier_variable=EdaVariableSpec(
@@ -98,7 +114,7 @@ async def owned_thread(
         yield client, conversation.id, user.id
 
 
-async def test_viz_answers_with_the_thresholded_volcano(
+async def test_viz_draws_the_default_cut_when_the_analysis_stores_none(
     owned_thread: tuple[httpx.AsyncClient, UUID, UUID],
     session_maker: async_sessionmaker[AsyncSession],
     eda_wired: EdaClient,
@@ -122,17 +138,16 @@ async def test_viz_answers_with_the_thresholded_volcano(
     response = await client.post(
         "/api/v1/eda/viz",
         params={"siteId": "plasmodb", "conversationId": str(conversation_id)},
-        json={
-            "datasetId": DATASET,
-            "chart": "volcano",
-            "effectSizeThreshold": 1.0,
-            "significanceThreshold": 0.05,
-            "effectDirection": "upAndDown",
-        },
+        json={"chart": "volcano"},
     )
     assert response.status_code == 200
     body = response.json()
     assert body["chart"] == "volcano"
+    assert (
+        body["effectSizeThreshold"],
+        body["significanceThreshold"],
+        body["effectDirection"],
+    ) == (1.0, 0.05, "upAndDown")
     assert body["effectSizeLabel"] == "log2(Fold Change)"
     assert body["totalPoints"] == 201
     assert body["retainedPoints"] == 67
@@ -150,7 +165,7 @@ async def test_viz_answers_with_the_thresholded_volcano(
     assert all(p["pValue"] <= 0.05 for p in retained)
 
 
-async def test_viz_keeps_only_the_up_side_when_the_direction_says_so(
+async def test_viz_draws_the_cut_the_analysis_stores(
     owned_thread: tuple[httpx.AsyncClient, UUID, UUID],
     session_maker: async_sessionmaker[AsyncSession],
     eda_wired: EdaClient,
@@ -167,25 +182,34 @@ async def test_viz_keeps_only_the_up_side_when_the_direction_says_so(
 
     async def read(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
         del analysis_id
-        return _analysis(with_computation=True)
+        return _analysis(
+            with_computation=True,
+            volcano=EdaVolcanoConfiguration(
+                effect_size_threshold=2.0,
+                significance_threshold=0.01,
+                effect_direction="upOnly",
+            ),
+        )
 
     monkeypatch.setattr(eda, "read_analysis", read)
 
     response = await client.post(
         "/api/v1/eda/viz",
         params={"siteId": "plasmodb", "conversationId": str(conversation_id)},
-        json={
-            "datasetId": DATASET,
-            "chart": "volcano",
-            "effectSizeThreshold": 1.0,
-            "significanceThreshold": 0.05,
-            "effectDirection": "upOnly",
-        },
+        json={"chart": "volcano"},
     )
     assert response.status_code == 200
-    retained = [p for p in response.json()["points"] if p["retained"]]
+    body = response.json()
+    assert (
+        body["effectSizeThreshold"],
+        body["significanceThreshold"],
+        body["effectDirection"],
+    ) == (2.0, 0.01, "upOnly")
+    retained = [p for p in body["points"] if p["retained"]]
     assert retained
-    assert all(p["effectSize"] > 0 for p in retained)
+    assert len(retained) == body["retainedPoints"]
+    assert all(p["effectSize"] >= 2.0 for p in retained)
+    assert all(p["pValue"] <= 0.01 for p in retained)
 
 
 async def test_viz_on_an_analysis_with_no_computation_is_a_409(
@@ -213,12 +237,7 @@ async def test_viz_on_an_analysis_with_no_computation_is_a_409(
     response = await client.post(
         "/api/v1/eda/viz",
         params={"siteId": "plasmodb", "conversationId": str(conversation_id)},
-        json={
-            "datasetId": DATASET,
-            "chart": "volcano",
-            "effectSizeThreshold": 1.0,
-            "significanceThreshold": 0.05,
-        },
+        json={"chart": "volcano"},
     )
     assert response.status_code == 409
     assert "no comparison has run" in json.dumps(response.json()).lower()
@@ -231,7 +250,7 @@ async def test_viz_on_a_thread_with_no_open_analysis_is_a_409(
     response = await client.post(
         "/api/v1/eda/viz",
         params={"siteId": "plasmodb", "conversationId": str(conversation_id)},
-        json={"datasetId": DATASET, "chart": "volcano"},
+        json={"chart": "volcano"},
     )
     assert response.status_code == 409
     assert "no study is open" in json.dumps(response.json()).lower()
@@ -258,6 +277,6 @@ async def test_viz_on_another_users_thread_is_a_404(
         response = await client.post(
             "/api/v1/eda/viz",
             params={"siteId": "plasmodb", "conversationId": str(conversation.id)},
-            json={"datasetId": DATASET, "chart": "volcano"},
+            json={"chart": "volcano"},
         )
     assert response.status_code == 404

@@ -9,6 +9,7 @@ import { Modal } from "@/lib/components/Modal";
 import { ProviderIcon } from "@/lib/components/ProviderIcon";
 import { formatCompactClean, formatPrice } from "@/features/settings/format";
 import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
+import { readsLabel } from "@/lib/models/attachments";
 import { onOwnKey, selectable, type Payers } from "@/lib/models/payers";
 import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 
@@ -208,6 +209,7 @@ function ModelRow({
   const isEnabled = selectable(model, payers);
   const ownKey = onOwnKey(model, payers);
   const supportsReasoning = model.supportsReasoning ?? false;
+  const reads = readsLabel(model);
   const description =
     model.description != null && model.description !== "" ? model.description : "-";
 
@@ -230,6 +232,9 @@ function ModelRow({
             <div className="font-medium text-foreground">{model.name}</div>
             {supportsReasoning && (
               <span className="text-[10px] text-primary/80">reasoning</span>
+            )}
+            {reads !== null && (
+              <span className="ml-1.5 text-[10px] text-muted-foreground">{reads}</span>
             )}
             {ownKey && (
               <span className="ml-1.5 rounded bg-success/15 px-1 text-[10px] text-success">

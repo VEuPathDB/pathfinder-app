@@ -63,7 +63,22 @@ was. A thread operation must not fail because a document nobody can reach.
 the writes of the two surfaces that edit one analysis, so a fresh document
 starts at one and a restored subset is one more mutation.
 
+**The card carries the document's stamp.** Every analysis-state part records
+the `modificationTime` the service held on the document it was read from
+(`EdaAnalysisState.modification_time`). The turn briefing names the open
+analysis as changed after the card when the newest part shows another
+document, a lower revision, or a stamp the service no longer holds, which is
+how an edit made on the site reaches the Lead
+(`services/conversations/thread_activity.py`). The service stamps to the
+second, so two edits within one second read as one.
+
 # What was rejected
+
+**A stamp column on `conversation_analyses`, written at each bind and each
+turn.** Every surface that mutates the document would have to write it beside
+the revision, and a turn that ended on a mutation would read its own edit as
+the site's on the next turn. The part is written by every surface that shows
+the analysis already, so it needs no migration and no second writer.
 
 **An append log of bindings keyed by the message the turn ended with**, the
 shape the strategy uses. It is a migration and a second writer for state the

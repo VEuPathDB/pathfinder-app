@@ -6,6 +6,7 @@ import { ExternalLink, Share2 } from "lucide-react";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
+import { toUserMessage } from "@/lib/api/errors";
 import { getGeneSetVdiPublication, publishGeneSetToVdi } from "@/lib/api/geneSets";
 import { queryKeyPrefixes } from "@/lib/query/keys";
 
@@ -31,7 +32,12 @@ function statusLine(status: VdiPublicationStatus | undefined): string {
   if (status === undefined) return "Reading publication status...";
   if (status.installed) return `Installed on ${status.installedTargets.join(", ")}`;
   if (status.isTerminal) return "The site could not install this dataset";
-  return `Upload ${status.upload}, import ${status.importStatus ?? "queued"}`;
+  if (status.upload !== "success") return "Uploading to the site...";
+  if (status.importStatus === "in-progress")
+    return "The site is importing the dataset...";
+  if (status.importStatus === "complete")
+    return "Imported; the site is installing it...";
+  return "Uploaded; the site imports it next";
 }
 
 function PublishedLine({ geneSetId }: { geneSetId: string }) {
@@ -39,8 +45,19 @@ function PublishedLine({ geneSetId }: { geneSetId: string }) {
     queryKey: [...queryKeyPrefixes.geneSets, "vdi-publication", geneSetId] as const,
     queryFn: () => getGeneSetVdiPublication(geneSetId),
     refetchInterval: (query) =>
-      query.state.data?.isTerminal === true ? false : STATUS_POLL_MS,
+      query.state.status === "error" || query.state.data?.isTerminal === true
+        ? false
+        : STATUS_POLL_MS,
+    meta: { shownInline: true },
   });
+
+  if (status.data === undefined && status.error !== null) {
+    return (
+      <span role="alert" className="text-[10px] text-destructive">
+        {toUserMessage(status.error, "The publication status could not be read.")}
+      </span>
+    );
+  }
 
   return (
     <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -90,9 +107,7 @@ export function PublishToVdiButton({ geneSet }: { geneSet: GeneSet }) {
       void queryClient.invalidateQueries({ queryKey: queryKeyPrefixes.geneSets });
       toast.success(`Published ${published.geneCount.toLocaleString()} genes`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Publish failed";
-      setState({ kind: "failed", message });
-      toast.error(message);
+      setState({ kind: "failed", message: toUserMessage(err, "Publish failed") });
     }
   };
 
@@ -110,7 +125,9 @@ export function PublishToVdiButton({ geneSet }: { geneSet: GeneSet }) {
           Publish to VEuPathDB workspace
         </button>
         {state.kind === "failed" && (
-          <span className="text-[10px] text-destructive">{state.message}</span>
+          <span role="alert" className="text-[10px] text-destructive">
+            {state.message}
+          </span>
         )}
       </span>
     );

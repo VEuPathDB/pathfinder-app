@@ -23,7 +23,11 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.step_rationale import ComparedSearch, SearchRationale
+from pathfinder.domain.strategy.step_rationale import (
+    ComparedSearch,
+    ControlsRationale,
+    SearchRationale,
+)
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 from pathfinder.tests.unit.domain.strategy._analysis import WORDS, analysed
 
@@ -199,6 +203,31 @@ def test_a_case_records_why_each_search_was_chosen_without_its_words() -> None:
     assert (rows[0]["because"], rows[0]["chosen_over"]) == (
         "parameter: GO Term",
         ["GenesByText", "GenesByInterproDomain"],
+    )
+
+
+def test_a_case_records_the_count_a_measured_search_was_chosen_on() -> None:
+    state = _state(outcome=_outcome(142))
+    answered = _spec()
+    answered.criteria[0].rationale = ControlsRationale(
+        task_id="0c6100d2-0000-4000-8000-00000000a16a",
+        search_name="GenesByGoTerm",
+        source="enrichment",
+        basis="GO:0004672 protein kinase activity",
+        informs="recovering",
+        recovered=42,
+        positives=80,
+        admitted=0,
+        negatives=40,
+        result_size=637,
+    )
+    state.domain.answered_spec = answered
+
+    rows = _criteria_rows(collect_case_candidates(state)[0][0].content)
+
+    assert (rows[0]["because"], rows[0]["chosen_over"]) == (
+        "GO:0004672 protein kinase activity: 42 of 80 positives",
+        [],
     )
 
 

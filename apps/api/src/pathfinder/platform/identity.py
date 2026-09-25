@@ -17,3 +17,4 @@ _PRODUCT = "Pathfinder"
 
 CONTROL_TEST_STRATEGY_NAME = f"{_PRODUCT} control test"
 STEP_COUNTS_STRATEGY_NAME = f"{_PRODUCT} step counts"
+SEPARATION_STRATEGY_NAME = f"{_PRODUCT} control separation"

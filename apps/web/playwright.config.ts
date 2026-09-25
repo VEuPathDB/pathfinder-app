@@ -6,6 +6,7 @@ const isCI = Boolean(process.env["CI"]);
 // turn. Their data-part waits starve when every worker slot holds a turn, so
 // they run in the serialized `feature-turns` project instead of `feature`.
 const turnDrivingFeatureSpecs = [
+  "**/e2e/feature/attachments.spec.ts",
   "**/e2e/feature/auth.spec.ts",
   "**/e2e/feature/auto-build.spec.ts",
   "**/e2e/feature/branch-switch.spec.ts",
@@ -19,6 +20,7 @@ const turnDrivingFeatureSpecs = [
   "**/e2e/feature/gene-set-figure.spec.ts",
   "**/e2e/feature/insert-saved.spec.ts",
   "**/e2e/feature/site-help-assistant.spec.ts",
+  "**/e2e/feature/slash-commands.spec.ts",
   "**/e2e/feature/strategy-complex-edit.spec.ts",
   "**/e2e/feature/strategy-duplicate-rename.spec.ts",
   "**/e2e/feature/strategy-graph.spec.ts",

@@ -19,19 +19,21 @@ from veupathdb.eda import (
     EdaDifferentialExpressionDescriptor,
     EdaLabeledRange,
     EdaVariableSpec,
-    differential_expression_computations,
 )
 
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     refuse_a_direction_without_a_volcano,
 )
-from pathfinder.domain.eda_parts import EdaComparison
+from pathfinder.domain.eda_parts import EdaComparison, EdaComputeSummary
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
-from pathfinder.services.eda.binding import read_analysis
+from pathfinder.services.eda.binding import read_analysis, read_analysis_state
 from pathfinder.services.eda.comparison import apply_computation
 from pathfinder.services.eda.compute import (
+    DEFAULT_VOLCANO_CUT,
+    VolcanoThresholds,
     analysis_comparison,
-    run_analysis_compute,
+    stored_volcano_cut,
 )
 from pathfinder.services.eda.export import eda_step_request, exported_analysis
 from pathfinder.services.eda.gene_subset import (
@@ -46,7 +48,6 @@ from pathfinder.tests._support.eda_wire import (
     fixture,
     wire_eda,
 )
-from pathfinder.transport.http.schemas.eda import ConversationEdaResponse
 
 _RECORDED = fixture("analysis_detail_pass_and_de")
 _ANALYSIS = "uoZgkI9"
@@ -193,26 +194,61 @@ def recorded(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
     return _wired(monkeypatch, EdaAnalysisDetail.model_validate(_RECORDED))
 
 
-async def test_the_tab_reads_the_analysis_with_every_computation(
+def _bound() -> ConversationAnalysisView:
+    return ConversationAnalysisView(
+        site_id="plasmodb",
+        dataset_id=_WIRED_DATASET,
+        analysis_id=_ANALYSIS,
+        revision=3,
+    )
+
+
+async def test_the_state_names_the_comparison_by_the_study_names(
     recorded: AnalysisStore,
 ) -> None:
     del recorded
     detail = await read_analysis("plasmodb", analysis_id=_ANALYSIS)
 
-    response = ConversationEdaResponse(
-        analysis=None,
-        descriptor=detail.descriptor.model_dump(by_alias=True, mode="json"),
-    ).model_dump(by_alias=True, mode="json")
+    state = await read_analysis_state(bound=_bound(), analysis=detail)
 
-    computations = response["descriptor"]["computations"]
-    assert [c["computationId"] for c in computations] == [_PASS, _DE]
-    assert [c["descriptor"]["type"] for c in computations] == [
-        "pass",
-        "differentialexpression",
-    ]
-    histogram = computations[0]["visualizations"][0]["descriptor"]
-    assert histogram["type"] == "histogram"
-    assert histogram["configuration"]["xAxisVariable"]["variableId"] == "VAR_7033e90f"
+    assert state.num_computations == 2
+    assert state.compute == EdaComputeSummary(
+        method="DESeq",
+        identifier_variable="Gene",
+        value_variable="Antisense Count",
+        comparator_variable="temperature_condition",
+        group_a=["normal"],
+        group_b=["febrile"],
+    )
+
+
+async def test_the_state_of_an_analysis_with_no_comparison_names_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _wired(monkeypatch, _pass_only())
+    detail = await read_analysis("plasmodb", analysis_id=_ANALYSIS)
+
+    state = await read_analysis_state(bound=_bound(), analysis=detail)
+
+    assert (state.num_computations, state.compute) == (1, None)
+
+
+async def test_every_read_takes_the_document_the_site_holds_now(
+    recorded: AnalysisStore,
+) -> None:
+    """The site edits the shared document, and the next read carries the edit."""
+    before = await read_analysis("plasmodb", analysis_id=_ANALYSIS)
+    recorded.detail = _with_computations(_recorded(_PASS), _SWAPPED_BODY)
+
+    after = await read_analysis("plasmodb", analysis_id=_ANALYSIS)
+    state = await read_analysis_state(bound=_bound(), analysis=after)
+
+    assert analysis_comparison(before) == EdaComparison(
+        group_a=["normal"], group_b=["febrile"]
+    )
+    assert state.compute is not None
+    assert (state.compute.group_a, state.compute.group_b) == (["febrile"], ["normal"])
+    assert state.compute.value_variable == "Antisense Count"
 
 
 def test_the_comparison_is_the_differential_expression() -> None:
@@ -220,6 +256,44 @@ def test_the_comparison_is_the_differential_expression() -> None:
     assert analysis_comparison(detail) == EdaComparison(
         group_a=["normal"], group_b=["febrile"]
     )
+
+
+def test_the_figure_takes_the_cut_the_comparison_stores() -> None:
+    """A cut set in the site's volcano cell is the cut the tab draws."""
+    stored = {
+        **_recorded(_DE),
+        "visualizations": [
+            {
+                "visualizationId": _VOLCANO,
+                "descriptor": {
+                    "type": "volcanoplot",
+                    "configuration": {
+                        "effectSizeThreshold": 2,
+                        "significanceThreshold": 0.01,
+                        "effectDirection": "upOnly",
+                    },
+                },
+            }
+        ],
+    }
+
+    cut = stored_volcano_cut(_with_computations(_recorded(_PASS), stored))
+
+    assert cut == VolcanoThresholds(
+        effect_size_threshold=2.0,
+        significance_threshold=0.01,
+        effect_direction="upOnly",
+    )
+
+
+def test_a_comparison_with_no_stored_volcano_takes_the_default_cut() -> None:
+    bare = {**_recorded(_DE), "visualizations": []}
+
+    cut = stored_volcano_cut(_with_computations(_recorded(_PASS), bare))
+
+    assert cut == DEFAULT_VOLCANO_CUT
+    assert (cut.effect_size_threshold, cut.significance_threshold) == (1.0, 0.05)
+    assert cut.effect_direction == "upAndDown"
 
 
 def test_a_compute_export_puts_the_comparison_first_and_keeps_the_pass() -> None:
@@ -352,23 +426,6 @@ async def test_a_compute_write_appends_the_comparison_beside_a_pass(
     computations = body["descriptor"]["computations"]
     assert [c["computationId"] for c in computations] == [_PASS, "c1"]
     assert computations[0] == _recorded(_PASS)
-
-
-async def test_the_comparison_the_analysis_holds_is_not_written_again(
-    recorded: AnalysisStore,
-) -> None:
-    detail = EdaAnalysisDetail.model_validate(_RECORDED)
-    [held] = differential_expression_computations(detail.descriptor)
-
-    job = await run_analysis_compute(
-        "plasmodb",
-        analysis_id=_ANALYSIS,
-        dataset_id=_WIRED_DATASET,
-        computation=held.descriptor,
-    )
-
-    assert job.status == "complete"
-    assert recorded.patches == 0
 
 
 def test_a_direction_needs_a_comparison_and_a_pass_is_none() -> None:

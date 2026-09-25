@@ -13,9 +13,9 @@ from collections.abc import Callable
 
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import Field, ValidationError
 from veupathdb.errors import WDKError
+from veupathdb_mcp.controls import CONTROLS_PARAM, CONTROLS_SEARCH
 from veupathdb_mcp.wdk import extract_record_ids
 
 from pathfinder.services.experiment.service import run_experiment
@@ -27,9 +27,6 @@ from pathfinder.services.experiment.variant_comparison import (
     VariantSpec,
     run_variant_search,
 )
-
-CONTROLS_SEARCH_NAME = "GeneByLocusTag"
-CONTROLS_PARAM_NAME = "ds_gene_ids"
 
 _MAX_ERROR_CHARS = 200
 
@@ -71,7 +68,7 @@ def _one_line(text: str) -> str:
     return collapsed[: _MAX_ERROR_CHARS - 3] + "..."
 
 
-def _first_field_error(exc: PydanticValidationError) -> str:
+def _first_field_error(exc: ValidationError) -> str:
     """The first rejected field and why, never the whole validation dump."""
     errors = exc.errors()
     if not errors:
@@ -136,13 +133,13 @@ async def _score_one(
         parameters=spec.parameters,
         positive_controls=positive_controls,
         negative_controls=negative_controls,
-        controls_search_name=CONTROLS_SEARCH_NAME,
-        controls_param_name=CONTROLS_PARAM_NAME,
+        controls_search_name=CONTROLS_SEARCH,
+        controls_param_name=CONTROLS_PARAM,
         name=spec.label,
     )
     try:
         exp = await run_experiment(config, user_id=user_id)
-    except PydanticValidationError as exc:
+    except ValidationError as exc:
         return await _failed_variant(
             spec,
             site_id=site_id,

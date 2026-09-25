@@ -3,7 +3,7 @@
 import { CompactRowKebab } from "@/features/strategy/graph/components/CompactRowKebab";
 import { VennIcon } from "@/features/strategy/graph/components/VennIcon";
 import type { CompactStep } from "@/features/strategy/graph/utils/compactLayout";
-import { operatorName } from "@/features/strategy/graph/utils/stepTitle";
+import { operatorLabel } from "@/features/strategy/operators";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { cn } from "@/lib/utils/cn";
 
@@ -56,7 +56,7 @@ function StepRowButton({ step, onStepClick, selectedStepId = null }: StepRowProp
   const operator = step.kind === "combine" ? (step.operator ?? "") : "";
   // The inputs are listed directly beneath, so the row names the operation and
   // keeps the full expression for the tooltip.
-  const label = operator === "" ? step.displayName : operatorName(operator);
+  const label = operator === "" ? step.displayName : operatorLabel(operator);
   const title =
     operator === ""
       ? step.displayName

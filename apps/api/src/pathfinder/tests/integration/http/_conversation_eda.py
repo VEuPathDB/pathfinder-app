@@ -8,7 +8,6 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 from assistant_core.persistence.models import Conversation
-from assistant_core.platform.types import JSONObject
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.eda import (
@@ -43,34 +42,6 @@ SPECIES = "VAR_035294d0"
 ANALYSIS = "t4fszEJ"
 
 PHENOTYPE = "study_detail_phenotype"
-SAMPLE_ENTITY = "ENT_8151325d"
-COUNTS_ENTITY = "ENT_fd574cd6"
-CONDITION = "VAR_081ab087"
-
-
-def computation_json(
-    group_a: str = "febrile",
-    value_variable: str = "SEQUENCE_READ_COUNT_SENSE",
-) -> JSONObject:
-    """A differential expression the DE study declares every variable of."""
-    return {
-        "type": "differentialexpression",
-        "configuration": {
-            "identifierVariable": {
-                "entityId": COUNTS_ENTITY,
-                "variableId": "VEUPATHDB_GENE_ID",
-            },
-            "valueVariable": {
-                "entityId": COUNTS_ENTITY,
-                "variableId": value_variable,
-            },
-            "comparator": {
-                "variable": {"entityId": SAMPLE_ENTITY, "variableId": CONDITION},
-                "groupA": [{"label": group_a}],
-                "groupB": [{"label": "normal"}],
-            },
-        },
-    }
 
 
 def detail() -> EdaAnalysisDetail:
@@ -94,17 +65,6 @@ def detail() -> EdaAnalysisDetail:
     )
 
 
-def _emptydetail(study_id: str) -> EdaAnalysisDetail:
-    return EdaAnalysisDetail(
-        analysis_id=ANALYSIS,
-        display_name="de analysis",
-        study_id=study_id,
-        num_filters=0,
-        num_computations=0,
-        descriptor=EdaAnalysisDescriptor(),
-    )
-
-
 @pytest.fixture
 def phenotype_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
     """The phenotype study and its analysis document, over the recorded wire."""
@@ -112,38 +72,6 @@ def phenotype_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
     wire_eda(
         monkeypatch,
         eda_transport(study_id=STUDY, study_fixture=PHENOTYPE, store=store),
-    )
-    return store
-
-
-@pytest.fixture
-def empty_subset_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
-    """The same study, where every filtered count comes back empty."""
-    store = AnalysisStore(detail=detail())
-    wire_eda(
-        monkeypatch,
-        eda_transport(
-            study_id=STUDY,
-            study_fixture=PHENOTYPE,
-            store=store,
-            filtered_empty=True,
-        ),
-    )
-    return store
-
-
-@pytest.fixture
-def de_wired(monkeypatch: pytest.MonkeyPatch) -> AnalysisStore:
-    """The differential-expression study, and a document a PATCH rewrites."""
-    store = AnalysisStore(detail=_emptydetail(DATASET))
-    wire_eda(
-        monkeypatch,
-        eda_transport(
-            study_id=STUDY,
-            study_fixture="study_detail_de",
-            store=store,
-            entity_sizes=DE_ENTITY_SIZES,
-        ),
     )
     return store
 

@@ -25,7 +25,6 @@ import { plotCaption } from "./plotCaptions";
 const COLLAPSED_HEIGHT = 220;
 const EXPANDED_HEIGHT = 480;
 const GENE_LIST_LIMIT = 12;
-const SIGNIFICANCE_FIELD = "adjustedPValue";
 const MUTED = "text-[11px] text-muted-foreground";
 const READOUT = `mt-1 ${MUTED}`;
 const SUMMARY = `cursor-pointer ${MUTED}`;
@@ -90,7 +89,7 @@ function VizPlot({ data, height, thresholds }: VizBodyProps) {
   if (data.points.length === 0) {
     return (
       <p data-testid="data-eda-viz-empty" className={READOUT}>
-        This compute returned no points.
+        This comparison returned no points.
       </p>
     );
   }
@@ -100,7 +99,6 @@ function VizPlot({ data, height, thresholds }: VizBodyProps) {
         <VolcanoChart
           points={data.points}
           thresholds={thresholds}
-          significanceField={SIGNIFICANCE_FIELD}
           effectSizeLabel={data.effectSizeLabel}
           comparison={data.comparison}
           height={height}
@@ -122,7 +120,7 @@ function VizPlot({ data, height, thresholds }: VizBodyProps) {
     case "boxplot":
       return (
         <p data-testid="data-eda-viz-unsupported-chart" className={READOUT}>
-          {`${data.chart} plots are not available from this compute, which returns one point per gene.`}
+          {`${data.chart} plots are not available from this comparison, which returns one point per gene.`}
         </p>
       );
   }
@@ -161,14 +159,14 @@ function VolcanoReadouts({
   data: EdaViz;
   thresholds: VolcanoThresholds;
 }) {
-  const { selected } = selectVolcanoGenes(data.points, thresholds, SIGNIFICANCE_FIELD);
+  const { selected } = selectVolcanoGenes(data.points, thresholds);
   const listed = selected.slice(0, GENE_LIST_LIMIT);
   const hidden = selected.length - listed.length;
 
   return (
     <>
       <p data-testid="eda-viz-volcano-selection" className={READOUT}>
-        {`${selected.length.toLocaleString()} ${selected.length === 1 ? "gene" : "genes"} selected at these thresholds - ${data.retainedPoints.toLocaleString()} of ${data.totalPoints.toLocaleString()} retained by the compute`}
+        {`${selected.length.toLocaleString()} ${selected.length === 1 ? "gene" : "genes"} selected at these thresholds - ${data.retainedPoints.toLocaleString()} of ${data.totalPoints.toLocaleString()} retained by the comparison`}
       </p>
       {listed.length > 0 ? (
         <details className="mt-1">

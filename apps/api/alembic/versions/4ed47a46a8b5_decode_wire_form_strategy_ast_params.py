@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 import pathfinder.persistence.models  # noqa: F401 — registers GUID type
@@ -78,13 +78,13 @@ def upgrade() -> None:
     """Backfill decoded form into every conversations.strategy_ast row."""
     bind = op.get_bind()
     rows = bind.execute(
-        sa.text(
+        sqlalchemy.text(
             "SELECT id, strategy_ast FROM conversations "
             "WHERE strategy_ast IS NOT NULL AND strategy_ast != '{}'::jsonb"
         ),
     ).fetchall()
 
-    update_stmt = sa.text(
+    update_stmt = sqlalchemy.text(
         "UPDATE conversations SET strategy_ast = :ast WHERE id = :id",
     )
     for row in rows:

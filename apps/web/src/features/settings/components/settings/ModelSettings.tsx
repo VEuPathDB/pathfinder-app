@@ -136,17 +136,21 @@ function PhaseRow({
 }: PhaseRowProps) {
   const resolvedModel =
     models.find((m) => m.id === (selectedModelId ?? defaultModelId)) ?? null;
+  const defaultModel = models.find((m) => m.id === defaultModelId) ?? null;
   const supportsReasoning = resolvedModel?.supportsReasoning ?? false;
   const effectiveEffort = reasoningEffort ?? "medium";
 
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-start gap-3 py-3">
+    <div
+      data-testid={`phase-row-${role}`}
+      className="grid grid-cols-[1fr_auto_auto] items-start gap-3 py-3"
+    >
       <div>
         <div className="text-sm font-medium text-foreground">{phaseLabel(role)}</div>
         <div className="text-xs text-muted-foreground">{phaseDescription(role)}</div>
-        {defaultModelId !== null && selectedModelId === null && (
+        {defaultModel !== null && selectedModelId === null && (
           <div className="mt-0.5 text-[10px] text-muted-foreground">
-            Default: {defaultModelId}
+            Default: {defaultModel.name}
           </div>
         )}
       </div>

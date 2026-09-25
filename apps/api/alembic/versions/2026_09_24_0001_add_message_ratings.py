@@ -11,7 +11,7 @@ Revises: 2026_09_16_0003
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -53,40 +53,48 @@ _LINKAGE_AFTER = (
 def upgrade() -> None:
     op.create_table(
         "message_ratings",
-        sa.Column("id", sa.BigInteger(), sa.Identity(), nullable=False),
-        sa.Column("message_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("conversation_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("user_id", sa.CHAR(length=36), nullable=False),
-        sa.Column("rating", sa.String(length=8), nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "id", sqlalchemy.BigInteger(), sqlalchemy.Identity(), nullable=False
+        ),
+        sqlalchemy.Column("message_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sqlalchemy.Column(
+            "conversation_id", postgresql.UUID(as_uuid=True), nullable=False
+        ),
+        sqlalchemy.Column("user_id", sqlalchemy.CHAR(length=36), nullable=False),
+        sqlalchemy.Column("rating", sqlalchemy.String(length=8), nullable=True),
+        sqlalchemy.Column(
             "case_keys",
             postgresql.JSONB(),
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=sqlalchemy.text("'[]'::jsonb"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "withheld_cases",
             postgresql.JSONB(),
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=sqlalchemy.text("'[]'::jsonb"),
         ),
-        sa.Column("rated_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "rated_at", sqlalchemy.DateTime(timezone=True), nullable=True
+        ),
+        sqlalchemy.Column(
             "updated_at",
-            sa.DateTime(timezone=True),
+            sqlalchemy.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("now()"),
+            server_default=sqlalchemy.text("now()"),
         ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["message_id"], ["messages.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
+        sqlalchemy.PrimaryKeyConstraint("id"),
+        sqlalchemy.ForeignKeyConstraint(
+            ["message_id"], ["messages.id"], ondelete="CASCADE"
+        ),
+        sqlalchemy.ForeignKeyConstraint(
             ["conversation_id"], ["conversations.id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
-        sa.UniqueConstraint(
+        sqlalchemy.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sqlalchemy.UniqueConstraint(
             "message_id", "user_id", name="uq_message_ratings_message_user"
         ),
-        sa.CheckConstraint(
+        sqlalchemy.CheckConstraint(
             "rating IS NULL OR rating IN ('like', 'dislike')",
             name="ck_message_ratings_rating",
         ),
@@ -100,7 +108,9 @@ def upgrade() -> None:
 
     op.add_column(
         _STAGED,
-        sa.Column("rated_message_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sqlalchemy.Column(
+            "rated_message_id", postgresql.UUID(as_uuid=True), nullable=True
+        ),
     )
     op.drop_index(_THREAD_INDEX, table_name=_STAGED)
     op.create_index(
@@ -108,7 +118,7 @@ def upgrade() -> None:
         _STAGED,
         ["source_conversation_id"],
         unique=True,
-        postgresql_where=sa.text(
+        postgresql_where=sqlalchemy.text(
             "rated_message_id IS NULL AND source_conversation_id IS NOT NULL"
         ),
     )
@@ -117,7 +127,7 @@ def upgrade() -> None:
         _STAGED,
         ["rated_message_id"],
         unique=True,
-        postgresql_where=sa.text("rated_message_id IS NOT NULL"),
+        postgresql_where=sqlalchemy.text("rated_message_id IS NOT NULL"),
     )
     op.drop_constraint(_LINKAGE, _STAGED, type_="check")
     op.create_check_constraint(_LINKAGE, _STAGED, _LINKAGE_AFTER)
@@ -126,7 +136,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     # A thread held one staged row before, so the rated rows cannot stay.
     op.execute(
-        sa.text("DELETE FROM eval_staged_cases WHERE rated_message_id IS NOT NULL")
+        sqlalchemy.text(
+            "DELETE FROM eval_staged_cases WHERE rated_message_id IS NOT NULL"
+        )
     )
     op.drop_constraint(_LINKAGE, _STAGED, type_="check")
     op.create_check_constraint(_LINKAGE, _STAGED, _LINKAGE_BEFORE)
@@ -137,7 +149,7 @@ def downgrade() -> None:
         _STAGED,
         ["source_conversation_id"],
         unique=True,
-        postgresql_where=sa.text("source_conversation_id IS NOT NULL"),
+        postgresql_where=sqlalchemy.text("source_conversation_id IS NOT NULL"),
     )
     op.drop_column(_STAGED, "rated_message_id")
 

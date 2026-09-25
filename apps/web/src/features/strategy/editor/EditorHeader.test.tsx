@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { Step, StepKind } from "@pathfinder/shared";
 import { EditorHeader } from "./EditorHeader";
 
@@ -86,4 +87,31 @@ describe("EditorHeader subtitle", () => {
     expect(screen.getByLabelText("Step name")).toHaveValue("Genes by taxon");
     expect(screen.queryByTestId("step-editor-subtitle")).toBeNull();
   });
+});
+
+describe("EditorHeader copy action", () => {
+  it("names the action for what it does on a search step", async () => {
+    renderHeader("search");
+    await userEvent.click(screen.getByRole("button", { name: "More actions" }));
+
+    const item = await screen.findByRole("menuitem", { name: "Intersect with a copy" });
+    expect(item).toHaveAttribute(
+      "title",
+      "Adds a copy of this step and intersects it with the original, so the copy's parameters can be changed.",
+    );
+    expect(screen.queryByRole("menuitem", { name: /duplicate/i })).toBeNull();
+  });
+
+  it.each(["combine", "transform"] as const)(
+    "offers no copy of a %s step",
+    async (kind) => {
+      renderHeader(kind);
+      await userEvent.click(screen.getByRole("button", { name: "More actions" }));
+
+      await screen.findByRole("menuitem", { name: "Copy step URL" });
+      expect(
+        screen.queryByRole("menuitem", { name: "Intersect with a copy" }),
+      ).toBeNull();
+    },
+  );
 });

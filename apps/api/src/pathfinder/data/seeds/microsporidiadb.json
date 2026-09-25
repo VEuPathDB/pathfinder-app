@@ -9,27 +9,27 @@
         "ECU02_0770",
         "ECU02_0800",
         "ECU02_0810",
+        "ECU02_0880",
+        "ECU02_0900",
         "ECU03_0230",
         "ECU03_0310",
         "ECU03_0320",
         "ECU03_0650",
         "ECU03_0710",
         "ECU03_0950",
-        "ECU03_1220",
-        "ECU03_1490",
-        "ECU04_0140"
+        "ECU03_1220"
       ],
       "positive_ids": [
-        "ECU06_0250",
-        "ECU06_0240",
-        "ECU10_1660",
-        "ECU01_0820",
+        "ECU01_0440",
+        "ECU01_0555",
         "ECU01_1270",
         "ECU01_1390",
-        "ECU09_1320",
-        "ECU11_0510"
+        "ECU02_0150",
+        "ECU02_0190",
+        "ECU03_0250",
+        "ECU03_1120"
       ],
-      "provenance_notes": "Positives: polar tube proteins (PTP1, PTP2) and spore wall proteins (SWP1, EnP1, EnP2, chitin synthase, endochitinase). Negatives: ribosomal structural proteins \u2014 housekeeping.",
+      "provenance_notes": "Positive set: the first 8 genes the site returns for this seed's own tree (MicrosporidiaDB build 71, read 2026-09-24). Negative set: the first 15 genes annotated to structural constituent of ribosome (GO:0003735) that the tree does not return (ribosomal structural proteins, housekeeping).",
       "tags": [
         "spore",
         "microsporidium",
@@ -37,6 +37,15 @@
       ]
     },
     "description": "Comprehensive spore biogenesis apparatus in E. cuniculi GB-M1. Combines polar tube proteins, spore wall proteins, secreted components, and chitin-related enzymes. Microsporidia spores contain the unique polar tube (invasion filament) and a chitin-rich spore wall essential for environmental survival.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 8,
+      "positives_total": 8,
+      "root_count": 48,
+      "site_build": "71"
+    },
     "name": "EcGBM1 Spore Machinery",
     "record_type": "transcript",
     "site_id": "microsporidiadb",
@@ -189,6 +198,15 @@
       ]
     },
     "description": "Host-dependency machinery in E. cuniculi GB-M1. Microsporidia have lost most biosynthetic pathways and depend on stealing ATP, amino acids, nucleotides, and other metabolites from the host cell. This strategy identifies transporters (including the characteristic ATP/ADP translocases), membrane metabolic enzymes, and ABC transporters.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 17,
+      "positives_total": 17,
+      "root_count": 45,
+      "site_build": "71"
+    },
     "name": "EcGBM1 Host Exploitation",
     "record_type": "transcript",
     "site_id": "microsporidiadb",
@@ -309,6 +327,15 @@
       ]
     },
     "description": "Potential therapeutic targets in E. cuniculi GB-M1. Includes MetAP2 (fumagillin target), tubulin (albendazole target), DHFR-TS (antifolate targets), chitin synthase (nikkomycin), and proteolytic enzymes. Excludes ribosomal proteins and heat shock chaperones to focus on druggable enzyme targets.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 11,
+      "positives_total": 11,
+      "root_count": 130,
+      "site_build": "71"
+    },
     "name": "EcGBM1 Drug Targets",
     "record_type": "transcript",
     "site_id": "microsporidiadb",
@@ -383,6 +410,8 @@
         "ECU02_0770",
         "ECU02_0800",
         "ECU02_0810",
+        "ECU02_0880",
+        "ECU02_0900",
         "ECU03_0230",
         "ECU03_0310",
         "ECU03_0320",
@@ -391,36 +420,33 @@
         "ECU03_0950",
         "ECU03_1220",
         "ECU03_1490",
+        "ECU04_0125i",
         "ECU04_0140",
         "ECU04_0330",
-        "ECU04_0640",
-        "ECU04_0740",
-        "ECU05_0670",
-        "ECU05_0900"
+        "ECU04_0450"
       ],
       "positive_ids": [
-        "ECU01_0740i",
-        "ECU01_1220",
-        "ECU03_1270",
-        "ECU04_1220",
-        "ECU05_0320",
-        "ECU09_0640",
-        "ECU09_1780",
-        "ECU08_1480",
-        "ECU11_1980",
+        "ECU01_0630",
+        "ECU01_1320",
+        "ECU02_0340",
+        "ECU02_0480",
+        "ECU02_0510",
+        "ECU02_0550",
+        "ECU02_1130",
+        "ECU02_1450",
+        "ECU03_0580",
+        "ECU03_0620",
         "ECU03_0630",
-        "ECU11_1540",
-        "ECU03_0680",
-        "ECU01_0240",
-        "ECU07_0800",
-        "ECU05_0320",
-        "ECU02_0740i",
-        "ECU03_0930",
-        "ECU01_0940",
-        "ECU01_1010",
-        "ECU08_0860"
+        "ECU03_0910",
+        "ECU03_0980",
+        "ECU04_0310",
+        "ECU04_0420",
+        "ECU04_0610",
+        "ECU04_1210",
+        "ECU05_0290",
+        "ECU05_0630"
       ],
-      "provenance_notes": "Positives: kinases, glycolytic enzymes, and ubiquitin pathway components \u2014 essential functions retained in minimal genome. Negatives: ribosomal structural proteins.",
+      "provenance_notes": "Positive set: the first 19 genes the site returns for this seed's own tree (MicrosporidiaDB build 71, read 2026-09-24). Negative set: the first 20 genes annotated to structural constituent of ribosome (GO:0003735) that the tree does not return (ribosomal structural proteins, housekeeping).",
       "tags": [
         "essential",
         "microsporidium",
@@ -428,6 +454,15 @@
       ]
     },
     "description": "Essential retained functions in E. cuniculi's extremely reduced genome (~2000 genes). Despite losing most metabolic pathways, Microsporidia retain: protein kinases for signaling, glycolytic enzymes for energy, and the ubiquitin-proteasome system for protein turnover. This strategy identifies high-confidence essential enzymes via intersections with GO/EC annotations.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 20,
+      "positives_recovered": 19,
+      "positives_total": 19,
+      "root_count": 61,
+      "site_build": "71"
+    },
     "name": "EcGBM1 Reduced Genome Essentials",
     "record_type": "transcript",
     "site_id": "microsporidiadb",
@@ -552,36 +587,45 @@
         "ECU02_0770",
         "ECU02_0800",
         "ECU02_0810",
+        "ECU02_0880",
+        "ECU02_0900",
         "ECU03_0230",
         "ECU03_0310",
         "ECU03_0320",
         "ECU03_0650",
         "ECU03_0710",
         "ECU03_0950",
-        "ECU03_1220",
-        "ECU03_1490",
-        "ECU04_0140"
+        "ECU03_1220"
       ],
       "positive_ids": [
-        "ECU03_0520",
-        "ECU02_1100",
-        "ECU11_1830",
-        "ECU11_1420",
+        "ECU02_0140",
+        "ECU02_0410",
         "ECU02_0690",
-        "ECU08_0240",
-        "ECU09_0170",
+        "ECU03_0470",
+        "ECU03_0520",
+        "ECU03_1430",
+        "ECU04_0400",
         "ECU04_0680",
-        "ECU09_1450",
-        "ECU02_0410"
+        "ECU04_1560",
+        "ECU05_0090"
       ],
-      "provenance_notes": "Positives: heat shock proteins and GTPases \u2014 stress response and signaling for intracellular adaptation. Negatives: ribosomal structural proteins.",
+      "provenance_notes": "Positive set: the first 10 genes the site returns for this seed's own tree (MicrosporidiaDB build 71, read 2026-09-24). Negative set: the first 15 genes annotated to structural constituent of ribosome (GO:0003735) that the tree does not return (ribosomal structural proteins, housekeeping).",
       "tags": [
         "survival",
         "microsporidium",
         "seed"
       ]
     },
-    "description": "Genes enabling intracellular survival in E. cuniculi GB-M1. Combines stress response (heat shock proteins, chaperones) with GTPase signaling (Rab, Ras, Rho family) that are either secreted or membrane-associated. These proteins mediate parasite adaptation to the intracellular niche.",
+    "description": "Genes enabling intracellular survival in E. cuniculi GB-M1. Combines stress response (heat shock proteins, chaperones) with GTPase signaling (Rab, Ras, Rho family). These proteins mediate parasite adaptation to the intracellular niche.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 15,
+      "positives_recovered": 10,
+      "positives_total": 10,
+      "root_count": 28,
+      "site_build": "71"
+    },
     "name": "EcGBM1 Intracellular Survival",
     "record_type": "transcript",
     "site_id": "microsporidiadb",
@@ -590,45 +634,30 @@
       "id": "root_minus_ribo_3",
       "operator": "MINUS",
       "primaryInput": {
-        "displayName": "Membrane Survival",
-        "id": "intersect_survival_membrane",
-        "operator": "INTERSECT",
+        "displayName": "HSP + GTPase",
+        "id": "union_hsp_gtpase",
+        "operator": "UNION",
         "primaryInput": {
-          "displayName": "HSP + GTPase",
-          "id": "union_hsp_gtpase",
-          "operator": "UNION",
-          "primaryInput": {
-            "displayName": "Heat Shock / Chaperone",
-            "id": "leaf_hsp_text_2",
-            "parameters": {
-              "document_type": "gene",
-              "text_expression": "heat shock OR chaperone OR hsp OR dnaK",
-              "text_fields": "[\"product\"]",
-              "text_search_organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
-            },
-            "searchName": "GenesByText"
+          "displayName": "Heat Shock / Chaperone",
+          "id": "leaf_hsp_text_2",
+          "parameters": {
+            "document_type": "gene",
+            "text_expression": "heat shock OR chaperone OR hsp OR dnaK",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
           },
-          "secondaryInput": {
-            "displayName": "GTPase / Ras / Rab",
-            "id": "leaf_gtpase_text",
-            "parameters": {
-              "document_type": "gene",
-              "text_expression": "GTPase OR \"GTP-binding\" OR \"GTP binding\" OR Ras OR Rab",
-              "text_fields": "[\"product\"]",
-              "text_search_organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
-            },
-            "searchName": "GenesByText"
-          }
+          "searchName": "GenesByText"
         },
         "secondaryInput": {
-          "displayName": "Transmembrane (1+)",
-          "id": "leaf_tm_3",
+          "displayName": "GTPase / Ras / Rab",
+          "id": "leaf_gtpase_text",
           "parameters": {
-            "max_tm": "99",
-            "min_tm": "1",
-            "organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
+            "document_type": "gene",
+            "text_expression": "GTPase OR \"GTP-binding\" OR \"GTP binding\" OR Ras OR Rab",
+            "text_fields": "[\"product\"]",
+            "text_search_organism": "[\"Encephalitozoon cuniculi GB-M1\"]"
           },
-          "searchName": "GenesByTransmembraneDomains"
+          "searchName": "GenesByText"
         }
       },
       "secondaryInput": {

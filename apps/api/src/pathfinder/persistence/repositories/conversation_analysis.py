@@ -9,9 +9,9 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.persistence.models import (
     ConversationAnalysis,
-    ConversationAnalysisView,
 )
 
 SessionFactory = Callable[[], AsyncSession]

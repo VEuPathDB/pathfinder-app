@@ -5,15 +5,6 @@ const DatasetBasketContent = z.object({ basketName: z.string().default("") });
 const DatasetStrategyContent = z.object({
   strategyId: z.union([z.string(), z.number()]).transform(String),
 });
-const DatasetFileContent = z.object({
-  temporaryFileId: z.string().optional(),
-  fileName: z.string().optional(),
-  parser: z.string().optional(),
-});
-const DatasetUrlContent = z.object({
-  url: z.string().default(""),
-  parser: z.string().optional(),
-});
 
 const DatasetConfigSchema = z.discriminatedUnion("sourceType", [
   z.object({ sourceType: z.literal("idList"), sourceContent: DatasetIdListContent }),
@@ -22,8 +13,6 @@ const DatasetConfigSchema = z.discriminatedUnion("sourceType", [
     sourceType: z.literal("strategy"),
     sourceContent: DatasetStrategyContent,
   }),
-  z.object({ sourceType: z.literal("file"), sourceContent: DatasetFileContent }),
-  z.object({ sourceType: z.literal("url"), sourceContent: DatasetUrlContent }),
 ]);
 
 export type DatasetConfig = z.infer<typeof DatasetConfigSchema>;
@@ -59,10 +48,8 @@ export function initialTabFor(
 ): DatasetWidgetTab {
   if (config === null) return hasDefault ? "default" : "paste";
   if (config.sourceType === "idList") return "paste";
-  if (config.sourceType === "file") return "upload";
   if (config.sourceType === "basket") return "basket";
-  if (config.sourceType === "strategy") return "strategy";
-  return "upload";
+  return "strategy";
 }
 
 export function pasteTextFromConfig(config: DatasetConfig | null): string {
@@ -81,12 +68,6 @@ export function strategyIdFromConfig(config: DatasetConfig | null): string {
   if (config === null) return "";
   if (config.sourceType !== "strategy") return "";
   return config.sourceContent.strategyId;
-}
-
-export function fileNameFromConfig(config: DatasetConfig | null): string {
-  if (config === null) return "";
-  if (config.sourceType !== "file") return "";
-  return config.sourceContent.fileName ?? "";
 }
 
 export function defaultIdListFromInitial(initial: unknown): string[] {

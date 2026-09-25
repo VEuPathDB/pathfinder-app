@@ -26,9 +26,11 @@ from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.tools.toolsets.frame import build_toolset
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
+from pathfinder.domain.strategy.step_rationale import MAX_REASON_CHARS
 from pathfinder.platform.refusals import agent_capabilities
 
-# The kinds are the enum's own values, so a kind added there needs no edit here.
+# The kinds are the enum's own values and the cap is the recorded reason's, so
+# neither needs an edit here.
 _FRAME_INSTRUCTIONS = with_vocabulary(
     """\
 You are FRAME for a VEuPathDB gene-strategy builder. Turn the user's goal into a CONCRETE,
@@ -64,6 +66,10 @@ Procedure:
       summary states what the criterion asks. When no search on the site states it, do not
       bind the nearest one: set disposition="needs_user" and ask the user, naming what the
       site lacks, with dimension "data_type" and the nearest search as the recommended value.
+      Its last entry may be `otherSites`: experiments on other VEuPathDB sites, each labelled
+      with its site. They inform and never bind: none is a search on this site. To use one,
+      `read_experiment(dataset_id)` answers its card, whose record URL and PMIDs you may cite
+      in `why.sources`; then search this site for its condition, stage or organism.
    b. `set_criterion(criterion_id, text, search_name, role)` with no `params`. That call
       OPENS the parameter sheet: every visible parameter of that search with its type,
       help, default, dependency and vocabulary (whole, or the entries most relevant to
@@ -75,7 +81,8 @@ Procedure:
       copy it and replace each null with a value or leave null; do not rename keys.
    d. `set_criterion(criterion_id, text, search_name, role, params, why)` again, with that
       object -- a value or null for EVERY parameter on that sheet -- and `why`: the basis,
-      the term that decides it, and one line of reason holding the term. The tool checks
+      the term that decides it, and one line of reason of at most <MAX_REASON_CHARS> characters holding
+      the term. The tool checks
       the basis against the catalog answer and the values, and records what it was chosen over:
       - copy vocabulary values EXACTLY from the sheet (a tree parent like "Plasmodium"
         selects all its children); lists for multi-pick; a filter parameter takes
@@ -97,6 +104,24 @@ Procedure:
         (codes or labels from the sheet; a clade selects all its species;
         `lookup_phyletic_codes(query)` finds a code from a common name); the hidden
         `profile_pattern` is derived from those two lists, never write it;
+      - orthology: "orthologs in X", "carry these to X", "their X counterparts" ask for X's
+        genes: one `transform` criterion on the site's orthology transform, `organism` = X.
+        "with a syntenic ortholog in X" and "syntenic orthologs in X" keep the SOURCE genes:
+        the round trip in step 3, the synteny parameter "yes" on both transforms, and a `why`
+        with basis "parameter" on it that says the profile has no synteny parameter. "keep
+        those with an ortholog in X" or "conserved in X", without "syntenic", may bind the
+        phylogenetic-profile search with X in `included_species`, and its `why.reason` says
+        it answers the same OrthoMCL groups as the round trip in one step. A presence and
+        absence pattern across species is the profile. Bind the organism the request names
+        even when the sheet does not list it: a transform to an organism this site's
+        transform does not reach is refused with the portal's sentence: bind nothing for it,
+        ask no question about it, and copy that sentence into the summary word for word, link
+        included. A conversation stays on its site, so never ask to switch;
+      - a word of the criterion that a parameter states ("syntenic", "pseudogenes") is
+        never dropped: `set_criterion` refuses a search that cannot state it when a
+        search this pass read can, names that search and its parameter, and holds the
+        parameter to a value that states it. A word no search this pass read can
+        state is recorded unmet; say so in the summary;
       - a number or free text is the literal the request states ("top 10 percent" -> the
         minimum percentile 90; "at least 2 peptides" -> 2; "non-syntenic" -> no);
       - null means the request does not determine it. The default then applies and comes
@@ -125,6 +150,8 @@ Procedure:
      "inputs": [<left>, <right>]}` - combine two subtrees.
    - `{"kind": "transform", "criterionId": "<id>", "inputs": [<subtree>]}` - a search that
      MAPS the subtree's genes rather than combining with them.
+   - `{"kind": "copy", "inputs": [<subtree>]}` - a subtree this tree already states, again,
+     node for node: the only place a criterion appears twice. It becomes steps of its own.
    Choose by MEANING:
    - Searches that are ALTERNATIVE EVIDENCE for the SAME property (any one suffices) -> UNION.
      Broadening the evidence for one property is always a UNION, never an INTERSECT.
@@ -140,6 +167,15 @@ Procedure:
      never a standalone leaf - a standalone input-step search has no input and WDK rejects the
      whole strategy. A criterion scoped to a transform's target organism sits ABOVE that
      transform, not under it.
+   - A round trip keeps the source organism's genes: the source INTERSECT a transform back to
+     the source organism over a transform to X over a copy of the source, both transforms
+     with the same synteny value. The source is the whole subtree whose genes the request
+     keeps, so one round trip covers it. Without the INTERSECT the way back returns
+     paralogs the source never held.
+   - An INTERSECT of genes of two organisms is refused by `set_structure`: gene ids of two
+     species never match. Do not re-scope the request to one organism: set
+     disposition="needs_user" and ask whether to carry one set to its orthologs in the
+     other organism, with dimension "organism" and that transform as the recommended value.
 4. `drop_criterion(criterion_id, reason)` for any property whose WDK search is
    unrealizable or unavailable - pass the SAME `criterion_id` you gave `set_criterion`.
    This removes it from the spec so it no longer blocks the build; re-call `set_structure`
@@ -199,7 +235,9 @@ several comparable searches, choose the one whose required parameters resolve wi
 (prefer it over one that leaves an open slot), and whose vocabulary matches the user's stated
 comparison. Do NOT build WDK steps - that is BUILD's job. The workspace below shows the spec you
 have assembled so far.
-""".replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS)
+""".replace("<CONSTRAINT_KINDS>", CONSTRAINT_KINDS).replace(
+        "<MAX_REASON_CHARS>", str(MAX_REASON_CHARS)
+    )
 )
 
 FRAME_MODEL = "openai:gpt-5.6-luna"

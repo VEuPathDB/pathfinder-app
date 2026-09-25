@@ -8,15 +8,18 @@ turn runner writes it as `data-conversation-title`, the last chunk before
 from __future__ import annotations
 
 import re
+from uuid import UUID
 
 import httpx
 from assistant_core.models.settings import build_model_settings
+from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import ModelProvider
 from assistant_core.spec import MockModelFactory
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import AgentRunError, UserError
 from pydantic_ai.usage import UsageLimits
 
+from pathfinder.ai.capabilities.metering import SpendMeter, charge_spend
 from pathfinder.ai.models.catalog import get_smallest_model
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderKeyError
@@ -88,9 +91,24 @@ def _trim_title(raw: str) -> str:
     return title
 
 
+async def charged_conversation_title(
+    first_user_message: str,
+    mock_model: MockModelFactory,
+    *,
+    user_id: UUID,
+) -> str:
+    """The thread's title, with what its model run spent charged to its payer."""
+    meter = SpendMeter()
+    try:
+        return await generate_conversation_title(first_user_message, mock_model, meter)
+    finally:
+        await charge_spend(async_session_factory, user_id=user_id, spent=meter.spent)
+
+
 async def generate_conversation_title(
     first_user_message: str,
     mock_model: MockModelFactory,
+    meter: SpendMeter,
     provider: ModelProvider | None = None,
 ) -> str:
     """Generate a short conversation title from the user's first message.
@@ -100,6 +118,7 @@ async def generate_conversation_title(
         to the configured ``settings.default_provider``.
     :param mock_model: The assistant's test double, used when the chat
         provider is the mock one.
+    :param meter: Records what the title's model run spends.
     :returns: A trimmed, formatted title of at most 7 words / 60 chars. If
         generation fails, returns a truncated-first-message fallback.
     """
@@ -132,6 +151,7 @@ async def generate_conversation_title(
         retries=1,
         name="conversation-title",
         defer_model_check=True,
+        capabilities=[meter.on(title_model_id)],
     )
     try:
         result = await agent.run(

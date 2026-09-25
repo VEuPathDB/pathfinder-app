@@ -12,9 +12,11 @@ from pathfinder.ai.lead.ledger import (
 )
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
+    ConstraintSection,
     FrameSection,
     VerificationSection,
 )
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -71,6 +73,38 @@ def test_summary_flags_stale_build() -> None:
 def test_stale_marker_names_the_live_read_tool() -> None:
     stale = StaleBuild(changed_nodes=[("step_a", 10, 11)])
     assert "get_live_strategy_state" in _ledger(stale).render_summary()
+
+
+def _ledger_with(analysis: OpenEdaAnalysis) -> InvestigationLedger:
+    return _ledger().model_copy(update={"open_analysis": analysis})
+
+
+def test_the_summary_names_the_open_analysis_and_its_count() -> None:
+    summary = _ledger_with(
+        OpenEdaAnalysis(
+            dataset_id="DS_53f554ec6a", analysis_id="t4fszEJ", subset_previewed=True
+        )
+    ).render_summary()
+
+    assert "## Open analysis\n- DS_53f554ec6a (t4fszEJ), subset counted" in summary
+    assert "changed after the card" not in summary
+
+
+def test_an_analysis_that_moved_past_its_card_is_shown_in_the_summary() -> None:
+    summary = _ledger_with(
+        OpenEdaAnalysis(
+            dataset_id="DS_53f554ec6a",
+            analysis_id="t4fszEJ",
+            changed_after_the_card=True,
+        )
+    ).render_summary()
+
+    assert "- DS_53f554ec6a (t4fszEJ), subset not counted" in summary
+    assert "- changed after the card in this conversation" in summary
+
+
+def test_a_thread_with_no_analysis_has_no_analysis_section() -> None:
+    assert "## Open analysis" not in _ledger().render_summary()
 
 
 def test_investigation_ledger_compose() -> None:
@@ -275,3 +309,24 @@ class TestTheSummaryCarriesEveryDropReason:
 
         assert "- dropped: 0" in summary
         assert "EDA-backed" not in summary
+
+
+def test_a_long_list_of_captured_requirements_counts_what_it_leaves_out() -> None:
+    section = ConstraintSection(
+        composed=[
+            Constraint(
+                kind=ConstraintKind.OTHER,
+                label=f"r{i}",
+                requested_value=f"requirement {i}",
+            )
+            for i in range(22)
+        ]
+    )
+
+    lines = section.render_composed()
+
+    assert lines[:2] == [
+        "- (2 more captured earlier)",
+        "- r2 (other): 'requirement 2'",
+    ]
+    assert len(lines) == 21

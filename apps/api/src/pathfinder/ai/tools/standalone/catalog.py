@@ -18,6 +18,12 @@ from veupathdb_mcp.tool_payloads import SearchListing, TransformListing
 
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._catalog_elsewhere import (
+    joined,
+    own_search_names,
+    rank_other_sites,
+    with_other_sites,
+)
 
 logger = get_logger(__name__)
 
@@ -76,7 +82,9 @@ async def search_for_searches(
     absolute cosine of the query against the search: read it to tell a match
     from the best of nothing. When no search states the query closely, when
     nothing matched, or when the ranking is by keyword only, the first entry
-    is a note that says which.
+    is a note that says which. An ``otherSites`` entry, when present, is last:
+    experiments on other VEuPathDB sites, each labelled with its site. None of
+    them can be bound here; read_experiment reads one.
 
     Args:
         ctx: Agent run context.
@@ -137,10 +145,20 @@ async def search_for_searches(
     )
     if note is not None:
         results.insert(0, {"note": note})
-
+    # Other sites' experiments follow the own-site answer and bind nothing.
+    state = ctx.deps.agent_state
+    elsewhere = await rank_other_sites(ctx, query)
+    results = with_other_sites(results, elsewhere, state.elsewhere, ctx.deps.site_id)
+    shown = state.record_elsewhere(
+        (match.card for match in elsewhere),
+        await own_search_names(ctx.deps.site_id) if elsewhere else frozenset(),
+    )
+    summary = f"{found} searches"
+    if shown:
+        summary += f", experiments on {joined([s.site_id for s in shown])}"
     return with_summary(
         results,
-        f"{found} searches",
+        summary,
         ctx=ctx,
         status="ok" if found else "empty",
     )

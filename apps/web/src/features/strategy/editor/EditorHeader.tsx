@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils/cn";
 import { stepSubtitle } from "@/features/strategy/graph/utils/stepTitle";
+import { COPY_STEP_ACTION, hasACopy } from "@/features/strategy/copyStep";
 
 interface EditorHeaderProps {
   step: Step;
@@ -112,10 +113,12 @@ export function EditorHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[180px]">
-            <DropdownMenuItem onSelect={onDuplicate}>
-              <Copy className="size-4" />
-              Duplicate step
-            </DropdownMenuItem>
+            {hasACopy(kind) && (
+              <DropdownMenuItem onSelect={onDuplicate} title={COPY_STEP_ACTION.title}>
+                <Copy className="size-4" />
+                {COPY_STEP_ACTION.label}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={onCopyUrl}>
               <Copy className="size-4" />
               Copy step URL

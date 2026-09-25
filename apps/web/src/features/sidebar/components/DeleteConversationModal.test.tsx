@@ -1,11 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 
+import { useSettingsStore } from "@/state/useSettingsStore";
 import { DeleteConversationModal } from "./DeleteConversationModal";
 import type { ConversationItem } from "./conversationSidebarTypes";
 
@@ -35,9 +36,10 @@ function makeItem(over: Partial<ConversationResponse> = {}): ConversationItem {
 }
 
 afterEach(cleanup);
+beforeEach(() => useSettingsStore.getState().resetToDefaults());
 
 describe("DeleteConversationModal", () => {
-  it("defaults to dismiss (deleteLinkedStrategy false) on confirm", async () => {
+  it("keeps the strategy on the site by default when the Advanced toggle is off", async () => {
     const onConfirmDelete = vi.fn();
     render(
       <DeleteConversationModal
@@ -82,7 +84,7 @@ describe("DeleteConversationModal", () => {
     expect(screen.getByRole("button", { name: /^delete$/i })).toBeEnabled();
   });
 
-  it("tells the user the delete is recoverable", () => {
+  it("tells the researcher the delete is recoverable", () => {
     render(
       <DeleteConversationModal
         target={makeItem({ wdkStrategyId: null })}
@@ -91,7 +93,70 @@ describe("DeleteConversationModal", () => {
         onConfirmDelete={vi.fn()}
       />,
     );
-    expect(screen.getByText(/can be restored|recently deleted/i)).toBeVisible();
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      'Delete "Kinase sweep"? It moves to Recently deleted and can be restored later.',
+    );
+  });
+
+  it("starts with the site delete checked when the Advanced toggle is on", async () => {
+    useSettingsStore.getState().setDeleteFromWdk(true);
+    const onConfirmDelete = vi.fn();
+    render(
+      <DeleteConversationModal
+        target={makeItem({ wdkStrategyId: 555 })}
+        isDeleting={false}
+        onClose={vi.fn()}
+        onConfirmDelete={onConfirmDelete}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: /also delete strategy from plasmodb/i }),
+    ).toBeChecked();
+    expect(screen.getByTestId("delete-linked-strategy-default")).toHaveTextContent(
+      "Starts checked because Also delete on VEuPathDB is on in Settings.",
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      'Delete "Kinase sweep"? This also deletes the strategy on PlasmoDB, and the conversation cannot be restored.',
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    expect(onConfirmDelete.mock.calls).toEqual([[{ deleteLinkedStrategy: true }]]);
+  });
+
+  it("lets the researcher keep the strategy on one delete while the toggle is on", async () => {
+    useSettingsStore.getState().setDeleteFromWdk(true);
+    const onConfirmDelete = vi.fn();
+    render(
+      <DeleteConversationModal
+        target={makeItem({ wdkStrategyId: 555 })}
+        isDeleting={false}
+        onClose={vi.fn()}
+        onConfirmDelete={onConfirmDelete}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("checkbox", { name: /also delete strategy from plasmodb/i }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    expect(onConfirmDelete.mock.calls).toEqual([[{ deleteLinkedStrategy: false }]]);
+  });
+
+  it("never asks the site to delete for a conversation with no strategy", async () => {
+    useSettingsStore.getState().setDeleteFromWdk(true);
+    const onConfirmDelete = vi.fn();
+    render(
+      <DeleteConversationModal
+        target={makeItem({ wdkStrategyId: null })}
+        isDeleting={false}
+        onClose={vi.fn()}
+        onConfirmDelete={onConfirmDelete}
+      />,
+    );
+
+    expect(screen.queryByTestId("delete-linked-strategy-default")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    expect(onConfirmDelete.mock.calls).toEqual([[{ deleteLinkedStrategy: false }]]);
   });
 
   it("names a strategy PathFinder created", () => {
@@ -105,7 +170,7 @@ describe("DeleteConversationModal", () => {
     );
 
     expect(screen.getByTestId("delete-linked-strategy-note")).toHaveTextContent(
-      "PathFinder created this strategy in PlasmoDB (Plasmodium). Deleting it is permanent, and the conversation will not be recoverable.",
+      "PathFinder created this strategy in PlasmoDB. Deleting it is permanent, and the conversation will not be recoverable.",
     );
   });
 
@@ -120,7 +185,7 @@ describe("DeleteConversationModal", () => {
     );
 
     expect(screen.getByTestId("delete-linked-strategy-note")).toHaveTextContent(
-      "PathFinder has no record of creating this strategy in PlasmoDB (Plasmodium), so it may be one you made there yourself. Deleting it is permanent, and the conversation will not be recoverable.",
+      "PathFinder has no record of creating this strategy in PlasmoDB, so it may be one you made there yourself. Deleting it is permanent, and the conversation will not be recoverable.",
     );
   });
 });

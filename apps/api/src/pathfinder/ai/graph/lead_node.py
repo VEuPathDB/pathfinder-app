@@ -12,7 +12,7 @@ selection in ``_lead_model``, and memory retrieval plus approval resolution in
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable
+from collections.abc import AsyncGenerator, Awaitable, Sequence
 from typing import Any, Literal, Protocol
 from uuid import UUID, uuid4
 
@@ -28,10 +28,7 @@ from assistant_core.cost import cost_for_run
 from assistant_core.graph import approvals
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.pre_turn import PreTurnHook
-from assistant_core.graph.stream_events import (
-    memory_retrieved_event,
-    turn_status_event,
-)
+from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.graph.turn_agent import TurnAgentFactory
 from assistant_core.graph.turn_state import ParkedCall, PendingDurableCall
 from assistant_core.platform.logging import get_logger
@@ -44,6 +41,7 @@ from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import (
     AgentStreamEvent,
     FunctionToolResultEvent,
+    UserContent,
 )
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, ErrorChunk
@@ -85,12 +83,16 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.graph.rebuild import rebuilt_state
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.graph.stream_events import ledger_update_event
+from pathfinder.ai.graph.stream_events import (
+    ledger_update_event,
+    recalled_memories_event,
+)
 from pathfinder.ai.graph.turn_status import (
     READING_THE_THREAD,
     RECALLING_AND_READING,
     turn_step_status,
 )
+from pathfinder.ai.lead.deleted_steps import ask_about_the_removals
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -117,17 +119,17 @@ class LeadNode(Protocol):
     ) -> Awaitable[Command[Literal["finalize_turn"]]]: ...
 
 
-def _run_prompt(state: PipelineState, resumption: TurnResumption) -> str | None:
-    """The message the Lead's run starts from.
+def _run_prompt(
+    state: PipelineState, resumption: TurnResumption
+) -> str | Sequence[UserContent] | None:
+    """The message the Lead's run starts from: the user's files and text.
 
     A turn that resumes a deferred tool carries the answer, not a new prompt,
-    unless the user answered by typing instead of clicking.
+    unless the user answered by sending a message instead of clicking.
     """
-    if resumption.user_prompt:
-        return resumption.user_prompt
-    if resumption.parked is not None:
+    if resumption.parked is not None and resumption.user_prompt is None:
         return None
-    return state.user_prompt
+    return state.user_content
 
 
 def _absorb_run_result(
@@ -164,6 +166,15 @@ def _absorb_run_result(
         provider_name=response.provider_name,
         provider_url=response.provider_url,
     )
+
+
+async def _ask_about_what_it_parks(
+    event: AgentRunResultEvent[Any], deps: LeadDeps, writer: Any
+) -> None:
+    """Name the step each parked removal acts on, before its card is drawn."""
+    output = event.result.output
+    if isinstance(output, DeferredToolRequests):
+        await ask_about_the_removals(deps, output, writer)
 
 
 def _emit_unless_suppressed(
@@ -293,6 +304,7 @@ async def _drive_lead_stream(
                     capture.note_model_output(event)
                     if isinstance(event, AgentRunResultEvent):
                         _absorb_run_result(event, capture, deps)
+                        await _ask_about_what_it_parks(event, deps, writer)
                     else:
                         handle_sub_agent_event(
                             deps,
@@ -369,7 +381,7 @@ async def _run_lead_turn(
         )
         memories = [s.value for s in stored]
         if stored:
-            emit_chunk(writer, memory_retrieved_event(memories=stored))
+            emit_chunk(writer, recalled_memories_event(memories=stored))
     capture = _LeadRunCapture()
     message_id = uuid4()
 

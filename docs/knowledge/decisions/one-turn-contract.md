@@ -73,6 +73,11 @@ The `unbacked_evidence` rule reads the prose against the control tests the turn 
 control count or a control gene id the reply states must be one a test of this turn filed
 (`ai/lead/evidence_claims.py`, see [VERIFY shows its evidence](verify-shows-its-evidence.md)).
 
+The `counted_in_the_wrong_unit` rule reads the prose against the counts of the steps the
+strategy holds: a transcript strategy is counted in genes (`graph_helpers.py::counted_noun`), so
+a reply that writes one of those counts as "145 transcripts" is corrected to "145 genes". A
+transcript count the strategy does not hold is left alone.
+
 # Why
 
 Each validator grew out of one live failure, and each carried its own latch, its own message

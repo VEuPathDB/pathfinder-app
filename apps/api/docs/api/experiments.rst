@@ -127,14 +127,26 @@ Pydantic models for experiment configuration, metrics and results.
    :undoc-members:
    :show-inheritance:
 
-Enrichment
-----------
+Control enrichment
+------------------
 
-**Purpose:** The hypergeometric statistic the evidence card reports over the
-controls a step returned. GO, pathway and word enrichment are analyses the site
+**Purpose:** The hypergeometric row a control result carries, read with the
+tool server's statistic. GO, pathway and word enrichment are analyses the site
 runs on a step.
 
-.. automodule:: pathfinder.services.enrichment.stats
+.. automodule:: pathfinder.services.evidence.control_enrichment
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Separation
+----------
+
+**Purpose:** A separation run's result as the report PathFinder shows and the
+offer it builds: the measured tree as a spec, each criterion's counts, and what
+each criterion adds.
+
+.. automodule:: pathfinder.services.separation.offer
    :members:
    :undoc-members:
    :show-inheritance:

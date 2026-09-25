@@ -8,7 +8,7 @@ Create Date: 2026-04-28 16:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -20,7 +20,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     op.execute(
-        sa.text(
+        sqlalchemy.text(
             """
             INSERT INTO conversation_events (
                 conversation_id, turn_id, task_id, chunk
@@ -54,9 +54,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.add_column(
         "messages",
-        sa.Column(
+        sqlalchemy.Column(
             "parts",
-            postgresql.JSONB(astext_type=sa.Text()),
+            postgresql.JSONB(astext_type=sqlalchemy.Text()),
             nullable=False,
             server_default="[]",
         ),

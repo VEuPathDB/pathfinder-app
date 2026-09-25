@@ -2,15 +2,15 @@ import { test, expect } from "../fixtures/test";
 import type { Page } from "@playwright/test";
 import type { ChatPage } from "../pages/chat.page";
 import type { SidebarPage } from "../pages/sidebar.page";
-import type { ApiClient } from "../fixtures/api-client";
-import { openConversationId } from "../pages/navigation";
+import { type ApiClient, listConversations } from "../fixtures/api-client";
+import { currentSiteId, openConversationId } from "../pages/navigation";
 
 /**
- * Feature: Dismissed (soft-deleted) strategies.
+ * Feature: Recently deleted (soft-deleted) conversations.
  *
- * Sidebar Delete soft-deletes every chat: it POSTs `/dismiss` and leaves the
- * linked WDK strategy alone. The dismissed section in the sidebar shows these
- * strategies with a Restore button to bring them back.
+ * Sidebar Delete soft-deletes every conversation: it POSTs `/dismiss` and leaves
+ * the linked WDK strategy alone. The Recently deleted section in the sidebar
+ * shows these conversations with a Restore button to bring them back.
  *
  * Strategies are created via chat UI (immediately visible in sidebar), then a
  * unique wdkStrategyId is PATCHed on to simulate a WDK-linked strategy.
@@ -44,7 +44,7 @@ async function makeWdkLinked(
 
 /** Start a new chat and wait for the strategy creation to complete. */
 async function startNewChat(page: Page, sidebarPage: SidebarPage) {
-  // "New chat" opens a fresh, lazily-created conversation (no /open POST until
+  // "New conversation" opens a fresh, lazily-created conversation (no /open POST until
   // the first message). Just wait for the empty composer to be ready.
   await sidebarPage.createNew();
   await expect(page.getByTestId("message-input")).toBeVisible({ timeout: 15_000 });
@@ -70,9 +70,8 @@ function waitForRestore(page: Page, strategyId: string) {
   );
 }
 
-// ── Basic flows ────────────────────────────────────────────────────
-
-test.describe("Dismissed Strategies", () => {
+// Basic flows
+test.describe("Recently deleted conversations", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ chatPage, apiClient }) => {
@@ -103,10 +102,12 @@ test.describe("Dismissed Strategies", () => {
     await sidebarPage.expandDismissed();
     await sidebarPage.expectDismissedItemVisible(strategyId);
 
-    const dismissedResp = await apiClient.get("/api/v1/conversations/dismissed");
-    expect(dismissedResp.ok()).toBeTruthy();
-    const dismissed = (await dismissedResp.json()) as { id: string }[];
-    expect(dismissed.some((d) => d.id === strategyId)).toBeTruthy();
+    const dismissed = await listConversations(
+      apiClient,
+      currentSiteId(page),
+      "dismissed",
+    );
+    expect(dismissed.map((d) => d.id)).toContain(strategyId);
   });
 
   test("restore dismissed strategy returns to main list", async ({
@@ -140,16 +141,17 @@ test.describe("Dismissed Strategies", () => {
     const strategyResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
     expect(strategyResp.ok()).toBeTruthy();
 
-    const dismissedResp = await apiClient.get("/api/v1/conversations/dismissed");
-    expect(dismissedResp.ok()).toBeTruthy();
-    const dismissed = (await dismissedResp.json()) as { id: string }[];
-    expect(dismissed.some((d) => d.id === strategyId)).toBeFalsy();
+    const dismissed = await listConversations(
+      apiClient,
+      currentSiteId(page),
+      "dismissed",
+    );
+    expect(dismissed.map((d) => d.id)).not.toContain(strategyId);
   });
 });
 
-// ── Complex flows ──────────────────────────────────────────────────
-
-test.describe("Dismissed Strategies — complex flows", () => {
+// Complex flows
+test.describe("Recently deleted conversations: complex flows", () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ chatPage, apiClient }) => {
@@ -160,7 +162,7 @@ test.describe("Dismissed Strategies — complex flows", () => {
     await chatPage.newChat();
   });
 
-  test("delete → restore → delete → restore round-trip", async ({
+  test("delete -> restore -> delete -> restore round-trip", async ({
     chatPage,
     sidebarPage,
     apiClient,
@@ -168,7 +170,7 @@ test.describe("Dismissed Strategies — complex flows", () => {
   }) => {
     const strategyId = await makeWdkLinked(page, chatPage, sidebarPage, apiClient);
 
-    // ── First dismiss ── (UI state is the source of truth; a response-wait
+    // First dismiss (UI state is the source of truth; a response-wait
     // race on the second cycle made this flaky.)
     await sidebarPage.delete(strategyId);
     await expect(sidebarPage.item(strategyId)).not.toBeVisible({
@@ -176,7 +178,7 @@ test.describe("Dismissed Strategies — complex flows", () => {
     });
     await sidebarPage.expectDismissedCount(1);
 
-    // ── First restore ──
+    // First restore
     await sidebarPage.expandDismissed();
     await sidebarPage.restoreDismissed(strategyId);
     await expect(sidebarPage.item(strategyId)).toBeVisible({
@@ -184,14 +186,14 @@ test.describe("Dismissed Strategies — complex flows", () => {
     });
     await sidebarPage.expectNoDismissedSection();
 
-    // ── Second dismiss ──
+    // Second dismiss
     await sidebarPage.delete(strategyId);
     await expect(sidebarPage.item(strategyId)).not.toBeVisible({
       timeout: 15_000,
     });
     await sidebarPage.expectDismissedCount(1);
 
-    // ── Second restore ──
+    // Second restore
     await sidebarPage.expandDismissed();
     await sidebarPage.restoreDismissed(strategyId);
     await expect(sidebarPage.item(strategyId)).toBeVisible({
@@ -204,7 +206,7 @@ test.describe("Dismissed Strategies — complex flows", () => {
     expect(resp.ok()).toBeTruthy();
   });
 
-  test("multiple dismissed strategies — restore one at a time", async ({
+  test("multiple dismissed strategies - restore one at a time", async ({
     chatPage,
     sidebarPage,
     apiClient,
@@ -241,23 +243,23 @@ test.describe("Dismissed Strategies — complex flows", () => {
     await expect(sidebarPage.item(id1)).not.toBeVisible({ timeout: 15_000 });
     await sidebarPage.expectDismissedCount(2);
 
-    // Expand dismissed — both visible.
+    // Expand dismissed - both visible.
     await sidebarPage.expandDismissed();
     await sidebarPage.expectDismissedItemVisible(id1);
     await sidebarPage.expectDismissedItemVisible(id2);
 
-    // Restore one — count drops to 1.
+    // Restore one - count drops to 1.
     await sidebarPage.restoreDismissed(id1);
     await expect(sidebarPage.item(id1)).toBeVisible({ timeout: 15_000 });
     await sidebarPage.expectDismissedCount(1);
 
-    // Restore the other — dismissed section disappears.
+    // Restore the other - dismissed section disappears.
     await sidebarPage.restoreDismissed(id2);
     await expect(sidebarPage.item(id2)).toBeVisible({ timeout: 15_000 });
     await sidebarPage.expectNoDismissedSection();
   });
 
-  test("restored strategy is fully functional — can receive messages", async ({
+  test("restored strategy is fully functional - can receive messages", async ({
     chatPage,
     sidebarPage,
     apiClient,

@@ -41,7 +41,7 @@ from pathfinder.ai.conversation._turn_helpers import (
     resolve_site_id,
 )
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.ai.conversation.title_generator import generate_conversation_title
+from pathfinder.ai.conversation.title_generator import charged_conversation_title
 from pathfinder.ai.conversation.turn_failure import (
     turn_closed_on_failure,
     turn_failure_text,
@@ -199,7 +199,9 @@ async def _run_turn_with_context(
     title_task: asyncio.Task[str] | None = None
     if body.last_user_text.strip():
         title_task = asyncio.create_task(
-            generate_conversation_title(body.last_user_text, spec.build_mock_model),
+            charged_conversation_title(
+                body.last_user_text, spec.build_mock_model, user_id=request.user_id
+            ),
         )
 
     result = await _drive_graph(

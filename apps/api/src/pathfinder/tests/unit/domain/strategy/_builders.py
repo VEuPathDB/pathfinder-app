@@ -6,8 +6,7 @@ import string
 from collections.abc import Iterable
 from typing import TypeGuard
 
-from hypothesis import HealthCheck, settings
-from hypothesis import strategies as st
+from hypothesis import HealthCheck, settings, strategies
 from veupathdb.domain.parameters import (
     MultiPickValue,
     NumberValue,
@@ -73,7 +72,9 @@ def graph_with(
     return graph
 
 
-_IDS = st.text(alphabet="abcdefghijklmnopqrstuvwxyz0123456789_", min_size=1, max_size=8)
+_IDS = strategies.text(
+    alphabet="abcdefghijklmnopqrstuvwxyz0123456789_", min_size=1, max_size=8
+)
 
 _CANNED_PARAMS: tuple[dict[str, ParamValue], ...] = (
     {},
@@ -82,8 +83,8 @@ _CANNED_PARAMS: tuple[dict[str, ParamValue], ...] = (
 )
 
 
-@st.composite
-def strategy_trees(draw: st.DrawFn) -> StrategyStepNode:
+@strategies.composite
+def strategy_trees(draw: strategies.DrawFn) -> StrategyStepNode:
     """An arbitrary valid strategy tree whose step ids are unique."""
     used: set[str] = set()
 
@@ -96,10 +97,12 @@ def strategy_trees(draw: st.DrawFn) -> StrategyStepNode:
 
     def build(depth: int) -> StrategyStepNode:
         shape = (
-            draw(st.sampled_from(["leaf", "transform", "combine"])) if depth else "leaf"
+            draw(strategies.sampled_from(["leaf", "transform", "combine"]))
+            if depth
+            else "leaf"
         )
-        params = draw(st.sampled_from(_CANNED_PARAMS))
-        display = draw(st.one_of(st.none(), st.just("A label")))
+        params = draw(strategies.sampled_from(_CANNED_PARAMS))
+        display = draw(strategies.one_of(strategies.none(), strategies.just("A label")))
         if shape == "leaf":
             return StrategyStepNode(
                 id=fresh(),
@@ -119,36 +122,42 @@ def strategy_trees(draw: st.DrawFn) -> StrategyStepNode:
             id=fresh(),
             search_name=COMBINE_SEARCH_NAME,
             display_name=display,
-            operator=draw(st.sampled_from([CombineOp.INTERSECT, CombineOp.UNION])),
+            operator=draw(
+                strategies.sampled_from([CombineOp.INTERSECT, CombineOp.UNION])
+            ),
             primary_input=build(depth - 1),
             secondary_input=build(depth - 1),
         )
 
-    return build(draw(st.integers(min_value=0, max_value=3)))
+    return build(draw(strategies.integers(min_value=0, max_value=3)))
 
 
-_search_names = st.text(
+_search_names = strategies.text(
     alphabet=string.ascii_lowercase + "_",
     min_size=1,
     max_size=20,
 ).filter(lambda s: s != COMBINE_SEARCH_NAME)
 
-_param_values: st.SearchStrategy[ParamValue] = st.one_of(
-    st.builds(StringValue, value=st.text(min_size=1, max_size=10)),
-    st.builds(NumberValue, value=st.floats(min_value=-1000, max_value=1000)),
-    st.builds(
+_param_values: strategies.SearchStrategy[ParamValue] = strategies.one_of(
+    strategies.builds(StringValue, value=strategies.text(min_size=1, max_size=10)),
+    strategies.builds(
+        NumberValue, value=strategies.floats(min_value=-1000, max_value=1000)
+    ),
+    strategies.builds(
         MultiPickValue,
-        values=st.lists(st.text(min_size=1, max_size=8), min_size=1, max_size=3),
+        values=strategies.lists(
+            strategies.text(min_size=1, max_size=8), min_size=1, max_size=3
+        ),
     ),
 )
 
-_param_dicts = st.dictionaries(
-    keys=st.text(alphabet=string.ascii_lowercase, min_size=1, max_size=8),
+_param_dicts = strategies.dictionaries(
+    keys=strategies.text(alphabet=string.ascii_lowercase, min_size=1, max_size=8),
     values=_param_values,
     max_size=3,
 )
 
-_boolean_ops = st.sampled_from(
+_boolean_ops = strategies.sampled_from(
     [
         CombineOp.INTERSECT,
         CombineOp.UNION,
@@ -159,18 +168,18 @@ _boolean_ops = st.sampled_from(
     ],
 )
 
-_colocation = st.builds(
+_colocation = strategies.builds(
     ColocationParams,
-    operation=st.sampled_from(["overlaps", "contains", "is contained in"]),
-    strand=st.sampled_from(["either strand", "same strand", "opposite strand"]),
-    output=st.sampled_from(["a", "b"]),
-    begin_offset_a=st.integers(min_value=0, max_value=10_000),
-    end_offset_a=st.integers(min_value=0, max_value=10_000),
-    begin_offset_b=st.integers(min_value=0, max_value=10_000),
-    end_offset_b=st.integers(min_value=0, max_value=10_000),
+    operation=strategies.sampled_from(["overlaps", "contains", "is contained in"]),
+    strand=strategies.sampled_from(["either strand", "same strand", "opposite strand"]),
+    output=strategies.sampled_from(["a", "b"]),
+    begin_offset_a=strategies.integers(min_value=0, max_value=10_000),
+    end_offset_a=strategies.integers(min_value=0, max_value=10_000),
+    begin_offset_b=strategies.integers(min_value=0, max_value=10_000),
+    end_offset_b=strategies.integers(min_value=0, max_value=10_000),
 )
 
-_search_node = st.builds(
+_search_node = strategies.builds(
     StrategyStepNode,
     search_name=_search_names,
     parameters=_param_dicts,
@@ -218,17 +227,21 @@ def _built(node: StrategyStepNode | None) -> TypeGuard[StrategyStepNode]:
 
 
 def _extend(
-    children: st.SearchStrategy[StrategyStepNode],
-) -> st.SearchStrategy[StrategyStepNode]:
-    return st.one_of(
-        st.builds(_transform_factory, children, _search_names, _param_dicts),
-        st.builds(_combine_factory, children, children, _boolean_ops).filter(_built),
-        st.builds(_colocate_factory, children, children, _colocation).filter(_built),
+    children: strategies.SearchStrategy[StrategyStepNode],
+) -> strategies.SearchStrategy[StrategyStepNode]:
+    return strategies.one_of(
+        strategies.builds(_transform_factory, children, _search_names, _param_dicts),
+        strategies.builds(_combine_factory, children, children, _boolean_ops).filter(
+            _built
+        ),
+        strategies.builds(_colocate_factory, children, children, _colocation).filter(
+            _built
+        ),
     )
 
 
 # Every node kind, including colocation, with ids Pydantic mints.
-ANY_TREE = st.recursive(_search_node, _extend, max_leaves=8)
+ANY_TREE = strategies.recursive(_search_node, _extend, max_leaves=8)
 
 PROFILE = settings(
     max_examples=120,

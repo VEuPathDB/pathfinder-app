@@ -41,7 +41,7 @@ async def test_the_strategy_summary_says_the_count_is_not_available() -> None:
 
     chunk = summary_of(await strategy_graph.get_strategy(ctx))
 
-    assert chunk.data["summary"] == "1 steps, count not available"
+    assert chunk.data["summary"] == "1 step, count not available"
     assert chunk.data["status"] == "warn"
 
 

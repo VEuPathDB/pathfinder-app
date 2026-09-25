@@ -33,7 +33,6 @@ function Shell({ s }: { s: Step }) {
       kind="search"
       step={s}
       selected={false}
-      isUnsaved={false}
       width={168}
       height={64}
       snapshot={snapshot}
@@ -83,12 +82,6 @@ describe("a step that failed to validate", () => {
     expect(
       screen.getByTestId("node-error-trigger").getAttribute("aria-label"),
     ).toContain("Cannot be saved");
-  });
-
-  it("names a step whose own name never loaded", () => {
-    renderFailed(step({ displayName: "" }));
-
-    expect(screen.getByTestId("node-title").textContent).toBe("Error");
   });
 
   it("keeps a real name even while failed", () => {

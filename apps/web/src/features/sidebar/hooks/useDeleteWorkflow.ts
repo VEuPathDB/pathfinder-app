@@ -1,15 +1,9 @@
 "use client";
 
 /**
- * Delete / dismiss / restore workflows for the conversation sidebar.
- *
- * - Delete (default): dismisses every chat (soft-delete) - hidden from the
- *   main list, shown in the dismissed list, recoverable. The linked WDK
- *   strategy is left untouched.
- * - Delete with `deleteLinkedStrategy`: hard-deletes the chat AND removes its
- *   strategy from VEuPathDB (the only path that touches WDK).
- * - Restore: un-dismisses a previously-dismissed chat.
- * - Permanent delete: hard-deletes a dismissed chat (and its messages) locally.
+ * Delete, restore and permanent delete for the conversation sidebar. A delete
+ * moves the conversation to Recently deleted unless `deleteLinkedStrategy` asks
+ * the site to delete its strategy too, which is the only path that edits the site.
  */
 
 import { useQueryClient } from "@tanstack/react-query";
@@ -91,7 +85,7 @@ export function useDeleteWorkflow({
         return;
       }
 
-      // Default: dismiss (soft delete) - recoverable, WDK strategy untouched.
+      // Default: a soft delete to Recently deleted; the site strategy stays.
       queryClient.setQueryData<ConversationResponse[]>(listKey, (old) =>
         (old ?? []).filter((c) => c.id !== target.id),
       );
@@ -109,7 +103,9 @@ export function useDeleteWorkflow({
         queryClient.setQueryData<ConversationResponse[]>(dismissedKey, (old) =>
           (old ?? []).filter((c) => c.id !== target.id),
         );
-        reportError(toUserMessage(err, "Failed to dismiss conversation."));
+        reportError(
+          toUserMessage(err, "Failed to move the conversation to Recently deleted."),
+        );
       } finally {
         void queryClient.invalidateQueries({ queryKey: listKey });
         void queryClient.invalidateQueries({ queryKey: dismissedKey });

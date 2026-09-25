@@ -2,7 +2,7 @@
 
 The Lead's other pinned renders describe the thread as it stands now. This one
 describes the change, so an edit made in the graph editor, a task the worker
-finished and an analysis mutated in the EDA tab all reach the turn that follows
+finished and an analysis changed on the site all reach the turn that follows
 them.
 """
 
@@ -27,6 +27,7 @@ from pathfinder.services.conversations.thread_activity import (
 )
 
 __all__ = [
+    "ANALYSIS_CHANGED_AFTER_THE_CARD",
     "MAX_BRIEFING_CHARS",
     "MAX_BRIEFING_LINES",
     "ConstraintShift",
@@ -37,9 +38,11 @@ __all__ = [
 MAX_BRIEFING_LINES = 8
 # About two hundred tokens of prose, whatever the values on the steps are.
 MAX_BRIEFING_CHARS = 800
+# The briefing and the ledger name a moved analysis in these words.
+ANALYSIS_CHANGED_AFTER_THE_CARD = "changed after the card in this conversation"
 _HEADING = "## Since your last turn"
 _CLOSING = (
-    "These are facts about the thread, not a request. Call "
+    "These are facts about the conversation, not a request. Call "
     "get_live_strategy_state before you quote a count."
 )
 _MAX_PARAMS_PER_STEP = 2
@@ -145,10 +148,7 @@ def _task_line(task: FinishedTask) -> str:
 
 
 def _analysis_line(drift: AnalysisDrift) -> str:
-    return (
-        f"- the open analysis ({drift.dataset_id}) is "
-        f"{drift.revisions_ahead} revisions ahead of the card in this thread"
-    )
+    return f"- the open analysis ({drift.dataset_id}) {ANALYSIS_CHANGED_AFTER_THE_CARD}"
 
 
 def compose_turn_briefing(

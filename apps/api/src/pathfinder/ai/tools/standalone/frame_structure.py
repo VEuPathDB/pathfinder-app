@@ -17,17 +17,18 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
     structure_criteria,
 )
+from pathfinder.domain.strategy.orthology import (
+    copy_refusal,
+    round_trip_refusal,
+    stated_steps,
+)
+from pathfinder.domain.strategy.validate import first_cross_organism_refusal
 
 
 class SetStructureResult(CamelModel):
     """Result of folding the bound criteria into the strategy structure."""
 
     criteria_combined: int
-
-
-def _count_criteria(node: StructureNode) -> int:
-    own = 1 if node.criterion_id else 0
-    return own + sum(_count_criteria(child) for child in node.inputs)
 
 
 def _refuse_a_tree_that_breaks_a_stated_combination(
@@ -75,6 +76,23 @@ def _refuse_a_tree_that_leaves_out_an_analysis(
         f"no other criterion stands for it."
     )
     raise ModelRetry(msg)
+
+
+def _refuse_a_tree_the_site_cannot_run(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A copy restates a subtree the tree holds, a round trip keeps the source,
+    and an INTERSECT joins genes of one organism."""
+    stated = state.operational_spec_draft.model_copy(update={"structure": proposed})
+    steps = stated_steps(stated)
+    refusal = (
+        copy_refusal(proposed.root)
+        or round_trip_refusal(stated)
+        or (None if steps is None else first_cross_organism_refusal(steps))
+    )
+    if refusal is not None:
+        msg = f"The structure is refused: {refusal} Nothing was recorded."
+        raise ModelRetry(msg)
 
 
 def _criterion_nodes(node: StructureNode) -> Iterator[tuple[str, str]]:
@@ -126,6 +144,12 @@ async def set_structure(
       -- a search that MAPS the subtree's genes rather than combining with
       them (e.g. ``GenesByOrthologs`` returning orthologs in another
       organism). It is wired to that input, never run standalone.
+    - ``{"kind": "copy", "inputs": [<subtree>]}`` -- a subtree this tree
+      already states, node for node, stated again. It is the only place a
+      criterion appears twice; the pass states it as criteria of its own.
+      An orthology round trip keeps the source genes only as the source
+      INTERSECT a transform back over a transform out over a copy of the
+      source, with one synteny value on both transforms.
 
     Nest freely. When a property has several alternative evidence sources,
     UNION them into their own branch and INTERSECT that branch with the
@@ -139,10 +163,11 @@ async def set_structure(
     _refuse_a_tree_that_breaks_a_stated_combination(ctx.deps.agent_state, proposed)
     _refuse_a_node_the_role_contradicts(ctx.deps.agent_state, proposed)
     _refuse_a_tree_that_leaves_out_an_analysis(ctx.deps.agent_state, proposed)
+    _refuse_a_tree_the_site_cannot_run(ctx.deps.agent_state, proposed)
     ctx.deps.agent_state.frame_set_structure(proposed)
-    combined = _count_criteria(root)
+    combined = len(structure_criteria(proposed))
     return with_summary(
         SetStructureResult(criteria_combined=combined),
-        f"Structure set: {combined} criteria",
+        f"Structure set: {combined} {'search' if combined == 1 else 'searches'}",
         ctx=ctx,
     )

@@ -1,0 +1,705 @@
+{
+  "provenance": {
+    "site": "toxodb",
+    "method": "GET",
+    "url": "https://toxodb.org/toxo/service/record-types/transcript/searches/GenesByOrthologs?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-24",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searchData": {
+      "urlSegment": "GenesByOrthologs",
+      "dynamicAttributes": [
+        {
+          "isInReport": true,
+          "formats": [],
+          "truncateTo": 100,
+          "displayName": "Input Ortholog(s)",
+          "name": "orthologs",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "T. gondii"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "T. gondii"
+            ],
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "gene_location_text",
+          "direction": "ASC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "Transform by Orthology",
+      "allowedPrimaryInputRecordClassNames": [
+        "transcript"
+      ],
+      "fullName": "InternalQuestions.GenesByOrthologs",
+      "description": "Find the ToxoDB genes that are orthologs (or paralogs) of the genes in a search result.\nThe typical use of this query is to begin by having an interesting result in a strategy.  Then, use this search to find orthologs of those genes in a species that may not be annotated with the data from your original result.  In general, use this search to transform sets of genes from one species to others. <br><br>\nOrtholog groups were generated from more than 100 species using OrthoMCL as described in   Li L, Stoeckert CJ Jr, Roos DS. OrthoMCL: identification of ortholog groups for eukaryotic genomes. <a href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=12952885\">Genome Res. 2003 13:2178-89</a>.   The OrthoMCL DB site is described in Chen F. Mackey AJ. Stoeckert CJ Jr. Roos DS. OrthoMCL-DB: querying a comprehensive multi-species collection of ortholog groups. <a href=\"http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Retrieve&db=pubmed&dopt=Abstract&list_uids=16381887\">NAR. 34(Database issue):D363-8</a>.",
+      "defaultAttributes": [
+        "primary_key",
+        "gene_location_text",
+        "gene_product"
+      ],
+      "groups": [
+        {
+          "displayType": "hidden",
+          "displayName": "",
+          "name": "_hidden",
+          "description": "",
+          "isVisible": false,
+          "parameters": [
+            "gene_result"
+          ]
+        },
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "organism",
+            "isSyntenic"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "shortDisplayName": "Orthologs",
+      "paramNames": [
+        "gene_result",
+        "organism",
+        "isSyntenic"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesByOrthologs",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "help": "Input Result Set",
+          "dependentParams": [],
+          "isReadOnly": true,
+          "displayName": "Input Result Set",
+          "allowEmptyValue": true,
+          "name": "gene_result",
+          "isVisible": false,
+          "type": "input-step",
+          "initialDisplayValue": "",
+          "properties": {
+            "organisms": [
+              "T. gondii"
+            ],
+            "specificAttribution": []
+          },
+          "group": "_hidden"
+        },
+        {
+          "displayName": "Organism",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Select organism(s) you wish to query against. Click the [+] to expand taxon groupings.",
+          "depthExpanded": 0,
+          "dependentParams": [],
+          "displayType": "treeBox",
+          "isReadOnly": false,
+          "vocabulary": {
+            "data": {
+              "display": "@@fake@@",
+              "term": "@@fake@@"
+            },
+            "children": [
+              {
+                "data": {
+                  "display": "Eimeriidae",
+                  "term": "Eimeriidae"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Cyclospora",
+                      "term": "Cyclospora"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Cyclospora cayetanensis isolate NF1_C8",
+                          "term": "Cyclospora cayetanensis isolate NF1_C8"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Cyclospora cayetanensis strain CHN_HEN01",
+                          "term": "Cyclospora cayetanensis strain CHN_HEN01"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Eimeria",
+                      "term": "Eimeria"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Eimeria acervulina",
+                          "term": "Eimeria acervulina"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria acervulina Houghton",
+                              "term": "Eimeria acervulina Houghton"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria brunetti",
+                          "term": "Eimeria brunetti"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria brunetti Houghton",
+                              "term": "Eimeria brunetti Houghton"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria falciformis",
+                          "term": "Eimeria falciformis"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria falciformis Bayer Haberkorn 1970",
+                              "term": "Eimeria falciformis Bayer Haberkorn 1970"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria flavescens",
+                          "term": "Eimeria flavescens"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria flavescens A23",
+                              "term": "Eimeria flavescens A23"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria intestinalis",
+                          "term": "Eimeria intestinalis"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria intestinalis P0_A24",
+                              "term": "Eimeria intestinalis P0_A24"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria magna",
+                          "term": "Eimeria magna"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria magna A19",
+                              "term": "Eimeria magna A19"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria maxima",
+                          "term": "Eimeria maxima"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria maxima Weybridge",
+                              "term": "Eimeria maxima Weybridge"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria media",
+                          "term": "Eimeria media"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria media PL19_A22",
+                              "term": "Eimeria media PL19_A22"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria mitis",
+                          "term": "Eimeria mitis"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria mitis Houghton",
+                              "term": "Eimeria mitis Houghton"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria necatrix",
+                          "term": "Eimeria necatrix"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria necatrix Houghton",
+                              "term": "Eimeria necatrix Houghton"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria praecox",
+                          "term": "Eimeria praecox"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria praecox Houghton",
+                              "term": "Eimeria praecox Houghton"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria stiedai",
+                          "term": "Eimeria stiedai"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria stiedai A26",
+                              "term": "Eimeria stiedai A26"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Eimeria tenella",
+                          "term": "Eimeria tenella"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Eimeria tenella Houghton 2021",
+                              "term": "Eimeria tenella Houghton 2021"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Eimeria tenella strain Houghton",
+                              "term": "Eimeria tenella strain Houghton"
+                            },
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "data": {
+                  "display": "Sarcocystidae",
+                  "term": "Sarcocystidae"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Besnoitia",
+                      "term": "Besnoitia"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Besnoitia besnoiti strain Bb-Ger1",
+                          "term": "Besnoitia besnoiti strain Bb-Ger1"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Cystoisospora",
+                      "term": "Cystoisospora"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Cystoisospora suis strain Wien I",
+                          "term": "Cystoisospora suis strain Wien I"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Hammondia",
+                      "term": "Hammondia"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Hammondia hammondi strain H.H.34",
+                          "term": "Hammondia hammondi strain H.H.34"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Neospora",
+                      "term": "Neospora"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Neospora caninum Liverpool",
+                          "term": "Neospora caninum Liverpool"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Neospora caninum Liverpool 2019",
+                          "term": "Neospora caninum Liverpool 2019"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Sarcocystis",
+                      "term": "Sarcocystis"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Sarcocystis neurona SN3",
+                          "term": "Sarcocystis neurona SN3"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Sarcocystis neurona SO SN1",
+                          "term": "Sarcocystis neurona SO SN1"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Toxoplasma",
+                      "term": "Toxoplasma"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii ARI",
+                          "term": "Toxoplasma gondii ARI"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii CAST",
+                          "term": "Toxoplasma gondii CAST"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii COUG",
+                          "term": "Toxoplasma gondii COUG"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii FOU",
+                          "term": "Toxoplasma gondii FOU"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii GAB2-2007-GAL-DOM2",
+                          "term": "Toxoplasma gondii GAB2-2007-GAL-DOM2"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii GT1",
+                          "term": "Toxoplasma gondii GT1"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii MAS",
+                          "term": "Toxoplasma gondii MAS"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii ME49",
+                          "term": "Toxoplasma gondii ME49"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii p89",
+                          "term": "Toxoplasma gondii p89"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii RH-88",
+                          "term": "Toxoplasma gondii RH-88"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii RUB",
+                          "term": "Toxoplasma gondii RUB"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii TgCATBr9",
+                          "term": "Toxoplasma gondii TgCATBr9"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii TgCatPRC2",
+                          "term": "Toxoplasma gondii TgCatPRC2"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii VAND",
+                          "term": "Toxoplasma gondii VAND"
+                        },
+                        "children": []
+                      },
+                      {
+                        "data": {
+                          "display": "Toxoplasma gondii VEG",
+                          "term": "Toxoplasma gondii VEG"
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "allowEmptyValue": false,
+          "name": "organism",
+          "countOnlyLeaves": true,
+          "initialDisplayValue": "[]",
+          "properties": {
+            "organisms": [
+              "T. gondii"
+            ],
+            "maxRecommendedMsg": [
+              "<p>\n          You are selecting more than five organisms.\n        </p>\n        <p>\n          Selecting a large number of organisms may impact performance and make results harder to interpret.\n        </p>\n        <p>\n          <b>Please select five or fewer organisms where possible.</b>\n        </p>\n        <p>\n          For the best experience, use <i>My Organism Preferences</i> in the page header to focus on the organisms you care about most.\n        </p>"
+            ],
+            "specificAttribution": [],
+            "organismProperties": [
+              "pruneNodesWithSingleExtendingChild",
+              "showOnlyPreferredOrganisms",
+              "highlightReferenceOrganisms"
+            ],
+            "maxRecommended": [
+              "5"
+            ]
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Syntenic Orthologs Only?",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Only Return Orthologs which also are syntenic",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "yes",
+              "yes",
+              null
+            ],
+            [
+              "no",
+              "no",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "isSyntenic",
+          "initialDisplayValue": "no",
+          "properties": {
+            "organisms": [
+              "T. gondii"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        }
+      ],
+      "properties": {
+        "organisms": [
+          "T. gondii"
+        ],
+        "specificAttribution": []
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

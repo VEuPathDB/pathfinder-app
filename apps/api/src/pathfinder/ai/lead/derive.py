@@ -10,6 +10,7 @@ from pathfinder.ai.lead.ledger_sections import (
     RecoveryKind,
     VerificationSection,
     assumption_constraints,
+    unexpressed_constraints,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import (
@@ -80,6 +81,7 @@ def derive_ledger(
         constraints=_derive_constraint_section(state, intent),
         declined_proposal=state.domain.declined_proposal,
         phase_stop=phase_stop,
+        open_analysis=state.domain.open_eda_analysis,
     )
 
 
@@ -130,7 +132,7 @@ def _derive_constraint_section(
         c for c in requirements if c.source is not ConstraintSource.USER_EXPLICIT
     ]
     carried = _carried_requirements(state, intent)
-    assumed = assumption_constraints(spec)
+    assumed = [*assumption_constraints(spec), *unexpressed_constraints(spec)]
     if not merged:
         return ConstraintSection(
             grounded=assumed,

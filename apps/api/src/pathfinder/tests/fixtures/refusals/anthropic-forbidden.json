@@ -1,0 +1,17 @@
+{
+  "provider": "anthropic",
+  "refusal": "forbidden",
+  "status": 403,
+  "body": {
+    "type": "error",
+    "error": {
+      "type": "permission_error",
+      "message": "Your API key does not have permission to use the specified resource."
+    },
+    "request_id": null
+  },
+  "provenance": "documented",
+  "source": "https://platform.claude.com/docs/en/api/errors",
+  "model": null,
+  "read_at": "2026-09-24T19:40:00Z"
+}

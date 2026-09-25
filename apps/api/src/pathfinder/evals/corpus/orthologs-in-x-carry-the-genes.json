@@ -1,0 +1,36 @@
+{
+  "name": "orthologs-in-x-carry-the-genes",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Carry these to their orthologs in Plasmodium vivax P01."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A request for the orthologs in another organism asks for that organism's genes: one orthology transform over the seed, and a reply that says the records are P. vivax P01 genes. The cataloged thread's correction built this transform, which answered 67 P. vivax P01 records, and nothing held its reply to say whose genes those were.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByOrthologs((GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains))",
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologs": {
+        "organism": "Plasmodium vivax P01"
+      }
+    },
+    "replyMentions": [
+      "vivax P01"
+    ],
+    "replyOmits": []
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-09-24",
+    "stagingId": "",
+    "reference": "wdk/pathfinder/rules/pathfinder-mapping.md#WDK-MAP-009",
+    "curatorNote": "Two turns on one thread: the first builds the seed, the second carries it."
+  }
+}

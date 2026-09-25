@@ -224,7 +224,7 @@ def _both_reported() -> list[DurableTaskResult]:
         DurableTaskResult(
             task_id=_OWN_TASK_ID,
             status="success",
-            result={"variants": [], "objective": "f1"},
+            result={"variants": [], "objective": "f1", "searchName": "GenesByTaxon"},
         ),
     ]
 
@@ -301,7 +301,7 @@ async def test_each_parked_call_is_answered_once_on_the_completion_turn(
     assert isinstance(own, ToolReturn)
     assert own.return_value == {
         "status": "success",
-        "result": {"variants": [], "objective": "f1"},
+        "result": {"variants": [], "objective": "f1", "searchName": "GenesByTaxon"},
     }
 
 

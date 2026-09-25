@@ -67,7 +67,7 @@ export function FrameSection({
     <LedgerSection title={phaseLabel("frame")}>
       <LedgerRow label="present" value={<BoolBadge value={frame.present} />} />
       <LedgerRow
-        label="criteria"
+        label="searches"
         value={
           <CountChip
             value={frame.criteriaCount}
@@ -94,7 +94,10 @@ export function FrameSection({
           />
         }
       />
-      <LedgerRow label="needs user" value={<BoolBadge value={frame.needsUser} />} />
+      <LedgerRow
+        label="needs your answer"
+        value={<BoolBadge value={frame.needsUser} />}
+      />
       <LedgerRow
         label="ready to build"
         value={<BoolBadge value={frame.readyToBuild} />}
@@ -127,7 +130,7 @@ export function BuildSection({
         ? "warn"
         : "bad";
   return (
-    <LedgerSection title="Build">
+    <LedgerSection title={phaseLabel("execution")}>
       <LedgerRow
         label="pushed"
         value={
@@ -195,7 +198,7 @@ export function VerificationSection({
   const digest = verification.digest;
   const pending = digest?.success === true ? (digest.pendingChecks ?? []) : [];
   return (
-    <LedgerSection title="Verification">
+    <LedgerSection title={phaseLabel("verification")}>
       <LedgerRow label="complete" value={<BoolBadge value={verification.complete} />} />
       <LedgerRow
         label="successful"

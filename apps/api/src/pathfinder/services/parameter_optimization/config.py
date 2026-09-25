@@ -120,6 +120,9 @@ class SweepResult(CamelModel):
 
     variants: list[SweepVariantResult]
     best: SweepVariantResult | None
+    # The search every setting ran, and the metric ``score`` holds.
+    search_name: str
+    objective: OptimizationObjective
 
     @model_validator(mode="after")
     def _select_best(self) -> Self:

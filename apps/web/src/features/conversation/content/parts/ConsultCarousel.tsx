@@ -13,7 +13,7 @@ import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 import { useChatHelpers, type ChatHelpers } from "../../runtime/chatHelpersContext";
-import { handleConsultSubmit } from "../../rail/consultActions";
+import { handleConsultSkip, handleConsultSubmit } from "../../rail/consultActions";
 import { ConsultRecapView } from "./ConsultRecap";
 import {
   type PendingConsult,
@@ -173,11 +173,20 @@ export function ConsultCarouselView({
           >
             <ChevronLeft className="size-4" aria-hidden /> Back
           </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="ml-auto text-muted-foreground"
+            onClick={() => handleConsultSkip(chat, pending)}
+            data-testid="consult-skip"
+          >
+            Skip these questions
+          </Button>
           {isLast ? (
             <Button
               type="button"
               size="sm"
-              className="ml-auto"
               disabled={!allAnswered}
               onClick={submit}
               data-testid="consult-submit"
@@ -188,7 +197,6 @@ export function ConsultCarouselView({
             <Button
               type="button"
               size="sm"
-              className="ml-auto"
               disabled={!currentAnswered}
               onClick={() => go(index + 1)}
               data-testid="consult-next"
@@ -278,10 +286,10 @@ function ConsultSlide({
           placeholder={
             question.kind === "free_text"
               ? "Your answer..."
-              : "Add a note (optional)..."
+              : "Add a comment (optional)..."
           }
           rows={2}
-          aria-label={question.kind === "free_text" ? "Your answer" : "Add a note"}
+          aria-label={question.kind === "free_text" ? "Your answer" : "Add a comment"}
           data-testid="consult-note"
         />
       )}

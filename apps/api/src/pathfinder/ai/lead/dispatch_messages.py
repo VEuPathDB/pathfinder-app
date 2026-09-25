@@ -13,6 +13,7 @@ from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -25,18 +26,21 @@ from pathfinder.domain.strategy.spec_fold import (
 )
 
 
-def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:
-    """Report a run that ran out of budget by what it managed to bind.
+def frame_result_from_draft(
+    spec: OperationalSpec | None, stop: PhaseStop | None
+) -> FrameResult:
+    """Report a run that stopped early by what it managed to bind.
 
     Every criterion is written into the shared draft as it is bound, so the
     work is there to report. Saying "no result" discards a usable turn.
     """
+    why = "stopped before it finished" if stop is None else stop_phrase(stop)
     bound = [c for c in (spec.criteria if spec else []) if c.bound]
     if not bound:
         return FrameResult(
             disposition="needs_user",
             summary=(
-                "FRAME ran out of its tool budget with no criteria bound. "
+                f"FRAME {why} with no criteria bound. "
                 "Narrow the goal or state fewer criteria, then try again."
             ),
         )
@@ -44,7 +48,7 @@ def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:
     return FrameResult(
         disposition="needs_user",
         summary=(
-            f"FRAME ran out of its tool budget after binding {len(bound)} "
+            f"FRAME {why} after binding {len(bound)} "
             f"criteria ({names}). They are kept. Ask it to continue with the "
             f"rest rather than starting again."
         ),
@@ -54,7 +58,30 @@ def frame_result_from_draft(spec: OperationalSpec | None) -> FrameResult:
 _CONTINUE = "Continue it; this is not a fresh frame."
 
 
-def budget_stop_work_order(spec: OperationalSpec, prompt: str) -> str:
+def stop_phrase(stop: PhaseStop) -> str:
+    """Why a pass stopped, as the predicate of a sentence about the pass."""
+    match stop.reason:
+        case PhaseStopReason.BUDGET:
+            return "ran out of its tool budget"
+        case PhaseStopReason.TOOL_RETRIES:
+            return f"stopped when {stop.tool_name} refused every attempt"
+        case PhaseStopReason.REPEATED_CALL:
+            return "stopped after repeating one call"
+
+
+def stop_heading(stop: PhaseStop) -> str:
+    """Why the previous pass stopped, in the words a continuation opens with."""
+    return f"the previous pass {stop_phrase(stop)}"
+
+
+def refusal_lines(stop: PhaseStop) -> list[str]:
+    """The refusal that stopped the pass, which its continuation answers first."""
+    if not stop.refusal:
+        return []
+    return [f"{stop.tool_name} answered: {stop.refusal} Answer that on the first call."]
+
+
+def stopped_pass_work_order(spec: OperationalSpec, prompt: str, stop: PhaseStop) -> str:
     """The order for a pass that continues a draft a stopped pass bound.
 
     The bound criteria are printed so the pass spends its calls on the rest
@@ -62,7 +89,8 @@ def budget_stop_work_order(spec: OperationalSpec, prompt: str) -> str:
     """
     bound = [c for c in spec.criteria if c.bound or c.pending_analysis]
     lines = [
-        f"FRAME work order: the previous pass ran out of its tool budget. {_CONTINUE}",
+        f"FRAME work order: {stop_heading(stop)}. {_CONTINUE}",
+        *refusal_lines(stop),
         f"User's goal: {prompt}",
         "",
         (

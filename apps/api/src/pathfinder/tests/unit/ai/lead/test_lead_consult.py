@@ -69,15 +69,18 @@ async def test_returns_user_answers_and_instructs_replan() -> None:
             ),
         ],
     }
-    result = await consult_user(_ctx(state), questions=_QUESTIONS)
+    result = await consult_user(
+        _ctx(state),
+        questions=_QUESTIONS,
+        reply="I will make this change and report what it takes with it.",
+    )
 
     assert [a.question_id for a in _answers(result)] == ["q1", "q2"]
-    summary = summary_text(result)
-    assert "Fold-change threshold?" in summary
-    assert "2-fold" in summary
-    assert "RNA-seq is enough" in summary
-    # The Lead is told to re-frame with the answers, not to execute.
-    assert "frame_problem" in summary
+    assert summary_text(result) == (
+        'The user answered your questions: "Fold-change threshold?" -> 2-fold; '
+        '"Include microarray arm?" -> No - note: RNA-seq is enough. '
+        "Now run frame_problem honoring these as hard constraints."
+    )
 
 
 @pytest.mark.asyncio
@@ -86,11 +89,15 @@ async def test_no_answers_yet_reports_awaiting() -> None:
     state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_1", tool_name="consult_user"
     )
-    result = await consult_user(_ctx(state), questions=_QUESTIONS)
+    result = await consult_user(
+        _ctx(state),
+        questions=_QUESTIONS,
+        reply="I will make this change and report what it takes with it.",
+    )
     assert _answers(result) == []
-    summary = summary_text(result)
-    assert "2" in summary  # presented 2 questions
-    assert "awaiting" in summary.lower()
+    assert summary_text(result) == (
+        "Presented 2 question(s); awaiting the user's answers."
+    )
 
 
 def _answered(state: PipelineState, *answers: UserQuestionAnswer) -> None:
@@ -117,7 +124,11 @@ class TestAnswersBecomeRequirements:
             ),
         )
 
-        await consult_user(_ctx(state), questions=_QUESTIONS)
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
 
         [requirement] = state.domain.requirements
         assert requirement.kind is ConstraintKind.COMBINATION
@@ -141,7 +152,11 @@ class TestAnswersBecomeRequirements:
             ),
         )
 
-        await consult_user(_ctx(state), questions=_QUESTIONS)
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
 
         [requirement] = state.domain.requirements
         assert requirement.kind is ConstraintKind.COMBINATION
@@ -159,7 +174,11 @@ class TestAnswersBecomeRequirements:
             ),
         )
 
-        await consult_user(_ctx(state), questions=_QUESTIONS)
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
 
         [requirement] = state.domain.requirements
         assert requirement.kind is ConstraintKind.OTHER
@@ -173,7 +192,11 @@ class TestAnswersBecomeRequirements:
             UserQuestionAnswer(question_id="q1", prompt="Fold-change threshold?"),
         )
 
-        await consult_user(_ctx(state), questions=_QUESTIONS)
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
 
         assert state.domain.requirements == []
 
@@ -187,7 +210,11 @@ class TestAnswersBecomeRequirements:
             UserQuestionAnswer(question_id="q1", prompt="", chosen_labels=["2-fold"]),
         )
 
-        await consult_user(_ctx(state), questions=_QUESTIONS)
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
 
         [requirement] = state.domain.requirements
         assert requirement.label == "2-fold"
@@ -204,17 +231,26 @@ class TestAnswersBecomeRequirements:
             ),
         )
 
-        await consult_user(_ctx(state), questions=_QUESTIONS)
-        await consult_user(_ctx(state), questions=_QUESTIONS)
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
+        await consult_user(
+            _ctx(state),
+            questions=_QUESTIONS,
+            reply="I will make this change and report what it takes with it.",
+        )
 
         assert len(state.domain.requirements) == 1
 
 
-def test_the_call_takes_only_questions_and_says_where_context_goes() -> None:
+def test_the_call_takes_questions_and_the_reply_and_says_where_context_goes() -> None:
     """Background belongs to a question, so the schema has no top-level context."""
     tool = Tool(consult_user)
     schema = tool.function_schema.json_schema
-    assert sorted(schema["properties"]) == ["questions"]
+    assert sorted(schema["properties"]) == ["questions", "reply"]
+    assert schema["required"] == ["questions", "reply"]
     assert schema["additionalProperties"] is False
     assert tool.description is not None
     assert "question's ``context``" in tool.description
@@ -240,7 +276,11 @@ async def test_answers_over_a_strategy_with_steps_route_to_the_edit() -> None:
         lead_deps(state, strategy_session=session_with_one_step()), "call_1"
     )
 
-    result = await consult_user(ctx, questions=_QUESTIONS)
+    result = await consult_user(
+        ctx,
+        questions=_QUESTIONS,
+        reply="I will make this change and report what it takes with it.",
+    )
 
     assert summary_text(result) == (
         'The user answered your questions: "Fold-change threshold?" -> 2-fold. '

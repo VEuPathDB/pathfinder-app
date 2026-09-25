@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import type { EdaAnalysisState } from "@pathfinder/shared";
+import { siteShortName, type EdaAnalysisState } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -17,8 +17,8 @@ import { useEdaStore } from "@/state/eda";
 
 import { ExportStepButton } from "./ExportStepButton";
 import { StudyPicker } from "./StudyPicker";
-import { ComputeCell } from "./cells/ComputeCell";
-import { SubsetCell } from "./cells/SubsetCell";
+import { ComparisonSummary } from "./cells/ComparisonSummary";
+import { SubsetSummary } from "./cells/SubsetSummary";
 import { VizCell } from "./cells/VizCell";
 
 const READ_FAILED = "Could not read the study";
@@ -46,10 +46,7 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
   const unbind = useMutation({
     mutationFn: () => patchConversationEda(conversationId, { action: "unbind" }),
     onSuccess: (response) => {
-      queryClient.setQueryData(options.queryKey, {
-        analysis: response.analysis,
-        descriptor: null,
-      });
+      queryClient.setQueryData(options.queryKey, { analysis: response.analysis });
       useEdaStore.getState().reset();
     },
     onError: (error) => {
@@ -58,7 +55,7 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
   });
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div data-testid="eda-workbench" className="flex h-full min-h-0 flex-col">
       <header
         data-testid="eda-workbench-header"
         className="sticky top-0 z-10 flex h-11 shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4"
@@ -67,7 +64,7 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
           <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5">
             <Link href={chatUrl(siteId, conversationId)}>
               <ArrowLeft className="size-4" aria-hidden />
-              <span className="text-xs">Back to chat</span>
+              <span className="text-xs">Back to conversation</span>
             </Link>
           </Button>
           <div className="h-5 w-px shrink-0 bg-border" aria-hidden />
@@ -78,9 +75,14 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
           />
         </div>
         {analysis !== null ? (
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {analysis.analysisUrl !== null ? (
-              <OpenInSiteLink href={analysis.analysisUrl} siteId={analysis.siteId} />
+              <>
+                <span className="min-w-0 truncate text-xs text-muted-foreground">
+                  {`Edit on ${siteShortName(analysis.siteId)}; this tab shows what the site holds.`}
+                </span>
+                <OpenInSiteLink href={analysis.analysisUrl} siteId={analysis.siteId} />
+              </>
             ) : null}
             <Button
               type="button"
@@ -100,7 +102,7 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
           siteId={siteId}
           conversationId={conversationId}
           analysisId={analysis?.analysisId ?? null}
-          descriptor={bindingQuery.data?.descriptor ?? null}
+          compared={analysis?.compute != null}
           isPending={bindingQuery.isPending}
           error={bindingQuery.error}
           onRetry={() => void bindingQuery.refetch()}
@@ -145,7 +147,7 @@ function WorkbenchBody({
   siteId,
   conversationId,
   analysisId,
-  descriptor,
+  compared,
   isPending,
   error,
   onRetry,
@@ -155,7 +157,7 @@ function WorkbenchBody({
   siteId: string;
   conversationId: string;
   analysisId: string | null;
-  descriptor: unknown;
+  compared: boolean;
   isPending: boolean;
   error: unknown;
   onRetry: () => void;
@@ -196,16 +198,12 @@ function WorkbenchBody({
   if (analysisId === null) {
     return <StudyPicker siteId={siteId} conversationId={conversationId} />;
   }
-  // Each cell holds local state about one analysis, so a switch remounts them.
+  // A switch of analysis remounts the cells, so each reads its own analysis.
   return (
     <div key={analysisId} className="flex flex-col gap-4">
-      <SubsetCell siteId={siteId} conversationId={conversationId} />
-      <ComputeCell
-        siteId={siteId}
-        conversationId={conversationId}
-        descriptor={descriptor}
-      />
-      <VizCell siteId={siteId} conversationId={conversationId} />
+      <SubsetSummary />
+      <ComparisonSummary />
+      {compared ? <VizCell siteId={siteId} conversationId={conversationId} /> : null}
     </div>
   );
 }

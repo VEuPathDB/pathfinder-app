@@ -63,13 +63,14 @@ describe("FrameDetail resolved parameters", () => {
 });
 
 describe("FrameDetail analysis criteria", () => {
-  it("names the workflow a waiting criterion waits for, not an unbound search", () => {
+  it("says a waiting search waits for a study, without the study's id", () => {
     render(
       <FrameDetail
         frame={frameWith({}, { searchName: "", needsAnalysisOn: "DS_e973eadd57" })}
       />,
     );
-    expect(screen.getByText("analysis workflow on DS_e973eadd57")).toBeInTheDocument();
+    expect(screen.getByText("waits for a study analysis")).toBeInTheDocument();
+    expect(screen.queryByText(/DS_e973eadd57/)).toBeNull();
     expect(screen.queryByText("(unbound)")).toBeNull();
   });
 
@@ -113,6 +114,39 @@ describe("FrameDetail search reasons", () => {
     );
 
     expect(screen.getByTestId("criterion-why").textContent).toBe("why: sets GO Term");
+  });
+
+  it("says a measured criterion was chosen by the controls it separated", () => {
+    render(
+      <FrameDetail
+        frame={frameWith(
+          {},
+          {
+            rationale: {
+              kind: "controls",
+              taskId: "0c6100d2-0000-4000-8000-00000000a16a",
+              searchName: "GenesByGoTerm",
+              source: "enrichment",
+              basis: "GO:0044217 other organism part",
+              informs: "recovering",
+              recovered: 42,
+              positives: 80,
+              admitted: 0,
+              negatives: 40,
+              resultSize: 637,
+              term: "42 of 80 positives",
+              short: "recovers 42 of 80 positives, admits 0 of 40 negatives",
+            },
+          },
+        )}
+      />,
+    );
+
+    const why = screen.getByTestId("criterion-why");
+    expect([why.textContent, why.getAttribute("title")]).toEqual([
+      "why: recovers 42 of 80 positives, admits 0 of 40 negatives",
+      "GO:0044217 other organism part",
+    ]);
   });
 
   it("says nothing for a criterion that records no reason", () => {

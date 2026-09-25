@@ -63,7 +63,8 @@ yarn generate         # kubb
 To refresh the spec itself from the application and regenerate in one step, run
 `yarn generate:types` from the repo root.
 
-Check that the generated output matches the committed spec, which is what CI does:
+The generated tree is gitignored, so there is no committed output to compare. CI checks that the
+committed spec generates types that compile; the spec itself is gated by the api's openapi check:
 
 ```bash
 yarn check:generated  # kubb && tsc --noEmit

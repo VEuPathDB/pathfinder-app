@@ -94,9 +94,9 @@ function ProposalAnswer({
       <Textarea
         value={note}
         onChange={(e) => onNote(e.target.value)}
-        placeholder="Add a note (optional)..."
+        placeholder="Add a comment (optional)..."
         rows={2}
-        aria-label="Add a note"
+        aria-label="Add a comment"
         data-testid="proposal-note"
       />
       <div className="flex items-center justify-end gap-2">

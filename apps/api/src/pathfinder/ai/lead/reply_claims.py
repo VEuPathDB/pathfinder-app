@@ -8,13 +8,10 @@ turn; nothing here knows what the turn did.
 from __future__ import annotations
 
 import re
-from typing import Literal
-
-from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field
 
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
+from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 # An artifact the reply reports as saved. An offer to save one is an
 # infinitive, and a listing says "saved control sets" with no words between.
@@ -74,6 +71,13 @@ def claims(prose: str, made: re.Pattern[str]) -> bool:
     )
 
 
+def names_an_organism(prose: str, organism: str) -> bool:
+    """Whether the prose names the organism in full or with its genus abbreviated."""
+    genus, _, rest = organism.partition(" ")
+    abbreviated = f"{genus[:1]}. {rest}" if rest else organism
+    return names_the_phrase(prose, organism) or names_the_phrase(prose, abbreviated)
+
+
 def machine_words(prose: str) -> list[str]:
     """Every internal name this reply prints, in the order they are looked for.
 
@@ -85,28 +89,6 @@ def machine_words(prose: str) -> list[str]:
     found.extend(sorted(set(_A_STEP_ID.findall(text))))
     found.extend(sorted(set(_AN_ERROR_STRING.findall(text))))
     return found
-
-
-class CitedSource(CamelModel):
-    """One reference a reply names, and where this turn read it."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: Literal["record", "literature", "web"]
-    label: str = Field(
-        max_length=200,
-        description=(
-            "What the reader sees: the gene id and the site for a record, the "
-            "title for a paper or a page."
-        ),
-    )
-    url: str | None = None
-    doi: str | None = None
-    pmid: str | None = None
-
-    def references(self) -> list[str]:
-        """Every identifier this source is checked by."""
-        return [value for value in (self.url, self.doi, self.pmid) if value]
 
 
 # What may close a question after its mark: whitespace, emphasis, code, a
@@ -121,3 +103,18 @@ def ends_with_a_question(prose: str) -> bool:
     a bold or quoted question still ends the reply.
     """
     return prose.rstrip(_CLOSING_MARKS).endswith("?")
+
+
+def counts_named_as(prose: str, noun: str, *, instead_of: str) -> list[int]:
+    """Every count the prose names with ``noun``, in order.
+
+    A few words may stand between the count and the noun, as in "479
+    Plasmodium falciparum 3D7 transcripts", but no other number and no
+    ``instead_of``. A word holds a letter; a number holds none.
+    """
+    word = r"(?=[\w.-]*[A-Za-z])[\w][\w.-]*"
+    between = rf"(?:(?!{re.escape(instead_of)}s?\b){word}\**\s+){{0,4}}?"
+    named = re.compile(
+        rf"\b(\d[\d,]*)\**\s+{between}\**{re.escape(noun)}s?\b", re.IGNORECASE
+    )
+    return [int(match.group(1).replace(",", "")) for match in named.finditer(prose)]

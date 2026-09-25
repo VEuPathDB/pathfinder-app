@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toUserMessage } from "@/lib/api/errors";
 import { authStatusOptions, logoutVeupathdb } from "@/lib/api/veupathdb-auth";
 import { Modal } from "@/lib/components/Modal";
 import { SignInForm } from "@/features/sites/components/SignInForm";
@@ -22,6 +23,7 @@ export function SiteAuth({
   headerTextVariant,
 }: SiteAuthProps) {
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: authStatus } = useQuery(authStatusOptions(siteId));
@@ -61,11 +63,12 @@ export function SiteAuth({
             type="button"
             onClick={() => {
               void (async () => {
+                setLogoutError(null);
                 try {
                   await logoutVeupathdb(siteId);
                   await refreshAfterAuthChange();
-                } catch {
-                  console.warn("[SiteAuth] Failed to log out");
+                } catch (err) {
+                  setLogoutError(`Log out failed: ${toUserMessage(err)}`);
                 }
               })();
             }}
@@ -73,6 +76,11 @@ export function SiteAuth({
           >
             Log out
           </button>
+          {logoutError !== null && (
+            <span role="alert" className="text-destructive">
+              {logoutError}
+            </span>
+          )}
         </div>
       )}
 

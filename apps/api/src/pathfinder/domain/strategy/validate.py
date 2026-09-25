@@ -1,5 +1,6 @@
 """Validates a strategy tree and reports the issues it finds."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 from pydantic import JsonValue
@@ -84,6 +85,21 @@ def cross_organism_refusal(
         f"different species never match, so this always returns 0 results. "
         f"{_remedy(root, combine, primary, secondary)}"
     )
+
+
+def first_cross_organism_refusal(root: StrategyStepNode) -> str | None:
+    """Why the first INTERSECT of the tree that can never meet is refused, or None."""
+    for node in _nodes(root):
+        refusal = cross_organism_refusal(node, root)
+        if refusal is not None:
+            return refusal
+    return None
+
+
+def _nodes(node: StrategyStepNode) -> Iterator[StrategyStepNode]:
+    yield node
+    for child in node.inputs():
+        yield from _nodes(child)
 
 
 @dataclass

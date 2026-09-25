@@ -8,10 +8,13 @@ graded distance beside the verdict.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 
+from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.step_rationale import said_beside
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.case import EvalCase
@@ -83,6 +86,26 @@ def final_count_below_every_input(ast: StrategyAst) -> bool | None:
     return all(final < counts[step_id] for step_id in inputs)
 
 
+class RequirementCounts(CamelModel):
+    """How many of a check's requirement rows carry each status."""
+
+    model_config = ConfigDict(frozen=True)
+
+    met: int = 0
+    unmet: int = 0
+    unexpressed: int = 0
+
+
+def requirement_counts(rows: Sequence[RequirementCheck]) -> RequirementCounts:
+    """The check's requirement rows, counted by status."""
+    statuses = [row.status for row in rows]
+    return RequirementCounts(
+        met=statuses.count("met"),
+        unmet=statuses.count("unmet"),
+        unexpressed=statuses.count("unexpressed"),
+    )
+
+
 class ObservedOutcome(CamelModel):
     """What one run of a case produced."""
 
@@ -101,6 +124,9 @@ class ObservedOutcome(CamelModel):
     reply_text: str = ""
     root_operator: str | None = None
     final_count_below_every_input: bool | None = None
+    # The requirement rows of the check on the strategy, or None when no check
+    # judged it.
+    requirements: RequirementCounts | None = None
 
 
 class CaseDifference(CamelModel):
@@ -241,6 +267,31 @@ def _title_differences(
     return differences
 
 
+def _requirement_differences(
+    case: EvalCase,
+    observed: ObservedOutcome,
+) -> list[CaseDifference]:
+    """The met and unmet rows the check reported, against the counts the case states."""
+    counted = observed.requirements
+    compared = (
+        (
+            "metRequirements",
+            case.expected.met_requirements,
+            None if counted is None else counted.met,
+        ),
+        (
+            "unmetRequirements",
+            case.expected.unmet_requirements,
+            None if counted is None else counted.unmet,
+        ),
+    )
+    return [
+        CaseDifference(field=field, expected=str(want), actual=str(got))
+        for field, want, got in compared
+        if want is not None and want != got
+    ]
+
+
 def _expected_tree(case: EvalCase) -> ComparisonNode | None:
     """The shape the case states, carrying the parameters it names."""
     if case.expected.structure is None:
@@ -275,26 +326,33 @@ def _parameter_differences(
     produced = _parameters_by_search(observed.tree)
     differences: list[CaseDifference] = []
     for search, wanted in sorted(case.expected.parameters.items()):
-        carried = produced.get(search)
+        steps = produced.get(search, [])
         for name, value in sorted(wanted.items()):
             got = (
-                "(no such search)" if carried is None else carried.get(name, "(unset)")
+                ["(no such search)"]
+                if not steps
+                else [carried.get(name, "(unset)") for carried in steps]
             )
-            if got != value:
-                differences.append(
-                    CaseDifference(
-                        field=f"parameters.{search}.{name}",
-                        expected=value,
-                        actual=got,
-                    ),
+            differences.extend(
+                CaseDifference(
+                    field=f"parameters.{search}.{name}",
+                    expected=value,
+                    actual=actual,
                 )
+                for actual in dict.fromkeys(got)
+                if actual != value
+            )
     return differences
 
 
-def _parameters_by_search(node: ComparisonNode) -> dict[str, dict[str, str]]:
-    carried = {node.search_name: dict(node.parameters)} if node.parameters else {}
+def _parameters_by_search(node: ComparisonNode) -> dict[str, list[dict[str, str]]]:
+    """The parameters of every step, grouped by the search each runs."""
+    carried: dict[str, list[dict[str, str]]] = {}
+    if node.parameters:
+        carried[node.search_name] = [dict(node.parameters)]
     for child in node.children:
-        carried.update(_parameters_by_search(child))
+        for search, steps in _parameters_by_search(child).items():
+            carried.setdefault(search, []).extend(steps)
     return carried
 
 
@@ -321,6 +379,7 @@ def score_case(case: EvalCase, observed: ObservedOutcome) -> CaseScore:
         + _parameter_differences(case, observed)
         + _phrase_differences(case, observed)
         + _title_differences(case, observed)
+        + _requirement_differences(case, observed)
     )
     return CaseScore(
         name=case.name,
@@ -335,7 +394,9 @@ __all__ = [
     "CaseDifference",
     "CaseScore",
     "ObservedOutcome",
+    "RequirementCounts",
     "final_count_below_every_input",
+    "requirement_counts",
     "root_operator",
     "score_case",
     "step_reasons",

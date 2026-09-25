@@ -68,9 +68,12 @@ DOMAIN_FIELDS = {
     "open_questions",
     "recommendations",
     "original_request",
+    "request_messages",
     "turn_briefing",
     "zero_result_history",
     "declined_proposal",
+    "separation_offers",
+    "attached_controls",
 }
 
 STRATEGY_RESOURCES = {

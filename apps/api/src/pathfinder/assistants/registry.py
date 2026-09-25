@@ -37,6 +37,13 @@ def _compile_time_models() -> dict[str, dict[str, str]]:
     }
 
 
+# The role whose agent reads the user's message, and so each file it carries.
+_PROMPT_ROLES = {
+    PATHFINDER_ASSISTANT_ID: "lead",
+    SITE_HELP_ASSISTANT_ID: SITE_HELP_ASSISTANT_ID,
+}
+
+
 def _defaults_of(
     assistant_id: str, provider: ModelProvider, tier: TierName
 ) -> dict[str, str]:
@@ -70,8 +77,14 @@ def assistant_role_models(
     return {role: picks.get(role) or default for role, default in defaults.items()}
 
 
+def prompt_reader_model(assistant_id: str, picks: Mapping[str, str]) -> str:
+    """The model that reads the user's message this turn."""
+    return assistant_role_models(assistant_id, picks)[_PROMPT_ROLES[assistant_id]]
+
+
 __all__ = [
     "assistant_role_models",
     "get_assistant_registry",
     "installed_phase_defaults",
+    "prompt_reader_model",
 ]

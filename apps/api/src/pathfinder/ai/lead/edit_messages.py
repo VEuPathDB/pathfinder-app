@@ -12,7 +12,12 @@ from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.graph.turn_records import AnsweredQuestions
-from pathfinder.ai.lead.dispatch_messages import answered_lines
+from pathfinder.ai.lead.dispatch_messages import (
+    answered_lines,
+    refusal_lines,
+    stop_heading,
+)
+from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -56,7 +61,7 @@ def pending_lines(
     return [
         "",
         (
-            "NOT PUSHED YET. An earlier pass of this thread stated these and "
+            "NOT PUSHED YET. An earlier pass of this conversation stated these and "
             "the strategy does not hold them. State a disposition in `changes` "
             "for each of them too: repeat it to let it stand, or take it back "
             "by stating the criterion the strategy holds with set_criterion."
@@ -175,14 +180,15 @@ def edit_continuation_work_order(
     pending: SpecDiff,
     answered: OperationalSpec,
     answer: AnsweredQuestions | None,
+    stop: PhaseStop,
 ) -> str:
-    """The work order for the pass that continues an edit stopped by its budget.
+    """The work order for the pass that continues a stopped edit.
 
     An edit owes a disposition for every criterion the turn started with, so
     the continuation is the edit work order and not a fresh frame.
     """
     return edit_work_order(
-        "the previous pass ran out of its tool budget; continue that edit",
+        " ".join([f"{stop_heading(stop)}; continue that edit", *refusal_lines(stop)]),
         prompt,
         before,
         pending=pending,
@@ -211,6 +217,8 @@ def _shape_node(
     pad = "  " * depth
     if node.kind == "combine":
         lines.append(f"{pad}{node.operator or 'COMBINE'}")
+    elif node.kind == "copy":
+        lines.append(f"{pad}COPY")
     else:
         prefix = "TRANSFORM " if node.kind == "transform" else ""
         lines.append(f"{pad}{prefix}{_criterion_label(node.criterion_id, by_id)}")
@@ -227,7 +235,7 @@ def _criterion_label(criterion_id: str | None, by_id: dict[str, Criterion]) -> s
 
 def no_strategy_to_edit_message(offered: Collection[str]) -> str:
     """The refusal of an edit on a thread with no step, naming offered tools."""
-    refusal = "edit_strategy needs a strategy to edit, and this thread has none."
+    refusal = "edit_strategy needs a strategy to edit, and this conversation has none."
     if "frame_problem" in offered:
         return (
             f"{refusal} Call frame_problem to operationalize the goal, then "
@@ -322,7 +330,7 @@ def pending_changes_no_pass_accounted_for_message(criterion_ids: Sequence[str]) 
     """
     named = ", ".join(criterion_ids)
     return (
-        f"This edit would also carry what an earlier pass of this thread left "
+        f"This edit would also carry what an earlier pass of this conversation left "
         f"unpushed, and no pass of this turn accounted for {named}. Nothing "
         f"was applied. Dispatch edit_strategy again and, for each id named "
         f"here, state its disposition in `changes` to let it stand, or state "

@@ -136,7 +136,6 @@ async def test_a_gold_strategy_thread_claims_the_strategy_it_minted(
 
 
 async def test_a_seeded_thread_claims_the_strategy_it_minted(
-    db_session: AsyncSession,
     seed_user: User,
     session_maker: async_sessionmaker[AsyncSession],
     monkeypatch: pytest.MonkeyPatch,
@@ -147,10 +146,9 @@ async def test_a_seeded_thread_claims_the_strategy_it_minted(
     monkeypatch.setattr(runner, "get_seeds_for_site", lambda _site: [_seed()])
 
     async for _event in runner.run_seed(
-        user_id=seed_user.id, session=db_session, site_id=_SITE
+        user_id=seed_user.id, session_factory=session_maker, site_id=_SITE
     ):
         pass
-    await db_session.commit()
 
     async with session_maker() as verify:
         found = await SavedStrategyRepository(verify).get_by_wdk_strategy_id(

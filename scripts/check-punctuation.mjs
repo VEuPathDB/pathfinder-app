@@ -13,11 +13,19 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const TREES = ["apps/api/src", "apps/web/src", "packages/shared-ts/src", "scripts"];
-const EXTENSIONS = [".py", ".ts", ".tsx", ".mjs", ".js"];
-// Generated files are written by a tool this rule cannot reach, and a vendored
-// tree is somebody else's source.
+const TREES = [
+  "apps/api/src",
+  "apps/web/src",
+  "apps/web/e2e",
+  "packages/shared-ts/src",
+  "scripts",
+];
+// A prompt template is Markdown the model reads, so it is source here.
+const EXTENSIONS = [".py", ".ts", ".tsx", ".mjs", ".js", ".md"];
+// Generated files are written by a tool this rule cannot reach, a vendored
+// tree is somebody else's source, and a fixture holds a defect on purpose.
 const SKIPPED = new Set([
+  "__fixtures__",
   "node_modules",
   "__pycache__",
   ".next",

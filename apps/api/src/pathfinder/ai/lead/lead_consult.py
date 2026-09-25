@@ -7,6 +7,7 @@ from assistant_core.graph.turn_state import ConsultQuestion, UserQuestionAnswer
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 
+from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
@@ -71,6 +72,8 @@ def _format_answers(answers: list[UserQuestionAnswer]) -> str:
 async def consult_user(
     ctx: RunContext[LeadDeps],
     questions: list[ConsultQuestion],
+    *,
+    reply: CardReply,
 ) -> ToolReturn[list[UserQuestionAnswer]]:
     """Ask the user design questions that SHAPE the investigation, before a
     plan is built. Use this whenever a real fork exists - which searches to
@@ -80,12 +83,15 @@ async def consult_user(
     This pauses the turn: the user answers each question in a carousel
     (options + optional free-text note). Their answers are returned to you
     here so you can run (or re-run) ``frame_problem``, or ``edit_strategy``
-    over a strategy that holds a step, with them as hard constraints. Ask only the few questions that genuinely change the
-    answer; pick sensible defaults for everything else and state your
-    assumptions in prose. Do NOT ask "submit or request changes?" - the
-    approval card already offers both. Background for a question goes in
-    that question's ``context``; the call itself takes only ``questions``.
+    over a strategy that holds a step, with them as hard constraints. Ask
+    only the few questions that genuinely change the answer; pick sensible
+    defaults for everything else and state your
+    assumptions in ``reply``, which streams above the card as the turn's
+    reply. Do NOT ask "submit or request changes?" - the approval card
+    already offers both. Background for a question goes in that
+    question's ``context``.
     """
+    del reply
     state = ctx.deps.state
     pending = state.pending_approval
     answers = (

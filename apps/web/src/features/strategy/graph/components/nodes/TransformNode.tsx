@@ -18,7 +18,6 @@ export function TransformNode(props: StepNodeProps) {
   const {
     step,
     selected,
-    isUnsaved = false,
     isOrphan = false,
     showOutputHandle = false,
     showPrimaryInputHandle = false,
@@ -35,7 +34,6 @@ export function TransformNode(props: StepNodeProps) {
       kind="transform"
       step={step}
       selected={selected}
-      isUnsaved={isUnsaved}
       isOrphan={isOrphan}
       width={TRANSFORM_NODE_WIDTH}
       height={

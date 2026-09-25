@@ -32,6 +32,7 @@ from pathfinder.tests._support.eda_wire import (
     PHENOTYPE_ENTITY,
     PHENOTYPE_STUDY,
 )
+from pathfinder.tests._support.recorded_vdi import no_own_datasets
 from pathfinder.tests._support.tool_returns import returned
 
 StudyResolver = Any
@@ -117,6 +118,7 @@ async def test_search_eda_studies_returns_cards_the_model_can_act_on(
         )
 
     monkeypatch.setattr(eda_catalog, "search_studies", found)
+    monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
     result = returned(
         await eda_catalog.search_eda_studies(lead_ctx, query="rodent malaria"),
         EdaStudySearchResult,
@@ -138,6 +140,7 @@ async def test_search_eda_studies_says_so_when_nothing_matches(
         return StudySearch(cards=[], catalog_size=0)
 
     monkeypatch.setattr(eda_catalog, "search_studies", none)
+    monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
     result = returned(
         await eda_catalog.search_eda_studies(lead_ctx, query="nothing here"),
         EdaStudySearchResult,
@@ -164,6 +167,7 @@ async def test_search_eda_studies_carries_the_name_match_guidance(
         return StudySearch(cards=[card], catalog_size=87, ranking="name")
 
     monkeypatch.setattr(eda_catalog, "search_studies", by_name)
+    monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
     result = returned(
         await eda_catalog.search_eda_studies(lead_ctx, query="gametocyte"),
         EdaStudySearchResult,
@@ -192,6 +196,7 @@ async def test_search_eda_studies_says_an_absent_study_is_not_on_the_site(
         return StudySearch(cards=[card, card, card], catalog_size=120)
 
     monkeypatch.setattr(eda_catalog, "search_studies", closest)
+    monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
     result = returned(
         await eda_catalog.search_eda_studies(
             lead_ctx, query="Pinto hemocyte microarray"

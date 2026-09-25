@@ -84,7 +84,7 @@ def _node_without(node: StructureNode, departed: set[str]) -> StructureNode | No
 
     A combine left with one input is that input, and a combine left with none
     is nothing. A transform is its input when its own criterion left, and
-    nothing when the input left.
+    nothing when the input left; a copy is nothing when what it copies left.
     """
     inputs = [
         kept
@@ -97,6 +97,6 @@ def _node_without(node: StructureNode, departed: set[str]) -> StructureNode | No
         return inputs[0] if inputs else None
     if node.criterion_id in departed:
         return inputs[0] if inputs else None
-    if node.kind == "transform" and not inputs:
+    if node.kind in {"transform", "copy"} and not inputs:
         return None
     return node.model_copy(update={"inputs": inputs})

@@ -24,6 +24,17 @@ export interface BuildChatRequestBodyArgs {
 
 export type ChatRequestBodyShape = TurnRequestBody<UIMessage>;
 
+/** The worker reads earlier turns from its checkpoint, so only the message
+ *  being sent uploads its files. */
+function withFilesOnLastOnly(messages: UIMessage[]): UIMessage[] {
+  const last = messages.length - 1;
+  return messages.map((message, index) =>
+    index === last
+      ? message
+      : { ...message, parts: message.parts.filter((part) => part.type !== "file") },
+  );
+}
+
 export function buildChatRequestBody(
   args: BuildChatRequestBodyArgs,
 ): ChatRequestBodyShape {
@@ -38,7 +49,7 @@ export function buildChatRequestBody(
     conversationId: args.conversationId,
     id: args.id,
     trigger: args.trigger,
-    messages: withConsultAnswers(args.messages),
+    messages: withFilesOnLastOnly(withConsultAnswers(args.messages)),
     baseBody: args.baseBody,
     extra: {
       siteId: args.siteId,

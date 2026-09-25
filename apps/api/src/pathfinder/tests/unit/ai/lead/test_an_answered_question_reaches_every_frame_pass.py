@@ -58,6 +58,7 @@ async def _answered_on_a_card() -> LeadDeps:
     await consult_user(
         run_context_for(deps, "call_consult"),
         questions=[ConsultQuestion(id="q1", prompt="Which localisation evidence?")],
+        reply="I will make this change and report what it takes with it.",
     )
     return deps
 
@@ -98,6 +99,7 @@ async def test_a_card_answer_with_no_open_question_changes_no_answer() -> None:
     await consult_user(
         run_context_for(deps, "call_consult"),
         questions=[ConsultQuestion(id="q1", prompt="Arm?")],
+        reply="I will make this change and report what it takes with it.",
     )
 
     assert deps.state.turn_markers.answered == AnsweredQuestions(

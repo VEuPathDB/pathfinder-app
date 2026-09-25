@@ -22,6 +22,9 @@ export const CONSULT_TOOL_NAME = "consult_user";
 /** The proposal card answers this tool's approval with a yes or a no. */
 export const PROPOSAL_TOOL_NAME = "propose_changes";
 
+/** The separation card answers this tool's approval with a yes or a no. */
+export const ADOPTION_TOOL_NAME = "adopt_separating_strategy";
+
 /** The question id a yes on a proposal card is recorded under. */
 const PROPOSAL_ANSWER_ID = "proposal";
 
@@ -32,6 +35,14 @@ export function handleConsultSubmit(
 ): void {
   useConsultAnswersStore.getState().recordAnswers(pending.approvalId, answers);
   chat.addToolApprovalResponse({ id: pending.approvalId, approved: true });
+}
+
+/** Skipping declines the consult with no answers, the way a no declines a card. */
+export function handleConsultSkip(
+  chat: ChatHelpersForApproval,
+  pending: { approvalId: string },
+): void {
+  chat.addToolApprovalResponse({ id: pending.approvalId, approved: false });
 }
 
 /**
@@ -62,10 +73,27 @@ export function handleProposalAnswer(
   ]);
 }
 
-/** A consult always carries answers; a proposal carries them only on a yes. */
+/**
+ * A yes builds the measured strategy and needs no words, so it is a plain
+ * approval. A no carries the note as the denial's reason.
+ */
+export function handleAdoptionAnswer(
+  chat: ChatHelpersForApproval,
+  approvalId: string,
+  answer: { accepted: boolean; note: string },
+): void {
+  const note = answer.note.trim();
+  chat.addToolApprovalResponse({
+    id: approvalId,
+    approved: answer.accepted,
+    ...(answer.accepted || note === "" ? {} : { reason: note }),
+  });
+}
+
+/** A consult and a proposal carry answers on a yes; a declined one carries none. */
 function carriesAnswers(toolName: string, approved: boolean): boolean {
-  if (toolName === CONSULT_TOOL_NAME) return true;
-  return toolName === PROPOSAL_TOOL_NAME && approved;
+  if (!approved) return false;
+  return toolName === CONSULT_TOOL_NAME || toolName === PROPOSAL_TOOL_NAME;
 }
 
 function answersPartsOf(part: UIMessage["parts"][number]): UIMessage["parts"] {

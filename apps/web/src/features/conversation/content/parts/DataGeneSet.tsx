@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { GeneSet, GeneSetPart } from "@pathfinder/shared";
+import { siteShortName, type GeneSet, type GeneSetPart } from "@pathfinder/shared";
 import { useState } from "react";
 
 import { Figure } from "@/features/conversation/thread/Figure";
@@ -34,7 +34,7 @@ export function DataGeneSet({ data }: { data: GeneSetPart }) {
     <Figure
       testId="data-gene-set"
       title={data.name}
-      caption={`${data.geneCount.toLocaleString()} genes on ${data.siteId}`}
+      caption={`${data.geneCount.toLocaleString()} genes on ${siteShortName(data.siteId)}`}
     >
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span

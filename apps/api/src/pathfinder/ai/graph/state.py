@@ -24,17 +24,14 @@ from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
     OpenEdaAnalysis,
 )
-from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.evidence import EvidenceCard, VerificationReview
+from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
-from pathfinder.domain.strategy.combination_check import combination_terms_overlap
 from pathfinder.domain.strategy.constraints import (
     Constraint,
-    ConstraintKind,
-    ConstraintSource,
     OpenQuestion,
-    message_states_constraint,
     standing_recommendations,
 )
 from pathfinder.domain.strategy.operational_spec import (
@@ -46,18 +43,13 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.strategy.stated_requirements import attributed, with_requirements
 
 PhaseName = Literal[
     "frame",
     "build",
     "verification",
 ]
-
-PHASE_NAMES: tuple[PhaseName, ...] = (
-    "frame",
-    "build",
-    "verification",
-)
 
 
 class PhaseDisposition(StrEnum):
@@ -97,7 +89,7 @@ class VerificationDigest(CamelModel):
     prose: str = Field(
         min_length=1,
         max_length=4000,
-        description="User-facing assistant message shown in the chat thread.",
+        description="User-facing assistant message shown in the conversation.",
     )
     reason: str = Field(
         min_length=1,
@@ -126,6 +118,7 @@ class VerificationDigest(CamelModel):
     constraint_report: list[ConstraintCheck] = Field(
         default_factory=list, max_length=12
     )
+    review: VerificationReview = Field(default_factory=VerificationReview)
     remember: list[MemoryEntryDraft] = Field(
         default_factory=list,
         max_length=5,
@@ -199,6 +192,8 @@ class StrategyDomainState(BaseModel):
     recommendations: list[Constraint] = Field(default_factory=list)
     # The request the thread is answering, as the user wrote it.
     original_request: str = ""
+    # Every message the researcher wrote for that request, oldest first.
+    request_messages: list[str] = Field(default_factory=list)
     # What moved on the thread since its last answer, as the pre-turn hook
     # rendered it. Empty when nothing moved.
     turn_briefing: str = ""
@@ -208,6 +203,12 @@ class StrategyDomainState(BaseModel):
     # The last proposal the researcher declined. A later bare yes does not
     # accept it: the offer is made again on a new card.
     declined_proposal: DeclinedProposal | None = None
+    # Every strategy a separation run offered for this request, by task id, so
+    # a card answered a turn later reads its offer from the checkpoint.
+    separation_offers: dict[str, SeparationOffer] = Field(default_factory=dict)
+    # The controls an adopted separation was measured against. VERIFY tests
+    # the built strategy with exactly these.
+    attached_controls: AttachedControls | None = None
 
     def set_the_request_aside(self) -> None:
         """Forget the request the thread answered and everything stated for it."""
@@ -216,40 +217,11 @@ class StrategyDomainState(BaseModel):
         self.recommendations = []
         self.open_questions = []
         self.original_request = ""
+        self.request_messages = []
         self.last_build_outcome = None
         self.stale_build = None
-
-    def _attributed(
-        self, constraints: Iterable[Constraint], message: str
-    ) -> list[Constraint]:
-        """Each stated requirement, marked by who the message says stated it.
-
-        A value the message carries is the user's word. A value only the
-        classifier composed is an assumption: it is surfaced, and it gates
-        nothing. A value the user already stated on this thread stays theirs.
-        """
-        theirs = {
-            c.requested_value.casefold()
-            for c in self.requirements
-            if c.source is ConstraintSource.USER_EXPLICIT
-        }
-        attributed: list[Constraint] = []
-        for constraint in constraints:
-            stated = (
-                message_states_constraint(message, constraint)
-                or constraint.requested_value.casefold() in theirs
-            )
-            attributed.append(
-                constraint.model_copy(
-                    update={
-                        "source": ConstraintSource.USER_EXPLICIT
-                        if stated
-                        else ConstraintSource.ASSUMED,
-                        "hard": constraint.hard and stated,
-                    },
-                ),
-            )
-        return attributed
+        self.separation_offers = {}
+        self.attached_controls = None
 
     def take_a_new_request(self, *, strategy_has_steps: bool) -> None:
         """Drop the questions asked about the request a new one sets aside.
@@ -264,10 +236,16 @@ class StrategyDomainState(BaseModel):
 
     def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
         """Take this turn's requirements and the request they belong to."""
+        held = list(self.requirements)
         self.record_requirements(
-            self._attributed(intent.explicit_constraints, request_text),
+            attributed(intent.explicit_constraints, request_text, held),
+        )
+        self.turn_markers.requirements_added.extend(
+            c for c in self.requirements if c not in held
         )
         self.record_recommendations()
+        if request_text and request_text not in self.request_messages:
+            self.request_messages.append(request_text)
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text
 
@@ -318,30 +296,15 @@ class StrategyDomainState(BaseModel):
             held.append(offered)
         self.recommendations = held
 
-    def record_requirements(self, constraints: Iterable[Constraint]) -> None:
-        """Add each requirement the thread has not stated already.
+    def withdraw_this_messages_requirements(self) -> None:
+        """Drop what this message asked for, once the researcher said no to it."""
+        added = self.turn_markers.requirements_added
+        self.requirements = [c for c in self.requirements if c not in added]
+        self.turn_markers.requirements_added = []
 
-        Two requirements are the same when they hold the same value on the same
-        dimension, so a restated one is not a second requirement. A new
-        combination over the same criteria replaces the old one, so a changed
-        mind never leaves two statements no tree can satisfy together.
-        """
-        seen = {(c.kind, c.requested_value) for c in self.requirements}
-        for constraint in constraints:
-            key = (constraint.kind, constraint.requested_value)
-            if key in seen:
-                continue
-            if constraint.kind is ConstraintKind.COMBINATION:
-                self.requirements = [
-                    held
-                    for held in self.requirements
-                    if held.kind is not ConstraintKind.COMBINATION
-                    or not combination_terms_overlap(
-                        held.requested_value, constraint.requested_value
-                    )
-                ]
-            seen.add(key)
-            self.requirements.append(constraint)
+    def record_requirements(self, constraints: Iterable[Constraint]) -> None:
+        """Add each requirement the thread has not stated already."""
+        self.requirements = with_requirements(self.requirements, constraints)
 
     def markers_for(self, message_id: UUID | None) -> TurnMarkers:
         """This turn's markers. The record rotates on a new user message."""

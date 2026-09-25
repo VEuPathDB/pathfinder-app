@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 
+from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -11,7 +12,6 @@ from pathfinder.services.experiment.seed import run_seed
 from pathfinder.services.experiment.seed.types import SeedComplete, SeedEvent
 from pathfinder.transport.http.deps import (
     CurrentUser,
-    DBSession,
     SiteIdQuery,
     require_registered_wdk_identity,
 )
@@ -32,7 +32,6 @@ logger = get_logger(__name__)
 @router.post("", responses=SSE_RESPONSES)
 async def seed_strategies(
     user_id: CurrentUser,
-    session: DBSession,
     site_id: SiteIdQuery = None,
 ) -> StreamingResponse:
     """Seed demo strategies and control sets across VEuPathDB sites.
@@ -44,7 +43,7 @@ async def seed_strategies(
         try:
             async for event in run_seed(
                 user_id=user_id,
-                session=session,
+                session_factory=async_session_factory,
                 site_id=site_id,
             ):
                 yield event

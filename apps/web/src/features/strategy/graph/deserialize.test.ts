@@ -31,13 +31,9 @@ describe("deserializeStrategyToGraph", () => {
       ],
     });
 
-    const { nodes, edges } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a", "b"]) },
-    );
+    const { nodes, edges } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a", "b"]),
+    });
     expect(nodes.map((n) => n.id).sort()).toEqual(["a", "b"]);
     expect(edges).toHaveLength(1);
     expect(edges[0]!).toMatchObject({
@@ -62,13 +58,9 @@ describe("deserializeStrategyToGraph", () => {
       ],
     });
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a", "b"]) },
-    );
+    const { nodes } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a", "b"]),
+    });
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
     expect(nodeById.get("a")?.data["showOutputHandle"]).toBe(true);
     expect(nodeById.get("b")?.data["showOutputHandle"]).toBe(true);
@@ -90,13 +82,9 @@ describe("deserializeStrategyToGraph", () => {
       ],
     });
 
-    const { nodes, edges } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["left", "right", "comb"]) },
-    );
+    const { nodes, edges } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["left", "right", "comb"]),
+    });
     expect(edges).toHaveLength(2);
     expect(edges).toEqual(
       expect.arrayContaining([
@@ -137,13 +125,9 @@ describe("deserializeStrategyToGraph", () => {
       ],
     });
 
-    const { nodes, edges } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["left", "comb"]) },
-    );
+    const { nodes, edges } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["left", "comb"]),
+    });
     expect(edges).toHaveLength(1);
     const comb = nodes.find((n) => n.id === "comb");
     expect(comb?.data["showPrimaryInputHandle"]).toBe(false);
@@ -164,48 +148,21 @@ describe("deserializeStrategyToGraph", () => {
     ]);
     const computedPositions = syntheticPositions(["a", "b"]);
 
-    const preserved = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { existingPositions, computedPositions },
-    );
+    const preserved = deserializeStrategyToGraph(strategy, undefined, {
+      existingPositions,
+      computedPositions,
+    });
     const posA = preserved.nodes.find((n) => n.id === "a")?.position;
     expect(posA).toEqual({ x: 100, y: 200 });
 
-    const relaid = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { existingPositions, computedPositions, forceRelayout: true },
-    );
+    const relaid = deserializeStrategyToGraph(strategy, undefined, {
+      existingPositions,
+      computedPositions,
+      forceRelayout: true,
+    });
     const posA2 = relaid.nodes.find((n) => n.id === "a")?.position;
     expect(posA2).toBeTruthy();
     expect(posA2).not.toEqual({ x: 100, y: 200 });
-  });
-
-  test("passes unsavedStepIds to node data as isUnsaved flag", () => {
-    const strategy = makeStrategy({
-      id: "s6",
-      steps: [
-        { id: "a", displayName: "A" },
-        { id: "b", displayName: "B" },
-      ],
-    });
-
-    const unsaved = new Set(["b"]);
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      unsaved,
-      { computedPositions: syntheticPositions(["a", "b"]) },
-    );
-    const nodeById = new Map(nodes.map((n) => [n.id, n]));
-    expect(nodeById.get("a")?.data["isUnsaved"]).toBe(false);
-    expect(nodeById.get("b")?.data["isUnsaved"]).toBe(true);
   });
 
   test("skips edges for primary/secondary inputs that reference missing steps", () => {
@@ -214,13 +171,9 @@ describe("deserializeStrategyToGraph", () => {
       steps: [{ id: "a", displayName: "A", primaryInputStepId: "missing" }],
     });
 
-    const { nodes, edges } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a"]) },
-    );
+    const { nodes, edges } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a"]),
+    });
     expect(nodes).toHaveLength(1);
     expect(edges).toHaveLength(0);
   });
@@ -234,13 +187,9 @@ describe("deserializeStrategyToGraph", () => {
       ],
     });
 
-    const { edges } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a", "b"]) },
-    );
+    const { edges } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a", "b"]),
+    });
     expect(edges).toHaveLength(1);
     expect(edges[0]!.label).toBeUndefined();
   });
@@ -251,35 +200,25 @@ describe("deserializeStrategyToGraph", () => {
       steps: [{ id: "a", displayName: "A" }],
     });
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a"]) },
-    );
+    const { nodes } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a"]),
+    });
     expect(nodes[0]!.type).toBe("step");
     expect(nodes[0]!.sourcePosition).toBe("right");
     expect(nodes[0]!.targetPosition).toBe("left");
   });
 
-  test("passes callback functions into node data", () => {
+  test("passes the open-details callback into node data", () => {
     const strategy = makeStrategy({
       id: "s10",
       steps: [{ id: "a", displayName: "A" }],
     });
 
-    const onOperatorChange = () => {};
     const onOpenDetails = () => {};
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      onOperatorChange,
-      onOpenDetails,
-      undefined,
-      { computedPositions: syntheticPositions(["a"]) },
-    );
-    expect(nodes[0]!.data["onOperatorChange"]).toBe(onOperatorChange);
+    const { nodes } = deserializeStrategyToGraph(strategy, onOpenDetails, {
+      computedPositions: syntheticPositions(["a"]),
+    });
     expect(nodes[0]!.data["onOpenDetails"]).toBe(onOpenDetails);
   });
 
@@ -289,13 +228,9 @@ describe("deserializeStrategyToGraph", () => {
       steps: [{ id: "t", displayName: "T", kind: "transform" }],
     });
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["t"]) },
-    );
+    const { nodes } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["t"]),
+    });
     const tNode = nodes.find((n) => n.id === "t");
     expect(tNode?.data["showPrimaryInputHandle"]).toBe(true);
     expect(tNode?.data["showSecondaryInputHandle"]).toBe(false);
@@ -317,32 +252,12 @@ describe("deserializeStrategyToGraph", () => {
       ],
     });
 
-    const { edges } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a", "b", "c"]) },
-    );
+    const { edges } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a", "b", "c"]),
+    });
     const secondaryEdge = edges.find((e) => e.id.endsWith("-secondary"));
     expect(secondaryEdge?.label).toBe("R (secondary)");
     expect(secondaryEdge?.targetHandle).toBe("left-secondary");
-  });
-
-  test("isUnsaved defaults to false when unsavedStepIds is not provided", () => {
-    const strategy = makeStrategy({
-      id: "s13",
-      steps: [{ id: "a", displayName: "A" }],
-    });
-
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a"]) },
-    );
-    expect(nodes[0]!.data["isUnsaved"]).toBe(false);
   });
 
   test("nodes without a computed position are omitted", () => {
@@ -356,13 +271,9 @@ describe("deserializeStrategyToGraph", () => {
 
     const partialPositions: StepPositions = new Map([["a", { x: 100, y: 100 }]]);
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: partialPositions },
-    );
+    const { nodes } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: partialPositions,
+    });
     expect(nodes.map((n) => n.id)).toEqual(["a"]);
   });
 
@@ -376,13 +287,9 @@ describe("deserializeStrategyToGraph", () => {
       rootStepId: "a",
     });
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a", "b"]) },
-    );
+    const { nodes } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a", "b"]),
+    });
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
     expect(nodeById.get("a")?.data["isOrphan"]).toBe(false);
     expect(nodeById.get("b")?.data["isOrphan"]).toBe(true);
@@ -398,13 +305,9 @@ describe("deserializeStrategyToGraph", () => {
       rootStepId: "b",
     });
 
-    const { nodes } = deserializeStrategyToGraph(
-      strategy,
-      undefined,
-      undefined,
-      undefined,
-      { computedPositions: syntheticPositions(["a", "b"]) },
-    );
+    const { nodes } = deserializeStrategyToGraph(strategy, undefined, {
+      computedPositions: syntheticPositions(["a", "b"]),
+    });
     const nodeById = new Map(nodes.map((n) => [n.id, n]));
     expect(nodeById.get("a")?.data["isOrphan"]).toBe(false);
     expect(nodeById.get("b")?.data["isOrphan"]).toBe(false);

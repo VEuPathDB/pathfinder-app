@@ -38,7 +38,7 @@ def _summary(comparison: VariantComparison) -> str:
         for o in comparison.overlaps
     )
     note = (
-        " (result sets were large; overlap figures are lower bounds)"
+        " (results were large; overlap figures are lower bounds)"
         if (comparison.truncated)
         else ""
     )

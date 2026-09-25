@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import ValidationError
 from veupathdb.domain import WDKRecordIdPart
 from veupathdb.wdk import (
     WDKAnswer,
@@ -72,13 +72,13 @@ def _completed(name: str, found: list[str]) -> Experiment:
     )
 
 
-def _wdk_validation_error() -> PydanticValidationError:
+def _wdk_validation_error() -> ValidationError:
     """The failure the single-mode branch used to raise at persist time."""
     try:
         WDKSearchConfig.model_validate(
             {"parameters": {"channel": {"type": "single-pick-vocabulary"}}}
         )
-    except PydanticValidationError as exc:
+    except ValidationError as exc:
         return exc
     msg = "WDKSearchConfig accepted a typed value"
     raise AssertionError(msg)

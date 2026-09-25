@@ -20,6 +20,7 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.edit_plan import (
+    COPY_UNSTATED,
     EditPlan,
     UnsupportedEditError,
     combine_step_id,
@@ -47,6 +48,7 @@ from pathfinder.domain.strategy.operations import (
     WireInputOp,
 )
 from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
+from pathfinder.domain.strategy.orthology import round_trip_refusal
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.stated_shape import (
@@ -77,6 +79,7 @@ def operations_for(
     if entry_root is None:
         msg = "the strategy has no root step to edit"
         raise UnsupportedEditError(msg)
+    _refuse_a_round_trip_the_edit_does_not_keep(diff, after=after, graph=graph)
     outside = set(graph.steps) - set(subtree_ids(entry_root, graph.steps))
     plan = _plan_the_named_changes(diff, after=after, graph=graph)
     root_id = _resolve(after.structure.root, plan)
@@ -88,6 +91,24 @@ def operations_for(
     _refuse_a_shape_the_edit_did_not_state(plan, root_id, outside)
     _refuse_a_removal_the_edit_did_not_state(plan, diff, graph, entry_root)
     return plan.ops
+
+
+def _refuse_a_round_trip_the_edit_does_not_keep(
+    diff: SpecDiff, *, after: OperationalSpec, graph: StrategyGraph
+) -> None:
+    """A round trip this edit adds or changes keeps the source genes.
+
+    A round trip the strategy already held is the researcher's, and is left
+    as it stands.
+    """
+    touched = {
+        change.criterion_id
+        for change in diff.changes
+        if change.disposition in {"added", "changed"}
+    } | criteria_the_edit_introduces(after=after, graph=graph)
+    refusal = round_trip_refusal(after, touched=touched)
+    if refusal is not None:
+        raise UnsupportedEditError(refusal)
 
 
 def criteria_the_edit_introduces(
@@ -286,6 +307,8 @@ def _resolve(node: StructureNode, plan: EditPlan) -> str:
         return _resolve_leaf(node, plan)
     if node.kind == "transform":
         return _resolve_transform(node, plan)
+    if node.kind == "copy":
+        raise UnsupportedEditError(COPY_UNSTATED)
     return _resolve_combine(node, plan)
 
 

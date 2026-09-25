@@ -31,7 +31,7 @@ def test_valid_leaf_plan_parses() -> None:
 def test_empty_dict_is_invalid_strategy() -> None:
     with pytest.raises(ValidationError) as exc:
         validate_plan_or_raise({})
-    assert exc.value.title == "Invalid plan"
+    assert exc.value.title == "Invalid strategy"
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 

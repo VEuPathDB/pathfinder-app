@@ -23,7 +23,9 @@ describe("the link to the host site", () => {
   it("names the site the strategy belongs to", () => {
     render(<EditorFooter {...props} siteId="plasmodb" />);
 
-    expect(screen.getByRole("link").textContent).toContain("PlasmoDB");
+    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
+    expect(link).toHaveAttribute("aria-label", "Open in PlasmoDB");
+    expect(link.textContent).toBe("Open in PlasmoDB");
   });
 
   it("names a different site when the strategy is on one", () => {
@@ -47,7 +49,7 @@ describe("the link to the host site", () => {
   it("says VEuPathDB when the site is unknown", () => {
     render(<EditorFooter {...props} siteId="" />);
 
-    expect(screen.getByRole("link").textContent).toContain("VEuPathDB");
+    expect(screen.getByRole("link", { name: "Open in VEuPathDB" })).toBeVisible();
   });
 
   it("renders no link without a url", () => {

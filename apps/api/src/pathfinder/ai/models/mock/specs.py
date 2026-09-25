@@ -191,6 +191,40 @@ def combined_spec(organism: str) -> SpecPlan:
     )
 
 
+def _syntenic_orthologs(criterion_id: str, organism: str) -> CriterionSpec:
+    return CriterionSpec(
+        criterion_id=criterion_id,
+        text=f"syntenic orthologs in {organism}",
+        search_name="GenesByOrthologs",
+        role="transform",
+        values={"organism": [organism], "isSyntenic": "yes"},
+    )
+
+
+def round_trip_spec(organism: str, target: str) -> SpecPlan:
+    """The seed INTERSECT its syntenic orthologs in ``target`` mapped back."""
+    taxon = _taxon(organism)
+    there = _syntenic_orthologs("orthologs_there", target)
+    back = _syntenic_orthologs("orthologs_back", organism)
+    seed = _leaf(taxon)
+    trip = StructureNode(
+        kind="transform",
+        criterion_id=back.criterion_id,
+        inputs=[
+            StructureNode(
+                kind="transform",
+                criterion_id=there.criterion_id,
+                inputs=[StructureNode(kind="copy", inputs=[seed])],
+            )
+        ],
+    )
+    return SpecPlan(
+        title=f"{organism} genes with a syntenic ortholog in {target} (mock)",
+        criteria=(taxon, there, back),
+        structure=_combine(CombineOp.INTERSECT, seed, trip),
+    )
+
+
 def sheet_call_args(crit: CriterionSpec) -> dict[str, Any]:
     """The sheet-reading call. It carries no ``params``, so nothing is bound."""
     return {
@@ -249,6 +283,11 @@ def frame_call(
     """
     if "list_searches" not in already_called:
         return scripted_call("list_searches", {"record_type": "transcript"})
+    # The listing leaves out the searches that run on a step, so the one a
+    # transform binds is found by a ranked read of its own words.
+    maps = next((crit for crit in spec.criteria if crit.role == "transform"), None)
+    if maps is not None and "search_for_searches" not in already_called:
+        return scripted_call("search_for_searches", {"query": maps.text})
     sheets = {r.criterion_id: r.params_template for r in replies if r.params_template}
     bound = {r.criterion_id for r in replies if r.resolved_params}
     for crit in spec.criteria:
@@ -377,12 +416,15 @@ def edit_frame_result(
     }
 
 
-def verification_delta(*, success: bool, prose: str) -> dict[str, Any]:
+def verification_delta(
+    *, success: bool, prose: str, review: dict[str, Any]
+) -> dict[str, Any]:
     return {
         "digest": {
             "disposition": "done" if success else "awaiting_user",
             "prose": prose,
             "reason": "mock verification",
             "success": success,
+            "review": review,
         },
     }

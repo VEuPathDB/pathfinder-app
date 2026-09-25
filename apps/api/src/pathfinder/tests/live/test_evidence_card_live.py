@@ -25,7 +25,7 @@ from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
 from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
 from pathfinder.ai.tools.standalone.experiment import control_test_run
-from pathfinder.domain.evidence import EvidenceVerdict
+from pathfinder.domain.evidence import EvidenceVerdict, VerificationReview
 from pathfinder.domain.strategy.build_outcome import NodeResult
 from pathfinder.services.strategies.site_counts import read_step_counts
 
@@ -104,6 +104,7 @@ async def test_the_card_holds_what_the_test_and_the_site_returned(
             spec=None,
             control_tests=(run,),
             verdict=EvidenceVerdict(supported=True),
+            review=VerificationReview(),
         ),
         await read_step_counts(_SITE, strategy_id),
         checked_at=datetime.now(UTC),

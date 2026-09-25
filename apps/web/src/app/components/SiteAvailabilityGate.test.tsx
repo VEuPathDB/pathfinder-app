@@ -50,9 +50,7 @@ describe("SiteAvailabilityGate", () => {
     draw(true);
 
     expect(screen.queryByTestId("app-shell")).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Couldn't reach VEuPathDB Portal (All organisms)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Couldn't reach VEuPathDB")).toBeInTheDocument();
   });
 
   it("leaves the stored site selection alone on a site that is down", () => {

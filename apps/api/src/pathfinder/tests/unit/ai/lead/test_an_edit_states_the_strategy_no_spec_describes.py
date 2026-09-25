@@ -75,7 +75,7 @@ async def test_an_edit_after_this_turns_frame_names_only_the_build(
 
     assert offered == frozenset({"build_strategy", "edit_strategy"})
     assert refused.value.message == (
-        "edit_strategy needs a strategy to edit, and this thread has none. Call "
+        "edit_strategy needs a strategy to edit, and this conversation has none. Call "
         "build_strategy to build the spec this turn framed."
     )
     assert work_orders == []

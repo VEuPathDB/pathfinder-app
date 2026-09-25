@@ -21,10 +21,9 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.ai.tools.standalone._eda_models import EdaFiltersResult
 from pathfinder.domain.eda_parts import EdaAnalysisState, EdaFilterSheetEntry
-from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.eda_thread import ConversationAnalysisView, OpenEdaAnalysis
 from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import SubsetRejectedError
-from pathfinder.services.eda.binding import ConversationAnalysisView
 from pathfinder.tests._support.eda_doubles import (
     ANALYSIS_ID,
     SPECIES_VARIABLE,

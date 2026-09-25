@@ -1,16 +1,14 @@
 """Seed runner. Creates real WDK strategies and curated control sets across sites."""
 
 import asyncio
-import json
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from uuid import UUID
 
+from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
-from sqlalchemy.ext.asyncio import AsyncSession
-from veupathdb.domain.strategy import StrategyStepNode
-from veupathdb.wdk import get_strategy_api
+from veupathdb.wdk import get_strategy_api, list_sites
 
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -43,43 +41,6 @@ logger = get_logger(__name__)
 _MAX_CONCURRENT_SEEDS = 10
 
 
-def _coerce_param_value(value: object) -> object:
-    """Convert a seed parameter from WDK wire format into a typed ParamValue.
-
-    A value that is already typed passes through unchanged.
-    """
-    if isinstance(value, dict) or not isinstance(value, str):
-        return value
-    try:
-        parsed = json.loads(value)
-    except ValueError, TypeError:
-        return {"type": "string", "value": value}
-    if isinstance(parsed, list):
-        return {"type": "multi-pick-vocabulary", "values": [str(x) for x in parsed]}
-    if isinstance(parsed, dict) and ("min" in parsed or "max" in parsed):
-        bounds: dict[str, object] = {"type": "number-range"}
-        if parsed.get("min") not in (None, ""):
-            bounds["min"] = float(parsed["min"])
-        if parsed.get("max") not in (None, ""):
-            bounds["max"] = float(parsed["max"])
-        return bounds
-    return {"type": "string", "value": value}
-
-
-def _coerce_step_tree_params(node: object) -> object:
-    """Recursively coerce every step's ``parameters`` to typed ParamValues."""
-    if not isinstance(node, dict):
-        return node
-    result: dict[str, object] = dict(node)
-    params = result.get("parameters")
-    if isinstance(params, dict):
-        result["parameters"] = {k: _coerce_param_value(v) for k, v in params.items()}
-    for child_key in ("primaryInput", "secondaryInput"):
-        if result.get(child_key) is not None:
-            result[child_key] = _coerce_step_tree_params(result[child_key])
-    return result
-
-
 @dataclass
 class _SeedRunContext:
     """Per-run resources shared by every seed."""
@@ -87,8 +48,7 @@ class _SeedRunContext:
     total: int
     semaphore: asyncio.Semaphore
     queue: asyncio.Queue[SeedEvent | None]
-    conv_repo: ConversationRepository
-    control_set_repo: ControlSetRepository
+    session_factory: DBSessionFactory
     user_id: UUID
 
 
@@ -97,9 +57,9 @@ async def _process_single_seed(
     seed: SeedDef,
     ctx: _SeedRunContext,
 ) -> tuple[bool, bool]:
-    """Create one seed strategy and its control set."""
+    """Create one seed strategy and its control set, in a session of its own."""
     idx = i + 1
-    async with ctx.semaphore:
+    async with ctx.semaphore, ctx.session_factory() as session:
         await ctx.queue.put(
             SeedProgress(
                 phase="running",
@@ -114,9 +74,7 @@ async def _process_single_seed(
         try:
             api = get_strategy_api(seed.site_id)
 
-            tree_node = StrategyStepNode.model_validate(
-                _coerce_step_tree_params(seed.step_tree)
-            )
+            tree_node = seed.step_node()
             root_tree = await _materialize_step_tree(api, tree_node, seed.record_type)
 
             created = await api.create_strategy(
@@ -131,7 +89,7 @@ async def _process_single_seed(
                 wdk_id=wdk_strategy_id,
                 site_id=seed.site_id,
                 api=api,
-                conv_repo=ctx.conv_repo,
+                conv_repo=ConversationRepository(session),
                 owner=ChatOwner(
                     user_id=ctx.user_id,
                     assistant_id=PATHFINDER_ASSISTANT_ID,
@@ -152,7 +110,7 @@ async def _process_single_seed(
             )
 
             cs = seed.control_set
-            await ctx.control_set_repo.create(
+            await ControlSetRepository(session).create(
                 ControlSetCreate(
                     name=cs.name,
                     site_id=seed.site_id,
@@ -166,6 +124,7 @@ async def _process_single_seed(
                     user_id=ctx.user_id,
                 )
             )
+            await session.commit()
 
         except Exception as exc:
             elapsed = time.monotonic() - t0
@@ -185,17 +144,28 @@ async def _process_single_seed(
             return (True, True)
 
 
+def served_site_ids() -> frozenset[str]:
+    """The sites this deployment serves; a seed of any other site is not run."""
+    return frozenset(site.id for site in list_sites())
+
+
 async def run_seed(
     *,
     user_id: UUID,
-    session: AsyncSession,
+    session_factory: DBSessionFactory,
     site_id: str | None = None,
 ) -> AsyncIterator[SeedEvent]:
     """Create the seed strategies and control sets, yielding typed progress events.
 
-    A ``site_id`` limits the run to the seeds of that site.
+    A ``site_id`` limits the run to the seeds of that site; without one, the
+    run covers every site the deployment serves.
     """
-    seeds = get_seeds_for_site(site_id) if site_id else get_all_seeds()
+    served = served_site_ids()
+    seeds = (
+        get_seeds_for_site(site_id)
+        if site_id
+        else [seed for seed in get_all_seeds() if seed.site_id in served]
+    )
     total = len(seeds)
     yield SeedProgress(
         phase="starting",
@@ -211,8 +181,7 @@ async def run_seed(
         total=total,
         semaphore=semaphore,
         queue=queue,
-        conv_repo=ConversationRepository(session),
-        control_set_repo=ControlSetRepository(session),
+        session_factory=session_factory,
         user_id=user_id,
     )
 

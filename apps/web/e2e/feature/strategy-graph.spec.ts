@@ -26,7 +26,7 @@ test.describe("Strategy Graph", () => {
     const firstRowText = await graphPage.firstRailStepText();
     expect(firstRowText.length).toBeGreaterThan(0);
 
-    // API: Strategy persisted with steps — use captured ID for isolation
+    // API: Strategy persisted with steps - use captured ID for isolation
     const strategyId = chatPage.lastStrategyId;
     expect(strategyId).toBeTruthy();
     const fullResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
@@ -48,14 +48,14 @@ test.describe("Strategy Graph", () => {
     const rowCount = await graphPage.railStepRows.count();
     expect(rowCount).toBeGreaterThan(0);
 
-    // API: Strategy persisted — use captured ID for isolation
+    // API: Strategy persisted - use captured ID for isolation
     const strategyId = chatPage.lastStrategyId;
     expect(strategyId).toBeTruthy();
     const fullResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
     expect(fullResp.ok()).toBeTruthy();
   });
 
-  test("graph persists across page reload — UI and DB consistent", async ({
+  test("graph persists across page reload - UI and DB consistent", async ({
     chatPage,
     graphPage,
     page,
@@ -85,7 +85,7 @@ test.describe("Strategy Graph", () => {
     expect(strategy.steps.length).toBeGreaterThan(0);
   });
 
-  test("delegation graph appears immediately during streaming — no refresh needed", async ({
+  test("delegation graph appears immediately during streaming - no refresh needed", async ({
     chatPage,
     graphPage,
   }) => {

@@ -55,6 +55,7 @@ LEAD_TOOL_NAMES = frozenset(
         "list_control_sets",
         "list_gene_sets",
         "optimize_search_parameters",
+        "read_control_set",
         "read_gene_ids_from_gene_set",
         "read_gene_ids_from_strategy",
         "read_gene_record",
@@ -71,6 +72,8 @@ LEAD_TOOL_NAMES = frozenset(
         "run_eda_compute",
         "create_eda_step",
         "propose_changes",
+        "separate_controls",
+        "adopt_separating_strategy",
     }
 )
 
@@ -107,16 +110,18 @@ def test_the_built_agent_carries_every_lead_tool() -> None:
 
 
 def test_the_tools_that_ask_for_approval() -> None:
-    """The five the user answers: a design fork, an offer of further work, two
-    deletions and a long sweep."""
+    """The seven the user answers: a design fork, two offers of further work,
+    two deletions, a long sweep and a long separation run."""
     tools = registered_tools(build_lead_agent().toolsets)
     deferred = sorted(name for name, tool in tools.items() if tool.requires_approval)
     assert deferred == [
+        "adopt_separating_strategy",
         "clear_strategy",
         "consult_user",
         "delete_step",
         "optimize_search_parameters",
         "propose_changes",
+        "separate_controls",
     ]
 
 
@@ -206,7 +211,10 @@ def _parking_script() -> RetryRecordingScript:
     return RetryRecordingScript(
         ToolCallPart(
             tool_name="consult_user",
-            args={"questions": [{"id": "q1", "prompt": "Which arm should I add?"}]},
+            args={
+                "questions": [{"id": "q1", "prompt": "Which arm should I add?"}],
+                "reply": "Two arms fit the request, and the choice changes the steps.",
+            },
             tool_call_id="call_consult",
         ),
     )

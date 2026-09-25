@@ -345,11 +345,19 @@ class DisagreementThread:
 
     async def delete(self, step_id: str) -> None:
         """Run the Lead's delete over the live strategy, as a turn does."""
-        await delete_step(run_context_for(self.deps, "t_delete"), step_id=step_id)
+        await delete_step(
+            run_context_for(self.deps, "t_delete"),
+            step_id=step_id,
+            reply="I will make this change and report what it takes with it.",
+        )
         self.assert_invariants()
 
     async def clear(self) -> None:
-        await clear_strategy(run_context_for(self.deps, "t_clear"), confirm=True)
+        await clear_strategy(
+            run_context_for(self.deps, "t_clear"),
+            confirm=True,
+            reply="I will make this change and report what it takes with it.",
+        )
         self.assert_invariants()
 
     async def build(self) -> BuildOutcome:

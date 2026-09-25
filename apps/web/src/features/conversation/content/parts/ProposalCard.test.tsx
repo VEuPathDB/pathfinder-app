@@ -131,7 +131,7 @@ describe("the proposal card shows the offer", () => {
     expect(changes).toEqual(CHANGES);
     expect(screen.getByRole("button", { name: "Yes" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "No" })).toBeEnabled();
-    expect(screen.getByRole("textbox", { name: "Add a note" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Add a comment" })).toBeInTheDocument();
   });
 
   it("renders two identical changes as two items under distinct keys", () => {
@@ -183,7 +183,7 @@ describe("the researcher's answer reaches the turn", () => {
   it("posts No as a denial carrying the note as its reason", () => {
     const responses: Response[] = [];
     renderCard(PENDING, responses);
-    fireEvent.change(screen.getByRole("textbox", { name: "Add a note" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Add a comment" }), {
       target: { value: "Not before the orthology check." },
     });
     fireEvent.click(screen.getByRole("button", { name: "No" }));
@@ -197,7 +197,7 @@ describe("the researcher's answer reaches the turn", () => {
   it("posts Yes with the note as the card's answer on the next request body", () => {
     const responses: Response[] = [];
     renderCard(PENDING, responses);
-    fireEvent.change(screen.getByRole("textbox", { name: "Add a note" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Add a comment" }), {
       target: { value: "Use the Liverpool strain for Aedes." },
     });
     fireEvent.click(screen.getByRole("button", { name: "Yes" }));

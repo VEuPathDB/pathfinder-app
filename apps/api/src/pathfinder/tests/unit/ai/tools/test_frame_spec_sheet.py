@@ -15,7 +15,7 @@ from veupathdb_mcp.catalog import FilterFieldInfo, ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.domain.strategy.operational_spec import AssumedValue
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,

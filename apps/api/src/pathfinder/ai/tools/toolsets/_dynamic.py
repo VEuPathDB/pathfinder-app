@@ -15,6 +15,8 @@ from pathfinder.domain.strategy.session import StrategySession
 
 EnumOverrides = dict[tuple[str, str], list[Any]]
 EnumOverrideBuilder = Callable[[RunContext[AgentDepsT]], EnumOverrides]
+# Why a value outside the allowed set is refused, or None for the generic reason.
+RefusalExplainer = Callable[[RunContext[AgentDepsT], str], str | None]
 
 
 @dataclass
@@ -75,19 +77,14 @@ def _apply_enum_overrides(
 
 @dataclass
 class ValidatingEnumToolset(WrapperToolset[AgentDepsT]):
-    """Enforce discovered-value constraints at CALL time instead of in the
-    tool JSON schema.
+    """Refuse a constrained argument outside its discovered values at call time.
 
-    Same override builder as :class:`DynamicEnumToolset`, but the tool
-    schema is left untouched (no injected ``enum``) so the prompt-cache
-    prefix stays constant across the whole run. A call whose constrained
-    arg falls outside the allowed set raises ``ModelRetry`` naming the
-    valid values - a fast soft guardrail (no downstream I/O), bounded by
-    the agent's retry/circuit-breaker budget. Empty override set ⇒ the
-    arg is unconstrained (cold start).
+    The schema carries no enum, so the prompt-cache prefix stays constant; an empty
+    set leaves the argument open. ``explain`` may answer a refused value first.
     """
 
     build_overrides: EnumOverrideBuilder[AgentDepsT]
+    explain: RefusalExplainer[AgentDepsT] | None = None
 
     @property
     def id(self) -> str | None:
@@ -107,7 +104,8 @@ class ValidatingEnumToolset(WrapperToolset[AgentDepsT]):
             value = tool_args.get(arg)
             # An empty string states no value, which the tool itself answers.
             if isinstance(value, str) and value and value not in allowed:
-                retry_message = (
+                explained = self.explain(ctx, value) if self.explain else None
+                retry_message = explained or (
                     f"{arg}={value!r} is not a known value for {name}. "
                     f"Choose one of: {', '.join(sorted(allowed))}. "
                     "Copy it verbatim - do not paraphrase or invent."

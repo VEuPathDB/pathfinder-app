@@ -30,7 +30,7 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
     analysis_state_chunks_if_changed,
     eda_subset_preview_chunk,
 )
-from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.eda_thread import ConversationAnalysisView, OpenEdaAnalysis
 from pathfinder.services.eda import EdaFilter, EdaStudyDetail
 from pathfinder.services.eda.authoring import (
     SubsetPreview,
@@ -38,7 +38,6 @@ from pathfinder.services.eda.authoring import (
     preview_subset,
 )
 from pathfinder.services.eda.binding import (
-    ConversationAnalysisView,
     apply_filters,
     bind_analysis,
     bound_conversation_analysis,
@@ -55,6 +54,7 @@ from pathfinder.services.eda.description import (
     variable_at,
 )
 from pathfinder.services.eda.gene_subset import gene_count, gene_subset
+from pathfinder.services.eda.study_site import StudyOnAnotherSiteError
 
 
 async def _study(
@@ -102,12 +102,19 @@ async def open_eda_analysis(
     site_id = ctx.deps.runtime.site_id
     _entry, study = await _study(site_id, dataset_id)
     gene = find_gene_entity(study, subject="strategy step")
-    state = await bind_analysis(
-        site_id,
-        dataset_id=dataset_id,
-        conversation_id=ctx.deps.state.conversation_id,
-        display_name=purpose,
-    )
+    try:
+        state = await bind_analysis(
+            site_id,
+            dataset_id=dataset_id,
+            conversation_id=ctx.deps.state.conversation_id,
+            display_name=purpose,
+        )
+    except StudyOnAnotherSiteError as exc:
+        msg = (
+            f"{exc.detail} Nothing was opened. Give the researcher this "
+            f"sentence, or open a study whose sites include {site_id}."
+        )
+        raise ModelRetry(msg) from exc
     ctx.deps.state.domain.close_eda_sheet_of_another_study(dataset_id)
     # Nothing is counted on an analysis this call has just created.
     ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(

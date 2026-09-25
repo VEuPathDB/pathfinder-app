@@ -22,7 +22,7 @@ describe("EmbeddedToolbar", () => {
 
   it("points the chat link at the site's chat root, and links nothing else", () => {
     renderToolbar();
-    expect(screen.getByLabelText("Go to Chat")).toHaveAttribute(
+    expect(screen.getByLabelText("Go to conversation")).toHaveAttribute(
       "href",
       chatRoot("plasmodb"),
     );
@@ -33,12 +33,17 @@ describe("EmbeddedToolbar", () => {
 
   it("marks chat as the current page anywhere under the chat root", () => {
     renderToolbar();
-    expect(screen.getByLabelText("Go to Chat")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Go to conversation")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("does not mark chat as current on another site's chat", () => {
     pathnameMock = "/toxodb/conversation/conv-1";
     renderToolbar();
-    expect(screen.getByLabelText("Go to Chat")).not.toHaveAttribute("aria-current");
+    expect(screen.getByLabelText("Go to conversation")).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });

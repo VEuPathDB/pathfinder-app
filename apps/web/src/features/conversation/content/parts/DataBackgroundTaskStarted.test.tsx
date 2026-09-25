@@ -138,7 +138,7 @@ describe("DataBackgroundTaskStarted", () => {
     ]);
     expect(screen.queryAllByText("Not this task")).toHaveLength(0);
     expect(screen.queryAllByTestId("data-task-completed")).toHaveLength(0);
-    expect(screen.getByTestId("task-row-status")).toHaveTextContent("0%");
+    expect(screen.getByTestId("task-row-status").textContent).toBe("Queued");
   });
 
   it("draws one row per lane, ordered by lane, when the task fans out", () => {

@@ -1,4 +1,4 @@
-"""What the EDA routes promise: a response omits no field, a request may."""
+"""What the EDA routes promise: a model omits no field it declares."""
 
 from __future__ import annotations
 
@@ -8,15 +8,9 @@ from pydantic import BaseModel
 from pathfinder.transport.http.schemas.eda import (
     ConversationEdaResponse,
     EdaAnalysisPatchResponse,
-    EdaCountRequest,
-    EdaCountResponse,
-    EdaDistributionRequest,
-    EdaEntityResponse,
-    EdaJobRefResponse,
-    EdaStudyDetailResponse,
+    EdaExportStepAction,
     EdaStudyListResponse,
     EdaStudySummaryResponse,
-    EdaVariableResponse,
     EdaVizPointResponse,
     EdaVizRequest,
     EdaVizResponse,
@@ -25,27 +19,11 @@ from pathfinder.transport.http.schemas.eda import (
 _RESPONSES = [
     ConversationEdaResponse,
     EdaAnalysisPatchResponse,
-    EdaCountResponse,
-    EdaEntityResponse,
-    EdaJobRefResponse,
-    EdaStudyDetailResponse,
     EdaStudyListResponse,
     EdaStudySummaryResponse,
-    EdaVariableResponse,
     EdaVizPointResponse,
     EdaVizResponse,
 ]
-
-# One optional input per request model, so a client may omit it.
-_OPTIONAL_INPUTS = {
-    EdaCountRequest: {"filters"},
-    EdaDistributionRequest: {"filters"},
-    EdaVizRequest: {
-        "effectSizeThreshold",
-        "significanceThreshold",
-        "effectDirection",
-    },
-}
 
 
 @pytest.mark.parametrize("model", _RESPONSES, ids=lambda m: m.__name__)
@@ -57,19 +35,6 @@ def test_a_response_model_requires_every_field_it_declares(
     assert schema["required"] == list(schema["properties"])
 
 
-@pytest.mark.parametrize(
-    ("model", "optional"),
-    _OPTIONAL_INPUTS.items(),
-    ids=lambda value: getattr(value, "__name__", ""),
-)
-def test_a_request_model_keeps_the_inputs_a_client_may_omit(
-    model: type[BaseModel],
-    optional: set[str],
-) -> None:
-    schema = model.model_json_schema(by_alias=True)
-    assert set(schema["properties"]) - set(schema["required"]) == optional
-
-
 def test_a_point_may_carry_no_p_value_and_still_names_the_key() -> None:
     schema = EdaVizPointResponse.model_json_schema(by_alias=True)
     assert schema["properties"]["pValue"]["anyOf"] == [
@@ -77,3 +42,18 @@ def test_a_point_may_carry_no_p_value_and_still_names_the_key() -> None:
         {"type": "null"},
     ]
     assert "pValue" in schema["required"]
+
+
+def test_the_volcano_request_names_no_cut_and_no_dataset() -> None:
+    """The cut and the dataset are the bound analysis's, so a client sends neither."""
+    schema = EdaVizRequest.model_json_schema(by_alias=True)
+    assert set(schema["properties"]) == {"chart"}
+
+
+def test_an_export_names_its_source_and_no_cut() -> None:
+    """A volcano export writes the cut the analysis stores."""
+    schema = EdaExportStepAction.model_json_schema(by_alias=True)
+    assert (set(schema["properties"]), schema["properties"]["source"]["enum"]) == (
+        {"action", "source"},
+        ["volcano", "subset"],
+    )

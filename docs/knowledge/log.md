@@ -1,6 +1,129 @@
 # Log
 
+## 2026-09-25
+
+* **The a16 verification, pass 2.** A gene-id list pasted or uploaded in the
+  step editor reaches the site: an edit's dataset source is saved as a WDK
+  dataset before the commit (`services/strategies/dataset_sources.py`; live on
+  plasmodb the edited step answers the three pasted ids), and the editor's
+  Strategy tab offers the strategies the site holds by their WDK id. A thread on
+  a site the deployment does not serve lists without its WDK link. A saved
+  control set reaches a sweep whole as `control_set_id`, read on the worker (the
+  Lead had copied 79 of 80 ids; live: SignalP-4.1 76/80 and 1/40). A removal a
+  building pass parks is asked by its step, and a No on a removal withdraws what
+  its message asked for. A deleted or purged conversation drops its graph
+  checkpoints. A second delete of a conversation in Recently deleted removes it.
+  The saved-strategies page and the insert dialog refresh the list the page
+  reads (they invalidated a key no query held, so a deleted saved strategy
+  stayed listed), and a revert refreshes the notes panel. Each seed of a run
+  writes in a session of its own (ten seeds shared one, and a concurrent flush
+  failed one of them), and a run of every site seeds only the sites the
+  deployment serves.
+  The combine labels read "Right minus" and "Colocate" from one shared map, and
+  a label an earlier release gave is not a researcher's name. The six blocker
+  findings were re-driven at `high` effort (`docs/knowledge/uat/findings.md`),
+  the backlog holds one blocked card, and the dev account holds none of the
+  UAT's or this pass's conversations, strategies, gene sets, control sets,
+  memories or study analyses.
+
+* **Six FRAME findings close (FND-1, 3, 4, 5, 10, 12).** A word the bound
+  search's own name states is not held to one of its parameters, so "carry
+  these to their orthologs" binds the transform at the site's synteny default
+  (live on toxodb: the 78-gene seed carried to Neospora caninum Liverpool
+  answers 145, where the synteny-only bind answered 69). A neighbour whose
+  definition the site answers 500 for is left out of the qualifier comparison
+  and named in the trace (live on plasmodb: the N1 prompt bound its three
+  criteria beside the antibody-array search's 500 and ended on a question).
+  `set_structure` refuses an INTERSECT of two organisms with the sentence the
+  build used to write, before any step exists (live: no step, a card offering
+  the orthologs). The trace counts a transcript answer in genes and says
+  "1 step". A pass one tool refused past its retries is continued once like a
+  budget stop, and the reason refusal names the term and the 160-character cap
+  together. A request only the portal answers gets "This needs the VEuPathDB
+  Portal ... Open a new conversation there; this conversation stays on
+  PlasmoDB." with the `/veupathdb/conversation` link, and no switch question
+  (live on plasmodb: the reply is that sentence). A word is a qualifier only
+  when exactly one search of the record type names a parameter by it, and it
+  is held to a search only when the pass read that one, so "from" and
+  "plasmodium" no longer refuse a bind (live: the plasmodb S2 seed bound with
+  zero qualifier refusals, 116 genes). The turn contract corrects a step count
+  written as transcripts to genes (`counted_in_the_wrong_unit`), and the
+  budget-stop report counts through the same `counted_records`.
+
 ## 2026-09-24
+
+* **Every seed recovers its controls.** All 78 seeds on the 14 sites carry a build-71 read (OrthoMCL 8.2) with recall 1.0 and no negative admitted: a seed that missed a positive has its positives re-read from its own tree and its negatives from its stated negative concept bound on its site. The refused fold-change leaves on vectorbase and hostdb bind the values the parameter sheet holds today; the giardiadb, microsporidiadb and orthomcl trees that returned nothing, and the tritrypdb glycosome proteome leaf the site answers with a 500, are corrected to what the site offers. The live check runs over every site, and the separation check finds the Signal Peptide search from the catalog at the default budget.
+
+* **Three more a16 cards close.** A site edit reaches the Lead: the
+  analysis-state part carries the document's `modificationTime`, and the
+  briefing and the ledger's new "Open analysis" section name an analysis that
+  moved after the newest card in the same words for the tools and the site
+  (live on plasmodb: a subset patched through EDA directly is briefed, the
+  bind before it is not). `run_variant_search` sends
+  `view_filters_for(record_type)`, so a transcript search is capped on genes
+  (live on toxodb, 1,891 genes in 1,929 transcripts under a 1,891-row cap: 1,853
+  genes and `truncated` before, 1,891 and not truncated after). The title and
+  the compaction write usage rows for their payer through
+  `ai/capabilities/metering.py`; the compaction joins the turn's total.
+
+* **The seeds are measured and a refused key says why.** A seed records its own tree's read of its controls (`measured`, dated with the site build) through `python -m pathfinder.devtools.seeds measure`, and a control list holds each id once; the plasmodb seeds' positives are re-read from their trees on build 71 (Signal Peptide keeps SignalP-6.0, its negatives are DNA replication genes the search does not return), and trichdb ships two measured seeds. A key refused for credit or permission is marked `no_credit` or `forbidden` (migration `2026_09_24_0004`), from Anthropic's recorded low-balance body and the documented OpenAI, Anthropic and Google bodies.
+
+* **Three a16 cards close.** The EDA gene counts are read from the gene-id
+  distributions the client records (`recorded_distribution`, v0.1.0a18): the
+  wire double answers with the recorded bodies, and `PHENOTYPE_GENES`
+  (5,595 of 5,803) and `DE_GENES` (842 of 5,720) are their
+  `num_distinct_values`, so no test types the numbers in. The generated-types
+  card closes without a checker: `packages/shared-ts/src/generated` is
+  gitignored and the index holds none of it, so there is no committed tree to
+  go stale; the hook and the CI step are renamed for what they check. The e2e
+  lists read through the site the spec opened and fail with the status and
+  body of a list that is not an array; the cleanup no longer skips a refused
+  list, and the seed walk covers `E2E_SITE_IDS` and asserts the api lists no
+  other site. The refused list itself is an app defect, now on the backlog.
+
+* **The a16 verification.** A finished separation answers the Lead with its
+  brief (`domain/separation_brief.py`), counts and no gene id, and the card
+  keeps the whole report; a reply's control counts are backed by the offer on
+  its card and the adopted offer only (`AttachedControls.task_id`); a yes mints
+  and checks the offer's spec before it clears the strategy. The volcano cut is
+  WDK's raw p-value, inclusive, on every surface, and the tab's export names
+  `source` ("volcano" or "subset") so the server writes the cut the analysis
+  stores. VERIFY's sample carries the attributes the leaf searches show by
+  default (`tm_count`, `signalp_60_probability`), a gene record's text is
+  plain, one `read_gene_record` serves the Lead and VERIFY, and one
+  `SourceReference` carries the identifier rule for a reply and a check. A
+  message sent while a card waits reaches the Lead with its files. VERIFY's
+  sample read is bounded at 20 s: the library's view-filtered report took
+  45.2 s on a genome-sized union under a 30 s attempt deadline, which the
+  backlog now holds. The e2e worker logs in without loading the app, whose own
+  auth refresh had relinked the saved session to the WDK account.
+
+* **Release v0.2.0a16.** The a16 items leave the backlog. Controls in, strategy
+  out: a durable run measures candidate searches against the positives and
+  negatives on the site, keeps only the candidates that tell them apart above
+  chance, assembles the closest strategy greedily with one confirm read, and
+  offers it on a card whose yes builds the measured spec. Experiments across
+  sites: every site's dataset records are cards in the tool server's index; the
+  own-site ranking is untouched and a labelled short list of other sites'
+  experiments follows it, never bindable. Orthology: the round trip keeps the
+  source organism under an INTERSECT with a copy of the source subtree, a word a
+  parameter states is held to the site's parameters, and the reply names whose
+  organism the records are. Private datasets are uploaded on the site and
+  listed, bound, analysed and exported here. The EDA tab is read-only; the site
+  edits. VERIFY reviews the intent against the outcome, the sampled genes and
+  the sources it read. Attachments reach the model as file parts. Every slash
+  command is proven end to end. One name per concept is a gate.
+
+* **One concept has one name.** The rail panel is Notes, not Scratchpad; a
+  conversation is never a chat or a thread on screen or in the model's text; a
+  site is never a database; the canvas says Tidy layout and Fit to view, not
+  graph; the free text on a card is a comment; the memory group is Gene sets;
+  EDA computes are comparisons and background work is a task. The lexicon is
+  [one name per concept](conventions/vocabulary.md) and
+  `scripts/check-vocabulary.mjs` fails a banned synonym in web copy, in a
+  refusal's `detail`/`title`, in a trace summary, or in what the model is told.
+  The runtime's module and routes keep the name `scratchpad`. See
+  [one concept has one name](decisions/one-name-per-concept.md).
 
 * **A message is liked or disliked, and the product learns from it.** Every
   assistant message carries a like and a dislike control in its action bar

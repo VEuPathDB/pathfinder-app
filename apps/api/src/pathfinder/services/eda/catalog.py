@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
 import httpx
@@ -18,6 +18,7 @@ from veupathdb.eda import (
 )
 from veupathdb.errors import WDKLoginRequiredError
 from veupathdb.wdk import get_site_router
+from veupathdb_mcp.catalog import sites_publishing
 from veupathdb_mcp.embeddings import (
     SemanticIndexUnavailableError,
     SyncReport,
@@ -29,21 +30,20 @@ from veupathdb_mcp.embeddings import (
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.eda.study_site import PORTAL, not_here
 
 logger = get_logger(__name__)
+
+# The source type EDA gives a study the researcher uploaded.
+OWN_SOURCE_TYPE = "user_submitted"
 
 # A tool payload carries the gist of a description, not the whole abstract.
 _DESCRIPTION_LIMIT = 600
 
 
 def study_cache_key(*, base_url: str, study: EdaStudyOverview) -> str:
-    """Content address of a study's fetched metadata.
-
-    A user study carries an empty ``sha1hash``, so ``lastModified`` is the only
-    version signal it has.
-    """
-    version = study.sha1hash or study.last_modified
-    return f"{base_url}|{study.id}|{version}"
+    """Content address of a curated study's fetched metadata, by its content hash."""
+    return f"{base_url}|{study.id}|{study.sha1hash}"
 
 
 class UnknownEdaDatasetError(NotFoundError):
@@ -64,7 +64,8 @@ class UnknownEdaDatasetError(NotFoundError):
         super().__init__(title="Study not found", detail=self.guidance)
 
 
-# The browsable catalog, which is the same for every account on a site.
+# The curated catalog, which is the same for every account on a site. The
+# listing also names each account's own studies, which never enter this map.
 _studies: dict[str, list[EdaStudyOverview]] = {}
 
 # Authorization maps, addressed by the site and the credential that read them.
@@ -105,6 +106,14 @@ async def _permissions(site_id: str) -> dict[str, EdaPermissionEntry]:
     return cached
 
 
+def refresh_permissions(site_id: str) -> None:
+    """Drop this credential's authorization map, so the next read asks again.
+
+    A study the account installs after its map was read is absent until then.
+    """
+    _permission_maps.pop(_permissions_key(site_id), None)
+
+
 async def resolve_dataset(site_id: str, dataset_id: str) -> EdaPermissionEntry:
     """The dataset's permission entry, which carries its study id.
 
@@ -134,13 +143,26 @@ class StudyCard:
     relevance: float = 0.0
     can_subset: bool = False
     can_export_rows: bool = False
+    # The genomics sites that publish the dataset, ["portal"] when none does,
+    # and empty when the experiment store did not answer.
+    sites: list[str] = field(default_factory=list)
+    # Why the study does not open on the site that listed it, or None.
+    not_here: str | None = None
 
 
 async def list_studies(site_id: str) -> list[EdaStudyOverview]:
-    """The browsable catalog. It is not the study universe and not the resolver."""
+    """The curated catalog. It is not the study universe and not the resolver.
+
+    ``/studies`` answers for the calling account, so its user rows are dropped
+    before the answer is shared.
+    """
     listed = _studies.get(site_id)
     if listed is None:
-        listed = await get_eda_client(site_id).list_studies()
+        listed = [
+            study
+            for study in await get_eda_client(site_id).list_studies()
+            if study.source_type == "curated"
+        ]
         _studies[site_id] = listed
     return listed
 
@@ -238,7 +260,9 @@ async def search_studies(
     catalog_size = sum(1 for dataset_id in by_dataset if dataset_id in per_dataset)
     if not await study_index_is_built():
         return StudySearch(
-            cards=_by_name(query, per_dataset, by_dataset, limit),
+            cards=await _with_sites(
+                site_id, _by_name(query, per_dataset, by_dataset, limit)
+            ),
             catalog_size=catalog_size,
             ranking="name",
         )
@@ -247,7 +271,9 @@ async def search_studies(
     except SemanticIndexUnavailableError as exc:
         logger.warning("EDA study search fell back to names", error=str(exc))
         return StudySearch(
-            cards=_by_name(query, per_dataset, by_dataset, limit),
+            cards=await _with_sites(
+                site_id, _by_name(query, per_dataset, by_dataset, limit)
+            ),
             catalog_size=catalog_size,
             ranking="name",
         )
@@ -262,7 +288,30 @@ async def search_studies(
         cards.append(_card(entry, overview, relevance=max(0.0, hit.similarity)))
         if len(cards) >= limit:
             break
-    return StudySearch(cards=cards, catalog_size=catalog_size)
+    return StudySearch(
+        cards=await _with_sites(site_id, cards), catalog_size=catalog_size
+    )
+
+
+async def _with_sites(site_id: str, cards: list[StudyCard]) -> list[StudyCard]:
+    """Each card labelled with the genomics sites that publish its dataset, and
+    with why it does not open on ``site_id`` when another site publishes it."""
+    if not cards:
+        return cards
+    try:
+        published = await sites_publishing([card.dataset_id for card in cards])
+    except SemanticIndexUnavailableError as exc:
+        logger.warning("Study sites were not read", error=str(exc))
+        return cards
+    return [
+        _labelled(site_id, card, published.get(card.dataset_id, [PORTAL]))
+        for card in cards
+    ]
+
+
+def _labelled(site_id: str, card: StudyCard, sites: list[str]) -> StudyCard:
+    own = card.source_type == OWN_SOURCE_TYPE
+    return replace(card, sites=sites, not_here=not_here(site_id, sites, own=own))
 
 
 def _by_name(
@@ -315,14 +364,14 @@ async def browse_studies(site_id: str, limit: int = 10) -> list[StudyCard]:
         if (entry := per_dataset.get(overview.dataset_id)) is not None
     ]
     cards.sort(key=lambda card: card.display_name)
-    return cards[:limit]
+    return await _with_sites(site_id, cards[:limit])
 
 
 async def get_study_detail(site_id: str, study: EdaStudyOverview) -> EdaStudyDetail:
     """The full entity tree, cached on the version the listing reports.
 
-    A re-listed study whose ``sha1hash`` or ``lastModified`` changed reads
-    again; an unchanged one is served from the cache.
+    A re-listed study whose ``sha1hash`` changed reads again; an unchanged one
+    is served from the cache.
     """
     client = get_eda_client(site_id)
     key = study_cache_key(base_url=client.base_url, study=study)

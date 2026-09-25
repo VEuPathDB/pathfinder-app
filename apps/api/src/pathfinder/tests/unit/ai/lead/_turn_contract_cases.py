@@ -11,11 +11,14 @@ from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.graph.turn_records import ControlTestRun, CreatedControlSet
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.reply_claims import CitedSource
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, LeadTurnState, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    SourceReference,
+)
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -83,7 +86,7 @@ CLAIMS_A_GENE_SET_ENRICHMENT = (
     "top terms are protein export and host cell remodeling."
 )
 REDIRECT = (
-    "I build and check search strategies on the VEuPathDB databases, and run "
+    "I build and check search strategies on the VEuPathDB sites, and run "
     "enrichment, EDA and exports on what they return. Ask me one of those and "
     "I will take it from there."
 )
@@ -100,7 +103,7 @@ def reply(
     changed: bool = False,
     next_state: LeadTurnState = "await_user",
     questions: list[OpenQuestion] | None = None,
-    sources: list[CitedSource] | None = None,
+    sources: list[SourceReference] | None = None,
 ) -> LeadResponse:
     return LeadResponse(
         prose=prose,

@@ -21,7 +21,7 @@ from veupathdb.eda import EdaFilter, EdaNotFoundError
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.persistence.models import ConversationAnalysisView
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import (
     bind_analysis_row,
     bump_analysis_row,
@@ -31,6 +31,8 @@ from pathfinder.persistence.repositories.conversation_analysis import (
 )
 from pathfinder.services.eda.authoring import open_analysis, patch_subset
 from pathfinder.services.eda.binding import read_analysis
+from pathfinder.services.eda.catalog import resolve_dataset
+from pathfinder.services.eda.study_site import refuse_a_study_another_site_publishes
 
 logger = get_logger(__name__)
 
@@ -140,11 +142,20 @@ async def logs_a_binding(
     )
 
 
+async def _refuse_another_sites_study(recorded: EdaAnalysisState) -> None:
+    """Refuse to open the recorded study on a site that does not publish it."""
+    entry = await resolve_dataset(recorded.site_id, recorded.dataset_id)
+    await refuse_a_study_another_site_publishes(
+        recorded.site_id, recorded.dataset_id, entry=entry
+    )
+
+
 async def _fresh_document(
     recorded: EdaAnalysisState,
     filters: Sequence[EdaFilter],
 ) -> str:
     """Create a document of this thread's own for the recorded descriptor."""
+    await _refuse_another_sites_study(recorded)
     analysis_id = await open_analysis(
         recorded.site_id,
         dataset_id=recorded.dataset_id,
@@ -170,6 +181,7 @@ async def _recorded_or_fresh_document(
     recorded id normally still resolves.
     """
     recorded_id: str = recorded.analysis_id
+    await _refuse_another_sites_study(recorded)
     try:
         await patch_subset(
             recorded.site_id,

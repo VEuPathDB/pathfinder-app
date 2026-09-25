@@ -15,7 +15,7 @@ test.describe("The workbench is gone", () => {
   test("the nav rail links no workbench", async ({ page, chatPage }) => {
     await chatPage.goto();
 
-    await expect(page.getByRole("link", { name: "Chat" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Conversation" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Workbench" })).toHaveCount(0);
   });
 });

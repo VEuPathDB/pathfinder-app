@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -36,11 +35,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
-
-
-@dataclass
-class _Runtime:
-    context: Context | None
 
 
 def _state(
@@ -198,7 +192,7 @@ async def test_a_verified_turn_writes_a_case(
         state = _state(user_id=user_id, success=True)
         await nodes.finalize_turn_node(
             state,
-            cast("Runtime[Context]", _Runtime(context=_context(user_id, raw))),
+            Runtime(context=_context(user_id, raw)),
         )
         cases = await MemoryStore(store=raw).list_all(user_id=user_id, kind="case")
 
@@ -219,7 +213,7 @@ async def test_a_failed_digest_writes_no_case(
         state = _state(user_id=user_id, success=False)
         await nodes.finalize_turn_node(
             state,
-            cast("Runtime[Context]", _Runtime(context=_context(user_id, raw))),
+            Runtime(context=_context(user_id, raw)),
         )
         cases = await MemoryStore(store=raw).list_all(user_id=user_id, kind="case")
 
@@ -235,7 +229,7 @@ async def test_the_same_case_twice_leaves_one_row(
     del db_cleaner, patch_app_db_engine, no_compaction
     user_id = await _seed_user()
     async with lifespan_memory_store(os.environ["DATABASE_URL"]) as raw:
-        runtime = cast("Runtime[Context]", _Runtime(context=_context(user_id, raw)))
+        runtime = Runtime(context=_context(user_id, raw))
         for _ in range(2):
             await nodes.finalize_turn_node(
                 _state(user_id=user_id, success=True), runtime
@@ -260,7 +254,7 @@ async def test_a_recovery_case_names_what_emptied_and_what_fixed_it(
         state = _state(user_id=user_id, success=True, history=history)
         await nodes.finalize_turn_node(
             state,
-            cast("Runtime[Context]", _Runtime(context=_context(user_id, raw))),
+            Runtime(context=_context(user_id, raw)),
         )
         cases = await MemoryStore(store=raw).list_all(user_id=user_id, kind="case")
 
@@ -282,7 +276,7 @@ async def test_a_later_turn_retrieves_the_case_for_a_similar_goal(
     async with lifespan_memory_store(os.environ["DATABASE_URL"]) as raw:
         await nodes.finalize_turn_node(
             _state(user_id=user_id, success=True),
-            cast("Runtime[Context]", _Runtime(context=_context(user_id, raw))),
+            Runtime(context=_context(user_id, raw)),
         )
         found = await retrieve_relevant_memories(
             store=MemoryStore(store=raw),
@@ -309,7 +303,7 @@ async def test_a_verified_eda_export_writes_a_case(
     async with lifespan_memory_store(os.environ["DATABASE_URL"]) as raw:
         await nodes.finalize_turn_node(
             _eda_state(user_id=user_id),
-            cast("Runtime[Context]", _Runtime(context=_context(user_id, raw))),
+            Runtime(context=_context(user_id, raw)),
         )
         cases = await MemoryStore(store=raw).list_all(user_id=user_id, kind="case")
 

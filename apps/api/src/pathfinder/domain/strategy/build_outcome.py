@@ -6,6 +6,8 @@ from typing import Literal
 
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.orthology import OrganismChange
+
 NodeStatus = Literal["ok", "zero", "failed"]
 
 
@@ -75,6 +77,8 @@ class BuildOutcome:
     root_count: int | None = None
     zero_step_ids: list[str] = field(default_factory=list)
     node_results: list[NodeResult] = field(default_factory=list)
+    # Set when the records belong to another organism than the seed searched.
+    organism_change: OrganismChange | None = None
 
     @property
     def fully_succeeded(self) -> bool:

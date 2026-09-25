@@ -6,6 +6,7 @@ A refusal the model can correct answers the model; a defect ends the run.
 from __future__ import annotations
 
 import importlib
+import inspect
 import pkgutil
 from collections.abc import Callable
 from typing import Any
@@ -28,6 +29,7 @@ from pathfinder import ai, assistants
 from pathfinder.ai.agents.frame import build_frame_agent
 from pathfinder.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from pathfinder.ai.agents.verification import build_verification_agent
+from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
@@ -70,9 +72,16 @@ def _declared_factories(module: object, name: str) -> bool:
     )
 
 
-def agent_factories() -> dict[str, Callable[[], Agent[Any, Any]]]:
+def _built(factory: Callable[..., Agent[Any, Any]]) -> Agent[Any, Any]:
+    """A factory that meters its runs is handed a meter of its own."""
+    if "meter" in inspect.signature(factory).parameters:
+        return factory(meter=SpendMeter())
+    return factory()
+
+
+def agent_factories() -> dict[str, Callable[..., Agent[Any, Any]]]:
     """Every agent factory this application declares, by name."""
-    found: dict[str, Callable[[], Agent[Any, Any]]] = {}
+    found: dict[str, Callable[..., Agent[Any, Any]]] = {}
     for root in (ai, assistants):
         for info in pkgutil.walk_packages(root.__path__, prefix=f"{root.__name__}."):
             module = importlib.import_module(info.name)
@@ -157,7 +166,7 @@ def test_the_walk_finds_every_agent_the_deployment_is_known_to_run() -> None:
 
 def test_every_agent_that_carries_tools_carries_the_refusal_seam() -> None:
     """One rule over the deployment: a refusal answers the model, not the user."""
-    built = {name: factory() for name, factory in agent_factories().items()}
+    built = {name: _built(factory) for name, factory in agent_factories().items()}
     with_tools = {name: a for name, a in built.items() if agent_tool_names(a)}
 
     unseamed = sorted(name for name, a in with_tools.items() if _seams(a) != 1)

@@ -27,7 +27,7 @@ describe("VennPicker", () => {
       vi.useRealTimers();
     });
 
-    it("single click on A fires LONLY after the debounce window", async () => {
+    it("single click on A fires MINUS after the debounce window", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       const onChange = vi.fn();
       render(<VennPicker operator="INTERSECT" onChange={onChange} />);
@@ -35,22 +35,10 @@ describe("VennPicker", () => {
       expect(onChange).not.toHaveBeenCalled(); // debounced
       vi.advanceTimersByTime(ON_CHANGE_DEBOUNCE_MS + 50);
       expect(onChange).toHaveBeenCalledTimes(1);
-      expect(onChange).toHaveBeenLastCalledWith("LONLY");
-    });
-
-    it("two rapid clicks on A coalesce into a single MINUS push", async () => {
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-      const onChange = vi.fn();
-      render(<VennPicker operator="INTERSECT" onChange={onChange} />);
-      const a = screen.getByLabelText("A only");
-      await user.click(a);
-      await user.click(a);
-      vi.advanceTimersByTime(ON_CHANGE_DEBOUNCE_MS + 50);
-      expect(onChange).toHaveBeenCalledTimes(1);
       expect(onChange).toHaveBeenLastCalledWith("MINUS");
     });
 
-    it("three rapid clicks on A wrap back to LONLY (single coalesced push)", async () => {
+    it("rapid clicks on A never reach an operator the site does not offer", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       const onChange = vi.fn();
       render(<VennPicker operator="INTERSECT" onChange={onChange} />);
@@ -60,22 +48,22 @@ describe("VennPicker", () => {
       await user.click(a);
       vi.advanceTimersByTime(ON_CHANGE_DEBOUNCE_MS + 50);
       expect(onChange).toHaveBeenCalledTimes(1);
-      expect(onChange).toHaveBeenLastCalledWith("LONLY");
+      expect(onChange).toHaveBeenLastCalledWith("MINUS");
     });
 
-    it("after the cycling window closes, the next click is a fresh first click", async () => {
+    it("after the cycling window closes, the next lens click is a fresh first click", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       const onChange = vi.fn();
-      render(<VennPicker operator="INTERSECT" onChange={onChange} />);
-      const a = screen.getByLabelText("A only");
-      await user.click(a);
-      await user.click(a);
-      vi.advanceTimersByTime(1100); // > 1s cycling window AND > debounce
-      expect(onChange).toHaveBeenLastCalledWith("MINUS");
+      render(<VennPicker operator="MINUS" onChange={onChange} />);
+      const lens = screen.getByLabelText("Intersection region");
+      await user.click(lens);
+      await user.click(lens);
+      vi.advanceTimersByTime(1100);
+      expect(onChange).toHaveBeenLastCalledWith("UNION");
       onChange.mockClear();
-      await user.click(a);
+      await user.click(lens);
       vi.advanceTimersByTime(ON_CHANGE_DEBOUNCE_MS + 50);
-      expect(onChange).toHaveBeenLastCalledWith("LONLY");
+      expect(onChange).toHaveBeenLastCalledWith("INTERSECT");
     });
 
     it("two rapid clicks on lens coalesce into a single UNION push", async () => {
@@ -90,7 +78,7 @@ describe("VennPicker", () => {
       expect(onChange).toHaveBeenLastCalledWith("UNION");
     });
 
-    it("two rapid clicks on B coalesce into a single RMINUS push", async () => {
+    it("rapid clicks on B stay RMINUS", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       const onChange = vi.fn();
       render(<VennPicker operator="INTERSECT" onChange={onChange} />);
@@ -110,7 +98,7 @@ describe("VennPicker", () => {
       await user.click(screen.getByLabelText("B only"));
       vi.advanceTimersByTime(ON_CHANGE_DEBOUNCE_MS + 50);
       expect(onChange).toHaveBeenCalledTimes(1);
-      expect(onChange).toHaveBeenLastCalledWith("RONLY");
+      expect(onChange).toHaveBeenLastCalledWith("RMINUS");
     });
   });
 
@@ -149,14 +137,18 @@ describe("VennPicker", () => {
     });
   });
 
-  it("readout reflects current operator", () => {
-    render(<VennPicker operator="INTERSECT" onChange={() => {}} />);
-    expect(screen.getByText(/INTERSECT/)).toBeTruthy();
+  it("reads the operator out under its one label", () => {
+    const { container } = render(<VennPicker operator="RMINUS" onChange={() => {}} />);
+    expect(container.querySelector('[data-slot="venn-readout"]')?.textContent).toBe(
+      "Operator: Right minus",
+    );
   });
 
-  it("readout renders LONLY as 'Just A'", () => {
-    render(<VennPicker operator="LONLY" onChange={() => {}} />);
-    expect(screen.getByText(/Just A/i)).toBeTruthy();
+  it("reads a site-built LONLY step out as 'Left only'", () => {
+    const { container } = render(<VennPicker operator="LONLY" onChange={() => {}} />);
+    expect(container.querySelector('[data-slot="venn-readout"]')?.textContent).toBe(
+      "Operator: Left only",
+    );
   });
 
   it("renders custom A/B labels in readout", () => {

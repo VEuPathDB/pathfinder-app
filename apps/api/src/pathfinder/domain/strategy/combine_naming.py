@@ -10,11 +10,14 @@ _LABELS: dict[CombineOp, str] = {
     CombineOp.INTERSECT: "Intersect",
     CombineOp.UNION: "Union",
     CombineOp.MINUS: "Minus",
-    CombineOp.RMINUS: "Minus (reversed)",
+    CombineOp.RMINUS: "Right minus",
     CombineOp.LONLY: "Left only",
     CombineOp.RONLY: "Right only",
-    CombineOp.COLOCATE: "Colocated",
+    CombineOp.COLOCATE: "Colocate",
 }
+
+_RETIRED = frozenset({"Minus (reversed)", "Colocated"})
+"""The labels an earlier release gave, which a stored combine may still carry."""
 
 
 def combine_display_name(operator: CombineOp) -> str:
@@ -29,15 +32,16 @@ _GENERATED = frozenset(f"{operator.value} combine".casefold() for operator in Co
 def given_by_a_researcher(name: str | None, search_name: str | None) -> bool:
     """Whether a step's name is one a researcher gave it.
 
-    An empty name, an operator's label, a generated "<OPERATOR> combine" and the
-    search name are defaults: WDK names a step it receives without a name after
-    its search.
+    An empty name, an operator's label now or in an earlier release, a generated
+    "<OPERATOR> combine" and the search name are defaults: WDK names a step it
+    receives without a name after its search.
     """
     if not name:
         return False
     return (
         name != search_name
         and name not in _LABELS.values()
+        and name not in _RETIRED
         and name.casefold() not in _GENERATED
     )
 

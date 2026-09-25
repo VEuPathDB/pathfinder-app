@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 interface ValidationAlertProps {
   /** Combine groups whose member steps have mismatched record types. */
   mismatchGroups: CombineMismatchGroup[];
-  /** Hard-fail flag from `graphValidationStatus[strategyId]`. */
-  isPaused: boolean;
   /**
    * Called with the id of the first offending step. Caller is responsible for
    * scrolling that step into view via `fitView` and for opening its editor.
@@ -32,13 +30,8 @@ function offendingCount(groups: CombineMismatchGroup[]): number {
   return count;
 }
 
-export function ValidationAlert({
-  mismatchGroups,
-  isPaused,
-  onView,
-}: ValidationAlertProps) {
-  const visible = mismatchGroups.length > 0 || isPaused;
-  if (!visible) return null;
+export function ValidationAlert({ mismatchGroups, onView }: ValidationAlertProps) {
+  if (mismatchGroups.length === 0) return null;
 
   const firstId = pickFirstOffendingId(mismatchGroups);
   const count = offendingCount(mismatchGroups);
@@ -51,9 +44,7 @@ export function ValidationAlert({
     >
       <TriangleAlert className="size-4" aria-hidden />
       <AlertTitle className="flex items-center justify-between gap-3">
-        <span>
-          {count > 0 ? `${count} steps have mismatched record types.` : "Sync paused."}
-        </span>
+        <span>{`${String(count)} steps have mismatched record types.`}</span>
         {firstId !== null && (
           <Button
             type="button"
@@ -66,7 +57,9 @@ export function ValidationAlert({
           </Button>
         )}
       </AlertTitle>
-      <AlertDescription>Sync is paused until resolved.</AlertDescription>
+      <AlertDescription>
+        VEuPathDB combines only steps that return the same record type.
+      </AlertDescription>
     </Alert>
   );
 }

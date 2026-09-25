@@ -10,7 +10,7 @@ Revises: 2026_09_15_0001
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_09_16_0001"
@@ -22,11 +22,11 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "conversation_strategies",
-        sa.Column(
+        sqlalchemy.Column(
             "wdk_strategy_created_here",
-            sa.Boolean(),
+            sqlalchemy.Boolean(),
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
     )
 

@@ -91,8 +91,7 @@ describe("StepNode dispatcher", () => {
     });
     const { container } = render(<StepNode {...makeNodeProps(step, false)} />);
     expect(container.querySelector('[data-kind="combine"]')).not.toBeNull();
-    // The INTERSECT operator surfaces as its human badge label.
-    expect(screen.getByText("AND (INTERSECT)")).toBeInTheDocument();
+    expect(screen.getByTestId("combine-operator-badge").textContent).toBe("Intersect");
   });
 
   it("dispatches to TransformNode for kind=transform and renders its name", () => {

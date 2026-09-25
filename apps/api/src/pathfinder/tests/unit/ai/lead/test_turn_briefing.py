@@ -69,16 +69,17 @@ def test_a_completed_task_pins_the_task_line() -> None:
     assert "run_eda_compute failed" in rendered
 
 
-def test_an_eda_revision_bump_pins_the_binding_line() -> None:
+def test_an_analysis_that_moved_past_its_card_is_named() -> None:
+    """A change through the tools and a change on the site read the same."""
     briefing = compose_turn_briefing(
-        ThreadActivity(
-            analysis=AnalysisDrift(dataset_id="DS_1234", revisions_ahead=2),
-        ),
+        ThreadActivity(analysis=AnalysisDrift(dataset_id="DS_1234")),
         requirements=[],
     )
 
-    assert "DS_1234" in briefing.render()
-    assert "2 revisions ahead" in briefing.render()
+    assert (
+        "- the open analysis (DS_1234) changed after the card in this conversation"
+        in briefing.render()
+    )
 
 
 def test_a_constraint_that_lost_its_grounding_is_named() -> None:

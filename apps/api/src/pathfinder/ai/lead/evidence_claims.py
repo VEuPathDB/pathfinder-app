@@ -1,8 +1,5 @@
-"""The control results a reply or a digest states, held to the tests the turn ran.
-
-A claim is a control count ("7 of 10 positive controls") or a control gene id
-in backticks inside a clause that says whether the target returned it.
-"""
+"""The control counts, control gene ids and sampled-gene counts a reply states,
+held to the tests the turn ran and the sample the check judged."""
 
 from __future__ import annotations
 
@@ -15,6 +12,7 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
+    SampledGene,
 )
 
 ControlKind = Literal["positive", "negative"]
@@ -45,6 +43,15 @@ _NOT_RETURNED = re.compile(
 )
 _RETURNED = re.compile(
     r"\b(?:returned|recovered|found|retrieved|captured|admitted)\b", re.IGNORECASE
+)
+# "all 8 sampled genes fit", "6 of 8 sampled genes fit", "2 of the 8 sampled
+# genes do not fit".
+_SAMPLE = re.compile(
+    r"\b(?:(?P<all>all)(?:\s+(?P<all_of>\d+))?"
+    r"|(?P<stated>\d+)\s*(?:of|out of|/)\s*(?:the\s+)?(?P<of>\d+))"
+    r"\s+sampled\s+genes?\s+"
+    r"(?P<negated>(?:do|does|did)\s+not\s+|(?:don|doesn|didn)'t\s+)?fit\b",
+    re.IGNORECASE,
 )
 
 
@@ -182,11 +189,82 @@ def control_claims(prose: str) -> list[ControlClaim]:
     return [*_count_claims(plain), *_id_claims(plain)]
 
 
+@dataclass(frozen=True)
+class SampleClaim:
+    """A stated number of sampled genes that fit, or do not, out of a total.
+
+    ``stated`` None is "all"; ``of`` None is a total the prose does not give.
+    """
+
+    stated: int | None
+    of: int | None
+    fits: bool
+
+    def text(self) -> str:
+        count = "all" if self.stated is None else str(self.stated)
+        total = "" if self.of is None else f" {self.of}"
+        if self.stated is not None and self.of is not None:
+            total = f" of {self.of}"
+        verb = "fit" if self.fits else "do not fit"
+        return f"{count}{total} sampled genes {verb}"
+
+    def unbacked(self, genes: Sequence[SampledGene]) -> str | None:
+        """Why the sample does not hold the count, or None when it does."""
+        said = f"The reply says {self.text()}"
+        if not genes:
+            return f"{said}, and no check sampled a gene."
+        fitting = sum(1 for gene in genes if gene.fits == "yes")
+        misfits = [gene.gene_id for gene in genes if gene.fits == "no"]
+        wanted = fitting if self.fits else len(misfits)
+        stated = len(genes) if self.stated is None else self.stated
+        total = len(genes) if self.of is None else self.of
+        if (stated, total) == (wanted, len(genes)):
+            return None
+        listed = ", ".join(f"`{gene_id}`" for gene_id in misfits)
+        named = f" ({listed})" if listed else ""
+        unclear = len(genes) - fitting - len(misfits)
+        return (
+            f"{said}; the check sampled {len(genes)} genes: {fitting} fit, "
+            f"{len(misfits)} do not fit{named}, {unclear} unclear."
+        )
+
+
+def sample_claims(prose: str) -> list[SampleClaim]:
+    """Every count of sampled genes that fit, or do not, the prose states."""
+    return [
+        SampleClaim(
+            stated=None if match["all"] else int(match["stated"]),
+            of=(
+                int(total)
+                if (total := match["all_of"] or match["of"]) is not None
+                else None
+            ),
+            fits=match["negated"] is None,
+        )
+        for match in _SAMPLE.finditer(_EMPHASIS.sub("", prose))
+    ]
+
+
+def unbacked_sample_claims(
+    claims: Sequence[SampleClaim], genes: Sequence[SampledGene]
+) -> list[str]:
+    """One sentence per sampled-gene count the sample does not hold, each once."""
+    found: list[str] = []
+    for claim in claims:
+        sentence = claim.unbacked(genes)
+        if sentence is not None and sentence not in found:
+            found.append(sentence)
+    return found
+
+
 def backing_results(
-    this_turn: Iterable[ControlTestEvidence], last_card: EvidenceCard | None
+    this_turn: Iterable[ControlTestEvidence],
+    last_card: EvidenceCard | None,
+    offered: Iterable[ControlTestEvidence],
 ) -> tuple[ControlTestEvidence, ...]:
-    """The control results a claim may cite: this turn's, and the last check's."""
-    return (*this_turn, *([] if last_card is None else last_card.controls))
+    """The control results a claim may cite: this turn's, the last check's, and
+    the site's reads a separation offer holds."""
+    return (*this_turn, *([] if last_card is None else last_card.controls), *offered)
 
 
 def unbacked_claims(
@@ -205,7 +283,10 @@ __all__ = [
     "ControlClaim",
     "CountClaim",
     "IdClaim",
+    "SampleClaim",
     "backing_results",
     "control_claims",
+    "sample_claims",
     "unbacked_claims",
+    "unbacked_sample_claims",
 ]

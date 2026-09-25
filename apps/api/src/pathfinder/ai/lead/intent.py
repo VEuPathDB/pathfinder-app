@@ -62,7 +62,7 @@ ANSWERING_INTENTS: frozenset[IntentClassification] = frozenset(
         IntentClassification.EDIT_STRATEGY,
     }
 )
-"""The classifications of a message that can answer a question the thread asked.
+"""The classifications of a message that can answer a question the conversation asked.
 
 Any classification in this set, first or later, closes the questions open when
 the message arrived, and never one asked later under the same message. A new

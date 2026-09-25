@@ -8,10 +8,9 @@ Create Date: 2026-04-14 13:57:14.195849
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 # revision identifiers, used by Alembic.
 revision: str = "b97ba9130ec3"
@@ -24,36 +23,42 @@ def upgrade() -> None:
     """Create background_tasks, task_progress, and chat_events."""
     op.create_table(
         "background_tasks",
-        sa.Column("id", PGUUID(as_uuid=True), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", UUID(as_uuid=True), primary_key=True),
+        sqlalchemy.Column(
             "chat_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("chats.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("chats.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "user_id",
-            sa.CHAR(36),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.CHAR(36),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("tool_name", sa.String(128), nullable=False),
-        sa.Column("status", sa.String(32), nullable=False, server_default="pending"),
-        sa.Column("args", JSONB, nullable=False),
-        sa.Column("result", JSONB, nullable=True),
-        sa.Column("error", sa.Text, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("tool_name", sqlalchemy.String(128), nullable=False),
+        sqlalchemy.Column(
+            "status", sqlalchemy.String(32), nullable=False, server_default="pending"
+        ),
+        sqlalchemy.Column("args", JSONB, nullable=False),
+        sqlalchemy.Column("result", JSONB, nullable=True),
+        sqlalchemy.Column("error", sqlalchemy.Text, nullable=True),
+        sqlalchemy.Column(
             "estimated_duration_seconds",
-            sa.Integer,
+            sqlalchemy.Integer,
             nullable=False,
             server_default="60",
         ),
-        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "started_at", sqlalchemy.DateTime(timezone=True), nullable=True
+        ),
+        sqlalchemy.Column(
+            "completed_at", sqlalchemy.DateTime(timezone=True), nullable=True
+        ),
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )
@@ -62,20 +67,22 @@ def upgrade() -> None:
 
     op.create_table(
         "task_progress",
-        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "id", sqlalchemy.Integer, primary_key=True, autoincrement=True
+        ),
+        sqlalchemy.Column(
             "task_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("background_tasks.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("background_tasks.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("percent", sa.Float, nullable=False),
-        sa.Column("message", sa.String(500), nullable=False),
-        sa.Column("data", JSONB, nullable=True),
-        sa.Column(
+        sqlalchemy.Column("percent", sqlalchemy.Float, nullable=False),
+        sqlalchemy.Column("message", sqlalchemy.String(500), nullable=False),
+        sqlalchemy.Column("data", JSONB, nullable=True),
+        sqlalchemy.Column(
             "emitted_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )
@@ -83,24 +90,26 @@ def upgrade() -> None:
 
     op.create_table(
         "chat_events",
-        sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "id", sqlalchemy.Integer, primary_key=True, autoincrement=True
+        ),
+        sqlalchemy.Column(
             "chat_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("chats.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("chats.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "task_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("background_tasks.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("background_tasks.id", ondelete="CASCADE"),
             nullable=True,
         ),
-        sa.Column("chunk", JSONB, nullable=False),
-        sa.Column(
+        sqlalchemy.Column("chunk", JSONB, nullable=False),
+        sqlalchemy.Column(
             "emitted_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )

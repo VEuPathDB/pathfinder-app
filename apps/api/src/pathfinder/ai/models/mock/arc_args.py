@@ -5,6 +5,7 @@ The arcs that make the calls live in ``arcs``.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from pydantic import BaseModel
@@ -43,6 +44,7 @@ def variant_args() -> dict[str, Any]:
 
 def consult_args() -> dict[str, Any]:
     return {
+        "reply": "[mock] Two choices shape the steps, so I ask them before planning.",
         "questions": [
             {
                 "id": "q1",
@@ -94,3 +96,17 @@ def attached_gene_list(text: str) -> AttachedGeneList | None:
     if not source_name or not gene_ids:
         return None
     return AttachedGeneList(source_name=source_name, gene_ids=gene_ids)
+
+
+_CONTROL_LIST = re.compile(
+    r"(positive|negative) controls[^:]*:\s*((?:[\w.-]+_[\w.-]+\s*)+)"
+)
+
+
+def sweep_controls(lowered: str, fallback: tuple[str, ...]) -> dict[str, list[str]]:
+    """The control lists the message names, else ``fallback`` as the positives."""
+    named = {
+        f"{kind}_controls": [gene_id.upper() for gene_id in ids.split()]
+        for kind, ids in _CONTROL_LIST.findall(lowered)
+    }
+    return named or {"positive_controls": list(fallback)}

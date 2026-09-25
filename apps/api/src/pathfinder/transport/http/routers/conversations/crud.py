@@ -8,7 +8,7 @@ from assistant_core.platform.types import JSONObject
 from assistant_core.registry import resolve_turn_assistant
 from fastapi import APIRouter, Depends, Query, Response
 
-from pathfinder.ai.conversation.title_generator import generate_conversation_title
+from pathfinder.ai.conversation.title_generator import charged_conversation_title
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.services.conversations.begin import start_title_generation
 from pathfinder.services.conversations.responses import ConversationResponse
@@ -179,8 +179,9 @@ async def begin_strategy(
             conversation_id=conversation_id,
             seed_text=body.seed_text,
             title_generator=partial(
-                generate_conversation_title,
+                charged_conversation_title,
                 mock_model=spec.build_mock_model,
+                user_id=user_id,
             ),
         )
     return BeginConversationResponse(

@@ -28,7 +28,7 @@ async def saved_strategy_listing(
     deps = ctx.deps
     if deps.user_id is None or deps.db_session_factory is None:
         msg = (
-            "This thread has no signed-in user, so it cannot read the saved "
+            "This conversation has no signed-in user, so it cannot read the saved "
             "strategy library. Bind the criterion to a search instead."
         )
         raise ModelRetry(msg)

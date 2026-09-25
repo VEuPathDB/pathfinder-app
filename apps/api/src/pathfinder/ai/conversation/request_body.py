@@ -8,6 +8,7 @@ from assistant_core.platform.types import ReasoningEffort
 from pydantic import ConfigDict, Field, field_validator
 from pydantic_ai.ui.vercel_ai._utils import iter_tool_approval_responses
 from pydantic_ai.ui.vercel_ai.request_types import (
+    FileUIPart,
     TextUIPart,
     UIMessage,
 )
@@ -66,15 +67,30 @@ class ChatRequestBody(CamelModel):
     @field_validator("messages", mode="before")
     @classmethod
     def _drop_reduction_turn_facts(cls, value: object) -> object:
-        """The client sends the thread as it holds it, and holding it adds
-        members the strict message union forbids: the snapshot reduction's
-        turn facts, and stream-recorded part metadata. They parse away here.
-        """
+        """Drop the members the client's thread holds and the strict message
+        union forbids: the reduction's turn facts and the parts' stream facts."""
         if not isinstance(value, list):
             return value
         return [
             _without_stream_facts(entry) if isinstance(entry, dict) else entry
             for entry in value
+        ]
+
+    @field_validator("messages")
+    @classmethod
+    def _only_the_last_message_carries_files(
+        cls, value: list[UIMessage]
+    ) -> list[UIMessage]:
+        """The worker reads every earlier turn from its checkpoint, so an
+        earlier message's files are not carried again."""
+        last = len(value) - 1
+        return [
+            message
+            if index == last
+            else message.model_copy(
+                update={"parts": [p for p in message.parts if p.type != "file"]}
+            )
+            for index, message in enumerate(value)
         ]
 
     @field_validator("phase_models", "phase_reasoning")
@@ -120,6 +136,24 @@ class ChatRequestBody(CamelModel):
             for part in last.parts
             if isinstance(part, TextUIPart) and part.text
         )
+
+    @property
+    def last_user_files(self) -> list[FileUIPart]:
+        """The files the last user message carries, in the order it holds them."""
+        if not self.messages or self.messages[-1].role != "user":
+            return []
+        return [p for p in self.messages[-1].parts if isinstance(p, FileUIPart)]
+
+    @property
+    def last_user_parts(self) -> list[dict[str, object]]:
+        """The last user message as the event log records it: its text, then
+        each file."""
+        text = self.last_user_text
+        parts: list[TextUIPart | FileUIPart] = [
+            *([TextUIPart(text=text)] if text else []),
+            *self.last_user_files,
+        ]
+        return [part.model_dump(by_alias=True, exclude_none=True) for part in parts]
 
     @property
     def last_user_message_id(self) -> UUID:

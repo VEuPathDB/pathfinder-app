@@ -40,7 +40,17 @@ vi.mock("@pathfinder/shared/generated/hooks/useForkStrategy", () => ({
   forkStrategy: vi.fn(() => Promise.resolve({ id: "fork-4" })),
 }));
 
+vi.mock("@pathfinder/shared/generated/hooks/useRevertToMessage", () => ({
+  revertToMessage: vi.fn(() => Promise.resolve({})),
+}));
+
+vi.mock("@pathfinder/shared/generated/hooks/useSubmitProductAction", () => ({
+  submitProductAction: vi.fn(() => Promise.resolve({})),
+}));
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
+import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
 import { APIError } from "@/lib/api/http";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
@@ -110,5 +120,21 @@ describe("EditComposerBranchOrRevert", () => {
     expect(trigger).toBeDisabled();
     fireEvent.click(trigger);
     expect(screen.queryByTestId("edit-branch-button")).toBeNull();
+  });
+
+  it("a revert reads the conversation's notes again", async () => {
+    const qc = new QueryClient();
+    const notes = listScratchpadNotesQueryOptions("conv-2").queryKey;
+    qc.setQueryData(notes, []);
+    render(
+      <QueryClientProvider client={qc}>
+        <EditComposerBranchOrRevert />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId("edit-composer-branch-or-revert"));
+    fireEvent.click(screen.getByTestId("edit-revert-button"));
+
+    await waitFor(() => expect(qc.getQueryState(notes)?.isInvalidated).toBe(true));
   });
 });

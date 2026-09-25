@@ -1,8 +1,8 @@
-# `pathfinder.devtools.chat` — chat pipeline debugger
+# `pathfinder.devtools.chat` - chat pipeline debugger
 
 An in-process debugger for the PathFinder chat pipeline, built for **agents** to
 drive. It runs one chat turn through the real `run_turn` (same code path the
-worker uses) **without** the API server, worker, procrastinate, or SSE — then
+worker uses) **without** the API server, worker, procrastinate, or SSE - then
 captures every plane of the run to flat files you can `cat`/`jq` and runs a
 diagnosis pass that names known failure modes for you.
 
@@ -37,8 +37,8 @@ them). The summary prints any anomalies inline:
 
 ```
 ─── summary ───  status=ok  tokens=555763  cost=$0.206  toolcalls=43  failures=12  loop=true  anomalies=2
-  ⚑ [critical] loop: frame_problem failed 5 times — the agent is stuck retrying.
-  ⚑ [warning] budget_burn: 555763 tokens ($0.21) — abnormally high.
+  ⚑ [critical] loop: frame_problem failed 5 times - the agent is stuck retrying.
+  ⚑ [warning] budget_burn: 555763 tokens ($0.21) - abnormally high.
 run-dir=/data/pf-runs/obp/turn2
 ```
 
@@ -52,7 +52,7 @@ jq -r '.[] | "[\(.severity)] \(.kind): \(.message)"' apps/api/.pf-runs/obp/turn2
 jq -r '.status, (.errors|map(.kind+":"+(.param//"?")))' apps/api/.pf-runs/obp/turn2/tools/28-frame_problem.json
 ```
 
-No DB and no re-run needed to inspect a past run — the files are the interface.
+No DB and no re-run needed to inspect a past run - the files are the interface.
 
 ---
 
@@ -61,14 +61,16 @@ No DB and no re-run needed to inspect a past run — the files are the interface
 | flag | meaning |
 |------|---------|
 | `prompt` (positional) | the user message for this turn |
-| `--site` | WDK site id (e.g. `vectorbase`, `plasmodb`) — required |
+| `--site` | WDK site id (e.g. `vectorbase`, `plasmodb`) - required |
 | `--conversation-id <uuid>` | resume an existing conversation (durable via checkpointer). Omit to mint a new one (printed unless `--quiet`). |
-| `--run-dir <path>` | where artifacts go. Default `/data/pf-runs/<conv>/<turn>`. Re-using a path is safe — each run **resets** the artifact subdirs (`tools/`, `state/`, `errors/`, `wdk/`) and top-level files first, so two runs never mix. Other files in the directory are left alone. |
+| `--run-dir <path>` | where artifacts go. Default `/data/pf-runs/<conv>/<turn>`. Re-using a path is safe - each run **resets** the artifact subdirs (`tools/`, `state/`, `errors/`, `wdk/`) and top-level files first, so two runs never mix. Other files in the directory are left alone. |
 | `--model PHASE=ID` | per-phase model override (repeatable). Phases: `lead frame execution verification`. |
+| `--effort none\|low\|medium\|high` | reasoning effort for every role, sent as the request body's `phaseReasoning` the way the settings panel sends it. Omit it and each role runs at its tier's effort. `respond` takes it too, so a resumed gate keeps the effort. The run directory records it in `turn_settings.json`. |
+| `--attach PATH` | attach a local file to the message (repeatable), inline as a `file` part, the way the composer attaches one. The chat route's refusal applies: a kind the Lead's model does not read, or a file over 10 MB, is refused before the turn. |
 | `--approve auto\|deny\|prompt` | how to answer mid-turn approval gates (`consult_user`, etc.). `auto` for unattended; `prompt` reads stdin. |
 | `--capture-wdk` | also record raw WDK httpx round-trips to `wdk/`. |
-| `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes `llm/` to the shared run-dir (captures the durable resumes too — the post-result phase agents); the devtool waits for the turn to settle, then replays the persisted `conversation_events` into `events.jsonl`/`tools/`/`diagnosis`. Use this whenever the in-process run can't finish because a durable tool raises (the `AppNotOpen`/stub case). Requires the worker container running. |
-| `--capture-llm` | (in-process runs) record the exact LLM I/O per call to `llm/NN-<role>-{request,response}.json` — the full system prompt (`instructions`), the complete typed message history **as the model receives it** (incl. `tool-return` / `retry-prompt` parts — i.e. whether the model actually sees an error/directive), the tool definitions offered, model settings, and the response parts + usage + finish reason. The ground-truth plane for "does the model truly see X". Read with `inspect <dir> --llm [role]`. |
+| `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes `llm/` to the shared run-dir (captures the durable resumes too - the post-result phase agents); the devtool waits for the turn to settle, then replays the persisted `conversation_events` into `events.jsonl`/`tools/`/`diagnosis`. Use this whenever the in-process run can't finish because a durable tool raises (the `AppNotOpen`/stub case). Requires the worker container running. |
+| `--capture-llm` | (in-process runs) record the exact LLM I/O per call to `llm/NN-<role>-{request,response}.json` - the full system prompt (`instructions`), the complete typed message history **as the model receives it** (incl. `tool-return` / `retry-prompt` parts - i.e. whether the model actually sees an error/directive), the tool definitions offered, model settings, and the response parts + usage + finish reason. The ground-truth plane for "does the model truly see X". Read with `inspect <dir> --llm [role]`. |
 | `--mock` | use the deterministic FunctionModel (free; also sets `API_ENV=test`). Default is the real configured provider. |
 | `--email` / `--password` | WDK login override; default to `WDK_DEV_EMAIL` / `WDK_DEV_PASSWORD` (set in `.env.dev`). |
 | `--assistant <id>` | which assistant to run. It applies when the thread is new; naming another assistant than an existing thread's is refused. Default: the registry's default. |
@@ -88,11 +90,11 @@ detects the one pending interaction and writes **`gate.json`** (+ prints it):
 
 | gate `kind` | UI equivalent | how to answer |
 |------|------|------|
-| `approval` | approval card (`consult_user`, `delete_step`, …) | `respond … --accept` / `--deny [--reason …]` |
-| `consult` | question carousel (`consult_user`) | `respond … --answer <qid>=<label>` (repeat; comma-separate for multi) |
-| `approval` w/ `plan_slots` | plan slot form (NEEDS_USER_INPUT) | `respond … --slot <stepId>:<param>=<value>` (repeat) |
-| `durable` | running background task | nothing — `--via-worker` streams progress and continues |
-| `none` | turn complete | — |
+| `approval` | approval card (`consult_user`, `delete_step`, ...) | `respond ... --accept` / `--deny [--reason ...]` |
+| `consult` | question carousel (`consult_user`) | `respond ... --answer <qid>=<label>` (repeat; comma-separate for multi) |
+| `approval` w/ `plan_slots` | plan slot form (NEEDS_USER_INPUT) | `respond ... --slot <stepId>:<param>=<value>` (repeat) |
+| `durable` | running background task | nothing - `--via-worker` streams progress and continues |
+| `none` | turn complete | - |
 
 ```bash
 # one turn; stops at the first gate (default --approve prompt) and writes gate.json
@@ -110,10 +112,10 @@ options) until completion or a gate it can't auto-answer. `--approve deny` denie
 approvals. Both `run` and `respond` honor `--via-worker` (durable tools execute in
 the worker) and `--capture-llm`.
 
-**Multi-turn — STRICTLY one turn at a time. NEVER batch turns.** This is a real
+**Multi-turn - STRICTLY one turn at a time. NEVER batch turns.** This is a real
 conversation: you do not know what the agent will say until it says it. The agent
 routinely asks clarifying questions, presents decision forks, or reports partial
-results, and your next message must answer *what it actually asked* — not what you
+results, and your next message must answer *what it actually asked* - not what you
 guessed it would ask.
 
 The required loop is:
@@ -124,7 +126,7 @@ The required loop is:
 
 **Do NOT** chain turn 1 and turn 2 in one shell invocation with a pre-written
 turn-2 reply. If you find yourself writing the next prompt before reading the last
-response, stop — you are guessing, and the run is invalid. There is no REPL (agents
+response, stop - you are guessing, and the run is invalid. There is no REPL (agents
 can't feed stdin to a live process); durable resume via `--conversation-id` is the
 equivalent and is what you should use, one step at a time.
 
@@ -166,7 +168,7 @@ that raw shell can't do trivially. Run it anywhere the files are reachable
                       # toolcalls = every call the log announces, whether the
                       # turn ran one agent or a Lead with sub-agents
   diagnosis.json      # detected anomalies (see below)
-  events.jsonl        # every chunk, raw, untruncated — the SSOT
+  events.jsonl        # every chunk, raw, untruncated - the SSOT
   tools/NN-<tool>.json# per tool call: phase, FULL args, status, FULL result,
                       #   decoded validation errors, duration
   tree.{json,txt}     # turn -> phase -> tool-call span tree
@@ -174,6 +176,8 @@ that raw shell can't do trivially. Run it anywhere the files are reachable
   errors/NN-*.txt     # Python tracebacks for any logged exception
   wdk/NN-*.json       # raw WDK request/response (only with --capture-wdk)
   transcript.md       # human-readable trace
+  turn_settings.json  # assistant id, phaseModels and phaseReasoning the run sent
+                      # ({} means each role at its tier's default)
 ```
 
 `tools/*.json` is the substrate for surgical debugging: display in stdout is
@@ -190,11 +194,11 @@ The engine (`diagnosis.py`) flags PathFinder's recurring failure modes:
 
 | kind | meaning |
 |------|---------|
-| `validation_catch_22` | a param is **required by one validator but rejected as unknown by another** — unsatisfiable. This is the `document_type` bug's exact signature. |
-| `loop` | one tool failed ≥5 times (consecutive or alternating error signatures) — the agent is stuck. |
-| `wdk_service_error` | the same search returned a WDK 5xx ≥2 times — the agent retried an unavailable search instead of routing around it. Usually an upstream outage, not a PathFinder bug. |
-| `silent_zero` | a step returned 0 results (`ledger.build.zeroResultSteps`) **and the reply never said so** — possible silent failure (e.g. missing JSESSIONID, wrong params). |
-| `silent_constraint_violation` | a user-explicit constraint was substituted or ungroundable, blocking, **and the reply never named it** — the plan deviated from what the user asked without saying so. |
+| `validation_catch_22` | a param is **required by one validator but rejected as unknown by another** - unsatisfiable. This is the `document_type` bug's exact signature. |
+| `loop` | one tool failed ≥5 times (consecutive or alternating error signatures) - the agent is stuck. |
+| `wdk_service_error` | the same search returned a WDK 5xx ≥2 times - the agent retried an unavailable search instead of routing around it. Usually an upstream outage, not a PathFinder bug. |
+| `silent_zero` | a step returned 0 results (`ledger.build.zeroResultSteps`) **and the reply never said so** - possible silent failure (e.g. missing JSESSIONID, wrong params). |
+| `silent_constraint_violation` | a user-explicit constraint was substituted or ungroundable, blocking, **and the reply never named it** - the plan deviated from what the user asked without saying so. |
 | `budget_burn` | the turn consumed an abnormal number of tokens (≥200k). |
 | `no_plan` | planning terminated without producing a plan. |
 
@@ -206,7 +210,7 @@ The engine (`diagnosis.py`) flags PathFinder's recurring failure modes:
 
 - **Run in the container, not the host** (host DB port conflict).
 - **Durable tools** (`run_control_tests_on_step`, `optimize_search_parameters`,
-  enrichment) call procrastinate, which isn't open in-process — they raise
+  enrichment) call procrastinate, which isn't open in-process - they raise
   `AppNotOpen`. The traceback is captured, but those tools can't fully execute
   here. Use the full stack to debug them.
 - **State snapshots are chunk-derived** (reconstructed from ledger/problem-frame
@@ -218,7 +222,7 @@ The engine (`diagnosis.py`) flags PathFinder's recurring failure modes:
 
 ---
 
-## `pathfinder.devtools.evals` — the curation desk and the eval run
+## `pathfinder.devtools.evals` - the curation desk and the eval run
 
 The same turn pipeline, driven from the corpus instead of from a prompt. It
 shares `chat.py`'s `drive_run`, so a case runs exactly as a chat turn does, and
@@ -244,7 +248,8 @@ docker compose --env-file .env.dev exec -T api uv run python -m pathfinder.devto
 The mock is a script that routes on keywords, so a green run says the routing,
 the materialisation, the persistence and the reported verdict still behave. The
 corpus is provider-agnostic: a real-model run is the same command with a
-different provider.
+different provider (`--real`), and `--effort none|low|medium|high` runs every
+role of every case at one effort, as the chat debugger's flag does.
 
 ---
 
@@ -255,7 +260,7 @@ different provider.
 | `chat.py` | CLI: `run`/`respond`/`inspect`/`diff`, bootstrap, turn loop, approval resume |
 | `evals.py` | CLI: `staged`/`show`/`promote`/`corpus`/`extract`/`run` |
 | `eval_runner.py` | one case per fresh thread, every turn in order, read back from the projection and the checkpoint |
-| `capture.py` | `RunCapture` (chunk → artifacts writer) + `capture_tracebacks` |
+| `capture.py` | `RunCapture` (chunk -> artifacts writer) + `capture_tracebacks` |
 | `models.py` | artifact schema + chunk parsers + validation-error decoder |
 | `diagnosis.py` | the fingerprint engine |
 | `inspector.py` | `inspect`/`diff` rendering (pure, reads a run-dir) |
@@ -284,5 +289,5 @@ one include at the pinned commit and rewrites the pin only when a byte changed; 
 `sha` field first, then run it.
 
 `RunCapture` implements the `ChatWriter` protocol
-(`assistant_core.conversation.event_writer`) — the same surface as the production
+(`assistant_core.conversation.event_writer`) - the same surface as the production
 `ChatEventWriter`, so the CLI exercises the real turn pipeline.

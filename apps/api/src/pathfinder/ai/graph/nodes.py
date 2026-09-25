@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from functools import partial
+from typing import Any, Literal
 from uuid import UUID
 
 from assistant_core.graph.emit import emit_chunk
@@ -14,12 +15,13 @@ from assistant_core.memory.store import MemoryStore
 from assistant_core.memory.tombstones import TombstoneRepository
 from assistant_core.platform.logging import get_logger
 from assistant_core.scratchpad.compactor import compact_scratchpad
-from langgraph.config import get_stream_writer
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 from sqlalchemy.exc import SQLAlchemyError
 
 from pathfinder.ai.agents.compactor import build_compactor_agent
+from pathfinder.ai.capabilities.metering import SpendMeter, charge_spend
+from pathfinder.ai.graph._lead_capture import turn_with_spend
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
@@ -54,9 +56,51 @@ async def _name_strategy_revision(
         )
 
 
+async def _compact_the_notes(
+    context: Context, state: PipelineState, writer: Any
+) -> PipelineState:
+    """Compact the thread's notes, charging the run to its payer and to the turn.
+
+    A failed compaction does not fail the turn; what its run spent is charged.
+    """
+    meter = SpendMeter()
+    try:
+        compaction_run = await compact_scratchpad(
+            conversation_id=state.conversation_id,
+            db_session_factory=context.db_session_factory,
+            agent=partial(build_compactor_agent, meter=meter),
+        )
+    except Exception:
+        logger.exception(
+            "scratchpad compaction failed",
+            conversation_id=str(state.conversation_id),
+        )
+        compaction_run = None
+    await charge_spend(
+        context.db_session_factory, user_id=state.user_id, spent=meter.spent
+    )
+    if compaction_run is not None:
+        emit_chunk(writer, scratchpad_updated_event())
+    return turn_with_spend(state, meter, writer)
+
+
 async def finalize_turn_node(
     state: PipelineState, runtime: Runtime[Context]
 ) -> Command[Literal["__end__"]]:
+    # A verdict stands while the strategy is the one it judged, so only the
+    # turn that ran the check treats it as this turn's finding.
+    checked = state.turn_markers.verification_dispatched
+    verdict = state.turn_verdict if checked else None
+    update: dict[str, object] = {}
+    if runtime.context is not None and verdict is not None:
+        compacted = await _compact_the_notes(
+            runtime.context, state, runtime.stream_writer
+        )
+        if compacted is not state:
+            update["turn_total_tokens"] = compacted.turn_total_tokens
+            update["turn_total_cost_usd"] = compacted.turn_total_cost_usd
+        state = compacted
+
     turn_message_id: UUID | None = None
     if runtime.context is not None:
         turn_message_id = await write_turn_message(
@@ -70,11 +114,7 @@ async def finalize_turn_node(
                 message_id=turn_message_id,
             )
 
-    # A verdict stands while the strategy is the one it judged, so only the
-    # turn that ran the check treats it as this turn's finding.
     notes_written = False
-    checked = state.turn_markers.verification_dispatched
-    verdict = state.turn_verdict if checked else None
     if (
         runtime.context is not None
         and verdict is not None
@@ -108,25 +148,8 @@ async def finalize_turn_node(
         except (RuntimeError, ValueError, OSError, SQLAlchemyError) as exc:
             logger.warning("auto-write memories failed: %s", exc)
 
-    if runtime.context is not None and verdict is not None:
-        try:
-            compaction_run = await compact_scratchpad(
-                conversation_id=state.conversation_id,
-                db_session_factory=runtime.context.db_session_factory,
-                agent=build_compactor_agent,
-            )
-        except Exception:
-            logger.exception(
-                "scratchpad compaction failed",
-                conversation_id=str(state.conversation_id),
-            )
-            compaction_run = None
-        if compaction_run is not None:
-            emit_chunk(get_stream_writer(), scratchpad_updated_event())
-
     if notes_written and state.domain.created_gene_sets:
         # A note in the store is not offered again, so the per-turn write does
         # not grow with the thread.
-        kept = state.domain.model_copy(update={"created_gene_sets": []})
-        return Command(goto=_END, update={"domain": kept})
-    return Command(goto=_END)
+        update["domain"] = state.domain.model_copy(update={"created_gene_sets": []})
+    return Command(goto=_END, update=update or None)

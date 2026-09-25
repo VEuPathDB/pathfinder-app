@@ -14,7 +14,7 @@ from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
-    SearchRationale,
+    ChosenRationale,
     StepRationale,
 )
 
@@ -68,7 +68,13 @@ class DroppedCriterion(CamelModel):
 
 
 class StructureNode(CamelModel):
-    kind: Literal["leaf", "combine", "transform"]
+    """One node of the stated tree.
+
+    A copy restates the subtree it holds, which the tree states elsewhere, and
+    is stated as criteria of its own before anything builds it.
+    """
+
+    kind: Literal["leaf", "combine", "transform", "copy"]
     criterion_id: str | None = None
     operator: CombineOp | None = None
     inputs: list[StructureNode] = Field(default_factory=list)
@@ -136,8 +142,12 @@ class Criterion(CamelModel):
     analysis: AnalysisBinding | None = None
     # The dataset whose analysis workflow realizes this criterion, while it waits.
     needs_analysis_on: str | None = None
-    # Why the criterion runs its search, recorded when FRAME binds it.
-    rationale: SearchRationale | None = None
+    # Why the criterion runs its search: FRAME's choice when it binds it, or
+    # the controls a separation measured it against.
+    rationale: ChosenRationale | None = None
+    # Words of the text that narrow it and that no search the binding pass read
+    # can state. Each is reported unmet until a search states it.
+    unexpressed_qualifiers: list[str] = Field(default_factory=list)
 
     @property
     def bound(self) -> bool:

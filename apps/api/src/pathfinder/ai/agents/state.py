@@ -1,11 +1,11 @@
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass, field
 from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, VocabOption
-from veupathdb_mcp.catalog import SheetEntry
+from veupathdb_mcp.catalog import ExperimentCard, SheetEntry
 
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
@@ -121,6 +121,17 @@ class CatalogRead(BaseModel):
         return next((h for h in self.hits if h.name == name), None)
 
 
+class ShownExperiment(BaseModel):
+    """Another site's experiment a catalog read of this pass showed. It binds nothing."""
+
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str
+    dataset_id: str
+    # The searches it feeds that the thread's own site does not publish.
+    searches_only_there: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class AgentToolState:
     discovered_searches: dict[str, SearchOverview] = field(default_factory=dict)
@@ -142,6 +153,11 @@ class AgentToolState:
     # The workbench gene sets this turn created, in creation order. The list is
     # the Lead's, so a save by any agent of the turn lands in one place.
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
+    # Other sites' experiments this pass showed, by dataset id, oldest first.
+    elsewhere: dict[str, ShownExperiment] = field(default_factory=dict)
+    # The sentence that sends a request only the portal answers there, once a
+    # refusal of this pass wrote it.
+    portal_route: str = ""
 
     def pin_sheet(
         self,
@@ -295,6 +311,28 @@ class AgentToolState:
         """Record what one catalog call answered, so a search tool is held to
         names the model has seen and a binding is compared with the rest."""
         self.catalog_reads.append(read)
+
+    def record_elsewhere(
+        self, cards: Iterable[ExperimentCard], own_searches: Collection[str]
+    ) -> list[ShownExperiment]:
+        """Record the experiments this pass had not shown, and answer them.
+
+        ``own_searches`` are the searches the thread's own site publishes.
+        """
+        fresh: list[ShownExperiment] = []
+        for card in cards:
+            if card.dataset_id in self.elsewhere:
+                continue
+            shown = ShownExperiment(
+                site_id=card.site_id,
+                dataset_id=card.dataset_id,
+                searches_only_there=[
+                    name for name in card.searches if name not in own_searches
+                ],
+            )
+            self.elsewhere[card.dataset_id] = shown
+            fresh.append(shown)
+        return fresh
 
     def last_read_answering(self, search_name: str) -> CatalogRead | None:
         """The newest read of this pass whose hits hold the search."""

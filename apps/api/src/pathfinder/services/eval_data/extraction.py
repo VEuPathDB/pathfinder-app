@@ -19,7 +19,6 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.domain.strategy import StrategyAst, walk
 
-from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.extract import (
     EvalExtract,
@@ -222,17 +221,8 @@ def _redacted_words(words: StepWords) -> StepWords:
             "criterion_texts": {
                 step: redact_text(text) for step, text in words.criterion_texts.items()
             },
-            # Validated again, so the label derived from the term is redacted too.
             "rationales": {
-                step: SearchRationale.model_validate(
-                    reason.model_dump(by_alias=True)
-                    | {
-                        "reason": redact_text(reason.reason),
-                        "term": redact_text(reason.term),
-                        "query": redact_text(reason.query),
-                        "sources": [redact_text(s) for s in reason.sources],
-                    }
-                )
+                step: reason.redacted(redact_text)
                 for step, reason in words.rationales.items()
             },
         }

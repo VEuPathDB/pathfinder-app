@@ -360,18 +360,6 @@ class ConversationAnalysis(Base):
     )
 
 
-class ConversationAnalysisView(BaseModel):
-    """Read shape of a thread's bound analysis."""
-
-    model_config = ConfigDict(frozen=True, from_attributes=True, extra="forbid")
-
-    site_id: str
-    dataset_id: str
-    analysis_id: str
-    revision: int
-    subset_previewed: bool = False
-
-
 class Export(Base):
     """Temporary download artifact with TTL."""
 
@@ -583,7 +571,8 @@ class UserProviderKey(Base):
             name="ck_user_provider_keys_refusal_has_a_time",
         ),
         CheckConstraint(
-            "refusal IS NULL OR refusal IN ('invalid', 'unreadable')",
+            "refusal IS NULL OR refusal IN "
+            "('invalid', 'no_credit', 'forbidden', 'unreadable')",
             name="ck_user_provider_keys_refusal",
         ),
         Index(

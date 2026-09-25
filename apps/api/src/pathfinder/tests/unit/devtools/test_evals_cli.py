@@ -67,6 +67,15 @@ def test_run_uses_the_deterministic_provider_unless_asked_otherwise() -> None:
     assert parser.parse_args(["run", "--real"]).real is True
 
 
+def test_run_takes_one_effort_for_every_role() -> None:
+    parser = _build_parser()
+
+    assert parser.parse_args(["run"]).effort is None
+    assert parser.parse_args(["run", "--effort", "high"]).effort == "high"
+    with pytest.raises(SystemExit):
+        parser.parse_args(["run", "--effort", "max"])
+
+
 def test_a_command_is_required() -> None:
     with pytest.raises(SystemExit):
         _build_parser().parse_args([])

@@ -3,14 +3,22 @@
 import { getToolName, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
+import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
 
 import {
   ApprovalCard,
   type ApprovalDecision,
 } from "@/features/conversation/thread/ApprovalCard";
-import { approvalPromptFor } from "@/features/conversation/toolNames";
+import {
+  approvalPromptFor,
+  approvalSubjectFor,
+} from "@/features/conversation/toolNames";
 
-import { CONSULT_TOOL_NAME, PROPOSAL_TOOL_NAME } from "../../rail/consultActions";
+import {
+  ADOPTION_TOOL_NAME,
+  CONSULT_TOOL_NAME,
+  PROPOSAL_TOOL_NAME,
+} from "../../rail/consultActions";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
 
@@ -18,6 +26,7 @@ import { useThreadDevMode } from "../../thread/useThreadDevMode";
 const CARD_TOOLS: ReadonlySet<string> = new Set([
   CONSULT_TOOL_NAME,
   PROPOSAL_TOOL_NAME,
+  ADOPTION_TOOL_NAME,
 ]);
 
 export interface ToolApprovalView {
@@ -25,6 +34,8 @@ export interface ToolApprovalView {
   toolName: string;
   input: ToolUIPart["input"];
   decision: ApprovalDecision;
+  /** The first line the thread holds for this call: the one written when it asked. */
+  asked: string | null;
 }
 
 function decisionOf(
@@ -33,6 +44,19 @@ function decisionOf(
 ): ApprovalDecision {
   if (state === "approval-requested") return "pending";
   return approved === true ? "approved" : "denied";
+}
+
+function firstSummaryLine(messages: UIMessage[], toolCallId: string): string | null {
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "data-tool-summary") continue;
+      const parsed = toolSummaryPayloadSchema.safeParse(part.data);
+      if (parsed.success && parsed.data.toolCallId === toolCallId) {
+        return parsed.data.summary;
+      }
+    }
+  }
+  return null;
 }
 
 /** The approval carried by one tool call, across every message in the thread. */
@@ -50,6 +74,7 @@ export function findToolApproval(
         toolName: getToolName(part),
         input: part.input,
         decision: decisionOf(part.state, approval.approved),
+        asked: firstSummaryLine(messages, toolCallId),
       };
     }
   }
@@ -76,12 +101,13 @@ export function ToolApprovalControls({
 
   return (
     <ApprovalCard
-      prompt={approvalPromptFor(approval.toolName)}
+      prompt={approvalPromptFor(approval.toolName, approval.asked)}
       input={approval.input}
       showRaw={showRaw}
       onApprove={() => respond(true)}
       onDeny={() => respond(false)}
       decision={approval.decision}
+      subject={approvalSubjectFor(approval.toolName, approval.asked)}
     />
   );
 }

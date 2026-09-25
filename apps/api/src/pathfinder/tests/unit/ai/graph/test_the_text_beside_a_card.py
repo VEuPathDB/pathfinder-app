@@ -1,5 +1,5 @@
-"""The reply a Lead writes beside a card is held to the turn contract before
-the card reaches the researcher."""
+"""The reply a card call carries is held to the turn contract before the card
+reaches the researcher, and streams as text before the card."""
 
 from __future__ import annotations
 
@@ -17,7 +17,6 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph.state import PipelineState
@@ -87,10 +86,9 @@ def _card_turn(replies: list[str], seen: list[list[ModelMessage]]) -> FunctionMo
         seen.append(messages)
         turn = len(seen) - 1
         return [
-            TextPart(content=replies[turn]),
             ToolCallPart(
                 tool_name=PROPOSAL_TOOL,
-                args=CARD_ARGS,
+                args={**CARD_ARGS, "reply": replies[turn]},
                 tool_call_id=f"call_card_{turn}",
             ),
         ]
@@ -128,8 +126,11 @@ async def _built_turn_ending_on_a_card(
     return seen, capture
 
 
+DELETE_REPLY = "I remove the step s1 you named; the rest of the strategy stays."
+
+
 def _card_beside_a_delete(reply: str, seen: list[list[ModelMessage]]) -> FunctionModel:
-    """The first response writes the reply, a card and a delete; the next ends."""
+    """The first response ends on a proposal and a delete; the next ends the run."""
 
     def _parts(messages: list[ModelMessage]) -> list[TextPart | ToolCallPart]:
         seen.append(messages)
@@ -140,10 +141,15 @@ def _card_beside_a_delete(reply: str, seen: list[list[ModelMessage]]) -> Functio
                 )
             ]
         return [
-            TextPart(content=reply),
-            ToolCallPart(tool_name=PROPOSAL_TOOL, args=CARD_ARGS, tool_call_id=CARD),
             ToolCallPart(
-                tool_name="delete_step", args={"step_id": "s1"}, tool_call_id=DELETE
+                tool_name=PROPOSAL_TOOL,
+                args={**CARD_ARGS, "reply": reply},
+                tool_call_id=CARD,
+            ),
+            ToolCallPart(
+                tool_name="delete_step",
+                args={"step_id": "s1", "reply": DELETE_REPLY},
+                tool_call_id=DELETE,
             ),
         ]
 
@@ -246,7 +252,7 @@ def _returns_to(messages: list[ModelMessage], call_id: str) -> list[str]:
     ]
 
 
-async def test_a_card_beside_another_approval_is_written_after_that_call(
+async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen: list[list[ModelMessage]] = []
@@ -255,23 +261,24 @@ async def test_a_card_beside_another_approval_is_written_after_that_call(
     )
     state = _built_state()
 
-    capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
+    await drive_lead(state=state, deps=lead_deps(state), writer=writer)
 
     assert len(seen) == 1
-    assert _calls_on_the_wire(writer) == [*_asked(DELETE), *_asked(CARD)]
     wire = _wire(writer)
-    delete_asked = wire.index(f"tool-approval-request:{DELETE}")
+    replies = [i for i, chunk in enumerate(wire) if chunk == "text-start:"]
+    assert len(replies) == 2
     assert (
-        delete_asked
-        < wire.index("text-start:")
+        replies[0]
         < wire.index(f"tool-input-start:{CARD}")
+        < wire.index(f"tool-approval-request:{CARD}")
+        < replies[1]
+        < wire.index(f"tool-input-start:{DELETE}")
+        < wire.index(f"tool-approval-request:{DELETE}")
     )
-    assert _written_text(writer) == NAMES_IT
-    assert capture.pending_approval is not None
-    assert capture.pending_approval.tool_call_id == CARD
+    assert _written_text(writer) == NAMES_IT + DELETE_REPLY
 
 
-async def test_a_denied_card_beside_another_approval_is_read_after_that_approval(
+async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen: list[list[ModelMessage]] = []
@@ -280,34 +287,16 @@ async def test_a_denied_card_beside_another_approval_is_read_after_that_approval
         "get_mock_model",
         lambda: _card_beside_a_delete(LEAVES_IT_OUT, seen),
     )
-    first = _built_state()
-    parked = await drive_lead(state=first, deps=lead_deps(first), writer=writer)
-
-    assert len(seen) == 1
-    assert _calls_on_the_wire(writer) == _asked(DELETE)
-    assert _written_text(writer) == ""
-    assert parked.pending_approval is not None
-    assert parked.pending_approval.tool_call_id == DELETE
-
-    parked_run = len(writer.payloads)
     state = _built_state()
-    state.user_message_id = first.user_message_id
-    state.pending_approval = parked.pending_approval
-    state.approval_responses = {
-        DELETE: ToolApprovalResponded(id=DELETE, approved=False, reason="Keep it."),
-    }
+
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
 
     assert len(seen) == 2
-    correction = _returns_to(seen[1], CARD)
-    assert len(correction) == 1
-    assert "This reply does not match what the turn did:" in correction[0]
-    assert SEARCH in correction[0]
-    assert _returns_to(seen[1], DELETE) == ["Keep it."]
-    resumed = [p["chunk"] for p in writer.payloads[parked_run:] if "chunk" in p]
-    assert [(c["type"], c["toolCallId"]) for c in resumed[1:4]] == [
-        ("tool-input-start", DELETE),
-        ("tool-input-available", DELETE),
-        ("tool-output-denied", DELETE),
-    ]
+    for call_id in (CARD, DELETE):
+        correction = _returns_to(seen[1], call_id)
+        assert len(correction) == 1
+        assert SEARCH in correction[0]
+    on_the_wire = {call_id for _, call_id in _calls_on_the_wire(writer)}
+    assert on_the_wire.isdisjoint({CARD, DELETE})
+    assert _written_text(writer) == ""
     assert capture.pending_approval is None

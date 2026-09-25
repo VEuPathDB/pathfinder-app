@@ -149,6 +149,15 @@ class TestARequestWithNoVEuPathDBSessionIsRefused:
 
         _assert_login_required(response)
 
+    async def test_the_own_datasets_listing_is_refused(
+        self,
+        signed_out: httpx.AsyncClient,
+    ) -> None:
+        response = await signed_out.get("/api/v1/eda/datasets?siteId=plasmodb")
+
+        _assert_login_required(response)
+        assert response.json()["code"] == LOGIN_CODE
+
     async def test_a_strategy_operation_is_refused(
         self,
         signed_out: httpx.AsyncClient,

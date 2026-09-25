@@ -54,9 +54,7 @@ type DeserializeOptions = {
 
 export function deserializeStrategyToGraph(
   strategy: Strategy | null,
-  onOperatorChange?: (stepId: string, operator: string) => void,
   onOpenDetails?: (stepId: string) => void,
-  unsavedStepIds?: Set<string>,
   options?: DeserializeOptions,
 ): { nodes: Node[]; edges: Edge[] } {
   if (!strategy || strategy.steps.length === 0) {
@@ -168,9 +166,7 @@ export function deserializeStrategyToGraph(
       },
       data: {
         step,
-        onOperatorChange,
         onOpenDetails,
-        isUnsaved: unsavedStepIds?.has(step.id) ?? false,
         isOrphan: !reachable.has(step.id),
         showOutputHandle: shouldShowRootOutputs && rootSet.has(step.id),
         showPrimaryInputHandle:

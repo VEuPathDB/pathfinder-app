@@ -9,9 +9,10 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import JsonValue
 from veupathdb.domain.parameters import NumberValue
 from veupathdb.errors import WDKError
-from veupathdb.wdk import WDKAnswerMeta
+from veupathdb.wdk import VEuPathDBClient, WDKAnswerMeta
 
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.variant_comparison import (
@@ -42,7 +43,11 @@ def _patch_client(
     monkeypatch: pytest.MonkeyPatch, results_by_search_value: dict[str, list[str]]
 ) -> None:
     async def _run_search_report(
-        record_type: str, search_name: str, search_config: Any, report_config: Any
+        record_type: str,
+        search_name: str,
+        search_config: Any,
+        report_config: Any,
+        view_filters: Any,
     ) -> Any:
         # Key the mock on the fold_change param value so each variant differs.
         value = search_config.parameters.get("fold_change", "")
@@ -103,7 +108,11 @@ async def test_one_failing_variant_does_not_crash_the_comparison(
     error and the others still compare."""
 
     async def _run_search_report(
-        record_type: str, search_name: str, search_config: Any, report_config: Any
+        record_type: str,
+        search_name: str,
+        search_config: Any,
+        report_config: Any,
+        view_filters: Any,
     ) -> Any:
         value = search_config.parameters.get("fold_change", "")
         if value == "bad":
@@ -140,5 +149,84 @@ async def test_one_failing_variant_does_not_crash_the_comparison(
     by_label = {v.label: v for v in result.variants}
     assert by_label["good"].gene_count == 2
     assert by_label["good"].error is None
-    assert by_label["bad"].error is not None
-    assert "invalid" in by_label["bad"].error
+    assert by_label["bad"].error == (
+        "VEuPathDB service error: Parameter 'fold_change' is invalid"
+    )
+
+
+# A transcript search near the row cap: each gene has two transcripts, so the
+# genes fit under the cap and the transcripts do not.
+_GENES = 26_000
+_TRANSCRIPTS_PER_GENE = 2
+
+
+def _transcript_row(gene: int, transcript: int) -> JsonValue:
+    return {
+        "id": [
+            {"name": "gene_source_id", "value": f"PF3D7_{gene:06d}"},
+            {"name": "source_id", "value": f"PF3D7_{gene:06d}.{transcript}"},
+            {"name": "project_id", "value": "PlasmoDB"},
+        ],
+        "attributes": {},
+    }
+
+
+class _TranscriptSite:
+    """Answers a transcript report the way WDK does, one row per transcript.
+
+    The representative transcript view filter makes it one row per gene.
+    """
+
+    def __init__(self) -> None:
+        self.bodies: list[dict[str, Any]] = []
+
+    async def __call__(
+        self, path: str, json: dict[str, Any] | None = None, **_: object
+    ) -> JsonValue:
+        body = json or {}
+        self.bodies.append(body)
+        per_gene = 1 if "viewFilters" in body else _TRANSCRIPTS_PER_GENE
+        cap = body["reportConfig"]["pagination"]["numRecords"]
+        rows = [
+            _transcript_row(gene, n)
+            for gene in range(_GENES)
+            for n in range(1, per_gene + 1)
+        ][:cap]
+        return {
+            "records": rows,
+            "meta": {
+                "totalCount": _GENES * _TRANSCRIPTS_PER_GENE,
+                "displayTotalCount": _GENES,
+                "viewTotalCount": _GENES * per_gene,
+                "displayViewTotalCount": _GENES,
+                "responseCount": len(rows),
+                "recordClassName": "transcript",
+            },
+        }
+
+
+@pytest.mark.asyncio
+async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    site = _TranscriptSite()
+    client = VEuPathDBClient("https://example.invalid/service")
+    monkeypatch.setattr(client, "post", site)
+    monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
+
+    result = await run_variant_comparison(
+        "plasmodb",
+        [
+            VariantSpec(
+                label="near the cap",
+                search_name="GenesByMolecularWeight",
+                parameters={"min_molecular_weight": NumberValue(value=1.0)},
+            )
+        ],
+    )
+
+    assert site.bodies[0]["viewFilters"] == [
+        {"name": "representativeTranscriptOnly", "value": {}, "disabled": False}
+    ]
+    assert result.truncated is False
+    assert result.variants[0].gene_count == _GENES

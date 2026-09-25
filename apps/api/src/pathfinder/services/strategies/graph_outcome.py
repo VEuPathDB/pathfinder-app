@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 
-from veupathdb.domain.strategy import wdk_search_name
+from veupathdb.domain.strategy import rebuild_tree, wdk_search_name
 
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     StepPushFailure,
     citable_count,
 )
+from pathfinder.domain.strategy.orthology import organism_change
 from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
 from pathfinder.services.strategies.spec_build import node_results
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -53,6 +54,11 @@ def outcome_for_graph(
             else None
         ),
         zero_step_ids=[sid for sid, count in counts.items() if count == 0],
+        organism_change=(
+            organism_change(rebuild_tree(root_id, graph.steps))
+            if graph is not None and root_id is not None
+            else None
+        ),
     )
     outcome.node_results = node_results(steps, sync_state, outcome)
     return outcome

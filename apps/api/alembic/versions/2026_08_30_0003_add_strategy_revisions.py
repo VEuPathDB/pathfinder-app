@@ -11,7 +11,7 @@ Create Date: 2026-08-30 00:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -24,29 +24,33 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "strategy_revisions",
-        sa.Column("id", sa.BigInteger(), sa.Identity(), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "id", sqlalchemy.BigInteger(), sqlalchemy.Identity(), primary_key=True
+        ),
+        sqlalchemy.Column(
             "conversation_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("revision", sa.String(length=64), nullable=False),
-        sa.Column("record_type", sa.String(length=100), nullable=True),
-        sa.Column(
+        sqlalchemy.Column("revision", sqlalchemy.String(length=64), nullable=False),
+        sqlalchemy.Column("record_type", sqlalchemy.String(length=100), nullable=True),
+        sqlalchemy.Column(
             "strategy_ast",
-            postgresql.JSONB(astext_type=sa.Text()),
+            postgresql.JSONB(astext_type=sqlalchemy.Text()),
             nullable=False,
             server_default="{}",
         ),
-        sa.Column("step_count", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("wdk_strategy_id", sa.Integer(), nullable=True),
-        sa.Column("name", sa.String(length=255), nullable=True),
-        sa.Column("message_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column(
+        sqlalchemy.Column(
+            "step_count", sqlalchemy.Integer(), nullable=False, server_default="0"
+        ),
+        sqlalchemy.Column("wdk_strategy_id", sqlalchemy.Integer(), nullable=True),
+        sqlalchemy.Column("name", sqlalchemy.String(length=255), nullable=True),
+        sqlalchemy.Column("message_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )

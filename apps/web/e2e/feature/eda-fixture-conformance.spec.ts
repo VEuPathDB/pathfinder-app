@@ -3,7 +3,7 @@
  *
  * A recorded payload that the app would reject is a fixture that proves
  * nothing, and the SSE part path does no validation of its own, so a bad part
- * payload is invisible in a journey. This file parses every fixture the three
+ * payload is invisible in a journey. This file parses every fixture the
  * journeys serve. It uses the bare Playwright runner, not `../fixtures/test`,
  * because that fixture set carries an auto-use cleanup that logs in and clears
  * server state: a schema check must not depend on a running API.
@@ -15,24 +15,19 @@ import { conversationEdaResponseSchema } from "@pathfinder/shared/generated/zod/
 import { conversationResponseSchema } from "@pathfinder/shared/generated/zod/conversationResponseSchema";
 import { edaAnalysisPatchResponseSchema } from "@pathfinder/shared/generated/zod/edaAnalysisPatchResponseSchema";
 import { edaAnalysisStateSchema } from "@pathfinder/shared/generated/zod/edaAnalysisStateSchema";
-import { edaCountResponseSchema } from "@pathfinder/shared/generated/zod/edaCountResponseSchema";
-import { edaDistributionSeriesSchema } from "@pathfinder/shared/generated/zod/edaDistributionSeriesSchema";
-import { edaStudyDetailResponseSchema } from "@pathfinder/shared/generated/zod/edaStudyDetailResponseSchema";
 import { edaStudyListResponseSchema } from "@pathfinder/shared/generated/zod/edaStudyListResponseSchema";
 import { edaSubsetPreviewPartSchema } from "@pathfinder/shared/generated/zod/edaSubsetPreviewPartSchema";
 import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
+import { edaVizResponseSchema } from "@pathfinder/shared/generated/zod/edaVizResponseSchema";
 
 import {
   analysisState,
-  COMPUTE_JOB,
-  COUNTS_FEBRILE,
-  COUNTS_UNFILTERED,
+  COMPARED_ANALYSIS,
   exportedStrategy,
-  FEBRILE_DISTRIBUTION,
   FILTERED_ANALYSIS,
-  STUDY_DETAIL,
   STUDY_ROW,
   SUBSET_PREVIEW,
+  VOLCANO_RESPONSE,
   VOLCANO_VIZ,
 } from "../fixtures/eda";
 
@@ -51,24 +46,24 @@ const CASES: Case[] = [
     payload: { studies: [STUDY_ROW] },
   },
   {
-    name: "GET /eda/studies/{datasetId}",
-    schema: edaStudyDetailResponseSchema,
-    payload: STUDY_DETAIL,
-  },
-  {
-    name: "POST /eda/distribution",
-    schema: edaDistributionSeriesSchema,
-    payload: FEBRILE_DISTRIBUTION,
+    name: "POST /eda/viz",
+    schema: edaVizResponseSchema,
+    payload: VOLCANO_RESPONSE,
   },
   {
     name: "GET /conversations/{id}/eda, unbound",
     schema: conversationEdaResponseSchema,
-    payload: { analysis: null, descriptor: null },
+    payload: { analysis: null },
   },
   {
     name: "GET /conversations/{id}/eda, bound",
     schema: conversationEdaResponseSchema,
-    payload: { analysis: FILTERED_ANALYSIS, descriptor: null },
+    payload: { analysis: FILTERED_ANALYSIS },
+  },
+  {
+    name: "GET /conversations/{id}/eda, compared",
+    schema: conversationEdaResponseSchema,
+    payload: { analysis: COMPARED_ANALYSIS },
   },
   {
     name: "data-eda.analysis-state, unfiltered",
@@ -83,7 +78,7 @@ const CASES: Case[] = [
   {
     name: "data-eda.analysis-state, after a compute",
     schema: edaAnalysisStateSchema,
-    payload: analysisState({ revision: 2, numComputations: 1 }),
+    payload: COMPARED_ANALYSIS,
   },
   {
     name: "data-eda.subset-preview",
@@ -94,23 +89,13 @@ const CASES: Case[] = [
   {
     name: "PATCH /conversations/{id}/eda, bind",
     schema: edaAnalysisPatchResponseSchema,
-    payload: { analysis: analysisState(), job: null, step: null },
-  },
-  {
-    name: "PATCH /conversations/{id}/eda, run-compute",
-    schema: edaAnalysisPatchResponseSchema,
-    payload: {
-      analysis: analysisState({ revision: 1, numComputations: 1 }),
-      job: COMPUTE_JOB,
-      step: null,
-    },
+    payload: { analysis: analysisState(), step: null },
   },
   {
     name: "PATCH /conversations/{id}/eda, export-step",
     schema: edaAnalysisPatchResponseSchema,
     payload: {
-      analysis: analysisState({ revision: 2, numComputations: 1 }),
-      job: null,
+      analysis: { ...COMPARED_ANALYSIS, revision: 3 },
       step: exportedStrategy(CONVERSATION_ID),
     },
   },
@@ -119,15 +104,6 @@ const CASES: Case[] = [
     schema: conversationResponseSchema,
     payload: exportedStrategy(CONVERSATION_ID),
   },
-  ...[...COUNTS_UNFILTERED, ...COUNTS_FEBRILE].map((row) => ({
-    name: `POST /eda/count, ${row.entityId} at ${String(row.count)}`,
-    schema: edaCountResponseSchema,
-    payload: {
-      entityId: row.entityId,
-      count: row.count,
-      unfilteredCount: row.unfilteredCount,
-    },
-  })),
 ];
 
 test.describe("EDA fixtures conform to the wire schemas", () => {

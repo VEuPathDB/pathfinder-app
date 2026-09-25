@@ -9,14 +9,13 @@ from dataclasses import dataclass
 from assistant_core.platform.pydantic_base import CamelModel
 from veupathdb.eda import (
     EdaAnalysisDetail,
-    EdaComputation,
     EdaComputeJob,
     EdaDifferentialExpressionComputation,
     EdaDifferentialExpressionConfig,
-    EdaDifferentialExpressionDescriptor,
     EdaError,
     EdaFilter,
     EdaJobStatus,
+    EdaVolcanoDescriptor,
     VolcanoStatsResponse,
     VolcanoStatsRow,
     differential_expression_computations,
@@ -25,15 +24,10 @@ from veupathdb.eda import (
 
 from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
 from pathfinder.platform.errors import AppError, ErrorCode
-from pathfinder.services.eda.binding import read_analysis
 from pathfinder.services.eda.catalog import resolve_dataset
-from pathfinder.services.eda.comparison import apply_computation
 
 _CONFLICT = 409
 
-TERMINAL_STATUSES: frozenset[EdaJobStatus] = frozenset(
-    {"complete", "failed", "expired", "no-such-job"}
-)
 RUNNING_STATUSES: frozenset[EdaJobStatus] = frozenset({"queued", "in-progress"})
 
 
@@ -59,6 +53,11 @@ class VolcanoThresholds(CamelModel):
     effect_size_threshold: float
     significance_threshold: float
     effect_direction: EdaEffectDirection = "upAndDown"
+
+
+DEFAULT_VOLCANO_CUT = VolcanoThresholds(
+    effect_size_threshold=1.0, significance_threshold=0.05
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,54 +260,6 @@ async def submit_compute(
     )
 
 
-def _records(
-    analysis: EdaAnalysisDetail,
-    computation: EdaDifferentialExpressionDescriptor,
-) -> bool:
-    """Whether the analysis's comparison is already exactly this compute."""
-    computations = differential_expression_computations(analysis.descriptor)
-    return bool(computations) and computations[0].descriptor == computation
-
-
-async def run_analysis_compute(
-    site_id: str,
-    *,
-    analysis_id: str,
-    dataset_id: str,
-    computation: EdaDifferentialExpressionDescriptor,
-) -> EdaComputeJob:
-    """Record this compute on the analysis, then start the job that answers it.
-
-    The analysis document is the SSOT every volcano reads, so a compute it
-    does not carry is written there before any job starts, and a
-    configuration the study rejects starts none. The identical call repeated
-    is the status poll, and a poll writes nothing. The write replaces the
-    analysis's comparison and keeps every other computation.
-    """
-    entry = await resolve_dataset(site_id, dataset_id)
-    analysis = await read_analysis(site_id, analysis_id=analysis_id)
-    if not _records(analysis, computation):
-        analysis = await apply_computation(
-            site_id,
-            analysis_id=analysis_id,
-            dataset_id=dataset_id,
-            computation=EdaDifferentialExpressionComputation(
-                computation=EdaComputation(
-                    computation_id=analysis_id,
-                    descriptor=computation,
-                ),
-                descriptor=computation,
-            ),
-        )
-    return await submit_compute(
-        site_id,
-        compute_name=computation.type,
-        study_id=entry.study_id,
-        config=computation.configuration,
-        filters=analysis.descriptor.subset.descriptor,
-    )
-
-
 async def poll_job(site_id: str, *, job_id: str) -> EdaComputeJob:
     """One status read. There is no push channel and no ETag."""
     return await get_eda_client(site_id).get_job(job_id)
@@ -373,6 +324,19 @@ def analysis_computation(
 def analysis_comparison(analysis: EdaAnalysisDetail) -> EdaComparison:
     """The groups the analysis's compute compares."""
     return comparison_of(analysis_computation(analysis).descriptor.configuration)
+
+
+def stored_volcano_cut(analysis: EdaAnalysisDetail) -> VolcanoThresholds:
+    """The cut the comparison's volcano stores, or the default cut when it has none."""
+    for visualization in analysis_computation(analysis).computation.visualizations:
+        match visualization.descriptor:
+            case EdaVolcanoDescriptor(configuration=configuration):
+                return VolcanoThresholds.model_validate(
+                    configuration, from_attributes=True
+                )
+            case _:
+                continue
+    return DEFAULT_VOLCANO_CUT
 
 
 async def bound_volcano(

@@ -119,9 +119,48 @@ describe("the Tasks panel reports a task the sweep failed", () => {
       "The worker running this task stopped, which an out-of-memory kill can cause. Ask for it again to retry.",
     );
     renderPanel([]);
-    expect(await screen.findByText("failed")).toBeInTheDocument();
+    expect(await screen.findByText("Failed")).toBeInTheDocument();
     expect(
       screen.getByText(/The worker running this task stopped/),
     ).toBeInTheDocument();
+  });
+});
+
+describe("the Tasks panel names every status the runtime writes", () => {
+  it("reads Queued for a task no worker has taken, with no percent", async () => {
+    stubTasks("pending");
+    renderPanel([]);
+    expect(await screen.findByText("Queued")).toBeInTheDocument();
+    expect(screen.queryByText("pending")).toBeNull();
+    expect(screen.queryByText(/%/)).toBeNull();
+  });
+
+  it("reads Running for a task a worker runs", async () => {
+    stubTasks("running");
+    renderPanel([]);
+    expect(await screen.findByText("Running")).toBeInTheDocument();
+  });
+
+  it("reads Finishing and keeps the spinner while the result waits for its turn", async () => {
+    stubTasks("result_ready");
+    renderPanel([]);
+    const status = await screen.findByText("Finishing");
+    const row = status.closest("li");
+    expect([
+      row?.querySelector(".animate-spin") !== null,
+      row?.querySelector(".text-success") === null,
+    ]).toEqual([true, true]);
+  });
+
+  it("reads Finishing while the result's turn runs", async () => {
+    stubTasks("resuming");
+    renderPanel([]);
+    expect(await screen.findByText("Finishing")).toBeInTheDocument();
+  });
+
+  it("reads Complete once the result's turn has run", async () => {
+    stubTasks("complete");
+    renderPanel([]);
+    expect(await screen.findByText("Complete")).toBeInTheDocument();
   });
 });

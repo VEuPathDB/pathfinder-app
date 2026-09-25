@@ -10,7 +10,7 @@ Revises: 2026_08_08_0001
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_08_08_0002"
@@ -22,11 +22,11 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "gene_sets",
-        sa.Column(
+        sqlalchemy.Column(
             "enrichment_results",
-            sa.JSON(),
+            sqlalchemy.JSON(),
             nullable=False,
-            server_default=sa.text("'[]'::json"),
+            server_default=sqlalchemy.text("'[]'::json"),
         ),
     )
 

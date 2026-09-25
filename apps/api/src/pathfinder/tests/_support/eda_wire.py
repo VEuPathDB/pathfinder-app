@@ -38,23 +38,36 @@ DE_STUDY = "STUDY_e973eadd57"
 # and one row per gene in each sample.
 DE_ENTITY_SIZES = {"ENT_8151325d": 12, "ENT_fd574cd6": 68640}
 
-# The distinct gene ids each recorded study answers under its example subset
-# and under none, as the gene entity's ``VEUPATHDB_GENE_ID`` distribution.
-_GENE_ID_STATISTICS = {
-    "study_detail_phenotype": (
-        {"subsetSize": 4011, "numVarValues": 8023, "numDistinctValues": 5595},
-        {"subsetSize": 4279, "numVarValues": 8565, "numDistinctValues": 5803},
-    ),
-    "study_detail_de": (
-        {"subsetSize": 5114, "numVarValues": 5114, "numDistinctValues": 842},
-        {"subsetSize": 68640, "numVarValues": 68640, "numDistinctValues": 5720},
-    ),
+# The recorded gene-id distributions of each study, under its example subset
+# and under none, by the name of the study's detail fixture.
+_GENE_ID_DISTRIBUTIONS = {
+    "study_detail_phenotype": "gene_id_distribution_phenotype",
+    "study_detail_de": "gene_id_distribution_de",
 }
 
 
 def fixture(name: str) -> Any:
     """One pinned EDA response, by file name without the suffix."""
     return json.loads((FIXTURE_DIR / f"{name}.json").read_text())
+
+
+def phenotype_overview() -> dict[str, Any]:
+    """The catalog row for the phenotype study, from its permission entry.
+
+    The recorded ``/studies`` slice stops before this study, and the permission
+    entry carries every field the overview needs.
+    """
+    entry = fixture("permissions")["perDataset"][PHENOTYPE_DATASET]
+    return {
+        "id": PHENOTYPE_STUDY,
+        "datasetId": PHENOTYPE_DATASET,
+        "sha1hash": entry["sha1Hash"],
+        "sourceType": "curated",
+        "displayName": entry["displayName"],
+        "shortDisplayName": entry["shortDisplayName"],
+        "description": entry["description"],
+        "lastModified": "2026-05-27T20:00:00-04:00",
+    }
 
 
 @dataclass
@@ -113,7 +126,13 @@ def _counted(
     )
 
 
-def recorded_distribution(
+def gene_id_distribution(study_fixture: str, *, filtered: bool) -> str:
+    """The fixture that holds the gene ids of ``study_fixture`` under one subset."""
+    subset = "filtered" if filtered else "unfiltered"
+    return f"{_GENE_ID_DISTRIBUTIONS[study_fixture]}_{subset}"
+
+
+def distribution_response(
     path: str, body: Any, study_fixture: str
 ) -> httpx.Response | None:
     """The gene ids of ``study_fixture`` or the recorded species distribution.
@@ -121,13 +140,8 @@ def recorded_distribution(
     None answers a path that is not a distribution.
     """
     if path.endswith("/variables/VEUPATHDB_GENE_ID/distribution"):
-        counted = _GENE_ID_STATISTICS[study_fixture][0 if body["filters"] else 1]
-        statistics = {
-            **counted,
-            "numDistinctEntityRecords": counted["subsetSize"],
-            "numMissingCases": 0,
-        }
-        return httpx.Response(200, json={"histogram": [], "statistics": statistics})
+        name = gene_id_distribution(study_fixture, filtered=bool(body["filters"]))
+        return httpx.Response(200, json=fixture(name))
     if path.endswith("/distribution"):
         return httpx.Response(200, json=fixture("distribution_categorical"))
     return None
@@ -167,7 +181,7 @@ def eda_transport(
         if path.endswith("/count"):
             return _counted(request, entity_sizes, filtered_empty=filtered_empty)
         body = json.loads(request.content) if request.content else None
-        distribution = recorded_distribution(path, body, study_fixture)
+        distribution = distribution_response(path, body, study_fixture)
         if distribution is not None:
             return distribution
         recorded = _recorded(path, study_id, study_fixture)

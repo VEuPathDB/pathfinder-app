@@ -21,7 +21,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.dispatch_context import defer_dispatch, dispatch_call_id
 from pathfinder.ai.lead.edit_dispatch import run_edit
-from pathfinder.ai.lead.proposal import Proposal
+from pathfinder.ai.lead.proposal import CardProposal, Proposal
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
 from pathfinder.ai.lead.sub_agent_tools import (
     WIRE_PHASE_BY_ROLE,
@@ -43,7 +43,7 @@ def accepted_brief(state: PipelineState, tool_call_id: str, proposal: Proposal) 
 def nothing_to_edit_message(brief: str) -> str:
     """Why an accepted proposal on a thread with no strategy runs no edit."""
     return (
-        "The researcher accepted your proposal, and this thread holds no "
+        "The researcher accepted your proposal, and this conversation holds no "
         "strategy yet, so there is nothing to edit. Frame the accepted changes "
         "with frame_problem and build them with build_strategy.\n\n" + brief
     )
@@ -75,17 +75,23 @@ def _edit_card(
     )
 
 
-async def propose_changes(ctx: RunContext[LeadDeps], proposal: Proposal) -> EditDelta:
+async def propose_changes(
+    ctx: RunContext[LeadDeps], proposal: CardProposal
+) -> EditDelta:
     """Offer the researcher further work on the strategy, as a card they answer.
 
     Every reply that would end by offering work - a refinement, a stricter
     filter, one way rather than another - ends with this call instead of a
-    question. Write the reply as text and make this call in the same response.
-    The researcher answers Yes or No and can add a note. A yes runs the edit
-    with ``proposedChanges`` and the note as its brief, and the ``EditDelta``
-    comes back here: report it as after any ``edit_strategy``. On a thread
+    question. The reply is this call's ``reply``: it streams above the card,
+    so write the whole answer to the message there and nothing as text.
+    The researcher answers Yes or No and can add a comment. A yes runs the edit
+    with ``proposedChanges`` and the comment as its brief, and the ``EditDelta``
+    comes back here: report it as after any ``edit_strategy``. On a conversation
     with no strategy yet, a yes asks you to frame and build the changes. A no
     ends the turn with your text as it stands, so never ask the offer in prose.
+    Never offer a sweep, a separation or a control test on this card: its yes
+    runs an edit of the strategy. Call that tool itself; its own approval is
+    the card.
     """
     deps = ctx.deps
     tool_call_id = dispatch_call_id(ctx)

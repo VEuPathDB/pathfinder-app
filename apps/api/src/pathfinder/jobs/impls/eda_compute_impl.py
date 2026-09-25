@@ -13,6 +13,7 @@ from uuid import UUID
 
 from assistant_core.conversation.event_writer import append_chunk
 from assistant_core.memory.store import MemoryStore
+from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.domain import validate_compute_config
 from veupathdb.eda import (
@@ -38,10 +39,9 @@ from pathfinder.ai.tools.standalone.eda_stream_parts import (
 )
 from pathfinder.domain.eda_parts import (
     EdaComparison,
-    EdaEffectDirection,
     EdaVolcanoPoint,
 )
-from pathfinder.persistence.models import ConversationAnalysisView
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda.binding import (
     analysis_state,
     bound_conversation_analysis,
@@ -51,9 +51,9 @@ from pathfinder.services.eda.binding import (
 from pathfinder.services.eda.catalog import get_study_detail_for_dataset
 from pathfinder.services.eda.comparison import apply_computation
 from pathfinder.services.eda.compute import (
+    DEFAULT_VOLCANO_CUT,
     RUNNING_STATUSES,
     RetainedSummary,
-    VolcanoThresholds,
     comparison_of,
     lookup_job,
     poll_job,
@@ -70,11 +70,6 @@ from pathfinder.services.eda.direction import sign_sentence
 _COMPUTE_NAME = "differentialexpression"
 _POLL_SECONDS = 3.0
 _MAX_POLLS = 200
-
-# The thresholds the review card defaults to upstream.
-_DEFAULT_EFFECT_SIZE = 1.0
-_DEFAULT_SIGNIFICANCE = 0.05
-_DEFAULT_DIRECTION: EdaEffectDirection = "upAndDown"
 
 # A queued job has no position most of the time, so the percent is a floor
 # rather than a measurement: the poll count moves it, never past the ceiling.
@@ -120,8 +115,8 @@ def _computation(
                 visualization_id=job_id,
                 descriptor=EdaVolcanoDescriptor(
                     configuration=EdaVolcanoConfiguration(
-                        effect_size_threshold=_DEFAULT_EFFECT_SIZE,
-                        significance_threshold=_DEFAULT_SIGNIFICANCE,
+                        effect_size_threshold=DEFAULT_VOLCANO_CUT.effect_size_threshold,
+                        significance_threshold=DEFAULT_VOLCANO_CUT.significance_threshold,
                     ),
                 ),
             ),
@@ -168,21 +163,14 @@ async def _announce_volcano(
     caption: str,
 ) -> None:
     """Put the plot of the default cut on the thread, beside the state."""
-    view = volcano_view(
-        statistics,
-        thresholds=VolcanoThresholds(
-            effect_size_threshold=_DEFAULT_EFFECT_SIZE,
-            significance_threshold=_DEFAULT_SIGNIFICANCE,
-            effect_direction=_DEFAULT_DIRECTION,
-        ),
-    )
+    view = volcano_view(statistics, thresholds=DEFAULT_VOLCANO_CUT)
     chunk = eda_viz_chunk(
         dataset_id=binding.dataset_id,
         analysis_id=binding.analysis_id,
         effect_size_label=statistics.effect_size_label,
-        effect_size_threshold=_DEFAULT_EFFECT_SIZE,
-        significance_threshold=_DEFAULT_SIGNIFICANCE,
-        effect_direction=_DEFAULT_DIRECTION,
+        effect_size_threshold=DEFAULT_VOLCANO_CUT.effect_size_threshold,
+        significance_threshold=DEFAULT_VOLCANO_CUT.significance_threshold,
+        effect_direction=DEFAULT_VOLCANO_CUT.effect_direction,
         summary=summary,
         points=[
             EdaVolcanoPoint.model_validate(point, from_attributes=True)
@@ -269,6 +257,26 @@ def _refuse(job: EdaComputeJob) -> RuntimeError:
     )
 
 
+class EdaComputeResult(CamelModel):
+    """The summary the agent resumes with, counted at the default cut."""
+
+    job_id: str
+    status: str
+    compute_name: str
+    method: str
+    effect_size_label: str
+    genes_tested: int
+    genes_unreadable: int
+    effect_size_threshold: float
+    significance_threshold: float
+    retained: int
+    retained_up: int
+    retained_down: int
+    comparison: EdaComparison
+    sign_rule: str
+    guidance: str
+
+
 def compute_result(
     *,
     job_id: str,
@@ -277,36 +285,37 @@ def compute_result(
     effect_size_label: str,
     summary: RetainedSummary,
     comparison: EdaComparison,
-) -> dict[str, Any]:
+) -> EdaComputeResult:
     """The summary the agent resumes with, each side named by its group."""
+    cut = DEFAULT_VOLCANO_CUT
     higher_in_b = ", ".join(comparison.group_b)
     higher_in_a = ", ".join(comparison.group_a)
-    return {
-        "jobId": job_id,
-        "status": status,
-        "computeName": _COMPUTE_NAME,
-        "method": method,
-        "effectSizeLabel": effect_size_label,
-        "genesTested": summary.total_rows,
-        "genesUnreadable": summary.unparseable_rows,
-        "effectSizeThreshold": _DEFAULT_EFFECT_SIZE,
-        "significanceThreshold": _DEFAULT_SIGNIFICANCE,
-        "retained": summary.retained,
-        "retainedUp": summary.retained_up,
-        "retainedDown": summary.retained_down,
-        "comparison": comparison.model_dump(by_alias=True, mode="json"),
-        "signRule": sign_sentence(comparison),
-        "guidance": (
+    return EdaComputeResult(
+        job_id=job_id,
+        status=status,
+        compute_name=_COMPUTE_NAME,
+        method=method,
+        effect_size_label=effect_size_label,
+        genes_tested=summary.total_rows,
+        genes_unreadable=summary.unparseable_rows,
+        effect_size_threshold=cut.effect_size_threshold,
+        significance_threshold=cut.significance_threshold,
+        retained=summary.retained,
+        retained_up=summary.retained_up,
+        retained_down=summary.retained_down,
+        comparison=comparison,
+        sign_rule=sign_sentence(comparison),
+        guidance=(
             f"{summary.retained} of {summary.total_rows} genes pass an effect "
-            f"size of {_DEFAULT_EFFECT_SIZE} and a p-value of "
-            f"{_DEFAULT_SIGNIFICANCE}: {summary.retained_up} higher in "
+            f"size of {cut.effect_size_threshold} and a p-value of "
+            f"{cut.significance_threshold}: {summary.retained_up} higher in "
             f"{higher_in_b} and {summary.retained_down} higher in {higher_in_a}. "
             f"upOnly keeps the {summary.retained_up}, downOnly the "
             f"{summary.retained_down}. Call create_eda_step with those "
             f"thresholds to export them, or with different ones to change the "
             f"cut."
         ),
-    }
+    )
 
 
 async def run_eda_compute_impl(
@@ -376,8 +385,8 @@ async def run_eda_compute_impl(
     )
     summary = retained_summary(
         statistics,
-        effect_size_threshold=_DEFAULT_EFFECT_SIZE,
-        significance_threshold=_DEFAULT_SIGNIFICANCE,
+        effect_size_threshold=DEFAULT_VOLCANO_CUT.effect_size_threshold,
+        significance_threshold=DEFAULT_VOLCANO_CUT.significance_threshold,
     )
     updated = await apply_computation(
         binding.site_id,
@@ -408,4 +417,4 @@ async def run_eda_compute_impl(
         effect_size_label=statistics.effect_size_label,
         summary=summary,
         comparison=comparison_of(config),
-    )
+    ).model_dump(by_alias=True, mode="json")

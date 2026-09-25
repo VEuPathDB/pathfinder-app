@@ -46,7 +46,7 @@ def _no_graph(
     return _refused(
         ctx,
         graph_not_found(graph_id),
-        "No strategy graph on this thread",
+        "No such strategy in this conversation",
     )
 
 

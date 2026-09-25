@@ -14,10 +14,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 
 revision: str = "2026_04_20_0001"
 down_revision: str | Sequence[str] | None = "2026_04_18_0006"
@@ -28,33 +27,33 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "scratchpad_notes",
-        sa.Column("id", sa.Text(), primary_key=True),
-        sa.Column(
+        sqlalchemy.Column("id", sqlalchemy.Text(), primary_key=True),
+        sqlalchemy.Column(
             "conversation_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("title", sa.Text(), nullable=False),
-        sa.Column("summary", sa.Text(), nullable=False),
-        sa.Column("body", sa.Text(), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("title", sqlalchemy.Text(), nullable=False),
+        sqlalchemy.Column("summary", sqlalchemy.Text(), nullable=False),
+        sqlalchemy.Column("body", sqlalchemy.Text(), nullable=False),
+        sqlalchemy.Column(
             "tags",
             JSONB(),
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=sqlalchemy.text("'[]'::jsonb"),
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "pinned",
-            sa.Boolean(),
+            sqlalchemy.Boolean(),
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sqlalchemy.text("false"),
         ),
-        sa.Column("body_tokens", sa.Integer(), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("body_tokens", sqlalchemy.Integer(), nullable=False),
+        sqlalchemy.Column(
             "fts",
             TSVECTOR(),
-            sa.Computed(
+            sqlalchemy.Computed(
                 "setweight(to_tsvector('english', coalesce(title, '')), 'A') "
                 "|| setweight(to_tsvector('english', coalesce(summary, '')), 'B') "
                 "|| setweight(to_tsvector('english', coalesce(body, '')), 'C')",
@@ -62,23 +61,27 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )
     op.create_index(
         "scratchpad_notes_conv_idx",
         "scratchpad_notes",
-        ["conversation_id", sa.text("pinned DESC"), sa.text("created_at DESC")],
+        [
+            "conversation_id",
+            sqlalchemy.text("pinned DESC"),
+            sqlalchemy.text("created_at DESC"),
+        ],
     )
     op.create_index(
         "scratchpad_notes_fts_idx",
@@ -96,37 +99,37 @@ def upgrade() -> None:
 
     op.create_table(
         "scratchpad_compactions",
-        sa.Column(
+        sqlalchemy.Column(
             "id",
-            sa.BigInteger(),
-            sa.Identity(always=False),
+            sqlalchemy.BigInteger(),
+            sqlalchemy.Identity(always=False),
             primary_key=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "conversation_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "triggered_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
-        sa.Column("before_count", sa.Integer(), nullable=False),
-        sa.Column("after_count", sa.Integer(), nullable=False),
-        sa.Column("before_tokens", sa.Integer(), nullable=False),
-        sa.Column("after_tokens", sa.Integer(), nullable=False),
-        sa.Column("model_id", sa.Text(), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("before_count", sqlalchemy.Integer(), nullable=False),
+        sqlalchemy.Column("after_count", sqlalchemy.Integer(), nullable=False),
+        sqlalchemy.Column("before_tokens", sqlalchemy.Integer(), nullable=False),
+        sqlalchemy.Column("after_tokens", sqlalchemy.Integer(), nullable=False),
+        sqlalchemy.Column("model_id", sqlalchemy.Text(), nullable=False),
+        sqlalchemy.Column(
             "cost_usd",
-            sa.Numeric(precision=12, scale=6),
+            sqlalchemy.Numeric(precision=12, scale=6),
             nullable=False,
-            server_default=sa.text("0"),
+            server_default=sqlalchemy.text("0"),
         ),
-        sa.Column("trigger_reason", sa.Text(), nullable=False),
-        sa.CheckConstraint(
+        sqlalchemy.Column("trigger_reason", sqlalchemy.Text(), nullable=False),
+        sqlalchemy.CheckConstraint(
             "trigger_reason IN ('count', 'tokens', 'both')",
             name="ck_scratchpad_compactions_trigger_reason",
         ),
@@ -134,7 +137,7 @@ def upgrade() -> None:
     op.create_index(
         "scratchpad_compactions_conv_idx",
         "scratchpad_compactions",
-        ["conversation_id", sa.text("triggered_at DESC")],
+        ["conversation_id", sqlalchemy.text("triggered_at DESC")],
     )
 
 

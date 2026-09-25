@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from typing import Literal
 from uuid import UUID
@@ -12,7 +13,7 @@ from pydantic import ConfigDict, Field
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.evidence import ControlTestEvidence
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.constraints import Constraint, OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
 
 # What a written reference carries before the identifier itself.
@@ -34,6 +35,30 @@ def normalized_reference(value: str) -> str:
     for prefix in _REFERENCE_PREFIXES:
         text = text.removeprefix(prefix)
     return text.rstrip("/")
+
+
+_WORD = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+")
+
+
+class NamedStep(CamelModel):
+    """A step as a reply names it: its title, its search and its kind."""
+
+    model_config = ConfigDict(frozen=True)
+
+    title: str
+    search_name: str | None = None
+    kind_words: tuple[str, ...] = ()
+
+    def words(self) -> frozenset[str]:
+        """Every lower-case word of the title, the search name and the kind."""
+        text = " ".join([self.title, self.search_name or "", *self.kind_words])
+        return frozenset(word.casefold() for word in _WORD.findall(text))
+
+    def described(self) -> str:
+        """The step as a correction names it: the title, then the search."""
+        if self.search_name is None:
+            return f"'{self.title}'"
+        return f"'{self.title}' ({self.search_name})"
 
 
 class ZeroResultStep(CamelModel):
@@ -116,6 +141,10 @@ class TurnMarkers(CamelModel):
     created_gene_sets: list[CreatedGeneSet] = Field(default_factory=list)
     # The searches the steps this turn added run. The reply names each one.
     added_searches: list[AddedSearch] = Field(default_factory=list)
+    # The requirements this message added to the thread's record.
+    requirements_added: list[Constraint] = Field(default_factory=list)
+    # The steps this turn deleted, as they stood before the delete.
+    deleted_steps: list[NamedStep] = Field(default_factory=list)
     # The questions the latest answer under this message closed.
     answered: AnsweredQuestions | None = None
     # The researcher answered a consult, or accepted a proposal, under this message.

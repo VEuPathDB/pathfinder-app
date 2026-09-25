@@ -7,7 +7,7 @@ from veupathdb.domain import SearchContext
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb_mcp.catalog import ParameterInfo, SearchParametersResult
 
-from pathfinder.services.experiment import published_names as module
+from pathfinder.services.experiment import published_names
 
 BOOLEAN = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass"
 
@@ -48,9 +48,9 @@ async def test_it_reads_the_display_names_wdk_publishes(
         del ctx
         return _answer("Combine Gene results")
 
-    monkeypatch.setattr(module, "get_search_parameters", resolved)
+    monkeypatch.setattr(published_names, "get_search_parameters", resolved)
 
-    names = await module.published_names("plasmodb", "transcript", BOOLEAN)
+    names = await published_names.published_names("plasmodb", "transcript", BOOLEAN)
 
     assert names.label == "Combine Gene results"
     assert names.parameter_labels == {
@@ -64,9 +64,9 @@ async def test_a_url_segment_is_not_a_label(monkeypatch: pytest.MonkeyPatch) -> 
         del ctx
         return _answer(BOOLEAN)
 
-    monkeypatch.setattr(module, "get_search_parameters", resolved)
+    monkeypatch.setattr(published_names, "get_search_parameters", resolved)
 
-    names = await module.published_names("plasmodb", "transcript", BOOLEAN)
+    names = await published_names.published_names("plasmodb", "transcript", BOOLEAN)
 
     assert names.label == ""
 
@@ -76,9 +76,9 @@ async def test_a_refused_read_names_nothing(monkeypatch: pytest.MonkeyPatch) -> 
         del ctx
         raise VEuPathDBError(VEuPathDBErrorCode.WDK_ERROR, "no such search")
 
-    monkeypatch.setattr(module, "get_search_parameters", refused)
+    monkeypatch.setattr(published_names, "get_search_parameters", refused)
 
-    names = await module.published_names("plasmodb", "transcript", BOOLEAN)
+    names = await published_names.published_names("plasmodb", "transcript", BOOLEAN)
 
     assert names.label == ""
     assert names.parameter_labels == {}

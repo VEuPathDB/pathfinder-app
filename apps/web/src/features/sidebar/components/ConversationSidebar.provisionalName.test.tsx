@@ -11,7 +11,10 @@ import { sitesOptions } from "@/lib/api/sites";
 import { createSuspenseWrapper } from "@/lib/query/testing";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 
-const listed = vi.hoisted(() => ({ chats: [] as ConversationResponse[] }));
+const listed = vi.hoisted(() => ({
+  chats: [] as ConversationResponse[],
+  dismissed: [] as ConversationResponse[],
+}));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => "/plasmodb/conversation/conv-1",
@@ -20,7 +23,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/features/sidebar/hooks/useChatListFetching", () => ({
   useChatListFetching: () => ({
     chats: listed.chats,
-    dismissedChats: [],
+    dismissedChats: listed.dismissed,
     isLoading: false,
     isFetched: true,
     isSyncing: false,
@@ -61,7 +64,22 @@ function sidebar() {
 
 afterEach(() => {
   cleanup();
+  listed.dismissed = [];
   useFirstMessageStore.setState({ byConversation: {} });
+});
+
+describe("the soft-deleted section", () => {
+  it("is called Recently deleted, the name the delete dialog uses", () => {
+    listed.chats = [row("conv-1", "Blood-stage kinases")];
+    listed.dismissed = [row("conv-9", "Old sweep")];
+    const { queryClient, Wrapper } = createSuspenseWrapper();
+    queryClient.setQueryData(sitesOptions().queryKey, SITES);
+    render(<Wrapper>{sidebar()}</Wrapper>);
+
+    expect(screen.getByTestId("dismissed-toggle")).toHaveTextContent(
+      /^Recently deleted \(1\)/,
+    );
+  });
 });
 
 describe("the name a conversation row shows before its title arrives", () => {

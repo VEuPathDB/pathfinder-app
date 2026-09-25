@@ -10,8 +10,10 @@ from assistant_core.platform.types import JSONObject
 from assistant_core.tasks.progress import TaskProgressEmitter
 from pydantic import JsonValue
 from veupathdb.wdk import get_strategy_api
+from veupathdb_mcp.controls import CONTROLS_PARAM, CONTROLS_SEARCH
 
 from pathfinder.ai.graph.runtime import Context
+from pathfinder.services.evidence.control_sets import get_control_set
 from pathfinder.services.evidence.optimization import (
     enumerate_variants,
     run_trial,
@@ -33,10 +35,6 @@ logger = get_logger(__name__)
 # Default fan-out cap. Five matches the WDK-friendly batch size used elsewhere
 # and keeps a sweep of typical 5-15 variants from oversubscribing WDK.
 MAX_PARALLEL = 5
-
-# Controls are intersected the way the control-test tool intersects them.
-_CONTROLS_SEARCH = "GeneByLocusTag"
-_CONTROLS_PARAM = "ds_gene_ids"
 
 
 async def run_single_trial(
@@ -70,6 +68,15 @@ async def run_single_trial(
     return result.model_dump(by_alias=True, mode="json")
 
 
+async def _saved_controls(
+    context: Context, control_set_id: str
+) -> tuple[list[str], list[str]]:
+    """The positive and negative ids of a control set the user may read."""
+    async with context.db_session_factory() as session:
+        held = await get_control_set(session, UUID(control_set_id), context.user_id)
+    return held.positive_ids, held.negative_ids
+
+
 async def optimize_search_parameters_impl(
     *,
     context: Context,
@@ -77,6 +84,7 @@ async def optimize_search_parameters_impl(
     progress: TaskProgressEmitter,
     memory_store: MemoryStore | None,
     wdk_step_id: int,
+    control_set_id: str | None = None,
     positive_controls: list[str] | None = None,
     negative_controls: list[str] | None = None,
     parameters: list[str] | None = None,
@@ -92,6 +100,10 @@ async def optimize_search_parameters_impl(
     """
     del task_id, memory_store
 
+    if control_set_id is not None:
+        positive_controls, negative_controls = await _saved_controls(
+            context, control_set_id
+        )
     if not positive_controls and not negative_controls:
         msg = "At least one of positive_controls or negative_controls must be provided."
         raise ValueError(msg)
@@ -116,8 +128,8 @@ async def optimize_search_parameters_impl(
         fixed_parameters=plan.fixed_parameters,
     )
     sweep_controls = SweepControls(
-        controls_search_name=_CONTROLS_SEARCH,
-        controls_param_name=_CONTROLS_PARAM,
+        controls_search_name=CONTROLS_SEARCH,
+        controls_param_name=CONTROLS_PARAM,
         controls_value_format="newline",
         controls_extra_parameters={},
         positive_controls=positive_controls or None,
@@ -176,9 +188,15 @@ async def optimize_search_parameters_impl(
 
     raw_results = await asyncio.gather(*(gated(v) for v in variants))
 
-    sweep = SweepResult.model_validate({"variants": raw_results, "best": None})
+    sweep = SweepResult.model_validate(
+        {
+            "variants": raw_results,
+            "best": None,
+            "searchName": step.search_name,
+            "objective": score_cfg.objective,
+        }
+    )
     result_json: JSONObject = sweep.model_dump(by_alias=True, mode="json")
-    result_json["objective"] = score_cfg.objective
 
     await progress.update(percent=0.98, message="Exporting sweep result", data=None)
     await attach_sweep_download(result_json, step.search_name)

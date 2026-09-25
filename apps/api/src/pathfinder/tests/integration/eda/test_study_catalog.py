@@ -53,10 +53,8 @@ async def test_a_search_returns_cards_ordered_by_relevance(wired: EdaClient) -> 
         await catalog.search_studies("plasmodb", "RNA-Seq expression", limit=5)
     ).cards
     await wired.close()
-    assert cards
-    assert len(cards) <= 5
+    assert sorted(c.dataset_id for c in cards) == ["DS_2184f85560", "DS_dd73524c7e"]
     assert cards == sorted(cards, key=lambda c: -c.relevance)
-    assert all(c.dataset_id.startswith(("DS_", "EDAUD_")) for c in cards)
 
 
 async def test_a_card_carries_the_study_id_from_permissions(wired: EdaClient) -> None:
@@ -71,8 +69,10 @@ async def test_a_card_reports_the_two_permission_axes(wired: EdaClient) -> None:
     """subsetting gates a count; resultsAll gates row output."""
     cards = (await catalog.search_studies("plasmodb", "RNA-Seq", limit=20)).cards
     await wired.close()
-    assert any(c.can_subset for c in cards)
-    assert all(isinstance(c.can_export_rows, bool) for c in cards)
+    assert sorted((c.dataset_id, c.can_subset, c.can_export_rows) for c in cards) == [
+        ("DS_2184f85560", True, True),
+        ("DS_dd73524c7e", True, True),
+    ]
 
 
 _SPLIT_AXES = {
@@ -184,10 +184,10 @@ async def test_browsing_lists_the_permitted_catalog_by_display_name(
     """The tab's study picker opens with no query, so an empty one lists them."""
     cards = await catalog.browse_studies("plasmodb", limit=100)
     await wired.close()
-    assert cards
-    assert [c.display_name for c in cards] == sorted(c.display_name for c in cards)
-    assert all(c.relevance == 0.0 for c in cards)
-    assert all(c.study_id for c in cards)
+    assert [(c.dataset_id, c.study_id, c.relevance) for c in cards] == [
+        ("DS_2184f85560", "STUDY_c66bb8d26a", 0.0),
+        ("DS_dd73524c7e", "STUDY_bf43a6913c", 0.0),
+    ]
 
 
 async def test_browsing_drops_a_study_with_no_permission_entry(
@@ -201,6 +201,10 @@ async def test_browsing_drops_a_study_with_no_permission_entry(
 
 
 async def test_browsing_honours_the_limit(wired: EdaClient) -> None:
-    cards = await catalog.browse_studies("plasmodb", limit=3)
+    """Two curated studies carry a permission entry; a limit of one keeps the
+    first of them by name."""
+    cards = await catalog.browse_studies("plasmodb", limit=1)
+    everything = await catalog.browse_studies("plasmodb", limit=100)
     await wired.close()
-    assert len(cards) == 3
+    assert [c.dataset_id for c in cards] == ["DS_2184f85560"]
+    assert [c.dataset_id for c in everything] == ["DS_2184f85560", "DS_dd73524c7e"]

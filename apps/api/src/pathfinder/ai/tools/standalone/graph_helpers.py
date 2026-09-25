@@ -143,10 +143,28 @@ def count_summary(
 
     A count nobody measured is reported as missing, never spent as a zero.
     """
+    steps = count_noun(step_count, "step")
     if records is None:
-        return f"{step_count} steps, count not available", "warn"
-    counted = count_noun(records, record_type or "record")
-    return f"{step_count} steps, {counted}", "ok" if records else "empty"
+        return f"{steps}, count not available", "warn"
+    return f"{steps}, {counted_records(records, record_type)}", (
+        "ok" if records else "empty"
+    )
+
+
+# WDK counts a transcript answer in genes, so its count names genes.
+_COUNTED_AS = {"transcript": "gene"}
+
+
+def counted_noun(record_type: str | None) -> str:
+    """The noun the site counts that record type in."""
+    if not record_type:
+        return "record"
+    return _COUNTED_AS.get(record_type, record_type.replace("_", " "))
+
+
+def counted_records(count: int, record_type: str | None) -> str:
+    """The count in the noun the site counts that record type in."""
+    return count_noun(count, counted_noun(record_type))
 
 
 def serialize_step(

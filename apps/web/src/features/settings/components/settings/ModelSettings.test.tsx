@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 vi.mock("next/navigation", () => ({
@@ -110,5 +110,16 @@ describe("ModelSettings providers", () => {
 
     expect(await screen.findByRole("button", { name: "Default" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Anthropic" })).toBeNull();
+  });
+});
+
+describe("ModelSettings stage defaults", () => {
+  it("names a stage's default model by its display name", async () => {
+    renderSettings();
+
+    const row = await screen.findByTestId("phase-row-lead");
+    expect(await within(row).findByText(/^Default:/)).toHaveTextContent(
+      "Default: GPT-5.6 Luna",
+    );
   });
 });

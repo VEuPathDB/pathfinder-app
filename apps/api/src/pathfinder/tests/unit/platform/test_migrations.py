@@ -46,10 +46,6 @@ def test_the_filter_drops_the_version_table_the_tool_server_chain_writes() -> No
 def test_the_application_retypes_no_table_name_the_tool_server_publishes() -> None:
     """A second copy of a name drifts when the tool server renames its chain."""
     assert "MCP_VERSION_TABLE" not in vars(migrations)
-    assert veupathdb_mcp.migrate.OWNED_TABLES == (
-        "embedding_vectors",
-        "embedding_index_entries",
-    )
     assert {
         *veupathdb_mcp.migrate.OWNED_TABLES,
         veupathdb_mcp.migrate.VERSION_TABLE,

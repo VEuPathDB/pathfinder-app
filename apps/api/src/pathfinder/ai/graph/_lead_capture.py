@@ -32,6 +32,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 from pydantic_ai.usage import RunUsage
 from sqlalchemy.exc import SQLAlchemyError
 
+from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import (
@@ -114,9 +115,8 @@ class _LeadRunCapture:
     pending_approval: PendingApproval | None = None
     pending_durable_call: PendingDurableCall | None = None
     parked_call_answered: bool = False
-    # The researcher declined the proposal card, so the turn writes no reply.
-    proposal_declined: bool = False
-    prose_already_streamed: bool = False
+    # The researcher declined an offer card, so the turn writes no reply.
+    offer_declined: bool = False
 
     def note_model_output(
         self,
@@ -217,6 +217,20 @@ def usage_recorders(
     return record_sub_agent, record_tool
 
 
+def turn_with_spend(
+    state: PipelineState, meter: SpendMeter, writer: Any
+) -> PipelineState:
+    """The turn with the runs beside the Lead added to its totals, reported."""
+    if meter.tokens == 0 and meter.cost_usd == 0:
+        return state
+    tokens = state.turn_total_tokens + meter.tokens
+    cost_usd = state.turn_total_cost_usd + meter.cost_usd
+    emit_turn_usage(writer, tokens, str(cost_usd))
+    return state.model_copy(
+        update={"turn_total_tokens": tokens, "turn_total_cost_usd": cost_usd}
+    )
+
+
 def emit_lead_usage(
     writer: Any,
     capture: _LeadRunCapture,
@@ -244,7 +258,7 @@ def _emit_residual_prose(
     message_id: UUID,
 ) -> None:
     response = capture.response
-    if response is None or not response.prose or capture.prose_already_streamed:
+    if response is None or not response.prose:
         return
     chunk_id = f"lead-prose-{message_id}"
     emit_chunk(writer, TextStartChunk(id=chunk_id))

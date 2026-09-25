@@ -136,14 +136,17 @@ def _shown_state(revision: int) -> EdaAnalysisState:
     )
 
 
-async def _bind_analysis(conversation_id: UUID, *, revision: int, shown: int) -> None:
+async def _bind_analysis(
+    conversation_id: UUID, *, revision: int, shown: int, analysis_id: str = "an_1"
+) -> None:
+    """Bind ``analysis_id`` and show the card of analysis ``an_1``."""
     async with db.async_session_factory() as session:
         session.add(
             ConversationAnalysis(
                 conversation_id=conversation_id,
                 site_id="plasmodb",
                 dataset_id="DS_1234",
-                analysis_id="an_1",
+                analysis_id=analysis_id,
                 revision=revision,
             ),
         )
@@ -220,7 +223,32 @@ async def test_the_hook_briefs_the_turn_on_an_edit_a_task_and_the_analysis(
     rendered = briefed.domain.turn_briefing
     assert "min_expression_percentile 90 -> 75" in rendered
     assert "run_control_tests_on_step finished" in rendered
-    assert "the open analysis (DS_1234) is 2 revisions ahead" in rendered
+    assert (
+        "- the open analysis (DS_1234) changed after the card in this conversation"
+        in rendered
+    )
+    assert briefed.domain.open_eda_analysis is not None
+    assert briefed.domain.open_eda_analysis.changed_after_the_card
+
+
+async def test_a_rebind_the_thread_never_showed_is_briefed_as_a_change(
+    patch_app_db_engine: None,
+    db_cleaner: None,
+) -> None:
+    """A binding restarts its revision, so the card of the old document is behind."""
+    del patch_app_db_engine, db_cleaner
+    conversation_id, _ = await _seed_thread()
+    await _write_strategy(conversation_id, 90)
+    await _answer(conversation_id)
+    await _bind_analysis(conversation_id, revision=1, shown=3, analysis_id="an_2")
+
+    briefed = await pathfinder_pre_turn(
+        _state(conversation_id, answered=90), _context(90)
+    )
+
+    assert briefed.domain.turn_briefing.splitlines()[1] == (
+        "- the open analysis (DS_1234) changed after the card in this conversation"
+    )
 
 
 async def test_a_task_that_finished_before_the_last_answer_is_not_briefed(

@@ -14,7 +14,7 @@ from veupathdb.eda import EdaClient, EdaPermissionEntry, EdaStudyDetail
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_analysis
 from pathfinder.ai.tools.standalone._eda_models import EdaAnalysisOpened
-from pathfinder.services.eda import authoring, binding, catalog
+from pathfinder.services.eda import authoring, binding, catalog, study_site
 from pathfinder.services.eda.catalog import UnknownEdaDatasetError
 from pathfinder.tests._support.eda_doubles import (
     ANALYSIS_ID,
@@ -39,6 +39,16 @@ def revisions(monkeypatch: pytest.MonkeyPatch) -> RevisionCounter:
     counter = RevisionCounter()
     monkeypatch.setattr(binding, "bump_analysis_revision", counter.bump)
     return counter
+
+
+@pytest.fixture(autouse=True)
+def published_on_plasmodb(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every study here is one plasmodb publishes, so the bind opens it."""
+
+    async def publishing(dataset_ids: list[str]) -> dict[str, list[str]]:
+        return {dataset_id: ["plasmodb"] for dataset_id in dataset_ids}
+
+    monkeypatch.setattr(study_site, "sites_publishing", publishing)
 
 
 @pytest.fixture(autouse=True)

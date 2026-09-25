@@ -15,9 +15,17 @@ export interface ApprovalCardProps {
   onApprove: () => void;
   onDeny: () => void;
   decision: ApprovalDecision;
+  /** What a decided card names, when the call names its target. */
+  subject?: string | null;
 }
 
-function Decision({ approved }: { approved: boolean }): ReactElement {
+function Decision({
+  approved,
+  subject,
+}: {
+  approved: boolean;
+  subject: string | null;
+}): ReactElement {
   return (
     <div
       data-testid="tool-approval-decision"
@@ -31,6 +39,7 @@ function Decision({ approved }: { approved: boolean }): ReactElement {
         <X className="size-3.5" aria-hidden />
       )}
       {approved ? "Approved" : "Denied"}
+      {subject === null ? null : `: ${subject}`}
     </div>
   );
 }
@@ -43,8 +52,11 @@ export function ApprovalCard({
   onApprove,
   onDeny,
   decision,
+  subject = null,
 }: ApprovalCardProps): ReactElement {
-  if (decision !== "pending") return <Decision approved={decision === "approved"} />;
+  if (decision !== "pending") {
+    return <Decision approved={decision === "approved"} subject={subject} />;
+  }
   return (
     <div
       data-testid="approval-card"

@@ -5,6 +5,10 @@ from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._catalog_elsewhere import (
+    another_sites_entry,
+    read_experiment,
+)
 from pathfinder.ai.tools.standalone.catalog import (
     browse_search_categories,
     get_record_types,
@@ -38,10 +42,8 @@ from pathfinder.ai.tools.toolsets._dynamic import (
 def _frame_enum_overrides(ctx: RunContext[AgentDeps]) -> EnumOverrides:
     state = ctx.deps.agent_state
     known = set(state.candidate_search_names()) | set(state.discovered_search_names())
-    # Withdraw searches already given up on this turn so the model cannot keep
-    # re-selecting something VEuPathDB is 500ing on. If that would leave nothing
-    # to choose from, keep the full set: an empty enum invalidates every call and
-    # removes the model's ability to route around the outage at all.
+    # A search the site failed on this turn is withdrawn, unless that leaves none:
+    # an empty set would refuse every call.
     reachable = known - ctx.deps.service_outage.unavailable_searches()
     candidates = sorted(reachable or known)
     overrides: EnumOverrides = {}
@@ -56,7 +58,8 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
     """FRAME toolset: retrieve candidate searches and the user's saved strategies,
     read a search's parameter sheet, bind criteria with the params proposed from that
     sheet, assemble the structure. ``set_criterion`` is enum-guarded to real candidate
-    searches so the model cannot invent names."""
+    searches so the model cannot invent names, and a name another site's experiment
+    carries is refused with the reason it cannot bind."""
     base: FunctionToolset[AgentDeps] = FunctionToolset(
         max_retries=3,
         tools=[
@@ -66,6 +69,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             list_searches,
             list_transforms,
             search_example_plans,
+            read_experiment,
             get_search_overview,
             get_parameter_options,
             lookup_phyletic_codes,
@@ -81,4 +85,8 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             remember,
         ],
     )
-    return ValidatingEnumToolset(wrapped=base, build_overrides=_frame_enum_overrides)
+    return ValidatingEnumToolset(
+        wrapped=base,
+        build_overrides=_frame_enum_overrides,
+        explain=another_sites_entry,
+    )

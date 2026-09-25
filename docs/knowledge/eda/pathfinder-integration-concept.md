@@ -63,20 +63,18 @@ answer API our services call. What is missing is authoring:
 The genomics sites embed EDA as a notebook inside a question form; ClinEpiDB
 ships a full workspace. PathFinder's version of "build the EDA, then use it in
 strategies" is a new frontend feature (a tab of its own) that renders
-an AI-guided notebook over our own EDA client:
+a read-only view of the analysis the agent built, over our own EDA client:
 
 - **Study picker** over `/studies` (759 on PlasmoDB), searchable, in
   `apps/web/src/features/eda/StudyPicker.tsx`; the displayName + description
   text is embedded in the same vector index pattern as our catalog
   (`integrations/embeddings/study_index.py`).
-- **Subset cell**: entity tree + variable browser, filter chips, live counts
-  via `/count` and `/distribution` per interaction, in
-  `apps/web/src/features/eda/cells/SubsetCell.tsx`. This is the cell agents
-  and users co-edit; its state IS `descriptor.subset.descriptor`.
-- **Compute cell**: pick app + collection variable + comparator, submit via
-  `/computes`, in `apps/web/src/features/eda/cells/ComputeCell.tsx`; the tab
-  polls by repeating the idempotent `run-compute` action, and the chat's
-  durable `run_eda_compute` rides `background_tasks`.
+- **Subset and comparison, as text**: the filter sentences and entity counts
+  of `descriptor.subset.descriptor`, and the analysis's comparison as one
+  sentence, read-only. The agent writes them (`set_eda_filters`, the durable
+  `run_eda_compute`); a researcher edits them in the site's own notebook, which
+  the tab links. The editing cells that copied the notebook were removed
+  ([PathFinder shows what the AI did](../decisions/pathfinder-shows-what-the-ai-did-and-the-site-edits.md)).
 - **Visualization cell**: renders the server-computed data with our own
   ECharts components, in `apps/web/src/features/eda/cells/VizCell.tsx`; EDA
   sends data, not images, so we are not importing web-monorepo React. The
@@ -85,8 +83,8 @@ an AI-guided notebook over our own EDA client:
 - **Export as step**: serializes the notebook state to `eda_analysis_spec` and
   inserts a `GenesByEdaSubset` / `GenesByEdaVizWithCompute` step into the
   current strategy, in `apps/web/src/features/eda/ExportStepButton.tsx` and
-  `apps/api/src/pathfinder/services/eda/steps.py`; thresholds picked on the
-  volcano become the step's parameters, exactly as upstream does it. On a
+  `apps/api/src/pathfinder/services/eda/steps.py`; the cut the analysis's
+  volcano stores becomes the step's parameters, exactly as upstream does it. On a
   thread with no strategy the export begins one.
 - **Persistence**: saves through `/users/{uid}/analyses/{project}` so analyses
   are visible on the VEuPathDB site too. Upstream stays the SSOT for user

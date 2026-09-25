@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import get_args
 from uuid import uuid4
 
 import pytest
@@ -8,9 +7,7 @@ from pydantic import ValidationError
 
 from pathfinder.ai.agents.state import SearchOverview
 from pathfinder.ai.graph.state import (
-    PHASE_NAMES,
     PhaseDisposition,
-    PhaseName,
     PipelineState,
     StrategyDomainState,
     VerificationDigest,
@@ -32,15 +29,6 @@ def base_state() -> PipelineState:
         user_id=uuid4(),
         site_id="plasmodb",
         mode="strategy",
-    )
-
-
-def test_phase_names_constant_matches_literal_args() -> None:
-    assert set(PHASE_NAMES) == set(get_args(PhaseName))
-    assert PHASE_NAMES == (
-        "frame",
-        "build",
-        "verification",
     )
 
 

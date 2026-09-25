@@ -82,3 +82,26 @@ def test_anthropic_smallest_is_haiku() -> None:
 
 def test_google_smallest_is_gemini_3_5_flash_lite() -> None:
     assert get_smallest_model("google").id == "google:gemini-3.5-flash-lite"
+
+
+# The measured answer of each provider to one 1x1 PNG and one one-page PDF
+# (docs/knowledge/decisions/an-attachment-is-a-file-part-the-model-can-read.md).
+_READS_FILES = {"openai": True, "google": True, "anthropic": False}
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [e for e in get_model_catalog() if e.provider in _READS_FILES],
+    ids=lambda e: e.id,
+)
+def test_a_cloud_model_reads_the_files_its_provider_was_measured_to_read(
+    entry: ModelEntry,
+) -> None:
+    expected = _READS_FILES[entry.provider]
+    assert (entry.supports_images, entry.supports_documents) == (expected, expected)
+
+
+def test_the_mock_reads_no_file() -> None:
+    mock = get_model_entry("mock:deterministic")
+    assert mock is not None
+    assert (mock.supports_images, mock.supports_documents) == (False, False)

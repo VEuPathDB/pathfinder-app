@@ -18,15 +18,19 @@ describe("the reader against bodies the backend actually sends", () => {
       }),
     ).toBe("siteId is required");
   });
-  it("a strategy that is not dismissed keeps its summary", () => {
+  it("a conversation that is not in Recently deleted keeps its summary", () => {
     expect(
       extractErrorMessage({
-        detail: "Strategy is not dismissed",
+        detail: "The conversation is not in Recently deleted.",
         errors: [
-          { path: "strategyId", message: "Not dismissed", code: "INVALID_STATE" },
+          {
+            path: "strategyId",
+            message: "Not in Recently deleted",
+            code: "INVALID_STATE",
+          },
         ],
       }),
-    ).toBe("Strategy is not dismissed");
+    ).toBe("The conversation is not in Recently deleted.");
   });
   it("a FastAPI validation body names its fields", () => {
     expect(

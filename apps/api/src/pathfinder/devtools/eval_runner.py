@@ -26,6 +26,7 @@ from uuid import UUID, uuid4
 
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.platform.db import async_session_factory
+from assistant_core.platform.types import ReasoningEffort
 from langchain_core.runnables import RunnableConfig
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
@@ -38,7 +39,9 @@ from pathfinder.evals.case import EvalCase
 from pathfinder.evals.distance import tree_from_ast
 from pathfinder.evals.scoring import (
     ObservedOutcome,
+    RequirementCounts,
     final_count_below_every_input,
+    requirement_counts,
     root_operator,
     score_case,
     step_reasons,
@@ -60,8 +63,16 @@ def checkpointed_verdict(values: Mapping[str, object]) -> bool | None:
     return None if verdict is None else verdict.passed
 
 
-async def _verification_verdict(conversation_id: UUID) -> bool | None:
-    """The verdict on the thread's strategy, or None when no check judged it."""
+def checkpointed_requirements(
+    values: Mapping[str, object],
+) -> RequirementCounts | None:
+    """The requirement rows of the verdict on the checkpointed strategy, counted."""
+    verdict = PipelineState.model_validate(values).turn_verdict
+    return None if verdict is None else requirement_counts(verdict.review.requirements)
+
+
+async def _checkpoint_values(conversation_id: UUID) -> Mapping[str, object]:
+    """The state the thread's last turn left in the checkpoint."""
     registry = get_assistant_registry()
     spec = await resolve_run_assistant(conversation_id)
     async with lifespan_checkpointer(
@@ -71,7 +82,7 @@ async def _verification_verdict(conversation_id: UUID) -> bool | None:
         graph = spec.build_graph(saver)
         config: RunnableConfig = {"configurable": {"thread_id": str(conversation_id)}}
         snapshot = await graph.aget_state(config)
-    return checkpointed_verdict(snapshot.values)
+    return snapshot.values
 
 
 async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
@@ -95,12 +106,14 @@ async def observe(
         strategy = await ConversationRepository(session).get_strategy(conversation_id)
     built = bool(strategy.strategy_ast)
     ast = StrategyAst.model_validate(strategy.strategy_ast) if built else None
+    checkpointed = await _checkpoint_values(conversation_id)
     return ObservedOutcome(
         built_strategy=built,
         structure=structure_signature(ast) if ast is not None else None,
         record_type=strategy.record_type or None,
         step_count=strategy.step_count if built else None,
-        verified=await _verification_verdict(conversation_id),
+        verified=checkpointed_verdict(checkpointed),
+        requirements=checkpointed_requirements(checkpointed),
         step_ids_unchanged=step_ids_unchanged,
         tree=tree_from_ast(ast) if ast is not None else None,
         step_titles=step_titles(ast) if ast is not None else [],
@@ -118,6 +131,7 @@ async def run_one_case(
     *,
     run_root: Path,
     mock: bool = True,
+    effort: ReasoningEffort | None = None,
 ) -> ObservedOutcome:
     """Drive every turn of one case on a fresh thread, in order.
 
@@ -139,6 +153,7 @@ async def run_one_case(
                 approve="auto",
                 quiet=True,
                 assistant=case.assistant_id,
+                effort=effort,
             ),
         )
         reply = capture.assistant_text()
@@ -176,6 +191,7 @@ async def run_corpus(
     run_root: Path,
     only: list[str] | None = None,
     mock: bool = True,
+    effort: ReasoningEffort | None = None,
 ) -> EvalRunSummary:
     """Run the corpus and return the summary. Cases run one at a time.
 
@@ -185,7 +201,7 @@ async def run_corpus(
     dataset = build_dataset(cases)
 
     async def task(case: EvalCase) -> ObservedOutcome:
-        return await run_one_case(case, run_root=run_root, mock=mock)
+        return await run_one_case(case, run_root=run_root, mock=mock, effort=effort)
 
     report = await dataset.evaluate(task, max_concurrency=1, progress=False)
 

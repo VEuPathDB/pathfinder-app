@@ -22,6 +22,7 @@ from pathfinder.domain.evidence import (
     ControlTestEvidence,
     CriterionCitations,
     EvidenceVerdict,
+    VerificationReview,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -108,6 +109,7 @@ _BASE = CardSources(
     spec=_spec(),
     control_tests=(_test_run(_LEAF), _test_run(440299001, call="call_old")),
     verdict=EvidenceVerdict(supported=True),
+    review=VerificationReview(),
 )
 
 

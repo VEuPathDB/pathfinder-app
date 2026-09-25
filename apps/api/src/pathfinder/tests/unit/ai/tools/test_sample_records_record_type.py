@@ -22,7 +22,8 @@ def _session(record_type: str | None) -> StrategySession:
 
 
 def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
-    """Record every record type the tool asks for sample attributes under."""
+    """Record every record type the tool asks for sample attributes under, once
+    for the gene columns and once for the columns its searches select on."""
     seen: list[str] = []
 
     def attributes(record_type: str) -> list[str]:
@@ -35,7 +36,15 @@ def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         del site_id, limit, attributes
         return SampleRecordsResult(step_id=step_id, total_count=0)
 
+    async def selected(
+        site_id: str, record_type: str, graph: StrategyGraph | None
+    ) -> list[str]:
+        del site_id, graph
+        seen.append(record_type)
+        return []
+
     monkeypatch.setattr(results, "gene_sample_attributes", attributes)
+    monkeypatch.setattr(results, "sample_attributes", selected)
     monkeypatch.setattr(results, "step_sample_records", sample)
     return seen
 
@@ -49,7 +58,7 @@ async def test_a_session_with_no_record_type_asks_for_transcript_attributes(
         agent_run_context(strategy_session=_session(None)), 42
     )
 
-    assert seen == ["transcript"]
+    assert seen == ["transcript", "transcript"]
 
 
 async def test_a_session_names_its_own_record_type(
@@ -61,5 +70,5 @@ async def test_a_session_names_its_own_record_type(
         agent_run_context(strategy_session=_session("popsetSequence")), 42
     )
 
-    assert seen == ["popsetSequence"]
+    assert seen == ["popsetSequence", "popsetSequence"]
     assert returned(result, SampleRecordsResult).step_id == 42

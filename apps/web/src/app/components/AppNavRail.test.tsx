@@ -83,7 +83,7 @@ describe("AppNavRail section links", () => {
   it("does nothing on the section the reader is already in", async () => {
     route.pathname = "/plasmodb/conversation/abc-123";
     draw();
-    const chat = await screen.findByRole("link", { name: "Chat" });
+    const chat = await screen.findByRole("link", { name: "Conversation" });
     expect(chat).toHaveAttribute("aria-current", "page");
     const click = fireEvent.click(chat);
     expect(click).toBe(false);
@@ -100,7 +100,7 @@ describe("AppNavRail section links", () => {
 
   it("links the chat and the saved strategies, and no workbench", async () => {
     draw();
-    await screen.findByRole("link", { name: "Chat" });
+    await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
     expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved"]);
   });
@@ -112,9 +112,7 @@ describe("AppNavRail site selection", () => {
     const picked = vi.fn();
     drawFor("plasmodb", picked);
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Switch database" }),
-    );
+    await userEvent.click(await screen.findByRole("button", { name: "Switch site" }));
 
     const down = await screen.findByTestId("site-menu-item-veupathdb");
     expect(down.getAttribute("aria-label")).toBe(
@@ -135,9 +133,7 @@ describe("AppNavRail site selection", () => {
     ];
     drawFor("plasmodb");
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Switch database" }),
-    );
+    await userEvent.click(await screen.findByRole("button", { name: "Switch site" }));
 
     const up = await screen.findByTestId("site-menu-item-veupathdb");
     expect(up.getAttribute("aria-label")).toBe("VEuPathDB Portal (All organisms)");
@@ -149,12 +145,10 @@ describe("AppNavRail site selection", () => {
     drawFor("veupathdb");
 
     const trigger = await screen.findByRole("button", {
-      name: "Switch database",
+      name: "Switch site",
     });
-    expect(trigger.getAttribute("aria-label")).toBe("Switch database");
-    expect(
-      screen.getByLabelText("Couldn't reach VEuPathDB Portal (All organisms)"),
-    ).toBeInTheDocument();
+    expect(trigger.getAttribute("aria-label")).toBe("Switch site");
+    expect(screen.getByLabelText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(trigger).toContainElement(screen.getByTestId("site-trigger-degraded"));
   });
 
@@ -162,8 +156,8 @@ describe("AppNavRail site selection", () => {
     sites.list = [site({}), PORTAL_DOWN];
     drawFor("plasmodb");
 
-    const trigger = await screen.findByRole("button", { name: "Switch database" });
-    expect(trigger.getAttribute("aria-label")).toBe("Switch database");
+    const trigger = await screen.findByRole("button", { name: "Switch site" });
+    expect(trigger.getAttribute("aria-label")).toBe("Switch site");
     expect(screen.queryByTestId("site-trigger-degraded")).toBeNull();
   });
 });

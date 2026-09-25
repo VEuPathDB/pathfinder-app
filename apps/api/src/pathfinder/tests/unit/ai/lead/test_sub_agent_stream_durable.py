@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.graph.turn_state import DurableTaskResult
-from assistant_core.tasks import decorator
+from assistant_core.tasks import decorator, service
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
@@ -101,7 +101,7 @@ def deferred(monkeypatch: pytest.MonkeyPatch) -> _Deferred:
         return next(task_ids)
 
     monkeypatch.setattr(decorator, "create_background_task", _create)
-    monkeypatch.setattr(decorator, "task_app", lambda: recorder)
+    monkeypatch.setattr(service, "task_app", lambda: recorder)
     return recorder
 
 

@@ -1,22 +1,18 @@
-"""The EDA catalog routes the tab hydrates its study picker from."""
+"""The EDA catalog routes the tab's study picker reads, and the chart kinds."""
 
 from __future__ import annotations
 
-import json
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.eda import EdaClient
+from veupathdb_mcp.embeddings import search_study_index
 
 from pathfinder.tests.integration.http._eda_routes import (
     DATASET,
-    ENTITY,
-    HIDDEN,
-    SPECIES,
-    STUDY,
     api_client,
     eda_wired,
 )
@@ -27,27 +23,32 @@ pytestmark = pytest.mark.asyncio
 __all__ = ["api_client", "eda_wired"]
 
 
-async def test_a_study_search_answers_with_cards(
+# The curated studies of the recorded listing that the permissions map names.
+_PERMITTED_CURATED = {"DS_dd73524c7e", "DS_2184f85560"}
+
+
+async def test_a_study_search_answers_with_cards_in_the_indexs_order(
     api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
 ) -> None:
+    """The cache holds curated rows only, so the cards are the two curated
+    studies the account may read, ranked as the index ranks them."""
     del eda_wired
     client, _user_id = api_client
     response = await client.get(
         "/api/v1/eda/studies", params={"q": "phenotype", "siteId": "plasmodb"}
     )
+    hits = [
+        hit
+        for hit in await search_study_index("phenotype", top_k=100)
+        if hit.entry_id in _PERMITTED_CURATED
+    ]
+
     assert response.status_code == 200
-    body = response.json()
-    assert body["studies"]
-    first = body["studies"][0]
-    assert set(first) >= {
-        "datasetId",
-        "studyId",
-        "displayName",
-        "canSubset",
-        "canExportRows",
-        "relevance",
-    }
-    assert first["relevance"] > 0.0
+    studies = response.json()["studies"]
+    assert [(s["datasetId"], s["relevance"]) for s in studies] == [
+        (hit.entry_id, pytest.approx(max(0.0, hit.similarity))) for hit in hits
+    ]
+    assert [s["sourceType"] for s in studies] == ["curated", "curated"]
 
 
 async def test_a_study_search_with_no_query_lists_the_catalog_by_name(
@@ -58,90 +59,12 @@ async def test_a_study_search_with_no_query_lists_the_catalog_by_name(
     response = await client.get("/api/v1/eda/studies", params={"siteId": "plasmodb"})
     assert response.status_code == 200
     studies = response.json()["studies"]
-    assert studies
+    assert [(s["datasetId"], s["relevance"]) for s in studies] == [
+        ("DS_2184f85560", 0.0),
+        ("DS_dd73524c7e", 0.0),
+    ]
     names = [study["displayName"] for study in studies]
     assert names == sorted(names)
-    assert all(study["relevance"] == 0.0 for study in studies)
-
-
-async def test_a_study_detail_carries_the_entity_tree_and_the_gene_entity(
-    api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
-) -> None:
-    del eda_wired
-    client, _user_id = api_client
-    response = await client.get(
-        f"/api/v1/eda/studies/{DATASET}", params={"siteId": "plasmodb"}
-    )
-    assert response.status_code == 200
-    body = response.json()
-    assert body["datasetId"] == DATASET
-    assert body["studyId"] == STUDY
-    assert body["geneEntityId"] == ENTITY
-    assert body["canSubset"] is True
-    entities = {e["entityId"] for e in body["entities"]}
-    assert ENTITY in entities
-    variables = body["variables"]
-    assert any(v["variableId"] == SPECIES for v in variables)
-
-
-async def test_a_study_detail_for_one_entity_carries_that_entity_only(
-    api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
-) -> None:
-    """A study can declare thousands of variables, so the tab asks per entity."""
-    del eda_wired
-    client, _user_id = api_client
-    response = await client.get(
-        f"/api/v1/eda/studies/{DATASET}",
-        params={"siteId": "plasmodb", "entityId": ENTITY},
-    )
-    assert response.status_code == 200
-    variables = response.json()["variables"]
-    assert variables
-    assert {v["entityId"] for v in variables} == {ENTITY}
-    species = next(v for v in variables if v["variableId"] == SPECIES)
-    assert species["filterType"] == "stringSet"
-    assert "P. berghei" in species["vocabulary"]
-
-
-async def test_a_study_detail_carries_the_hide_from_advice_of_each_variable(
-    api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
-) -> None:
-    """The tab lists what the site lists, so it needs the site's advice."""
-    del eda_wired
-    client, _user_id = api_client
-    response = await client.get(
-        f"/api/v1/eda/studies/{DATASET}",
-        params={"siteId": "plasmodb", "entityId": ENTITY},
-    )
-    assert response.status_code == 200
-    hide_from = {v["variableId"]: v["hideFrom"] for v in response.json()["variables"]}
-    assert hide_from[HIDDEN] == ["variableTree"]
-    assert hide_from[SPECIES] == []
-
-
-async def test_a_study_detail_for_an_unknown_entity_is_a_404(
-    api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
-) -> None:
-    del eda_wired
-    client, _user_id = api_client
-    response = await client.get(
-        f"/api/v1/eda/studies/{DATASET}",
-        params={"siteId": "plasmodb", "entityId": "NO_SUCH_ENTITY"},
-    )
-    assert response.status_code == 404
-    assert "NO_SUCH_ENTITY" in json.dumps(response.json())
-
-
-async def test_an_unknown_dataset_is_a_404_naming_the_id(
-    api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
-) -> None:
-    del eda_wired
-    client, _user_id = api_client
-    response = await client.get(
-        "/api/v1/eda/studies/DS_nope", params={"siteId": "plasmodb"}
-    )
-    assert response.status_code == 404
-    assert "DS_nope" in json.dumps(response.json())
 
 
 async def test_a_request_with_no_wdk_token_is_refused(
@@ -167,4 +90,17 @@ async def test_a_missing_site_id_is_a_422(
 ) -> None:
     client, _user_id = api_client
     response = await client.get("/api/v1/eda/studies")
+    assert response.status_code == 422
+
+
+async def test_a_chart_kind_outside_the_union_is_a_422(
+    api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
+) -> None:
+    del eda_wired
+    client, _user_id = api_client
+    response = await client.post(
+        "/api/v1/eda/viz",
+        params={"siteId": "plasmodb", "conversationId": str(uuid4())},
+        json={"datasetId": DATASET, "chart": "pie"},
+    )
     assert response.status_code == 422

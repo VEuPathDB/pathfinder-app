@@ -26,7 +26,16 @@ from pathfinder.ai.tools.standalone.catalog import (
 )
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides
 from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+from pathfinder.tests.unit.ai.tools.conftest import (
+    agent_run_context,
+    serve_no_other_sites,
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_other_sites(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every search read here ranks the own site alone."""
+    serve_no_other_sites(monkeypatch)
 
 
 def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:

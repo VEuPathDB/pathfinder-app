@@ -20,7 +20,8 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.tests._support.catalog_builders import serve_search_details
 from pathfinder.tests._support.tool_returns import returned

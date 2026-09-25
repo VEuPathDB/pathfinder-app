@@ -24,6 +24,9 @@ function stubSendFetch(isNew: boolean): Sent {
     "fetch",
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/api/v1/models")) {
+        return Promise.resolve(Response.json({ models: [], phaseDefaults: {} }));
+      }
       if (url.includes("/api/v1/chat")) {
         sent.chat.push(readBody(init));
         return Promise.resolve(

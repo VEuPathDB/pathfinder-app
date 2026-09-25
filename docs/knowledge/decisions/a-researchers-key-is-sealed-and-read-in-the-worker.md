@@ -14,8 +14,10 @@ status: stable
 `google`; any other name is a 422) sends one short generation request to the
 provider's cheapest catalog model through the construction a turn uses
 (`platform/model_keys.py::probe_key`), and stores nothing unless it answers
-2xx. A 408, a 429 or a 5xx is `PROVIDER_UNREACHABLE` (503); any other refusal
-is `PROVIDER_KEY_REFUSED` (422). A deployment with no key secret answers
+2xx. An answer the refusal classifier reads as a refusal of the key (below) is
+`PROVIDER_KEY_REFUSED` (422), a 429 for quota included; any other 408, 429 or
+5xx is `PROVIDER_UNREACHABLE` (503); any other refusal is
+`PROVIDER_KEY_REFUSED` (422). A deployment with no key secret answers
 `PROVIDER_KEYS_DISABLED` as a 403: the refusal stands until an operator sets
 the secret, so it is not an outage a caller may wait out. The route answers the PathFinder application
 alone and is rate limited to 10 an hour, because each call spends on the key it
@@ -49,13 +51,27 @@ deployment's key. A served tool's cost is always the deployment's.
 not: a provider error reaches the turn as its status with no body, raised
 outside the handler so no traceback, log or span carries the provider's text;
 OpenAI echoes a key's last four characters in its 401. A refusal of the
-researcher's key, read from bodies recorded by
-`pathfinder.devtools.provider_refusals`, is raised as the typed refusal, which no
-model retry can pass, and marked on the row after the turn.
+researcher's key (`platform/key_refusals.py::classify_refusal`) is raised as the
+typed refusal, which no model retry can pass, and marked on the row after the
+turn as `invalid`, `no_credit` or `forbidden` (migration `2026_09_24_0004`); the
+settings row and the turn's refusal say which. The classifier reads only the
+fixtures of `pathfinder.devtools.provider_refusals`: the invalid-key bodies of
+the three providers and Anthropic's low-balance 400 are recorded; OpenAI's 429
+quota codes, Anthropic's 402 and 403, and Google's 402 and 403
+`PERMISSION_DENIED` are copied from each provider's error reference and marked
+`documented`, with the page's URL. OpenAI's only documented 403 is an
+unsupported region, which is the deployment's and not the key's, so it is not a
+refusal.
 
 **Usage.** Each `monthly_usage` row names its payer (runtime `0.3.0a17`). The
 quota pill shows the allowance with its bar, or the bare own-key spend when the
-researcher holds a live key.
+researcher holds a live key. Every model call of a turn is charged: the Lead
+and the sub-agents through the Lead's capture, the thread title and the notes
+compaction through `ai/capabilities/metering.py`, each on the row of the key
+its model ran on, a failed run included. The compaction also joins the turn's
+total, so the message row and the `data-turn-usage` chunk carry it; the title
+runs beside the graph and after the message row is written, so it reaches the
+rows and not the turn's total.
 
 # What was rejected
 

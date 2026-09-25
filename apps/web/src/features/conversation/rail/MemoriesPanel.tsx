@@ -5,16 +5,9 @@ import { Brain, Loader2 } from "lucide-react";
 import type { MemoryItem } from "@pathfinder/shared";
 
 import { listMemories } from "@/features/settings/api/memories";
+import { MEMORY_KIND_LABELS, memorySections } from "@/lib/memoryKinds";
 
 import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
-
-const SECTION_LABELS = {
-  gene_set_note: "Gene set notes",
-  strategy: "Strategies",
-  preference: "Preferences",
-  knowledge: "Knowledge",
-  case: "Cases",
-} as const;
 
 export function MemoriesPanel() {
   const { data, isLoading } = useQuery({
@@ -24,16 +17,7 @@ export function MemoriesPanel() {
     refetchInterval: 15_000,
   });
 
-  const sections: Array<{
-    kind: keyof typeof SECTION_LABELS;
-    items: MemoryItem[];
-  }> = [
-    { kind: "gene_set_note", items: data?.geneSetNotes ?? [] },
-    { kind: "strategy", items: data?.strategies ?? [] },
-    { kind: "preference", items: data?.preferences ?? [] },
-    { kind: "knowledge", items: data?.knowledge ?? [] },
-    { kind: "case", items: data?.cases ?? [] },
-  ];
+  const sections = memorySections(data);
 
   const totalCount = sections.reduce((sum, s) => sum + s.items.length, 0);
 
@@ -47,7 +31,7 @@ export function MemoriesPanel() {
         <RailEmptyState
           icon={<Brain className="h-8 w-8" aria-hidden />}
           heading="No memories yet"
-          description="Auto-written memories and anything you save with the remember tool will appear here."
+          description="What the assistant keeps across conversations, and anything you ask it to remember, appears here."
         />
       ) : (
         <div className="divide-y divide-border">
@@ -55,7 +39,7 @@ export function MemoriesPanel() {
             section.items.length > 0 ? (
               <MemorySection
                 key={section.kind}
-                title={SECTION_LABELS[section.kind]}
+                title={MEMORY_KIND_LABELS[section.kind].many}
                 items={section.items}
               />
             ) : null,

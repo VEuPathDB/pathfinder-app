@@ -29,7 +29,6 @@ import { ExportStepButton } from "./ExportStepButton";
 
 const BASE = "http://localhost:3000";
 const server = setupServer();
-const JOB_ID = "db04204e5386396e1ca2cb78469ab6fb";
 const CONVERSATION_UUID = "11111111-1111-4111-8111-111111111111";
 
 function analysis(overrides: Record<string, unknown> = {}) {
@@ -59,12 +58,31 @@ const SAMPLE_ONLY_REFUSAL =
   "expression comparison and export the genes that pass its cut, or add a " +
   "filter on pfal3D7 htseq counts.";
 
-const COMPLETED_JOB = {
-  jobId: JOB_ID,
-  taskId: null,
-  appName: "differentialexpression",
-  status: "complete",
-};
+/** A figure of the analysis's comparison, read with the cut the analysis stores. */
+function figure(overrides: Record<string, unknown> = {}) {
+  return {
+    datasetId: "DS_e973eadd57",
+    analysisId: "a-1",
+    chart: "volcano" as const,
+    effectSizeLabel: "log2(Fold Change)",
+    effectSizeThreshold: 1,
+    significanceThreshold: 0.05,
+    effectDirection: "upAndDown" as const,
+    totalPoints: 1,
+    retainedPoints: 1,
+    points: [
+      {
+        pointId: "PF3D7_0100200",
+        effectSize: 3.94,
+        pValue: 0.00002,
+        adjustedPValue: 0.00014,
+        retained: true,
+      },
+    ],
+    comparison: { groupA: ["normal"], groupB: ["febrile"] },
+    ...overrides,
+  };
+}
 
 const EDA_STEP = {
   id: "step_eda",
@@ -114,7 +132,7 @@ function answersWith(body: Record<string, unknown>) {
 
 function readyToExport() {
   useEdaStore.getState().applyAnalysisState(analysis());
-  useEdaStore.getState().applyJob(COMPLETED_JOB);
+  useEdaStore.getState().applyViz(figure());
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
@@ -126,20 +144,19 @@ beforeEach(() => {
 });
 
 describe("ExportStepButton", () => {
-  it("is disabled while the analysis holds no filter and no completed compute", () => {
+  it("is disabled while the analysis holds no filter and no figure", () => {
     useEdaStore.getState().applyAnalysisState(analysis());
     render(<ExportStepButton conversationId="conv-1" />);
     expect(screen.getByRole("button", { name: "Export as step" })).toBeDisabled();
   });
 
-  it("exports the subset with no thresholds when no compute has completed", async () => {
+  it("exports the subset when no figure is drawn", async () => {
     let body: unknown = null;
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({
           analysis: analysis({ revision: 1, numFilters: 1 }),
-          job: null,
           step: strategyPayload(),
         });
       }),
@@ -152,7 +169,7 @@ describe("ExportStepButton", () => {
     expect(button).toBeEnabled();
     await userEvent.click(button);
     await waitFor(() => {
-      expect(body).toEqual({ action: "export-step", thresholds: null });
+      expect(body).toEqual({ action: "export-step", source: "subset" });
     });
   });
 
@@ -189,7 +206,7 @@ describe("ExportStepButton", () => {
 
   it("is disabled and says why when the analysis cannot export rows", () => {
     useEdaStore.getState().applyAnalysisState(analysis({ canExportRows: false }));
-    useEdaStore.getState().applyJob(COMPLETED_JOB);
+    useEdaStore.getState().applyViz(figure());
     render(<ExportStepButton conversationId="conv-1" />);
     expect(screen.getByRole("button", { name: "Export as step" })).toBeDisabled();
     expect(screen.getByTestId("eda-export-blocked")).toHaveTextContent(
@@ -197,49 +214,52 @@ describe("ExportStepButton", () => {
     );
   });
 
-  it("is disabled while the only job failed", () => {
-    useEdaStore.getState().applyAnalysisState(analysis());
-    useEdaStore.getState().applyJob({ ...COMPLETED_JOB, status: "failed" });
+  it("is disabled while a comparison is recorded but its figure is not read", () => {
+    useEdaStore.getState().applyAnalysisState(
+      analysis({
+        compute: {
+          method: "DESeq",
+          identifierVariable: "Gene",
+          valueVariable: "Antisense Count",
+          comparatorVariable: "temperature_condition",
+          groupA: ["normal"],
+          groupB: ["febrile"],
+        },
+      }),
+    );
     render(<ExportStepButton conversationId="conv-1" />);
     expect(screen.getByRole("button", { name: "Export as step" })).toBeDisabled();
   });
 
-  it("sends the export-step action with the current thresholds", async () => {
+  it("exports the volcano and leaves the cut to the analysis the site stores", async () => {
     let body: unknown = null;
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json({
           analysis: analysis({ revision: 1 }),
-          job: null,
           step: strategyPayload(),
         });
       }),
     );
-    readyToExport();
-    useEdaStore.getState().setVolcanoThresholds({
-      effectSizeThreshold: 2,
-      significanceThreshold: 0.01,
-      direction: "upOnly",
-    });
+    useEdaStore.getState().applyAnalysisState(analysis());
+    useEdaStore.getState().applyViz(
+      figure({
+        effectSizeThreshold: 2,
+        significanceThreshold: 0.01,
+        effectDirection: "upOnly",
+      }),
+    );
     render(<ExportStepButton conversationId="conv-1" />);
     await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
     await waitFor(() => {
-      expect(body).toEqual({
-        action: "export-step",
-        thresholds: {
-          effectSizeThreshold: 2,
-          significanceThreshold: 0.01,
-          effectDirection: "upOnly",
-        },
-      });
+      expect(body).toEqual({ action: "export-step", source: "volcano" });
     });
   });
 
   it("writes the returned strategy into the cache the graph already reads", async () => {
     answersWith({
       analysis: analysis({ revision: 1 }),
-      job: null,
       step: strategyPayload(),
     });
     const queryClient = createTestQueryClient();
@@ -261,7 +281,6 @@ describe("ExportStepButton", () => {
   it("marks the step answers of the thread stale when it writes the strategy", async () => {
     answersWith({
       analysis: analysis({ revision: 1 }),
-      job: null,
       step: strategyPayload(),
     });
     const queryClient = createTestQueryClient();
@@ -289,7 +308,6 @@ describe("ExportStepButton", () => {
   it("applies the analysis state the export answered with", async () => {
     answersWith({
       analysis: analysis({ revision: 7 }),
-      job: null,
       step: strategyPayload(),
     });
     readyToExport();
@@ -303,7 +321,6 @@ describe("ExportStepButton", () => {
   it("says the export began the strategy when the thread had none", async () => {
     answersWith({
       analysis: analysis({ revision: 1 }),
-      job: null,
       step: strategyPayload(),
     });
     readyToExport();
@@ -321,7 +338,6 @@ describe("ExportStepButton", () => {
   it("names the exported step by the genes it keeps", async () => {
     answersWith({
       analysis: analysis({ revision: 1 }),
-      job: null,
       step: BESIDE_EXISTING,
     });
     readyToExport();
@@ -335,7 +351,6 @@ describe("ExportStepButton", () => {
   it("calls the step a draft beside an existing strategy, never pushed", async () => {
     answersWith({
       analysis: analysis({ revision: 1 }),
-      job: null,
       step: BESIDE_EXISTING,
     });
     readyToExport();
@@ -372,7 +387,6 @@ describe("ExportStepButton", () => {
   it("reports a strategy payload it cannot read, and still takes the analysis", async () => {
     answersWith({
       analysis: analysis({ revision: 4 }),
-      job: null,
       step: { steps: [EDA_STEP] },
     });
     readyToExport();
@@ -382,5 +396,59 @@ describe("ExportStepButton", () => {
       "The export answered with a strategy the app cannot read.",
     );
     expect(useEdaStore.getState().analysis?.revision).toBe(4);
+  });
+
+  it("says how many genes of the cut the site's annotation lacks", async () => {
+    useEdaStore.getState().applyAnalysisState(analysis());
+    useEdaStore.getState().applyViz({
+      ...figure(),
+      totalPoints: 3,
+      retainedPoints: 2,
+      points: [
+        {
+          pointId: "PF3D7_0100200",
+          effectSize: 3.94,
+          pValue: 0.00002,
+          adjustedPValue: 0.00014,
+          retained: true,
+        },
+        {
+          pointId: "PF3D7_9901100",
+          effectSize: -2.5,
+          pValue: 0.001,
+          adjustedPValue: 0.004,
+          retained: true,
+        },
+        {
+          pointId: "PF3D7_0100100",
+          effectSize: -0.2,
+          pValue: 0.35,
+          adjustedPValue: 0.47,
+          retained: false,
+        },
+      ],
+    });
+    answersWith({
+      analysis: null,
+      step: strategyPayload({ steps: [{ ...EDA_STEP, estimatedSize: 1 }] }),
+    });
+    render(<ExportStepButton conversationId="conv-1" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
+
+    expect(await screen.findByTestId("eda-export-unmatched")).toHaveTextContent(
+      "1 of 2 genes is not a gene of PlasmoDB's current annotation.",
+    );
+  });
+
+  it("says nothing of unmatched genes when the step holds the whole cut", async () => {
+    readyToExport();
+    answersWith({ analysis: null, step: strategyPayload() });
+    render(<ExportStepButton conversationId="conv-1" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Export as step" }));
+
+    await screen.findByTestId("eda-export-step-name");
+    expect(screen.queryByTestId("eda-export-unmatched")).toBe(null);
   });
 });

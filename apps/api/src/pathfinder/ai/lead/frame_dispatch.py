@@ -16,17 +16,17 @@ from pathfinder.ai.lead.dispatch_context import (
 )
 from pathfinder.ai.lead.dispatch_messages import (
     answered_question_work_order,
-    budget_stop_work_order,
     earlier_turn_work_order,
     frame_bound_nothing_result,
     frame_claimed_more_than_it_bound,
     frame_result_from_draft,
     questions_that_bind_to_nothing,
+    stopped_pass_work_order,
     undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.phase_stop import PhaseStopReason
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -90,25 +90,30 @@ def _continues_the_draft(deps: LeadDeps, spec: OperationalSpec) -> bool:
     )
 
 
-def _continue_the_stopped_pass(
-    deps: LeadDeps, *, bound_before: int, draft: OperationalSpec
-) -> bool:
-    """Whether a stopped pass is dispatched again rather than reported.
+# A repeated call is a loop the guard ended, so it is never continued.
+_CONTINUED_STOPS = frozenset({PhaseStopReason.BUDGET, PhaseStopReason.TOOL_RETRIES})
 
-    A budget stop that bound a criterion the pass did not start with has work
-    left to continue, and the continuation is the system's to run. A pass that
-    bound nothing repeats itself, so the Lead hears about it instead.
+
+def _stop_to_continue(
+    deps: LeadDeps, *, bound_before: int, draft: OperationalSpec
+) -> PhaseStop | None:
+    """The stop of a pass that is dispatched again rather than reported.
+
+    A budget stop, or a tool that refused every attempt, after the pass bound
+    a criterion it did not start with has work left to continue, and the
+    continuation is the system's to run. A pass that bound nothing repeats
+    itself, so the Lead hears about it instead.
     """
     stop = deps.last_phase_stop
-    if stop is None or stop.reason is not PhaseStopReason.BUDGET:
-        return False
-    if deps.frame_retried_after_stop:
-        return False
-    return _bound_count(draft) > bound_before
+    if stop is None or stop.reason not in _CONTINUED_STOPS:
+        return None
+    if deps.frame_retried_after_stop or _bound_count(draft) <= bound_before:
+        return None
+    return stop
 
 
 def _continuation_work_order(
-    deps: LeadDeps, work_order: str, draft: OperationalSpec
+    deps: LeadDeps, work_order: str, draft: OperationalSpec, stop: PhaseStop
 ) -> str:
     """What the continuing pass is asked to do, in the shape the turn owes.
 
@@ -127,8 +132,9 @@ def _continuation_work_order(
             pending=pending,
             answered=answered,
             answer=deps.state.turn_markers.answered,
+            stop=stop,
         )
-    return budget_stop_work_order(draft, deps.state.user_prompt)
+    return stopped_pass_work_order(draft, deps.state.user_prompt, stop)
 
 
 async def run_frame(
@@ -186,24 +192,44 @@ async def _run_frame(
         return delta
     apply_agent_state(deps, agent_deps)
     if delta is None:
-        if _continue_the_stopped_pass(
-            deps,
-            bound_before=bound_before,
-            draft=agent_deps.agent_state.operational_spec_draft,
-        ):
+        draft = agent_deps.agent_state.operational_spec_draft
+        stop = _stop_to_continue(deps, bound_before=bound_before, draft=draft)
+        if stop is not None:
             deps.frame_retried_after_stop = True
             # The continuation belongs to the dispatch that stopped, so the
             # spec it found stays the one recorded at that dispatch's start.
             return await _run_frame(
                 deps=deps,
                 parent_tool_call_id=parent_tool_call_id,
-                work_order=_continuation_work_order(
-                    deps, work_order, agent_deps.agent_state.operational_spec_draft
-                ),
+                work_order=_continuation_work_order(deps, work_order, draft, stop),
                 expected_criteria=expected_criteria,
             )
-        return frame_result_from_draft(deps.state.domain.operational_spec)
-    draft = agent_deps.agent_state.operational_spec_draft
+        return frame_result_from_draft(
+            deps.state.domain.operational_spec, deps.last_phase_stop
+        )
+    return _accepted(
+        deps,
+        delta,
+        agent_deps.agent_state.operational_spec_draft,
+        agent_deps.agent_state.portal_route,
+    )
+
+
+def _accepted(
+    deps: LeadDeps, delta: FrameResult, draft: OperationalSpec, route: str
+) -> FrameResult:
+    """The result the Lead reads from a pass that answered, or a refusal.
+
+    A conversation stays on its site, so a pass the organism refusal sent to
+    the portal and that changed nothing asks nothing: it answers with the
+    portal's sentence. A pass that changed something carries the sentence
+    ahead of its summary.
+    """
+    found = deps.state.domain.spec_before_dispatch
+    if route and draft == (found or OperationalSpec(goal=draft.goal)):
+        return FrameResult(disposition="needs_user", summary=route)
+    if route:
+        delta = delta.model_copy(update={"summary": f"{route} {delta.summary}"})
     if delta.disposition == "spec_ready" and not any(
         c.bound or c.pending_analysis for c in draft.criteria
     ):
@@ -212,10 +238,9 @@ async def _run_frame(
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
     _refuse_questions_that_bind_to_nothing(deps, delta, draft)
-    before = deps.state.domain.spec_before_dispatch
-    if before is not None and before.criteria:
+    if found is not None and found.criteria:
         problem = undeclared_spec_changes(
-            diff_specs(before, draft), delta.changes, before
+            diff_specs(found, draft), delta.changes, found
         )
         if problem:
             refuse_and_restore(deps, problem)
@@ -252,7 +277,7 @@ async def frame_problem(
     ``expected_criteria`` is how many distinct filters the goal states - count
     the "and"s in the request. It sizes FRAME's tool budget, so undercounting a
     large request makes it run out before it binds them all. The pass is never
-    sized below what the thread already states, so a count below the evidence
+    sized below what the conversation already states, so a count below the evidence
     is raised to it.
 
     Available once per turn, while the strategy holds no step. A strategy

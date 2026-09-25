@@ -13,7 +13,7 @@ def validate_plan_or_raise(plan: JSONObject) -> StrategyAst:
         payload = StrategyAst.model_validate(plan)
     except Exception as exc:
         raise ValidationError(
-            title="Invalid plan",
+            title="Invalid strategy",
             errors=[
                 {"path": "", "message": str(exc), "code": "INVALID_STRATEGY"},
             ],
@@ -22,7 +22,7 @@ def validate_plan_or_raise(plan: JSONObject) -> StrategyAst:
     validation = validate_strategy(payload.root, payload.record_type)
     if not validation.valid:
         raise ValidationError(
-            title="Invalid plan",
+            title="Invalid strategy",
             errors=[
                 {"path": err.path, "message": err.message, "code": err.code}
                 for err in validation.errors

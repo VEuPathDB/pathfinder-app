@@ -9,9 +9,9 @@ import {
 } from "../fixtures/mock-prompts";
 
 /**
- * Feature: Chat — real event pipeline through Redis + PostgreSQL.
+ * Feature: Chat - real event pipeline through Redis + PostgreSQL.
  * Mock LLM provides deterministic text, but events flow through
- * real kani orchestration → Redis streams → PostgreSQL projections.
+ * real kani orchestration -> Redis streams -> PostgreSQL projections.
  * Every test verifies server-side state via API.
  */
 test.describe("Chat", () => {
@@ -48,10 +48,10 @@ test.describe("Chat", () => {
     await chatPage.send(MOCK_PLAN_PROMPT);
     await chatPage.expectIdle();
 
-    // Wait for strategy update — at least one assistant message rendered.
+    // Wait for strategy update - at least one assistant message rendered.
     await expect(chatPage.assistantMessages).not.toHaveCount(0, { timeout: 15_000 });
 
-    // Fetch full strategy — verify steps were created with real WDK search names
+    // Fetch full strategy - verify steps were created with real WDK search names
     const strategyId = chatPage.lastStrategyId;
     expect(strategyId).toBeTruthy();
     const fullResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);

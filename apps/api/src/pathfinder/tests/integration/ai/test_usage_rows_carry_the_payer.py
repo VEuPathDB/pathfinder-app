@@ -15,8 +15,10 @@ from assistant_core.platform.types import PaidBy
 from pydantic import SecretStr
 from pydantic_ai.usage import RunUsage
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from pathfinder.ai.capabilities.metering import ModelSpend, charge_spend
 from pathfinder.ai.graph._lead_capture import (
     _charge_token_delta,
     _LeadRunCapture,
@@ -155,3 +157,38 @@ async def test_the_residual_splits_by_payer_and_the_tool_charge_is_the_deploymen
         own = await quota.get_period_totals(session, user.id, paid_by=PaidBy.USER)
     assert status.used_usd == rows[PaidBy.DEPLOYMENT][1]
     assert (own.cost_usd, own.tokens) == (rows[PaidBy.USER][1], 700)
+
+
+async def test_a_run_beside_the_lead_lands_on_the_row_of_its_payer(user: User) -> None:
+    await charge_spend(
+        async_session_factory,
+        user_id=user.id,
+        spent=[
+            ModelSpend(tokens=40, cost_usd=Decimal("0.0004"), paid_by=PaidBy.USER),
+            ModelSpend(
+                tokens=25, cost_usd=Decimal("0.0002"), paid_by=PaidBy.DEPLOYMENT
+            ),
+            ModelSpend(tokens=10, cost_usd=Decimal("0.0001"), paid_by=PaidBy.USER),
+        ],
+    )
+
+    assert await _rows(user) == {
+        PaidBy.USER: (50, Decimal("0.0005")),
+        PaidBy.DEPLOYMENT: (25, Decimal("0.0002")),
+    }
+
+
+async def test_a_database_that_refuses_the_charge_leaves_the_turn_standing(
+    user: User,
+) -> None:
+    def _refusing() -> AsyncSession:
+        msg = "the database refused the connection"
+        raise OperationalError(msg, None, ConnectionRefusedError())
+
+    await charge_spend(
+        _refusing,
+        user_id=user.id,
+        spent=[ModelSpend(tokens=40, cost_usd=Decimal("0.0004"), paid_by=PaidBy.USER)],
+    )
+
+    assert await _rows(user) == {}

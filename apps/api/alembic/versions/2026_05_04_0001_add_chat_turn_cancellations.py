@@ -8,9 +8,9 @@ Create Date: 2026-05-04 09:30:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import UUID
 
 revision: str = "2026_05_04_0001"
 down_revision: str | Sequence[str] | None = "f1b8d4a92c70"
@@ -21,20 +21,20 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "chat_turn_cancellations",
-        sa.Column("conversation_id", PGUUID(as_uuid=True), nullable=False),
-        sa.Column("turn_id", PGUUID(as_uuid=True), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("conversation_id", UUID(as_uuid=True), nullable=False),
+        sqlalchemy.Column("turn_id", UUID(as_uuid=True), nullable=False),
+        sqlalchemy.Column(
             "requested_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint(
+        sqlalchemy.PrimaryKeyConstraint(
             "conversation_id",
             "turn_id",
             name="pk_chat_turn_cancellations",
         ),
-        sa.ForeignKeyConstraint(
+        sqlalchemy.ForeignKeyConstraint(
             ["conversation_id"],
             ["conversations.id"],
             ondelete="CASCADE",

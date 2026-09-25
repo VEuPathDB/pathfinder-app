@@ -7,14 +7,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { edaViz } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { comparisonLine } from "@/lib/eda/comparison";
-import { isEdaJobComplete, useEdaStore, type EdaJobSnapshot } from "@/state/eda";
+import { useEdaStore } from "@/state/eda";
 
 import { CellShell } from "./CellShell";
 import { ScatterPanel } from "./ScatterPanel";
 import { VolcanoPanel } from "./VolcanoPanel";
 
-const VIZ_FAILED = "Could not read the compute's plot";
-const NOTHING_TO_PLOT = "Run a compute to see its plots.";
+const VIZ_FAILED = "Could not read the comparison's plot";
 
 export interface VizCellProps {
   siteId: string;
@@ -28,43 +27,33 @@ function latestViz(viz: Record<string, EdaViz>): EdaViz | null {
   return last === undefined ? null : (viz[last] ?? null);
 }
 
-/** The job whose plot the cell shows: the last one to reach complete. */
-function latestCompleteJobId(jobs: Record<string, EdaJobSnapshot>): string | null {
-  const complete = Object.values(jobs).filter(isEdaJobComplete);
-  return complete[complete.length - 1]?.jobId ?? null;
-}
-
+/** The figure of the comparison the analysis holds, read from the site on every
+ * mount so an edit made on the site shows. */
 export function VizCell({ siteId, conversationId }: VizCellProps) {
   const viz = useEdaStore((s) => s.viz);
-  const jobs = useEdaStore((s) => s.jobs);
   const binding = useEdaStore((s) => s.binding);
+  const revision = useEdaStore((s) => s.analysis?.revision ?? null);
   const current = latestViz(viz);
   const datasetId = binding?.datasetId ?? "";
   const analysisId = binding?.analysisId ?? "";
-  const jobId = latestCompleteJobId(jobs);
 
   const volcano = useQuery({
-    queryKey: ["eda", "viz", conversationId, datasetId, jobId] as const,
+    queryKey: ["eda", "viz", conversationId, analysisId, revision] as const,
     queryFn: async (): Promise<EdaViz> => {
-      const response = await edaViz({
-        siteId,
-        conversationId,
-        datasetId,
-        chart: "volcano",
-      });
+      const response = await edaViz({ siteId, conversationId, chart: "volcano" });
       const part: EdaViz = { datasetId, analysisId, ...response };
       useEdaStore.getState().applyViz(part);
       return part;
     },
-    enabled: jobId !== null && datasetId !== "" && analysisId !== "",
+    enabled: datasetId !== "" && analysisId !== "",
     retry: false,
-    staleTime: Infinity,
+    staleTime: 0,
     meta: { shownInline: true },
   });
 
   return (
     <CellShell
-      title="Visualization"
+      title="Figure"
       subtitle={current?.comparison != null ? comparisonLine(current.comparison) : null}
       testId="eda-viz-cell"
     >
@@ -94,18 +83,11 @@ function VizBody({
     );
   }
   if (payload === null) {
-    if (isFetching) {
-      return (
-        <div data-testid="eda-viz-loading" className="flex justify-center py-4">
-          <Spinner className="size-4" />
-        </div>
-      );
-    }
-    return (
-      <p data-testid="eda-viz-unavailable" className="text-xs text-muted-foreground">
-        {NOTHING_TO_PLOT}
-      </p>
-    );
+    return isFetching ? (
+      <div data-testid="eda-viz-loading" className="flex justify-center py-4">
+        <Spinner className="size-4" />
+      </div>
+    ) : null;
   }
   switch (payload.chart) {
     case "volcano":
@@ -125,7 +107,7 @@ function UnsupportedChartNotice({ chart }: { chart: string }) {
       data-testid="eda-viz-unsupported-chart"
       className="text-xs text-muted-foreground"
     >
-      {`${chart} plots are not available from this compute, which returns one point per gene.`}
+      {`${chart} plots are not available from this comparison, which returns one point per gene.`}
     </p>
   );
 }

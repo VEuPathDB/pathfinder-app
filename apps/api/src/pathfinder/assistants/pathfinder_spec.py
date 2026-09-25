@@ -28,6 +28,7 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
 from pathfinder.domain.memory import MEMORY_KINDS
+from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
@@ -70,6 +71,8 @@ PATHFINDER_CHECKPOINT_TYPES: tuple[type, ...] = (
     OperationalSpec,
     StaleBuild,
     StrategyDomainState,
+    SeparationOffer,
+    AttachedControls,
 )
 
 

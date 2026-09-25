@@ -63,6 +63,30 @@ describe("EdgeContextMenu", () => {
     expect(onChange).toHaveBeenCalledWith("step_combine", combineOpEnum.UNION);
   });
 
+  it("offers the operators the step editor offers, under their one label", () => {
+    render(
+      <EdgeContextMenu
+        edge={COMBINE_EDGE}
+        x={100}
+        y={100}
+        steps={[COMBINE_STEP]}
+        onDeleteEdge={vi.fn()}
+        onChangeOperator={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const offered = screen
+      .getAllByRole("menuitemradio")
+      .map((item) => item.getAttribute("aria-label"));
+    expect(offered).toEqual([
+      "Set operator to Intersect",
+      "Set operator to Union",
+      "Set operator to Minus",
+      "Set operator to Right minus",
+      "Set operator to Colocate",
+    ]);
+  });
+
   it("does not render operator grid for non-combine edges", () => {
     render(
       <EdgeContextMenu

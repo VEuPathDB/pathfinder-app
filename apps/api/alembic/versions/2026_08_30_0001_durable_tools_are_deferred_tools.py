@@ -17,7 +17,7 @@ Create Date: 2026-08-30 00:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_08_30_0001"
@@ -51,7 +51,7 @@ END $$;
 def upgrade() -> None:
     op.add_column(
         "background_tasks",
-        sa.Column("tool_call_id", sa.String(length=128), nullable=True),
+        sqlalchemy.Column("tool_call_id", sqlalchemy.String(length=128), nullable=True),
     )
     op.execute(_FLUSH_CHECKPOINTS)
 

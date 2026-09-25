@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from assistant_core.graph.tool_summary import truncate_summary, with_summary
+from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
@@ -24,11 +24,10 @@ from pathfinder.services.eda.description import (
     describe_study,
     permission_facts,
 )
+from pathfinder.services.eda.private_datasets import own_dataset_cards
 
 # A card says enough to pick the study. The whole description travels in
 # describe_eda_study, on the one dataset the model picks.
-_CARD_DESCRIPTION_CHARS = 240
-
 _FILTER_GUIDANCE = (
     "Filter this study with set_eda_filters. Copy an entityId and a "
     "variableId from the lists above; a variableId is only valid on the "
@@ -42,6 +41,14 @@ _DESCRIPTION_GUIDANCE = (
     "Every description here is cut short. Call describe_eda_study on the "
     "datasetId you pick, before opening an analysis: it reads that study in "
     "full - its entities, its variables, and what this account may do with it."
+)
+
+_OWN_GUIDANCE = "Studies marked user_submitted are this researcher's own uploads."
+
+_NOT_HERE_GUIDANCE = (
+    "A study with notHere is published on another site and cannot be opened "
+    "here: open_eda_analysis refuses it. Give the researcher its notHere "
+    "sentence, or open a study this site publishes."
 )
 
 _ENTITY_GUIDANCE = (
@@ -91,15 +98,22 @@ async def search_eda_studies(
     ``studyId``. Every later EDA tool takes the ``datasetId``; never build one
     from the other. ``canSubset`` false means this account cannot count that
     study, and ``canExportRows`` false means it cannot export its rows into a
-    step, so say so instead of trying.
+    step, so say so instead of trying. ``sites`` names the VEuPathDB sites
+    that publish the study's dataset, or "portal" when no genomics site does;
+    ``notHere`` says why a study another site publishes cannot be opened here.
+    The researcher's own installed uploads come first, marked
+    ``user_submitted``, ahead of the site's ranking.
 
     Args:
         ctx: Agent run context.
         query: What the study should measure, in the user's own words.
-        limit: Maximum studies to return.
+        limit: Maximum site studies to return; the researcher's own uploads
+            come first and are not counted in it.
     """
-    found = await search_studies(ctx.deps.runtime.site_id, query, limit=limit)
-    if not found.cards:
+    site_id = ctx.deps.runtime.site_id
+    found = await search_studies(site_id, query, limit=limit)
+    own = await own_dataset_cards(site_id, query)
+    if not found.cards and not own:
         return with_summary(
             EdaStudySearchResult(
                 guidance=(
@@ -115,25 +129,29 @@ async def search_eda_studies(
         )
     result = EdaStudySearchResult(
         studies=[
-            EdaStudyCardOut(
-                dataset_id=card.dataset_id,
-                study_id=card.study_id,
-                display_name=card.display_name,
-                short_display_name=card.short_display_name,
-                description=truncate_summary(
-                    card.description,
-                    limit=_CARD_DESCRIPTION_CHARS,
-                ),
-                source_type=card.source_type,
-                relevance=card.relevance,
-                can_subset=card.can_subset,
-                can_export_rows=card.can_export_rows,
-            )
-            for card in found.cards
+            EdaStudyCardOut.model_validate(card, from_attributes=True)
+            for card in [*own, *found.cards]
         ],
-        guidance=f"{_ranking_guidance(found)} {_DESCRIPTION_GUIDANCE}",
+        guidance=" ".join(
+            [
+                _ranking_guidance(found),
+                _DESCRIPTION_GUIDANCE,
+                *([_OWN_GUIDANCE] if own else []),
+                *(
+                    [_NOT_HERE_GUIDANCE]
+                    if any(card.not_here for card in found.cards)
+                    else []
+                ),
+            ]
+        ),
     )
-    return with_summary(result, _ranking_summary(found, query), ctx=ctx)
+    summary = ", ".join(
+        [
+            *([f"{len(own)} of your own studies"] if own else []),
+            *([_ranking_summary(found, query)] if found.cards else []),
+        ]
+    )
+    return with_summary(result, summary, ctx=ctx)
 
 
 async def describe_eda_study(
@@ -151,7 +169,7 @@ async def describe_eda_study(
 
     Each variable carries the exact ``filterType`` it takes, its vocabulary or
     its declared bounds, and whether one record holds several values. A
-    ``geneEntityProblem`` means the study cannot export a gene list into a
+    ``geneEntityProblem`` means the study cannot export a gene set into a
     strategy step; the analysis is still worth reading.
 
     Args:
@@ -178,10 +196,13 @@ async def describe_eda_study(
     # A study can declare thousands of variables, so they travel one entity
     # at a time and the tree call carries none of them.
     variables = [] if entity_id is None else described.variables
-    description = EdaStudyDescription(
-        **described.model_dump(exclude={"variables"}),
-        variables=variables,
-        guidance=_FILTER_GUIDANCE if entity_id is not None else _ENTITY_GUIDANCE,
+    description = EdaStudyDescription.model_validate(
+        described, from_attributes=True
+    ).model_copy(
+        update={
+            "variables": variables,
+            "guidance": _FILTER_GUIDANCE if entity_id is not None else _ENTITY_GUIDANCE,
+        }
     )
     shape = (
         f"{description.display_name}: {len(description.entities)} entities, "

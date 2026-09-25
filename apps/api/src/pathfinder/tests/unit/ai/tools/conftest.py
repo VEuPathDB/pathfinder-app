@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from assistant_core.platform.db import DBSessionFactory
@@ -16,6 +17,7 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, DataChunk
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.wdk import WDKParameter, WDKSearch, WDKSearchResponse, WDKStringParam
+from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import search_inspection
 
 from pathfinder.ai.agents.state import AgentToolState
@@ -55,6 +57,13 @@ def agent_run_context(
         turn_markers=TurnMarkers(),
     )
     return run_context_for(deps, tool_call_id)
+
+
+def serve_no_other_sites(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The experiment index ranks no other site's experiment for any query."""
+    monkeypatch.setattr(
+        catalog, "rank_experiments_elsewhere", AsyncMock(return_value=[])
+    )
 
 
 @pytest.fixture

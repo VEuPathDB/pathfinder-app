@@ -87,17 +87,20 @@ def answers_for(
 
 
 def typed_reply(state: PipelineState) -> str | None:
-    """The user's new message, when one arrives while an approval is pending.
+    """The text of the user's new message, when one arrives while an approval is pending.
 
     Answering the card leaves ``user_message_id`` untouched, so a different id
-    is a message the user typed instead of clicking.
+    is a message the user sent instead of clicking. A message of files alone
+    is a reply with empty text.
     """
     approval = state.pending_approval
     if approval is None or approval.user_message_id is None:
         return None
     if state.user_message_id in (None, approval.user_message_id):
         return None
-    return state.user_prompt.strip() or None
+    if not state.user_prompt.strip() and not state.user_parts:
+        return None
+    return state.user_prompt.strip()
 
 
 def _settled_call_ids(history: list[ModelMessage]) -> set[str]:

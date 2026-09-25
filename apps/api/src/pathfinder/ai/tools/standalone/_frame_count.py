@@ -13,13 +13,12 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, ResolvedParams
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone.graph_helpers import counted_records
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     ParameterAlternatives,
 )
 from pathfinder.services.strategies.wdk_counts import count_bound_criterion
-
-_ANY_RECORD = "record"
 
 # A vocabulary of this size is a choice a reader holds in mind; a larger one is
 # a catalog to query, so it is reported by its size and not by its entries.
@@ -140,8 +139,7 @@ def criterion_line(
     bound = f"{criterion_id} set to {search_name}"
     if result_count is None:
         return bound, "ok"
-    counted = count_noun(result_count, record_type or _ANY_RECORD)
-    line = f"{bound}, {counted}"
+    line = f"{bound}, {counted_records(result_count, record_type)}"
     if alternatives:
         choices = ", ".join(
             f"{entry.param_name} has {count_noun(entry.option_count, 'option')}"

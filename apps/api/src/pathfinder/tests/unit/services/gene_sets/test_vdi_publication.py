@@ -6,20 +6,18 @@ records is a pointer to a durable artifact that lives on the site.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from veupathdb.testing import FIXTURE_ROOT
 from veupathdb.wdk import (
     VdiDatasetDetails,
     VdiDatasetGoneError,
     VdiDatasetPostMeta,
     VdiDatasetPostResponse,
     VdiImportStatus,
-    VdiInstallStatus,
-    VdiUploadStatus,
     VdiVisibility,
 )
 
@@ -76,33 +74,10 @@ class _FakeVdi:
         return self._details
 
 
-def _details(
-    *,
-    upload: VdiUploadStatus = VdiUploadStatus.SUCCESS,
-    import_status: VdiImportStatus = VdiImportStatus.COMPLETE,
-    install: VdiInstallStatus | None = VdiInstallStatus.COMPLETE,
-) -> VdiDatasetDetails:
-    status: dict[str, Any] = {
-        "upload": {"status": upload.value},
-        "import": {"status": import_status.value},
-    }
-    if install is not None:
-        status["install"] = [
-            {"installTarget": "PlasmoDB", "meta": {"status": install.value}}
-        ]
-    return VdiDatasetDetails.model_validate(
-        {
-            "datasetId": _VDI_ID,
-            "name": "Kinases with a signal peptide",
-            "summary": "2 genes",
-            "visibility": "private",
-            "owner": {"userId": 1},
-            "created": datetime.now(UTC).isoformat(),
-            "installTargets": ["PlasmoDB"],
-            "type": {"name": "genelist", "version": "1.0", "category": "Gene List"},
-            "status": status,
-        }
-    )
+def _details(fixture: str) -> VdiDatasetDetails:
+    """A status body VDI answered, as the client parses it."""
+    path = FIXTURE_ROOT / "vdi" / f"{fixture}.json"
+    return VdiDatasetDetails.model_validate_json(path.read_text())
 
 
 def _use(monkeypatch: pytest.MonkeyPatch, fake: _FakeVdi) -> None:
@@ -194,7 +169,7 @@ class TestReadingTheStatus:
     async def test_an_installed_dataset_reports_the_target_and_its_url(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        fake = _FakeVdi(_details())
+        fake = _FakeVdi(_details("dataset_installed"))
         _use(monkeypatch, fake)
 
         status = await vdi.vdi_publication_status(
@@ -211,7 +186,7 @@ class TestReadingTheStatus:
     async def test_a_dataset_still_importing_is_not_installed_yet(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        fake = _FakeVdi(_details(import_status=VdiImportStatus.QUEUED, install=None))
+        fake = _FakeVdi(_details("dataset_import_queued"))
         _use(monkeypatch, fake)
 
         status = await vdi.vdi_publication_status(
@@ -223,10 +198,25 @@ class TestReadingTheStatus:
         assert status.import_status is VdiImportStatus.QUEUED
         assert status.installed_targets == []
 
+    async def test_metadata_installed_with_data_still_loading_is_not_installed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """VDI reports the metadata complete while the data is still loading."""
+        fake = _FakeVdi(_details("rnaseqrc_data_running"))
+        _use(monkeypatch, fake)
+
+        status = await vdi.vdi_publication_status(
+            _service(_set(vdi_id=_VDI_ID)), _OWNER, "gs-1"
+        )
+
+        assert status.installed is False
+        assert status.is_terminal is False
+        assert status.installed_targets == []
+
     async def test_a_failed_install_is_terminal_and_not_installed(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        fake = _FakeVdi(_details(install=VdiInstallStatus.FAILED_INSTALLATION))
+        fake = _FakeVdi(_details("rnaseqrc_import_invalid"))
         _use(monkeypatch, fake)
 
         status = await vdi.vdi_publication_status(
@@ -239,7 +229,7 @@ class TestReadingTheStatus:
     async def test_a_set_that_was_never_published_has_no_status(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        fake = _FakeVdi(_details())
+        fake = _FakeVdi(_details("dataset_installed"))
         _use(monkeypatch, fake)
 
         with pytest.raises(NotFoundError):

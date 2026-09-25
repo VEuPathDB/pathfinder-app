@@ -26,14 +26,14 @@ export function CanvasControls({ onRelayout }: CanvasControlsProps) {
         className="rounded-md border border-border bg-background shadow-sm"
       >
         <ControlButton
-          label="Re-layout (R)"
-          ariaLabel="Re-layout graph"
+          label="Tidy layout (R)"
+          ariaLabel="Tidy layout"
           onClick={onRelayout}
           icon={<LayoutGrid className="size-4" />}
         />
         <ControlButton
           label="Fit to view (F)"
-          ariaLabel="Fit graph to view"
+          ariaLabel="Fit to view"
           onClick={() => void fitView({ padding: 0.3, duration: 300 })}
           icon={<Maximize2 className="size-4" />}
         />

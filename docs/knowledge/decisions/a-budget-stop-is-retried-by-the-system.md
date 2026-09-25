@@ -1,10 +1,10 @@
 ---
 type: Decision
 title: A budget stop is retried by the system, not the user
-description: A FRAME pass that exhausts its call budget after binding at least one new criterion is dispatched again once per turn with a continuation work order, and the stop reaches the Lead as a typed PhaseStop it renders in the ledger. Reporting the stop to the Lead alone, retrying every stop, and retrying without a bound was rejected. A pass after an answered question continues the recorded spec with the question and the answer; re-framing from the whole prompt and matching answers to questions by similarity were rejected.
+description: A FRAME pass that exhausts its call budget, or that one tool refused past its retries, after binding at least one new criterion is dispatched again once per turn with a continuation work order, and the stop reaches the Lead as a typed PhaseStop it renders in the ledger. Reporting the stop to the Lead alone, retrying every stop, and retrying without a bound was rejected. A pass after an answered question continues the recorded spec with the question and the answer; re-framing from the whole prompt and matching answers to questions by similarity were rejected.
 tags: [agents, lead, frame, budget, ergonomics]
 generated: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
+verified: { by: claude-code/opus-5.5, at: 2026-09-25T00:00:00Z }
 status: stable
 ---
 
@@ -17,7 +17,7 @@ in the turn stated the cause, so the reply invented one and told the
 researcher to wait for VEuPathDB.
 
 **The stop is typed data.** `PhaseStop` names the pass, the reason
-(`budget` or `repeated_call`), the calls it spent, and the criteria it bound
+(`budget`, `repeated_call` or `tool_retries`), the calls it spent, and the criteria it bound
 against the count it was sized for. `stream_sub_agent` records it on
 `LeadDeps.last_phase_stop` on both stop paths and clears it when the next
 dispatch starts, so a later clean pass never inherits an earlier stop. The
@@ -27,8 +27,12 @@ reads before it answers.
 **A budget stop that made progress is continued by the dispatch.** When the
 pass bound a criterion it did not start with, `run_frame` dispatches once more
 with a continuation work order that prints what is bound and asks only for the
-rest, sized by the same `criteria_floor` the first pass used. The retry runs at
-most once per turn (`frame_retried_after_stop`). An edit of a strategy that
+rest, sized by the same `criteria_floor` the first pass used. A pass that one
+tool refused past its retries (`tool_retries`) is continued the same way, and
+its work order quotes the refusal so the first call of the continuation
+answers it; the reason refusal of `set_criterion` names the term and the
+160-character cap in one sentence, so one retry can meet both. The retry runs
+at most once per turn (`frame_retried_after_stop`). An edit of a strategy that
 holds steps continues as an edit, because an edit owes a disposition for every
 criterion the turn began with; the continuation carries the question and the
 answer the edit's message closed, and every change an earlier pass stated and

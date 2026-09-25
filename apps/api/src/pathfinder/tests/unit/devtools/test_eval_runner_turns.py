@@ -158,3 +158,15 @@ async def test_the_read_happens_before_the_last_turn_and_after_it(
     await eval_runner.run_one_case(_case("one", "two"), run_root=tmp_path)
 
     assert order == ["turn:one", "read", "turn:two", "read"]
+
+
+async def test_every_turn_runs_at_the_effort_the_run_names(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    installed = _install(monkeypatch, [{100}, {100}])
+
+    await eval_runner.run_one_case(
+        _case("build it", "now change one thing"), run_root=tmp_path, effort="high"
+    )
+
+    assert [args.effort for args in installed.driven] == ["high", "high"]

@@ -1,10 +1,10 @@
 ---
 type: Rules
 title: PathFinder mapping rules
-description: The eight invariants that keep PathFinder's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
+description: The ten invariants that keep PathFinder's types and layers aligned with WDK - which test holds each one, which live in this repository's suite and which in the client library's, and which half of a rule nothing holds.
 tags: [wdk-alignment, rules, layering, types, import-linter]
 generated: { by: claude-code/opus-5, at: 2026-08-10T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-08T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 status: stable
 ---
 
@@ -15,10 +15,11 @@ invariants PathFinder holds so that its own types keep meaning what WDK's mean.
 The `upstream` field names the WDK definition each one is a mapping *of*, so the
 rule is falsified when that definition changes.
 
-This is the one family where enforcement is often real: all eight name a test
-that fails when the rule is broken, five in this repository's suite and three in
-the client library's own. Seven are `ENFORCED`; one is `PARTIAL`, where the test
-covers only part of the rule and the body names the part it does not cover. No
+This is the one family where enforcement is often real: all ten name a test
+that fails when the rule is broken, seven in this repository's suite and three in
+the client library's own. Nine are `ENFORCED`; one, WDK-MAP-006, is `PARTIAL`,
+where the test covers only part of the rule and the body names the part it does
+not cover. No
 rule is held by an import contract. The six `forbidden` contracts under
 `[tool.importlinter]` in `apps/api/pyproject.toml` are about the layers of
 `pathfinder` and about the private modules of the installed distributions, not
@@ -122,18 +123,18 @@ Conflating them is not a style question. When the tree held the same step object
 the map held, an in-place edit changed both views, and a half-applied batch
 corrupted the graph.
 
-The named test is enforcement of the storage half and is not a round trip: it
-asserts over 100 generated trees that no step in the flat map has a
-`primary_input` or `secondary_input` attribute at all. Break the separation and it
-fails immediately.
+The named test holds the boundary: it projects a wired combine through
+`rebuild_tree` and `build_step_tree_from_graph` and asserts that the serialized
+tree is exactly `{stepId, primaryInput, secondaryInput}`, each input `{stepId}`
+alone; its neighbours in `TestWdkMap003TheWireShapeIsIdsOnly` assert that no
+search name or parameter rides along and that a step with no WDK id is refused.
 
-**The uncovered half is the boundary.** `test_a_tree_survives_the_split_and_rejoin`
-in the same file is pure invertibility - it would pass under any lossless encoding,
-including one that never produced WDK's shape - and no test asserts that what
-reaches WDK is `{stepId, primaryInput, secondaryInput}`. The closest is
-`test_operational_spec.py::TestNestedBranchesReachWdk`, which pins that a `UNION`
-branch survives onto the *secondary input* of a `StrategyStepNode`
-(WDK-STRAT-006, `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`), one representation short of the wire.
+The storage half is held by the type: a `StrategyStep` in the flat map carries
+`primary_input_id` and `secondary_input_id`, never a child.
+`test_graph_model.py::TestRoundTrip::test_a_tree_survives_the_split_and_rejoin`
+asserts over generated trees that `rebuild_tree(flatten_tree(node))` returns the
+tree it was given; it is invertibility, not the wire shape, which the named test
+checks.
 
 ### WDK-MAP-004 - An AI tool reaches WDK through a served function and never holds a client
 
@@ -161,9 +162,9 @@ reason. A cookie-less `GenesByOrthologPattern` returned `totalCount` a large res
 plasmodb.org on 2026-08-10 (transport-quirks, `veupathdb-py: docs/knowledge/wdk/rest/transport-quirks.md`).
 
 So a tool never holds a client. It calls a function in `veupathdb_mcp.wdk`,
-which holds the client for the length of one call: `step_sample_records` and
-`step_download_url` read a built step, and `step_results_service` hands back the
-reader for one. That package is a separate distribution, and its functions are
+which holds the client for the length of one call: `step_sample_records` reads a
+built step one row per gene, and `step_download_url` names its download. That
+package is a separate distribution, and its functions are
 the only WDK-shaped surface an agent tool names
 ([the service-layer decision](../../../decisions/the-wdk-service-layer-holds-functions-not-re-exports.md)).
 
@@ -299,7 +300,93 @@ It is recorded as a rule because the failure mode is a reviewer reading
 [WDK-MAP-006](#wdk-map-006---a-wdk-step-id-is-an-integer-stored-beside-pathfinders-own-string-id-never-in-place-of-it)
 says it is not.
 
-Nothing checks this. `check-boundaries.mjs` polices feature isolation rather than
-naming, and no test asserts that `@pathfinder/shared` exports no `wdk-client`
-type. The full four-column map, including every cell that is empty and why, is in
-[type-correspondence](../type-correspondence.md).
+The named test reads `packages/shared-ts/src/types.ts` and asserts that each of
+the four names aliases its PathFinder response (`ConversationResponse`,
+`StepResponse`, `SearchResponse`, `RecordTypeResponse`) and carries none of the
+field that marks the `wdk-client` type of that name (`stepTree`, `searchConfig`,
+`paramNames`, `attributes`). `check-boundaries.mjs` polices feature isolation, not
+naming. The full four-column map, including every cell that is empty and why, is
+in [type-correspondence](../type-correspondence.md).
+
+### WDK-MAP-009 - An orthology round trip keeps the source genes only as the source INTERSECT the way back over a copy of the source
+
+- class: CONTRACT
+- upstream: https://github.com/VEuPathDB/ApiCommonModel/blob/443fb341b9e89b489287711d3661c1c250b05b03/Model/lib/wdk/model/questions/queries/geneQueries.xml#L1703-L1764
+- anchor: apps/api/src/pathfinder/domain/strategy/orthology.py:round_trip_refusal
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/domain/strategy/test_orthology_round_trip.py::test_a_round_trip_without_the_intersect_is_refused
+
+`GenesByOrthologs` answers the genes of the named organism that share an OrthoMCL
+group with an input gene, and with `isSyntenic = yes` only the pairs whose genes
+lie in a syntenic block. The record class stays `transcript`; the organism of
+the records moves (`veupathdb-py: src/veupathdb/domain/strategy/organism.py:extract_output_organisms`).
+A request that keeps the SOURCE genes ("keep only those with a syntenic ortholog
+in X") is therefore a round trip, and the way back returns every source gene in
+those groups, paralogs of the input included. Only an INTERSECT with the source
+restores the question:
+
+`S INTERSECT GenesByOrthologs(source, syn)(GenesByOrthologs(X, syn)(copy of S))`
+
+A criterion is one step, so the second occurrence of `S` is a `copy` node of the
+stated tree. The framing pass states each bound copy as criteria of its own
+(`domain/strategy/orthology.py:restate_copies`), so the build and the edit read an
+ordinary tree. The same module refuses a round trip without the INTERSECT, a
+copy that differs from the subtree it restates, and two legs that differ in
+anything but the organism each maps to; `set_structure`, the build and the edit
+each read it.
+
+Measured on plasmodb on 2026-09-24, on the seed of the cataloged thread
+(`GenesWithSignalPeptide` SignalP-6.0 INTERSECT `GenesByTransmembraneDomains` 2
+to 99, both P. falciparum 3D7), each form INTERSECTed with the seed:
+
+| form | genes |
+|---|---|
+| the seed | 116 |
+| `GenesByOrthologPattern`, `included_species` = `pvip` | 73 |
+| round trip to P. vivax P01 and back, `isSyntenic = no` | 73, the same gene ids as the profile |
+| round trip to P. vivax P01 and back, `isSyntenic = yes` | 67, a subset of the 73 |
+
+So without synteny the profile answers the same OrthoMCL groups in one step,
+and FRAME may bind it for "keep those with an ortholog in X"; with synteny only
+the transform can state it, because the profile has no synteny parameter. The
+live check is
+`apps/api/src/pathfinder/tests/live/test_orthology_round_trip_counts.py`.
+
+The word itself is held by a general rule, not by this one: a word of the
+criterion that a parameter of another search this pass read can state refuses a
+search that cannot, and a word no search it read can state stands as an unmet
+requirement (`ai/tools/standalone/_frame_qualifiers.py`).
+
+### WDK-MAP-010 - A separation offers only transcript leaves that bind without a person, and every count on the offer was read from a step inside a strategy
+
+- class: CONTRACT
+- upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/BooleanQuery.java#L149-L170
+- anchor: apps/api/src/pathfinder/services/separation/offer.py:separation_report
+- status: ENFORCED by apps/api/src/pathfinder/tests/unit/services/separation/test_offer_from_result.py::test_the_offer_builds_the_tree_the_run_assembled
+
+A separation run measures a candidate by intersecting its step with one step of
+the controls, so a candidate is admitted only where WDK can form that boolean.
+The tool server applies the rules before it binds anything
+(`veupathdb-mcp: src/veupathdb_mcp/separation/eligibility.py`), citing the client
+bundle (`veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md` and
+`veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`):
+
+| skipped as | because WDK |
+|---|---|
+| `not_a_gene_search` | joins two operands of one record class only, and the controls step is `transcript` |
+| `transform` | makes a step with an answer parameter a transform, which needs an input step |
+| `needs_an_analysis` | answers an EDA-backed search from an analysis document, and there is none to score |
+| `takes_a_gene_list` | reads an input dataset the controls would answer themselves |
+| `unbound_required` | runs no search whose required parameter a person has to choose |
+
+Every measurement and the confirm read of the assembled tree are steps inside one
+internal strategy, because a step outside a strategy cannot be run, and every
+intersection of a run reads the one dataset the run uploaded, because a dataset
+is bound to its owner and not to a step.
+
+PathFinder's half is the offer (`services/separation/offer.py`): each leaf becomes
+a criterion bound to the measured search and its wire parameters, the right input
+of a MINUS is an `exclude` criterion, and the tree is the spec's structure, so
+`build_step_tree` mints the steps that were measured and nothing a model chose.
+The live check `apps/api/src/pathfinder/tests/live/test_a_strategy_from_controls.py`
+builds an offered spec on the account and reads its root back with a control test
+of its own: the same ids in each cell, and the site's size equal to the offer's.

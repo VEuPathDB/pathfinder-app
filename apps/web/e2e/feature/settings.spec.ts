@@ -19,6 +19,21 @@ test.describe("Settings", () => {
     }
   });
 
+  test("arrow keys, Home and End move between settings tabs", async ({
+    page,
+    settingsPage,
+  }) => {
+    await settingsPage.open();
+    await settingsPage.openTab("Advanced");
+
+    await page.keyboard.press("ArrowRight");
+    await settingsPage.expectOnlyTabActive("Seeding");
+    await page.keyboard.press("Home");
+    await settingsPage.expectOnlyTabActive("Model");
+    await page.keyboard.press("End");
+    await settingsPage.expectOnlyTabActive("Seeding");
+  });
+
   test("close settings modal", async ({ settingsPage }) => {
     await settingsPage.open();
     await settingsPage.close();

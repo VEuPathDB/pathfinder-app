@@ -8,6 +8,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 
 import { APIError } from "@/lib/api/http";
+import { AppError } from "@/lib/errors/AppError";
 import { createTestQueryClient } from "@/lib/query/testing";
 import { SignInForm } from "./SignInForm";
 import { getVeupathdbAuthStatus, loginVeupathdb } from "@/lib/api/veupathdb-auth";
@@ -74,8 +75,8 @@ describe("SignInForm", () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
-  it("shows a generic error when the login request throws", async () => {
-    mockLogin.mockRejectedValue(new Error("network down"));
+  it("shows a generic error when the failure says nothing", async () => {
+    mockLogin.mockRejectedValue(new Error(""));
     const { onSuccess } = renderForm();
 
     await fillCredentials("ahmed@upenn.edu", "hunter2");
@@ -83,6 +84,41 @@ describe("SignInForm", () => {
 
     expect(await screen.findByText("Login failed. Please try again.")).toBeTruthy();
     expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("says the fields are required when one is empty", async () => {
+    mockLogin.mockRejectedValue(
+      new AppError("Email and password are required.", "INVARIANT_VIOLATION"),
+    );
+    renderForm();
+
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(await screen.findByText("Email and password are required.")).toBeVisible();
+    expect(screen.queryByText("Login failed. Please try again.")).toBeNull();
+  });
+
+  it("shows the server's reason for a refused sign-in", async () => {
+    mockLogin.mockRejectedValue(
+      new APIError("Invalid email or password", {
+        status: 401,
+        statusText: "Unauthorized",
+        url: "http://localhost:3000/api/v1/veupathdb/auth/login",
+        data: {
+          type: "/errors/UNAUTHORIZED",
+          title: "Unauthorized",
+          status: 401,
+          detail: "Invalid email or password",
+          code: "UNAUTHORIZED",
+        },
+      }),
+    );
+    renderForm();
+
+    await fillCredentials("ahmed@upenn.edu", "wrong");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+
+    expect(await screen.findByText("Invalid email or password")).toBeVisible();
   });
 
   it("shows the site notice inline when the login reports the site is down", async () => {
@@ -106,7 +142,7 @@ describe("SignInForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
 
     expect(await screen.findByTestId("site-unavailable-notice")).toBeTruthy();
-    expect(screen.getByText("Couldn't reach plasmodb")).toBeTruthy();
+    expect(screen.getByText("Couldn't reach PlasmoDB")).toBeTruthy();
     expect(screen.queryByText("Login failed. Please try again.")).toBeNull();
     expect(onSuccess).not.toHaveBeenCalled();
   });

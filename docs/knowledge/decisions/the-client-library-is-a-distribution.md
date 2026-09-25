@@ -87,7 +87,7 @@ applies inside one checkout proves nothing about the artifact anyone installs.
 **Split the knowledge bundle by subject.** Rejected after measuring: 15 rule blocks and
 39 `status` lines name PathFinder code, and the WDK model prose cites the rules they
 belong to, so a subject split breaks 51 fields and 15 citations. What moved is the
-whole WDK and EDA bundle; what stayed is `wdk/pathfinder/`, whose eight `WDK-MAP` rules
+whole WDK and EDA bundle; what stayed is `wdk/pathfinder/`, whose `WDK-MAP` rules
 are invariants of the application rather than facts about WDK. A rule the library cannot
 enforce locally is `UNENFORCED` there with a `reason` naming the consumer's test.
 

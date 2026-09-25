@@ -20,13 +20,6 @@ interface ApplyContext {
   key: ReturnType<typeof strategyQueryKey>;
 }
 
-class SyncPausedError extends Error {
-  constructor() {
-    super("Sync paused - record-type mismatch");
-    this.name = "SyncPausedError";
-  }
-}
-
 const STEP_SAVE_KINDS = new Set<GraphOperation["kind"]>([
   "updateStepParams",
   "updateCombineOperator",
@@ -49,12 +42,6 @@ export function useApplyOperation(conversationId: string) {
     mutationKey: [...APPLY_OPERATION_MUTATION_KEY, conversationId],
     scope: { id: APPLY_OPERATION_SCOPE_ID },
     onMutate: ({ op }) => {
-      const validationPaused =
-        useStrategyStore.getState().graphValidationStatus[conversationId] === true;
-      if (validationPaused) {
-        toast.warning("Sync paused - record-type mismatch");
-        throw new SyncPausedError();
-      }
       const key = strategyQueryKey(conversationId);
       const snapshot = queryClient.getQueryData<Strategy>(key) ?? null;
       const siteId = snapshot?.siteId ?? "";
@@ -84,9 +71,6 @@ export function useApplyOperation(conversationId: string) {
     onError: (err, vars, context) => {
       if (context !== undefined) {
         queryClient.setQueryData<Strategy | null>(context.key, context.snapshot);
-      }
-      if (err instanceof SyncPausedError) {
-        return;
       }
       useStrategyStore.getState().setLastFailedOperation({ op: vars.op });
       toast.error(toUserMessage(err, failureLead(vars.op)));

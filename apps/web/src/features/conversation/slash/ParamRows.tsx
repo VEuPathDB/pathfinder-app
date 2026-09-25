@@ -77,28 +77,3 @@ export function TextAreaRow({
     </div>
   );
 }
-
-export function FileRow({
-  param,
-  onSubmit,
-}: {
-  param: Extract<ParamDef, { kind: "file" }>;
-  onSubmit: (value: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 p-3">
-      <label className="text-xs font-medium text-foreground">{param.label}</label>
-      <input
-        type="file"
-        accept={param.accept}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file === undefined) return;
-          void file.text().then((text) => onSubmit(text));
-        }}
-        data-testid={`slash-param-file-${param.name}`}
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none"
-      />
-    </div>
-  );
-}

@@ -1,0 +1,17 @@
+{
+  "provider": "anthropic",
+  "refusal": "no_credit",
+  "status": 402,
+  "body": {
+    "type": "error",
+    "error": {
+      "type": "billing_error",
+      "message": "There's an issue with your billing or payment information."
+    },
+    "request_id": null
+  },
+  "provenance": "documented",
+  "source": "https://platform.claude.com/docs/en/api/errors",
+  "model": null,
+  "read_at": "2026-09-24T19:40:00Z"
+}

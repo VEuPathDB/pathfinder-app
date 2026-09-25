@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
 import { toast } from "sonner";
+import { siteShortName } from "@pathfinder/shared";
 import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
 import type { EdaStudySummaryResponse } from "@pathfinder/shared/generated/types/EdaStudySummaryResponse";
 
@@ -13,6 +14,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { edaStudySearchOptions, patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { useEdaStore } from "@/state/eda";
+
+import { YourDatasets } from "./YourDatasets";
 
 const MIN_QUERY = 2;
 const DEBOUNCE_MS = 250;
@@ -45,6 +48,7 @@ export function StudyPicker({ siteId, conversationId }: StudyPickerProps) {
   const trimmed = query.trim();
   return (
     <div data-testid="eda-study-picker" className="mx-auto w-full max-w-2xl">
+      <YourDatasets siteId={siteId} onPick={(datasetId) => bind.mutate(datasetId)} />
       <div className="flex items-center gap-2">
         <Input
           data-testid="eda-study-search"
@@ -108,7 +112,7 @@ function PickerBody({ siteId, query, search, onRetry, onPick }: PickerBodyProps)
   if (search.data !== undefined && studies.length === 0) {
     return (
       <p className="mt-3 text-xs text-muted-foreground">
-        {`No study on ${siteId} matches ${query}.`}
+        {`No study on ${siteShortName(siteId)} matches ${query}.`}
       </p>
     );
   }
@@ -134,21 +138,39 @@ function StudyRow({
 }) {
   const shortName = study.shortDisplayName;
   const sourceType = study.sourceType;
+  const notHere = study.notHere;
+  const notHereId = `eda-study-not-here-${study.datasetId}`;
   return (
     <li>
       <button
         type="button"
         data-testid={`eda-study-row-${study.datasetId}`}
         onClick={onPick}
-        className="w-full px-2 py-2 text-left hover:bg-accent"
+        disabled={notHere !== null}
+        aria-describedby={notHere !== null ? notHereId : undefined}
+        className="w-full px-2 py-2 text-left hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
       >
         <span className="block truncate text-sm">{study.displayName}</span>
         <span className="mt-0.5 block text-[11px] text-muted-foreground">
           {shortName !== "" ? <span className="mr-2">{shortName}</span> : null}
           <span className="mr-2 font-mono">{study.datasetId}</span>
-          {sourceType !== "" ? <span>{sourceType}</span> : null}
+          {sourceType !== "" ? <span className="mr-2">{sourceType}</span> : null}
+          {study.sites.length > 0 ? (
+            <span data-testid={`eda-study-sites-${study.datasetId}`}>
+              {study.sites.join(", ")}
+            </span>
+          ) : null}
         </span>
       </button>
+      {notHere !== null ? (
+        <p
+          id={notHereId}
+          data-testid={notHereId}
+          className="px-2 pb-2 text-[11px] text-muted-foreground"
+        >
+          {notHere}
+        </p>
+      ) : null}
     </li>
   );
 }

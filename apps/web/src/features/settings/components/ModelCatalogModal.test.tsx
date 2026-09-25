@@ -22,6 +22,8 @@ const CATALOG = {
       provider: "openai",
       modelName: "gpt-5.6-luna",
       enabled: true,
+      supportsImages: true,
+      supportsDocuments: true,
     },
     {
       id: "anthropic:claude-opus-5",
@@ -107,5 +109,16 @@ describe("ModelCatalogModal payers", () => {
     expect(
       within(row("GPT-5.6 Luna")).getByRole("button", { name: /Select/ }),
     ).toBeEnabled();
+  });
+});
+
+describe("ModelCatalogModal file support", () => {
+  it("says which models read images and PDFs", async () => {
+    render(<ModelCatalogModal open onOpenChange={() => {}} />);
+    const luna = (await screen.findByText("GPT-5.6 Luna")).closest("tr");
+    const opus = screen.getByText("Claude Opus 5").closest("tr");
+    if (luna === null || opus === null) throw new Error("no model rows");
+    expect(within(luna).getByText("reads images and PDFs")).toBeInTheDocument();
+    expect(within(opus).queryByText(/reads/)).toBeNull();
   });
 });

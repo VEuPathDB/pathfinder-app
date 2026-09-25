@@ -38,7 +38,10 @@ from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from pathfinder.domain.strategy.staleness import detect_build_staleness
-from pathfinder.services.conversations.thread_activity import read_thread_activity
+from pathfinder.services.conversations.thread_activity import (
+    ThreadActivity,
+    read_thread_activity,
+)
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
@@ -61,13 +64,21 @@ async def pathfinder_pre_turn(
     """The state the turn runs on: refreshed against WDK, then briefed."""
     answered = state.domain.answered_graph
     refreshed = await refresh_live_strategy_state(state, context)
-    briefed = await attach_turn_briefing(refreshed, context, answered=answered)
-    return await attach_open_eda_analysis(briefed, context)
+    async with context.db_session_factory() as session:
+        activity = await read_thread_activity(
+            session,
+            conversation_id=state.conversation_id,
+        )
+    briefed = attach_turn_briefing(refreshed, context, activity, answered=answered)
+    return await attach_open_eda_analysis(
+        briefed, context, changed_after_the_card=activity.analysis is not None
+    )
 
 
-async def attach_turn_briefing(
+def attach_turn_briefing(
     state: PipelineState,
     context: Context,
+    activity: ThreadActivity,
     *,
     answered: StrategyAst | None,
 ) -> PipelineState:
@@ -76,11 +87,6 @@ async def attach_turn_briefing(
     ``answered`` is the tree the thread's spec answered to when the turn
     opened, which the refresh has already brought up to the live one.
     """
-    async with context.db_session_factory() as session:
-        activity = await read_thread_activity(
-            session,
-            conversation_id=state.conversation_id,
-        )
     state.domain.turn_briefing = compose_turn_briefing(
         activity,
         requirements=state.domain.requirements,
@@ -93,6 +99,8 @@ async def attach_turn_briefing(
 async def attach_open_eda_analysis(
     state: PipelineState,
     context: Context,
+    *,
+    changed_after_the_card: bool,
 ) -> PipelineState:
     """Read the analysis the thread holds open onto the state.
 
@@ -108,6 +116,7 @@ async def attach_open_eda_analysis(
             dataset_id=bound.dataset_id,
             analysis_id=bound.analysis_id,
             subset_previewed=bound.subset_previewed,
+            changed_after_the_card=changed_after_the_card,
         )
     )
     return state

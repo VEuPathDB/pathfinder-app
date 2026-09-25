@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Generator
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -193,6 +194,7 @@ async def test_two_accounts_in_one_process_hold_two_permission_maps(
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     monkeypatch.setattr(catalog, "list_studies", _fixture_studies)
+    monkeypatch.setattr(catalog, "sites_publishing", AsyncMock(return_value={}))
 
     veupathdb_auth_token_ctx.set(_SERVICE)
     service_cards = await catalog.browse_studies("plasmodb", limit=100)

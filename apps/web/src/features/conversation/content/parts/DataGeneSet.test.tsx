@@ -73,11 +73,11 @@ describe("DataGeneSet", () => {
     expect(screen.getByTestId("data-gene-set")).toHaveTextContent("Gene set created");
   });
 
-  it("captions the figure with the gene count and the site", () => {
+  it("captions the figure with the gene count and the site's short name", () => {
     serve([listed()]);
     renderFigure();
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "3,420 genes on plasmodb",
+      "3,420 genes on PlasmoDB",
     );
   });
 

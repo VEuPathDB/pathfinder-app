@@ -18,6 +18,7 @@ import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchem
 
 import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
+import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
 import { getAuthHeaders } from "@/lib/api/http";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
@@ -36,13 +37,14 @@ import { beginConversation } from "../api/beginConversation";
 import { buildChatRequestBody } from "./buildRequestBody";
 import type { ChatHelpers } from "./chatHelpersContext";
 import { createDurableTransport } from "./durableTransport";
-import { GeneIdAttachmentAdapter } from "./geneIdAttachmentAdapter";
+import { ChatAttachmentAdapter } from "./chatAttachmentAdapter";
+import { useReaderModel } from "./useReaderModel";
 
 /** The turn a snapshot reports in flight, before any message of it is open. */
 const SNAPSHOT_TURN = "snapshot-turn";
 
 export const THREAD_STOPPED_FOLLOWING =
-  "This thread stopped following the work it has running; reload the page to read where that work got to.";
+  "This conversation stopped following the work it has running; reload the page to read where that work got to.";
 
 function reattachKey(conversationId: string): string[] {
   return ["conversations", conversationId, "reattach"];
@@ -210,9 +212,10 @@ export function useChatRuntime({
     retry: false,
   });
 
+  const { reader } = useReaderModel(assistantId ?? DEFAULT_ASSISTANT_ID);
   const runtime = useAISDKRuntime(chatApi, {
     adapters: {
-      attachments: new GeneIdAttachmentAdapter(),
+      attachments: new ChatAttachmentAdapter(reader),
     },
   });
 

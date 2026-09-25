@@ -19,14 +19,14 @@ def test_the_seed_sites_come_from_the_registry() -> None:
     assert set(SEED_DATABASES) <= set(registered)
 
 
-def test_a_registered_site_that_ships_no_seed_is_refused() -> None:
-    """A site with no seed file answers a refusal, never a read of a missing file."""
-    registered = set(load_sites_config().sites)
-    seedless = sorted(registered - set(SEED_DATABASES))
-    assert seedless == ["trichdb"]
+def test_every_registered_site_ships_seeds() -> None:
+    assert sorted(set(load_sites_config().sites) - set(SEED_DATABASES)) == []
 
+
+def test_a_site_the_registry_does_not_name_is_refused() -> None:
+    """An unknown id answers a refusal, never a read of a missing file."""
     with pytest.raises(VEuPathDBError) as refusal:
-        get_seeds_for_site("trichdb")
+        get_seeds_for_site("nosuchdb")
 
     assert refusal.value.code.value == "SITE_NOT_FOUND"
 

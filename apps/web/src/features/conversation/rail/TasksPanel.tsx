@@ -2,9 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Loader2, Timer } from "lucide-react";
-import type { TaskListItem } from "@pathfinder/shared";
 
-import { tasksListOptions } from "@/features/conversation/api/tasks";
+import type {
+  TaskListItem,
+  TaskListItemStatusEnumKey,
+} from "@pathfinder/shared/generated/types/TaskListItem";
+import { isActiveTask, tasksListOptions } from "@/features/conversation/api/tasks";
 import { humanizeToolName } from "@/features/conversation/toolNames";
 
 import { useChatHelpers } from "../runtime/chatHelpersContext";
@@ -15,7 +18,14 @@ interface TasksPanelProps {
   conversationId: string;
 }
 
-const ACTIVE = new Set(["pending", "running", "resuming"]);
+const STATUS_WORDS: Record<TaskListItemStatusEnumKey, string> = {
+  pending: "Queued",
+  running: "Running",
+  result_ready: "Finishing",
+  resuming: "Finishing",
+  complete: "Complete",
+  failed: "Failed",
+};
 
 export function TasksPanel({ conversationId }: TasksPanelProps) {
   const { data, isLoading } = useQuery(tasksListOptions(conversationId));
@@ -33,7 +43,7 @@ export function TasksPanel({ conversationId }: TasksPanelProps) {
         <RailEmptyState
           icon={<Timer className="h-8 w-8" aria-hidden />}
           heading="No background tasks yet"
-          description="Long-running verification jobs (control tests, parameter optimization, study computations) show up here with live progress."
+          description="Long-running tasks (control tests, parameter optimization, study comparisons) show up here with live progress."
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -57,7 +67,7 @@ function TaskRow({
   task: TaskListItem;
   exhibitHref: string | null;
 }) {
-  const isActive = ACTIVE.has(task.status);
+  const isActive = isActiveTask(task.status);
   const isFailed = task.status === "failed";
   const percent =
     task.latestPercent != null ? Math.round(task.latestPercent * 100) : null;
@@ -86,7 +96,7 @@ function TaskRow({
           )}
         </div>
         <span className="shrink-0 text-[11px] uppercase tracking-wide text-muted-foreground">
-          {task.status}
+          {STATUS_WORDS[task.status]}
         </span>
       </div>
       {isActive && (

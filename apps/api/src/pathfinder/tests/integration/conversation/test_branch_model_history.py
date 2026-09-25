@@ -250,7 +250,7 @@ def _no_title_and_no_cancel_watch(monkeypatch: pytest.MonkeyPatch) -> None:
         return ""
 
     monkeypatch.setattr(turn_runner, "watch_for_cancel", _no_poll)
-    monkeypatch.setattr(turn_runner, "generate_conversation_title", _no_title)
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", _no_title)
 
 
 async def _assistant_message_ids(conversation_id: UUID) -> list[str]:

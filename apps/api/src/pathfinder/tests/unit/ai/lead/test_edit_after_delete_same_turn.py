@@ -121,7 +121,11 @@ async def test_the_delete_commits_a_spec_and_leaves_the_turn_entry_record(
     """The delete drops the criteria it removed; the entry record is the turn's."""
     ctx = _turn_over_two_steps()
 
-    await delete_step(ctx, step_id=_DELETED)
+    await delete_step(
+        ctx,
+        step_id=_DELETED,
+        reply="I will make this change and report what it takes with it.",
+    )
 
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
@@ -136,7 +140,11 @@ async def test_the_edit_after_a_delete_keeps_the_surviving_step_and_adds_one(
 ) -> None:
     """The removed criterion is not this edit's to account for."""
     ctx = _turn_over_two_steps()
-    await delete_step(ctx, step_id=_DELETED)
+    await delete_step(
+        ctx,
+        step_id=_DELETED,
+        reply="I will make this change and report what it takes with it.",
+    )
     _frame_adds_one_leaf(monkeypatch)
     committed: list[GraphOperation] = []
     _fake_the_commit(monkeypatch, committed)

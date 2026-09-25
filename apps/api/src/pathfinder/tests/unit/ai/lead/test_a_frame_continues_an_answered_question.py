@@ -13,9 +13,10 @@ import pytest
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.graph.turn_records import AnsweredQuestions
 from pathfinder.ai.lead.deltas import FrameResult
-from pathfinder.ai.lead.dispatch_messages import budget_stop_work_order
+from pathfinder.ai.lead.dispatch_messages import stopped_pass_work_order
 from pathfinder.ai.lead.frame_dispatch import frame_work_order
 from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.tests.unit.ai.lead._answered_draft import (
@@ -42,6 +43,10 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     session_with_one_step,
+)
+
+_BUDGET_STOP = PhaseStop(
+    role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60, criteria_bound=1
 )
 
 _ASKED_THIS_TURN = OpenQuestion(question="Which life-cycle stage decides c_stage?")
@@ -175,7 +180,7 @@ def test_a_bound_draft_with_no_question_is_continued_from_the_message() -> None:
 
 
 def test_the_order_after_a_budget_stop_keeps_its_words() -> None:
-    order = budget_stop_work_order(framed(None), "find surface proteins")
+    order = stopped_pass_work_order(framed(None), "find surface proteins", _BUDGET_STOP)
 
     assert order.startswith(
         "FRAME work order: the previous pass ran out of its tool budget. "

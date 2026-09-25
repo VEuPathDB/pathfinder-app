@@ -74,6 +74,18 @@ jobs:
       - name: Check the checker
         run: node --test scripts/check-punctuation.test.mjs
 
+  check-vocabulary:
+    name: Check vocabulary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The checker parses the web source with the web app's own TypeScript.
+      - uses: ./.github/actions/setup-web
+      - name: Check one name per concept
+        run: node scripts/check-vocabulary.mjs
+      - name: Check the checker
+        run: node --test scripts/check-vocabulary.test.mjs
+
   check-quadlets:
     name: Check deployment units
     runs-on: ubuntu-latest
@@ -255,7 +267,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-web
 
-      - name: Check generated types are up to date
+      - name: Check the committed spec generates types that compile
         working-directory: packages/shared-ts
         run: yarn check:generated
 
@@ -387,6 +399,8 @@ jobs:
     needs:
       - changes
       - check-knowledge
+      - check-punctuation
+      - check-vocabulary
       - check-quadlets
       - check-wdk-rules
       - lint-api

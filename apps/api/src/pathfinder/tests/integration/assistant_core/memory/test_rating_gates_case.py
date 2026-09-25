@@ -6,7 +6,7 @@ import asyncio
 import os
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
@@ -47,11 +47,6 @@ from pathfinder.services.conversations.message_ratings import (
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
 GOAL = "find every kinase in P. falciparum"
-
-
-@dataclass
-class _Runtime:
-    context: Context | None
 
 
 @dataclass(frozen=True)
@@ -150,9 +145,7 @@ async def _run_turn(
         cancel_event=asyncio.Event(),
         memory_store=thread.raw,
     )
-    await nodes.finalize_turn_node(
-        state, cast("Runtime[Context]", _Runtime(context=context))
-    )
+    await nodes.finalize_turn_node(state, Runtime(context=context))
     return turn_id
 
 

@@ -27,8 +27,8 @@ If a tool call fails:
 1. Explain what went wrong in simple terms
 2. Suggest alternative approaches
 3. You MAY retry once without asking the user **only** when the fix is deterministic and low-risk, e.g.:
-   - missing required parameters → call `get_search_parameters`, fill required fields, retry
-   - invalid search name → use `search_for_searches` to find the correct search, retry
-   - wrong record type → call `get_record_types` and retry with the correct record type
+   - missing required parameters -> call `get_search_parameters`, fill required fields, retry
+   - invalid search name -> use `search_for_searches` to find the correct search, retry
+   - wrong record type -> call `get_record_types` and retry with the correct record type
    Otherwise, ask the user before attempting a different approach.
 

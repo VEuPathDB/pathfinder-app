@@ -19,19 +19,14 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from veupathdb.domain.strategy import walk
 from veupathdb.eda import (
-    EdaAnalysisDescriptor,
-    EdaAnalysisDetail,
     EdaFilter,
-    EdaNotFoundError,
-    EdaServerError,
     EdaStringSetFilter,
-    EdaSubsetDescriptor,
 )
 
 from pathfinder.domain.eda_parts import EdaAnalysisState
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.revision import parse_strategy_ast, without_wdk_ids
 from pathfinder.persistence.models import (
-    ConversationAnalysisView,
     ConversationStrategy,
     StrategyRevision,
     User,
@@ -44,7 +39,6 @@ from pathfinder.persistence.repositories.conversation_analysis import (
 )
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
 from pathfinder.services.conversations import fork_strategy
-from pathfinder.services.eda import thread_surgery
 from pathfinder.services.strategies import revision_ops
 from pathfinder.services.strategies.materialize import MaterializedStrategy
 from pathfinder.tests.integration.persistence._strategy_shapes import (
@@ -518,86 +512,6 @@ async def add_analysis_state(
         )
         await session.commit()
     return state
-
-
-@dataclass
-class FakeEda:
-    """Stands in for the EDA analysis service: its documents and its calls."""
-
-    documents: dict[str, list[EdaFilter]] = field(default_factory=dict)
-    created: list[tuple[str, str]] = field(default_factory=list)
-    patched: list[tuple[str, list[EdaFilter]]] = field(default_factory=list)
-    refuse_create: bool = False
-    fresh: int = 0
-
-    def document(self, analysis_id: str, filters: Sequence[EdaFilter] = ()) -> str:
-        """Register a document that already exists on the service."""
-        self.documents[analysis_id] = list(filters)
-        return analysis_id
-
-    def _detail(self, analysis_id: str) -> EdaAnalysisDetail:
-        if analysis_id not in self.documents:
-            msg = f"GET /users/1/analyses/{analysis_id}: no such analysis"
-            raise EdaNotFoundError(msg, 404)
-        filters = self.documents[analysis_id]
-        return EdaAnalysisDetail(
-            analysis_id=analysis_id,
-            study_id=EDA_DATASET,
-            num_filters=len(filters),
-            descriptor=EdaAnalysisDescriptor(
-                subset=EdaSubsetDescriptor(descriptor=list(filters)),
-            ),
-        )
-
-    async def open_analysis(
-        self,
-        site_id: str,
-        *,
-        dataset_id: str,
-        display_name: str,
-    ) -> str:
-        del site_id
-        if self.refuse_create:
-            msg = "POST /users/1/analyses: the study service is unavailable"
-            raise EdaServerError(msg, 503)
-        self.fresh += 1
-        analysis_id = f"fresh{self.fresh}"
-        self.created.append((dataset_id, display_name))
-        self.documents[analysis_id] = []
-        return analysis_id
-
-    async def patch_subset(
-        self,
-        site_id: str,
-        *,
-        analysis_id: str,
-        dataset_id: str,
-        filters: Sequence[EdaFilter],
-    ) -> EdaAnalysisDetail:
-        del site_id, dataset_id
-        # A document that is gone refuses the patch, as the service does.
-        self._detail(analysis_id)
-        self.documents[analysis_id] = list(filters)
-        self.patched.append((analysis_id, list(filters)))
-        return self._detail(analysis_id)
-
-    async def read_analysis(
-        self,
-        site_id: str,
-        *,
-        analysis_id: str,
-    ) -> EdaAnalysisDetail:
-        del site_id
-        return self._detail(analysis_id)
-
-
-def install_fake_eda(monkeypatch: pytest.MonkeyPatch) -> FakeEda:
-    """Answer the study service from the test process."""
-    fake = FakeEda()
-    monkeypatch.setattr(thread_surgery, "open_analysis", fake.open_analysis)
-    monkeypatch.setattr(thread_surgery, "patch_subset", fake.patch_subset)
-    monkeypatch.setattr(thread_surgery, "read_analysis", fake.read_analysis)
-    return fake
 
 
 async def bound_analysis(conversation_id: UUID) -> ConversationAnalysisView | None:

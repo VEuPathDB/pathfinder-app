@@ -43,7 +43,7 @@ test.describe("Site Switching", () => {
     sitePicker,
     page,
   }) => {
-    await expect(page.getByRole("button", { name: /switch database/i })).toBeVisible({
+    await expect(page.getByRole("button", { name: /switch site/i })).toBeVisible({
       timeout: 5_000,
     });
     await sitePicker.selectSite("toxodb");

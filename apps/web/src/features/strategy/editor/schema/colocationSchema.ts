@@ -26,3 +26,23 @@ export const colocationSchema = z.object({
 });
 
 export type ColocationFormValues = z.infer<typeof colocationSchema>;
+
+export const DEFAULT_COLOCATION: ColocationFormValues = {
+  operation: "overlaps",
+  strand: "either strand",
+  output: "a",
+  regionA: "exact",
+  beginA: "start",
+  beginDirectionA: "+",
+  beginOffsetA: 0,
+  endA: "stop",
+  endDirectionA: "+",
+  endOffsetA: 0,
+  regionB: "exact",
+  beginB: "start",
+  beginDirectionB: "+",
+  beginOffsetB: 0,
+  endB: "stop",
+  endDirectionB: "+",
+  endOffsetB: 0,
+};

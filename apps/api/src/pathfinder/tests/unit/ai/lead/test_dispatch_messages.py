@@ -11,10 +11,11 @@ from pathfinder.ai.lead.build_messages import (
     build_would_replace_the_strategy,
 )
 from pathfinder.ai.lead.dispatch_messages import (
-    budget_stop_work_order,
     frame_result_from_draft,
+    stopped_pass_work_order,
     undeclared_spec_changes,
 )
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -23,6 +24,10 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
+
+_BUDGET_STOP = PhaseStop(
+    role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60, criteria_bound=1
+)
 
 
 def _spec_with_open_slots() -> OperationalSpec:
@@ -113,34 +118,52 @@ def test_the_build_refusal_names_the_tool_that_starts_over() -> None:
 
 class TestABoundCriterionIsReported:
     def test_the_disposition_asks_for_another_pass(self) -> None:
-        result = frame_result_from_draft(_draft("a", "b"))
+        result = frame_result_from_draft(_draft("a", "b"), _BUDGET_STOP)
 
         assert result.disposition == "needs_user"
 
     def test_the_summary_counts_what_was_bound(self) -> None:
-        result = frame_result_from_draft(_draft("a", "b", "c"))
+        result = frame_result_from_draft(_draft("a", "b", "c"), _BUDGET_STOP)
 
         assert "3" in result.summary
 
     def test_the_summary_names_the_budget_rather_than_a_failure(self) -> None:
-        result = frame_result_from_draft(_draft("a"))
+        result = frame_result_from_draft(_draft("a"), _BUDGET_STOP)
 
         assert "budget" in result.summary.lower()
 
+    def test_a_refused_tool_is_named_rather_than_a_budget(self) -> None:
+        stop = PhaseStop(
+            role="frame",
+            reason=PhaseStopReason.TOOL_RETRIES,
+            tool_calls=5,
+            criteria_bound=1,
+            tool_name="set_criterion",
+            refusal="c_tm: the reason must hold the term.",
+        )
+
+        result = frame_result_from_draft(_draft("c_sp"), stop)
+
+        assert result.summary == (
+            "FRAME stopped when set_criterion refused every attempt after binding "
+            "1 criteria (c_sp). They are kept. Ask it to continue with the rest "
+            "rather than starting again."
+        )
+
     def test_a_criterion_is_named_so_the_work_is_identifiable(self) -> None:
-        result = frame_result_from_draft(_draft("kinases"))
+        result = frame_result_from_draft(_draft("kinases"), _BUDGET_STOP)
 
         assert "kinases" in result.summary
 
 
 class TestNothingBoundIsStillNothing:
     def test_an_empty_draft_says_so(self) -> None:
-        result = frame_result_from_draft(OperationalSpec(goal="g"))
+        result = frame_result_from_draft(OperationalSpec(goal="g"), _BUDGET_STOP)
 
         assert "no criteria" in result.summary.lower()
 
     def test_a_missing_draft_says_so(self) -> None:
-        result = frame_result_from_draft(None)
+        result = frame_result_from_draft(None, _BUDGET_STOP)
 
         assert result.disposition == "needs_user"
 
@@ -209,7 +232,7 @@ def test_a_continuation_keeps_a_criterion_waiting_for_its_analysis() -> None:
         ],
     )
 
-    lines = budget_stop_work_order(spec, "24 h over 36 h").splitlines()
+    lines = stopped_pass_work_order(spec, "24 h over 36 h", _BUDGET_STOP).splitlines()
 
     assert "- [c1] kinases -> GenesByGoTerm" in lines
     assert (

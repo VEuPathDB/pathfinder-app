@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.build_outcome import (
     node_status,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.orthology import organism_change
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_edit_guard import (
     contradicted_joins,
@@ -218,7 +219,7 @@ async def build_strategy_from_spec(
         sync_result=None,
     )
 
-    outcome = BuildOutcome()
+    outcome = BuildOutcome(organism_change=organism_change(root))
     await _push_tree_to_wdk(
         nodes=nodes,
         graph_record_type=graph.record_type or "transcript",

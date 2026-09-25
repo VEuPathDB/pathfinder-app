@@ -230,7 +230,7 @@ async def delete_step(
     A step under a combine takes that combine with it and its sibling takes
     their place; a combine under a transform leaves with its secondary branch;
     a root leaves with whatever hangs under it. A transform nothing can take
-    the place of, and a root of a thread whose strategy no push names, are
+    the place of, and a root of a conversation whose strategy no push names, are
     refused rather than guessed at.
     """
     return await delete_the_step(
@@ -366,7 +366,7 @@ async def insert_saved_strategy(
                     "insert_saved_strategy requires a persistent conversation context",
                 ).model_dump(by_alias=True, mode="json"),
             ),
-            "This thread cannot insert a saved strategy",
+            "This conversation cannot insert a saved strategy",
             ctx=ctx,
             status="warn",
         )

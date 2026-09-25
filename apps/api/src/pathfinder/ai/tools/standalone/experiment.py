@@ -1,6 +1,8 @@
-"""Standalone experiment control test tools for pydantic-ai migration."""
+"""The control tests VERIFY runs on a built step or on a search of its own."""
 
-from typing import Any
+from collections.abc import Awaitable, Callable
+from functools import wraps
+from typing import Any, NoReturn
 from uuid import UUID
 
 from assistant_core.graph.tool_summary import summary_chunks, with_summary
@@ -14,6 +16,8 @@ from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.controls import (
+    CONTROLS_PARAM,
+    CONTROLS_SEARCH,
     ControlTargetData,
     ControlTestResult,
     IntersectionConfig,
@@ -30,6 +34,10 @@ from pathfinder.ai.stream_part_payloads import (
     ControlSetSummary,
     ControlTestResults,
     TestedParameter,
+)
+from pathfinder.ai.tools.standalone.control_repeats import (
+    RepeatedControlTest,
+    repeated_control_test,
 )
 from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
 from pathfinder.platform.durable_worker import durable_agent_tool
@@ -171,18 +179,18 @@ class _ControlCounts(ControlOutcome):
         )
 
 
-def controls_summary(counts: _ControlCounts) -> str:
-    """What the test recovered, how well it scored, and what a sweep could vary.
+def _control_scores(counts: _ControlCounts) -> str:
+    """What the test recovered and how well it scored.
 
     Precision and MCC need a negative set. A test that ran none reports
-    recall alone.
+    recall alone, and a test of negatives alone counts what it returned.
     """
+    if counts.positive_controls_count is None and counts.negative_controls_count:
+        return (
+            f"{counts.negative_controls_count} negative controls: "
+            f"{counts.negative_intersection or 0} returned"
+        )
     metrics = metrics_from_control_result(counts.measured())
-    knobs = (
-        f"tunable parameters: {', '.join(counts.tunable_parameters)}"
-        if counts.tunable_parameters
-        else "no tunable parameters"
-    )
     scored = (
         f"precision {metrics.precision:.2f}, MCC {metrics.mcc:.2f}"
         if counts.negative_controls_count is not None
@@ -191,8 +199,18 @@ def controls_summary(counts: _ControlCounts) -> str:
     return (
         f"{counts.positive_intersection or 0} of "
         f"{counts.positive_controls_count or 0} positive controls recovered; "
-        f"recall {metrics.sensitivity:.2f}, {scored}; {knobs}"
+        f"recall {metrics.sensitivity:.2f}, {scored}"
     )
+
+
+def controls_summary(counts: _ControlCounts) -> str:
+    """What the test recovered, how well it scored, and what a sweep could vary."""
+    knobs = (
+        f"tunable parameters: {', '.join(counts.tunable_parameters)}"
+        if counts.tunable_parameters
+        else "no tunable parameters"
+    )
+    return f"{_control_scores(counts)}; {knobs}"
 
 
 def control_test_run(
@@ -221,6 +239,45 @@ def _control_test_chunks_from_result(
     return [exhibit, *summary_chunks(tool_call_id, controls_summary(counts))]
 
 
+_REPEAT_NOTE = (
+    "These ids were already tested on this step under this message. This is "
+    "that result; no new task started. Test the whole control set once per "
+    "step; a subset adds nothing."
+)
+
+
+def _answered_from_this_message(
+    deferred: Callable[..., Awaitable[NoReturn]],
+) -> Callable[..., Awaitable[ToolReturn[RepeatedControlTest]]]:
+    """Answer a repeat test from the message's record before it defers."""
+
+    @wraps(deferred)
+    async def tool(
+        ctx: RunContext[AgentDeps],
+        wdk_step_id: int,
+        positive_controls: list[str] | None = None,
+        negative_controls: list[str] | None = None,
+    ) -> ToolReturn[RepeatedControlTest]:
+        held = repeated_control_test(
+            ctx.deps.turn_markers, wdk_step_id, positive_controls, negative_controls
+        )
+        if held is None:
+            return await deferred(
+                ctx,
+                wdk_step_id=wdk_step_id,
+                positive_controls=positive_controls,
+                negative_controls=negative_controls,
+            )
+        counts = _ControlCounts.model_validate(held.model_dump())
+        return with_summary(
+            RepeatedControlTest(note=_REPEAT_NOTE, outcome=held),
+            f"Already tested on this step: {_control_scores(counts)}",
+            ctx=ctx,
+        )
+
+    return tool
+
+
 CONTROL_TESTS = declare_durable_tool(
     tool_name="run_control_tests_on_step",
     estimated_duration_seconds=180,
@@ -228,18 +285,20 @@ CONTROL_TESTS = declare_durable_tool(
 )
 
 
+@_answered_from_this_message
 @durable_agent_tool(CONTROL_TESTS)
 async def run_control_tests_on_step(
     ctx: RunContext[AgentDeps],
     wdk_step_id: int,
     positive_controls: list[str] | None = None,
     negative_controls: list[str] | None = None,
-) -> dict[str, Any]:
+) -> NoReturn:
     """Run control tests against an already-built WDK strategy step.
 
     Durable: this tool defers work to the verification worker and the turn
     ends while it runs. You are called again with a dict matching
-    :class:`ControlOutcome`'s serialised shape.
+    :class:`ControlOutcome`'s serialised shape. Ids this message already
+    tested on the step are answered from that test, with no new task.
 
     Tests directly against the strategy's actual results using Python set
     operations -- no temporary WDK strategy needed.  Use this after a
@@ -304,8 +363,8 @@ async def run_control_tests_on_search(
             record_type=record_type,
             target_search_name=target_search_name,
             target_parameters=dict(target_parameters),
-            controls_search_name="GeneByLocusTag",
-            controls_param_name="ds_gene_ids",
+            controls_search_name=CONTROLS_SEARCH,
+            controls_param_name=CONTROLS_PARAM,
             controls_value_format="newline",
             internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
         ),

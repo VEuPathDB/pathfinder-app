@@ -33,6 +33,12 @@ function standing(stored: ProviderKeyView | undefined, name: string): string {
   if (stored.refusal === "unreadable") {
     return `...${stored.hint} can no longer be read. Enter it again.`;
   }
+  if (stored.refusal === "no_credit") {
+    return `...${stored.hint}: This key has no credit. Add credit to the ${name} account, or replace the key.`;
+  }
+  if (stored.refusal === "forbidden") {
+    return `...${stored.hint} is not permitted by ${name} to run its models. Replace it or remove it.`;
+  }
   return `...${stored.hint} was refused by ${name}. Replace it or remove it.`;
 }
 

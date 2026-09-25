@@ -8,6 +8,7 @@ from pathfinder.ai.agents.registry import phase_defaults
 from pathfinder.assistants.registry import (
     assistant_role_models,
     installed_phase_defaults,
+    prompt_reader_model,
 )
 from pathfinder.assistants.site_help.agent import SITE_HELP_MODEL
 from pathfinder.platform.config import get_settings
@@ -84,3 +85,33 @@ def test_the_one_agent_assistant_has_one_role(
     assert assistant_role_models(SITE_HELP_ASSISTANT_ID, {}) == {
         SITE_HELP_ASSISTANT_ID: "anthropic:claude-haiku-4-5"
     }
+
+
+def test_the_lead_reads_the_message_of_a_pathfinder_turn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "default_provider", "openai")
+    monkeypatch.setattr(settings, "default_tier", "balanced")
+
+    assert prompt_reader_model(PATHFINDER_ASSISTANT_ID, {}) == "openai:gpt-5.6-terra"
+    assert (
+        prompt_reader_model(PATHFINDER_ASSISTANT_ID, {"frame": "google:x"})
+        == "openai:gpt-5.6-terra"
+    )
+    assert (
+        prompt_reader_model(PATHFINDER_ASSISTANT_ID, {"lead": "openai:gpt-5.6-luna"})
+        == "openai:gpt-5.6-luna"
+    )
+
+
+def test_the_one_agent_reads_the_message_of_a_site_help_turn(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "default_provider", "anthropic")
+    monkeypatch.setattr(settings, "default_tier", "fast")
+
+    assert (
+        prompt_reader_model(SITE_HELP_ASSISTANT_ID, {}) == "anthropic:claude-haiku-4-5"
+    )

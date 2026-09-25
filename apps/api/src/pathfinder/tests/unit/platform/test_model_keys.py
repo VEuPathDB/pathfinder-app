@@ -104,6 +104,8 @@ async def test_a_provider_without_a_live_key_runs_on_the_deployment_key() -> Non
     ("refusal", "error"),
     [
         (KeyRefusal.INVALID, ProviderKeyRefusedError),
+        (KeyRefusal.NO_CREDIT, ProviderKeyRefusedError),
+        (KeyRefusal.FORBIDDEN, ProviderKeyRefusedError),
         (KeyRefusal.UNREADABLE, ProviderKeyUnreadableError),
     ],
 )
@@ -132,6 +134,29 @@ async def test_a_key_refused_during_the_turn_is_not_called_again() -> None:
 
     assert keys.refusals == {"openai": KeyRefusal.INVALID}
     assert len(wire.requests) == 1
+
+
+@pytest.mark.usefixtures("_deployment_holds_every_key")
+async def test_a_key_with_no_credit_is_marked_and_refused_with_that_sentence() -> None:
+    wire = ProviderWire(refuse=True, refused_by="no-credit")
+    keyring = ProviderKeyring(active={"anthropic": SecretStr(_USER_KEY)})
+
+    with attach_keyring(keyring, build=wire.build) as keys:
+        with pytest.raises(ProviderKeyRefusedError) as during:
+            await one_generation(_model("anthropic:claude-haiku-4-5"))
+        with pytest.raises(ProviderKeyRefusedError) as after:
+            keyed_model("anthropic:claude-haiku-4-5")
+
+    assert keys.refusals == {"anthropic": KeyRefusal.NO_CREDIT}
+    assert [during.value.title, after.value.title] == [
+        "Your Anthropic key has no credit",
+        "Your Anthropic key has no credit",
+    ]
+    assert during.value.detail == (
+        "This key has no credit, so nothing ran on it. Add credit to the "
+        "Anthropic account, or replace or remove your Anthropic key in Settings, "
+        "under Provider keys."
+    )
 
 
 def test_a_provider_nobody_holds_a_key_for_is_refused(
@@ -205,6 +230,29 @@ async def test_the_probe_refuses_a_key_the_provider_refuses(
         await probe_key(provider, _SMALLEST[provider], SecretStr(_USER_KEY), wire.build)
 
     assert caught.value.status == 422
+
+
+@pytest.mark.parametrize(
+    ("provider", "refused_by", "title"),
+    [
+        ("openai", "no-credit", "Your OpenAI key has no credit"),
+        ("openai", "no-credit-quota", "Your OpenAI key has no credit"),
+        ("anthropic", "no-credit", "Your Anthropic key has no credit"),
+        ("anthropic", "forbidden", "Your Anthropic key is not permitted"),
+        ("google", "forbidden", "Your Google key is not permitted"),
+        ("google", "no-credit", "Your Google key has no credit"),
+    ],
+)
+async def test_the_probe_refuses_a_key_with_no_credit_or_no_permission(
+    provider: KeyableProvider, refused_by: str, title: str
+) -> None:
+    """A quota answer is a 429, and it still refuses the key at entry."""
+    wire = ProviderWire(refuse=True, refused_by=refused_by)
+
+    with pytest.raises(ProviderKeyRefusedError) as caught:
+        await probe_key(provider, _SMALLEST[provider], SecretStr(_USER_KEY), wire.build)
+
+    assert (caught.value.status, caught.value.title) == (422, title)
 
 
 async def test_the_probe_reports_a_provider_that_did_not_answer() -> None:

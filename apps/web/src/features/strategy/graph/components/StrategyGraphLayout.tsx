@@ -21,7 +21,6 @@ import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphCont
 import { isNodeToolbarOrMenuTarget } from "@/features/strategy/graph/nodeClickTarget";
 import { usePrefersReducedMotion } from "@/lib/motion";
 import { findOrphanSteps } from "@/features/strategy/graph";
-import { useStrategyStore } from "@/state/strategy/store";
 
 const NODE_TYPES: NodeTypes = {
   step: StepNode,
@@ -34,10 +33,6 @@ const SNAP_GRID: [number, number] = [28, 28];
 
 export function StrategyGraphLayout() {
   const g = useStrategyGraphCtx();
-  const strategyId = g.strategy?.id ?? "";
-  const isPaused = useStrategyStore(
-    (s) => s.graphValidationStatus[strategyId] === true,
-  );
   const reducedMotion = usePrefersReducedMotion();
 
   const handleViewMismatch = (firstStepId: string): void => {
@@ -131,7 +126,6 @@ export function StrategyGraphLayout() {
             <div className="flex flex-col items-center gap-2">
               <ValidationAlert
                 mismatchGroups={g.combineMismatchGroups}
-                isPaused={isPaused}
                 onView={handleViewMismatch}
               />
               <OrphanNotice

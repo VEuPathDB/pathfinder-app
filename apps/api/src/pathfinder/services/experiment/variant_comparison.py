@@ -20,7 +20,7 @@ from assistant_core.platform.types import JSONObject
 from veupathdb.domain.parameters import ParamValue, wire_map
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKAnswer, WDKSearchConfig, get_wdk_client
-from veupathdb_mcp.wdk import extract_record_ids
+from veupathdb_mcp.wdk import extract_record_ids, view_filters_for
 
 _CONCURRENCY = 4
 _MAX_RECORDS = 50_000
@@ -64,13 +64,17 @@ class VariantComparison(CamelModel):
 
 
 async def run_variant_search(site_id: str, spec: VariantSpec) -> WDKAnswer:
-    """One variant's answer, capped at ``_MAX_RECORDS`` ids and creating no step."""
+    """One variant's answer, capped at ``_MAX_RECORDS`` ids and creating no step.
+
+    A transcript search reports one row per gene, so the cap counts genes.
+    """
     client = get_wdk_client(site_id)
     return await client.run_search_report(
         spec.record_type,
         spec.search_name,
         WDKSearchConfig(parameters=wire_map(spec.parameters)),
         report_config=_ALL_IDS_REPORT,
+        view_filters=view_filters_for(spec.record_type),
     )
 
 

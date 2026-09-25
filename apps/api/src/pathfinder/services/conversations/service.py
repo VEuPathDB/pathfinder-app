@@ -245,7 +245,9 @@ class ConversationService:
                     ),
                 )
 
-        if is_wdk_linked and not delete_from_wdk:
+        # The first delete of a linked conversation moves it to Recently deleted;
+        # a delete from there removes the row and leaves the site strategy.
+        if is_wdk_linked and not delete_from_wdk and conversation.dismissed_at is None:
             await self._repo.dismiss(conversation_id)
             await self._session.commit()
             return

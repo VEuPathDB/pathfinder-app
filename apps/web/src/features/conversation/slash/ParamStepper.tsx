@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
-import { FileRow, TextAreaRow, TextRow } from "./ParamRows";
+import { TextAreaRow, TextRow } from "./ParamRows";
 import { SelectRow } from "./SelectRow";
-import type { Command, CommandContext, ParamDef, ParamValues } from "./types";
+import type { Command, ParamDef, ParamValues } from "./types";
 
 export interface ParamStepperProps {
   open: boolean;
   command: Command | null;
-  ctx: CommandContext;
   onComplete: (values: ParamValues) => void;
   onCancel: () => void;
 }
@@ -23,7 +22,6 @@ export interface ParamStepperProps {
 export function ParamStepper({
   open,
   command,
-  ctx,
   onComplete,
   onCancel,
 }: ParamStepperProps) {
@@ -96,7 +94,7 @@ export function ParamStepper({
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
-        <ParamRow param={param} ctx={ctx} onSubmit={next} />
+        <ParamRow key={param.name} param={param} onSubmit={next} />
       </motion.div>
     </AnimatePresence>
   );
@@ -104,21 +102,16 @@ export function ParamStepper({
 
 function ParamRow({
   param,
-  ctx,
   onSubmit,
 }: {
   param: ParamDef;
-  ctx: CommandContext;
   onSubmit: (value: string) => void;
 }) {
   if (param.kind === "select") {
-    return <SelectRow param={param} ctx={ctx} onSubmit={onSubmit} />;
+    return <SelectRow param={param} onSubmit={onSubmit} />;
   }
   if (param.kind === "textarea") {
     return <TextAreaRow param={param} onSubmit={onSubmit} />;
-  }
-  if (param.kind === "file") {
-    return <FileRow param={param} onSubmit={onSubmit} />;
   }
   return <TextRow param={param} onSubmit={onSubmit} />;
 }

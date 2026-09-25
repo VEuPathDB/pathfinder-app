@@ -6,7 +6,7 @@ import asyncio
 import json
 import time
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, get_args
 
 import httpx
 import pytest
@@ -17,6 +17,7 @@ from veupathdb.eda import (
     EdaComputeNotReadyError,
     EdaDifferentialExpressionConfig,
     EdaError,
+    EdaJobStatus,
     EdaLabeledRange,
     EdaVariableSpec,
 )
@@ -178,8 +179,8 @@ async def test_the_lookup_and_the_submit_address_the_same_job_id(
     assert len(set(bodies)) == 1
 
 
-async def test_the_status_sets_are_exhaustive_over_the_six_states() -> None:
-    every_state = {
+async def test_a_job_polls_while_it_is_queued_or_in_progress_only() -> None:
+    assert set(get_args(EdaJobStatus)) == {
         "queued",
         "in-progress",
         "complete",
@@ -187,9 +188,7 @@ async def test_the_status_sets_are_exhaustive_over_the_six_states() -> None:
         "expired",
         "no-such-job",
     }
-    settled = compute.TERMINAL_STATUSES | compute.RUNNING_STATUSES
-    assert settled == every_state
-    assert not (compute.TERMINAL_STATUSES & compute.RUNNING_STATUSES)
+    assert {"queued", "in-progress"} == compute.RUNNING_STATUSES
 
 
 async def test_read_statistics_retries_a_502_right_after_completion(

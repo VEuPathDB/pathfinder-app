@@ -216,7 +216,7 @@ async def test_the_trace_line_states_the_count(
 
     chunk = summary_of(returned)
     assert chunk.data["summary"] == (
-        "c1 set to GenesByText, 3 transcripts, sets text_expression"
+        "c1 set to GenesByText, 3 genes, sets text_expression"
     )
     assert chunk.data["status"] == "ok"
 
@@ -239,7 +239,7 @@ async def test_a_binding_that_matches_nothing_says_so(
 
     chunk = summary_of(returned)
     assert chunk.data["summary"] == (
-        "c1 set to GenesByText, 0 transcripts; text_search_organism has 2 "
+        "c1 set to GenesByText, 0 genes; text_search_organism has 2 "
         "options, sets text_expression"
     )
     assert chunk.data["status"] == "empty"
@@ -270,8 +270,16 @@ async def test_a_count_that_did_not_arrive_leaves_the_plain_line(
 def test_one_record_is_not_written_as_a_plural() -> None:
     line, status = _frame_count.criterion_line("c1", "GenesByText", "transcript", 1, [])
 
-    assert line == "c1 set to GenesByText, 1 transcript"
+    assert line == "c1 set to GenesByText, 1 gene"
     assert status == "ok"
+
+
+def test_a_transcript_binding_is_counted_in_genes() -> None:
+    line, _ = _frame_count.criterion_line(
+        "c_signal_peptide", "GenesWithSignalPeptide", "transcript", 479, []
+    )
+
+    assert line == "c_signal_peptide set to GenesWithSignalPeptide, 479 genes"
 
 
 def test_the_noun_is_the_record_type_the_criterion_binds() -> None:
@@ -285,7 +293,7 @@ def test_a_large_count_is_written_for_a_reader() -> None:
         "c1", "GenesByText", "transcript", 9_667, []
     )
 
-    assert line == "c1 set to GenesByText, 9,667 transcripts"
+    assert line == "c1 set to GenesByText, 9,667 genes"
     assert status == "ok"
 
 

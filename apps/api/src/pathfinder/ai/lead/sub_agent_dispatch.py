@@ -12,6 +12,7 @@ from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
+from veupathdb.domain.strategy import rebuild_tree
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -23,6 +24,7 @@ from pathfinder.ai.lead.answered_strategy import (
 from pathfinder.ai.lead.build_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
+    round_trip_not_kept_message,
     structure_does_not_convert_message,
 )
 from pathfinder.ai.lead.deltas import ExecuteDelta, RecoveryDelta
@@ -49,8 +51,17 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.orthology import (
+    OrganismChange,
+    organism_change,
+    round_trip_refusal,
+)
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.session import (
+    StrategyGraph,
+    StrategySession,
+    strategy_root_id,
+)
 from pathfinder.domain.strategy.spec_fold import (
     fold_option_criteria,
 )
@@ -58,10 +69,12 @@ from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
 from pathfinder.domain.strategy.spec_tree import (
+    SpecTree,
     build_step_tree,
     renumber_criteria,
 )
 from pathfinder.domain.strategy.step_words import added_searches, step_words
+from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
@@ -78,14 +91,26 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     (no LLM). Requires ``frame_problem`` first. Inspect ``ledger.build`` after
     to decide ``recover_failed_steps`` or ``verify_strategy``.
 
-    Available while the thread holds no strategy: it would replace one that
+    Available while the conversation holds no strategy: it would replace one that
     exists. Call ``edit_strategy`` to change a strategy, or ask the user how
     to start over."""
     deps = ctx.deps
     steps = deps.step_count
     if steps:
         raise ModelRetry(build_would_replace_the_strategy(steps))
-    spec = deps.state.domain.operational_spec
+    return await build_the_spec(deps)
+
+
+@dataclass(frozen=True)
+class MintedSpec:
+    """A spec that passed every check a build makes before it writes a step."""
+
+    spec: OperationalSpec
+    tree: SpecTree
+
+
+def minted_spec(spec: OperationalSpec | None) -> MintedSpec:
+    """The spec folded and minted into steps. Raises ``ModelRetry`` on a refusal."""
     if spec is None or not spec.ready_to_build:
         raise ModelRetry(build_not_ready_message(spec))
     # A criterion the structure leaves out states an option on the search a
@@ -93,13 +118,30 @@ async def build_strategy(ctx: RunContext[LeadDeps]) -> ExecuteDelta:
     folded = fold_option_criteria(spec)
     if folded.unplaced:
         raise ModelRetry(option_binds_no_step_message(folded.spec, folded.unplaced))
-    spec = folded.spec
+    trip = round_trip_refusal(folded.spec)
+    if trip is not None:
+        raise ModelRetry(round_trip_not_kept_message(trip))
     try:
         # A criterion waiting for its analysis has no search to mint, so the
         # EDA tools add its step once the rest is built.
-        built = build_step_tree(spec_without_pending_analyses(spec))
+        tree = build_step_tree(spec_without_pending_analyses(folded.spec))
     except ValueError as exc:
         raise ModelRetry(structure_does_not_convert_message(str(exc))) from exc
+    return MintedSpec(spec=folded.spec, tree=tree)
+
+
+async def build_the_spec(deps: LeadDeps) -> ExecuteDelta:
+    """Mint the thread's spec into steps and push them, with no model in between."""
+    return await build_the_minted(deps, minted_spec(deps.state.domain.operational_spec))
+
+
+async def build_the_minted(deps: LeadDeps, minted: MintedSpec) -> ExecuteDelta:
+    """Push a minted spec as the thread's strategy.
+
+    The thread holds no step when this runs, so the build writes the strategy
+    whole.
+    """
+    spec, built = minted.spec, minted.tree
     agent_deps = agent_deps_for(deps)
     context = replace(
         agent_deps.to_strategy_context(),
@@ -255,9 +297,18 @@ def _written_strategy(session: StrategySession) -> _WrittenStrategy:
     )
 
 
+def _records_organism(
+    graph: StrategyGraph, sync_state: SyncStateProtocol
+) -> OrganismChange | None:
+    """The organism change of the tree recovery left, which may differ from the build's."""
+    root_id = strategy_root_id(graph, sync_state)
+    return (
+        None if root_id is None else organism_change(rebuild_tree(root_id, graph.steps))
+    )
+
+
 async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOutcome:
-    """Re-derive the BuildOutcome after recovery edits by re-syncing the
-    strategy. The recovery agent no longer emits the outcome itself."""
+    """The BuildOutcome after recovery edits, read by re-syncing the strategy."""
     graph = agent_deps.strategy_session.get_graph(None)
     if graph is None:
         return prior
@@ -278,6 +329,7 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
         counts={str(k): v for k, v in sync_result.counts.items()},
         root_count=sync_result.root_count,
         zero_step_ids=list(sync_result.zero_step_ids),
+        organism_change=_records_organism(graph, sync_state),
     )
     fresh.node_results = node_results(list(graph.steps.values()), sync_state, fresh)
     return fresh

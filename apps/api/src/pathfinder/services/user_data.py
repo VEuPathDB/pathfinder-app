@@ -27,6 +27,7 @@ from pathfinder.persistence.models import (
     ExperimentRow,
     GeneSetRow,
 )
+from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
 from pathfinder.services.gene_sets.store import get_gene_set_store
 
@@ -140,6 +141,9 @@ async def purge_user_data(
             conv_del = conv_del.where(Conversation.id.notin_(kept_conversations))
         sr = cast("CursorResult[object]", await session.execute(conv_del))
         hard_deleted_count = sr.rowcount or 0
+        await ConversationRepository(session).delete_checkpoints(
+            [str(c) for c in conversation_ids if c not in kept_conversations]
+        )
     to_dismiss = kept_conversations if delete_wdk else conversation_ids
     if to_dismiss:
         await session.execute(

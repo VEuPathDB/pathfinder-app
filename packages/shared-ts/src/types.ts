@@ -26,6 +26,16 @@ import type {
   EvidenceCard,
   EvidenceVerdict,
   SiteRead,
+  RequirementCheck,
+  SampledGene,
+  Citation,
+  VerificationReview,
+  LeafContribution,
+  MeasuredCriterion,
+  OfferedLeaf,
+  SeparationOffer,
+  SeparationReport,
+  SkippedCriterion,
   GeneSet as GeneSetStreamPart,
   GeneSetResponse,
   GraphCleared,
@@ -34,7 +44,6 @@ import type {
   MemoryEditRequest,
   MemoryItem,
   MemoryListResponse,
-  MemoryRetrievedPayload,
   MemorySearchResponse,
   MemoryValue,
   ModelCatalogEntryResponse,
@@ -49,6 +58,8 @@ import type {
   ScoredComparison,
   ScoredVariant,
   ReasoningEffort,
+  RecalledMemoriesPayload,
+  RecalledMemory,
   RecordTypeResponse,
   ScratchpadUpdatedPayload,
   SearchResponse,
@@ -133,14 +144,15 @@ export type { AuthStatusResponse };
 export { combineOpEnum } from "./generated/types/index";
 export type { CombineOp };
 
-export const CombineOpBadgeLabels: Record<CombineOp, string> = {
-  INTERSECT: "AND (INTERSECT)",
-  MINUS: "NOT (MINUS LEFT)",
-  RMINUS: "NOT (MINUS RIGHT)",
-  LONLY: "LEFT ONLY",
-  RONLY: "RIGHT ONLY",
-  COLOCATE: "NEAR (COLOCATE)",
-  UNION: "OR (UNION)",
+/** The one name each combine operator carries on every surface. */
+export const COMBINE_OP_LABELS: Record<CombineOp, string> = {
+  INTERSECT: "Intersect",
+  UNION: "Union",
+  MINUS: "Minus",
+  RMINUS: "Right minus",
+  LONLY: "Left only",
+  RONLY: "Right only",
+  COLOCATE: "Colocate",
 };
 
 export type { StrategyAst, StrategyStepNode, SiteResponse };
@@ -148,15 +160,9 @@ export type { StrategyAst, StrategyStepNode, SiteResponse };
 interface SiteName {
   id: string;
   name: string;
-  displayName: string;
 }
 
-export function siteDisplayName(siteId: string): string {
-  const site = VEUPATHDB_SITES.find((s) => s.id === siteId);
-  return site?.displayName ?? site?.name ?? siteId;
-}
-
-/** The site's brand name, for a label with no room for the long form. */
+/** The site's short name, which every surface but the site menu shows. */
 export function siteShortName(siteId: string): string {
   const site = VEUPATHDB_SITES.find((s) => s.id === siteId);
   return site?.name ?? siteId;
@@ -167,72 +173,58 @@ const VEUPATHDB_SITES: SiteName[] = [
   {
     id: "veupathdb",
     name: "VEuPathDB",
-    displayName: "VEuPathDB Portal (All organisms)",
   },
   {
     id: "plasmodb",
     name: "PlasmoDB",
-    displayName: "PlasmoDB (Plasmodium)",
   },
   {
     id: "toxodb",
     name: "ToxoDB",
-    displayName: "ToxoDB (Toxoplasma)",
   },
   {
     id: "cryptodb",
     name: "CryptoDB",
-    displayName: "CryptoDB (Cryptosporidium)",
   },
   {
     id: "giardiadb",
     name: "GiardiaDB",
-    displayName: "GiardiaDB (Giardia)",
   },
   {
     id: "amoebadb",
     name: "AmoebaDB",
-    displayName: "AmoebaDB (Amoeba)",
   },
   {
     id: "microsporidiadb",
     name: "MicrosporidiaDB",
-    displayName: "MicrosporidiaDB (Microsporidia)",
   },
   {
     id: "piroplasmadb",
     name: "PiroplasmaDB",
-    displayName: "PiroplasmaDB (Piroplasma)",
   },
   {
     id: "tritrypdb",
     name: "TriTrypDB",
-    displayName: "TriTrypDB (Kinetoplastids)",
   },
   {
     id: "trichdb",
     name: "TrichDB",
-    displayName: "TrichDB (Trichomonas)",
   },
   {
     id: "fungidb",
     name: "FungiDB",
-    displayName: "FungiDB (Fungi)",
   },
   {
     id: "hostdb",
     name: "HostDB",
-    displayName: "HostDB (Hosts)",
   },
   {
     id: "vectorbase",
     name: "VectorBase",
-    displayName: "VectorBase (Vectors)",
   },
   {
     id: "orthomcl",
     name: "OrthoMCL",
-    displayName: "OrthoMCL (Orthologs)",
   },
 ];
 
@@ -247,6 +239,8 @@ export type {
   MemoryListResponse,
   MemorySearchResponse,
   MemoryEditRequest,
+  RecalledMemoriesPayload,
+  RecalledMemory,
 };
 
 export type { PrivacySettings, PrivacyUpdate };
@@ -276,6 +270,16 @@ export type {
   EvidenceCard,
   EvidenceVerdict,
   SiteRead,
+  RequirementCheck,
+  SampledGene,
+  Citation,
+  VerificationReview,
+  LeafContribution,
+  MeasuredCriterion,
+  OfferedLeaf,
+  SeparationOffer,
+  SeparationReport,
+  SkippedCriterion,
 };
 export type GeneSetPart = GeneSetStreamPart;
 export type TaskProgressChunk = TaskProgressStreamPart;
@@ -328,6 +332,7 @@ export type KnownDataPartKind =
   | "data-task-completed"
   | "data-control-test-results"
   | "data-evidence-card"
+  | "data-separation-result"
   | "data-strategy-link"
   | "data-strategy-meta"
   | "data-graph-snapshot"
@@ -366,13 +371,14 @@ export interface DataPartPayloadMap {
   "data-task-completed": TaskCompleted;
   "data-control-test-results": ControlTestResults;
   "data-evidence-card": EvidenceCard;
+  "data-separation-result": SeparationReport;
   "data-strategy-link": StrategyLink;
   "data-strategy-meta": StrategyMeta;
   "data-graph-snapshot": GraphSnapshot;
   "data-graph-cleared": GraphCleared;
   "data-variant-comparison": VariantComparison;
   "data-scored-comparison": ScoredComparison;
-  "data-memory-retrieved": MemoryRetrievedPayload;
+  "data-memory-retrieved": RecalledMemoriesPayload;
   "data-gene-set": GeneSetStreamPart;
   "data-strategy-revision": StrategyRevisionPayload;
   "data-user-question-answers": UserQuestionAnswersPayload;

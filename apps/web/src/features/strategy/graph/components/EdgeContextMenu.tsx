@@ -2,26 +2,13 @@
 
 import type { Edge } from "@xyflow/react";
 import { Trash2 } from "lucide-react";
-import { combineOpEnum, type CombineOp, type Step } from "@pathfinder/shared";
+import type { CombineOp, Step } from "@pathfinder/shared";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { VennIcon } from "@/features/strategy/graph/components/VennIcon";
 import { inferStepKind } from "@/features/strategy/graph";
+import { OFFERED_OPERATORS, operatorLabel } from "@/features/strategy/operators";
 import { cn } from "@/lib/utils/cn";
-
-const OPERATOR_GRID: readonly CombineOp[] = [
-  combineOpEnum.UNION,
-  combineOpEnum.INTERSECT,
-  combineOpEnum.MINUS,
-  combineOpEnum.RMINUS,
-];
-
-const OPERATOR_LABEL: Record<string, string> = {
-  [combineOpEnum.UNION]: "Union",
-  [combineOpEnum.INTERSECT]: "Intersect",
-  [combineOpEnum.MINUS]: "A only",
-  [combineOpEnum.RMINUS]: "B only",
-};
 
 interface EdgeContextMenuProps {
   edge: Edge;
@@ -103,7 +90,7 @@ export function EdgeContextMenu({
               className="grid grid-cols-2 gap-1 p-1"
               data-testid="edge-context-menu-operator-grid"
             >
-              {OPERATOR_GRID.map((op) => {
+              {OFFERED_OPERATORS.map((op) => {
                 const active = targetStep.operator === op;
                 return (
                   <button
@@ -114,7 +101,7 @@ export function EdgeContextMenu({
                       onChangeOperator(edge.target, op);
                     }}
                     aria-checked={active}
-                    aria-label={`Set operator to ${OPERATOR_LABEL[op] ?? op}`}
+                    aria-label={`Set operator to ${operatorLabel(op)}`}
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors",
                       active
@@ -125,7 +112,7 @@ export function EdgeContextMenu({
                     <span className="mr-1.5">
                       <VennIcon operator={op} />
                     </span>
-                    <span>{OPERATOR_LABEL[op] ?? op}</span>
+                    <span>{operatorLabel(op)}</span>
                   </button>
                 );
               })}

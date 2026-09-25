@@ -1,5 +1,5 @@
 /**
- * Recorded EDA wire payloads for the three browser journeys.
+ * Recorded EDA wire payloads for the browser journeys.
  *
  * Every object matches the generated schema the app validates the response
  * against, so a route answered from here reaches the same code a live answer
@@ -13,10 +13,13 @@ const EDA_LIVE = process.env["PATHFINDER_EDA_LIVE"] === "1";
 export const SITE_ID = "plasmodb";
 export const DATASET_ID = "DS_e973eadd57";
 const STUDY_ID = "STUDY_e973eadd57";
-export const SAMPLE_ENTITY = "ENT_8151325d";
+const SAMPLE_ENTITY = "ENT_8151325d";
 const COUNTS_ENTITY = "ENT_fd574cd6";
-export const TEMPERATURE_VAR = "VAR_081ab087";
+const TEMPERATURE_VAR = "VAR_081ab087";
 export const STUDY_TITLE = "Heat shock response in sensitive mutants (LRR5, DHC)";
+const ANALYSIS_ID = "a-e2e-1";
+/** The site's own page for the analysis, as `services/eda/urls.py` builds it. */
+export const ANALYSIS_URL = `https://plasmodb.org/plasmo/app/workspace/analyses/${DATASET_ID}/${ANALYSIS_ID}`;
 
 export const STUDY_ROW = {
   datasetId: DATASET_ID,
@@ -28,95 +31,11 @@ export const STUDY_ROW = {
   relevance: 1,
   canSubset: true,
   canExportRows: true,
+  sites: ["plasmodb"],
+  notHere: null,
 };
 
-/** The flat detail the tab reads: an entity names its parent, a variable names
- * its entity, and the server has already derived every filter type. */
-export const STUDY_DETAIL = {
-  datasetId: DATASET_ID,
-  studyId: STUDY_ID,
-  displayName: STUDY_TITLE,
-  entities: [
-    {
-      entityId: SAMPLE_ENTITY,
-      displayName: "Sample",
-      displayNamePlural: "Samples",
-      parentEntityId: null,
-      variableCount: 1,
-      hasGeneId: false,
-    },
-    {
-      entityId: COUNTS_ENTITY,
-      displayName: "pfal3D7 htseq counts",
-      displayNamePlural: "pfal3D7 htseq counts",
-      parentEntityId: SAMPLE_ENTITY,
-      variableCount: 2,
-      hasGeneId: true,
-    },
-  ],
-  variables: [
-    {
-      entityId: SAMPLE_ENTITY,
-      variableId: TEMPERATURE_VAR,
-      displayName: "temperature_condition",
-      variableType: "string",
-      filterType: "stringSet",
-      dataShape: "categorical",
-      isMultiValued: false,
-      vocabulary: ["febrile", "normal"],
-      vocabularyTotal: 2,
-      vocabularyNote: null,
-      rangeMin: null,
-      rangeMax: null,
-      dateMin: null,
-      dateMax: null,
-      subFilterVariableIds: [],
-      hideFrom: [],
-    },
-    {
-      entityId: COUNTS_ENTITY,
-      variableId: "VEUPATHDB_GENE_ID",
-      displayName: "Gene ID",
-      variableType: "string",
-      filterType: "stringSet",
-      dataShape: "categorical",
-      isMultiValued: false,
-      vocabulary: [],
-      vocabularyTotal: 5720,
-      vocabularyNote: "5720 values; the first 0 are listed",
-      rangeMin: null,
-      rangeMax: null,
-      dateMin: null,
-      dateMax: null,
-      subFilterVariableIds: [],
-      hideFrom: [],
-    },
-    {
-      entityId: COUNTS_ENTITY,
-      variableId: "SEQUENCE_READ_COUNT_SENSE",
-      displayName: "Read count, sense",
-      variableType: "integer",
-      filterType: "numberRange",
-      dataShape: "continuous",
-      isMultiValued: false,
-      vocabulary: [],
-      vocabularyTotal: 0,
-      vocabularyNote: null,
-      rangeMin: 0,
-      rangeMax: 68640,
-      dateMin: null,
-      dateMax: null,
-      subFilterVariableIds: [],
-      hideFrom: [],
-    },
-  ],
-  geneEntityId: COUNTS_ENTITY,
-  geneEntityProblem: null,
-  canSubset: true,
-  canExportRows: true,
-};
-
-export const COUNTS_UNFILTERED = [
+const COUNTS_UNFILTERED = [
   {
     entityId: SAMPLE_ENTITY,
     entityDisplayName: "Sample",
@@ -131,7 +50,7 @@ export const COUNTS_UNFILTERED = [
   },
 ];
 
-export const COUNTS_FEBRILE = [
+const COUNTS_FEBRILE = [
   {
     entityId: SAMPLE_ENTITY,
     entityDisplayName: "Sample",
@@ -155,7 +74,7 @@ export const FEBRILE_FILTER = {
 
 export const FEBRILE_SUMMARY = "temperature_condition is febrile";
 
-export const FEBRILE_DISTRIBUTION = {
+const FEBRILE_DISTRIBUTION = {
   variableId: TEMPERATURE_VAR,
   variableDisplayName: "temperature_condition",
   labels: ["febrile"],
@@ -171,7 +90,7 @@ export function analysisState(overrides: Record<string, unknown> = {}) {
     siteId: SITE_ID,
     datasetId: DATASET_ID,
     studyId: STUDY_ID,
-    analysisId: "a-e2e-1",
+    analysisId: ANALYSIS_ID,
     revision: 0,
     studyDisplayName: STUDY_TITLE,
     displayName: "Unsaved analysis",
@@ -181,6 +100,7 @@ export function analysisState(overrides: Record<string, unknown> = {}) {
     filterSummaries: [],
     entityCounts: COUNTS_UNFILTERED,
     canExportRows: true,
+    analysisUrl: ANALYSIS_URL,
     ...overrides,
   };
 }
@@ -193,12 +113,36 @@ export const FILTERED_ANALYSIS = analysisState({
   entityCounts: COUNTS_FEBRILE,
 });
 
+/** The comparison the agent's compute records, named as the study names it. */
+const COMPUTE = {
+  method: "DESeq",
+  identifierVariable: "Gene",
+  valueVariable: "Sense Count",
+  comparatorVariable: "temperature_condition",
+  groupA: ["normal"],
+  groupB: ["febrile"],
+};
+
+export const COMPARISON_SENTENCE =
+  "DESeq compares normal (group A) with febrile (group B) on temperature_condition, reading Sense Count per Gene.";
+
+/** The filtered analysis after the agent ran its comparison. */
+export const COMPARED_ANALYSIS = analysisState({
+  revision: 2,
+  numFilters: 1,
+  numComputations: 1,
+  filters: [FEBRILE_FILTER],
+  filterSummaries: [FEBRILE_SUMMARY],
+  entityCounts: COUNTS_FEBRILE,
+  compute: COMPUTE,
+});
+
 /** One point per gene, including the live row that carries no p-value. At the
  * default thresholds (effect 1, significance 0.05, both directions) exactly one
  * gene is selected and one point is dropped. */
 export const VOLCANO_VIZ = {
   datasetId: DATASET_ID,
-  analysisId: "a-e2e-1",
+  analysisId: ANALYSIS_ID,
   chart: "volcano",
   effectSizeLabel: "log2(Fold Change)",
   effectSizeThreshold: 1,
@@ -231,19 +175,25 @@ export const VOLCANO_VIZ = {
   ],
 };
 
+/** The volcano route's own answer: the part without its dataset and analysis ids. */
+export const VOLCANO_RESPONSE = {
+  chart: VOLCANO_VIZ.chart,
+  effectSizeLabel: VOLCANO_VIZ.effectSizeLabel,
+  effectSizeThreshold: VOLCANO_VIZ.effectSizeThreshold,
+  significanceThreshold: VOLCANO_VIZ.significanceThreshold,
+  effectDirection: VOLCANO_VIZ.effectDirection,
+  totalPoints: VOLCANO_VIZ.totalPoints,
+  retainedPoints: VOLCANO_VIZ.retainedPoints,
+  points: VOLCANO_VIZ.points,
+  comparison: { groupA: COMPUTE.groupA, groupB: COMPUTE.groupB },
+};
+
 export const SUBSET_PREVIEW = {
   datasetId: DATASET_ID,
-  analysisId: "a-e2e-1",
+  analysisId: ANALYSIS_ID,
   entityCounts: COUNTS_FEBRILE,
   distribution: FEBRILE_DISTRIBUTION,
   distributionNote: null,
-};
-
-export const COMPUTE_JOB = {
-  jobId: "db04204e5386396e1ca2cb78469ab6fb",
-  taskId: null,
-  appName: "differentialexpression",
-  status: "complete",
 };
 
 export const EXPORTED_STEP = {
@@ -272,40 +222,17 @@ export function edaJson(body: unknown) {
 }
 
 /**
- * Answer the tab's study and subset reads from the recorded payloads.
+ * Answer the tab's study search and figure reads from the recorded payloads.
  *
- * A count request names one entity, so the answer is that entity's row, taken
- * from the filtered table when the request carries a filter. The detail pattern
- * registers last so it wins over the search pattern: Playwright tries routes in
- * reverse registration order, and `?` is a literal in a URL glob, so
- * `studies?*` never matches `studies/DS_...`.
+ * Playwright tries routes in reverse registration order, and `?` is a literal
+ * in a URL glob, so each pattern names the query string it expects.
  */
 export async function routeEdaReads(page: Page): Promise<void> {
   if (EDA_LIVE) return;
-  await page.route("**/api/v1/eda/count?*", (route) => {
-    const body = route.request().postDataJSON() as {
-      entityId: string;
-      filters?: unknown[];
-    };
-    const table =
-      (body.filters ?? []).length === 0 ? COUNTS_UNFILTERED : COUNTS_FEBRILE;
-    const row = table.find((entry) => entry.entityId === body.entityId);
-    if (row === undefined) throw new Error(`no count fixture for ${body.entityId}`);
-    return route.fulfill(
-      edaJson({
-        entityId: row.entityId,
-        count: row.count,
-        unfilteredCount: row.unfilteredCount,
-      }),
-    );
-  });
-  await page.route("**/api/v1/eda/distribution?*", (route) =>
-    route.fulfill(edaJson(FEBRILE_DISTRIBUTION)),
-  );
   await page.route("**/api/v1/eda/studies?*", (route) =>
     route.fulfill(edaJson({ studies: [STUDY_ROW] })),
   );
-  await page.route(`**/api/v1/eda/studies/${DATASET_ID}*`, (route) =>
-    route.fulfill(edaJson(STUDY_DETAIL)),
+  await page.route("**/api/v1/eda/viz?*", (route) =>
+    route.fulfill(edaJson(VOLCANO_RESPONSE)),
   );
 }

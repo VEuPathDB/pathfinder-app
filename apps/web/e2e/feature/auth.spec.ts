@@ -2,6 +2,8 @@ import type { Page } from "@playwright/test";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
 import { entrySiteId } from "../fixtures/entry-site";
+import { listConversations } from "../fixtures/api-client";
+import { currentSiteId } from "../pages/navigation";
 
 const SIGNED_OUT_STATUS = { signedIn: false, name: null, email: null };
 
@@ -85,7 +87,7 @@ test.describe("Auth", () => {
   }) => {
     await chatPage.goto();
 
-    // UI: Signed in — no login modal, composer visible
+    // UI: Signed in - no login modal, composer visible
     await expectSignedIn(page);
 
     // UI: Site picker shows the site the entry flow chose
@@ -114,7 +116,7 @@ test.describe("Auth", () => {
     expect(models.defaultProvider).toBeTruthy();
   });
 
-  test("page reload preserves session — UI and API intact", async ({
+  test("page reload preserves session - UI and API intact", async ({
     chatPage,
     sidebarPage,
     page,
@@ -132,15 +134,14 @@ test.describe("Auth", () => {
     await sidebarPage.expectAtLeastOneConversation();
 
     // API: get strategy count before reload
-    const beforeResp = await apiClient.get("/api/v1/conversations");
-    expect(beforeResp.ok()).toBeTruthy();
-    const beforeCount = (await beforeResp.json()).length;
+    const siteId = currentSiteId(page);
+    const beforeCount = (await listConversations(apiClient, siteId)).length;
 
     // Reload
     await page.reload();
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 15_000 });
 
-    // UI: Still signed in — composer visible, message still there
+    // UI: Still signed in - composer visible, message still there
     await expectSignedIn(page);
     await expect(
       page.locator(".is-user").filter({ hasText: "show me kinase genes" }),
@@ -149,9 +150,7 @@ test.describe("Auth", () => {
     // UI: Sidebar still shows conversations
     await sidebarPage.expectAtLeastOneConversation();
 
-    // API: Same strategy count — no data loss
-    const afterResp = await apiClient.get("/api/v1/conversations");
-    expect(afterResp.ok()).toBeTruthy();
-    expect((await afterResp.json()).length).toBe(beforeCount);
+    // API: Same strategy count - no data loss
+    expect(await listConversations(apiClient, siteId)).toHaveLength(beforeCount);
   });
 });

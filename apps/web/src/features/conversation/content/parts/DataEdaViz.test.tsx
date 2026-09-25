@@ -3,6 +3,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   fireEvent,
   render as renderBare,
   screen,
@@ -153,7 +154,7 @@ describe("DataEdaViz volcano", () => {
     render(<DataEdaViz data={EDA_VOLCANO_VIZ_FIXTURE} />);
     const line = screen.getByTestId("eda-viz-volcano-selection");
     expect(line).toHaveTextContent("1 gene selected");
-    expect(line).toHaveTextContent("1 of 3 retained by the compute");
+    expect(line).toHaveTextContent("1 of 3 retained by the comparison");
   });
 
   it("lists the selected gene beside the plot", () => {
@@ -240,13 +241,16 @@ describe("DataEdaViz volcano", () => {
     );
   });
 
-  it("uses the thresholds the tab set, so both surfaces agree", () => {
-    useEdaStore.getState().setVolcanoThresholds({
-      effectSizeThreshold: 4,
-      significanceThreshold: 0.05,
-      direction: "upAndDown",
-    });
+  it("draws the cut of the latest read, so the tab and the conversation agree", async () => {
     render(<DataEdaViz data={EDA_VOLCANO_VIZ_FIXTURE} />);
+    await waitFor(() => {
+      expect(useEdaStore.getState().viz["volcano"]).toBeDefined();
+    });
+    act(() => {
+      useEdaStore
+        .getState()
+        .applyViz({ ...EDA_VOLCANO_VIZ_FIXTURE, effectSizeThreshold: 4 });
+    });
     expect(screen.getByTestId("eda-viz-volcano-selection")).toHaveTextContent(
       "0 genes selected",
     );
@@ -331,7 +335,7 @@ describe("DataEdaViz other charts", () => {
   it("says a bar plot cannot be drawn from a point cloud", () => {
     render(<DataEdaViz data={{ ...EDA_VOLCANO_VIZ_FIXTURE, chart: "bar" }} />);
     expect(screen.getByTestId("data-eda-viz-unsupported-chart")).toHaveTextContent(
-      "bar plots are not available from this compute",
+      "bar plots are not available from this comparison",
     );
   });
 
@@ -340,19 +344,19 @@ describe("DataEdaViz other charts", () => {
       <DataEdaViz data={{ ...EDA_VOLCANO_VIZ_FIXTURE, chart: "histogram" }} />,
     );
     expect(screen.getByTestId("data-eda-viz-unsupported-chart")).toHaveTextContent(
-      "histogram plots are not available from this compute",
+      "histogram plots are not available from this comparison",
     );
     unmount();
     render(<DataEdaViz data={{ ...EDA_VOLCANO_VIZ_FIXTURE, chart: "boxplot" }} />);
     expect(screen.getByTestId("data-eda-viz-unsupported-chart")).toHaveTextContent(
-      "boxplot plots are not available from this compute",
+      "boxplot plots are not available from this comparison",
     );
   });
 
   it("says so when the payload carries no points at all", () => {
     render(<DataEdaViz data={{ ...EDA_VOLCANO_VIZ_FIXTURE, points: [] }} />);
     expect(screen.getByTestId("data-eda-viz-empty")).toHaveTextContent(
-      "This compute returned no points",
+      "This comparison returned no points",
     );
     expect(screen.queryByTestId("eda-viz-volcano")).toBe(null);
   });

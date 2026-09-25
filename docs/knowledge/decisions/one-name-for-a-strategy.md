@@ -57,7 +57,10 @@ before the rule takes a name patch on the next edit. A name of the form
 "<OPERATOR> combine", which the canvas once gave the combines it created, is a
 generated name and is replaced the same way. The labels are the canvas
 labels; `packages/spec/operations_parity.json` `combine_labels` holds them and
-both suites assert them. The site read keeps no name that equals the step's
+both suites assert them. A label an earlier release gave ("Minus (reversed)",
+"Colocated") is not a researcher's name either: `retired_combine_labels` holds
+them, and a stored combine that carries one is named by its operator again. The
+web reads the labels from one map, `COMBINE_OP_LABELS` in `@pathfinder/shared`. The site read keeps no name that equals the step's
 search name.
 
 # What was rejected

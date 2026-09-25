@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Search, Step } from "@pathfinder/shared";
-import { searchesOptions } from "@/lib/api/sites";
+import { recordTypesOptions, searchesOptions } from "@/lib/api/sites";
 import {
   Sheet,
   SheetContent,
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Combobox, type ComboboxOption } from "@/components/ui/combobox";
 import { useAddStepMutation } from "@/features/strategy/mutations";
+import { searchGroupName } from "@/features/strategy/services/searchGroups";
 
 interface AddStepSheetProps {
   open: boolean;
@@ -44,9 +45,16 @@ export function AddStepSheet({
     enabled: open && siteId !== "",
   });
 
+  const { enabled: _recordTypesEnabled, ...recordTypeOpts } =
+    recordTypesOptions(siteId);
+  const { data: recordTypes = [] } = useQuery({
+    ...recordTypeOpts,
+    enabled: open && siteId !== "",
+  });
+
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
-  const recordTypeByName = new Map(allSearches.map((s) => [s.name, s.recordType]));
+  const groupName = searchGroupName(allSearches, recordTypes);
   const options: ComboboxOption[] = allSearches.map((s) => ({
     value: s.name,
     label: s.displayName !== "" ? s.displayName : s.name,
@@ -95,7 +103,7 @@ export function AddStepSheet({
               placeholder="Pick a search"
               searchPlaceholder="Search..."
               emptyMessage="No matching searches."
-              groupBy={(option) => recordTypeByName.get(option.value) ?? "other"}
+              groupBy={(option) => groupName(option.value)}
             />
           )}
           {selected?.description != null && selected.description !== "" && (

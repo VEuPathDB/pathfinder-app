@@ -29,11 +29,27 @@ const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
 import { useEdaStore } from "@/state/eda";
-import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
+import {
+  appQueryClientWrapper,
+  appTestQueryClient,
+} from "@/app/components/__fixtures__/appQueryClient";
 import { EdaWorkbench } from "./EdaWorkbench";
 
 const BASE = "http://localhost:3000";
 const server = setupServer();
+
+/** The site's own analysis page, as `services/eda/urls.py` builds it. */
+const ANALYSIS_URL =
+  "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1";
+
+const COMPUTE = {
+  method: "DESeq",
+  identifierVariable: "Gene",
+  valueVariable: "Antisense Count",
+  comparatorVariable: "temperature_condition",
+  groupA: ["normal"],
+  groupB: ["febrile"],
+};
 
 const ANALYSIS = {
   siteId: "plasmodb",
@@ -56,47 +72,85 @@ const ANALYSIS = {
     },
   ],
   canExportRows: true,
+  analysisUrl: ANALYSIS_URL,
+  compute: null,
 };
 
-const STUDY_DETAIL = {
-  datasetId: "DS_e973eadd57",
-  studyId: "STUDY_e973eadd57",
-  displayName: ANALYSIS.studyDisplayName,
-  entities: [
+const FEBRILE = {
+  entityId: "ENT_8151325d",
+  variableId: "VAR_081ab087",
+  type: "stringSet",
+  stringSet: ["febrile"],
+};
+
+const FILTERED = {
+  ...ANALYSIS,
+  numFilters: 1,
+  filters: [FEBRILE],
+  filterSummaries: ["temperature_condition is febrile"],
+  entityCounts: [
     {
       entityId: "ENT_8151325d",
-      displayName: "Sample",
-      displayNamePlural: "Samples",
-      parentEntityId: null,
-      variableCount: 0,
-      hasGeneId: false,
+      entityDisplayName: "Sample",
+      count: 6,
+      unfilteredCount: 12,
     },
   ],
-  variables: [],
-  geneEntityId: "ENT_8151325d",
-  geneEntityProblem: null,
-  canSubset: true,
-  canExportRows: true,
 };
 
-beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
+const COMPARED = { ...FILTERED, numComputations: 1, compute: COMPUTE };
+
+const VOLCANO = {
+  chart: "volcano",
+  effectSizeLabel: "log2(Fold Change)",
+  effectSizeThreshold: 1,
+  significanceThreshold: 0.05,
+  effectDirection: "upAndDown",
+  totalPoints: 2,
+  retainedPoints: 1,
+  points: [
+    {
+      pointId: "PF3D7_0100100",
+      effectSize: -0.21,
+      pValue: 0.35,
+      adjustedPValue: 0.46,
+      retained: false,
+    },
+    {
+      pointId: "PF3D7_0100200",
+      effectSize: 3.94,
+      pValue: 1.9e-5,
+      adjustedPValue: 1.3e-4,
+      retained: true,
+    },
+  ],
+  comparison: { groupA: ["normal"], groupB: ["febrile"] },
+};
+
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 beforeEach(() => {
   toastError.mockClear();
   useEdaStore.getState().reset();
-  server.use(
-    http.get(`${BASE}/api/v1/eda/studies/DS_e973eadd57`, () =>
-      HttpResponse.json(STUDY_DETAIL),
-    ),
-  );
 });
 
-function bound() {
+function reads(analysis: object | null) {
   server.use(
     http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-      HttpResponse.json({ analysis: ANALYSIS, descriptor: null }),
+      HttpResponse.json({ analysis }),
     ),
+  );
+}
+
+function volcano() {
+  server.use(http.post(`${BASE}/api/v1/eda/viz`, () => HttpResponse.json(VOLCANO)));
+}
+
+function unbound() {
+  reads(null);
+  server.use(
+    http.get(`${BASE}/api/v1/eda/datasets`, () => HttpResponse.json({ datasets: [] })),
   );
 }
 
@@ -117,36 +171,197 @@ function rejected() {
         { status: 422, headers: { "content-type": "application/problem+json" } },
       ),
     ),
+    http.get(`${BASE}/api/v1/eda/datasets`, () => HttpResponse.json({ datasets: [] })),
   );
 }
 
 describe("EdaWorkbench", () => {
-  it("shows the study picker and no subset cell when nothing is bound", async () => {
-    server.use(
-      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({ analysis: null, descriptor: null }),
-      ),
-    );
+  it("shows the study picker and no analysis when nothing is bound", async () => {
+    unbound();
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     expect(await screen.findByTestId("eda-study-picker")).toBeInTheDocument();
-    expect(screen.queryByTestId("eda-subset-cell")).toBe(null);
+    expect(screen.queryByTestId("eda-subset-summary")).toBe(null);
     expect(screen.getByTestId("eda-workbench-header")).toHaveTextContent(
       "No study selected",
     );
   });
 
-  it("hydrates from the binding endpoint and mounts the subset cell", async () => {
-    bound();
+  it("hydrates from the binding endpoint and shows the subset it holds", async () => {
+    reads(FILTERED);
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    expect(await screen.findByTestId("eda-subset-cell")).toBeInTheDocument();
+    const subset = await screen.findByTestId("eda-subset-summary");
     await waitFor(() => {
       expect(useEdaStore.getState().binding?.analysisId).toBe("a-1");
     });
+    expect(within(subset).getByTestId("eda-filter-chip-0")).toHaveTextContent(
+      "temperature_condition is febrile",
+    );
+    expect(
+      within(subset).getByTestId("eda-entity-count-ENT_8151325d"),
+    ).toHaveTextContent("6 of 12 Sample");
     expect(screen.queryByTestId("eda-study-picker")).toBe(null);
   });
 
+  it("says the subset is the whole study when the analysis holds no filter", async () => {
+    reads(ANALYSIS);
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    expect(await screen.findByTestId("eda-subset-no-filters")).toHaveTextContent(
+      "No filters: the subset is the whole study.",
+    );
+  });
+
+  it("counts a filter the analysis holds but no sentence names", async () => {
+    reads({ ...FILTERED, numFilters: 3 });
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    expect(await screen.findByTestId("eda-subset-filter-overflow")).toHaveTextContent(
+      "2 more filters",
+    );
+  });
+
+  it("states the comparison as a sentence, with every variable by its name", async () => {
+    reads(COMPARED);
+    volcano();
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    expect(await screen.findByTestId("eda-comparison-sentence")).toHaveTextContent(
+      "DESeq compares normal (group A) with febrile (group B) on temperature_condition, reading Antisense Count per Gene.",
+    );
+  });
+
+  it("says no comparison has run, and where to ask for one", async () => {
+    reads(FILTERED);
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    expect(await screen.findByTestId("eda-comparison-none")).toHaveTextContent(
+      "No comparison has run on this analysis. Ask for one in the conversation.",
+    );
+    expect(screen.queryByTestId("eda-viz-cell")).toBe(null);
+  });
+
+  it("draws the figure of the comparison the analysis holds", async () => {
+    reads(COMPARED);
+    volcano();
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    expect(await screen.findByTestId("eda-viz-volcano")).toHaveAttribute("role", "img");
+    expect(screen.getByTestId("eda-volcano-selection")).toHaveTextContent(
+      "1 gene selected, 1 of 2 retained by the comparison",
+    );
+  });
+
+  it("renders no form control, only the study's own link and the two actions", async () => {
+    reads(COMPARED);
+    volcano();
+    const { container } = render(
+      <EdaWorkbench siteId="plasmodb" conversationId="conv-1" />,
+    );
+    await screen.findByTestId("eda-viz-volcano");
+    expect(container.querySelectorAll("input, select, textarea")).toHaveLength(0);
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.queryAllByRole("combobox")).toHaveLength(0);
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Change study",
+      "Export as step",
+    ]);
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Back to conversation",
+      "Open in PlasmoDB",
+    ]);
+  });
+
+  it("opens the recorded analysis on the site's own page, in a new tab", async () => {
+    reads(ANALYSIS);
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    const link = await screen.findByRole("link", { name: "Open in PlasmoDB" });
+    expect(link).toHaveAttribute(
+      "href",
+      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noreferrer");
+    expect(
+      within(screen.getByTestId("eda-workbench-header")).getByRole("link", {
+        name: "Open in PlasmoDB",
+      }),
+    ).toBe(link);
+  });
+
+  it("says beside the site link that the analysis is edited on the site", async () => {
+    reads(ANALYSIS);
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
+    await screen.findByRole("link", { name: "Open in PlasmoDB" });
+    expect(
+      within(screen.getByTestId("eda-workbench-header")).getByText(
+        "Edit on PlasmoDB; this tab shows what the site holds.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("reads the analysis from the site again each time the tab opens", async () => {
+    const client = appTestQueryClient();
+    reads(FILTERED);
+    const first = render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(client),
+    });
+    expect(await screen.findByTestId("eda-filter-chip-0")).toHaveTextContent(
+      "temperature_condition is febrile",
+    );
+    first.unmount();
+
+    reads({
+      ...FILTERED,
+      filterSummaries: ["temperature_condition is normal"],
+      entityCounts: [
+        {
+          entityId: "ENT_8151325d",
+          entityDisplayName: "Sample",
+          count: 3,
+          unfilteredCount: 12,
+        },
+      ],
+    });
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(client),
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("eda-filter-chip-0")).toHaveTextContent(
+        "temperature_condition is normal",
+      );
+    });
+    expect(screen.getByTestId("eda-entity-count-ENT_8151325d")).toHaveTextContent(
+      "3 of 12 Sample",
+    );
+  });
+
+  it("reads the figure from the site again each time the tab opens", async () => {
+    const client = appTestQueryClient();
+    let served = 0;
+    reads(COMPARED);
+    server.use(
+      http.post(`${BASE}/api/v1/eda/viz`, () => {
+        served += 1;
+        return HttpResponse.json(
+          served === 1 ? VOLCANO : { ...VOLCANO, totalPoints: 77, retainedPoints: 9 },
+        );
+      }),
+    );
+    const first = render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(client),
+    });
+    expect(await screen.findByTestId("eda-volcano-selection")).toHaveTextContent(
+      "1 of 2 retained by the comparison",
+    );
+    first.unmount();
+
+    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />, {
+      wrapper: appQueryClientWrapper(client),
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("eda-volcano-selection")).toHaveTextContent(
+        "9 of 77 retained by the comparison",
+      );
+    });
+  });
+
   it("puts the study title in the header title and the analysis name in the subtitle", async () => {
-    bound();
+    reads(ANALYSIS);
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     const title = await screen.findByTestId("eda-workbench-title");
     await waitFor(() => {
@@ -160,14 +375,7 @@ describe("EdaWorkbench", () => {
   });
 
   it("prints no subtitle when the analysis carries the study's own name", async () => {
-    server.use(
-      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({
-          analysis: { ...ANALYSIS, displayName: ANALYSIS.studyDisplayName },
-          descriptor: null,
-        }),
-      ),
-    );
+    reads({ ...ANALYSIS, displayName: ANALYSIS.studyDisplayName });
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     const title = await screen.findByTestId("eda-workbench-title");
     await waitFor(() => {
@@ -180,12 +388,15 @@ describe("EdaWorkbench", () => {
 
   it("unbinds upstream before it clears the store", async () => {
     let patchBody: unknown = null;
-    bound();
+    reads(ANALYSIS);
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, async ({ request }) => {
         patchBody = await request.clone().json();
-        return HttpResponse.json({ analysis: null, job: null, step: null });
+        return HttpResponse.json({ analysis: null, step: null });
       }),
+      http.get(`${BASE}/api/v1/eda/datasets`, () =>
+        HttpResponse.json({ datasets: [] }),
+      ),
     );
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     await userEvent.click(await screen.findByRole("button", { name: "Change study" }));
@@ -197,7 +408,7 @@ describe("EdaWorkbench", () => {
   });
 
   it("keeps the binding when unbinding fails, so the tab matches the server", async () => {
-    bound();
+    reads(ANALYSIS);
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
         HttpResponse.json({ detail: "unbind failed" }, { status: 500 }),
@@ -208,7 +419,7 @@ describe("EdaWorkbench", () => {
     await waitFor(() => {
       expect(toastError).toHaveBeenCalledWith("unbind failed");
     });
-    expect(screen.getByTestId("eda-subset-cell")).toBeInTheDocument();
+    expect(screen.getByTestId("eda-subset-summary")).toBeInTheDocument();
     expect(useEdaStore.getState().binding?.analysisId).toBe("a-1");
   });
 
@@ -229,146 +440,43 @@ describe("EdaWorkbench", () => {
     expect(toastError).not.toHaveBeenCalled();
   });
 
-  it("mounts the subset, compute and viz cells for a bound analysis", async () => {
-    bound();
+  it("puts the export button in the header, disabled before any compute or filter", async () => {
+    reads(ANALYSIS);
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    expect(await screen.findByTestId("eda-subset-cell")).toBeInTheDocument();
-    expect(screen.getByTestId("eda-compute-cell")).toBeInTheDocument();
-    expect(screen.getByTestId("eda-viz-cell")).toBeInTheDocument();
-    expect(screen.getByTestId("eda-viz-unavailable")).toHaveTextContent(
-      "Run a compute to see its plots.",
-    );
-  });
-
-  it("puts the export button in the header, disabled before any compute", async () => {
-    bound();
-    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    await screen.findByTestId("eda-subset-cell");
+    await screen.findByTestId("eda-subset-summary");
     const header = screen.getByTestId("eda-workbench-header");
-    const exportButton = within(header).getByRole("button", {
-      name: "Export as step",
-    });
-    expect(exportButton).toBeDisabled();
+    expect(
+      within(header).getByRole("button", { name: "Export as step" }),
+    ).toBeDisabled();
     expect(within(header).getByRole("button", { name: "Change study" })).toBeEnabled();
   });
 
   it("offers no export button while nothing is bound", async () => {
-    server.use(
-      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({ analysis: null, descriptor: null }),
-      ),
-    );
+    unbound();
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     await screen.findByTestId("eda-study-picker");
     expect(screen.queryByRole("button", { name: "Export as step" })).toBe(null);
   });
 
-  it("drops the previous analysis's live counts when the thread switches analysis", async () => {
-    const SAMPLE = "ENT_8151325d";
-    const TEMPERATURE = "VAR_081ab087";
-    bound();
-    server.use(
-      http.get(`${BASE}/api/v1/eda/studies/DS_e973eadd57`, () =>
-        HttpResponse.json({
-          ...STUDY_DETAIL,
-          entities: [{ ...STUDY_DETAIL.entities[0], variableCount: 1 }],
-          variables: [
-            {
-              entityId: SAMPLE,
-              variableId: TEMPERATURE,
-              displayName: "temperature_condition",
-              variableType: "string",
-              filterType: "stringSet",
-              dataShape: "categorical",
-              isMultiValued: false,
-              vocabulary: ["febrile", "normal"],
-              vocabularyTotal: 2,
-              vocabularyNote: null,
-              rangeMin: null,
-              rangeMax: null,
-              dateMin: null,
-              dateMax: null,
-              subFilterVariableIds: [],
-              hideFrom: [],
-            },
-          ],
-        }),
-      ),
-      http.post(`${BASE}/api/v1/eda/count`, () =>
-        HttpResponse.json({ entityId: SAMPLE, count: 6, unfilteredCount: 12 }),
-      ),
-      http.post(`${BASE}/api/v1/eda/distribution`, () =>
-        HttpResponse.json({
-          variableId: TEMPERATURE,
-          variableDisplayName: "temperature_condition",
-          labels: ["febrile"],
-          values: [6],
-          subsetSize: 6,
-          numVarValues: 6,
-          numMissingCases: 0,
-          isMultiValued: false,
-        }),
-      ),
-      http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({
-          analysis: {
-            ...ANALYSIS,
-            revision: 1,
-            numFilters: 1,
-            filters: [
-              {
-                entityId: SAMPLE,
-                variableId: TEMPERATURE,
-                type: "stringSet",
-                stringSet: ["febrile"],
-              },
-            ],
-            filterSummaries: ["temperature_condition is febrile"],
-            entityCounts: [
-              {
-                entityId: SAMPLE,
-                entityDisplayName: "Sample",
-                count: 6,
-                unfilteredCount: 12,
-              },
-            ],
-          },
-          job: null,
-          step: null,
-        }),
-      ),
-    );
-
+  it("drops the previous analysis's subset when the conversation switches analysis", async () => {
+    reads(FILTERED);
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    await userEvent.click(await screen.findByTestId(`eda-variable-${TEMPERATURE}`));
-    await userEvent.click(await screen.findByRole("checkbox", { name: "febrile" }));
-    await userEvent.click(screen.getByRole("button", { name: "Apply filter" }));
-    await waitFor(() => {
-      expect(screen.getByTestId(`eda-entity-${SAMPLE}`)).toHaveTextContent("6 of 12");
-    });
+    expect(await screen.findByTestId("eda-filter-chip-0")).toBeInTheDocument();
 
     act(() => {
       useEdaStore.getState().applyAnalysisState({
         ...ANALYSIS,
         analysisId: "a-2",
-        revision: 0,
         displayName: "Whole study",
-        entityCounts: [
-          {
-            entityId: SAMPLE,
-            entityDisplayName: "Sample",
-            count: 12,
-            unfilteredCount: 12,
-          },
-        ],
       });
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId(`eda-entity-${SAMPLE}`)).toHaveTextContent("12 of 12");
+      expect(screen.getByTestId("eda-entity-count-ENT_8151325d")).toHaveTextContent(
+        "12 of 12 Sample",
+      );
     });
-    expect(screen.getByTestId(`eda-entity-${SAMPLE}`)).not.toHaveTextContent("6 of 12");
-    expect(screen.queryByTestId(`eda-filter-chip-${SAMPLE}-${TEMPERATURE}`)).toBe(null);
+    expect(screen.queryByTestId("eda-filter-chip-0")).toBe(null);
     expect(screen.getByTestId("eda-workbench-subtitle").textContent).toBe(
       "Whole study",
     );
@@ -380,12 +488,11 @@ describe("EdaWorkbench", () => {
     server.use(
       http.patch(`${BASE}/api/v1/conversations/conv-1/eda`, async ({ request }) => {
         patchBody = await request.clone().json();
-        return HttpResponse.json({ analysis: null, job: null, step: null });
+        return HttpResponse.json({ analysis: null, step: null });
       }),
     );
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     const failure = await screen.findByTestId("eda-binding-error");
-    expect(failure).toHaveTextContent("P. vivax");
     expect(failure.textContent).toContain(REJECTED_DETAIL);
 
     await userEvent.click(
@@ -420,64 +527,27 @@ describe("EdaWorkbench", () => {
   });
 
   it("links back to the conversation the study belongs to", async () => {
-    bound();
+    reads(ANALYSIS);
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    const back = await screen.findByRole("link", { name: "Back to chat" });
+    const back = await screen.findByRole("link", { name: "Back to conversation" });
     expect(back).toHaveAttribute("href", "/plasmodb/conversation/conv-1");
   });
 
   it("links back to the conversation while no study is open", async () => {
-    server.use(
-      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({ analysis: null, descriptor: null }),
-      ),
-    );
+    unbound();
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     await screen.findByTestId("eda-study-picker");
-    expect(screen.getByRole("link", { name: "Back to chat" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Back to conversation" })).toHaveAttribute(
       "href",
       "/plasmodb/conversation/conv-1",
     );
   });
 
-  it("opens the analysis in the site's own explorer, in a new tab", async () => {
-    server.use(
-      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({
-          analysis: {
-            ...ANALYSIS,
-            analysisUrl:
-              "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
-          },
-          descriptor: null,
-        }),
-      ),
-    );
-    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    const link = await screen.findByRole("link", { name: "Open in PlasmoDB" });
-    expect(link).toHaveAttribute(
-      "href",
-      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
-    );
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noreferrer");
-  });
-
-  it("offers no site link for an analysis that names no page", async () => {
-    bound();
-    render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
-    await screen.findByTestId("eda-workbench-title");
-    expect(screen.queryByRole("link", { name: "Open in PlasmoDB" })).toBe(null);
-  });
-
-  it("offers no Change study button while nothing is bound", async () => {
-    server.use(
-      http.get(`${BASE}/api/v1/conversations/conv-1/eda`, () =>
-        HttpResponse.json({ analysis: null, descriptor: null }),
-      ),
-    );
+  it("offers no Change study button and no site link while nothing is bound", async () => {
+    unbound();
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     await screen.findByTestId("eda-study-picker");
     expect(screen.queryByRole("button", { name: "Change study" })).toBe(null);
+    expect(screen.queryByRole("link", { name: "Open in PlasmoDB" })).toBe(null);
   });
 });

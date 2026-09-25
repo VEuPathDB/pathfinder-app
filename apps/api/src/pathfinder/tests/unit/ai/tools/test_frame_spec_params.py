@@ -13,7 +13,7 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.strategy_instructions import pinned_frame_sheets
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.tests.unit.ai.tools.test_frame_proposals import (
     PHYLETIC_ORGANISM,
     propose,

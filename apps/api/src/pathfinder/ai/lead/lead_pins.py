@@ -148,7 +148,7 @@ def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
 _OFF_TOPIC_REDIRECT = (
     "## This turn is out of scope\n"
     "Answer in two sentences and call no tool. Say that PathFinder builds, "
-    "edits and checks search strategies on the VEuPathDB databases and runs "
+    "edits and checks search strategies on the VEuPathDB sites and runs "
     "EDA and exports on what they return, then invite the user to "
     "put their question in those terms. Write nothing else: no code, no draft, "
     "and no answer to what was asked."
@@ -212,7 +212,7 @@ def eda_route_blocks(ctx: RunContext[LeadDeps]) -> list[str]:
 
 _WIRE_OR_CLEAR = (
     "wire one in with create_eda_step(replace_step_id=...)/attach and build, "
-    "or call clear_strategy to start the thread over."
+    "or call clear_strategy to start the conversation over."
 )
 
 
@@ -240,7 +240,7 @@ def _roots_no_push_named(graph: StrategyGraph) -> str:
         else ""
     )
     return (
-        f"This thread holds {count_noun(len(graph.roots), 'root')} and no push "
+        f"This conversation holds {count_noun(len(graph.roots), 'root')} and no push "
         f"says which is the strategy: {roots_by_size(graph)}.{takeable} A root "
         f"of more than one step is refused, so {_WIRE_OR_CLEAR}"
     )

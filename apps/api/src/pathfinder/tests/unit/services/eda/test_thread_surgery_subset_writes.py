@@ -16,7 +16,7 @@ from veupathdb.eda import (
 )
 
 from pathfinder.domain.eda_parts import EdaAnalysisState
-from pathfinder.persistence.models import ConversationAnalysisView
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda import thread_surgery
 from pathfinder.services.eda.thread_surgery import restore_thread_binding
 from pathfinder.tests._support.database import detached_session

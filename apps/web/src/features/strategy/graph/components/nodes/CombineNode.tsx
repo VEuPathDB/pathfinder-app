@@ -1,7 +1,8 @@
 "use client";
 
 import { Handle, Position } from "@xyflow/react";
-import { CombineOpBadgeLabels, type CombineOp } from "@pathfinder/shared";
+import type { CombineOp } from "@pathfinder/shared";
+import { operatorLabel } from "@/features/strategy/operators";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { NodeShell } from "./NodeShell";
 import { MiniVenn } from "./MiniVenn";
@@ -13,15 +14,10 @@ const COMBINE_NODE_HEIGHT = 112;
 const VENN_WIDTH = 144;
 const VENN_HEIGHT = 48;
 
-function operatorBadgeLabel(operator: string): string {
-  return (CombineOpBadgeLabels as Record<string, string>)[operator] ?? operator;
-}
-
 export function CombineNode(props: StepNodeProps) {
   const {
     step,
     selected,
-    isUnsaved = false,
     isOrphan = false,
     showOutputHandle = false,
     showPrimaryInputHandle = false,
@@ -40,7 +36,6 @@ export function CombineNode(props: StepNodeProps) {
       kind="combine"
       step={step}
       selected={selected}
-      isUnsaved={isUnsaved}
       isOrphan={isOrphan}
       width={COMBINE_NODE_WIDTH}
       height={COMBINE_NODE_HEIGHT}
@@ -100,8 +95,11 @@ export function CombineNode(props: StepNodeProps) {
             height={VENN_HEIGHT}
             className="mx-auto"
           />
-          <div className="inline-flex items-center rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground">
-            {operatorBadgeLabel(operator)}
+          <div
+            data-testid="combine-operator-badge"
+            className="inline-flex items-center rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-foreground"
+          >
+            {operatorLabel(operator)}
           </div>
         </div>
       )}

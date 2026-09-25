@@ -157,8 +157,8 @@ describe("LedgerPanel summary", () => {
     expect(headings).toEqual([
       "Intent",
       "Planning",
-      "Build",
-      "Verification",
+      "Building",
+      "Checking",
       "Constraints",
     ]);
   });

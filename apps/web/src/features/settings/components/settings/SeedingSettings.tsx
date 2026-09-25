@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * SeedingSettings -- seed demo strategies for VEuPathDB databases.
+ * SeedingSettings -- seed demo strategies for VEuPathDB sites.
  */
 
 import { useState } from "react";
@@ -96,7 +96,7 @@ export function SeedingSettings() {
               ) : (
                 <FlaskConical className="h-3.5 w-3.5" />
               )}
-              {seedingDb === "all" ? "Seeding All..." : "Seed All Databases"}
+              {seedingDb === "all" ? "Seeding All..." : "Seed All Sites"}
             </button>
             {seedStatus != null && (
               <span className="text-xs text-muted-foreground">{seedStatus}</span>
@@ -132,7 +132,7 @@ export function SeedingSettings() {
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Seeds demo strategies and control sets for the selected database. Strategies
+            Seeds demo strategies and control sets for the selected site. Strategies
             appear in the sidebar; the assistant reads the control sets when it runs
             control tests.
           </p>

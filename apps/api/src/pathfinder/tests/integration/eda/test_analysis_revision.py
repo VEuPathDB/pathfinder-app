@@ -28,6 +28,7 @@ from pathfinder.tests._support.eda_wire import (
     eda_transport,
     wire_eda,
 )
+from pathfinder.tests._support.published_studies import published_on
 from pathfinder.tests._support.run_context import lead_run_context
 
 
@@ -88,9 +89,12 @@ async def test_an_identical_reading_mutation_adds_no_second_card(
     the thread only shows a state the reader has not already seen.
     """
     ctx = _ctx_for(bound_thread)
-    opened = await eda_analysis.open_eda_analysis(
-        ctx, dataset_id=PHENOTYPE_DATASET, purpose="keep the berghei rows"
-    )
+    async with published_on(
+        "plasmodb", PHENOTYPE_DATASET, organism="Plasmodium berghei ANKA"
+    ):
+        opened = await eda_analysis.open_eda_analysis(
+            ctx, dataset_id=PHENOTYPE_DATASET, purpose="keep the berghei rows"
+        )
     filtered = await eda_analysis.set_eda_filters(
         ctx,
         dataset_id=PHENOTYPE_DATASET,

@@ -4,18 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  ExternalLink,
   ArrowLeft,
   Code2,
   Copy,
   Loader2,
   MoreVertical,
-  PauseCircle,
   Pencil,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
-import { siteShortName } from "@pathfinder/shared";
 import type { Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +27,7 @@ import {
   useDeleteStrategyMutation,
   useUpdateStrategyMetaMutation,
 } from "@/features/strategy/mutations";
+import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
 import { provisionalName } from "@/lib/conversations/provisionalName";
 import { chatUrl, strategyCanvasUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
@@ -37,7 +35,7 @@ import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { CanvasDescriptionSheet } from "./CanvasDescriptionSheet";
 import { DeleteStrategyConfirm } from "./DeleteStrategyConfirm";
 
-export type SyncState = "idle" | "saving" | "error" | "paused";
+export type SyncState = "idle" | "saving" | "error";
 
 interface CanvasTopbarProps {
   strategy: Strategy;
@@ -122,12 +120,12 @@ export function CanvasTopbar({
         variant="ghost"
         size="sm"
         onClick={handleBack}
-        aria-label="Back to chat"
+        aria-label="Back to conversation"
         data-testid="canvas-topbar-back"
         className="gap-1.5"
       >
         <ArrowLeft className="size-4" aria-hidden />
-        <span className="text-xs">Back to chat</span>
+        <span className="text-xs">Back to conversation</span>
       </Button>
       <div className="h-5 w-px bg-border" aria-hidden />
       <Input
@@ -156,17 +154,7 @@ export function CanvasTopbar({
       </div>
       <div className="ml-auto flex items-center gap-1">
         {strategy.wdkUrl != null && strategy.wdkUrl !== "" && (
-          <Button asChild type="button" variant="ghost" size="sm" className="gap-1.5">
-            <a
-              href={strategy.wdkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="canvas-topbar-wdk-link"
-            >
-              <span className="text-xs">{siteShortName(strategy.siteId)}</span>
-              <ExternalLink className="size-3.5" aria-hidden />
-            </a>
-          </Button>
+          <OpenInSiteLink href={strategy.wdkUrl} siteId={strategy.siteId} />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -259,18 +247,6 @@ function SyncStatusPill({ state, onRetry }: SyncStatusPillProps) {
         <TriangleAlert className="size-3" aria-hidden />
         Failed - Retry
       </button>
-    );
-  }
-  if (state === "paused") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 text-warning"
-        data-testid="canvas-topbar-sync-state"
-        data-sync-state="paused"
-      >
-        <PauseCircle className="size-3" aria-hidden />
-        Sync paused
-      </span>
     );
   }
   return (

@@ -21,8 +21,8 @@ async function buildTwoLeafStrategy(
   return id as string;
 }
 
-test.describe("Duplicate + rename step from UI", () => {
-  test("duplicating a leaf via the node kebab adds steps to the AST", async ({
+test.describe("Intersect with a copy + rename step from UI", () => {
+  test("intersecting a leaf with a copy via the node kebab adds steps to the AST", async ({
     page,
     chatPage,
     graphPage,
@@ -39,7 +39,7 @@ test.describe("Duplicate + rename step from UI", () => {
     await graphPage.expectStrategyTopbar();
     await graphPage.expectNodeVisible(leafId);
 
-    await duplicateNode(page, leafId);
+    await intersectWithACopy(page, leafId);
 
     await expect(graphPage.strategyPageSyncState).toHaveAttribute(
       "data-sync-state",
@@ -104,8 +104,8 @@ test.describe("Duplicate + rename step from UI", () => {
   });
 });
 
-async function duplicateNode(page: Page, stepId: string): Promise<void> {
+async function intersectWithACopy(page: Page, stepId: string): Promise<void> {
   await page.getByTestId(`rf-node-${stepId}`).hover();
   await page.getByTestId(`rf-more-${stepId}`).click();
-  await page.getByRole("menuitem", { name: /duplicate step/i }).click();
+  await page.getByRole("menuitem", { name: "Intersect with a copy" }).click();
 }

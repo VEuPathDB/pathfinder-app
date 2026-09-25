@@ -167,7 +167,7 @@ async def test_the_budget_retry_of_the_edit_carries_the_pending_changes(
 
     pending = [
         (
-            "NOT PUSHED YET. An earlier pass of this thread stated these and the "
+            "NOT PUSHED YET. An earlier pass of this conversation stated these and the "
             "strategy does not hold them. State a disposition in `changes` for "
             "each of them too: repeat it to let it stand, or take it back by "
             "stating the criterion the strategy holds with set_criterion."

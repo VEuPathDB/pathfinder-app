@@ -34,11 +34,9 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import _frame_count, frame_spec
 from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_drop import drop_criterion
-from pathfinder.ai.tools.standalone.frame_spec import (
-    SetCriterionResult,
-    set_criterion,
-)
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -48,6 +46,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests._support.catalog_reads import listing
+from pathfinder.tests._support.recorded_searches import serve_qualifier_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -116,6 +115,12 @@ def serve_definition(
     client.get_search_details_with_params = _details
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)
+    serve_qualifier_reads(
+        monkeypatch,
+        lambda name: WDKSearch.model_validate(
+            {"url_segment": name, "parameters": parameters or [], **fields}
+        ),
+    )
     return reads
 
 
@@ -147,6 +152,17 @@ def serve_catalog(
         )
 
     monkeypatch.setattr(frame_spec, "fetch_search_details", _details)
+    serve_qualifier_reads(
+        monkeypatch,
+        lambda name: WDKSearch.model_validate(
+            {
+                "url_segment": name,
+                "parameters": parameters,
+                "properties": properties or {},
+                **fields,
+            }
+        ),
+    )
     return seen
 
 

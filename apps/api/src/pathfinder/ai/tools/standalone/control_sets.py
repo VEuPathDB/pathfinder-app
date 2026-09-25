@@ -1,4 +1,4 @@
-"""Lead tools for sourcing + persisting control gene sets (Phase 2b).
+"""Lead tools for sourcing + persisting control gene sets.
 
 A scored experiment needs positive/negative control gene lists. These tools
 let the Lead validate user-provided IDs against WDK and persist a ControlSet,
@@ -20,6 +20,7 @@ from pathfinder.services.evidence.control_sets import (
     control_ids_from_saved_gene_set,
     control_ids_from_strategy,
     create_control_set,
+    get_control_set,
     list_control_sets_for_site,
     new_control_set,
     validate_control_ids,
@@ -43,7 +44,7 @@ async def build_control_set(
     record_type: str = "transcript",
 ) -> ToolReturn[BuiltControlSet]:
     """Validate gene IDs against WDK and save them as a reusable control set
-    for scored experiments. Pass the positive controls (genes that SHOULD be
+    for scored runs. Pass the positive controls (genes that SHOULD be
     found) and optional negative controls (genes that should NOT). IDs that
     WDK doesn't recognize are dropped and reported back so you can tell the
     user about typos. Requires at least one recognized positive control.
@@ -123,6 +124,43 @@ async def list_control_sets(
             for cs in sets
         ],
         f"{len(sets)} control sets",
+        ctx=ctx,
+    )
+
+
+class ControlSetIds(CamelModel):
+    """The ids a saved control set holds, as a sweep or a test takes them."""
+
+    control_set_id: str
+    name: str
+    positive_ids: list[str]
+    negative_ids: list[str]
+
+
+async def read_control_set(
+    ctx: RunContext[LeadDeps],
+    control_set_id: str,
+) -> ToolReturn[ControlSetIds]:
+    """Return the positive and negative ids of a saved control set.
+
+    Pass them as the controls of a control test. A sweep takes the set itself
+    as ``control_set_id``. ``list_control_sets`` names the sets. This saves nothing.
+    """
+    runtime = ctx.deps.runtime
+    parsed = parse_id_argument(
+        control_set_id, argument="control_set_id", names="control set"
+    )
+    async with runtime.db_session_factory() as session:
+        held = await get_control_set(session, parsed, runtime.user_id)
+    return with_summary(
+        ControlSetIds(
+            control_set_id=held.id,
+            name=held.name,
+            positive_ids=held.positive_ids,
+            negative_ids=held.negative_ids,
+        ),
+        f"{held.name}: {len(held.positive_ids)} positive, "
+        f"{len(held.negative_ids)} negative",
         ctx=ctx,
     )
 

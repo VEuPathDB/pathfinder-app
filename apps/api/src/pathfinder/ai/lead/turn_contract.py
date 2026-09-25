@@ -12,38 +12,54 @@ from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.turn_records import normalized_reference
+from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS
 from pathfinder.ai.lead.contract_messages import (
     blamed_the_site_message,
     claimed_change_message,
     claimed_frame_message,
     control_set_not_written_message,
+    counted_in_the_wrong_unit_message,
     eda_criterion_not_built_message,
     gene_set_not_saved_message,
     machine_words_message,
+    misnamed_deletion_message,
     off_topic_essay_message,
     unbacked_evidence_message,
     unfinished_work_message,
+    unnamed_record_organism_message,
     unrecorded_offer_message,
     unrecorded_question_message,
     unreported_change_message,
+    unreported_requirement_message,
     unretrieved_source_message,
+    unstated_qualifier_message,
     unverified_build_message,
 )
-from pathfinder.ai.lead.evidence_claims import control_claims, unbacked_claims
+from pathfinder.ai.lead.deleted_steps import misnamed_removal
+from pathfinder.ai.lead.evidence_claims import (
+    control_claims,
+    sample_claims,
+    unbacked_claims,
+    unbacked_sample_claims,
+)
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
     SAVED_A_CONTROL_SET,
     SAVED_A_GENE_SET,
-    CitedSource,
     claims,
+    counts_named_as,
     ends_with_a_question,
     machine_words,
+    names_an_organism,
 )
 from pathfinder.ai.lead.search_reasons import unnamed_search
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
+from pathfinder.domain.evidence import SourceReference
 from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -52,7 +68,6 @@ OFF_TOPIC_REPLY_MAX_CHARS = 400
 _CODE_FENCE = "```"
 
 CONTRACT_HEADING = "This reply does not match what the turn did:"
-PROSE_MAX_CHARS = 4000
 
 
 class LeadResponse(CamelModel):
@@ -90,7 +105,7 @@ class LeadResponse(CamelModel):
             "turn has to ask again."
         ),
     )
-    sources: list[CitedSource] = Field(
+    sources: list[SourceReference] = Field(
         default_factory=list,
         max_length=20,
         description=(
@@ -116,7 +131,12 @@ MismatchKind = Literal[
     "off_topic_essay",
     "unretrieved_source",
     "unnamed_search",
+    "unnamed_record_organism",
+    "unstated_qualifier",
+    "unreported_requirement",
     "unbacked_evidence",
+    "misnamed_deletion",
+    "counted_in_the_wrong_unit",
 ]
 
 
@@ -271,10 +291,75 @@ def _unnamed_search(report: LeadResponse, record: TurnRecord) -> str | None:
     return unnamed_search(report.prose, record.added_searches)
 
 
+def _unnamed_record_organism(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A turn that moved the records to another organism names that organism."""
+    outcome = record.build_outcome
+    change = None if outcome is None else outcome.organism_change
+    if not record.changed_strategy or change is None:
+        return None
+    if all(names_an_organism(report.prose, organism) for organism in change.records):
+        return None
+    return unnamed_record_organism_message(change)
+
+
+def _unstated_qualifier(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A turn that framed or wrote a requirement no search states says so."""
+    if not (record.framed or record.changed_strategy):
+        return None
+    silent = [
+        word
+        for word in record.unexpressed_qualifiers
+        if not names_the_phrase(report.prose, word)
+    ]
+    return unstated_qualifier_message(silent) if silent else None
+
+
+def _unreported_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A turn that checked the strategy names each requirement the check found
+    unmet or unexpressed. A word the qualifier rule already asks for is its own."""
+    qualifier_rule = record.framed or record.changed_strategy
+    silent = [
+        row
+        for row in record.requirements_to_report
+        if not names_the_phrase(report.prose, row.text)
+        and not (qualifier_rule and row.text in record.unexpressed_qualifiers)
+    ]
+    return unreported_requirement_message(silent) if silent else None
+
+
 def _unbacked_evidence(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A control result the reply states is one this turn or its last check holds."""
-    found = unbacked_claims(control_claims(report.prose), record.control_results)
+    """A control result or a sampled-gene count the reply states is one this
+    turn or its last check holds."""
+    found = [
+        *unbacked_claims(control_claims(report.prose), record.control_results),
+        *unbacked_sample_claims(sample_claims(report.prose), record.sampled_genes),
+    ]
     return unbacked_evidence_message(found) if found else None
+
+
+def _misnamed_deletion(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A removal the reply claims names a step this turn deleted."""
+    if not record.deleted_steps:
+        return None
+    claimed = misnamed_removal(
+        report.prose, record.deleted_steps, record.standing_steps
+    )
+    if claimed is None:
+        return None
+    return misnamed_deletion_message(claimed, record.deleted_steps)
+
+
+def _counted_in_the_wrong_unit(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A step count is named in the noun the site counts the strategy in."""
+    noun = counted_noun(record.record_type)
+    if not record.record_type or noun == record.record_type:
+        return None
+    held = set(record.step_counts)
+    named = counts_named_as(report.prose, record.record_type, instead_of=noun)
+    wrong = [count for count in dict.fromkeys(named) if count in held]
+    if not wrong:
+        return None
+    return counted_in_the_wrong_unit_message(record.record_type, noun, wrong)
 
 
 _RULES: tuple[
@@ -293,7 +378,12 @@ _RULES: tuple[
     ("off_topic_essay", _off_topic_essay),
     ("unretrieved_source", _unretrieved_source),
     ("unnamed_search", _unnamed_search),
+    ("unnamed_record_organism", _unnamed_record_organism),
+    ("unstated_qualifier", _unstated_qualifier),
+    ("unreported_requirement", _unreported_requirement),
     ("unbacked_evidence", _unbacked_evidence),
+    ("misnamed_deletion", _misnamed_deletion),
+    ("counted_in_the_wrong_unit", _counted_in_the_wrong_unit),
 )
 
 

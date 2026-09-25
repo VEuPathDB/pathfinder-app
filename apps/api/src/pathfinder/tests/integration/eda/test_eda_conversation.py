@@ -42,13 +42,13 @@ from sqlalchemy import select
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb.eda import EdaClient
-from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb.wdk import get_site
 from veupathdb_mcp.embeddings import sync_study_index
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone import eda_catalog
 from pathfinder.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from pathfinder.ai.tools.standalone.eda_step import EdaStepCreated
 from pathfinder.ai.tools.toolsets.eda import build_toolset
@@ -69,8 +69,16 @@ from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
 from pathfinder.services.strategies.commit import _WDKCommitOutcome
-from pathfinder.tests._support.eda_wire import recorded_distribution, wire_eda_client
+from pathfinder.tests._support.eda_wire import (
+    distribution_response,
+    fixture,
+    phenotype_overview,
+    wire_eda_client,
+)
+from pathfinder.tests._support.published_studies import published_on
+from pathfinder.tests._support.recorded_vdi import no_own_datasets
 from pathfinder.tests._support.step_params import string_param
+from pathfinder.tests._support.wdk_cleanup import delete_the_threads_strategy
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -78,10 +86,6 @@ from pathfinder.tests.integration.chat._helpers import (
     wait_until_chat_turn_deferred,
 )
 from pathfinder.tests.integration.http.conftest import WDK_AUTH_HEADER, client_for
-
-pytestmark = pytest.mark.asyncio
-
-FIXTURES = FIXTURE_DIR
 
 _PROMPT = "look at the rodent malaria phenotypes and keep the P. berghei rows"
 _DATASET = "DS_53f554ec6a"
@@ -116,10 +120,6 @@ _SEQUENCE: list[tuple[str, dict[str, Any]]] = [
     ),
     ("create_eda_step", {}),
 ]
-
-
-def _fixture(name: str) -> Any:
-    return json.loads((FIXTURES / name).read_text())
 
 
 def _script(messages: list[ModelMessage]) -> ScriptedPart:
@@ -201,25 +201,6 @@ def _build_spec() -> AssistantSpec:
     )
 
 
-def _study_overview() -> dict[str, Any]:
-    """The catalog row for the phenotype study, from its permission entry.
-
-    The recorded ``/studies`` slice stops before this study, and the permission
-    entry carries every field the overview needs.
-    """
-    entry = _fixture("permissions.json")["perDataset"][_DATASET]
-    return {
-        "id": _STUDY,
-        "datasetId": _DATASET,
-        "sha1hash": entry["sha1Hash"],
-        "sourceType": "curated",
-        "displayName": entry["displayName"],
-        "shortDisplayName": entry["shortDisplayName"],
-        "description": entry["description"],
-        "lastModified": "2026-05-27T20:00:00-04:00",
-    }
-
-
 class _AnalysesStore:
     """The upstream analysis store, kept in memory for one conversation."""
 
@@ -267,17 +248,17 @@ class _AnalysesStore:
 def _catalog_route(path: str, body: Any) -> httpx.Response | None:
     """The recorded study reads, or None when the path is not one of them."""
     if path.endswith("/permissions"):
-        return httpx.Response(200, json=_fixture("permissions.json"))
+        return httpx.Response(200, json=fixture("permissions"))
     if path == "/eda/studies":
-        listed = _fixture("studies_list.json")
-        listed["studies"].append(_study_overview())
+        listed = fixture("studies_list")
+        listed["studies"].append(phenotype_overview())
         return httpx.Response(200, json=listed)
     if path == f"/eda/studies/{_STUDY}":
-        return httpx.Response(200, json=_fixture("study_detail_phenotype.json"))
+        return httpx.Response(200, json=fixture("study_detail_phenotype"))
     if path == f"/eda/studies/{_STUDY}/entities/{_ENTITY}/count":
-        name = "count_filtered.json" if body["filters"] else "count_unfiltered.json"
-        return httpx.Response(200, json=_fixture(name))
-    return recorded_distribution(path, body, "study_detail_phenotype")
+        name = "count_filtered" if body["filters"] else "count_unfiltered"
+        return httpx.Response(200, json=fixture(name))
+    return distribution_response(path, body, "study_detail_phenotype")
 
 
 def _wire(store: _AnalysesStore) -> httpx.MockTransport:
@@ -315,13 +296,16 @@ async def seam(
     store = _AnalysesStore()
     client = EdaClient(base_url="https://plasmodb.org/eda", transport=_wire(store))
     wire_eda_client(monkeypatch, client)
+    # The researcher's own uploads are a VDI read this wire does not record.
+    monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
     monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
     get_assistant_registry.cache_clear()
     # The api syncs the study index at warm-up; the turn only searches it.
     token = veupathdb_auth_token_ctx.set("t")
     await sync_study_index(await catalog.list_studies("plasmodb"))
     veupathdb_auth_token_ctx.reset(token)
-    yield _Seam(app=app, jobs=in_memory_jobs, store=store)
+    async with published_on("plasmodb", _DATASET, organism="Plasmodium berghei ANKA"):
+        yield _Seam(app=app, jobs=in_memory_jobs, store=store)
     get_assistant_registry.cache_clear()
 
 
@@ -351,17 +335,12 @@ def hermetic_wdk(monkeypatch: pytest.MonkeyPatch, analyses_user: None) -> list[A
     return pushed
 
 
-async def _make_user() -> UUID:
+async def _turn(seam: _Seam, *, wdk_token: str) -> UUID:
+    """Drive one turn. The persisted rows, not the streamed body, are the proof."""
     user_id = uuid4()
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.commit()
-    return user_id
-
-
-async def _turn(seam: _Seam, *, wdk_token: str) -> UUID:
-    """Drive one turn. The persisted rows, not the streamed body, are the proof."""
-    user_id = await _make_user()
     conversation_id = uuid4()
     body = chat_post_body(conversation_id, _PROMPT)
     body["assistantId"] = SITE_HELP_ASSISTANT_ID
@@ -489,9 +468,11 @@ def _assert_tool_summaries(rows: list[dict[str, Any]]) -> None:
         _summary_for(rows, tool_name)
     studies = _summary_for(rows, "search_eda_studies")
     cards = _tool_output(rows, "search_eda_studies")["studies"]
-    permitted = set(_fixture("permissions.json")["perDataset"])
-    listed = [*_fixture("studies_list.json")["studies"], _study_overview()]
-    catalog = sum(1 for study in listed if study["datasetId"] in permitted)
+    permitted = set(fixture("permissions")["perDataset"])
+    listed = [*fixture("studies_list")["studies"], phenotype_overview()]
+    # The catalog holds curated rows only; a user's own study is not in it.
+    curated = {s["datasetId"] for s in listed if s["sourceType"] == "curated"}
+    catalog = len(curated & permitted)
     assert studies["summary"] == (
         f"{len(cards)} closest of {catalog} studies on this site "
         f"(best match {max(card['relevance'] for card in cards):.2f})"
@@ -571,16 +552,20 @@ async def test_the_step_lands_on_live_wdk(
     """The same conversation, with the step pushed to the live site."""
     del analyses_user
     conversation_id = await _turn(seam, wdk_token=require_wdk_creds)
+    try:
+        rows = await _rows(conversation_id)
+        strategy = await _persisted_strategy(conversation_id)
+    finally:
+        await delete_the_threads_strategy(
+            "plasmodb", conversation_id, require_wdk_creds
+        )
 
-    rows = await _rows(conversation_id)
     assert "error" not in [row["type"] for row in rows]
     created = _tool_output(rows, "create_eda_step")
     assert created["search_name"] == _SUBSET_SEARCH
     assert created["wdk_strategy_id"] is not None
-    strategy = await _persisted_strategy(conversation_id)
     _assert_step_persisted(strategy)
-    assert strategy.wdk_step_ids is not None
-    assert strategy.root.id in strategy.wdk_step_ids
+    assert strategy.root.id in (strategy.wdk_step_ids or {})
     assert strategy.step_counts is not None
     assert strategy.step_counts[strategy.root.id] > 0
     snapshot = _of_type(rows, "data-graph-snapshot")[-1]["data"]

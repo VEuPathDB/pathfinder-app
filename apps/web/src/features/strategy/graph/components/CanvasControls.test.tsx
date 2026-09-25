@@ -33,16 +33,16 @@ describe("CanvasControls", () => {
   it("renders all four buttons", () => {
     const onRelayout = vi.fn();
     render(<CanvasControls onRelayout={onRelayout} />);
-    expect(screen.getByRole("button", { name: /re-?layout/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /tidy layout/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /fit/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /zoom in/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /zoom out/i })).toBeTruthy();
   });
 
-  it("Re-layout fires the supplied callback", () => {
+  it("Tidy layout fires the supplied callback", () => {
     const onRelayout = vi.fn();
     render(<CanvasControls onRelayout={onRelayout} />);
-    fireEvent.click(screen.getByRole("button", { name: /re-?layout/i }));
+    fireEvent.click(screen.getByRole("button", { name: /tidy layout/i }));
     expect(onRelayout).toHaveBeenCalled();
   });
 

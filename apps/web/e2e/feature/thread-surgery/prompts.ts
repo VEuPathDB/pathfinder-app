@@ -32,7 +32,7 @@ export const VERIFIED = /Verified end-to-end/;
 export const SUBSTITUTED = /Substituted the organism/;
 
 /** The reply of the recall arc. */
-export const RECALLED = /This thread already carries:/;
+export const RECALLED = /This conversation already carries:/;
 
 /** The plain echo reply for `text`, which calls no tool. */
 export function echoOf(text: string): RegExp {

@@ -22,8 +22,15 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.jobs.impls import optimize_params_impl
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.services.evidence.control_sets import (
+    create_control_set,
+    new_control_set,
+)
 from pathfinder.services.parameter_optimization import tunable
-from pathfinder.services.parameter_optimization.config import SweepVariantSpec
+from pathfinder.services.parameter_optimization.config import (
+    SweepControls,
+    SweepVariantSpec,
+)
 from pathfinder.tests._support.job_context import job_context
 
 STEP_ID = 440299573
@@ -315,3 +322,71 @@ async def test_concurrency_cap_respected(
     )
     await run_impl(variants_count=10)
     assert max_active <= optimize_params_impl.MAX_PARALLEL
+
+
+async def test_a_saved_control_set_is_read_whole_on_the_worker(
+    monkeypatch: pytest.MonkeyPatch,
+    progress_sink: _ProgressSink,
+) -> None:
+    """The sweep scores against every id the saved set holds, as the store holds them."""
+    del progress_sink
+    monkeypatch.setattr(
+        optimize_params_impl, "attach_sweep_download", _fake_attach_export
+    )
+    monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
+
+    async def read(
+        site_id: str, record_type: str, search_name: str
+    ) -> list[ParameterInfo]:
+        del site_id, record_type, search_name
+        return [_knob(["c0", "c1"])]
+
+    monkeypatch.setattr(tunable, "search_parameter_metadata", read)
+    scored: list[tuple[list[str] | None, list[str] | None]] = []
+
+    async def fake_run_trial(
+        variant: SweepVariantSpec, *, controls: SweepControls, **_kwargs: Any
+    ) -> dict[str, Any]:
+        scored.append((controls.positive_controls, controls.negative_controls))
+        return {"variant_id": variant.id, "status": "success", "score": 0.5}
+
+    monkeypatch.setattr(optimize_params_impl, "run_single_trial", fake_run_trial)
+    user_id, conversation_id, task_id = uuid4(), uuid4(), uuid4()
+    await _seed_user_chat_task(user_id, conversation_id, task_id)
+    async with async_session_factory() as session:
+        saved = await create_control_set(
+            session,
+            new_control_set(
+                name="Signal peptide controls",
+                site_id="plasmodb",
+                record_type="transcript",
+                positive_ids=["PF3D7_0100600", "PF3D7_0207900", "PF3D7_1133400"],
+                negative_ids=["PF3D7_0111300", "PF3D7_0508800"],
+                source="paste",
+            ),
+            user_id=user_id,
+        )
+        await session.commit()
+
+    progress = TaskProgressEmitter(
+        task_id=task_id,
+        conversation_id=conversation_id,
+        session_factory=async_session_factory,
+    )
+    await optimize_params_impl.optimize_search_parameters_impl(
+        context=job_context(user_id=user_id),
+        task_id=task_id,
+        progress=progress,
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=str(saved.id),
+        budget=2,
+    )
+    await progress.aclose()
+
+    assert scored == 2 * [
+        (
+            ["PF3D7_0100600", "PF3D7_0207900", "PF3D7_1133400"],
+            ["PF3D7_0111300", "PF3D7_0508800"],
+        )
+    ]

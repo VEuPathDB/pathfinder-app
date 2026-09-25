@@ -12,7 +12,7 @@ Create Date: 2026-08-30 00:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -25,9 +25,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "background_tasks",
-        sa.Column(
+        sqlalchemy.Column(
             "phase_overrides",
-            postgresql.JSONB(astext_type=sa.Text()),
+            postgresql.JSONB(astext_type=sqlalchemy.Text()),
             nullable=False,
             server_default="{}",
         ),

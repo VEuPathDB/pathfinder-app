@@ -3,29 +3,37 @@
     "control_set": {
       "name": "Kinase vs Protease Groups",
       "negative_ids": [
-        "OG7_0001372",
-        "OG7_0001373",
-        "OG7_0001375",
-        "OG7_0001376",
-        "OG7_0002302",
-        "OG7_0003250"
+        "OG8_0000992",
+        "OG8_0000993",
+        "OG8_0000994",
+        "OG8_0000995",
+        "OG8_0000996",
+        "OG8_0000997"
       ],
       "positive_ids": [
-        "OG7_0000000",
-        "OG7_0000001",
-        "OG7_0000002",
-        "OG7_0000003",
-        "OG7_0000004",
-        "OG7_0000005"
+        "OG8_0000003",
+        "OG8_0000007",
+        "OG8_0000081",
+        "OG8_0001286",
+        "OG8_0003637"
       ],
-      "provenance_notes": "Positives: protein kinase domain (PF00069) ortholog groups. Negatives: peptidase S8 domain (PF00082) groups \u2014 structurally distinct enzyme families.",
+      "provenance_notes": "Positive set: all 5 groups the site returns for this seed's own tree (OrthoMCL build 8.2, read 2026-09-24). Negative set: the first 6 groups with the peptidase S8 domain (PF00082) that the tree does not return (a structurally distinct enzyme family).",
       "tags": [
         "kinase",
         "orthomcl",
         "seed"
       ]
     },
-    "description": "Ortholog groups containing the protein kinase domain (PF00069) INTERSECT with groups conserved across eukaryotes, bacteria, and archaea. Identifies the most ancient, universally retained kinases.",
+    "description": "Ortholog groups containing the protein kinase domain (PF00069) INTERSECT with groups present in at least 10 eukaryotes and in bacteria and archaea. Identifies the most ancient, universally retained kinases.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 6,
+      "positives_recovered": 5,
+      "positives_total": 5,
+      "root_count": 5,
+      "site_build": "8.2"
+    },
     "name": "Conserved Kinase Orthologs",
     "record_type": "group",
     "site_id": "orthomcl",
@@ -47,7 +55,7 @@
         "displayName": "Universally Conserved Groups",
         "id": "step_universal",
         "parameters": {
-          "phyletic_expression": "EUKA>=10T AND BACT>=5T AND ARCH>=3T"
+          "phyletic_expression": "EUKA>=10T AND BACT>=1T AND ARCH>=1T"
         },
         "searchName": "GroupsByPhyleticPattern"
       }
@@ -57,22 +65,22 @@
     "control_set": {
       "name": "Apicomplexa-Specific vs Universal",
       "negative_ids": [
-        "OG7_0000012",
-        "OG7_0000032",
-        "OG7_0000034",
-        "OG7_0000035",
-        "OG7_0000054",
-        "OG7_0000069"
+        "OG8_0000023",
+        "OG8_0000024",
+        "OG8_0000026",
+        "OG8_0000037",
+        "OG8_0000044",
+        "OG8_0000051"
       ],
       "positive_ids": [
-        "OG7_0000022",
-        "OG7_0000049",
-        "OG7_0000087",
-        "OG7_0000108",
-        "OG7_0000115",
-        "OG7_0000380"
+        "OG8_0000001",
+        "OG8_0000045",
+        "OG8_0000075",
+        "OG8_0000105",
+        "OG8_0000121",
+        "OG8_0000146"
       ],
-      "provenance_notes": "Positives: Apicomplexa-specific groups absent in mammals. Negatives: universally conserved groups present in eukaryotes, bacteria, and archaea.",
+      "provenance_notes": "Positive set: the first 6 groups the site returns for this seed's own tree (OrthoMCL build 8.2, read 2026-09-24). Negative set: the first 6 groups present in at least 10 eukaryotes, 5 bacteria and 3 archaea that the tree does not return (universally conserved groups).",
       "tags": [
         "apicomplexa",
         "drug-target",
@@ -81,6 +89,15 @@
       ]
     },
     "description": "Ortholog groups present in at least 3 Apicomplexa species but completely absent from human (hsap) and mouse (mmus). These lineage-specific groups represent potential drug targets for malaria and toxoplasmosis since they lack mammalian orthologs.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 6,
+      "positives_recovered": 6,
+      "positives_total": 6,
+      "root_count": 12431,
+      "site_build": "8.2"
+    },
     "name": "Apicomplexan-Specific Groups",
     "record_type": "group",
     "site_id": "orthomcl",
@@ -97,22 +114,22 @@
     "control_set": {
       "name": "Core Metabolism vs Apicomplexa-Specific",
       "negative_ids": [
-        "OG7_0000022",
-        "OG7_0000049",
-        "OG7_0000087",
-        "OG7_0000108",
-        "OG7_0000115",
-        "OG7_0000380"
+        "OG8_0000001",
+        "OG8_0000045",
+        "OG8_0000075",
+        "OG8_0000105",
+        "OG8_0000121",
+        "OG8_0000301"
       ],
       "positive_ids": [
-        "OG7_0000048",
-        "OG7_0000079",
-        "OG7_0000537",
-        "OG7_0000759",
-        "OG7_0001008",
-        "OG7_0001201"
+        "OG8_0000023",
+        "OG8_0000024",
+        "OG8_0000026",
+        "OG8_0000037",
+        "OG8_0000044",
+        "OG8_0000051"
       ],
-      "provenance_notes": "Positives: highly conserved metabolic groups present in >100 taxa. Negatives: Apicomplexa-specific groups absent in mammals \u2014 lineage-restricted, not universally conserved.",
+      "provenance_notes": "Positive set: the first 6 groups the site returns for this seed's own tree (OrthoMCL build 8.2, read 2026-09-24). Negative set: the first 6 groups present in at least 3 Apicomplexa and absent from human and mouse that the tree does not return (lineage-restricted groups, not universally conserved).",
       "tags": [
         "metabolism",
         "glycolysis",
@@ -120,7 +137,16 @@
         "seed"
       ]
     },
-    "description": "3-node strategy: UNION of (groups conserved across >100 taxa INTERSECT glycolysis enzyme groups EC 2.7.1.11) with universally conserved enoyl-CoA hydratase/lipid metabolism groups. Captures the most fundamental metabolic enzyme orthologs shared across all domains of life.",
+    "description": "5-node strategy: UNION of (groups conserved across >100 taxa INTERSECT glycolysis enzyme groups EC 2.7.1.11) with universally conserved enoyl-CoA hydratase/lipid metabolism groups. Captures the most fundamental metabolic enzyme orthologs shared across all domains of life.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 6,
+      "positives_recovered": 6,
+      "positives_total": 6,
+      "root_count": 752,
+      "site_build": "8.2"
+    },
     "name": "Core Metabolism Groups",
     "record_type": "group",
     "site_id": "orthomcl",
@@ -166,22 +192,22 @@
     "control_set": {
       "name": "Protease vs Universal Groups",
       "negative_ids": [
-        "OG7_0000012",
-        "OG7_0000032",
-        "OG7_0000034",
-        "OG7_0000035",
-        "OG7_0000054",
-        "OG7_0000069"
+        "OG8_0000023",
+        "OG8_0000024",
+        "OG8_0000026",
+        "OG8_0000037",
+        "OG8_0000044",
+        "OG8_0000051"
       ],
       "positive_ids": [
-        "OG7_0001372",
-        "OG7_0001373",
-        "OG7_0001375",
-        "OG7_0001376",
-        "OG7_0002302",
-        "OG7_0003250"
+        "OG8_0000992",
+        "OG8_0000993",
+        "OG8_0000994",
+        "OG8_0000995",
+        "OG8_0000996",
+        "OG8_0000997"
       ],
-      "provenance_notes": "Positives: peptidase S8 domain (PF00082) ortholog groups. Negatives: universally conserved groups \u2014 housekeeping enzymes present across all domains of life.",
+      "provenance_notes": "Positive set: the first 6 groups the site returns for this seed's own tree (OrthoMCL build 8.2, read 2026-09-24). Negative set: the first 6 groups present in at least 10 eukaryotes, 5 bacteria and 3 archaea that the tree does not return (universally conserved housekeeping enzymes).",
       "tags": [
         "protease",
         "drug-target",
@@ -190,6 +216,15 @@
       ]
     },
     "description": "Protease ortholog groups (Subtilase/Peptidase S8 domain PF00082) MINUS universally conserved groups. The remaining groups are enriched in pathogens and parasites, representing potential drug targets that can be inhibited without affecting host enzymes.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 6,
+      "positives_recovered": 6,
+      "positives_total": 6,
+      "root_count": 30,
+      "site_build": "8.2"
+    },
     "name": "Pathogen-Enriched Proteases",
     "record_type": "group",
     "site_id": "orthomcl",
@@ -221,24 +256,24 @@
     "control_set": {
       "name": "HSP + GTPase vs Transporter Groups",
       "negative_ids": [
-        "OG7_0000138",
-        "OG7_0000139",
-        "OG7_0000140",
-        "OG7_0000141",
-        "OG7_0000142",
-        "OG7_0000145"
+        "OG8_0000127",
+        "OG8_0000129",
+        "OG8_0000130",
+        "OG8_0000132",
+        "OG8_0000135",
+        "OG8_0000136"
       ],
       "positive_ids": [
-        "OG7_0000776",
-        "OG7_0000777",
-        "OG7_0000778",
-        "OG7_0000779",
-        "OG7_0000131",
-        "OG7_0001070",
-        "OG7_0001254",
-        "OG7_0003858"
+        "OG8_0000086",
+        "OG8_0000647",
+        "OG8_0000648",
+        "OG8_0000808",
+        "OG8_0000920",
+        "OG8_0002290",
+        "OG8_0003165",
+        "OG8_0003222"
       ],
-      "provenance_notes": "Positives: HSP70 chaperones (PF00012) and Ras/GTPase (PF00071) groups \u2014 stress response and signaling. Negatives: ABC transporter (PF00005) groups \u2014 membrane transport, functionally distinct from stress/signaling.",
+      "provenance_notes": "Positive set: the first 8 groups the site returns for this seed's own tree (OrthoMCL build 8.2, read 2026-09-24). Negative set: the first 6 groups with the ABC transporter domain (PF00005) that the tree does not return (membrane transport, functionally distinct from stress and signaling).",
       "tags": [
         "stress",
         "signaling",
@@ -247,6 +282,15 @@
       ]
     },
     "description": "UNION of heat shock protein 70 groups (PF00012) and Ras/GTPase signaling groups (PF00071). Captures the interplay between protein folding stress responses and signal transduction across eukaryotes \u2014 key for understanding pathogen adaptation.",
+    "measured": {
+      "date": "2026-09-24",
+      "negatives_admitted": 0,
+      "negatives_total": 6,
+      "positives_recovered": 8,
+      "positives_total": 8,
+      "root_count": 150,
+      "site_build": "8.2"
+    },
     "name": "Stress Response and Signaling Orthologs",
     "record_type": "group",
     "site_id": "orthomcl",

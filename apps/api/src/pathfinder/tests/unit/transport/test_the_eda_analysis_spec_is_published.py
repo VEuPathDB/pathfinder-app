@@ -39,7 +39,6 @@ def test_the_analysis_document_is_a_component(spec: dict[str, Any]) -> None:
 def test_a_computation_holds_any_compute_the_site_offers(
     spec: dict[str, Any],
 ) -> None:
-    """The run-compute action still takes a differential expression only."""
     schemas = spec["components"]["schemas"]
     assert schemas["EdaComputation"]["properties"]["descriptor"] == {
         "$ref": _REF.format("EdaComputeDescriptor")
@@ -56,9 +55,6 @@ def test_a_computation_holds_any_compute_the_site_offers(
         {"$ref": _REF.format(name)}
         for name in ("EdaVolcanoDescriptor", "EdaOtherVisualizationDescriptor")
     ]
-    assert schemas["EdaRunComputeAction"]["properties"]["computation"] == {
-        "$ref": _REF.format("EdaDifferentialExpressionDescriptor")
-    }
 
 
 def test_a_stored_document_node_keeps_the_keys_it_does_not_model(

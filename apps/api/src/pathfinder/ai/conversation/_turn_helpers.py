@@ -106,6 +106,7 @@ def build_turn_start(
         is_resume=resume,
         user_message_id=None if resume else incoming.last_user_message_id,
         user_prompt="" if resume else incoming.last_user_text,
+        user_files=() if resume else tuple(incoming.last_user_files),
         approval_responses=_extract_approval_responses(incoming),
         user_question_answers=_extract_user_question_answers(incoming),
     )

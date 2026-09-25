@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { render as renderBare, screen, waitFor } from "@testing-library/react";
+import { render as renderBare, screen } from "@testing-library/react";
 
 vi.mock("@/lib/components/charts/echartsRegistry", () => ({
   initChart: () => ({
@@ -227,13 +227,6 @@ describe("DataEdaSubsetPreview", () => {
     expect(screen.getByTestId("data-eda-subset-note")).toHaveTextContent(
       "Temperature has 40 bins, the first 10 are shown",
     );
-  });
-
-  it("hydrates the store", async () => {
-    render(<DataEdaSubsetPreview data={EDA_SUBSET_PREVIEW_FIXTURE} />);
-    await waitFor(() => {
-      expect(useEdaStore.getState().subsetPreview?.entityCounts[0]?.count).toBe(6);
-    });
   });
 });
 

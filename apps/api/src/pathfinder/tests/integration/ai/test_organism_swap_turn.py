@@ -33,7 +33,8 @@ from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_diff import CriterionChange

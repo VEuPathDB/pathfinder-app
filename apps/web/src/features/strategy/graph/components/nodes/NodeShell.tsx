@@ -11,7 +11,6 @@ import {
   stepSubtitle,
   stepTitle,
 } from "@/features/strategy/graph/utils/stepTitle";
-import { CornerDot } from "./CornerDot";
 import { HoverActions } from "./HoverActions";
 import { InlineRename } from "./InlineRename";
 import { ResultLabel } from "./ResultLabel";
@@ -24,7 +23,6 @@ type NodeShellProps = {
   kind: NodeKind;
   step: Step;
   selected: boolean;
-  isUnsaved: boolean;
   isOrphan?: boolean | undefined;
   width: number;
   height: number;
@@ -60,7 +58,6 @@ export function NodeShell({
   kind,
   step,
   selected,
-  isUnsaved,
   isOrphan = false,
   width,
   height,
@@ -77,9 +74,7 @@ export function NodeShell({
 }: NodeShellProps) {
   const hasError =
     snapshot.isInvalid || snapshot.isFailed || snapshot.wdkPushError != null;
-  // A step whose search metadata never loaded has no name to show.
   const name = stepTitle(step, kind);
-  const title = name === "" ? "Error" : name;
   const subtitle = stepSubtitle(step, kind);
   const reason = stepReason(step, kind);
   const isSyncing = snapshot.isBusy;
@@ -150,14 +145,12 @@ export function NodeShell({
         style={surfaceStyle}
         {...(surfaceClipDataAttr != null ? { "data-clip": surfaceClipDataAttr } : {})}
       >
-        {hasError ? (
+        {hasError && (
           <ValidationBanner
             step={step}
             snapshot={snapshot}
             onOpenDetails={onOpenDetails}
           />
-        ) : (
-          isUnsaved && <CornerDot variant="unsaved" />
         )}
         <span className="sr-only">{KIND_DOT_LABEL[kind]}</span>
         <HoverActions
@@ -187,7 +180,7 @@ export function NodeShell({
               title={name}
               data-testid="node-title"
             >
-              {title}
+              {name}
             </div>
           )}
           {subtitle !== "" && (

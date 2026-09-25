@@ -8,7 +8,7 @@ Create Date: 2026-04-26 14:30:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -21,11 +21,11 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column(
+        sqlalchemy.Column(
             "specialist_model_defaults",
             postgresql.JSONB(),
             nullable=False,
-            server_default=sa.text("'{}'::jsonb"),
+            server_default=sqlalchemy.text("'{}'::jsonb"),
         ),
     )
 

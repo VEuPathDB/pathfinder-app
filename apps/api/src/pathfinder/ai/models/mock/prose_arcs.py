@@ -20,7 +20,7 @@ CLASSIFY = "classify_user_intent"
 # Two sentences, no code, under the cap the off-topic validator holds.
 OFF_TOPIC_PROSE = (
     "PathFinder builds and checks search strategies on the VEuPathDB "
-    "databases, and runs EDA and exports on what they return. "
+    "sites, and runs EDA and exports on what they return. "
     "Ask me one of those and I will take it from there."
 )
 KINASE_PROSE = (

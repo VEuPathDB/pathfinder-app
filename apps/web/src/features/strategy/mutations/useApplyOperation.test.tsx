@@ -76,6 +76,43 @@ describe("useApplyOperation", () => {
     expect(harness.getStrategy("strategy-1")?.steps[0]?.displayName).toBe("Renamed");
   });
 
+  it("sends an edit while a step of the strategy fails its check", async () => {
+    const initial = makeStrategy([
+      step({
+        id: "a",
+        displayName: "A",
+        searchName: "GenesByTaxon",
+        recordType: "gene",
+      }),
+    ]);
+    const harness = makeQueryHarness(initial);
+    useStrategyStore.getState().setGraphValidationStatus("strategy-1", true);
+    const fix = {
+      kind: "updateStepParams" as const,
+      stepId: "a",
+      parameters: {
+        organism: {
+          type: "multi-pick-vocabulary" as const,
+          values: ["Plasmodium falciparum 3D7"],
+        },
+      },
+    };
+    applyOperationEndpointMock.mockResolvedValueOnce(initial);
+
+    const { result } = renderHook(() => useApplyOperation("strategy-1"), {
+      wrapper: harness.wrapper,
+    });
+    await act(async () => {
+      await result.current.mutateAsync({ op: fix });
+    });
+
+    expect(applyOperationEndpointMock).toHaveBeenCalledTimes(1);
+    expect(applyOperationEndpointMock.mock.calls[0]?.[1].op.kind).toBe(
+      "updateStepParams",
+    );
+    expect(toast.warning).not.toHaveBeenCalled();
+  });
+
   it("rolls back optimistic state on server error and stores lastFailedOperation", async () => {
     const initial = makeStrategy([
       step({ id: "a", displayName: "A", searchName: "geneById", recordType: "gene" }),

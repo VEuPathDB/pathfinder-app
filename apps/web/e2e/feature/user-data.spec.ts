@@ -1,5 +1,12 @@
 import { test, expect } from "../fixtures/test";
 import { MOCK_PLAN_PROMPT } from "../fixtures/mock-prompts";
+import {
+  type ApiClient,
+  type ConversationRow,
+  E2E_SITE_IDS,
+  listBody,
+  listConversations,
+} from "../fixtures/api-client";
 
 interface SeedFrame {
   type: string;
@@ -29,6 +36,17 @@ function seedFrames(body: string): SeedFrame[] {
     .map((line) => JSON.parse(line.slice("data: ".length)) as SeedFrame);
 }
 
+/** Every conversation of the calling user, on every site. */
+async function allConversations(apiClient: ApiClient): Promise<ConversationRow[]> {
+  return listBody(await apiClient.get("/api/v1/conversations"), "conversations");
+}
+
+/** The calling user's gene sets, on one site or on every site. */
+async function geneSets(apiClient: ApiClient, siteId?: string): Promise<unknown[]> {
+  const query = siteId === undefined ? "" : `?siteId=${siteId}`;
+  return listBody(await apiClient.get(`/api/v1/gene-sets${query}`), "gene sets");
+}
+
 /**
  * Feature: User data purge, verified against real PostgreSQL.
  *
@@ -56,12 +74,8 @@ test.describe("User Data Purge", () => {
     await chatPage.expectIdle();
 
     // Verify data exists
-    const beforeStrategies = await apiClient.get(
-      "/api/v1/conversations?siteId=plasmodb",
-    );
-    expect((await beforeStrategies.json()).length).toBeGreaterThan(0);
-    const beforeGeneSets = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    expect((await beforeGeneSets.json()).length).toBeGreaterThan(0);
+    expect((await listConversations(apiClient, "plasmodb")).length).toBeGreaterThan(0);
+    expect((await geneSets(apiClient, "plasmodb")).length).toBeGreaterThan(0);
 
     // Purge plasmodb data
     const purgeResp = await apiClient.delete("/api/v1/user/data?siteId=plasmodb");
@@ -72,12 +86,8 @@ test.describe("User Data Purge", () => {
     expect(result.deleted.geneSets).toBeGreaterThan(0);
 
     // Verify data is gone
-    const afterStrategies = await apiClient.get(
-      "/api/v1/conversations?siteId=plasmodb",
-    );
-    expect((await afterStrategies.json()).length).toBe(0);
-    const afterGeneSets = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    expect((await afterGeneSets.json()).length).toBe(0);
+    expect(await listConversations(apiClient, "plasmodb")).toHaveLength(0);
+    expect(await geneSets(apiClient, "plasmodb")).toHaveLength(0);
   });
 
   test("purge ALL data deletes across all sites", async ({
@@ -99,10 +109,8 @@ test.describe("User Data Purge", () => {
     await chatPage.expectAssistantMessage(/\[mock\]/);
 
     // Verify data on both sites
-    const plasmo = await apiClient.get("/api/v1/conversations?siteId=plasmodb");
-    expect((await plasmo.json()).length).toBeGreaterThan(0);
-    const toxo = await apiClient.get("/api/v1/conversations?siteId=toxodb");
-    expect((await toxo.json()).length).toBeGreaterThan(0);
+    expect((await listConversations(apiClient, "plasmodb")).length).toBeGreaterThan(0);
+    expect((await listConversations(apiClient, "toxodb")).length).toBeGreaterThan(0);
 
     // Purge ALL (no siteId)
     const purgeResp = await apiClient.delete("/api/v1/user/data");
@@ -112,22 +120,22 @@ test.describe("User Data Purge", () => {
     expect(result.deleted.strategies).toBeGreaterThanOrEqual(2);
 
     // Both sites empty (active list)
-    const afterPlasmo = await apiClient.get("/api/v1/conversations?siteId=plasmodb");
-    expect((await afterPlasmo.json()).length).toBe(0);
-    const afterToxo = await apiClient.get("/api/v1/conversations?siteId=toxodb");
-    expect((await afterToxo.json()).length).toBe(0);
+    expect(await listConversations(apiClient, "plasmodb")).toHaveLength(0);
+    expect(await listConversations(apiClient, "toxodb")).toHaveLength(0);
   });
 
   test("seed all databases then purge deletes everything on every site", async ({
     apiClient,
   }) => {
     test.setTimeout(300_000);
-    // Get ALL site IDs (including portal) so we can verify every single one.
-    const sitesResp = await apiClient.get("/api/v1/sites");
-    const sites = (await sitesResp.json()) as { id: string }[];
-    const allSiteIds = sites.map((s) => s.id);
+    // The walk covers the sites the e2e config serves, and the api lists no other.
+    const sites = await listBody<{ id: string }>(
+      await apiClient.get("/api/v1/sites"),
+      "sites",
+    );
+    expect(sites.map((s) => s.id).sort()).toEqual([...E2E_SITE_IDS].sort());
 
-    // Seed all databases — creates strategies + control sets across all sites.
+    // Seed all databases - creates strategies + control sets across all sites.
     const seedResp = await apiClient.post("/api/v1/seed", {
       headers: { Accept: "text/event-stream" },
       timeout: 300_000,
@@ -156,16 +164,12 @@ test.describe("User Data Purge", () => {
     // Verify: strategies exist. Their WDK ids are the purge's target set:
     // the shared account also holds strategies this run did not create, and
     // the purge must not touch those.
-    const beforeStrategies = await apiClient.get("/api/v1/conversations");
-    const beforeList = (await beforeStrategies.json()) as {
-      siteId?: string;
-      wdkStrategyId?: number;
-    }[];
+    const beforeList = await allConversations(apiClient);
     expect(beforeList.length).toBeGreaterThan(0);
     const strategiesBefore = beforeList.length;
     const ourWdkStrategies: { siteId: string; wdkStrategyId: number }[] = [];
     for (const conv of beforeList) {
-      if (conv.wdkStrategyId && conv.siteId) {
+      if (conv.wdkStrategyId != null) {
         ourWdkStrategies.push({
           siteId: conv.siteId,
           wdkStrategyId: conv.wdkStrategyId,
@@ -175,15 +179,12 @@ test.describe("User Data Purge", () => {
     expect(ourWdkStrategies.length).toBeGreaterThan(0);
 
     // Verify: gene sets exist
-    const beforeGs = await apiClient.get("/api/v1/gene-sets");
-    const beforeGsList = (await beforeGs.json()) as unknown[];
-    const geneSetsBefore = beforeGsList.length;
+    const geneSetsBefore = (await geneSets(apiClient)).length;
 
     // Verify: strategies exist on multiple sites (not just one)
     let sitesWithStrategies = 0;
-    for (const siteId of allSiteIds) {
-      const resp = await apiClient.get(`/api/v1/conversations?siteId=${siteId}`);
-      if (resp.ok() && ((await resp.json()) as unknown[]).length > 0) {
+    for (const siteId of E2E_SITE_IDS) {
+      if ((await listConversations(apiClient, siteId)).length > 0) {
         sitesWithStrategies++;
       }
     }
@@ -211,18 +212,17 @@ test.describe("User Data Purge", () => {
     expect(result.deleted.wdkStrategies).toBeGreaterThan(0);
 
     // Verify: ALL local strategies gone
-    const afterStrategies = await apiClient.get("/api/v1/conversations");
-    expect(((await afterStrategies.json()) as unknown[]).length).toBe(0);
+    expect(await allConversations(apiClient)).toHaveLength(0);
 
     // Verify: ALL gene sets gone
-    const afterGs = await apiClient.get("/api/v1/gene-sets");
-    expect(((await afterGs.json()) as unknown[]).length).toBe(0);
+    expect(await geneSets(apiClient)).toHaveLength(0);
 
     // Verify: dismissed list empty
-    const afterDismissed = await apiClient.get("/api/v1/conversations/dismissed");
-    if (afterDismissed.ok()) {
-      expect(((await afterDismissed.json()) as unknown[]).length).toBe(0);
-    }
+    const afterDismissed = await listBody(
+      await apiClient.get("/api/v1/conversations/dismissed"),
+      "dismissed conversations",
+    );
+    expect(afterDismissed).toHaveLength(0);
 
     // CRITICAL: every strategy this run created is gone from WDK itself, so
     // re-opening it by its WDK id is refused rather than re-imported.
@@ -238,18 +238,15 @@ test.describe("User Data Purge", () => {
 
     // Verify per-site: none of the purged strategies is listed anywhere.
     const purgedWdkIds = new Set(ourWdkStrategies.map((e) => e.wdkStrategyId));
-    for (const siteId of allSiteIds) {
-      const resp = await apiClient.get(`/api/v1/conversations?siteId=${siteId}`);
-      if (resp.ok()) {
-        const listed = (await resp.json()) as { wdkStrategyId?: number }[];
-        const survivors = listed.filter(
-          (conv) => conv.wdkStrategyId && purgedWdkIds.has(conv.wdkStrategyId),
-        );
-        expect(
-          survivors.length,
-          `purged strategies still listed on ${siteId} after purge`,
-        ).toBe(0);
-      }
+    for (const siteId of E2E_SITE_IDS) {
+      const listed = await listConversations(apiClient, siteId);
+      const survivors = listed.filter(
+        (conv) => conv.wdkStrategyId != null && purgedWdkIds.has(conv.wdkStrategyId),
+      );
+      expect(
+        survivors.length,
+        `purged strategies still listed on ${siteId} after purge`,
+      ).toBe(0);
     }
   });
 
@@ -271,9 +268,7 @@ test.describe("User Data Purge", () => {
     const strategy = await stratResp.json();
     expect(strategy.wdkStrategyId).toBeTruthy();
 
-    const gsResp = await apiClient.get("/api/v1/gene-sets");
-    const geneSets = await gsResp.json();
-    expect(geneSets.length).toBeGreaterThan(0);
+    expect((await geneSets(apiClient)).length).toBeGreaterThan(0);
 
     // Purge ALL data with deleteWdk=true to fully remove everything.
     const purgeResp = await apiClient.delete("/api/v1/user/data?deleteWdk=true");
@@ -288,11 +283,9 @@ test.describe("User Data Purge", () => {
     expect(afterStrat.status()).toBe(404);
 
     // Verify: gene sets gone
-    const afterGs = await apiClient.get("/api/v1/gene-sets");
-    expect((await afterGs.json()).length).toBe(0);
+    expect(await geneSets(apiClient)).toHaveLength(0);
 
     // Verify: strategy list empty
-    const afterList = await apiClient.get("/api/v1/conversations");
-    expect((await afterList.json()).length).toBe(0);
+    expect(await allConversations(apiClient)).toHaveLength(0);
   });
 });

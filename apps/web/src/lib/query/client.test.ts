@@ -119,10 +119,10 @@ describe("global query error handler", () => {
     const { client, notices } = setup();
     await runFailingQuery(
       client,
-      new APIError("study read failed", {
+      new APIError("figure read failed", {
         status: 500,
         statusText: "Internal Server Error",
-        url: "/api/v1/eda/studies/DS_e973eadd57",
+        url: "/api/v1/eda/viz?siteId=plasmodb&conversationId=conv-1",
         data: null,
       }),
       { shownInline: true },

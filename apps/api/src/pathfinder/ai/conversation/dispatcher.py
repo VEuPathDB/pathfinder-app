@@ -78,7 +78,7 @@ async def dispatch(
             conversation_id=body.conversation_id,
             turn_id=body.last_user_message_id,
             message_id=body.last_user_message_id,
-            parts=[{"type": "text", "text": body.last_user_text}],
+            parts=body.last_user_parts,
         )
 
     after = await latest_turn_boundary(body.conversation_id)

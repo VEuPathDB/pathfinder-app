@@ -88,7 +88,35 @@ describe("TaskRow", () => {
       />,
     );
     expect(screen.queryByTestId("task-row-elapsed")).toBeNull();
-    expect(screen.getByTestId("task-row-status")).toHaveTextContent("0%");
+    expect(screen.getByTestId("task-row").textContent).toBe("Run control testsQueued");
+  });
+
+  it("reads Queued, not 0%, before the task reports any progress", () => {
+    render(
+      <TaskRow
+        label="Run control tests"
+        percent={null}
+        message={null}
+        estimatedSeconds={120}
+        outcome="running"
+        error={null}
+      />,
+    );
+    expect(screen.getByTestId("task-row-status").textContent).toBe("Queued");
+  });
+
+  it("reads 0% once the task reports that it started at zero", () => {
+    render(
+      <TaskRow
+        label="Run control tests"
+        percent={0}
+        message="Querying the step"
+        estimatedSeconds={120}
+        outcome="running"
+        error={null}
+      />,
+    );
+    expect(screen.getByTestId("task-row-status").textContent).toBe("0%");
   });
 
   it("shows the tool's own line in place of Completed", () => {

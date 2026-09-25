@@ -25,7 +25,7 @@ export class ChatPage {
     this.messageInput = page.getByTestId("message-input");
     this.sendButton = page.getByTestId("send-button");
     this.stopButton = page.getByTestId("stop-button");
-    this.newChatButton = page.getByRole("button", { name: "New chat" });
+    this.newChatButton = page.getByRole("button", { name: "New conversation" });
     this.refreshConversationsButton = page.getByTestId("conversations-refresh-button");
     this.variantComparison = page.getByTestId("data-variant-comparison");
   }
@@ -147,8 +147,7 @@ export class ChatPage {
     return this.page.locator(".is-user");
   }
 
-  // ── Thread surgery: branching and reverting ─────────────────────
-
+  // Thread surgery: branching and reverting
   /** The one assistant reply that matches `pattern`. */
   assistantReply(pattern: RegExp): Locator {
     return this.assistantMessages.filter({ hasText: pattern });
@@ -174,7 +173,7 @@ export class ChatPage {
     );
     await reply.hover();
     await reply
-      .getByRole("button", { name: /branch to a new chat from here/i })
+      .getByRole("button", { name: /branch to a new conversation from here/i })
       .click();
     const fork = await forkResponse;
     if (!fork.ok()) {
@@ -228,8 +227,7 @@ export class ChatPage {
     return revertResponse;
   }
 
-  // ── Assertions ──────────────────────────────────────────────────
-
+  // Assertions
   /**
    * Wait until the turn ran and finished: it put a reply on the thread that
    * was not there before, and the composer takes Send back and accepts input.

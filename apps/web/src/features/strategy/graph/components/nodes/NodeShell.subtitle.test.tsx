@@ -39,7 +39,6 @@ function renderNode(step: Step) {
       kind="search"
       step={step}
       selected={false}
-      isUnsaved={false}
       width={168}
       height={80}
       snapshot={SNAPSHOT}

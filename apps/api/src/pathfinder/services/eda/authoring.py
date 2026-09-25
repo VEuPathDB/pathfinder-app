@@ -39,7 +39,6 @@ from pathfinder.services.eda.catalog import (
     resolve_dataset,
     unfiltered_entity_count,
 )
-from pathfinder.services.eda.description import variable_at
 
 _CONTINUOUS = "continuous"
 
@@ -129,15 +128,6 @@ def subset_errors(study: EdaStudyDetail, filters: Sequence[EdaFilter]) -> list[s
     return validate_filters(study, list(filters), declared_ranges(study))
 
 
-@dataclass(frozen=True, slots=True)
-class SubsetCount:
-    """A subset's size against the entity's whole size."""
-
-    entity_id: str
-    count: int
-    unfiltered_count: int
-
-
 def refuse_an_invalid_subset(
     study: EdaStudyDetail, filters: Sequence[EdaFilter]
 ) -> None:
@@ -145,32 +135,6 @@ def refuse_an_invalid_subset(
     errors = subset_errors(study, filters)
     if errors:
         raise SubsetRejectedError(errors)
-
-
-async def verified_count(
-    site_id: str,
-    *,
-    dataset_id: str,
-    entity_id: str,
-    filters: Sequence[EdaFilter],
-) -> SubsetCount:
-    """The service's own counts for this subset. Zero is a real answer.
-
-    An out-of-vocabulary value answers 200 with count 0 upstream, so the
-    predicates run first and a bad array is refused.
-    """
-    entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    refuse_an_invalid_subset(study, filters)
-    client = get_eda_client(site_id)
-    return SubsetCount(
-        entity_id=entity_id,
-        count=await client.count(
-            study_id=entry.study_id, entity_id=entity_id, filters=filters
-        ),
-        unfiltered_count=await client.count(
-            study_id=entry.study_id, entity_id=entity_id, filters=[]
-        ),
-    )
 
 
 async def subset_entity_counts(
@@ -303,7 +267,7 @@ def distribution_series(
     variable_display_name: str,
     is_multi_valued: bool,
 ) -> EdaDistributionSeries | None:
-    """One variable's histogram as both the part and the route carry it."""
+    """One variable's histogram as the subset preview part carries it."""
     if distribution is None or variable_id is None:
         return None
     statistics = distribution.statistics
@@ -317,41 +281,6 @@ def distribution_series(
         num_missing_cases=statistics.num_missing_cases,
         is_multi_valued=is_multi_valued,
     )
-
-
-async def variable_distribution(
-    site_id: str,
-    *,
-    dataset_id: str,
-    entity_id: str,
-    variable_id: str,
-    filters: Sequence[EdaFilter],
-) -> EdaDistributionSeries:
-    """One variable's histogram under this subset, as the charts read it."""
-    _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    preview = await preview_subset(
-        site_id,
-        dataset_id=dataset_id,
-        entity_id=entity_id,
-        filters=filters,
-        distribution_variable_id=variable_id,
-    )
-    facts = variable_at(study, entity_id, variable_id)
-    series = distribution_series(
-        preview.distribution,
-        variable_id=variable_id,
-        variable_display_name="" if facts is None else facts.display_name,
-        is_multi_valued=facts is not None and facts.is_multi_valued,
-    )
-    if series is None:
-        detail = (
-            "The study declares no such variable on this entity."
-            if facts is None
-            else f"{facts.display_name} is continuous, and a histogram needs a "
-            "number variable with a declared bin width."
-        )
-        raise ValidationError(title="No distribution for this variable", detail=detail)
-    return series
 
 
 class SubsetRejectedError(ValidationError):

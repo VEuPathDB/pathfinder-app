@@ -5,6 +5,8 @@ Provides:
 - ``get_download_url`` -- get a download URL for step results
 """
 
+import asyncio
+
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
@@ -22,6 +24,7 @@ from pathfinder.ai.tools.standalone._result_models import (
     _validate_download_url_inputs,
     _validate_sample_inputs,
 )
+from pathfinder.ai.tools.standalone._sample_attributes import sample_attributes
 from pathfinder.platform.errors import ErrorCode
 
 
@@ -81,6 +84,11 @@ async def get_download_url(
     )
 
 
+# A sample of a few rows answers in about a second; a site that takes longer
+# holds the whole check, which goes on without the sample instead.
+SAMPLE_DEADLINE_SECONDS = 20.0
+
+
 def _no_download(
     ctx: RunContext[AgentDeps],
     payload: ToolErrorPayload,
@@ -104,7 +112,8 @@ async def get_sample_records(
 
     The step must already be built in WDK. Returns the first N records - each
     with its id plus, for gene/transcript steps, the product description, gene
-    symbol, and organism - to show the user what data is available.
+    symbol, and organism - and the attributes the strategy's searches select
+    on, such as a transmembrane count, as the site states them.
 
     Args:
         wdk_step_id: WDK step ID. The step must be built in WDK first.
@@ -116,11 +125,30 @@ async def get_sample_records(
     graph = session.get_graph(None)
     record_type = (graph.record_type if graph is not None else None) or "transcript"
     try:
-        sample = await step_sample_records(
-            session.site_id,
-            wdk_step_id,
-            limit=limit,
-            attributes=gene_sample_attributes(record_type),
+        attributes = [
+            *(gene_sample_attributes(record_type) or []),
+            *await sample_attributes(session.site_id, record_type, graph),
+        ]
+        sample = await asyncio.wait_for(
+            step_sample_records(
+                session.site_id,
+                wdk_step_id,
+                limit=limit,
+                attributes=attributes or None,
+            ),
+            timeout=SAMPLE_DEADLINE_SECONDS,
+        )
+    except TimeoutError:
+        return with_summary(
+            tool_error(
+                ErrorCode.WDK_ERROR,
+                f"The site did not answer the sample of step {wdk_step_id} within "
+                f"{SAMPLE_DEADLINE_SECONDS} s. Go on without it and say that the "
+                f"genes were not sampled.",
+            ),
+            f"No sample records from step {wdk_step_id}",
+            ctx=ctx,
+            status="warn",
         )
     except (VEuPathDBError, OSError) as exc:
         return with_summary(

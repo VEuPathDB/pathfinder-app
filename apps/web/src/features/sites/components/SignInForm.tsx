@@ -7,7 +7,7 @@ import {
   getVeupathdbAuthStatus,
   loginVeupathdb,
 } from "@/lib/api/veupathdb-auth";
-import { siteUnavailableRefusal } from "@/lib/api/errors";
+import { siteUnavailableRefusal, toUserMessage } from "@/lib/api/errors";
 import { SiteUnavailableNotice } from "@/features/sites/components/SiteUnavailableNotice";
 import { useSessionStore } from "@/state/useSessionStore";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,10 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
       setRefusal(
         siteUnavailableRefusal(err) !== null
           ? { kind: "site-unavailable" }
-          : { kind: "message", text: "Login failed. Please try again." },
+          : {
+              kind: "message",
+              text: toUserMessage(err, "Login failed. Please try again."),
+            },
       );
     } finally {
       setAuthBusy(false);

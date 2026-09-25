@@ -25,7 +25,7 @@ from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from pathfinder.devtools.provider_refusals import load_recorded
+from pathfinder.devtools.provider_refusals import ProviderRefusal, load_refusal
 from pathfinder.domain.provider_keys import KeyableProvider
 
 ANSWER_TEXT = "Plasmodium kinases answered."
@@ -43,14 +43,13 @@ def allow_requests_to_the_wire(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(models, "ALLOW_MODEL_REQUESTS", True)
 
 
-def refusal_on_the_wire(provider: KeyableProvider) -> JsonValue:
-    """The recorded refusal as the provider sent it.
+def refusal_on_the_wire(refusal: ProviderRefusal) -> JsonValue:
+    """The refusal as the provider sends it.
 
     pydantic-ai hands over the ``error`` object of an OpenAI answer and the
     whole body of the other two.
     """
-    body = load_recorded(provider).body
-    return {"error": body} if provider == "openai" else body
+    return {"error": refusal.body} if refusal.provider == "openai" else refusal.body
 
 
 def _openai_response(model: str) -> Response:
@@ -129,12 +128,13 @@ def openai_stream(model: str) -> bytes:
 class ProviderWire:
     """Builds real providers on a transport that records every request.
 
-    ``refuse`` answers each request with the provider's recorded refusal and
-    ``status`` with that status and no body; otherwise an OpenAI request gets
-    a finished answer.
+    ``refuse`` answers each request with the provider's ``refused_by`` fixture
+    and ``status`` with that status and no body; otherwise an OpenAI request
+    gets a finished answer.
     """
 
     refuse: bool = False
+    refused_by: str = "invalid-key"
     status: int | None = None
     requests: list[httpx2.Request] = field(default_factory=list)
 
@@ -143,9 +143,8 @@ class ProviderWire:
     ) -> httpx2.Response:
         self.requests.append(request)
         if self.refuse:
-            return httpx2.Response(
-                load_recorded(provider).status, json=refusal_on_the_wire(provider)
-            )
+            refusal = load_refusal(f"{provider}-{self.refused_by}")
+            return httpx2.Response(refusal.status, json=refusal_on_the_wire(refusal))
         if self.status is not None:
             return httpx2.Response(self.status)
         requested = _Requested.model_validate_json(request.content)

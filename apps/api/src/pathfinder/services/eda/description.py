@@ -1,4 +1,4 @@
-"""How a study is described. One derivation, read by the tools and the tab."""
+"""How a study is described. One derivation, read by the agent's tools."""
 
 from __future__ import annotations
 
@@ -14,9 +14,15 @@ from veupathdb.domain import (
     variable_by_id,
     walk_entities,
 )
-from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
+from veupathdb.eda import (
+    EdaAnalysisDescriptor,
+    EdaPermissionEntry,
+    EdaStudyDetail,
+    EdaVariableSpec,
+    differential_expression_computations,
+)
 
-from pathfinder.domain.eda_parts import EdaFilterType
+from pathfinder.domain.eda_parts import EdaComputeSummary, EdaFilterType
 from pathfinder.platform.errors import NotFoundError
 
 _VOCABULARY_SHOWN = 40
@@ -68,7 +74,7 @@ class EdaEntityOut(CamelModel):
 
 
 class StudyDescription(CamelModel):
-    """A study's shape, as both the agent and the tab read it."""
+    """A study's shape, as the agent's tools read it."""
 
     dataset_id: str
     study_id: str
@@ -422,3 +428,27 @@ def filter_summaries(
         key = (facts.entity_id, facts.variable_id)
         summaries.append(_summary(facts, display_names.get(key, facts.variable_id)))
     return summaries
+
+
+def compute_summary(
+    descriptor: EdaAnalysisDescriptor,
+    *,
+    display_names: Mapping[tuple[str, str], str],
+) -> EdaComputeSummary | None:
+    """The analysis's comparison in the study's own words, or None when it has none."""
+    computations = differential_expression_computations(descriptor)
+    if not computations:
+        return None
+    config = computations[0].descriptor.configuration
+
+    def named(spec: EdaVariableSpec) -> str:
+        return display_names.get((spec.entity_id, spec.variable_id), spec.variable_id)
+
+    return EdaComputeSummary(
+        method=config.differential_expression_method,
+        identifier_variable=named(config.identifier_variable),
+        value_variable=named(config.value_variable),
+        comparator_variable=named(config.comparator.variable),
+        group_a=[group.label for group in config.comparator.group_a],
+        group_b=[group.label for group in config.comparator.group_b],
+    )

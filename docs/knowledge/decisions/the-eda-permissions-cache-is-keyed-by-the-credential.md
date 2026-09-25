@@ -18,9 +18,17 @@ EDA client raises for the same request anyway. The map is capped at 512
 entries and dropped whole when the cap is reached, beside the other
 module-level catalog maps.
 
-`studies` stays keyed by the site alone. The `/eda/studies` listing is the
-same for every account, and only `permissions` decides what an account may
-read.
+`studies` stays keyed by the site alone, and holds curated rows only. The
+`/eda/studies` listing answers for the calling account: it adds the studies
+that account owns or was shared (`service-eda: StudiesService.java:70-88`), so
+`list_studies` drops every row whose `sourceType` is not `curated` before the
+map is shared, and only `permissions` decides what an account may read.
+
+A study the account installs after its map was read is absent from that map.
+`refresh_permissions(site_id)` drops this credential's entry, so the next read
+asks again. Only the listing of the researcher's own uploads calls it, once per
+listing, when VDI reports an installed dataset the map lacks; a guessed id
+never costs a re-read.
 
 # What was rejected
 

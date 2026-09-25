@@ -156,6 +156,8 @@ async def test_a_sweep_records_each_setting_it_scored() -> None:
             SweepVariantResult(variant_id="v1", status="failed", error="WDK refused"),
         ],
         best=None,
+        search_name="GenesWithSignalPeptide",
+        objective="f1",
     )
     deps.state.durable_result = DurableTaskResult(
         task_id=_TASK_ID,

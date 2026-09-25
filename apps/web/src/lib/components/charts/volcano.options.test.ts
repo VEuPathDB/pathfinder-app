@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DISTINCT_CHART_TOKENS } from "./__fixtures__/chartTokens";
 import { buildVolcanoOption, volcanoPointY } from "./volcano.options";
-import { VOLCANO_POINT_SAMPLE } from "@/lib/eda/volcanoSelection";
+import { VOLCANO_POINT_SAMPLE } from "@/lib/eda/__fixtures__/volcanoSample";
 
 const args = {
   points: VOLCANO_POINT_SAMPLE,
@@ -11,7 +11,6 @@ const args = {
     significanceThreshold: 0.05,
     direction: "upAndDown" as const,
   },
-  significanceField: "adjustedPValue" as const,
   effectSizeLabel: "log2(Fold Change)",
   tokens: DISTINCT_CHART_TOKENS,
 };
@@ -55,15 +54,19 @@ describe("buildVolcanoOption", () => {
       "Higher in 24h pbm",
     ]);
     expect(option.ariaLabel).toBe(
-      "Volcano plot, Higher in 18h pbm, 36h pbm (1) and Higher in 24h pbm (1)",
+      "Volcano plot, Higher in 18h pbm, 36h pbm (2) and Higher in 24h pbm (1)",
     );
   });
 
   it("puts each qualifying gene in its own series with the right point count", () => {
     const option = buildVolcanoOption(args);
-    expect(option.series[0]?.data).toHaveLength(3);
-    expect(option.series[1]?.data).toHaveLength(1);
-    expect(option.series[2]?.data).toHaveLength(1);
+    expect(option.series.map((series) => series.data.map((point) => point[2]))).toEqual(
+      [
+        ["PF3D7_0100100", "PF3D7_0100500"],
+        ["PF3D7_0100200", "PF3D7_0100400"],
+        ["PF3D7_0100300"],
+      ],
+    );
   });
 
   it("carries the gene id on the point so the tooltip can name it", () => {

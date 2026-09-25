@@ -10,7 +10,7 @@ Revises: 2026_08_28_0001
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -23,20 +23,22 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.create_table(
         "conversation_analyses",
-        sa.Column(
+        sqlalchemy.Column(
             "conversation_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="CASCADE"),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="CASCADE"),
             primary_key=True,
         ),
-        sa.Column("site_id", sa.String(50), nullable=False),
-        sa.Column("dataset_id", sa.String(100), nullable=False),
-        sa.Column("analysis_id", sa.String(100), nullable=False),
-        sa.Column("revision", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column(
+        sqlalchemy.Column("site_id", sqlalchemy.String(50), nullable=False),
+        sqlalchemy.Column("dataset_id", sqlalchemy.String(100), nullable=False),
+        sqlalchemy.Column("analysis_id", sqlalchemy.String(100), nullable=False),
+        sqlalchemy.Column(
+            "revision", sqlalchemy.Integer(), nullable=False, server_default="0"
+        ),
+        sqlalchemy.Column(
             "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
     )

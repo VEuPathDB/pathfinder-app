@@ -8,7 +8,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_count import MAX_LISTED_OPTIONS
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import summary_of
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -115,7 +115,7 @@ async def test_a_parameter_with_one_value_offers_no_choice_and_says_nothing(
 
     assert returned(call, SetCriterionResult).alternatives == []
     assert summary_of(call).data["summary"] == (
-        "c1 set to RecordsBySource, 0 transcripts, sets source"
+        "c1 set to RecordsBySource, 0 genes, sets source"
     )
 
 
@@ -213,7 +213,7 @@ async def test_a_binding_that_matched_records_gains_nothing(
 
     assert returned(call, SetCriterionResult).alternatives == []
     assert summary_of(call).data["summary"] == (
-        "c1 set to RecordsByMethod, 12 transcripts, sets method_version"
+        "c1 set to RecordsByMethod, 12 genes, sets method_version"
     )
 
 
@@ -248,7 +248,7 @@ async def test_the_summary_line_says_where_the_choices_are(
 
     chunk = summary_of(call)
     assert chunk.data["summary"] == (
-        "c1 set to RecordsByMethod, 0 transcripts; method_version has 3 options, "
+        "c1 set to RecordsByMethod, 0 genes; method_version has 3 options, "
         "sets method_version"
     )
     assert chunk.data["status"] == "empty"

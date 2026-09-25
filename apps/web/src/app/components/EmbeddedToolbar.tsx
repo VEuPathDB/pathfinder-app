@@ -20,7 +20,7 @@ export function EmbeddedToolbar({ siteId, onOpenSettings }: EmbeddedToolbarProps
     <div className="flex items-center justify-end gap-1 border-b border-border bg-background px-3 py-1">
       <Link
         href={chatRoot(siteId)}
-        aria-label="Go to Chat"
+        aria-label="Go to conversation"
         aria-current={chatActive ? "page" : undefined}
         className={
           chatActive
@@ -29,7 +29,7 @@ export function EmbeddedToolbar({ siteId, onOpenSettings }: EmbeddedToolbarProps
         }
       >
         <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-        Chat
+        Conversation
       </Link>
       <div className="mx-1 h-4 w-px bg-border" />
       <Button

@@ -88,7 +88,7 @@ def test_the_empty_index_carries_this_products_coaching() -> None:
     )
 
     assert rendered == (
-        "## Scratchpad (empty)\n"
+        "## Notes (empty)\n"
         "\n"
         "No notes yet.\n"
         "\n"
@@ -111,7 +111,7 @@ def test_a_populated_index_ends_with_the_rule_this_product_states() -> None:
     )
 
     assert rendered == (
-        "## Scratchpad (1 notes, 0 pinned)\n"
+        "## Notes (1 notes, 0 pinned)\n"
         "### Recent\n"
         "  [n_1] GO:0004672 reaches 105 kinases\n"
         "             the kinase criterion\n"

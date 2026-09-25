@@ -1,20 +1,26 @@
 """What a thread did between its last answer and the turn now opening.
 
-The durable tasks that finished, and how far the open analysis has moved past
-the card the thread shows. What moved on the strategy is read from the tree
-the thread's spec answers to, not from a snapshot.
+The durable tasks that finished, and whether the open analysis moved past the
+card the thread shows. What moved on the strategy is read from the tree the
+thread's spec answers to, not from a snapshot.
 """
 
 from __future__ import annotations
 
 from uuid import UUID
 
+import httpx
 from assistant_core.persistence.models import BackgroundTask, ConversationEvent, Message
+from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic.alias_generators import to_camel
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.errors import VEuPathDBError
 
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.persistence.repositories.conversation_analysis import read_analysis_row
+from pathfinder.services.eda.binding import read_analysis
 
 __all__ = [
     "AnalysisDrift",
@@ -22,6 +28,8 @@ __all__ = [
     "ThreadActivity",
     "read_thread_activity",
 ]
+
+logger = get_logger(__name__)
 
 _ANALYSIS_STATE_CHUNK = "data-eda.analysis-state"
 _FINISHED_TASK_STATUSES = ("complete", "failed")
@@ -37,12 +45,14 @@ class FinishedTask(BaseModel):
 
 
 class AnalysisDrift(BaseModel):
-    """How many mutations the open analysis has taken past the shown card."""
+    """The open analysis changed after the card the thread shows.
+
+    A change through the tools and a change made on the site read the same.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     dataset_id: str
-    revisions_ahead: int
 
 
 class ThreadActivity(BaseModel):
@@ -55,9 +65,13 @@ class ThreadActivity(BaseModel):
 
 
 class _ShownAnalysis(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    """The analysis the newest card names; the defaults are a thread with none."""
 
+    model_config = ConfigDict(extra="ignore", alias_generator=to_camel)
+
+    analysis_id: str | None = None
     revision: int = 0
+    modification_time: str | None = None
 
     @field_validator("revision", mode="before")
     @classmethod
@@ -118,18 +132,49 @@ async def _analysis_drift(
     session: AsyncSession,
     conversation_id: UUID,
 ) -> AnalysisDrift | None:
-    """How far the bound analysis has moved past the card the thread shows."""
+    """Whether the bound analysis moved past the card the thread shows."""
     bound = await read_analysis_row(session, conversation_id=conversation_id)
     if bound is None:
         return None
-    ahead = bound.revision - await _shown_revision(session, conversation_id)
-    if ahead <= 0:
+    shown = await _shown_analysis(session, conversation_id)
+    if not await _moved_past(bound, shown):
         return None
-    return AnalysisDrift(dataset_id=bound.dataset_id, revisions_ahead=ahead)
+    return AnalysisDrift(dataset_id=bound.dataset_id)
 
 
-async def _shown_revision(session: AsyncSession, conversation_id: UUID) -> int:
-    """The analysis revision the newest state card on the thread carries."""
+async def _moved_past(bound: ConversationAnalysisView, shown: _ShownAnalysis) -> bool:
+    """A card of another document, a mutation it has not shown, or a new stamp.
+
+    The document is read only when the binding alone cannot tell.
+    """
+    if shown.analysis_id not in (None, bound.analysis_id):
+        return True
+    if bound.revision > shown.revision:
+        return True
+    if shown.modification_time is None:
+        return False
+    stamped = await _modification_time(bound)
+    return stamped is not None and stamped != shown.modification_time
+
+
+async def _modification_time(bound: ConversationAnalysisView) -> str | None:
+    """The stamp the service holds on the document, or None when it cannot answer."""
+    try:
+        document = await read_analysis(bound.site_id, analysis_id=bound.analysis_id)
+    except (VEuPathDBError, httpx.HTTPError) as exc:
+        logger.warning(
+            "the open analysis could not be read for the turn briefing",
+            analysis_id=bound.analysis_id,
+            error=str(exc),
+        )
+        return None
+    return document.modification_time or None
+
+
+async def _shown_analysis(
+    session: AsyncSession, conversation_id: UUID
+) -> _ShownAnalysis:
+    """The analysis the newest state card on the thread carries."""
     chunk = await session.scalar(
         select(ConversationEvent.chunk)
         .where(
@@ -140,5 +185,5 @@ async def _shown_revision(session: AsyncSession, conversation_id: UUID) -> int:
         .limit(1),
     )
     if chunk is None:
-        return 0
-    return _AnalysisStateChunk.model_validate(chunk).data.revision
+        return _ShownAnalysis()
+    return _AnalysisStateChunk.model_validate(chunk).data

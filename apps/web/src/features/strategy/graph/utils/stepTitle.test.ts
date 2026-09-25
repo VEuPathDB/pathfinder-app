@@ -1,14 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Step } from "@pathfinder/shared";
-import {
-  operatorName,
-  reasonDetail,
-  stepReason,
-  stepSubtitle,
-  stepTitle,
-} from "./stepTitle";
-
-import fixture from "../../../../../../../packages/spec/operations_parity.json";
+import { reasonDetail, stepReason, stepSubtitle, stepTitle } from "./stepTitle";
 
 const WDK_DEFAULT = "boolean_question_TranscriptRecordClasses_TranscriptRecordClass";
 
@@ -25,21 +17,13 @@ function combineStep(displayName: string, searchName = "__combine__"): Step {
   };
 }
 
-describe("operatorName", () => {
-  test("names every operator the way the api names its combine", () => {
-    const labels = Object.fromEntries(
-      Object.keys(fixture.combine_labels).map((op) => [op, operatorName(op)]),
-    );
-
-    expect(labels).toEqual(fixture.combine_labels);
-  });
-});
-
 describe("stepTitle", () => {
   test.each([
     ["", "__combine__"],
     [WDK_DEFAULT, WDK_DEFAULT],
     ["Intersect", "__combine__"],
+    ["Minus (reversed)", "__combine__"],
+    ["Colocated", "__combine__"],
   ])("a combine named %j under %j shows its operator", (name, search) => {
     expect(stepTitle(combineStep(name, search), "combine")).toBe("Union");
   });
@@ -118,6 +102,29 @@ describe("stepReason", () => {
     expect(chosen.rationale != null && reasonDetail(chosen.rationale)).toBe(
       "no search states a GPI anchor; Exported Protein scored nearest " +
         "(over Gene Text Search 0.41, Predicted Signal Peptide)",
+    );
+  });
+
+  test("a measured step's detail is its counts, its size and its basis", () => {
+    expect(
+      reasonDetail({
+        kind: "controls",
+        taskId: "0c6100d2-0000-4000-8000-00000000a16a",
+        searchName: "GenesByGoTerm",
+        source: "enrichment",
+        basis: "GO:0044217 other organism part",
+        informs: "recovering",
+        recovered: 42,
+        positives: 80,
+        admitted: 0,
+        negatives: 40,
+        resultSize: 637,
+        term: "42 of 80 positives",
+        short: "recovers 42 of 80 positives, admits 0 of 40 negatives",
+      }),
+    ).toBe(
+      "chosen by the controls: recovers 42 of 80 positives, admits 0 of 40 " +
+        "negatives, 637 genes (GO:0044217 other organism part)",
     );
   });
 

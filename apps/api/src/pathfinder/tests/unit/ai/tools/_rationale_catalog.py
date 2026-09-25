@@ -16,10 +16,14 @@ from veupathdb_mcp.catalog import ParameterInfo, SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.catalog import search_for_searches
-from pathfinder.ai.tools.standalone.frame_spec import SetCriterionResult, set_criterion
+from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+from pathfinder.tests.unit.ai.tools.conftest import (
+    agent_run_context,
+    serve_no_other_sites,
+)
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
     param_info,
@@ -124,6 +128,7 @@ async def read(
     monkeypatch.setattr(
         catalog, "search_for_searches", AsyncMock(return_value=list(matches))
     )
+    serve_no_other_sites(monkeypatch)
     await search_for_searches(
         agent_run_context(agent_state=state, tool_call_id=call), query=query
     )

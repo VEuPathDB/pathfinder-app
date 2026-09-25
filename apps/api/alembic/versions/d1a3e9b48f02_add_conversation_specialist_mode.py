@@ -8,7 +8,7 @@ Create Date: 2026-04-26 12:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -21,7 +21,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "conversations",
-        sa.Column("specialist_mode", postgresql.JSONB(), nullable=True),
+        sqlalchemy.Column("specialist_mode", postgresql.JSONB(), nullable=True),
     )
 
 

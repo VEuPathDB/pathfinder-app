@@ -10,10 +10,10 @@ from decimal import Decimal
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
-from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from veupathdb.domain.strategy import StrategyAst, walk
+from veupathdb.errors import SiteNotFoundError
 from veupathdb.wdk import get_site
 
 from pathfinder.domain.strategy.revision import (
@@ -29,8 +29,6 @@ from pathfinder.services.strategies.schemas import (
     StepResponse,
     step_response_from_strategy_ast,
 )
-
-logger = get_logger(__name__)
 
 
 class StepRecord(CamelModel):
@@ -85,17 +83,12 @@ class ConversationResponse(CamelModel):
 def _compute_wdk_url(site_id: str, wdk_strategy_id: int | None) -> str | None:
     if wdk_strategy_id is None or not site_id:
         return None
+    # A thread on a site this deployment no longer serves still lists.
     try:
         site = get_site(site_id)
-        return site.strategy_url(wdk_strategy_id)
-    except (KeyError, ValueError) as exc:
-        logger.debug(
-            "Failed to compute WDK URL for strategy",
-            site_id=site_id,
-            wdk_strategy_id=wdk_strategy_id,
-            error=str(exc),
-        )
+    except SiteNotFoundError:
         return None
+    return site.strategy_url(wdk_strategy_id)
 
 
 def derive_steps_from_strategy_ast(payload: StrategyAst | None) -> list[StepResponse]:

@@ -77,7 +77,7 @@ which of the twenty-four a caller took.
 
 What an upper layer calls instead is a function that holds a client for the
 length of one call - `step_sample_records`, `step_download_url`,
-`step_results_service`, `start_veupathdb_session`, `end_veupathdb_session` - and
+`start_veupathdb_session`, `end_veupathdb_session` - and
 those functions are now `veupathdb_mcp.wdk`, a distribution of its own. See
 [the service-layer decision](../../decisions/the-wdk-service-layer-holds-functions-not-re-exports.md).
 

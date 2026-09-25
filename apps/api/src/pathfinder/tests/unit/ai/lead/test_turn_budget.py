@@ -354,3 +354,15 @@ def test_a_split_strategy_out_of_date_cites_no_link() -> None:
         "The strategy holds 2 steps. The strategy changed on VEuPathDB after this "
         "conversation built it, so the count recorded here is out of date."
     )
+
+
+def test_a_budget_stop_counts_a_pathway_strategy_in_pathways() -> None:
+    session = built_session()
+    assert session.graph is not None
+    session.graph.record_type = "pathway"
+
+    report = _report(built(), None, session)
+
+    assert report.startswith(
+        f'The strategy holds 1 step; the final step "{TITLE}" returns 70 pathways.'
+    )

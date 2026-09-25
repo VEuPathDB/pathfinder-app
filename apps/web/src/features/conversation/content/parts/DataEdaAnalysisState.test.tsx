@@ -97,7 +97,7 @@ describe("DataEdaAnalysisState", () => {
     });
     const state = useEdaStore.getState();
     expect(state.analysis?.revision).toBe(3);
-    expect(state.analysis?.filters).toHaveLength(2);
+    expect(state.analysis?.filterSummaries).toHaveLength(2);
     expect(state.binding).toEqual({
       siteId: "plasmodb",
       datasetId: "DS_e973eadd57",
@@ -112,9 +112,12 @@ describe("DataEdaAnalysisState", () => {
     await waitFor(() => {
       expect(useEdaStore.getState().analysis?.revision).toBe(3);
     });
-    useEdaStore.getState().setLocalFilters([]);
+    useEdaStore
+      .getState()
+      .applyAnalysisState({ ...EDA_ANALYSIS_STATE_FIXTURE, displayName: "Renamed" });
     rerender(<DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />);
-    expect(useEdaStore.getState().localFilters).toEqual([]);
+    await Promise.resolve();
+    expect(useEdaStore.getState().analysis?.displayName).toBe("Renamed");
   });
 });
 

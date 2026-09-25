@@ -170,6 +170,28 @@ describe("ProviderKeySettings", () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    [
+      "no_credit",
+      "...WXYZ: This key has no credit. Add credit to the OpenAI account, or replace the key.",
+    ],
+    [
+      "forbidden",
+      "...WXYZ is not permitted by OpenAI to run its models. Replace it or remove it.",
+    ],
+  ])("says why a key refused as %s cannot pay", async (refusal, sentence) => {
+    listing = {
+      enabled: true,
+      keys: [
+        { ...STORED, status: "refused", refusal, refusedAt: "2026-09-24T09:00:00Z" },
+      ],
+      payers: {},
+    };
+    renderTab();
+
+    expect(await screen.findByText(sentence)).toBeInTheDocument();
+  });
+
   it("says so when the deployment takes no personal key", async () => {
     listing = { enabled: false, keys: [], payers: { openai: "deployment" } };
     renderTab();

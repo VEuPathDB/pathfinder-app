@@ -6,10 +6,11 @@ from assistant_core.scratchpad.models import NoteCreate
 from pydantic import ValidationError
 
 from pathfinder.ai.agents.compactor import build_compactor_agent
+from pathfinder.ai.capabilities.metering import SpendMeter
 
 
 def test_build_returns_agent_with_output_type() -> None:
-    agent = build_compactor_agent(model_id=None)
+    agent = build_compactor_agent(meter=SpendMeter(), model_id=None)
     assert agent.output_type is CompactionResult
 
 

@@ -45,7 +45,7 @@ export function BranchMessageAction() {
 
   return (
     <MessageAction
-      tooltip="Branch to a new chat from here"
+      tooltip="Branch to a new conversation from here"
       onClick={() => mutation.mutate()}
       disabled={mutation.isPending}
     >

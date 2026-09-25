@@ -194,3 +194,21 @@ async def test_a_refusal_found_in_a_turn_stands_until_the_key_is_replaced(
     assert await key_statuses(db_session, user.id) == KeyStatuses(
         active=frozenset({"openai"})
     )
+
+
+@pytest.mark.usefixtures("_sealed", "patch_app_db_engine")
+@pytest.mark.parametrize("refusal", [KeyRefusal.NO_CREDIT, KeyRefusal.FORBIDDEN])
+async def test_a_key_refused_for_its_credit_or_permissions_lists_why(
+    db_session: AsyncSession, refusal: KeyRefusal
+) -> None:
+    user = await make_user(db_session)
+    await store_key(db_session, user.id, "anthropic", SecretStr(_SENTINEL))
+    await db_session.commit()
+
+    await record_refusals(user.id, {"anthropic": refusal})
+
+    [view] = await list_keys(db_session, user.id)
+    assert (view.status, view.refusal) == ("refused", refusal)
+    assert await key_statuses(db_session, user.id) == KeyStatuses(
+        refused={"anthropic": refusal}
+    )

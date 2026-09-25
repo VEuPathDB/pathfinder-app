@@ -19,7 +19,7 @@
   },
   {
     "data": {
-      "label": "Recalling earlier work and reading the thread",
+      "label": "Recalling earlier work and reading the conversation",
       "waitingOnLlm": false
     },
     "type": "data-turn-status"

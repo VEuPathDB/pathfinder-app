@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SettingsTab } from "@/features/settings/types";
+import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 
 interface ModalState {
   showSettings: boolean;
@@ -17,20 +18,31 @@ export function useModalState(): ModalState {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("model");
   const [graphEditing, setGraphEditing] = useState(false);
+  // A memory the thread focuses holds the modal open on the memory tab.
+  const memoryFocused = useMemoryFocusStore((s) => s.focused !== null);
+  const clearFocus = useMemoryFocusStore((s) => s.clearFocus);
 
   const openSettings = (tab?: SettingsTab) => {
     if (tab !== undefined) setSettingsTab(tab);
     setShowSettings(true);
   };
-  const closeSettings = () => setShowSettings(false);
+  const changeSettingsTab = (tab: SettingsTab) => {
+    if (memoryFocused) setShowSettings(true);
+    clearFocus();
+    setSettingsTab(tab);
+  };
+  const closeSettings = () => {
+    clearFocus();
+    setShowSettings(false);
+  };
   const openGraphEditor = () => setGraphEditing(true);
   const closeGraphEditor = () => setGraphEditing(false);
 
   return {
-    showSettings,
-    settingsTab,
+    showSettings: showSettings || memoryFocused,
+    settingsTab: memoryFocused ? "memory" : settingsTab,
     openSettings,
-    setSettingsTab,
+    setSettingsTab: changeSettingsTab,
     closeSettings,
     graphEditing,
     openGraphEditor,

@@ -173,9 +173,7 @@ describe("AppShellLayout on a site that does not answer", () => {
   it("keeps the nav rail with its marker and replaces the content with the notice", () => {
     draw("veupathdb");
 
-    expect(
-      screen.getByLabelText("Couldn't reach VEuPathDB Portal (All organisms)"),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Couldn't reach VEuPathDB")).toBeInTheDocument();
     expect(screen.getByTestId("site-trigger-degraded")).toBeInTheDocument();
     expect(screen.getByTestId("site-unavailable-notice")).toBeInTheDocument();
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
@@ -184,7 +182,7 @@ describe("AppShellLayout on a site that does not answer", () => {
   it("draws neither the marker nor the notice on a site that answers", () => {
     draw("plasmodb");
 
-    expect(screen.getByLabelText("Switch database")).toBeInTheDocument();
+    expect(screen.getByLabelText("Switch site")).toBeInTheDocument();
     expect(screen.queryByTestId("site-trigger-degraded")).not.toBeInTheDocument();
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
@@ -248,11 +246,11 @@ describe("AppShellLayout when the sign-in status is refused", () => {
     await drawWithoutStatus();
 
     expect(await screen.findByTestId("site-unavailable-notice")).toBeInTheDocument();
-    expect(screen.getByLabelText("Switch database")).toBeInTheDocument();
+    expect(screen.getByLabelText("Switch site")).toBeInTheDocument();
     expect(screen.getByTestId("conversation-sidebar")).toBeInTheDocument();
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
     expect(screen.queryByText("Application error")).not.toBeInTheDocument();
-    expect(screen.queryByText("Try another database:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Try another site:")).not.toBeInTheDocument();
   });
 
   it("keeps the application error for a 500", async () => {

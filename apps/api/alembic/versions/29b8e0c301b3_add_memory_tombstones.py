@@ -8,7 +8,7 @@ Create Date: 2026-04-14 12:49:13.185516
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 # revision identifiers, used by Alembic.
@@ -22,33 +22,33 @@ def upgrade() -> None:
     """Upgrade schema."""
     op.create_table(
         "memory_tombstones",
-        sa.Column(
+        sqlalchemy.Column(
             "id",
-            sa.Integer,
+            sqlalchemy.Integer,
             primary_key=True,
             autoincrement=True,
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "user_id",
-            sa.CHAR(36),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            sqlalchemy.CHAR(36),
+            sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("kind", sa.String(32), nullable=False),
-        sa.Column("content_hash", sa.String(64), nullable=False),
-        sa.Column(
+        sqlalchemy.Column("kind", sqlalchemy.String(32), nullable=False),
+        sqlalchemy.Column("content_hash", sqlalchemy.String(64), nullable=False),
+        sqlalchemy.Column(
             "reason",
-            sa.String(32),
+            sqlalchemy.String(32),
             nullable=False,
             server_default="user_deleted",
         ),
-        sa.Column(
+        sqlalchemy.Column(
             "deleted_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
+            sqlalchemy.DateTime(timezone=True),
+            server_default=sqlalchemy.func.now(),
             nullable=False,
         ),
-        sa.UniqueConstraint(
+        sqlalchemy.UniqueConstraint(
             "user_id",
             "kind",
             "content_hash",

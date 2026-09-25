@@ -101,7 +101,7 @@ test.describe("EDA data parts render in the thread", () => {
     await expect(volcano).toBeVisible();
     await expect(volcano.locator("canvas")).toBeVisible();
     await expect(page.getByTestId("eda-viz-volcano-selection")).toContainText(
-      "1 gene selected at these thresholds - 1 of 3 retained by the compute",
+      "1 gene selected at these thresholds - 1 of 3 retained by the comparison",
     );
     await expect(page.getByTestId("eda-viz-volcano-genes")).toContainText(
       "PF3D7_0100200",
@@ -133,7 +133,7 @@ test.describe("EDA data parts render in the thread", () => {
     );
     // The tab hydrates from the binding read, which the rail entry navigates to.
     await page.route(`**/api/v1/conversations/${conversationId}/eda`, (route) =>
-      route.fulfill(edaJson({ analysis: analysisState(), descriptor: null })),
+      route.fulfill(edaJson({ analysis: analysisState() })),
     );
 
     await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
@@ -187,7 +187,7 @@ test.describe("EDA data parts render in the thread", () => {
       route.fulfill({ status: 200, headers: uiMessageStreamHeaders(), body: stream }),
     );
     await page.route(`**/api/v1/conversations/${conversationId}/eda`, (route) =>
-      route.fulfill(edaJson({ analysis: FILTERED_ANALYSIS, descriptor: null })),
+      route.fulfill(edaJson({ analysis: FILTERED_ANALYSIS })),
     );
 
     await page.goto(`/${SITE_ID}/conversation/${conversationId}`);

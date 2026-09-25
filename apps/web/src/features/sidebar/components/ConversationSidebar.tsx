@@ -80,8 +80,8 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
           variant="ghost"
           size="icon-sm"
           onClick={() => void actions.handleNewConversation()}
-          aria-label="New chat"
-          title="New chat"
+          aria-label="New conversation"
+          title="New conversation"
         >
           <SquarePen className="h-4 w-4" />
         </Button>
@@ -100,7 +100,7 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[220px]">
             <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              New chat with
+              New conversation with
             </DropdownMenuLabel>
             {ASSISTANT_CHOICES.map((choice) => (
               <DropdownMenuItem
@@ -165,7 +165,7 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
             className="h-7 w-full justify-start gap-1.5 px-1.5 text-[11px] font-normal uppercase tracking-wider text-muted-foreground"
           >
             <Archive className="h-3 w-3" />
-            <span>Dismissed ({data.dismissedConversations.length})</span>
+            <span>Recently deleted ({data.dismissedConversations.length})</span>
             <span className="ml-auto text-[10px]">
               {showDismissed ? "\u25BC" : "\u25B6"}
             </span>

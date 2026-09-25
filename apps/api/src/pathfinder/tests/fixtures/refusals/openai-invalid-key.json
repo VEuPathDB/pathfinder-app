@@ -1,6 +1,6 @@
 {
   "provider": "openai",
-  "model": "openai:gpt-5.6-luna",
+  "refusal": "invalid",
   "status": 401,
   "body": {
     "message": "Incorrect API key provided: sk-proj-****************************************WXYZ. You can find your API key at https://platform.openai.com/account/api-keys.",
@@ -8,5 +8,8 @@
     "code": "invalid_api_key",
     "param": null
   },
-  "recorded_at": "2026-09-24T07:09:29.202414Z"
+  "provenance": "recorded",
+  "source": "a made-up key",
+  "model": "openai:gpt-5.6-luna",
+  "read_at": "2026-09-24T19:36:45.173426Z"
 }

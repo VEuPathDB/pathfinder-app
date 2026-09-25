@@ -25,6 +25,7 @@ function makeState(overrides: Partial<StepEditorState>): StepEditorState {
     stepValidationError: null,
     selectedSearch: null,
     searchOptions: [],
+    recordTypeOptions: [],
     form: {
       getFieldMeta: () => undefined,
     },

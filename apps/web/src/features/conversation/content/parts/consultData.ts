@@ -69,7 +69,8 @@ export type ProposalCardData = { proposal: Proposal } & (
   { decision: "pending"; approvalId: string } | { decision: "accepted" | "declined" }
 );
 
-function answeredDecision(
+/** The decision a card's tool part records once the researcher answered it. */
+export function answeredDecision(
   state: ToolUIPart["state"],
   approved: boolean | undefined,
 ): "accepted" | "declined" | null {

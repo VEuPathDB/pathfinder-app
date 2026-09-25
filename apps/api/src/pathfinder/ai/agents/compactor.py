@@ -11,10 +11,11 @@ from pydantic_ai import Agent, RunContext
 from pathfinder.ai.agents._model_resolution import (
     resolve_orchestrator_model_entry,
 )
+from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.platform.model_keys import keyed_model
 
 _COMPACTOR_INSTRUCTIONS = f"""\
-You are compacting a researcher's working notebook. Merge redundant notes, \
+You are compacting the notes kept for a researcher's conversation. Merge redundant notes, \
 drop notes that have been superseded by later notes, and keep distinct \
 findings intact. Preserve titles that are referenced elsewhere (tool \
 outputs, sub-agent deltas) when possible. Return a new list of notes that \
@@ -34,8 +35,10 @@ says "using GenesByRNASeq with params X").
 
 def build_compactor_agent(
     *,
+    meter: SpendMeter,
     model_id: str | None = None,
 ) -> Agent[CompactorDeps, CompactionResult]:
+    """The compactor on the key that pays for its provider; ``meter`` records its runs."""
     entry = resolve_orchestrator_model_entry(model_id, None)
     agent: Agent[CompactorDeps, CompactionResult] = Agent(
         keyed_model(entry.id),
@@ -46,6 +49,7 @@ def build_compactor_agent(
         retries=2,
         name="compactor",
         defer_model_check=True,
+        capabilities=[meter.on(entry.id)],
     )
 
     @agent.instructions

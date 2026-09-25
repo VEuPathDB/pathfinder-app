@@ -1,5 +1,6 @@
 """What the Lead is told when a build cannot run: a strategy it would replace,
-a spec not ready to build, or a structure that is not a WDK tree."""
+a spec not ready to build, a structure that is not a WDK tree, or an orthology
+round trip that does not keep the source genes."""
 
 from __future__ import annotations
 
@@ -8,6 +9,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 __all__ = [
     "build_not_ready_message",
     "build_would_replace_the_strategy",
+    "round_trip_not_kept_message",
     "structure_does_not_convert_message",
 ]
 
@@ -19,7 +21,7 @@ def build_would_replace_the_strategy(step_count: int) -> str:
     every value the researcher set on the canvas goes with the old one.
     """
     return (
-        f"This thread already has a strategy of {step_count} steps, and "
+        f"This conversation already has a strategy of {step_count} steps, and "
         f"build_strategy replaces it: every WDK step id changes and any value "
         f"the researcher edited on the canvas is lost. Call edit_strategy to "
         f"change what this strategy asks, which patches only the steps the "
@@ -40,6 +42,18 @@ def structure_does_not_convert_message(detail: str) -> str:
         f"tree: {detail}. Nothing was built and the strategy is unchanged. "
         f"Call set_structure with a tree whose every combine names an operator "
         f"and joins two inputs."
+    )
+
+
+def round_trip_not_kept_message(detail: str) -> str:
+    """Why a plan whose orthology round trip would not keep the source is refused.
+
+    The structure is FRAME's, so the way forward is a framing pass.
+    """
+    return (
+        f"The plan's orthology round trip does not keep the source genes: "
+        f"{detail} Nothing was built and the strategy is unchanged. Run "
+        f"frame_problem so the framing pass states the tree again."
     )
 
 

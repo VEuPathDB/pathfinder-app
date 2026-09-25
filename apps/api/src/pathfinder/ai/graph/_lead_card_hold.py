@@ -1,8 +1,8 @@
 """Hold a card turn's reply until the turn contract has read it.
 
-The Lead's text streams before the calls it precedes. When a call is a card,
-the text and every card of the response wait: cards the contract denies are
-dropped with their text, and cards it passes are written when the run ends.
+A card call carries the turn's reply as its ``reply`` argument. Every card of
+a response waits: cards the contract denies are dropped, and cards it passes
+are written when the run ends, each after its reply as text.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 )
 
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
+from pathfinder.ai.lead.card_reply import CardCallReply
 
 _TEXT = (TextStartChunk, TextDeltaChunk, TextEndChunk)
 _CallChunk = (
@@ -37,6 +38,26 @@ _CallChunk = (
     | ToolOutputAvailableChunk
     | ToolOutputErrorChunk
 )
+
+
+def _reply_of(call_id: str, card: list[BaseChunk]) -> list[BaseChunk]:
+    """The card's reply as text chunks, or nothing when the call carries none."""
+    reply = next(
+        (
+            CardCallReply.model_validate(chunk.input).reply
+            for chunk in card
+            if isinstance(chunk, ToolInputAvailableChunk)
+        ),
+        "",
+    )
+    if not reply:
+        return []
+    text_id = f"reply-{call_id}"
+    return [
+        TextStartChunk(id=text_id),
+        TextDeltaChunk(id=text_id, delta=reply),
+        TextEndChunk(id=text_id),
+    ]
 
 
 @dataclass
@@ -72,11 +93,20 @@ class CardHold:
         return [*self.release(), chunk]
 
     def release(self) -> list[BaseChunk]:
-        """The held text, then each held card whole, in the order they began."""
-        held = [*self._text, *(c for card in self._cards.values() for c in card)]
+        """The held text, then each held card whole, in the order they began.
+
+        A card's reply replaces any text written beside it, so the reply the
+        contract read is the only reply the researcher reads.
+        """
+        text = [] if self._cards else list(self._text)
+        cards = [
+            chunk
+            for call_id, card in self._cards.items()
+            for chunk in (*_reply_of(call_id, card), *card)
+        ]
         self._text.clear()
         self._cards.clear()
-        return held
+        return [*text, *cards]
 
     def _holds(self, chunk: _CallChunk) -> bool:
         if (

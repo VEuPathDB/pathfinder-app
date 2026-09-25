@@ -1,18 +1,19 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Strategy } from "@pathfinder/shared";
+import { siteShortName, type Strategy } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
 import { patchConversationEda } from "@/features/eda/api";
 import { toUserMessage } from "@/lib/api/errors";
 import { writeStrategy } from "@/lib/api/strategy";
 import { strategyCanvasUrl } from "@/lib/routes";
-import { isEdaJobComplete, useEdaStore } from "@/state/eda";
+import { useEdaStore } from "@/state/eda";
 
 import {
   exportedStepPlacement,
   strategyFromExportedStep,
+  unmatchedGenesSentence,
   type ExportedStepPlacement,
 } from "./exportedStep";
 
@@ -23,37 +24,41 @@ interface ExportOutcome {
   strategy: Strategy;
   placement: ExportedStepPlacement;
   stepName: string | null;
+  cutSize: number | null;
+  stepSize: number | null;
 }
 
 export function ExportStepButton({ conversationId }: { conversationId: string }) {
   const queryClient = useQueryClient();
-  const jobs = useEdaStore((s) => s.jobs);
-  const thresholds = useEdaStore((s) => s.volcanoThresholds);
   const analysis = useEdaStore((s) => s.analysis);
+  const volcano = useEdaStore((s) => s.viz["volcano"]);
   const applyAnalysisState = useEdaStore((s) => s.applyAnalysisState);
   const canExportRows = analysis?.canExportRows === true;
   const siteId = analysis?.siteId ?? "";
-  const computeComplete = Object.values(jobs).some(isEdaJobComplete);
-  // A completed compute exports its volcano cut; a subset alone exports its genes.
+  const siteName = siteShortName(siteId);
+  // A drawn figure exports its volcano cut; a subset alone exports its genes.
+  const computeComplete = volcano !== undefined;
   const holdsSubset = (analysis?.numFilters ?? 0) > 0;
 
   const exportStep = useMutation({
     mutationFn: async (): Promise<ExportOutcome> => {
       const response = await patchConversationEda(conversationId, {
         action: "export-step",
-        thresholds: computeComplete
-          ? {
-              effectSizeThreshold: thresholds.effectSizeThreshold,
-              significanceThreshold: thresholds.significanceThreshold,
-              effectDirection: thresholds.direction,
-            }
-          : null,
+        source: computeComplete ? "volcano" : "subset",
       });
       if (response.analysis !== null) applyAnalysisState(response.analysis);
       const strategy = strategyFromExportedStep(response.step);
       const placement = exportedStepPlacement(strategy);
       const step = strategy.steps.find((s) => s.id === placement.stepId);
-      return { strategy, placement, stepName: step?.displayName ?? null };
+      // The volcano keeps every gene of the stored cut; the step keeps those the site annotates.
+      const cutSize = volcano?.retainedPoints ?? null;
+      return {
+        strategy,
+        placement,
+        stepName: step?.displayName ?? null,
+        cutSize,
+        stepSize: step?.estimatedSize ?? null,
+      };
     },
     onSuccess: ({ strategy }) => {
       writeStrategy(queryClient, conversationId, strategy);
@@ -89,6 +94,9 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
         </p>
       ) : null}
       {exportStep.data !== undefined ? (
+        <UnmatchedGenes outcome={exportStep.data} siteName={siteName} />
+      ) : null}
+      {exportStep.data !== undefined ? (
         <PlacementNotice
           placement={exportStep.data.placement}
           href={strategyCanvasUrl(siteId, conversationId)}
@@ -100,6 +108,22 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
         </p>
       ) : null}
     </div>
+  );
+}
+
+function UnmatchedGenes({
+  outcome,
+  siteName,
+}: {
+  outcome: ExportOutcome;
+  siteName: string;
+}) {
+  const sentence = unmatchedGenesSentence(outcome.cutSize, outcome.stepSize, siteName);
+  if (sentence === null) return null;
+  return (
+    <p data-testid="eda-export-unmatched" className="text-[11px] text-muted-foreground">
+      {sentence}
+    </p>
   );
 }
 

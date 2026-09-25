@@ -60,7 +60,7 @@ async def test_the_title_is_the_last_chunk_before_finish(
     """A title ready early and a title ready late take the same position."""
     del chat_stack
     title = _TitleTask(delay_seconds=delay_seconds)
-    monkeypatch.setattr(turn_runner, "generate_conversation_title", title)
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", title)
 
     chunks = await run_one_chat_turn(
         app=app,
@@ -92,7 +92,7 @@ async def test_a_title_past_its_wait_leaves_the_turn_alone(
     del chat_stack
     title = _TitleTask(delay_seconds=600.0)
     monkeypatch.setattr(turn_runner, "_TITLE_WAIT_SECONDS", ceiling_seconds)
-    monkeypatch.setattr(turn_runner, "generate_conversation_title", title)
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", title)
 
     chunks = await run_one_chat_turn(
         app=app,

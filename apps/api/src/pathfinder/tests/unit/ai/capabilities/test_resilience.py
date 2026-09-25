@@ -7,8 +7,7 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
-from pydantic import BaseModel, ConfigDict
-from pydantic import ValidationError as PydanticValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
@@ -297,7 +296,7 @@ class TestOnToolValidateError:
                 {"root": {}, "secondaryInput": {"searchName": "X"}},
             )
             pytest.fail("expected ValidationError")
-        except PydanticValidationError as exc:
+        except ValidationError as exc:
             error = exc
 
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
@@ -324,12 +323,12 @@ class TestOnToolValidateError:
         try:
             _ArgsModel.model_validate({})
             pytest.fail("expected ValidationError")
-        except PydanticValidationError as exc:
+        except ValidationError as exc:
             error = exc
 
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()
-        with pytest.raises(PydanticValidationError):
+        with pytest.raises(ValidationError):
             await capability.on_tool_validate_error(
                 ctx,
                 call=_make_call("build_strategy"),
@@ -346,12 +345,12 @@ class TestOnToolValidateError:
         try:
             _ArgsModel.model_validate({"x": "not-an-int", "primaryInput": {}})
             pytest.fail("expected ValidationError")
-        except PydanticValidationError as exc:
+        except ValidationError as exc:
             error = exc
 
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
         ctx = _make_ctx()
-        with pytest.raises(PydanticValidationError):
+        with pytest.raises(ValidationError):
             await capability.on_tool_validate_error(
                 ctx,
                 call=_make_call("some_other_tool"),
@@ -376,7 +375,7 @@ class TestOnToolValidateError:
         try:
             _ArgsModel.model_validate(wrapped_args)
             pytest.fail("expected ValidationError")
-        except PydanticValidationError as exc:
+        except ValidationError as exc:
             error = exc
 
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)
@@ -407,7 +406,7 @@ class TestOnToolValidateError:
         try:
             _ArgsModel.model_validate(wrapped_args)
             pytest.fail("expected ValidationError")
-        except PydanticValidationError as exc:
+        except ValidationError as exc:
             error = exc
 
         capability = ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS)

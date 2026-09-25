@@ -9,10 +9,7 @@ from assistant_core.conversation.authz import assert_owner
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.domain.eda_parts import EdaDistributionSeries
-from pathfinder.services.eda.authoring import variable_distribution, verified_count
 from pathfinder.services.eda.binding import (
-    apply_filters,
     bind_analysis,
     bound_conversation_analysis,
     bound_or_conflict,
@@ -21,18 +18,12 @@ from pathfinder.services.eda.binding import (
     read_analysis_state,
     unbind_conversation_analysis,
 )
-from pathfinder.services.eda.catalog import (
-    browse_studies,
-    get_study_detail_for_dataset,
-    search_studies,
-)
+from pathfinder.services.eda.catalog import browse_studies, search_studies
 from pathfinder.services.eda.compute import (
-    VolcanoThresholds,
     analysis_comparison,
     bound_volcano,
-    run_analysis_compute,
+    stored_volcano_cut,
 )
-from pathfinder.services.eda.description import describe_study, permission_facts
 from pathfinder.services.eda.steps import export_analysis_step
 from pathfinder.transport.http.deps import (
     AvailableSite,
@@ -45,14 +36,7 @@ from pathfinder.transport.http.schemas.eda import (
     ConversationEdaResponse,
     EdaAnalysisPatchResponse,
     EdaBindAction,
-    EdaCountRequest,
-    EdaCountResponse,
-    EdaDistributionRequest,
     EdaExportStepAction,
-    EdaJobRefResponse,
-    EdaRunComputeAction,
-    EdaSetFiltersAction,
-    EdaStudyDetailResponse,
     EdaStudyListResponse,
     EdaStudySummaryResponse,
     EdaUnbindAction,
@@ -89,59 +73,6 @@ async def list_eda_studies(
     )
 
 
-@studies_router.get("/studies/{dataset_id}", response_model=EdaStudyDetailResponse)
-async def get_eda_study(
-    dataset_id: str,
-    site_id: AvailableSite,
-    user_id: CurrentUser,
-    entity_id: Annotated[str | None, Query(alias="entityId")] = None,
-) -> EdaStudyDetailResponse:
-    """One study's entity tree, and one entity's variables when named."""
-    del user_id
-    entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
-    described = describe_study(
-        permission_facts(entry),
-        study,
-        dataset_id=dataset_id,
-        entity_id=entity_id,
-    )
-    return EdaStudyDetailResponse.model_validate(described, from_attributes=True)
-
-
-@studies_router.post("/count", response_model=EdaCountResponse)
-async def count_eda_subset(
-    request: EdaCountRequest,
-    site_id: AvailableSite,
-    user_id: CurrentUser,
-) -> EdaCountResponse:
-    """The subset's size on one entity, against that entity's whole size."""
-    del user_id
-    counted = await verified_count(
-        site_id,
-        dataset_id=request.dataset_id,
-        entity_id=request.entity_id,
-        filters=request.filters,
-    )
-    return EdaCountResponse.model_validate(counted, from_attributes=True)
-
-
-@studies_router.post("/distribution", response_model=EdaDistributionSeries)
-async def read_eda_distribution(
-    request: EdaDistributionRequest,
-    site_id: AvailableSite,
-    user_id: CurrentUser,
-) -> EdaDistributionSeries:
-    """One variable's histogram under the subset the request names."""
-    del user_id
-    return await variable_distribution(
-        site_id,
-        dataset_id=request.dataset_id,
-        entity_id=request.entity_id,
-        variable_id=request.variable_id,
-        filters=request.filters,
-    )
-
-
 @studies_router.post("/viz", response_model=EdaVizResponse)
 async def read_eda_viz(
     request: EdaVizRequest,
@@ -150,18 +81,19 @@ async def read_eda_viz(
     session: DBSession,
     user_id: CurrentUser,
 ) -> EdaVizResponse:
-    """The bound analysis's volcano under one cut. It starts no compute."""
+    """The bound analysis's volcano under the cut it stores. It starts no compute.
+
+    ``site_id`` gates the route on the page's site; the volcano is read on the
+    site the analysis is bound to.
+    """
+    del site_id
     await assert_owner(session, conversation_id, user_id)
     bound = await bound_or_conflict(conversation_id=conversation_id)
     analysis = await read_analysis(bound.site_id, analysis_id=bound.analysis_id)
-    thresholds = VolcanoThresholds(
-        effect_size_threshold=request.effect_size_threshold,
-        significance_threshold=request.significance_threshold,
-        effect_direction=request.effect_direction,
-    )
+    thresholds = stored_volcano_cut(analysis)
     view = await bound_volcano(
-        site_id,
-        dataset_id=request.dataset_id,
+        bound.site_id,
+        dataset_id=bound.dataset_id,
         analysis=analysis,
         thresholds=thresholds,
     )
@@ -189,15 +121,14 @@ async def get_conversation_eda(
     session: DBSession,
     user_id: CurrentUser,
 ) -> ConversationEdaResponse:
-    """The analysis this thread has open, with the upstream descriptor."""
+    """The analysis this conversation has open, read from the site on every call."""
     await assert_owner(session, conversation_id, user_id)
     bound = await bound_conversation_analysis(conversation_id=conversation_id)
     if bound is None:
-        return ConversationEdaResponse(analysis=None, descriptor=None)
+        return ConversationEdaResponse(analysis=None)
     analysis = await read_analysis(bound.site_id, analysis_id=bound.analysis_id)
     return ConversationEdaResponse(
         analysis=await read_analysis_state(bound=bound, analysis=analysis),
-        descriptor=analysis.descriptor.model_dump(by_alias=True, mode="json"),
     )
 
 
@@ -210,15 +141,11 @@ async def patch_conversation_eda(
     session: DBSession,
     user_id: CurrentUser,
 ) -> EdaAnalysisPatchResponse:
-    """Mutate the thread's bound analysis: bind, subset, compute, export, unbind."""
+    """Bind a study, export the analysis as a step, or unbind."""
     await assert_owner(session, conversation_id, user_id)
     match body:
         case EdaBindAction():
             return await _bind(conversation_id, body)
-        case EdaSetFiltersAction():
-            return await _set_filters(conversation_id, body)
-        case EdaRunComputeAction():
-            return await _run_compute(conversation_id, body)
         case EdaExportStepAction():
             return await _export_step(session, conversation_id, user_id, body)
         case EdaUnbindAction():
@@ -235,45 +162,7 @@ async def _bind(
         conversation_id=conversation_id,
         display_name=body.purpose,
     )
-    return EdaAnalysisPatchResponse(analysis=state, job=None, step=None)
-
-
-async def _set_filters(
-    conversation_id: UUID,
-    body: EdaSetFiltersAction,
-) -> EdaAnalysisPatchResponse:
-    bound = await bound_or_conflict(conversation_id=conversation_id)
-    state = await apply_filters(
-        bound.site_id,
-        conversation_id=conversation_id,
-        dataset_id=bound.dataset_id,
-        analysis_id=bound.analysis_id,
-        filters=body.filters,
-    )
-    return EdaAnalysisPatchResponse(analysis=state, job=None, step=None)
-
-
-async def _run_compute(
-    conversation_id: UUID,
-    body: EdaRunComputeAction,
-) -> EdaAnalysisPatchResponse:
-    bound = await bound_or_conflict(conversation_id=conversation_id)
-    job = await run_analysis_compute(
-        bound.site_id,
-        analysis_id=bound.analysis_id,
-        dataset_id=bound.dataset_id,
-        computation=body.computation,
-    )
-    return EdaAnalysisPatchResponse(
-        analysis=await mutated_analysis_state(conversation_id=conversation_id),
-        job=EdaJobRefResponse(
-            job_id=job.job_id,
-            task_id=None,
-            app_name=body.computation.type,
-            status=job.status,
-        ),
-        step=None,
-    )
+    return EdaAnalysisPatchResponse(analysis=state, step=None)
 
 
 async def _export_step(
@@ -286,11 +175,10 @@ async def _export_step(
         session=session,
         conversation_id=conversation_id,
         user_id=user_id,
-        thresholds=body.thresholds,
+        reads_the_volcano=body.source == "volcano",
     )
     return EdaAnalysisPatchResponse(
         analysis=await mutated_analysis_state(conversation_id=conversation_id),
-        job=None,
         step=step,
     )
 
@@ -298,7 +186,7 @@ async def _export_step(
 async def _unbind(conversation_id: UUID) -> EdaAnalysisPatchResponse:
     """Clear the binding. Unbinding an unbound thread is the same answer."""
     await unbind_conversation_analysis(conversation_id=conversation_id)
-    return EdaAnalysisPatchResponse(analysis=None, job=None, step=None)
+    return EdaAnalysisPatchResponse(analysis=None, step=None)
 
 
 # Every EDA route reads a VEuPathDB account, so the gate is on the composed

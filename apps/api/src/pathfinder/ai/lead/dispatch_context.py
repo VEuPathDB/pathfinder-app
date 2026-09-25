@@ -36,6 +36,7 @@ def framing_goal(state: PipelineState) -> str:
     the original request and the answer to it, in that order.
     """
     original = state.domain.original_request
+    # The text alone: a sub-agent binds searches and reads no attached file.
     latest = state.user_prompt
     if not original or original == latest:
         return latest or original

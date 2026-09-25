@@ -32,6 +32,10 @@ This is not a replacement for `CLAUDE.md` (rules an agent must follow every sess
 
 What EDA itself is, and every wire fact these two stand on, is the client library's bundle at `veupathdb-py: docs/knowledge/eda/`.
 
+## UAT
+
+- [UAT](uat/) - the exit criteria, the sites and accounts, and the scripted flows a runner follows before a release reaches researchers
+
 ## History
 
 - [log.md](log.md) - dated record of significant changes to this bundle

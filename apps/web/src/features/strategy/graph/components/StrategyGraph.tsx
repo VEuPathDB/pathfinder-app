@@ -21,6 +21,7 @@ import { useStrategyGraph } from "@/features/strategy/graph/hooks/useStrategyGra
 import { useQuickSwitcher } from "@/features/strategy/graph/hooks/useQuickSwitcher";
 import { useStrategyKeyboardShortcuts } from "@/features/strategy/graph/hooks/useStrategyKeyboardShortcuts";
 import { useRetryLastPush } from "@/features/strategy/mutations";
+import { operatorPatch } from "@/features/strategy/operators";
 import {
   StrategyGraphProvider,
   useStrategyGraphCtx,
@@ -138,7 +139,7 @@ function StrategyGraphChrome({
             g.setEdgeMenu(null);
           }}
           onChangeOperator={(stepId, operator) => {
-            g.updateStep(stepId, { operator });
+            g.updateStep(stepId, operatorPatch(operator));
             g.setEdgeMenu(null);
           }}
           onClose={() => g.setEdgeMenu(null)}

@@ -7,7 +7,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.tasks import decorator
+from assistant_core.tasks import decorator, service
 
 
 class _Task:
@@ -44,6 +44,6 @@ def capture_durable_dispatch(monkeypatch: pytest.MonkeyPatch) -> DurableDispatch
         return uuid4()
 
     monkeypatch.setattr(decorator, "create_background_task", create)
-    monkeypatch.setattr(decorator, "task_app", lambda: _App(dispatch.deferred))
+    monkeypatch.setattr(service, "task_app", lambda: _App(dispatch.deferred))
     monkeypatch.setattr(decorator, "get_stream_writer", lambda: lambda _payload: None)
     return dispatch

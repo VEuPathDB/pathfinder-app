@@ -12,7 +12,7 @@ Revises: 2026_09_24_0002
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 
 revision: str = "2026_09_24_0003"
@@ -40,32 +40,36 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.add_column(
         "conversation_strategies",
-        sa.Column(
+        sqlalchemy.Column(
             "experiment_id",
-            sa.String(50),
-            sa.ForeignKey("experiments.id", ondelete="SET NULL"),
+            sqlalchemy.String(50),
+            sqlalchemy.ForeignKey("experiments.id", ondelete="SET NULL"),
             nullable=True,
         ),
     )
     for index, column in _EXPERIMENT_INDEXES.items():
         op.add_column(
-            "experiments", sa.Column(column, sa.String(length=50), nullable=True)
+            "experiments",
+            sqlalchemy.Column(column, sqlalchemy.String(length=50), nullable=True),
         )
         op.create_index(index, "experiments", [column], unique=False)
     op.add_column(
-        "gene_sets", sa.Column("operation", sa.String(length=20), nullable=True)
+        "gene_sets",
+        sqlalchemy.Column("operation", sqlalchemy.String(length=20), nullable=True),
     )
     op.add_column(
         "gene_sets",
-        sa.Column("parent_set_ids", sa.JSON(), nullable=False, server_default="[]"),
+        sqlalchemy.Column(
+            "parent_set_ids", sqlalchemy.JSON(), nullable=False, server_default="[]"
+        ),
     )
     op.alter_column("gene_sets", "parent_set_ids", server_default=None)
     op.add_column(
         "gene_sets",
-        sa.Column(
+        sqlalchemy.Column(
             "enrichment_results",
-            sa.JSON(),
+            sqlalchemy.JSON(),
             nullable=False,
-            server_default=sa.text("'[]'::json"),
+            server_default=sqlalchemy.text("'[]'::json"),
         ),
     )

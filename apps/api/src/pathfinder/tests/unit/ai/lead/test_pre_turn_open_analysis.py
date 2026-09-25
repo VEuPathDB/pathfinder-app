@@ -12,9 +12,8 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import pre_turn
 from pathfinder.ai.lead.pre_turn import attach_open_eda_analysis
-from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.eda_thread import ConversationAnalysisView, OpenEdaAnalysis
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.persistence.models import ConversationAnalysisView
 from pathfinder.tests._support.database import detached_session
 
 _BOUND = ConversationAnalysisView(
@@ -62,12 +61,33 @@ async def test_the_turn_carries_the_open_analysis_and_its_preview(
 ) -> None:
     monkeypatch.setattr(pre_turn, "open_analysis_in", _binding(_BOUND))
 
-    state = await attach_open_eda_analysis(_state(), _context())
+    state = await attach_open_eda_analysis(
+        _state(), _context(), changed_after_the_card=False
+    )
 
-    open_analysis = state.domain.open_eda_analysis
-    assert open_analysis is not None
-    assert open_analysis.analysis_id == "4XlEvvr"
-    assert open_analysis.subset_previewed
+    assert state.domain.open_eda_analysis == OpenEdaAnalysis(
+        dataset_id="DS_e973eadd57",
+        analysis_id="4XlEvvr",
+        subset_previewed=True,
+        changed_after_the_card=False,
+    )
+
+
+async def test_the_turn_carries_an_analysis_that_moved_past_its_card(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(pre_turn, "open_analysis_in", _binding(_BOUND))
+
+    state = await attach_open_eda_analysis(
+        _state(), _context(), changed_after_the_card=True
+    )
+
+    assert state.domain.open_eda_analysis == OpenEdaAnalysis(
+        dataset_id="DS_e973eadd57",
+        analysis_id="4XlEvvr",
+        subset_previewed=True,
+        changed_after_the_card=True,
+    )
 
 
 async def test_a_thread_with_no_binding_carries_no_analysis(
@@ -81,7 +101,9 @@ async def test_a_thread_with_no_binding_carries_no_analysis(
         subset_previewed=True,
     )
 
-    briefed = await attach_open_eda_analysis(state, _context())
+    briefed = await attach_open_eda_analysis(
+        state, _context(), changed_after_the_card=False
+    )
 
     assert briefed.domain.model_dump(include={"open_eda_analysis"}) == {
         "open_eda_analysis": None,

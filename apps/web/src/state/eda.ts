@@ -1,12 +1,6 @@
 import { useState } from "react";
-import type {
-  EdaAnalysisState,
-  EdaEntityCount,
-  EdaSubsetPreview,
-  EdaViz,
-} from "@pathfinder/shared";
-import type { EdaFilter } from "@pathfinder/shared/generated/types/EdaFilter";
-import { edaFilterSchema } from "@pathfinder/shared/generated/zod/edaFilterSchema";
+import type { EdaAnalysisState, EdaEntityCount, EdaViz } from "@pathfinder/shared";
+import type { EdaComputeSummary } from "@pathfinder/shared/generated/types/EdaComputeSummary";
 
 import type { VolcanoThresholds } from "@/lib/components/charts/types";
 
@@ -28,47 +22,11 @@ interface EdaAnalysisSnapshot {
   displayName: string;
   numFilters: number;
   numComputations: number;
-  filters: EdaFilter[];
-  unparsedFilterCount: number;
   filterSummaries: string[];
   entityCounts: EdaEntityCount[];
   canExportRows: boolean;
   analysisUrl: string | null;
-}
-
-export interface EdaJobSnapshot {
-  jobId: string;
-  taskId: string | null;
-  appName: string;
-  status: string;
-}
-
-export function isEdaJobRunning(job: EdaJobSnapshot): boolean {
-  return job.status === "queued" || job.status === "in-progress";
-}
-
-export function isEdaJobComplete(job: EdaJobSnapshot): boolean {
-  return job.status === "complete";
-}
-
-export function isEdaJobFailed(job: EdaJobSnapshot): boolean {
-  return job.status === "failed";
-}
-
-/** The shared models type an analysis's filters as JSON, so each entry is
- * validated here and an unrecognised one is counted, never hidden. */
-export function parseAnalysisFilters(raw: readonly unknown[]): {
-  filters: EdaFilter[];
-  unparsedCount: number;
-} {
-  const filters: EdaFilter[] = [];
-  let unparsedCount = 0;
-  for (const entry of raw) {
-    const parsed = edaFilterSchema.safeParse(entry);
-    if (parsed.success) filters.push(parsed.data);
-    else unparsedCount += 1;
-  }
-  return { filters, unparsedCount };
+  compute: EdaComputeSummary | null;
 }
 
 const DEFAULT_THRESHOLDS: VolcanoThresholds = {
@@ -80,33 +38,21 @@ const DEFAULT_THRESHOLDS: VolcanoThresholds = {
 interface EdaSlice {
   binding: EdaBinding | null;
   analysis: EdaAnalysisSnapshot | null;
-  subsetPreview: EdaSubsetPreview | null;
   viz: Record<string, EdaViz>;
-  jobs: Record<string, EdaJobSnapshot>;
-  localFilters: EdaFilter[] | null;
   volcanoThresholds: VolcanoThresholds;
-  volcanoThresholdsEdited: boolean;
 }
 
 export interface EdaState extends EdaSlice {
   applyAnalysisState: (payload: EdaAnalysisState) => void;
-  applySubsetPreview: (payload: EdaSubsetPreview) => void;
   applyViz: (payload: EdaViz) => void;
-  applyJob: (job: EdaJobSnapshot) => void;
-  setLocalFilters: (filters: EdaFilter[] | null) => void;
-  setVolcanoThresholds: (thresholds: VolcanoThresholds) => void;
   reset: () => void;
 }
 
 const INITIAL: EdaSlice = {
   binding: null,
   analysis: null,
-  subsetPreview: null,
   viz: {},
-  jobs: {},
-  localFilters: null,
   volcanoThresholds: DEFAULT_THRESHOLDS,
-  volcanoThresholdsEdited: false,
 };
 
 /** A part supersedes the state it holds unless it names an older revision of
@@ -122,7 +68,6 @@ function supersedes(
 }
 
 function snapshotOf(payload: EdaAnalysisState): EdaAnalysisSnapshot {
-  const { filters, unparsedCount } = parseAnalysisFilters(payload.filters);
   return {
     analysisId: payload.analysisId,
     revision: payload.revision,
@@ -133,12 +78,11 @@ function snapshotOf(payload: EdaAnalysisState): EdaAnalysisSnapshot {
     displayName: payload.displayName,
     numFilters: payload.numFilters,
     numComputations: payload.numComputations,
-    filters,
-    unparsedFilterCount: unparsedCount,
     filterSummaries: payload.filterSummaries,
     entityCounts: payload.entityCounts,
     canExportRows: payload.canExportRows,
     analysisUrl: payload.analysisUrl ?? null,
+    compute: payload.compute ?? null,
   };
 }
 
@@ -156,23 +100,9 @@ export const useEdaStore = createStore<EdaState>("EdaStore", (set) => ({
           analysisId: payload.analysisId,
         },
         analysis: snapshotOf(payload),
-        localFilters: null,
-        ...(switched
-          ? {
-              subsetPreview: null,
-              viz: {},
-              jobs: {},
-              volcanoThresholds: DEFAULT_THRESHOLDS,
-              volcanoThresholdsEdited: false,
-            }
-          : {}),
+        ...(switched ? { viz: {}, volcanoThresholds: DEFAULT_THRESHOLDS } : {}),
       };
     }),
-
-  applySubsetPreview: (payload) =>
-    set((s) =>
-      s.analysis?.analysisId === payload.analysisId ? { subsetPreview: payload } : s,
-    ),
 
   applyViz: (payload) =>
     set((s) => {
@@ -180,11 +110,7 @@ export const useEdaStore = createStore<EdaState>("EdaStore", (set) => ({
       const effectSize = payload.effectSizeThreshold ?? null;
       const significance = payload.significanceThreshold ?? null;
       const direction = payload.effectDirection ?? null;
-      const adopt =
-        !s.volcanoThresholdsEdited &&
-        effectSize !== null &&
-        significance !== null &&
-        direction !== null;
+      const adopt = effectSize !== null && significance !== null && direction !== null;
       return {
         viz: { ...s.viz, [payload.chart]: payload },
         ...(adopt
@@ -199,26 +125,11 @@ export const useEdaStore = createStore<EdaState>("EdaStore", (set) => ({
       };
     }),
 
-  applyJob: (job) => set((s) => ({ jobs: { ...s.jobs, [job.jobId]: job } })),
-
-  setLocalFilters: (filters) => set({ localFilters: filters }),
-
-  setVolcanoThresholds: (thresholds) =>
-    set({ volcanoThresholds: thresholds, volcanoThresholdsEdited: true }),
-
   reset: () => set({ ...INITIAL }),
 }));
 
-/** Filters the tab renders: the optimistic local edit while one is pending,
- * otherwise the server document. */
-export function selectEffectiveFilters(state: EdaState): EdaFilter[] {
-  return state.localFilters ?? state.analysis?.filters ?? [];
-}
-
 type EdaHydratablePart =
-  | { kind: "analysis-state"; data: EdaAnalysisState }
-  | { kind: "subset-preview"; data: EdaSubsetPreview }
-  | { kind: "viz"; data: EdaViz };
+  { kind: "analysis-state"; data: EdaAnalysisState } | { kind: "viz"; data: EdaViz };
 
 /** Feed one rendered data part into the store so the tab and the thread show
  * the same analysis. */
@@ -229,7 +140,6 @@ export function useHydrateEdaPart(part: EdaHydratablePart): void {
     queueMicrotask(() => {
       const store = useEdaStore.getState();
       if (part.kind === "analysis-state") store.applyAnalysisState(part.data);
-      else if (part.kind === "subset-preview") store.applySubsetPreview(part.data);
       else store.applyViz(part.data);
     });
   }

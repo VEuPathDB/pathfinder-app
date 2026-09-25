@@ -35,10 +35,9 @@ The package exports nothing. `veupathdb_mcp/wdk/__init__.py` is an empty file.
   the MCP server name `veupathdb.wdk.factory`,
   `.discovery_service`, `.discovery` and `.wdk_models` directly.
 - **The client handouts became functions with a caller's signature.**
-  `veupathdb_mcp/wdk/step_results.py::step_results_service` builds the reader for one
-  built step, so a route no longer constructs a `StrategyAPI`.
-  `veupathdb_mcp/wdk/step_preview.py` owns the two reads a tool renders directly, and
-  the agent tool and the MCP tool now share them.
+  `veupathdb_mcp/wdk/step_preview.py` owns the reads a tool renders directly (the
+  sample of a built step, one row per gene, and its download url), so a route never
+  constructs a `StrategyAPI`, and the agent tool and the MCP tool share them.
   `veupathdb_mcp/wdk/login.py` owns opening and ending a VEuPathDB session.
 - **A wire scalar that transport needs moved to the domain layer.**
   `WDKSortDirection` is defined in `domain/wdk_values.py`, beside the record-id

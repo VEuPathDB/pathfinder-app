@@ -17,6 +17,7 @@ from veupathdb.wdk import (
     VdiDatasetPostMeta,
     VdiDatasetType,
     VdiImportStatus,
+    VdiInstallDisposition,
     VdiUploadStatus,
     VdiVisibility,
     get_site,
@@ -27,6 +28,7 @@ from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.operations import GeneSetService
 
 _GENELIST = VdiDatasetType(name=GENELIST_PLUGIN_NAME, version=GENELIST_PLUGIN_VERSION)
+_SETTLED = frozenset({VdiInstallDisposition.INSTALLED, VdiInstallDisposition.FAILED})
 
 
 class VdiPublicationRequest(CamelModel):
@@ -51,8 +53,10 @@ class VdiPublicationStatus(CamelModel):
     vdi_id: str
     dataset_url: str
     site_id: str
-    upload: VdiUploadStatus
-    import_status: VdiImportStatus | None = None
+    upload: VdiUploadStatus | str = Field(union_mode="left_to_right")
+    import_status: VdiImportStatus | str | None = Field(
+        default=None, union_mode="left_to_right"
+    )
     installed_targets: list[str]
     installed: bool
     is_terminal: bool
@@ -115,7 +119,7 @@ async def vdi_publication_status(
         await service.record_vdi_publication(gene_set, None)
         msg = f"The published dataset for gene set {gene_set_id} no longer exists."
         raise NotFoundError(detail=msg) from exc
-    installed = details.installed_targets()
+    disposition = details.status.disposition(site.project_id)
     return VdiPublicationStatus(
         vdi_id=details.dataset_id,
         dataset_url=site.dataset_url(details.dataset_id),
@@ -124,7 +128,7 @@ async def vdi_publication_status(
         import_status=(
             None if details.status.import_ is None else details.status.import_.status
         ),
-        installed_targets=installed,
-        installed=set(details.install_targets) <= set(installed) and bool(installed),
-        is_terminal=details.status.is_terminal(),
+        installed_targets=details.installed_targets(),
+        installed=disposition is VdiInstallDisposition.INSTALLED,
+        is_terminal=disposition in _SETTLED,
     )

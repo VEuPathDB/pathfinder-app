@@ -7,12 +7,14 @@ from typing import Annotated
 from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import (
+    AfterValidator,
     BaseModel,
     BeforeValidator,
     ConfigDict,
     Field,
     field_validator,
 )
+from veupathdb import strip_html_tags
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import (
     StrategyAPI,
@@ -76,7 +78,9 @@ def _counted(value: object) -> object:
     return text if text.isdigit() else None
 
 
-CellText = Annotated[str, BeforeValidator(_cell_text)]
+# A site writes markup into some text, such as an organism in italics.
+PlainText = Annotated[str, AfterValidator(strip_html_tags)]
+CellText = Annotated[PlainText, BeforeValidator(_cell_text)]
 OptionalCount = Annotated[int | None, BeforeValidator(_counted)]
 
 
@@ -153,10 +157,10 @@ class _GeneAttributes(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    organism: str = ""
-    product: str = ""
-    name: str | None = None
-    chromosome: str | None = None
+    organism: PlainText = ""
+    product: PlainText = ""
+    name: PlainText | None = None
+    chromosome: PlainText | None = None
     exon_count: OptionalCount = None
     transcript_count: OptionalCount = None
 

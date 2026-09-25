@@ -136,7 +136,16 @@ describe("CombineNode names the operation, not the WDK question", () => {
       operator: combineOpEnum.RMINUS,
     });
     render(<CombineNode {...defaultProps(step)} />);
-    expect(screen.getByTestId("node-title").textContent).toBe("Minus (reversed)");
+    expect(screen.getByTestId("node-title").textContent).toBe("Right minus");
+  });
+
+  it("labels the operator badge with the name the title and menus use", () => {
+    const step = makeStep({ displayName: "Secreted", operator: combineOpEnum.RMINUS });
+    render(<CombineNode {...defaultProps(step)} />);
+    expect(screen.getByTestId("combine-operator-badge").textContent).toBe(
+      "Right minus",
+    );
+    expect(screen.queryByText(/NOT \(/)).toBeNull();
   });
 
   it("keeps a name the owner gave the combine", () => {

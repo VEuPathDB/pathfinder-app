@@ -35,10 +35,9 @@ from pathfinder.persistence.repositories import (
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
-    ProviderKeyRefusedError,
     ProviderKeysDisabledError,
-    ProviderKeyUnreadableError,
     ProviderNotConfiguredError,
+    refused_key_error,
 )
 from pathfinder.platform.provider_key_cipher import ProviderKeyCipher, hint_for, key_aad
 
@@ -121,10 +120,8 @@ def require_payers(
     named: list[ModelProvider] = [provider_of(model_id) for model_id in model_ids]
     for provider in dict.fromkeys(named):
         match statuses.payer(provider, deployment):
-            case RefusedKey(refusal=KeyRefusal.UNREADABLE):
-                raise ProviderKeyUnreadableError(provider_name(provider))
-            case RefusedKey():
-                raise ProviderKeyRefusedError(provider_name(provider))
+            case RefusedKey(refusal=refusal):
+                raise refused_key_error(provider_name(provider), refusal)
             case NobodyPays():
                 raise ProviderNotConfiguredError(provider_name(provider))
             case PaidBy() as payer:

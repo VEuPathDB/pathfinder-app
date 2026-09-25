@@ -62,7 +62,7 @@ async def test_a_sample_subset_export_answers_the_422_problem(
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.patch(
             f"/api/v1/conversations/{uuid4()}/eda",
-            json={"action": "export-step", "thresholds": None},
+            json={"action": "export-step", "source": "subset"},
         )
 
     assert response.status_code == 422

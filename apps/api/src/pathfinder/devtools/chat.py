@@ -8,7 +8,7 @@ import sys
 import time
 from contextlib import AsyncExitStack
 from pathlib import Path
-from typing import Literal
+from typing import Literal, get_args
 from uuid import UUID, uuid4
 
 import structlog
@@ -27,6 +27,7 @@ from assistant_core.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
 )
 from assistant_core.platform.db import async_session_factory
+from assistant_core.platform.types import ReasoningEffort
 from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
 from assistant_core.tasks.chat_turn import defer_chat_turn
@@ -48,6 +49,7 @@ from pathfinder.devtools.gates import (
     Gate,
     GateConsultQuestion,
     approval_body,
+    attached_file,
     consult_body,
     detect_gate,
     user_body,
@@ -59,12 +61,16 @@ from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.durable_worker import no_durable_worker
+from pathfinder.platform.tiers import KNOWN_ROLES
 from pathfinder.platform.tool_sources import admitted_tool_sources
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.transport.http.routers.chat import refuse_unreadable_attachments
 
 DEV_USER_ID = UUID("00000000-0000-0000-0000-0000000000c1")
 RUN_ROOT = Path(os.environ.get("PF_RUN_ROOT", "/data/pf-runs"))
 _MAX_RESUMES = 8
+EFFORTS = get_args(ReasoningEffort.__value__)
+TURN_SETTINGS_FILE = "turn_settings.json"
 
 
 class RunArgs(BaseModel):
@@ -83,6 +89,8 @@ class RunArgs(BaseModel):
     password: str | None = None
     assistant: str | None = None
     phase_models: dict[str, str] = {}
+    effort: ReasoningEffort | None = None
+    attachments: list[Path] = []
 
 
 class RespondArgs(RunArgs):
@@ -166,6 +174,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="assistant id for a NEW conversation (else the registry default)",
     )
     run.add_argument("--model", action="append", default=[], metavar="PHASE=ID")
+    run.add_argument(
+        "--effort",
+        choices=EFFORTS,
+        default=None,
+        help="reasoning effort for every role (else each role's tier effort)",
+    )
+    run.add_argument(
+        "--attach",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="attach a local file to the message, as the composer does",
+    )
 
     resp = sub.add_parser(
         "respond",
@@ -185,6 +206,7 @@ def _build_parser() -> argparse.ArgumentParser:
     resp.add_argument("--password", default=None)
     resp.add_argument("--assistant", default=None)
     resp.add_argument("--model", action="append", default=[], metavar="PHASE=ID")
+    resp.add_argument("--effort", choices=EFFORTS, default=None)
     resp.add_argument("--accept", action="store_true", help="approve the pending gate")
     resp.add_argument("--deny", action="store_true", help="deny the pending gate")
     resp.add_argument("--reason", default=None, help="reason for --deny")
@@ -212,6 +234,11 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _phase_reasoning(effort: ReasoningEffort | None) -> dict[str, ReasoningEffort]:
+    """Every role at one effort, as the settings panel sets a whole tier."""
+    return {} if effort is None else dict.fromkeys(KNOWN_ROLES, effort)
+
+
 def parse_run_args(argv: list[str]) -> RunArgs:
     ns = _build_parser().parse_args(["run", *argv])
     conv = UUID(ns.conversation_id) if ns.conversation_id else uuid4()
@@ -235,6 +262,8 @@ def parse_run_args(argv: list[str]) -> RunArgs:
             "password": ns.password,
             "assistant": ns.assistant,
             "phase_models": phase_models,
+            "effort": ns.effort,
+            "attachments": ns.attach,
         }
     )
 
@@ -258,6 +287,7 @@ def parse_respond_args(argv: list[str]) -> RespondArgs:
             "password": ns.password,
             "assistant": ns.assistant,
             "phase_models": phase_models,
+            "effort": ns.effort,
             "accept": ns.accept,
             "deny": ns.deny,
             "reason": ns.reason,
@@ -297,7 +327,23 @@ def _body_ctx(args: RunArgs) -> BodyCtx:
         site_id=args.site,
         mode=args.mode,
         phase_models=args.phase_models,
+        phase_reasoning=_phase_reasoning(args.effort),
     )
+
+
+def write_turn_settings(args: RunArgs, *, assistant_id: str) -> None:
+    """Record the assistant, the models and the efforts the run asked for.
+
+    An empty map means each role runs at its tier's default.
+    """
+    ctx = _body_ctx(args)
+    settings = {
+        "assistantId": assistant_id,
+        "phaseModels": ctx.phase_models,
+        "phaseReasoning": ctx.phase_reasoning,
+    }
+    args.run_dir.mkdir(parents=True, exist_ok=True)
+    (args.run_dir / TURN_SETTINGS_FILE).write_text(json.dumps(settings, indent=2))
 
 
 def _current_gate(capture: RunCapture) -> Gate:
@@ -597,11 +643,19 @@ async def drive_run(args: RunArgs) -> tuple[RunCapture, Gate]:
             quiet=args.quiet,
         )
         reset_run_dir(args.run_dir)
+        write_turn_settings(args, assistant_id=spec.assistant_id)
         if not args.quiet:
             print(f"conversation={args.conversation_id}")
             print(f"run-dir={args.run_dir}")
+            print(f"effort={args.effort or 'tier default'}")
 
-        body = user_body(_body_ctx(args), message_id=capture.turn_id, text=args.prompt)
+        body = user_body(
+            _body_ctx(args),
+            message_id=capture.turn_id,
+            text=args.prompt,
+            files=[attached_file(path) for path in args.attachments],
+        )
+        refuse_unreadable_attachments(body, spec.assistant_id)
         with capture_tracebacks(args.run_dir):
             gate = await _drive_conversation(
                 args,
@@ -694,6 +748,7 @@ async def run_respond(args: RespondArgs) -> int:
             quiet=args.quiet,
         )
         await _replay_run_dir(capture, args.run_dir)
+        write_turn_settings(args, assistant_id=spec.assistant_id)
         gate = await _gate_from_checkpoint(
             args.conversation_id,
             settings.database_url,

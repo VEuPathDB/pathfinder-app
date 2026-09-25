@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from pathfinder.persistence.models import User
+from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.security import create_user_token
 
 _AST = {
@@ -126,3 +126,76 @@ async def test_other_user_cannot_read_conversation(
     async with _client_for(app, other.id) as intruder:
         resp = await intruder.get(f"/api/v1/conversations/{conv_id}")
     assert resp.status_code in (403, 404)
+
+
+async def _link_to_wdk(api_client: httpx.AsyncClient, name: str, wdk_id: int) -> str:
+    created = await api_client.post(
+        "/api/v1/conversations",
+        json={"name": name, "siteId": "plasmodb", "strategyAst": _AST},
+    )
+    conv_id = str(created.json()["id"])
+    linked = await api_client.patch(
+        f"/api/v1/conversations/{conv_id}", json={"wdkStrategyId": wdk_id}
+    )
+    assert linked.status_code == 200, linked.text
+    return conv_id
+
+
+async def test_delete_without_the_flag_moves_a_linked_conversation_to_dismissed(
+    api_client: httpx.AsyncClient,
+) -> None:
+    """A delete without ``deleteFromWdk`` keeps the row and the site strategy."""
+    conv_id = await _link_to_wdk(api_client, "Linked kinases", 330659663)
+
+    deleted = await api_client.delete(f"/api/v1/conversations/{conv_id}")
+
+    assert deleted.status_code == 204
+    dismissed = await api_client.get(
+        "/api/v1/conversations/dismissed", params={"siteId": "plasmodb"}
+    )
+    assert [c["id"] for c in dismissed.json()] == [conv_id]
+
+
+async def test_delete_from_wdk_reaches_the_service_through_the_query_flag(
+    api_client: httpx.AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """``deleteFromWdk=true`` runs the site-delete path, which refuses a used strategy."""
+    saved_id = await _link_to_wdk(api_client, "Saved kinases", 330659664)
+    consumer_id = await _link_to_wdk(api_client, "Consumer", 330659665)
+    stored = await db_session.get(ConversationStrategy, UUID(consumer_id))
+    assert stored is not None
+    stored.imported_saved_strategy_ids = [330659664]
+    await db_session.commit()
+
+    refused = await api_client.delete(
+        f"/api/v1/conversations/{saved_id}", params={"deleteFromWdk": "true"}
+    )
+
+    assert refused.status_code == 422, refused.text
+    assert refused.json()["detail"] == (
+        "1 other conversation(s) import this saved strategy: Consumer"
+    )
+    listed = await api_client.get(
+        "/api/v1/conversations", params={"siteId": "plasmodb"}
+    )
+    assert saved_id in [c["id"] for c in listed.json()]
+
+
+async def test_a_second_delete_removes_a_recently_deleted_conversation(
+    api_client: httpx.AsyncClient,
+) -> None:
+    """Delete permanently removes the row and leaves the site strategy alone."""
+    conv_id = await _link_to_wdk(api_client, "Linked kinases", 330659666)
+    first = await api_client.delete(f"/api/v1/conversations/{conv_id}")
+    assert first.status_code == 204
+
+    second = await api_client.delete(f"/api/v1/conversations/{conv_id}")
+
+    assert second.status_code == 204
+    dismissed = await api_client.get(
+        "/api/v1/conversations/dismissed", params={"siteId": "plasmodb"}
+    )
+    assert dismissed.json() == []
+    gone = await api_client.get(f"/api/v1/conversations/{conv_id}")
+    assert gone.status_code == 404

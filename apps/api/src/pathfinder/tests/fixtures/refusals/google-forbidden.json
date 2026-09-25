@@ -1,0 +1,16 @@
+{
+  "provider": "google",
+  "refusal": "forbidden",
+  "status": 403,
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "Your API key does not have permission for this resource.",
+      "status": "PERMISSION_DENIED"
+    }
+  },
+  "provenance": "documented",
+  "source": "https://google.aip.dev/193",
+  "model": null,
+  "read_at": "2026-09-24T19:40:00Z"
+}

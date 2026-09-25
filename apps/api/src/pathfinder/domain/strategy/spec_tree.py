@@ -124,6 +124,9 @@ def _node_to_step(
         )
         minted[crit.id] = step.id
         return step
+    if node.kind == "copy":
+        msg = "a copy is stated as criteria of its own before the build"
+        raise ValueError(msg)
     # Combining n criteria takes n-1 nodes. A spec that emits one per criterion
     # carries a spare with nothing to combine against, and one operand is that
     # operand.

@@ -4,16 +4,19 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 import pytest
 from assistant_core.models.capture import (
     reset_llm_capture_hook,
     set_llm_capture_hook,
 )
+from assistant_core.platform.types import PaidBy
 from pydantic import SecretStr
 from pydantic_ai.models import Model
 
 from pathfinder.ai.agents.compactor import build_compactor_agent
+from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.conversation.title_generator import generate_conversation_title
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.lead.lead_agent import build_lead_agent
@@ -103,21 +106,25 @@ async def test_the_compactor_runs_on_the_researchers_key() -> None:
     wire = ProviderWire()
 
     with attach_keyring(_KEYRING, build=wire.build):
-        agent = build_compactor_agent()
+        agent = build_compactor_agent(meter=SpendMeter())
 
     assert await _sent_key(agent.model or "", wire) == f"Bearer {_USER_KEY}"
 
 
 async def test_the_title_runs_on_the_researchers_key() -> None:
     wire = ProviderWire()
+    meter = SpendMeter()
 
     with attach_keyring(_KEYRING, build=wire.build):
         title = await generate_conversation_title(
-            "list the kinases", build_pathfinder_spec().build_mock_model
+            "list the kinases", build_pathfinder_spec().build_mock_model, meter
         )
 
     assert title == ANSWER_TEXT.rstrip(".")
     assert [h["authorization"] for h in wire.sent_headers()] == [f"Bearer {_USER_KEY}"]
+    assert [(s.tokens, s.cost_usd, s.paid_by) for s in meter.spent] == [
+        (17, Decimal("0.0000084"), PaidBy.USER)
+    ]
 
 
 async def test_a_title_on_a_refused_key_falls_back_to_the_message() -> None:
@@ -125,7 +132,7 @@ async def test_a_title_on_a_refused_key_falls_back_to_the_message() -> None:
 
     with attach_keyring(_KEYRING, build=wire.build) as keys:
         title = await generate_conversation_title(
-            "list the kinases", build_pathfinder_spec().build_mock_model
+            "list the kinases", build_pathfinder_spec().build_mock_model, SpendMeter()
         )
 
     assert title == "list the kinases"

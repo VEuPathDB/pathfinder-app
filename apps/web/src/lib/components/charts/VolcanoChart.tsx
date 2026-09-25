@@ -6,11 +6,7 @@ import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaCompar
 import { EChart } from "./EChart";
 import { readChartTokens } from "./chartTheme";
 import { buildVolcanoOption } from "./volcano.options";
-import type {
-  VolcanoPointInput,
-  VolcanoSignificanceField,
-  VolcanoThresholds,
-} from "./types";
+import type { VolcanoPointInput, VolcanoThresholds } from "./types";
 
 /** Read the [effect, -log10(p), gene] tuple the volcano series carries. */
 function volcanoTooltip(params: TooltipComponentFormatterCallbackParams): string {
@@ -26,7 +22,6 @@ function volcanoTooltip(params: TooltipComponentFormatterCallbackParams): string
 export interface VolcanoChartProps {
   points: readonly VolcanoPointInput[];
   thresholds: VolcanoThresholds;
-  significanceField: VolcanoSignificanceField;
   effectSizeLabel: string;
   height: number;
   testId: string;
@@ -38,7 +33,6 @@ export function VolcanoChart(props: VolcanoChartProps) {
   const model = buildVolcanoOption({
     points: props.points,
     thresholds: props.thresholds,
-    significanceField: props.significanceField,
     effectSizeLabel: props.effectSizeLabel,
     tokens,
     comparison: props.comparison,

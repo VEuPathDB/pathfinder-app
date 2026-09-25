@@ -83,7 +83,11 @@ def no_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_a_cleared_strategy_marks_the_turn() -> None:
     deps = _clearing_deps()
 
-    await clear_strategy(run_context_for(deps), confirm=True)
+    await clear_strategy(
+        run_context_for(deps),
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
 
     assert _step_ids(deps) == []
     assert deps.state.turn_markers.edited is True
@@ -96,7 +100,11 @@ async def test_an_unconfirmed_clear_marks_nothing() -> None:
     deps = _clearing_deps()
 
     with pytest.raises(ModelRetry):
-        await clear_strategy(run_context_for(deps), confirm=False)
+        await clear_strategy(
+            run_context_for(deps),
+            confirm=False,
+            reply="I will make this change and report what it takes with it.",
+        )
 
     assert _step_ids(deps) == ["step_a"]
     assert deps.state.turn_markers.edited is False

@@ -61,7 +61,9 @@ const REGISTERED = [
   "preview_eda_subset",
   "promote_to_memory",
   "propose_changes",
+  "read_control_set",
   "read_gene_ids_from_gene_set",
+  "read_experiment",
   "read_gene_ids_from_strategy",
   "read_ledger_section",
   "read_note",
@@ -93,6 +95,13 @@ const REGISTERED = [
   "verify_strategy",
   "research_literature_search",
   "research_web_search",
+  "separate_controls",
+  "adopt_separating_strategy",
+  // The site help assistant's wdk tool source, which prefixes its tools with
+  // the source name (`assistants/site_help/spec.py::WDK_TOOL_SOURCE`).
+  "wdk_list_record_types",
+  "wdk_search_for_searches",
+  "wdk_run_control_tests_on_search",
 ];
 
 describe("humanizeToolName", () => {
@@ -114,7 +123,7 @@ describe("humanizeToolName", () => {
     expect(humanizeToolName("read_ledger_section")).toBe("Read progress");
     expect(humanizeToolName("set_criterion")).toBe("Choose a search");
     expect(humanizeToolName("run_control_tests_on_step")).toBe("Run control tests");
-    expect(humanizeToolName("consult_user")).toBe("Ask the user");
+    expect(humanizeToolName("consult_user")).toBe("Ask you");
   });
 
   it("names the two gene-set tools by what they do", () => {
@@ -129,6 +138,20 @@ describe("humanizeToolName", () => {
     expect(humanizeToolName("read_gene_ids_from_strategy")).toBe(
       "Gene ids from strategy",
     );
+  });
+
+  it("labels the site help assistant's wdk tools like their own tools", () => {
+    expect(
+      [
+        "wdk_list_record_types",
+        "wdk_search_for_searches",
+        "wdk_run_control_tests_on_search",
+      ].map(humanizeToolName),
+    ).toEqual(["List record types", "Find searches", "Run control tests"]);
+  });
+
+  it("says an experiment it reads belongs to another site", () => {
+    expect(humanizeToolName("read_experiment")).toBe("Read another site's experiment");
   });
 
   it("never falls back for a name the backend registers", () => {
@@ -163,7 +186,7 @@ describe("humanizeToolName", () => {
 describe("approvalPromptFor", () => {
   it("asks about a deletion by naming what the deletion removes", () => {
     expect(approvalPromptFor("clear_strategy")).toBe(
-      "Clear the strategy? This removes every step from this thread and from VEuPathDB.",
+      "Clear the strategy? This removes every step from this conversation and from VEuPathDB.",
     );
   });
 
@@ -173,6 +196,31 @@ describe("approvalPromptFor", () => {
     );
     expect(approvalPromptFor("some_new_tool")).toBe(
       "Some new tool needs your approval before it runs.",
+    );
+  });
+
+  it("asks for the site help control tests in the label's words", () => {
+    expect(approvalPromptFor("wdk_run_control_tests_on_search")).toBe(
+      "Run control tests needs your approval before it runs.",
+    );
+  });
+
+  it("asks for a separation run by naming what it measures and how long", () => {
+    expect(approvalPromptFor("separate_controls")).toBe(
+      "Run the separation? It measures candidate searches against your controls " +
+        "on the site and takes about five minutes.",
+    );
+  });
+
+  it("asks a removal in the words the api wrote from the live strategy", () => {
+    const asked =
+      "Replace step 'Transform by Orthology' (GenesByOrthologs, 142 genes) and the steps under it?";
+    expect(approvalPromptFor("replace_subtree", asked)).toBe(asked);
+    expect(
+      approvalPromptFor("delete_step", "Delete step 'Intersect' (116 genes)?"),
+    ).toBe("Delete step 'Intersect' (116 genes)?");
+    expect(approvalPromptFor("replace_subtree")).toBe(
+      "Replace part of a strategy needs your approval before it runs.",
     );
   });
 

@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import UUID
 
 revision: str = "2026_04_18_0005"
 down_revision: str | Sequence[str] | None = "2026_04_18_0004"
@@ -26,19 +26,19 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "parent_conversation_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("conversations.id", ondelete="SET NULL"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("conversations.id", ondelete="SET NULL"),
             nullable=True,
         ),
     )
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "parent_message_id",
-            PGUUID(as_uuid=True),
-            sa.ForeignKey("messages.id", ondelete="SET NULL"),
+            UUID(as_uuid=True),
+            sqlalchemy.ForeignKey("messages.id", ondelete="SET NULL"),
             nullable=True,
         ),
     )

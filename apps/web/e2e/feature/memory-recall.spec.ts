@@ -51,14 +51,14 @@ test.describe("Recalled memories", () => {
               kind: "strategy",
               name: "P. falciparum kinome sweep",
               summary: "Prior malaria kinase strategy",
-              score: 0.83,
+              createdAt: "2026-09-13T12:00:00Z",
             },
             {
               key: "k2",
               kind: "gene_set_note",
               name: "PF3D7 kinases",
               summary: "142 kinase genes",
-              score: 0.61,
+              createdAt: "2026-09-16T12:00:00Z",
             },
           ],
         },
@@ -91,9 +91,10 @@ test.describe("Recalled memories", () => {
     const card = page.getByTestId("data-memory-retrieved");
     await expect(card).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("figure-caption")).toContainText("2 memories");
-    await expect(card).toContainText("strategy");
-    await expect(card).toContainText("P. falciparum kinome sweep");
-    await expect(card).toContainText("gene_set_note");
-    await expect(card).toContainText("PF3D7 kinases");
+    // Each row names its kind by the label the memory settings use.
+    await expect(card.getByRole("listitem")).toHaveText([
+      /^Strategy\s*P\. falciparum kinome sweep$/,
+      /^Gene set\s*PF3D7 kinases$/,
+    ]);
   });
 });

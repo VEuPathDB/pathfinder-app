@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils/cn";
 import { countNoun } from "@/lib/utils/countNoun";
 
-export type SyncState = "idle" | "saving" | "error" | "paused";
+export type SyncState = "idle" | "saving" | "error";
 
 interface EditorFooterProps {
   syncState: SyncState;
@@ -31,7 +31,6 @@ function SyncDot({ state }: { state: SyncState }) {
     state === "idle" && "bg-success",
     state === "saving" && "bg-primary",
     state === "error" && "bg-destructive",
-    state === "paused" && "bg-warning",
   );
   return <span className={className} aria-hidden />;
 }
@@ -48,6 +47,7 @@ export function EditorFooter({
   siteId,
 }: EditorFooterProps) {
   const hasChanges = changeCount > 0;
+  const openLabel = `Open in ${siteId !== "" ? siteShortName(siteId) : "VEuPathDB"}`;
   return (
     <div
       className="flex flex-col gap-2 border-t border-border px-4 py-3 text-xs text-muted-foreground"
@@ -69,11 +69,6 @@ export function EditorFooter({
             <>
               <SyncDot state="error" />
               <span className="text-destructive">Save failed</span>
-            </>
-          ) : syncState === "paused" ? (
-            <>
-              <SyncDot state="paused" />
-              <span className="text-warning">Sync paused (validation issue)</span>
             </>
           ) : hasChanges ? (
             <>
@@ -102,10 +97,11 @@ export function EditorFooter({
               href={wdkUrl}
               target="_blank"
               rel="noopener noreferrer"
+              aria-label={openLabel}
               className="inline-flex items-center gap-1 text-foreground hover:underline"
             >
-              View in {siteId !== "" ? siteShortName(siteId) : "VEuPathDB"}
-              <ExternalLink className="size-3" />
+              {openLabel}
+              <ExternalLink className="size-3" aria-hidden />
             </a>
           )}
         </div>

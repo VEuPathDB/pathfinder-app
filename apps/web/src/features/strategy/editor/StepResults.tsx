@@ -119,9 +119,10 @@ export function StepResults({
             href={stepUrl}
             target="_blank"
             rel="noreferrer"
+            aria-label={`Open in ${siteShortName(siteId)}`}
             className="inline-flex items-center gap-1 text-foreground hover:underline"
           >
-            Open in {siteShortName(siteId)}
+            {`Open in ${siteShortName(siteId)}`}
             <ExternalLink className="size-3" aria-hidden />
           </a>
         )}

@@ -20,16 +20,19 @@ from assistant_core.graph.turn_state import (
     SubAgentApprovalPending,
 )
 from pydantic import JsonValue
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, ToolReturn
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 
-from pathfinder.ai.graph.turn_records import ControlTestRun
+from pathfinder.ai.graph.turn_records import ControlTestRun, TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
 from pathfinder.ai.tools.standalone.experiment import CONTROL_TESTS, control_test_run
 from pathfinder.ai.tools.standalone.optimization import (
     PARAMETER_SWEEP,
     sweep_control_runs,
 )
+from pathfinder.ai.tools.standalone.separation import SEPARATION, separation_chunks
+from pathfinder.domain.separation import SeparationReport
+from pathfinder.domain.separation_brief import brief_of
 
 __all__ = [
     "ConcurrentDurableDispatchError",
@@ -38,7 +41,10 @@ __all__ = [
     "inner_durable_calls",
     "outer_durable_calls",
     "pending_durable_call",
+    "separations_answered",
     "split_durable_answers",
+    "with_briefs",
+    "with_reports",
 ]
 
 
@@ -60,6 +66,65 @@ def control_results_answered(
                 sweep_control_runs(answer.result, tool_call_id=call.tool_call_id)
             )
     return runs
+
+
+def separations_answered(
+    parked: PendingDurableCall,
+    answers: Mapping[UUID, DurableTaskResult],
+    markers: TurnMarkers,
+) -> dict[UUID, SeparationReport]:
+    """Each finished separation's report, its references held to this message's reads.
+
+    A reference no read of the message returned leaves the report; the counts
+    it was measured with stay.
+    """
+    return {
+        call.task_id: SeparationReport.model_validate(
+            answers[call.task_id].result
+        ).with_references_read(markers.retrieved_as)
+        for call in parked.durable_calls
+        if call.durable_tool_name == SEPARATION.tool_name
+        and answers[call.task_id].status == "success"
+    }
+
+
+def with_reports(
+    answers: Mapping[UUID, DurableTaskResult],
+    reports: Mapping[UUID, SeparationReport],
+) -> dict[UUID, DurableTaskResult]:
+    """The answers, each separation's carrying its checked report."""
+    return {
+        task_id: answer
+        if task_id not in reports
+        else answer.model_copy(
+            update={"result": reports[task_id].model_dump(by_alias=True, mode="json")}
+        )
+        for task_id, answer in answers.items()
+    }
+
+
+def with_briefs(
+    parked: PendingDurableCall,
+    answered: DeferredToolResults,
+    reports: Mapping[UUID, SeparationReport],
+) -> DeferredToolResults:
+    """The answers, each separation's returning its brief to the model.
+
+    The chunks keep the whole report, so the card still lists every control.
+    """
+    calls = dict(answered.calls)
+    for call in parked.durable_calls:
+        report = reports.get(call.task_id)
+        if report is None:
+            continue
+        calls[call.tool_call_id] = ToolReturn(
+            return_value={
+                "status": "success",
+                "result": brief_of(report).model_dump(by_alias=True, mode="json"),
+            },
+            metadata=separation_chunks(report, call.tool_call_id),
+        )
+    return DeferredToolResults(calls=calls, approvals=answered.approvals)
 
 
 class ConcurrentDurableDispatchError(RuntimeError):

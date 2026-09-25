@@ -3,12 +3,13 @@ conversation sidebar."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
 from assistant_core.persistence.repositories import conversation
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,23 @@ from pathfinder.persistence.repositories.conversation_update import (
 )
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
+)
+
+_SUBTREE = text(
+    """
+    WITH RECURSIVE subtree(id) AS (
+        SELECT id FROM conversations WHERE id = :id
+        UNION ALL
+        SELECT c.id FROM conversations c
+        JOIN subtree s ON c.parent_conversation_id = s.id
+    )
+    SELECT id::text FROM subtree
+    """,
+)
+_CHECKPOINT_DELETES = (
+    text("DELETE FROM checkpoint_writes WHERE thread_id = any(:ids)"),
+    text("DELETE FROM checkpoint_blobs WHERE thread_id = any(:ids)"),
+    text("DELETE FROM checkpoints WHERE thread_id = any(:ids)"),
 )
 
 
@@ -110,12 +128,27 @@ class ConversationRepository:
         *,
         cascade: bool = False,
     ) -> None:
-        """Delete a conversation.
+        """Delete a conversation and the graph state its thread checkpointed.
 
         Without ``cascade`` the direct children move up to the deleted node's
         parent. With ``cascade`` the whole subtree goes.
         """
+        threads = (
+            list(
+                (
+                    await self.session.scalars(_SUBTREE, {"id": str(conversation_id)})
+                ).all()
+            )
+            if cascade
+            else [str(conversation_id)]
+        )
         await self._threads.delete(conversation_id, cascade=cascade)
+        await self.delete_checkpoints(threads)
+
+    async def delete_checkpoints(self, thread_ids: Sequence[str]) -> None:
+        """Drop every checkpoint, blob and pending write of these threads."""
+        for statement in _CHECKPOINT_DELETES:
+            await self.session.execute(statement, {"ids": list(thread_ids)})
 
     async def list_conversations(
         self,

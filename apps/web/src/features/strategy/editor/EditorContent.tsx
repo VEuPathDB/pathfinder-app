@@ -12,7 +12,6 @@ import {
 } from "@/features/strategy/mutations";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
 import { SaveSubstrategyDialog } from "./SaveSubstrategyDialog";
-import { useStrategyStore } from "@/state/strategy/store";
 import { useStrategyData } from "@/lib/api/strategy";
 import { strategyStepUrl } from "@/lib/routes";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
@@ -31,7 +30,7 @@ import {
   type StepDraftValues,
 } from "./hooks/useStepDraftPersistence";
 import { buildStepPatch } from "./buildStepPatch";
-import { DEFAULT_COLOCATION } from "./components/ColocationEditor";
+import { DEFAULT_COLOCATION } from "./schema/colocationSchema";
 
 export type CloseHandler = () => Promise<void>;
 
@@ -64,7 +63,6 @@ export function EditorContent({
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const stepNumber = useStepNumber(conversationId, step.id);
   const wdkUrl = useStrategyData(conversationId)?.wdkUrl ?? null;
-  const isPaused = useGraphValidationPaused(conversationId);
   const snapshot = useStepSnapshot(step);
 
   const persistence = useStepDraftPersistence({
@@ -233,7 +231,6 @@ export function EditorContent({
   };
 
   const syncState = computeSyncState({
-    isPaused,
     updatePending: updateStep.isPending,
     updateError: updateStep.isError,
   });
@@ -306,19 +303,12 @@ export function EditorContent({
 }
 
 function computeSyncState(args: {
-  isPaused: boolean;
   updatePending: boolean;
   updateError: boolean;
 }): SyncState {
-  if (args.isPaused) return "paused";
   if (args.updatePending) return "saving";
   if (args.updateError) return "error";
   return "idle";
-}
-
-function useGraphValidationPaused(conversationId: string): boolean {
-  const status = useStrategyStore((s) => s.graphValidationStatus);
-  return status[conversationId] === true;
 }
 
 function useStepNumber(conversationId: string, stepId: string): number | null {

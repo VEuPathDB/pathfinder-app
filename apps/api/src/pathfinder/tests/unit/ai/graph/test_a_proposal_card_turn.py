@@ -26,6 +26,7 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, DeclinedProposal
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.tests.unit.ai.graph._approval_turn import (
+    CARD_REPLY,
     LEAD_FINAL,
     Collector,
     drive_lead,
@@ -48,7 +49,11 @@ CHANGES = [
     "Exclude genes highly expressed at the other post-blood-meal time points",
     "Require 1:1:1 syntenic orthologs in Aedes aegypti and Culex quinquefasciatus",
 ]
-PROPOSAL_ARGS: dict[str, Any] = {"question": QUESTION, "proposedChanges": CHANGES}
+PROPOSAL_ARGS: dict[str, Any] = {
+    "question": QUESTION,
+    "proposedChanges": CHANGES,
+    "reply": CARD_REPLY,
+}
 NOTE = "Use the Liverpool strain for Aedes."
 TWO_ADDED = EditDelta(
     diff=SpecDiff(
@@ -216,7 +221,7 @@ async def test_yes_runs_the_cards_edit_and_the_lead_answers_once(
         "Make these changes:\n"
         f"- {CHANGES[0]}\n"
         f"- {CHANGES[1]}\n"
-        f"The researcher's note: {NOTE}"
+        f"The researcher's comment: {NOTE}"
     )
     assert capture.response is not None
     assert capture.response.prose == "scripted"

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
+from pathlib import Path
 
 import pytest
 from veupathdb.errors import WDKError
@@ -301,3 +303,39 @@ async def test_the_summary_line_names_the_record_in_one_sentence() -> None:
         "TGME49_233460: SAG-related sequence SRS29B, 1 exon, "
         "chromosome VIII, 14 orthologs"
     )
+
+
+_RECORDED = Path(__file__).resolve().parents[3] / "fixtures" / "wdk"
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_the_recorded_plasmodb_record_is_read_as_plain_text() -> None:
+    """PlasmoDB answers the organism in italics; the summary states the words."""
+    body = json.loads((_RECORDED / "gene_record_PF3D7_1133400.json").read_text())
+    api = _GeneRecord(WDKRecordInstance.model_validate(body), declares=TOXO_ATTRIBUTES)
+
+    found = await read_the_gene_record(api, "plasmodb", "PF3D7_1133400")
+
+    assert body["attributes"]["organism"] == "<i>P. falciparum 3D7</i>"
+    assert (
+        found.organism,
+        found.product,
+        found.gene_name,
+        found.chromosome,
+        found.exon_count,
+        found.ortholog_count,
+    ) == ("P. falciparum 3D7", "apical membrane antigen 1", "AMA1", "11", 1, 63)
+    assert found.orthologs[0].model_dump() == {
+        "organism": "Plasmodium knowlesi strain H",
+        "gene_id": "PKNH_0931500",
+    }
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_markup_in_a_table_cell_is_stripped() -> None:
+    rows = [{"organism": "<i>P. vivax</i> P01", "ortho_gene_source_id": "PVP01_1"}]
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": rows}))
+
+    found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
+
+    assert found.orthologs[0].organism == "P. vivax P01"

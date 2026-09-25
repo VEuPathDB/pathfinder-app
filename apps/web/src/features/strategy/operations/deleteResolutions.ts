@@ -69,7 +69,7 @@ export function computeDeleteChoices(
       {
         resolution: "delete-strategy",
         title: "Delete strategy",
-        description: "Removing this leaf leaves no steps.",
+        description: "Removing this step leaves no steps.",
         isDefault: true,
         willDelete: steps.map((s) => s.id),
       },
@@ -94,7 +94,7 @@ export function computeDeleteChoices(
         resolution: "orphan-sibling",
         title: "Delete only this branch",
         description:
-          "Leave the combine and the other branch in the graph as a detached group (kept, but not pushed).",
+          "Leave the combine and the other branch in the strategy as a detached group (kept, but not pushed).",
         isDefault: false,
         willDelete: subtreeIds,
       },
@@ -102,7 +102,7 @@ export function computeDeleteChoices(
         resolution: "delete-subtree",
         title: "Delete this subtree",
         description:
-          "Same as the first option for a leaf, but for a multi-step branch it removes everything below.",
+          "Same as the first option for a step with no inputs, but for a multi-step branch it removes everything below.",
         isDefault: false,
         willDelete: [...subtreeIds, parent.id],
       },

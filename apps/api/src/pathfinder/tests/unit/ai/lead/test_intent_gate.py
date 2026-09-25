@@ -96,8 +96,7 @@ def _run(prompt: str, classification: IntentClassification | None) -> OfferedToo
 def test_an_unclassified_turn_is_offered_no_building_tool() -> None:
     seen = _run("I'm investigating virulence factors in Leishmania major", None)
 
-    assert seen.steps
-    assert not (seen.steps[0] & BUILDING_TOOLS)
+    assert seen.steps[0] & BUILDING_TOOLS == frozenset()
     assert "classify_user_intent" in seen.steps[0]
 
 

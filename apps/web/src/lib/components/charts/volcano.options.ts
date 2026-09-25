@@ -3,11 +3,7 @@ import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaCompar
 import type { ChartTokens } from "./chartTheme";
 import { higherIn } from "@/lib/eda/comparison";
 import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
-import type {
-  VolcanoPointInput,
-  VolcanoSignificanceField,
-  VolcanoThresholds,
-} from "./types";
+import type { VolcanoPointInput, VolcanoThresholds } from "./types";
 
 export type VolcanoPoint = [number, number, string];
 
@@ -34,7 +30,6 @@ export interface VolcanoOptionModel {
 export interface BuildVolcanoOptionArgs {
   points: readonly VolcanoPointInput[];
   thresholds: VolcanoThresholds;
-  significanceField: VolcanoSignificanceField;
   effectSizeLabel: string;
   tokens: ChartTokens;
   comparison?: EdaComparison | null | undefined;
@@ -47,11 +42,7 @@ export function volcanoPointY(pValue: number | null | undefined): number | null 
 }
 
 export function buildVolcanoOption(args: BuildVolcanoOptionArgs): VolcanoOptionModel {
-  const selection = selectVolcanoGenes(
-    args.points,
-    args.thresholds,
-    args.significanceField,
-  );
+  const selection = selectVolcanoGenes(args.points, args.thresholds);
   const upIds = new Set(selection.up);
   const downIds = new Set(selection.down);
 

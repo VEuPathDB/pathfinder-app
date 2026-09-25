@@ -5,7 +5,7 @@ import type { Edge, Node } from "@xyflow/react";
 import { useReactFlow } from "@xyflow/react";
 import { useQuery } from "@tanstack/react-query";
 import { useEventListener } from "usehooks-ts";
-import type { Step, Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@pathfinder/shared";
 import type { StepNodeData } from "@/features/strategy/graph/components/nodes/types";
 import { useStrategyHistory } from "@/state/useStrategySelectors";
 import { useStrategyCacheUtils } from "@/lib/api/strategy";
@@ -157,7 +157,7 @@ export function useStrategyGraphLayout(options: UseStrategyGraphLayoutOptions) {
     setPrevPositions(computedPositions);
 
     if (computedPositions !== undefined) {
-      const deserializeOpts: Parameters<typeof deserializeStrategyToGraph>[4] = {
+      const deserializeOpts: Parameters<typeof deserializeStrategyToGraph>[2] = {
         computedPositions,
         existingPositions: nodePositions,
       };
@@ -166,15 +166,10 @@ export function useStrategyGraphLayout(options: UseStrategyGraphLayoutOptions) {
       }
       const { nodes: rawNodes, edges: newEdges } = deserializeStrategyToGraph(
         strategy,
-        (stepId, operator) => {
-          const patch: Partial<Step> = { operator };
-          updateStepMutation.mutate({ stepId, patch });
-        },
         handleOpenDetails,
-        undefined,
         deserializeOpts,
       );
-      // deserialize wires operator/open-details; the node-level
+      // deserialize wires open-details; the node-level
       // delete/duplicate/rename actions attach here.
       const newNodes = rawNodes.map((node) => ({
         ...node,

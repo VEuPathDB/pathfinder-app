@@ -59,7 +59,7 @@ const RAIL_ICONS: RailIconSpec[] = [
   { id: "strategy", icon: Workflow, label: "Strategy" },
   { id: "tasks", icon: Timer, label: "Tasks" },
   { id: "memories", icon: Brain, label: "Memories" },
-  { id: "scratchpad", icon: Notebook, label: "Scratchpad" },
+  { id: "scratchpad", icon: Notebook, label: "Notes" },
   { id: "ledger", icon: ScrollText, label: "Progress" },
   { id: "eda", icon: FlaskConical, label: "Studies" },
 ];

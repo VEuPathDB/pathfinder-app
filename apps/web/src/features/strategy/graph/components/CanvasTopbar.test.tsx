@@ -81,11 +81,11 @@ describe("CanvasTopbar", () => {
         />
       </Wrapper>,
     );
-    fireEvent.click(screen.getByRole("button", { name: /back to chat/i }));
+    fireEvent.click(screen.getByRole("button", { name: /back to conversation/i }));
     expect(pushMock).toHaveBeenCalledWith(chatUrl("plasmodb", "conv-1"));
   });
 
-  it("renders sync status reflecting saving / error / paused / idle", () => {
+  it("renders sync status reflecting saving / error / idle", () => {
     const { Wrapper } = createTestWrapper();
     const { rerender } = render(
       <Wrapper>
@@ -110,22 +110,6 @@ describe("CanvasTopbar", () => {
       </Wrapper>,
     );
     expect(screen.getByRole("button", { name: /failed.*retry/i })).toBeTruthy();
-
-    rerender(
-      <Wrapper>
-        <CanvasTopbar
-          strategy={STRATEGY}
-          conversationId="conv-1"
-          syncState="paused"
-          onRetry={() => {}}
-        />
-      </Wrapper>,
-    );
-    expect(screen.getByText(/Sync paused/i)).toBeTruthy();
-    expect(screen.getByTestId("canvas-topbar-sync-state")).toHaveClass("text-warning");
-    expect(screen.getByTestId("canvas-topbar-sync-state").className).not.toContain(
-      "amber",
-    );
 
     rerender(
       <Wrapper>
@@ -193,32 +177,30 @@ describe("the link to the host site", () => {
   it("sits in the top bar", () => {
     renderTopbar(withWdk);
 
-    expect(
-      screen
-        .getByTestId("canvas-topbar")
-        .querySelector('[data-testid="canvas-topbar-wdk-link"]'),
-    ).toBe(screen.getByTestId("canvas-topbar-wdk-link"));
+    expect(screen.getByTestId("canvas-topbar")).toContainElement(
+      screen.getByRole("link", { name: "Open in PlasmoDB" }),
+    );
   });
 
   it("points at the strategy on the host site", () => {
     renderTopbar(withWdk);
 
-    expect(screen.getByTestId("canvas-topbar-wdk-link").getAttribute("href")).toBe(
-      withWdk.wdkUrl,
-    );
+    expect(
+      screen.getByRole("link", { name: "Open in PlasmoDB" }).getAttribute("href"),
+    ).toBe(withWdk.wdkUrl);
   });
 
-  it("names the site the strategy belongs to", () => {
+  it("says it opens the strategy on the site it belongs to", () => {
     renderTopbar(withWdk);
 
-    expect(screen.getByTestId("canvas-topbar-wdk-link").textContent).toContain(
-      "PlasmoDB",
-    );
+    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
+    expect(link).toHaveAttribute("aria-label", "Open in PlasmoDB");
+    expect(link.textContent).toBe("Open in PlasmoDB");
   });
 
   it("opens in a new tab without leaking the referrer", () => {
     renderTopbar(withWdk);
-    const link = screen.getByTestId("canvas-topbar-wdk-link");
+    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
 
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toContain("noreferrer");
@@ -226,7 +208,7 @@ describe("the link to the host site", () => {
 
   it("sits next to the actions menu", () => {
     renderTopbar(withWdk);
-    const link = screen.getByTestId("canvas-topbar-wdk-link");
+    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
     const menu = screen.getByLabelText("More strategy actions");
 
     expect(link.parentElement).toBe(menu.parentElement);
@@ -235,7 +217,7 @@ describe("the link to the host site", () => {
   it("offers no link before the strategy reaches WDK", () => {
     renderTopbar(STRATEGY);
 
-    expect(screen.queryAllByTestId("canvas-topbar-wdk-link")).toHaveLength(0);
+    expect(screen.queryAllByRole("link", { name: /^Open in / })).toHaveLength(0);
   });
 });
 

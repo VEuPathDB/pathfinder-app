@@ -17,6 +17,7 @@ from veupathdb.domain.strategy import (
 from pathfinder.domain.strategy.combine_naming import (
     combine_display_name,
     combine_name,
+    given_by_a_researcher,
     name_the_combines,
 )
 from pathfinder.domain.strategy.operational_spec import (
@@ -54,6 +55,18 @@ def test_every_operator_has_the_label_the_canvas_shows() -> None:
     labels = json.loads(_PARITY.read_text())["combine_labels"]
 
     assert {op.value: combine_display_name(op) for op in CombineOp} == labels
+    assert labels["RMINUS"] == "Right minus"
+    assert labels["COLOCATE"] == "Colocate"
+
+
+def test_a_label_an_earlier_release_gave_is_not_a_researchers() -> None:
+    retired = json.loads(_PARITY.read_text())["retired_combine_labels"]
+
+    assert retired == ["Minus (reversed)", "Colocated"]
+    assert [given_by_a_researcher(name, COMBINE_SEARCH_NAME) for name in retired] == [
+        False,
+        False,
+    ]
 
 
 @pytest.mark.parametrize(
@@ -65,6 +78,8 @@ def test_every_operator_has_the_label_the_canvas_shows() -> None:
         ("Intersect", COMBINE_SEARCH_NAME, "Union"),
         ("INTERSECT combine", COMBINE_SEARCH_NAME, "Union"),
         ("rminus Combine", COMBINE_SEARCH_NAME, "Union"),
+        ("Minus (reversed)", COMBINE_SEARCH_NAME, "Union"),
+        ("Colocated", COMBINE_SEARCH_NAME, "Union"),
         ("Intersect kinases combine", COMBINE_SEARCH_NAME, "Intersect kinases combine"),
         (
             "Kinases not in the apicoplast",
@@ -196,7 +211,7 @@ def test_an_unnamed_added_combine_takes_its_operators_name() -> None:
         ),
     )
 
-    assert graph.steps["step_new"].display_name == "Minus (reversed)"
+    assert graph.steps["step_new"].display_name == "Right minus"
 
 
 def test_a_duplicate_is_joined_under_the_intersect_name() -> None:

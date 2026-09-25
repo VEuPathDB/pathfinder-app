@@ -52,6 +52,20 @@ def test_a_positive_only_test_reports_recall_alone() -> None:
     )
 
 
+def test_a_negatives_only_test_counts_its_negatives() -> None:
+    counts = _ControlCounts.model_validate(
+        {
+            "negativeAdmittedIds": ["PF3D7_0508800", "PF3D7_1215900"],
+            "negativeExcludedIds": [f"PF3D7_{n:07d}" for n in range(1, 39)],
+            "tunableParameters": [],
+        }
+    )
+
+    assert controls_summary(counts) == (
+        "40 negative controls: 2 returned; no tunable parameters"
+    )
+
+
 def test_a_test_that_ran_no_controls_still_reads() -> None:
     assert controls_summary(_ControlCounts()) == (
         "0 of 0 positive controls recovered; "

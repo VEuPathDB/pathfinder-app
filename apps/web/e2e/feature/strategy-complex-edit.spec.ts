@@ -1,7 +1,7 @@
 import { test, expect } from "../fixtures/test";
 import { combineNode, leafBySearch } from "../fixtures/ast";
 
-test.describe("Complex combine strategy — multi-edit via UI", () => {
+test.describe("Complex combine strategy - multi-edit via UI", () => {
   test("build 3-step combine, flip operator + edit a leaf param, both persist + sync, model answers", async ({
     chatPage,
     graphPage,

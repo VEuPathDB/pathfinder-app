@@ -2,22 +2,39 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
+from assistant_core.graph.tool_summary import truncate_summary
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from pydantic import AfterValidator, ConfigDict, Field
 
 from pathfinder.services.eda.description import StudyDescription
 
+# A card carries the start of a description; describe_eda_study reads the rest.
+_CARD_DESCRIPTION_CHARS = 240
+
+
+def _card_description(text: str) -> str:
+    return truncate_summary(text, limit=_CARD_DESCRIPTION_CHARS)
+
 
 class EdaStudyCardOut(CamelModel):
+    """One study as the search tool lists it."""
+
+    model_config = ConfigDict(from_attributes=True)
+
     dataset_id: str
     study_id: str
     display_name: str
     short_display_name: str = ""
-    description: str = ""
+    description: Annotated[str, AfterValidator(_card_description)] = ""
     source_type: str = ""
     relevance: float = 0.0
     can_subset: bool = False
     can_export_rows: bool = False
+    sites: list[str] = Field(default_factory=list)
+    # Why the study does not open on this site, or None when it does.
+    not_here: str | None = None
 
 
 class EdaStudySearchResult(CamelModel):

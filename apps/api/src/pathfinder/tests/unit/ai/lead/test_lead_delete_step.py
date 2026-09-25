@@ -27,6 +27,8 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     session_with,
 )
 
+_REPLY = "I remove the step you named, and the rest stays."
+
 
 @pytest.fixture
 def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
@@ -82,7 +84,7 @@ async def test_a_detached_root_is_removed_and_the_turn_is_marked(
     """
     ctx = _ctx(detached=True)
 
-    answer = await delete_step(ctx, step_id="step_loose")
+    answer = await delete_step(ctx, step_id="step_loose", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_loose"]
@@ -94,7 +96,7 @@ async def test_a_detached_root_is_removed_and_the_turn_is_marked(
 async def test_an_inner_leaf_collapses_its_combine(stub_api: StubAPI) -> None:
     ctx = _ctx()
 
-    answer = await delete_step(ctx, step_id="step_k2")
+    answer = await delete_step(ctx, step_id="step_k2", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c1", "step_k2"]
@@ -104,7 +106,7 @@ async def test_an_inner_leaf_collapses_its_combine(stub_api: StubAPI) -> None:
 async def test_the_deleted_step_leaves_the_spec(stub_api: StubAPI) -> None:
     ctx = _ctx()
 
-    await delete_step(ctx, step_id="step_k2")
+    await delete_step(ctx, step_id="step_k2", reply=_REPLY)
 
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
@@ -115,7 +117,7 @@ async def test_a_step_the_graph_does_not_hold_is_refused(stub_api: StubAPI) -> N
     ctx = _ctx()
 
     with pytest.raises(ModelRetry) as raised:
-        await delete_step(ctx, step_id="step_gone")
+        await delete_step(ctx, step_id="step_gone", reply=_REPLY)
 
     assert "step_gone" in str(raised.value)
     assert "step_c1" in str(raised.value)
@@ -132,7 +134,7 @@ async def test_the_only_step_of_a_strategy_is_removed(stub_api: StubAPI) -> None
         tool_call_id="call_delete",
     )
 
-    answer = await delete_step(ctx, step_id="step_k1")
+    answer = await delete_step(ctx, step_id="step_k1", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_k1"]
@@ -146,7 +148,7 @@ async def test_the_root_combine_collapses_onto_its_primary_input(
     """A combine of the strategy goes with one input; the other becomes root."""
     ctx = _ctx()
 
-    answer = await delete_step(ctx, step_id="step_c1")
+    answer = await delete_step(ctx, step_id="step_c1", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c1", "step_k2"]
@@ -168,7 +170,7 @@ async def test_a_detached_root_takes_its_whole_subtree(stub_api: StubAPI) -> Non
     ctx = _ctx(cited=True)
     _with_a_detached_combine(ctx)
 
-    answer = await delete_step(ctx, step_id="step_c9")
+    answer = await delete_step(ctx, step_id="step_c9", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c9", "step_k8", "step_k9"]
@@ -183,7 +185,7 @@ async def test_a_detached_inner_step_collapses_its_own_combine(
     ctx = _ctx()
     _with_a_detached_combine(ctx)
 
-    answer = await delete_step(ctx, step_id="step_k8")
+    answer = await delete_step(ctx, step_id="step_k8", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c9", "step_k8"]
@@ -220,7 +222,7 @@ async def test_the_strategy_root_transform_leaves_its_input_the_root(
     """A deleted step's primary input stands where it stood, the root included."""
     ctx = _rooted_transform_ctx()
 
-    answer = await delete_step(ctx, step_id="step_t1")
+    answer = await delete_step(ctx, step_id="step_t1", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_t1"]
@@ -238,7 +240,7 @@ async def test_a_step_under_a_root_transform_takes_the_transform_with_it(
         tool_call_id="call_delete",
     )
 
-    answer = await delete_step(ctx, step_id="step_k1")
+    answer = await delete_step(ctx, step_id="step_k1", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_k1", "step_t1"]
@@ -268,13 +270,14 @@ async def test_a_root_of_a_split_thread_no_push_named_is_refused(
     ctx = await _loose_component_ctx()
 
     with pytest.raises(ModelRetry) as raised:
-        await delete_step(ctx, step_id="step_c9")
+        await delete_step(ctx, step_id="step_c9", reply=_REPLY)
 
-    message = str(raised.value)
-    assert "no push says which of them the strategy is" in message
-    assert "step_c9 (3 steps)" in message
-    assert "step_main (1 step)" in message
-    assert "clear_strategy" in message
+    assert str(raised.value) == (
+        "step_c9 is one of the 2 roots this conversation holds, and no push says "
+        "which of them the strategy is: step_c9 (3 steps), step_main (1 step). "
+        "Nothing was removed. Name a step under the one you mean, or call "
+        "clear_strategy to remove every step of the conversation."
+    )
     assert stub_api.named("delete_step") == []
     assert sorted(_graph(ctx).steps) == [
         "step_c9",
@@ -309,7 +312,7 @@ async def test_the_root_combine_of_a_split_thread_is_never_wiped(
     )
 
     with pytest.raises(ModelRetry) as raised:
-        await delete_step(ctx, step_id="step_c1")
+        await delete_step(ctx, step_id="step_c1", reply=_REPLY)
 
     assert "step_c1 (3 steps)" in str(raised.value)
     assert "step_c9 (5 steps)" in str(raised.value)
@@ -341,7 +344,7 @@ async def test_a_root_transform_of_a_split_thread_is_refused_as_ambiguous(
     graph.recompute_roots()
 
     with pytest.raises(ModelRetry) as raised:
-        await delete_step(ctx, step_id="step_t1")
+        await delete_step(ctx, step_id="step_t1", reply=_REPLY)
 
     assert "no push says which of them the strategy is" in str(raised.value)
     assert stub_api.named("delete_step") == []
@@ -354,7 +357,7 @@ async def test_a_step_under_a_root_of_a_split_thread_is_unambiguous(
     """A step with a parent names its own component, so it is not refused."""
     ctx = await _loose_component_ctx()
 
-    answer = await delete_step(ctx, step_id="step_k8")
+    answer = await delete_step(ctx, step_id="step_k8", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c9", "step_k8"]
@@ -367,7 +370,7 @@ async def test_a_combine_under_a_root_transform_leaves_its_secondary_branch(
     """The transform reads the primary, which is what the refusal advises."""
     ctx = _rooted_transform_ctx()
 
-    answer = await delete_step(ctx, step_id="step_c1")
+    answer = await delete_step(ctx, step_id="step_c1", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c1", "step_k2"]
@@ -390,7 +393,7 @@ async def test_a_transform_under_a_transform_leaves_its_input_in_its_place(
         tool_call_id="call_delete",
     )
 
-    answer = await delete_step(ctx, step_id="step_t1")
+    answer = await delete_step(ctx, step_id="step_t1", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_t1"]
@@ -420,7 +423,7 @@ async def test_the_cited_root_decides_when_it_is_not_the_largest(
         tool_call_id="call_delete",
     )
 
-    answer = await delete_step(ctx, step_id="step_c9")
+    answer = await delete_step(ctx, step_id="step_c9", reply=_REPLY)
 
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c9", "step_k8", "step_k9"]

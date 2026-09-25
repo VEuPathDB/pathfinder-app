@@ -4,6 +4,7 @@ import {
   ExportedStepError,
   exportedStepPlacement,
   strategyFromExportedStep,
+  unmatchedGenesSentence,
 } from "./exportedStep";
 
 const CONVERSATION_ID = "11111111-1111-4111-8111-111111111111";
@@ -120,5 +121,28 @@ describe("exportedStepPlacement", () => {
       kind: "begins-strategy",
       stepId: "step_combine",
     });
+  });
+});
+
+describe("unmatchedGenesSentence", () => {
+  it("names how many of the cut's genes the site's annotation lacks", () => {
+    expect(unmatchedGenesSentence(201, 198, "PlasmoDB")).toBe(
+      "3 of 201 genes are not genes of PlasmoDB's current annotation.",
+    );
+  });
+
+  it("speaks of one gene in the singular", () => {
+    expect(unmatchedGenesSentence(201, 200, "PlasmoDB")).toBe(
+      "1 of 201 genes is not a gene of PlasmoDB's current annotation.",
+    );
+  });
+
+  it("says nothing when the step holds every gene of the cut", () => {
+    expect(unmatchedGenesSentence(201, 201, "PlasmoDB")).toBe(null);
+  });
+
+  it("says nothing when either count is unknown", () => {
+    expect(unmatchedGenesSentence(201, null, "PlasmoDB")).toBe(null);
+    expect(unmatchedGenesSentence(null, 198, "PlasmoDB")).toBe(null);
   });
 });

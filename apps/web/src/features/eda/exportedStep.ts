@@ -47,3 +47,16 @@ export function exportedStepPlacement(strategy: Strategy): ExportedStepPlacement
   if (root == null) throw new ExportedStepError(NO_STEP);
   return { kind: "begins-strategy", stepId: root };
 }
+
+/** How many genes of a volcano cut the exported step lacks, because the site's
+ * annotation does not hold them, or null when it lacks none or a count is unknown. */
+export function unmatchedGenesSentence(
+  selected: number | null,
+  exported: number | null | undefined,
+  siteName: string,
+): string | null {
+  if (selected === null || exported == null || exported >= selected) return null;
+  const missing = selected - exported;
+  const verb = missing === 1 ? "is not a gene" : "are not genes";
+  return `${String(missing)} of ${String(selected)} genes ${verb} of ${siteName}'s current annotation.`;
+}

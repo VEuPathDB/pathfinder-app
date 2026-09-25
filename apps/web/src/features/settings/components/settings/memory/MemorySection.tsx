@@ -10,6 +10,8 @@ import { MemoryRow } from "./MemoryRow";
 interface MemorySectionProps {
   title: string;
   items: MemoryItem[];
+  /** The memory a thread asked to show, marked in this list. */
+  focusedKey?: string | null;
   onEdit: (item: MemoryItem) => void;
   onDelete: (item: MemoryItem) => void;
   onToggleAutoRetrieve: (item: MemoryItem, next: boolean) => void;
@@ -19,6 +21,7 @@ interface MemorySectionProps {
 export function MemorySection({
   title,
   items,
+  focusedKey = null,
   onEdit,
   onDelete,
   onToggleAutoRetrieve,
@@ -55,6 +58,7 @@ export function MemorySection({
                 <MemoryRow
                   key={item.key === "" ? `${item.value.name}-${idx}` : item.key}
                   item={item}
+                  focused={item.key === focusedKey}
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onToggleAutoRetrieve={onToggleAutoRetrieve}

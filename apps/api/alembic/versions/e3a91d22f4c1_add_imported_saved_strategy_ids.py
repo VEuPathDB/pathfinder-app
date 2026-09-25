@@ -8,7 +8,7 @@ Create Date: 2026-04-27 00:00:00.000000
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
@@ -21,11 +21,11 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "conversations",
-        sa.Column(
+        sqlalchemy.Column(
             "imported_saved_strategy_ids",
             postgresql.JSONB(),
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=sqlalchemy.text("'[]'::jsonb"),
         ),
     )
     # Drop the server_default after backfill so application owns the value.

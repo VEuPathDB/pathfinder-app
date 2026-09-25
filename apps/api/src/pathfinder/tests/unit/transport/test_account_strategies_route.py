@@ -6,7 +6,7 @@ import pytest
 from veupathdb.wdk import WDKStrategySummary
 
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
-from pathfinder.transport.http.routers.sites import strategies as route_module
+from pathfinder.transport.http.routers.sites import strategies
 
 SITE = "plasmodb"
 
@@ -52,7 +52,7 @@ def _install(
         api.sites.append(site_id)
         return api
 
-    monkeypatch.setattr(route_module, "get_strategy_api", _factory)
+    monkeypatch.setattr(strategies, "get_strategy_api", _factory)
     return api
 
 
@@ -68,7 +68,7 @@ async def test_the_account_strategies_answer_newest_first(
         ],
     )
 
-    listed = await route_module.list_account_strategies(SITE)
+    listed = await strategies.list_account_strategies(SITE)
 
     assert [item.wdk_strategy_id for item in listed] == [403, 402, 401]
     assert listed[0].name == "secreted proteins"
@@ -82,7 +82,7 @@ async def test_the_listing_carries_only_what_the_picker_draws(
     """A field no picker draws is plumbing, so the wire does not carry it."""
     _install(monkeypatch, [_summary(401, "kinase sweep", "2026-09-10T08:00:00")])
 
-    listed = await route_module.list_account_strategies(SITE)
+    listed = await strategies.list_account_strategies(SITE)
 
     assert set(listed[0].model_dump(by_alias=True)) == {
         "wdkStrategyId",
@@ -104,7 +104,7 @@ async def test_a_strategy_the_researcher_deleted_is_not_offered(
         ],
     )
 
-    listed = await route_module.list_account_strategies(SITE)
+    listed = await strategies.list_account_strategies(SITE)
 
     assert [item.wdk_strategy_id for item in listed] == [401]
 
@@ -125,7 +125,7 @@ async def test_a_helper_strategy_this_deployment_wrote_is_not_offered(
         ],
     )
 
-    listed = await route_module.list_account_strategies(SITE)
+    listed = await strategies.list_account_strategies(SITE)
 
     assert [item.wdk_strategy_id for item in listed] == [401]
 
@@ -136,7 +136,7 @@ async def test_the_listing_reads_one_site_and_asks_wdk_once(
     """``list_strategies`` names no user, so WDK answers the token's account."""
     api = _install(monkeypatch, [_summary(401, "kinase sweep", "2026-09-10T08:00:00")])
 
-    await route_module.list_account_strategies(SITE)
+    await strategies.list_account_strategies(SITE)
 
     assert api.calls == 1
     assert api.sites == [SITE]
@@ -147,4 +147,4 @@ async def test_an_account_with_no_strategy_answers_an_empty_list(
 ) -> None:
     _install(monkeypatch, [])
 
-    assert await route_module.list_account_strategies(SITE) == []
+    assert await strategies.list_account_strategies(SITE) == []

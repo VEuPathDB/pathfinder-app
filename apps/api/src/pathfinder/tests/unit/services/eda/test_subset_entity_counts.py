@@ -21,7 +21,7 @@ from veupathdb.eda import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.domain.eda_parts import EdaEntityCount
-from pathfinder.persistence.models import ConversationAnalysisView
+from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda import authoring, catalog
 from pathfinder.services.eda.binding import read_analysis_state
 

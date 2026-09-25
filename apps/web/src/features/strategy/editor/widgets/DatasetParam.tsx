@@ -9,13 +9,13 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils/cn";
+import { parseGeneCsv } from "@/lib/utils/parseGeneCsv";
 import type { ParamWidgetProps } from "./types";
 import {
   basketNameFromConfig,
   decodeDatasetValue,
   defaultIdListFromInitial,
   encodeDatasetValue,
-  fileNameFromConfig,
   initialTabFor,
   parseIdsFromText,
   pasteTextFromConfig,
@@ -29,7 +29,10 @@ import {
   PasteTab,
   StrategyTab,
   UploadTab,
+  type UploadedFile,
 } from "./DatasetParamTabs";
+
+const SAVED_DATASET_ID = /^[1-9][0-9]*$/;
 
 export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
   const raw = typeof field.state.value === "string" ? field.state.value : "";
@@ -43,6 +46,7 @@ export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
   const [pasteText, setPasteText] = useState<string>(() =>
     pasteTextFromConfig(decoded),
   );
+  const [upload, setUpload] = useState<UploadedFile | null>(null);
 
   const errors = field.state.meta.errors;
   const hasError = errors.length > 0;
@@ -69,14 +73,10 @@ export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
   };
 
   const handleFileSelected = (file: File, content: string) => {
-    const ids = parseIdsFromText(content);
-    commit({
-      sourceType: "file",
-      sourceContent: {
-        fileName: file.name,
-        ...(ids.length > 0 ? { temporaryFileId: `inline:${file.name}` } : {}),
-      },
-    });
+    const ids = parseGeneCsv(content);
+    setUpload({ fileName: file.name, idCount: ids.length });
+    setPasteText(ids.join("\n"));
+    commit(ids.length === 0 ? null : { sourceType: "idList", sourceContent: { ids } });
   };
 
   const updateBasket = (basketName: string) => {
@@ -153,10 +153,7 @@ export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
           </TabsContent>
         )}
         <TabsContent value="upload" className="mt-3">
-          <UploadTab
-            fileName={fileNameFromConfig(decoded)}
-            onFileSelected={handleFileSelected}
-          />
+          <UploadTab upload={upload} onFileSelected={handleFileSelected} />
         </TabsContent>
         <TabsContent value="basket" className="mt-3">
           <BasketTab
@@ -175,7 +172,9 @@ export function DatasetParam({ spec, name, field }: ParamWidgetProps) {
 
       {raw !== "" && decoded === null && (
         <p className="mt-2 text-xs text-warning">
-          Existing value is not a recognized DatasetConfig; pick a tab to overwrite.
+          {SAVED_DATASET_ID.test(raw)
+            ? `This step reads saved ID list ${raw} on the site. Paste or upload IDs to replace it.`
+            : "This value is not an ID list the editor reads. Paste or upload IDs to replace it."}
         </p>
       )}
 

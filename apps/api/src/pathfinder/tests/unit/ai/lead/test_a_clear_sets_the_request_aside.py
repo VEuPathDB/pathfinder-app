@@ -78,7 +78,11 @@ async def _cleared() -> LeadDeps:
             explicit_constraints=[_NEW_ORGANISM],
         ),
     )
-    await clear_strategy(run_context_for(deps, "t_clear"), confirm=True)
+    await clear_strategy(
+        run_context_for(deps, "t_clear"),
+        confirm=True,
+        reply="I will make this change and report what it takes with it.",
+    )
     return deps
 
 
@@ -99,7 +103,7 @@ async def test_the_passes_after_a_clear_read_this_message_alone() -> None:
 
     assert framing_goal(deps.state) == _NEW
     assert agent_deps_for(deps).user_prompt == _NEW
-    assert verification_scope(deps, check_id="call_verify").request == _NEW
+    assert verification_scope(deps, check_id="call_verify").messages == [_NEW]
 
 
 async def test_a_budget_stop_after_a_clear_cites_no_cleared_link() -> None:

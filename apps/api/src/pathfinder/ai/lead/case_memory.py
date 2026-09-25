@@ -8,6 +8,7 @@ case written twice is one row.
 
 from __future__ import annotations
 
+import textwrap
 from datetime import UTC, datetime
 
 from assistant_core.memory.autowrite import MemoryCandidate
@@ -92,9 +93,12 @@ def _criterion_row(criterion: Criterion) -> dict[str, object]:
     if criterion.analysis is not None:
         row["analysis"] = criterion.analysis.words
     # The free-text reason and the scores stay out, so a rewording is one case.
-    if criterion.rationale is not None:
-        row["because"] = f"{criterion.rationale.basis}: {criterion.rationale.term}"
-        row["chosen_over"] = [c.name for c in criterion.rationale.compared]
+    chosen = criterion.rationale
+    if chosen is not None:
+        row["because"] = f"{chosen.basis}: {chosen.term}"
+        row["chosen_over"] = (
+            [c.name for c in chosen.compared] if chosen.kind == "search" else []
+        )
     return row
 
 
@@ -102,6 +106,15 @@ def _structure_line(spec: OperationalSpec) -> str:
     if spec.structure is None:
         return ""
     return render_structure(spec.structure.root, spec)
+
+
+def _cut(name: str) -> str:
+    """The name, cut at the last whole word that fits when it is too long."""
+    if len(name) <= _NAME_LIMIT:
+        return name
+    return textwrap.shorten(
+        name, width=_NAME_LIMIT, placeholder="...", break_on_hyphens=False
+    )
 
 
 def _case_value(
@@ -114,7 +127,7 @@ def _case_value(
 ) -> MemoryCandidate:
     value = MemoryValue(
         kind="case",
-        name=name[:_NAME_LIMIT],
+        name=_cut(name),
         summary=summary[:_SUMMARY_LIMIT],
         tags=_tags(state, spec),
         site_id=state.site_id,

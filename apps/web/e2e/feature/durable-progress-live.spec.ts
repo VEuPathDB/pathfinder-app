@@ -158,6 +158,31 @@ test.describe("Durable task live progress", () => {
     expect(tailCalls()).toBeGreaterThan(1);
   });
 
+  test("a task with no progress yet reads Queued, not 0%", async ({
+    page,
+    context,
+  }) => {
+    const siteId = await entrySiteId(context, BASE_URL);
+    const strategyId = await openStrategy(context, siteId);
+
+    await routeSuspendedTurn(
+      page,
+      suspendingTurn(
+        "55555555-5555-5555-5555-555555555555",
+        "run_control_tests_on_step",
+      ),
+      sseDone(),
+    );
+
+    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await sendPrompt(page, "kick off durable verification");
+
+    const started = page.getByTestId("data-background-task-started");
+    await expect(started.getByTestId("task-row-status")).toHaveText("Queued", {
+      timeout: 20_000,
+    });
+  });
+
   test("the outcome and the continuation arrive on that same connection", async ({
     page,
     context,

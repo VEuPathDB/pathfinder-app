@@ -23,6 +23,7 @@ from pathfinder.persistence.models import ConversationStrategy, StrategyRevision
 from pathfinder.platform.config import get_settings
 from pathfinder.services.conversations.fork import fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
+from pathfinder.tests.integration.persistence._fake_eda import install_fake_eda
 from pathfinder.tests.integration.persistence._thread_surgery import (
     EDA_DATASET,
     FOUR_STEPS,
@@ -37,7 +38,6 @@ from pathfinder.tests.integration.persistence._thread_surgery import (
     conversation_snapshot,
     four_turn_thread,
     gametocyte_filter,
-    install_fake_eda,
     install_fake_push,
     message_ids,
     message_roles,

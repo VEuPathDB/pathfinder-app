@@ -93,7 +93,6 @@ function renderShell(overrides: Partial<ComponentProps<typeof NodeShell>> = {}) 
       kind="search"
       step={step}
       selected={false}
-      isUnsaved={false}
       width={168}
       height={64}
       snapshot={makeSnapshot()}

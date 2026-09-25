@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
+import sqlalchemy
 from alembic import op
 from sqlalchemy.dialects.postgresql import JSONB
 
@@ -24,7 +24,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column(
         "users",
-        sa.Column("pipeline_config", JSONB(), nullable=True),
+        sqlalchemy.Column("pipeline_config", JSONB(), nullable=True),
     )
 
 
