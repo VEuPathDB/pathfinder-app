@@ -2,7 +2,8 @@
 
 The graph editor writes ``conversation_strategies.strategy_ast`` over HTTP and
 never touches the checkpoint, so a real strategy can reach a turn with no spec.
-The pre-turn hook reconstructs one from what Postgres holds, without WDK.
+The pre-turn hook reconstructs one from what Postgres holds and the sheets of
+its searches, without a WDK strategy read.
 """
 
 from __future__ import annotations
@@ -38,6 +39,13 @@ from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.recorded_searches import (
+    serve_recorded_definitions,
+    suite_search,
+)
+
+_TAXON = suite_search("search_genes_by_taxon")
+_PERCENTILE = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
 
 
 class _RefusingStrategyApi:
@@ -64,9 +72,7 @@ async def db_session(
         yield session
 
 
-PERCENTILE_SEARCH = (
-    "GenesByRNASeqpfal3D7_Josling_Schizont_Transcriptomes_ebi_rnaSeq_RSRCPercentile"
-)
+PERCENTILE_SEARCH = _PERCENTILE.url_segment
 
 
 def _ast() -> StrategyAst:
@@ -156,6 +162,11 @@ def _state(spec: OperationalSpec | None) -> PipelineState:
         user_prompt="change the organism to P. vivax",
         domain=StrategyDomainState(operational_spec=spec),
     )
+
+
+@pytest.fixture(autouse=True)
+def recorded_definitions(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_recorded_definitions(monkeypatch, [_TAXON, _PERCENTILE])
 
 
 @pytest.fixture

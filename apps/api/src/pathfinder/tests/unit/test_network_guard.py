@@ -8,39 +8,39 @@ from pathlib import Path
 
 import pytest
 
-from pathfinder.tests.unit.conftest import UnitTestNetworkAccessError
+from pathfinder.tests._support.network_guard import NetworkAccessError
 
 
 def test_an_outbound_connection_is_refused() -> None:
-    with socket.socket() as sock, pytest.raises(UnitTestNetworkAccessError) as excinfo:
+    with socket.socket() as sock, pytest.raises(NetworkAccessError) as excinfo:
         sock.connect(("plasmodb.org", 443))
     assert "plasmodb.org:443" in str(excinfo.value)
 
 
 def test_the_refusal_names_the_test() -> None:
-    with socket.socket() as sock, pytest.raises(UnitTestNetworkAccessError) as excinfo:
+    with socket.socket() as sock, pytest.raises(NetworkAccessError) as excinfo:
         sock.connect(("plasmodb.org", 443))
     assert "test_the_refusal_names_the_test" in str(excinfo.value)
 
 
 def test_name_resolution_is_refused() -> None:
-    with pytest.raises(UnitTestNetworkAccessError):
+    with pytest.raises(NetworkAccessError):
         socket.getaddrinfo("plasmodb.org", 443)
 
 
 def test_loopback_is_refused_too() -> None:
     with socket.create_server(("127.0.0.1", 0)) as server:
         address = server.getsockname()
-    with socket.socket() as sock, pytest.raises(UnitTestNetworkAccessError):
+    with socket.socket() as sock, pytest.raises(NetworkAccessError):
         sock.connect(address)
 
 
 async def test_an_event_loop_connection_is_refused() -> None:
     loop = asyncio.get_running_loop()
-    with pytest.raises(UnitTestNetworkAccessError):
+    with pytest.raises(NetworkAccessError):
         await loop.getaddrinfo("plasmodb.org", 443)
 
-    with pytest.raises(UnitTestNetworkAccessError):
+    with pytest.raises(NetworkAccessError):
         await loop.create_connection(asyncio.Protocol, "plasmodb.org", 443)
 
 
@@ -55,20 +55,20 @@ def test_a_retry_loop_that_catches_exception_cannot_swallow_it() -> None:
             with contextlib.suppress(Exception):
                 socket.getaddrinfo("plasmodb.org", 443)
 
-    with pytest.raises(UnitTestNetworkAccessError):
+    with pytest.raises(NetworkAccessError):
         retrying_client()
     assert attempts == 1
 
 
 def test_it_is_not_an_exception_subclass() -> None:
-    assert not issubclass(UnitTestNetworkAccessError, Exception)
-    assert issubclass(UnitTestNetworkAccessError, BaseException)
+    assert not issubclass(NetworkAccessError, Exception)
+    assert issubclass(NetworkAccessError, BaseException)
 
 
 def test_a_bytes_host_is_decoded_in_the_message() -> None:
     loop = asyncio.new_event_loop()
     try:
-        with pytest.raises(UnitTestNetworkAccessError) as excinfo:
+        with pytest.raises(NetworkAccessError) as excinfo:
             loop.run_until_complete(loop.getaddrinfo(b"plasmodb.org", 443))
     finally:
         loop.close()

@@ -9,7 +9,7 @@ the resulting 404.
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -17,6 +17,7 @@ from uuid import UUID
 
 import httpx
 import pytest
+import respx
 import schemathesis
 from assistant_core.platform import db
 from fastapi import FastAPI
@@ -45,10 +46,17 @@ from schemathesis.specs.openapi.checks import (
     response_schema_conformance,
 )
 
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.security import create_user_token
 from pathfinder.tests._support.memory_store_double import LoopFreeMemoryStore
 from pathfinder.tests._support.openapi_negation import (
     labels_with_uncomplementable_union,
+)
+from pathfinder.tests._support.veupathdb_tokens import (
+    JWKS_URL,
+    OAUTH_URL,
+    jwks_body,
+    make_signing_key,
 )
 
 load_all_checks()
@@ -98,6 +106,26 @@ class _SchemaArtifacts:
     schema: BaseSchema
     user_id: UUID
     auth_token: str
+
+
+@pytest.fixture(scope="module", autouse=True)
+def local_oauth_server() -> Iterator[None]:
+    """A generated bearer is checked against a key this module publishes.
+
+    Every other request keeps its own transport.
+    """
+    with (
+        pytest.MonkeyPatch.context() as patch,
+        respx.mock(assert_all_called=False) as router,
+    ):
+        patch.setenv("VEUPATHDB_OAUTH_URL", OAUTH_URL)
+        get_settings.cache_clear()
+        router.get(JWKS_URL).mock(
+            return_value=httpx.Response(200, json=jwks_body(make_signing_key()))
+        )
+        router.route().pass_through()
+        yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture(scope="session")

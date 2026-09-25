@@ -9,4 +9,3 @@ src/pathfinder/tests/integration/persistence/test_conversation_fork_and_delete.p
 src/pathfinder/tests/integration/persistence/test_conversation_revert.py::453
 src/pathfinder/tests/integration/persistence/test_fork_case_matrix.py::626
 src/pathfinder/tests/integration/persistence/test_revert_case_matrix.py::570
-src/pathfinder/tests/integration/services/strategies/test_commit_integration.py::592

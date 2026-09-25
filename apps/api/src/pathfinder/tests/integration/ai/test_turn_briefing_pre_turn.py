@@ -12,6 +12,7 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
+import pytest
 from assistant_core.persistence.models import (
     BackgroundTask,
     Conversation,
@@ -32,6 +33,17 @@ from pathfinder.persistence.models import ConversationAnalysis, User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.conversation_update import ConversationUpdate
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.recorded_searches import (
+    serve_recorded_definitions,
+    suite_search,
+)
+
+_PERCENTILE = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
+
+
+@pytest.fixture(autouse=True)
+def recorded_definitions(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_recorded_definitions(monkeypatch, [_PERCENTILE])
 
 
 def _ast(percentile: int) -> StrategyAst:
@@ -39,7 +51,7 @@ def _ast(percentile: int) -> StrategyAst:
         record_type="transcript",
         root=StrategyStepNode(
             id="step_expr",
-            search_name="GenesByRNASeqEvidence",
+            search_name=_PERCENTILE.url_segment,
             parameters={"min_expression_percentile": NumberValue(value=percentile)},
             display_name="top expression",
         ),

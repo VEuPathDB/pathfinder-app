@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,6 +30,10 @@ from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.tests._support import wdk_write_stubs
+from pathfinder.tests._support.recorded_searches import (
+    no_count,
+    serve_qualifier_reads,
+)
 
 PF = "Plasmodium falciparum 3D7"
 PV = "Plasmodium vivax P01"
@@ -188,6 +192,16 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
         monkeypatch.setattr(module, "get_strategy_api", lambda _site_id: api)
 
     wdk_write_stubs.stub_every_catalog_read(monkeypatch)
+    serve_qualifier_reads(monkeypatch, lambda name: _search_response(name).search_data)
+    no_count(monkeypatch)
+
+    async def _transcript(_search_name: str) -> str:
+        return "transcript"
+
+    async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
+        return _transcript
+
+    monkeypatch.setattr(sync, "make_record_type_resolver", _resolver)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
 
     def _fetch_at(*_args: object) -> ParamFetcher:

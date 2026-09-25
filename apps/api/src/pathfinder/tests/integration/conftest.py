@@ -27,6 +27,7 @@ from pathfinder.jobs.completion import open_completion_turn
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
+from pathfinder.tests._support.network_guard import refuse_veupathdb
 
 
 @pytest.fixture(autouse=True)
@@ -41,6 +42,19 @@ def calling_application() -> Iterator[None]:
         yield
     finally:
         application_id_ctx.reset(token)
+
+
+@pytest.fixture(autouse=True)
+def no_veupathdb(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Refuse every VEuPathDB site to a test that is not ``live_wdk``.
+
+    CI runs this tier with no VEuPathDB credential, so a live read here passes
+    only on a machine that holds one.
+    """
+    if request.node.get_closest_marker("live_wdk") is None:
+        refuse_veupathdb(monkeypatch, request.node.nodeid)
 
 
 @pytest.fixture(scope="session", autouse=True)

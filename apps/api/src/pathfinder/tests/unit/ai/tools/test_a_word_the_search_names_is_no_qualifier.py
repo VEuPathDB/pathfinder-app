@@ -17,11 +17,14 @@ from veupathdb_mcp.catalog import format_param_info_typed
 from pathfinder.ai.agents.state import AgentToolState, CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
-from pathfinder.tests._support.recorded_searches import serve_recorded, suite_search
+from pathfinder.tests._support.recorded_searches import (
+    no_count,
+    serve_recorded,
+    suite_search,
+)
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     Proposals,
     frame_ctx,
-    no_count,
     no_validation,
     serve_params,
     serve_site_listing,

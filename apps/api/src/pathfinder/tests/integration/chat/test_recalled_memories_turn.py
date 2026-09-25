@@ -18,6 +18,10 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
+from pathfinder.tests._support.recorded_searches import (
+    serve_recorded_plasmodb,
+    suite_search,
+)
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
 _GOAL = (
@@ -26,6 +30,12 @@ _GOAL = (
 )
 _EARLIER = datetime(2026, 9, 13, 16, 44, tzinfo=UTC)
 _LATER = datetime(2026, 9, 16, 12, 23, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def recorded_plasmodb(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The goal builds one GenesByTaxon step, read from its recording."""
+    serve_recorded_plasmodb(monkeypatch, [suite_search("search_genes_by_taxon")])
 
 
 def _case(*, count: int, created_at: datetime, source: UUID) -> MemoryValue:

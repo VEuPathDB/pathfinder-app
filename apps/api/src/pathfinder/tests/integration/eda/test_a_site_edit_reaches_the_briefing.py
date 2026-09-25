@@ -38,7 +38,7 @@ from pathfinder.services.eda import binding
 from pathfinder.services.eda.authoring import resolve_eda_user_id
 from pathfinder.tests._support.published_studies import published_on
 
-pytestmark = pytest.mark.asyncio
+pytestmark = [pytest.mark.asyncio, pytest.mark.live_wdk]
 
 _SITE = "plasmodb"
 _DATASET = "DS_53f554ec6a"

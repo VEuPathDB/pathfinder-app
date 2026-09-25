@@ -19,6 +19,7 @@ from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.tests._support.recorded_searches import (
     client_search,
+    no_count,
     serve_qualifier_reads,
     serve_recorded,
     suite_search,
@@ -27,7 +28,6 @@ from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import summary_of
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     frame_ctx,
-    no_count,
     no_validation,
     serve_params,
     serve_site_listing,

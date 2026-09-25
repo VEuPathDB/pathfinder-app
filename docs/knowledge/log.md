@@ -2,6 +2,21 @@
 
 ## 2026-09-25
 
+* **The integration tier reaches no VEuPathDB site.** The nightly run of
+  a16 failed `test_a_partial_push_leaves_every_store_agreeing` with a 401 on
+  `GET /record-types/transcript/searches/GenesByTaxon`: the edit path validates
+  a parameter edit against the site's definition, and the test passed only where
+  a service token was set. An autouse fixture in
+  `tests/integration/conftest.py` now refuses every VEuPathDB host to a test
+  that is not `live_wdk`, and the unit tier's socket guard moved to
+  `tests/_support/network_guard.py` beside it. Twenty-three tests read a site
+  anonymously and passed on whatever it answered; each now reads recordings
+  (`recorded_searches.py`: definitions, the transcript listing, record types,
+  a whole mock turn) or a local double (the JWKS, a step the account does not
+  hold), and the two that need the registered account carry `live_wdk`. A mock
+  turn's anonymous catalog load had written 323 real experiment cards into the
+  test database, which a later `published_on` collided with.
+
 * **The a16 verification, pass 2.** A gene-id list pasted or uploaded in the
   step editor reaches the site: an edit's dataset source is saved as a WDK
   dataset before the commit (`services/strategies/dataset_sources.py`; live on

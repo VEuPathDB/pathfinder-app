@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+import pytest
 from assistant_core.capabilities.repetition_guard import (
     DEFAULT_REPETITION_THRESHOLD,
     REPETITION_MARKER,
@@ -17,10 +18,16 @@ from assistant_core.capabilities.repetition_guard import (
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.tests._support.recorded_searches import serve_recorded_listing
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
 _PROMPT = "read the catalog again and again"
 _LOOPING_TOOL = "list_searches"
+
+
+@pytest.fixture(autouse=True)
+def recorded_listing(monkeypatch: pytest.MonkeyPatch) -> None:
+    serve_recorded_listing(monkeypatch)
 
 
 def _inner_steps(chunks: list[dict[str, Any]], tool: str) -> list[dict[str, Any]]:

@@ -544,13 +544,13 @@ async def test_the_conversation_persists_every_eda_chunk_in_order(
     assert _SUBSET_SEARCH in prose
 
 
+@pytest.mark.live_wdk
+@pytest.mark.usefixtures("analyses_user")
 async def test_the_step_lands_on_live_wdk(
     seam: _Seam,
-    analyses_user: None,
     require_wdk_creds: str,
 ) -> None:
     """The same conversation, with the step pushed to the live site."""
-    del analyses_user
     conversation_id = await _turn(seam, wdk_token=require_wdk_creds)
     try:
         rows = await _rows(conversation_id)

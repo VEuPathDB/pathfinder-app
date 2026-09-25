@@ -18,6 +18,8 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.platform.config import get_settings
+from pathfinder.tests._support.recorded_searches import suite_search
+from pathfinder.tests._support.wdk_write_stubs import validate_against
 from pathfinder.tests.integration.http._authz_matrix_cases import cases
 from pathfinder.tests.integration.http._authz_matrix_owned import (
     create_owned,
@@ -212,6 +214,13 @@ async def test_another_application_is_refused_by_every_route(
     )
 
 
+@pytest.fixture
+def recorded_taxon(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The owned strategy's one search, as plasmodb published it."""
+    validate_against(monkeypatch, [suite_search("search_genes_by_taxon")])
+
+
+@pytest.mark.usefixtures("recorded_taxon")
 async def test_the_owner_is_not_refused_by_any_route(
     app: FastAPI,
     patch_app_db_engine: None,

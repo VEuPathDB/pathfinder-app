@@ -87,11 +87,25 @@ that named the offending module are both deleted; what holds the property now is
 `veupathdb-mcp`'s own `tests/unit/test_package_boundary.py`. See [the MCP server
 is a distribution](../decisions/the-mcp-server-is-a-distribution.md).
 
-The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/pathfinder/tests/unit/conftest.py` patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
+The unit tier refuses every connection made through Python's socket module. An autouse fixture in `src/pathfinder/tests/unit/conftest.py` installs `refuse_every_connection` from `src/pathfinder/tests/_support/network_guard.py`, which patches `socket.socket.connect`, `connect_ex`, `socket.getaddrinfo` and the event loop's `create_connection`/`getaddrinfo`, so a stub that no longer covers its seam fails there instead of passing against a live server. The refusal derives from `BaseException`, because every HTTP client here retries under `except Exception` and would otherwise swallow it.
 
 Two limits are worth knowing. The guard runs per test, so anything at collection time is outside it. And a C extension that opens its own socket without going through the `socket` module is not covered.
 
 A unit test that needs a real connection carries `@pytest.mark.allow_network`. No production test does: the two database-backed ones live in `tests/integration/`, where they belong. A new marked test needs a reason, because the marker is how the guard is defeated.
+
+The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need either, and CI skips the tests that ask for the registered account. An autouse fixture in `src/pathfinder/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
+
+```
+D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
+H=$(mktemp -d); mv .env "$H/api.env"; mv ../../.env "$H/root.env"; mv ../../ollama_models.yaml "$H/"; \
+env VEUPATHDB_AUTH_TOKEN= WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= \
+  OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= PATHFINDER_RESEARCH_MCP_URL= \
+  API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx PATHFINDER_CHAT_PROVIDER=mock \
+  DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/$D \
+  uv run pytest src/pathfinder/tests; \
+mv "$H/api.env" .env; mv "$H/root.env" ../../.env; mv "$H/ollama_models.yaml" ../../; \
+docker compose --env-file ../../.env.dev exec db dropdb -U postgres "$D"
+```
 
 ## The science verifies in two lanes
 

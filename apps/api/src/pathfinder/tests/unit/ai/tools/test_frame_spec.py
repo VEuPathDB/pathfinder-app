@@ -31,7 +31,7 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import _frame_count, frame_spec
+from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
@@ -46,7 +46,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests._support.catalog_reads import listing
-from pathfinder.tests._support.recorded_searches import serve_qualifier_reads
+from pathfinder.tests._support.recorded_searches import no_count, serve_qualifier_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -176,15 +176,6 @@ def no_validation(monkeypatch: pytest.MonkeyPatch) -> None:
         return ValidatedParams(params=dict(parameters))
 
     monkeypatch.setattr(frame_spec, "validate_parameters", _validate)
-
-
-def no_count(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A served search publishes no count, so a binding reads none."""
-
-    async def _count(*_args: object, **_kwargs: object) -> int | None:
-        return None
-
-    monkeypatch.setattr(_frame_count, "count_bound_criterion", _count)
 
 
 def serve_search(

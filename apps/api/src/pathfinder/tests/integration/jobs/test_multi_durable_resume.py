@@ -20,6 +20,8 @@ from assistant_core.tasks.runner import run_durable_task
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
+from veupathdb.errors import WDKError
+from veupathdb.wdk import WDKStep
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
@@ -104,6 +106,15 @@ def failing_second_step(
     monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _run_step)
 
 
+class _StepsTheAccountDoesNotHold:
+    """The account's steps: the tested ids are not among them."""
+
+    async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
+        del user_id
+        msg = f"step {step_id} is not in this account"
+        raise WDKError(msg, 404)
+
+
 @pytest.fixture
 def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _run_step(
@@ -137,6 +148,11 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(control_tests_impl, "run_step_control_tests", _run_step)
     monkeypatch.setattr(control_tests_impl, "attach_control_downloads", _export)
+    monkeypatch.setattr(
+        control_tests_impl,
+        "get_strategy_api",
+        lambda _site_id: _StepsTheAccountDoesNotHold(),
+    )
 
 
 async def _make_user() -> UUID:

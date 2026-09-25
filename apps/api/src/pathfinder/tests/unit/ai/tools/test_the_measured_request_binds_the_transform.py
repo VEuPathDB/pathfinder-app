@@ -18,13 +18,13 @@ from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import CriterionRole
 from pathfinder.tests._support.recorded_searches import (
     client_search,
+    no_count,
     serve_recorded,
     suite_search,
 )
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     Proposals,
     frame_ctx,
-    no_count,
     no_validation,
     serve_params,
     serve_site_listing,

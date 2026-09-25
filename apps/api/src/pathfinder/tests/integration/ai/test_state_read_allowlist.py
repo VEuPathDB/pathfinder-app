@@ -26,9 +26,18 @@ from pathfinder.devtools.chat import (
     run_once,
 )
 from pathfinder.platform.config import get_settings
-from pathfinder.tests._support.wdk_cleanup import delete_the_threads_strategy
+from pathfinder.tests._support.recorded_searches import (
+    serve_recorded_plasmodb,
+    suite_search,
+)
 
-_PROMPT = "Build a comprehensive kinase strategy for Plasmodium."
+_PROMPT = "Build a strategy of Plasmodium falciparum 3D7 genes."
+
+
+@pytest.fixture
+def recorded_plasmodb(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The prompt builds one GenesByTaxon step, read from its recording."""
+    serve_recorded_plasmodb(monkeypatch, [suite_search("search_genes_by_taxon")])
 
 
 async def _events_of_a_read_declaring_no_assistant_types(
@@ -50,46 +59,41 @@ async def _events_of_a_read_declaring_no_assistant_types(
     return events
 
 
-@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
+@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner", "recorded_plasmodb")
 async def test_aget_state_read_emits_no_unregistered_type_warning(
-    tmp_path: Path, wdk_registered_token: str | None
+    tmp_path: Path,
 ) -> None:
     conversation_id = uuid4()
+    exit_code = await run_once(
+        parse_run_args(
+            [
+                _PROMPT,
+                "--site",
+                "plasmodb",
+                "--mock",
+                "--approve",
+                "auto",
+                "--quiet",
+                "--conversation-id",
+                str(conversation_id),
+                "--run-dir",
+                str(tmp_path / "run"),
+            ],
+        ),
+    )
+    database_url = get_settings().database_url
+    # A read that decoded nothing would satisfy the last assertion for the
+    # wrong reason, so first prove this thread carries assistant state types.
+    undeclared = await _events_of_a_read_declaring_no_assistant_types(
+        conversation_id,
+        database_url,
+    )
+    events: list[SerdeEvent] = []
+    unregister = register_serde_event_listener(events.append)
     try:
-        exit_code = await run_once(
-            parse_run_args(
-                [
-                    _PROMPT,
-                    "--site",
-                    "plasmodb",
-                    "--mock",
-                    "--approve",
-                    "auto",
-                    "--quiet",
-                    "--conversation-id",
-                    str(conversation_id),
-                    "--run-dir",
-                    str(tmp_path / "run"),
-                ],
-            ),
-        )
-        database_url = get_settings().database_url
-        # A read that decoded nothing would satisfy the last assertion for the
-        # wrong reason, so first prove this thread carries assistant state types.
-        undeclared = await _events_of_a_read_declaring_no_assistant_types(
-            conversation_id,
-            database_url,
-        )
-        events: list[SerdeEvent] = []
-        unregister = register_serde_event_listener(events.append)
-        try:
-            await _gate_from_checkpoint(conversation_id, database_url)
-        finally:
-            unregister()
+        await _gate_from_checkpoint(conversation_id, database_url)
     finally:
-        await delete_the_threads_strategy(
-            "plasmodb", conversation_id, wdk_registered_token
-        )
+        unregister()
 
     assert exit_code == 0
     assert undeclared, "the state read decoded no assistant type"
