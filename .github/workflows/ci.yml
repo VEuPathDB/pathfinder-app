@@ -17,7 +17,7 @@ concurrency:
 
 # The e2e shard count, and the sites every turn-driving test runs on.
 env:
-  E2E_SHARDS: 10
+  E2E_SHARDS: 16
   E2E_SITES: plasmodb,vectorbase
 
 jobs:
