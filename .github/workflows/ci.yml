@@ -437,8 +437,7 @@ jobs:
         run: |
           (
             status=0
-            docker compose --env-file .env.test up -d --no-build --wait --wait-timeout 300 api web || status=$?
-            docker compose --env-file .env.test up -d --no-build worker || status=$?
+            docker compose --env-file .env.test up -d --no-build api web worker || status=$?
             echo "$status" > "$RUNNER_TEMP/stack-up.status"
           ) > "$RUNNER_TEMP/stack-up.log" 2>&1 &
 
@@ -448,21 +447,29 @@ jobs:
         working-directory: apps/web
         run: yarn playwright install --with-deps
 
-      # `--wait` refuses a service with no healthcheck, and the worker serves no
-      # HTTP, so its liveness is read from the api's heartbeat view instead.
+      # Compose's `--wait` refuses the worker, which has no healthcheck and
+      # serves no HTTP, so readiness is read from the api: its own ready view,
+      # the web root, and the worker's heartbeat.
       - name: Wait for the stack
-        timeout-minutes: 6
+        timeout-minutes: 8
         run: |
           until [ -s "$RUNNER_TEMP/stack-up.status" ]; do sleep 2; done
           cat "$RUNNER_TEMP/stack-up.log"
           status="$(cat "$RUNNER_TEMP/stack-up.status")"
           [ "$status" = 0 ] || exit "$status"
-          for _ in $(seq 1 60); do
-            curl -fsS http://localhost:8000/health/system | jq -e '.workerAlive == true' > /dev/null 2>&1 && exit 0
-            sleep 2
+          ready=
+          for _ in $(seq 1 90); do
+            if curl -fsS http://localhost:8000/health/ready > /dev/null 2>&1 \
+              && curl -fsS http://localhost:3000/ > /dev/null 2>&1 \
+              && curl -fsS http://localhost:8000/health/system | jq -e '.workerAlive == true' > /dev/null 2>&1; then
+              ready=1; break
+            fi
+            sleep 4
           done
-          echo "the worker never reported a heartbeat"
-          docker compose --env-file .env.test logs --no-color worker | tail -60
+          [ -n "$ready" ] && exit 0
+          echo "the stack did not become ready"
+          docker compose --env-file .env.test ps -a
+          docker compose --env-file .env.test logs --no-color api worker web | tail -120
           exit 1
 
       # The suite acts as a registered VEuPathDB account; global setup signs
