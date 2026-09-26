@@ -144,3 +144,22 @@ describe("DataMemoryRetrieved", () => {
     );
   });
 });
+
+describe("DataMemoryRetrieved on a part an earlier version wrote", () => {
+  // The two rows share a name, so a current part would date both of them.
+  const WITHOUT_CREATED_AT = {
+    memories: [
+      { key: "c1", kind: "case", name: LONG_GOAL, summary: "" },
+      { key: "c2", kind: "case", name: LONG_GOAL, summary: "" },
+    ],
+  };
+
+  it("shows the stale-part notice and prints no date", () => {
+    const { container } = render(<DataMemoryRetrieved data={WITHOUT_CREATED_AT} />);
+    expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
+      "Recalled memories from an earlier version of PathFinder can't be shown.",
+    );
+    expect(container.textContent).not.toContain("Invalid Date");
+    expect(screen.queryByTestId("data-memory-retrieved")).toBeNull();
+  });
+});

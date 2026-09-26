@@ -459,3 +459,21 @@ Fixed in a17: the strategy write cancels the conversation read in flight before 
 
 **What you'd get.** The rail lists the exported step at once; the spec now holds the first read until the export answers, so it exercises the race every time.
 
+---
+
+## FND-23 - A recalled memory from a conversation older than a16 shows `Invalid Date`
+
+Fixed in a17: a recalled-memory part whose data does not match the current wire is shown as a stale part, never as a date.
+
+**What I did.** Opened a conversation whose first turn ran under a15 and read its `Recalled memories` figure.
+
+**What I got.** Some rows read `Invalid Date` under the memory's name; rows in conversations started under a16 read a date.
+
+**Why that's wrong.** The researcher reads a browser error where the memory's date belongs, and cannot tell which memories the turn actually used.
+
+**Why it happens.** `createdAt` joined the recalled-memory payload in the a16 release, so every `data-memory-retrieved` event logged before it carries none; the renderer (`content/parts/DataMemoryRetrieved.tsx`) does not validate the part against its schema and hands `undefined` to `new Date`.
+
+**Fix.** The part is validated against its generated schema before it renders; a part that does not match is shown as a stale part.
+
+**What you'd get.** Conversations from a16 on show the date; older ones show the stale-part notice on that figure.
+

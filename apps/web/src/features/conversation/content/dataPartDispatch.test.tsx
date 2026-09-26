@@ -116,7 +116,13 @@ describe("message dispatch", () => {
             type: "data-memory-retrieved",
             data: {
               memories: [
-                { key: "k1", kind: "gene_set_note", name: "Kinases", score: 1 },
+                {
+                  key: "k1",
+                  kind: "gene_set_note",
+                  name: "Kinases",
+                  summary: "",
+                  createdAt: "2026-09-13T12:00:00Z",
+                },
               ],
             },
           },
@@ -124,6 +130,29 @@ describe("message dispatch", () => {
       />,
     );
     expect(screen.getByTestId("data-memory-retrieved")).toBeInTheDocument();
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("shows a memory part logged before memories carried a date as stale", () => {
+    const view = render(
+      <Thread
+        content={[
+          {
+            type: "data-memory-retrieved",
+            data: {
+              memories: [
+                { key: "k1", kind: "case", name: "Kinases", summary: "" },
+                { key: "k2", kind: "case", name: "Kinases", summary: "" },
+              ],
+            },
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
+      "Recalled memories from an earlier version of PathFinder can't be shown.",
+    );
+    expect(view.container.textContent).not.toContain("Invalid Date");
     expect(toastError).not.toHaveBeenCalled();
   });
 
@@ -282,6 +311,7 @@ describe("message dispatch", () => {
               effectSizeLabel: "log2(Fold Change)",
               effectSizeThreshold: 1,
               significanceThreshold: 0.05,
+              effectDirection: "upAndDown",
               totalPoints: 5511,
               retainedPoints: 1543,
               retainedPointIds: [],

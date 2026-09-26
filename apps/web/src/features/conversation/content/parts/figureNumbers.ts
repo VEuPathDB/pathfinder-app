@@ -1,5 +1,8 @@
 import type { UIMessage } from "ai";
 import type { EdaSubsetPreview, EdaViz } from "@pathfinder/shared";
+import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
+
+import { isCurrentWire } from "../currentWire";
 
 const SUBSET_PREVIEW = "data-eda.subset-preview";
 const VIZ = "data-eda.viz";
@@ -8,14 +11,14 @@ const VIZ = "data-eda.viz";
 type Plot = EdaSubsetPreview | EdaViz;
 
 /** The thread's plots, in emission order. A subset preview is a plot only
- * when it carries a distribution to draw. */
+ * when it carries a distribution to draw, and a stale plot is not drawn. */
 function plotsOf(messages: readonly UIMessage[]): Plot[] {
   const plots: Plot[] = [];
   for (const message of messages) {
     for (const part of message.parts) {
       if (!("data" in part)) continue;
       if (part.type === VIZ) {
-        plots.push(part.data as EdaViz);
+        if (isCurrentWire(edaVizPartSchema, part.data)) plots.push(part.data);
         continue;
       }
       if (part.type !== SUBSET_PREVIEW) continue;

@@ -90,6 +90,13 @@ describe("figureNumberFor", () => {
     expect(figureNumberFor(messages, VOLCANO)).toBe(1);
   });
 
+  it("gives no number to a plot an earlier version wrote", () => {
+    const { retainedPointIds, ...stale } = VOLCANO;
+    const messages = messagesOf([vizPart(stale), vizPart(VOLCANO)]);
+    expect(retainedPointIds).toEqual(["PF3D7_0100200"]);
+    expect(figureNumberFor(messages, VOLCANO)).toBe(1);
+  });
+
   it("answers null when the thread does not carry the payload", () => {
     expect(figureNumberFor(messagesOf([previewPart(PREVIEW)]), VOLCANO)).toBe(null);
   });

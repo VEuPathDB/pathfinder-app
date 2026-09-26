@@ -421,3 +421,24 @@ describe("the gene-id copy control", () => {
     expect(await screen.findByLabelText("Copy gene ids")).toBeVisible();
   });
 });
+
+describe("DataEdaViz on a part an earlier version wrote", () => {
+  const { retainedPointIds, ...withoutRetainedIds } = EDA_VOLCANO_VIZ_FIXTURE;
+
+  it("shows the stale-part notice and draws no plot", () => {
+    expect(retainedPointIds).toEqual(["PF3D7_0100200"]);
+    render(<DataEdaViz data={withoutRetainedIds} />);
+    expect(screen.getByTestId("stale-part-notice")).toHaveTextContent(
+      "A plot from an earlier version of PathFinder can't be shown.",
+    );
+    expect(screen.queryByTestId("data-eda-viz")).toBeNull();
+  });
+
+  it("puts nothing from the part in the volcano store", async () => {
+    render(<DataEdaViz data={withoutRetainedIds} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(useEdaStore.getState().viz).toEqual({});
+  });
+});

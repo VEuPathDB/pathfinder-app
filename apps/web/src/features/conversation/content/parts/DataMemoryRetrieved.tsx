@@ -1,12 +1,16 @@
 import Link from "next/link";
 
 import type { RecalledMemoriesPayload, RecalledMemory } from "@pathfinder/shared";
+import { recalledMemoriesPayloadSchema } from "@pathfinder/shared/generated/zod/recalledMemoriesPayloadSchema";
 
 import { Figure } from "@/features/conversation/thread/Figure";
 import { MEMORY_KIND_LABELS } from "@/lib/memoryKinds";
 import { chatUrl } from "@/lib/routes";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
 import { useSessionStore } from "@/state/useSessionStore";
+
+import { StalePartNotice } from "../StalePartNotice";
+import { isCurrentWire } from "../currentWire";
 
 const NAME = "min-w-0 truncate text-left";
 const WRITTEN: Intl.DateTimeFormatOptions = {
@@ -57,7 +61,14 @@ function MemoryName({ memory }: { memory: RecalledMemory }) {
   );
 }
 
-export function DataMemoryRetrieved({ data }: { data: RecalledMemoriesPayload }) {
+export function DataMemoryRetrieved({ data }: { data: unknown }) {
+  if (!isCurrentWire(recalledMemoriesPayloadSchema, data)) {
+    return <StalePartNotice subject="Recalled memories" />;
+  }
+  return <RecalledMemories data={data} />;
+}
+
+function RecalledMemories({ data }: { data: RecalledMemoriesPayload }) {
   const memories = data.memories;
   if (memories.length === 0) return null;
   const repeated = repeatedNames(memories);

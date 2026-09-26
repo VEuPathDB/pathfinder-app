@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
 import type { EdaViz } from "@pathfinder/shared";
+import { edaVizPartSchema } from "@pathfinder/shared/generated/zod/edaVizPartSchema";
 
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/features/conversation/thread/Figure";
@@ -18,6 +19,8 @@ import { selectedGeneIds } from "@/lib/eda/volcanoSelection";
 import { useEdaStore, useHydrateEdaPart } from "@/state/eda";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
+import { StalePartNotice } from "../StalePartNotice";
+import { isCurrentWire } from "../currentWire";
 import { analysisSiteLinkFor, studyNameFor } from "./analysisStateParts";
 import { figureNumberFor } from "./figureNumbers";
 import { plotCaption } from "./plotCaptions";
@@ -29,7 +32,14 @@ const MUTED = "text-[11px] text-muted-foreground";
 const READOUT = `mt-1 ${MUTED}`;
 const SUMMARY = `cursor-pointer ${MUTED}`;
 
-export function DataEdaViz({ data }: { data: EdaViz }) {
+export function DataEdaViz({ data }: { data: unknown }) {
+  if (!isCurrentWire(edaVizPartSchema, data)) {
+    return <StalePartNotice subject="A plot" />;
+  }
+  return <EdaVizFigure data={data} />;
+}
+
+function EdaVizFigure({ data }: { data: EdaViz }) {
   useHydrateEdaPart({ kind: "viz", data });
   const thresholds = useEdaStore((s) => s.volcanoThresholds);
   const chat = useChatHelpers();
