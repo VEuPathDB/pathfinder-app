@@ -1,8 +1,7 @@
-"""The corpus on disk: one JSON file per promoted case, named by the case.
+"""The corpus on disk: one JSON file per case, named by the case.
 
-The store follows the pinned-fixture pattern the science lane uses: no file is
-written by hand, each file carries its own provenance as data, and one command
-adds to it. Here that command is the curation promote step.
+Each file carries its own provenance as data. A case arrives promoted by the
+curation step, or written by hand from a cataloged failure or a UAT flow.
 """
 
 from __future__ import annotations
@@ -12,6 +11,7 @@ from pathlib import Path
 from pathfinder.evals.case import EvalCase
 
 CORPUS_DIR = Path(__file__).resolve().parent / "corpus"
+ATTACHMENTS_DIR = CORPUS_DIR / "files"
 
 
 def _directory(directory: Path | None) -> Path:
@@ -44,6 +44,11 @@ def load_corpus(*, directory: Path | None = None) -> list[EvalCase]:
     return [load_case(name, directory=root) for name in case_names(directory=root)]
 
 
+def attachment_paths(case: EvalCase, turn: int) -> list[Path]:
+    """The files *case* attaches to the turn at index *turn*, in order."""
+    return [ATTACHMENTS_DIR / name for name in case.attachments.get(turn, [])]
+
+
 def write_case(case: EvalCase, *, directory: Path | None = None) -> Path:
     """Add one case to the corpus. An existing name is refused, never replaced."""
     case.assert_de_identified()
@@ -57,4 +62,12 @@ def write_case(case: EvalCase, *, directory: Path | None = None) -> Path:
     return path
 
 
-__all__ = ["CORPUS_DIR", "case_names", "load_case", "load_corpus", "write_case"]
+__all__ = [
+    "ATTACHMENTS_DIR",
+    "CORPUS_DIR",
+    "attachment_paths",
+    "case_names",
+    "load_case",
+    "load_corpus",
+    "write_case",
+]

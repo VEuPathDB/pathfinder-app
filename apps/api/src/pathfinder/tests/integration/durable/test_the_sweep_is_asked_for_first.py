@@ -1,8 +1,8 @@
 """The Lead's sweep asks the user on its card, and the yes defers the durable job.
 
 The whole PathFinder assistant over the real chat route, the real turn graph
-and the real registration. Only the model is a double: it plays the user's
-request to tune a step, which the Lead's own rule answers with the call.
+and the real registration. Only the model is a double: it classifies the
+request to tune a step and calls the sweep on it.
 Whether the Lead calls the sweep after a weak control test is the model's
 judgment; the rule it reads is held by the instruction test.
 """
@@ -13,9 +13,13 @@ import asyncio
 from typing import Any
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
+from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic_ai.models.function import FunctionModel
 
+from pathfinder.ai.graph import _lead_model
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -24,12 +28,46 @@ from pathfinder.tests.integration.chat._helpers import (
     wait_until_chat_turn_deferred,
 )
 from pathfinder.tests.integration.http.conftest import client_for
+from pathfinder.tests.unit.ai.graph._approval_turn import (
+    CARD_REPLY,
+    LEAD_FINAL,
+    scripted_model,
+    tool_calls,
+)
 
 SWEEP_TOOL = "optimize_search_parameters"
 SWEEP_PROMPT = "tune the parameters of that step against my controls"
 SWEEP_STEP_ID = 440230693
+_CLASSIFY = {
+    "intent": {"classification": "follow_up_question", "inferredGoal": "tune it"},
+}
+_SWEEP = {
+    "reply": CARD_REPLY,
+    "wdk_step_id": SWEEP_STEP_ID,
+    "positive_controls": ["PF3D7_0102600"],
+    "budget": 6,
+}
 _DURABLE_JOB = f"durable:{SWEEP_TOOL}"
 _TIMEOUT_SECONDS = 120.0
+
+
+def _sweeping_lead() -> FunctionModel:
+    """Classify, call the sweep, then answer."""
+
+    def _part(messages: list[ModelMessage]) -> ToolCallPart:
+        called = {c.tool_name for c in tool_calls(messages)}
+        if "classify_user_intent" not in called:
+            return ToolCallPart("classify_user_intent", _CLASSIFY, "call_classify")
+        if SWEEP_TOOL not in called:
+            return ToolCallPart(SWEEP_TOOL, _SWEEP, "call_sweep")
+        return ToolCallPart("final_result", LEAD_FINAL, f"call_final_{uuid4().hex[:8]}")
+
+    return scripted_model(_part)
+
+
+@pytest.fixture(autouse=True)
+def sweeping_lead(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(_lead_model, "get_mock_model", _sweeping_lead)
 
 
 async def _turn(

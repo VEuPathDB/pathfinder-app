@@ -77,6 +77,7 @@ export const EDA_VOLCANO_VIZ_FIXTURE: EdaViz = {
   effectDirection: "upAndDown",
   totalPoints: 3,
   retainedPoints: 1,
+  retainedPointIds: ["PF3D7_0100200"],
   points: [
     {
       pointId: "PF3D7_0100100",

@@ -1,10 +1,8 @@
 /**
  * Journey 3: the figure of the agent's compute exports a step the strategy
- * rail lists.
- *
- * The export PATCH is answered in the browser, so the step exists only in the
- * query cache the export wrote. The walk back to the thread is therefore a
- * client-side navigation; a reload would refetch the untouched server strategy.
+ * rail lists. The export and the conversation read are answered in the
+ * browser: the first read answers only after the export, with the strategy
+ * before it, and a later read returns the exported strategy.
  */
 
 import type { BrowserContext } from "@playwright/test";
@@ -40,6 +38,25 @@ test.describe("EDA export as a strategy step", () => {
     const conversationId = await openConversation(context);
     await routeEdaReads(page);
 
+    let exported = false;
+    let answerExport = (): void => undefined;
+    const exportAnswered = new Promise<void>((resolve) => {
+      answerExport = resolve;
+    });
+    await page.route(`**/api/v1/conversations/${conversationId}`, async (route) => {
+      if (route.request().method() !== "GET") {
+        await route.continue();
+        return;
+      }
+      if (exported) {
+        await route.fulfill(edaJson(exportedStrategy(conversationId)));
+        return;
+      }
+      // The read that began before the export answers after it, with no step.
+      await exportAnswered;
+      await route.continue();
+    });
+
     const actions: { action: string; thresholds?: unknown }[] = [];
     await page.route(`**/api/v1/conversations/${conversationId}/eda`, async (route) => {
       if (route.request().method() === "GET") {
@@ -51,12 +68,14 @@ test.describe("EDA export as a strategy step", () => {
         thresholds?: unknown;
       };
       actions.push(body);
+      exported = true;
       await route.fulfill(
         edaJson({
           analysis: { ...COMPARED_ANALYSIS, revision: 3 },
           step: exportedStrategy(conversationId),
         }),
       );
+      answerExport();
     });
 
     await page.goto(`/${SITE_ID}/conversation/${conversationId}/eda`);
@@ -76,8 +95,6 @@ test.describe("EDA export as a strategy step", () => {
     // The export names the volcano; the server writes the cut the analysis stores.
     expect(actions).toEqual([{ action: "export-step", source: "volcano" }]);
 
-    // Client-side navigation back to the thread keeps the query cache the
-    // export wrote the strategy into.
     await page
       .locator(`[data-conversation-id="${conversationId}"]`)
       .getByRole("link")

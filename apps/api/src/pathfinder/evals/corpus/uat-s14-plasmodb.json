@@ -1,0 +1,48 @@
+{
+  "name": "uat-s14-plasmodb",
+  "turns": [
+    "How many protein-coding genes does 3D7 have?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A question whose answer is a count builds the set that answers it.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByGeneType",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 5318,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s14",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

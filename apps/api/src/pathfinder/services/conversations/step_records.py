@@ -11,7 +11,7 @@ from veupathdb_mcp.wdk import view_filters_for
 
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.errors import AppError, ErrorCode, NotFoundError
-from pathfinder.services.conversations.authz import get_owned_thread_or_404
+from pathfinder.services.conversations.authz import get_owned_thread
 from pathfinder.services.conversations.responses import (
     StepRecord,
     StepRecordsResponse,
@@ -58,7 +58,7 @@ async def read_step_records(
 ) -> StepRecordsResponse:
     """One page of the genes a step answers, one row per gene."""
     step_id = page.step_id
-    conversation, strategy = await get_owned_thread_or_404(
+    conversation, strategy = await get_owned_thread(
         ConversationRepository(session), conversation_id, user_id
     )
     strategy_session = build_strategy_session(

@@ -1,0 +1,822 @@
+{
+  "provenance": {
+    "site": "vectorbase",
+    "method": "GET",
+    "url": "https://vectorbase.org/vectorbase/service/record-types/transcript/searches/GenesByMicroarrayaaegLVP_AGWG_microarrayExpression_GSE22339_blood_meal_time_series_RSRC?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-26",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searchData": {
+      "summary": "Find genes which are differentially expressed in a Microarray experiment.",
+      "urlSegment": "GenesByMicroarrayaaegLVP_AGWG_microarrayExpression_GSE22339_blood_meal_time_series_RSRC",
+      "dynamicAttributes": [
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "fold_change_avg-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Fold Difference (Avg)",
+          "name": "fold_change_avg",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "fold_change_chosen-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Fold Difference",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "fold_change_chosen",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [],
+          "displayName": "Fold Difference Display",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "* indicates that the chosen reference has been set to the floor in order to compute the fold change",
+          "isInReport": false,
+          "truncateTo": 100,
+          "name": "fold_change_chosen_display",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "avg_group_one-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Avg Comp (log2)",
+          "name": "avg_group_one",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "avg_group_two-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Avg Ref (log2)",
+          "name": "avg_group_two",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "min_group_one-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Min Comp (log2)",
+          "name": "min_group_one",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "min_group_two-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Min Ref (log2)",
+          "name": "min_group_two",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_group_one-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Max Comp (log2)",
+          "name": "max_group_one",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_group_two-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Max Ref (log2)",
+          "name": "max_group_two",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "chose_group_one-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Chosen Comp (log2)",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "This number represents the expression value calculated for the 'Comparison Samples' and 'Operation Applied to Comparison Samples' that you chose when setting up the fold change search.",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "chose_group_one",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "chose_group_two-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Chosen Ref (log2)",
+          "isSortable": true,
+          "align": "center",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "This number represents the expression value calculated for the 'Reference Samples' and 'Operation Applied to Reference Samples' that you chose when setting up the fold change search.",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "chose_group_two",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "fold_change_avg",
+          "direction": "DESC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "A. aegypti LVP_AGWG Gene expression changes in Aedes aegypti in response to a blood meal over a period of several days Microarray (fold change)",
+      "fullName": "GeneQuestions.GenesByMicroarrayaaegLVP_AGWG_microarrayExpression_GSE22339_blood_meal_time_series_RSRC",
+      "description": "Find genes which are differentially expressed in a Microarray experiment.  First choose an experiment as the available samples may change.  If only one \"Experiment\" is shown, this field will be selected for you.\n<br/><br/>\nAfter selecting samples you have the option to take the average, minimum, or maximum expression value within each group.  (If choosing only one sample from a group, the selected 'operation' will not affect your results).  Time series experiments will offer an extra parameter called \"Global min/max\" which allows you to filter your results further.  Finally, you can choose the directionality and the magnitude of the difference.  For example, selecting up-regulated with a fold difference of 2 will only show results where the comparator is twice that of the reference.\n<br/><br/>\n\n<br/><br/>",
+      "defaultAttributes": [
+        "primary_key",
+        "organism",
+        "gene_product",
+        "fold_change_chosen",
+        "chose_group_two",
+        "chose_group_one",
+        "exprGraphAttraaegLVP_AGWG_microarrayExpression_GSE22339_blood_meal_time_series_RSRC_expr_graph"
+      ],
+      "groups": [
+        {
+          "displayType": "dynamic",
+          "displayName": "Dynamic Parameters Group",
+          "name": "dynamicParams",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "profileset_generic",
+            "regulated_dir",
+            "samples_fc_ref_generic",
+            "min_max_avg_ref",
+            "samples_fc_comp_generic",
+            "min_max_avg_comp",
+            "fold_change",
+            "hard_floor",
+            "protein_coding_only"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "newBuild": "47.0",
+      "shortDisplayName": "Response to a blood meal in A. gambiae (fc)",
+      "paramNames": [
+        "profileset_generic",
+        "regulated_dir",
+        "samples_fc_ref_generic",
+        "min_max_avg_ref",
+        "samples_fc_comp_generic",
+        "min_max_avg_comp",
+        "fold_change",
+        "hard_floor",
+        "protein_coding_only"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesByGenericFoldChange",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Experiment",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Choose an Experiment. An Experiment consists of a set of samples that is defined by the data provider or the analytical method. The samples within an Experiment can be compared to each other. Datasets will have multiple Experiments if the samples are generated using different biological, experimental or analytical methods: sense vs. antisense, scaled vs. non-scaled, wild-type vs. mutant.",
+          "dependentParams": [
+            "samples_fc_comp_generic",
+            "hard_floor",
+            "samples_fc_ref_generic"
+          ],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "A. aegypti blood meal time-series",
+              "Gene expression changes in Aedes aegypti in response to a blood meal over a period of several days",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "profileset_generic",
+          "initialDisplayValue": "A. aegypti blood meal time-series",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Direction",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "<ul>\n<li>- Select 'up-regulated' to find genes that have higher expression\nin the comparator as compared to the reference.</li><br>\n<li>- Select 'down-regulated' to find genes that have lower expression\nin the comparator as compared to the reference.</li><br>\n<li>- Select 'up or down regulated' to find genes that have higher or\nlower expression in the comparator as compared to the reference.</li>\n</ul>",
+          "dependentParams": [
+            "min_max_avg_comp",
+            "min_max_avg_ref"
+          ],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "up-regulated",
+              "up-regulated",
+              null
+            ],
+            [
+              "down-regulated",
+              "down-regulated",
+              null
+            ],
+            [
+              "up or down regulated",
+              "up or down regulated",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "regulated_dir",
+          "initialDisplayValue": "up or down regulated",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Reference Samples",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Choose one or more sample.  NOTE: if more than one is chosen the fold difference will be calculated using the specified operation applied to the samples within the group",
+          "dependentParams": [],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "Non-blood-fed",
+              "Non-blood-fed",
+              null
+            ],
+            [
+              "blood-fed 3h",
+              "blood-fed 3h",
+              null
+            ],
+            [
+              "blood-fed 12h",
+              "blood-fed 12h",
+              null
+            ],
+            [
+              "blood-fed 24h",
+              "blood-fed 24h",
+              null
+            ],
+            [
+              "blood-fed 48h",
+              "blood-fed 48h",
+              null
+            ],
+            [
+              "blood-fed 72h",
+              "blood-fed 72h",
+              null
+            ],
+            [
+              "blood-fed 96h",
+              "blood-fed 96h",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "samples_fc_ref_generic",
+          "initialDisplayValue": "[]",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Operation Applied to Reference Samples",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Choose the operation (min/max/average) to be applied to the chosen sample(s).  This parameter only makes a difference if more than one sample/time point is chosen.",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "average1",
+              "average",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "min_max_avg_ref",
+          "initialDisplayValue": "average1",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Comparison Samples",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Choose one or more sample.  NOTE: if more than one is chosen the fold difference will be calculated using the specified operation applied to the samples within the group",
+          "dependentParams": [],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "Non-blood-fed",
+              "Non-blood-fed",
+              null
+            ],
+            [
+              "blood-fed 3h",
+              "blood-fed 3h",
+              null
+            ],
+            [
+              "blood-fed 12h",
+              "blood-fed 12h",
+              null
+            ],
+            [
+              "blood-fed 24h",
+              "blood-fed 24h",
+              null
+            ],
+            [
+              "blood-fed 48h",
+              "blood-fed 48h",
+              null
+            ],
+            [
+              "blood-fed 72h",
+              "blood-fed 72h",
+              null
+            ],
+            [
+              "blood-fed 96h",
+              "blood-fed 96h",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "samples_fc_comp_generic",
+          "initialDisplayValue": "[]",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Operation Applied to Comparison Samples",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Choose the operation (min/max/average) to be applied to the chosen sample(s).  This parameter only makes a difference if more than one sample/time point is chosen.",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "average1",
+              "average",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "min_max_avg_comp",
+          "initialDisplayValue": "average1",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "fold difference >=",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Enter a non-negative number.  NOTE:  fold difference is reported in the summary as positive numbers for up-regulated genes and negative numbers for down-regulated genes",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "fold_change",
+          "initialDisplayValue": "2.0",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Floor =",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": false,
+          "type": "single-pick-vocabulary",
+          "help": "Choose the minimum number of reads per gene for the floor. The number of reads that map to a gene is used to calculate a gene's TPM. In this search, a gene's change in expression value between two samples is represented as fold change (FC) such that FC = TPM(comparison) divided by TPM(reference). Misleading FC values can result when one of those TPM values is close to zero. To avoid misleading FC values, we raise very low TPM values to a default TPM floor which represents 10 mapped reads for the gene. The TPM value for the default floor is determined by two factors: (1) the amount of sequencing for the particular dataset, and (2) the transcript size of the gene. The floor can be adjusted with the pull-down menu. Choosing a floor value greater than default effectively increases the expression threshold and may reduce the number of genes returned by the search. If you choose multiple samples for either reference or comparison, we apply your chosen floor after calculating the average, min, max or median of the sample expression values. In some cases (e.g., scaled data), a default floor cannot be calculated and thus is set to 1 TPM.",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "1",
+              "1",
+              null
+            ],
+            [
+              "0.1",
+              "0.1",
+              null
+            ],
+            [
+              "0.01",
+              "0.01",
+              null
+            ],
+            [
+              "0",
+              "0",
+              null
+            ],
+            [
+              "0.0000001",
+              "0.0000001",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "hard_floor",
+          "initialDisplayValue": "0",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Protein Coding Only:",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Should only protein coding genes be returned?",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "yes",
+              "protein coding",
+              null
+            ],
+            [
+              "no",
+              "all",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "protein_coding_only",
+          "initialDisplayValue": "yes",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        }
+      ],
+      "properties": {
+        "organisms": [
+          "FILL"
+        ],
+        "specificAttribution": [],
+        "displayCategory": [
+          "fold_change"
+        ]
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

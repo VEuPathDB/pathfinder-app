@@ -1,3 +1,5 @@
+import type { EdaViz } from "@pathfinder/shared";
+
 import type {
   VolcanoPointInput,
   VolcanoThresholds,
@@ -44,4 +46,16 @@ export function selectVolcanoGenes(
         ? [...down]
         : [...up, ...down];
   return { up, down, selected, droppedRowCount };
+}
+
+/** The genes a plot keeps at these thresholds. At the plot's own cut the
+ * part's uncapped id list answers; another cut reads the plotted points. */
+export function selectedGeneIds(part: EdaViz, thresholds: VolcanoThresholds): string[] {
+  const ownCut =
+    part.effectSizeThreshold === thresholds.effectSizeThreshold &&
+    part.significanceThreshold === thresholds.significanceThreshold &&
+    part.effectDirection === thresholds.direction;
+  return ownCut
+    ? part.retainedPointIds
+    : selectVolcanoGenes(part.points, thresholds).selected;
 }

@@ -105,6 +105,7 @@ async def read_eda_viz(
         effect_direction=thresholds.effect_direction,
         total_points=view.total_points,
         retained_points=view.retained_points,
+        retained_point_ids=view.retained_point_ids,
         points=[
             EdaVizPointResponse.model_validate(point, from_attributes=True)
             for point in view.points

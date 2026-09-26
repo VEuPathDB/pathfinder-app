@@ -70,6 +70,7 @@ function figure(overrides: Record<string, unknown> = {}) {
     effectDirection: "upAndDown" as const,
     totalPoints: 1,
     retainedPoints: 1,
+    retainedPointIds: ["PF3D7_0100200"],
     points: [
       {
         pointId: "PF3D7_0100200",
@@ -404,6 +405,7 @@ describe("ExportStepButton", () => {
       ...figure(),
       totalPoints: 3,
       retainedPoints: 2,
+      retainedPointIds: ["PF3D7_0100200", "PF3D7_9901100"],
       points: [
         {
           pointId: "PF3D7_0100200",

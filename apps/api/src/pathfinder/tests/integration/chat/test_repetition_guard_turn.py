@@ -21,7 +21,7 @@ from procrastinate.testing import InMemoryConnector
 from pathfinder.tests._support.recorded_searches import serve_recorded_listing
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
-_PROMPT = "read the catalog again and again"
+_PROMPT = "read the catalog again and again [[arc:frame-loop]]"
 _LOOPING_TOOL = "list_searches"
 
 

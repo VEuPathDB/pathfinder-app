@@ -1,5 +1,6 @@
 import type { ReasoningEffort } from "@pathfinder/shared";
 import { createPersistedStore } from "./middleware";
+import { useLeftSidebarStore, useRightRailStore } from "./useRightRailStore";
 
 // Roles are data the tier presets name, so the picks are keyed by plain role
 // names rather than by a role set this store declares.
@@ -85,15 +86,9 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
   },
 );
 
-const PERSISTED_STORE_KEYS = [
-  "pathfinder-settings",
-  "pathfinder-left-sidebar",
-  "pathfinder-right-rail",
-] as const;
-
+/** Clear the stored settings, sidebar and right rail under the keys they persist to. */
 export function resetAllPersistedSettings(): void {
-  if (typeof window === "undefined") return;
-  for (const key of PERSISTED_STORE_KEYS) {
-    window.localStorage.removeItem(key);
+  for (const store of [useSettingsStore, useLeftSidebarStore, useRightRailStore]) {
+    store.persist.clearStorage();
   }
 }

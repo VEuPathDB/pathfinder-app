@@ -176,6 +176,7 @@ async def _announce_volcano(
             EdaVolcanoPoint.model_validate(point, from_attributes=True)
             for point in view.points
         ],
+        retained_point_ids=view.retained_point_ids,
         comparison=comparison_of(config),
         caption=caption,
     )

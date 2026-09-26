@@ -66,6 +66,7 @@ class EdaVizResponse(CamelModel):
     effect_direction: EdaEffectDirection
     total_points: int
     retained_points: int
+    retained_point_ids: list[str]
     points: list[EdaVizPointResponse]
     comparison: EdaComparison
 

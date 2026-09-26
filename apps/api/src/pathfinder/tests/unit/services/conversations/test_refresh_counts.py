@@ -172,7 +172,7 @@ def _install(
             ),
         )
 
-    monkeypatch.setattr(strategy_ops, "get_owned_thread_or_404", _owned)
+    monkeypatch.setattr(strategy_ops, "get_owned_thread", _owned)
     monkeypatch.setattr(strategy_ops, "strategy_write_lock", _lock)
     monkeypatch.setattr(strategy_ops, "ConversationRepository", lambda _session: repo)
     monkeypatch.setattr(strategy_ops, "persist_strategy_ast_to_conversation", _persist)

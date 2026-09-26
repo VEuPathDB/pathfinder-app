@@ -62,6 +62,7 @@ LEAD_TOOL_NAMES = frozenset(
         "read_ledger_section",
         "recover_failed_steps",
         "remember",
+        "rename_strategy",
         "save_gene_set",
         "verify_strategy",
         "search_eda_studies",

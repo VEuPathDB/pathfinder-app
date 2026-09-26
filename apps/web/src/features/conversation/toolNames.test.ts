@@ -150,6 +150,10 @@ describe("humanizeToolName", () => {
     ).toEqual(["List record types", "Find searches", "Run control tests"]);
   });
 
+  it("names the rename by what it does", () => {
+    expect(humanizeToolName("rename_strategy")).toBe("Rename strategy");
+  });
+
   it("says an experiment it reads belongs to another site", () => {
     expect(humanizeToolName("read_experiment")).toBe("Read another site's experiment");
   });

@@ -64,6 +64,29 @@ describe("writeStrategy", () => {
   });
 });
 
+describe("writeStrategy against a read in flight", () => {
+  it("keeps the strategy it stores when an older read answers after it", async () => {
+    const client = new QueryClient();
+    const exported: Strategy = { ...STRATEGY, rootStepId: "step_1" };
+    let answerRead: (strategy: Strategy) => void = () => undefined;
+    const read = client
+      .fetchQuery({
+        queryKey: strategyQueryKey("conv-1"),
+        queryFn: () =>
+          new Promise<Strategy>((resolve) => {
+            answerRead = resolve;
+          }),
+      })
+      .catch(() => undefined);
+
+    writeStrategy(client, "conv-1", exported);
+    answerRead(STRATEGY);
+    await read;
+
+    expect(client.getQueryData(strategyQueryKey("conv-1"))).toEqual(exported);
+  });
+});
+
 describe("refetchStrategy", () => {
   it("marks the strategy and every step page of that conversation stale", async () => {
     const client = seededClient();

@@ -1,42 +1,38 @@
-"""The arguments the Lead's scripted calls carry.
-
-The arcs that make the calls live in ``arcs``.
-"""
+"""The arguments the Lead's scripted calls carry."""
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from pydantic import BaseModel
 
 
-def _variant_text_params(expression: str) -> dict[str, Any]:
+def _variant_text_params(expression: str, organism: str) -> dict[str, Any]:
     return {
         "text_expression": {"type": "string", "value": expression},
         "text_fields": {"type": "multi-pick-vocabulary", "values": ["product"]},
         "document_type": {"type": "string", "value": "gene"},
         "text_search_organism": {
             "type": "multi-pick-vocabulary",
-            "values": ["Plasmodium falciparum 3D7"],
+            "values": [organism],
         },
     }
 
 
-def variant_args() -> dict[str, Any]:
+def variant_args(organism: str) -> dict[str, Any]:
     return {
         "variants": [
             {
                 "label": "kinase",
                 "search_name": "GenesByText",
                 "record_type": "transcript",
-                "parameters": _variant_text_params("kinase"),
+                "parameters": _variant_text_params("kinase", organism),
             },
             {
                 "label": "phosphatase",
                 "search_name": "GenesByText",
                 "record_type": "transcript",
-                "parameters": _variant_text_params("phosphatase"),
+                "parameters": _variant_text_params("phosphatase", organism),
             },
         ],
     }
@@ -96,17 +92,3 @@ def attached_gene_list(text: str) -> AttachedGeneList | None:
     if not source_name or not gene_ids:
         return None
     return AttachedGeneList(source_name=source_name, gene_ids=gene_ids)
-
-
-_CONTROL_LIST = re.compile(
-    r"(positive|negative) controls[^:]*:\s*((?:[\w.-]+_[\w.-]+\s*)+)"
-)
-
-
-def sweep_controls(lowered: str, fallback: tuple[str, ...]) -> dict[str, list[str]]:
-    """The control lists the message names, else ``fallback`` as the positives."""
-    named = {
-        f"{kind}_controls": [gene_id.upper() for gene_id in ids.split()]
-        for kind, ids in _CONTROL_LIST.findall(lowered)
-    }
-    return named or {"positive_controls": list(fallback)}

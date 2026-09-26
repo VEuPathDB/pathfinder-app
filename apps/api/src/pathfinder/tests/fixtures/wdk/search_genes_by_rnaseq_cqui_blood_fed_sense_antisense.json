@@ -1,0 +1,584 @@
+{
+  "provenance": {
+    "site": "vectorbase",
+    "method": "GET",
+    "url": "https://vectorbase.org/vectorbase/service/record-types/transcript/searches/GenesByRNASeqcquiJHB_SRP106313_ebi_rnaSeq_RSRCSenseAntisense?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-26",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searchData": {
+      "summary": "Find genes with specific patterns of sense and antisense transcripts, using evidence from strand-specific RNA-Seq data",
+      "urlSegment": "GenesByRNASeqcquiJHB_SRP106313_ebi_rnaSeq_RSRCSenseAntisense",
+      "dynamicAttributes": [
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Word Cloud",
+              "name": "sample_pairs-wordCloud",
+              "scopes": [],
+              "type": "wordCloud"
+            }
+          ],
+          "displayName": "Reference->Comparison sample pairs that meet criteria",
+          "isSortable": true,
+          "align": "left",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "This column contains every pair of samples (Reference->Comparison) that meet the fold-change criteria. Each pair is separated by a comma.",
+          "isInReport": true,
+          "truncateTo": 1000,
+          "name": "sample_pairs",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_FC_product-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "displayName": "Max Sense_FC*Antisense_FC",
+          "isSortable": true,
+          "align": "left",
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "help": "Sense fold-change * antisense fold-change (for the pair of samples that exhibit the maximum). This is useful for sorting genes based on the fold-changes in both sense and antisense.",
+          "isInReport": true,
+          "truncateTo": 100,
+          "name": "max_FC_product",
+          "isDisplayable": true,
+          "isRemovable": true,
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [],
+          "truncateTo": 100,
+          "displayName": "antisense_floor",
+          "name": "antisense_floor",
+          "isSortable": true,
+          "isDisplayable": false,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [],
+          "truncateTo": 100,
+          "displayName": "antisense_fold_change",
+          "name": "antisense_fold_change",
+          "isSortable": true,
+          "isDisplayable": false,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "isInReport": true,
+          "formats": [],
+          "truncateTo": 100,
+          "displayName": "sense_fold_change",
+          "name": "sense_fold_change",
+          "isSortable": true,
+          "isDisplayable": false,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "Points in the corner closed off with red-dotted lines represent sample pairs that meet your fold-change criteria. Click on the graph to open an enlarged graph which can be moused-over to show which sample comparison is represented by each point. See the previous page for more description.",
+          "isInReport": false,
+          "formats": [],
+          "truncateTo": 100000,
+          "displayName": "Host seeking vs resting mosquitoes - Strand_specific fold change graph",
+          "name": "cquiJHB_SRP106313_ebi_rnaSeq_RSRC_strand_specific_fold_graph",
+          "isSortable": false,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [
+              "byValue"
+            ],
+            "filters": [
+              "byValue"
+            ]
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "max_FC_product",
+          "direction": "DESC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "C. quinquefasciatus JHB 2020 Antennae from females non-blood fed (nbf, host-seeking) and blood-fed to completion (bf, resting) mosquitoes changes in sense and antisense transcripts",
+      "fullName": "GeneQuestions.GenesByRNASeqcquiJHB_SRP106313_ebi_rnaSeq_RSRCSenseAntisense",
+      "description": "Find genes that exhibit simultaneous changes in sense and antisense transcripts in the Comparison sample relative to the Reference Sample. For example, you could look for genes showing increasing antisense transcripts and decreasing sense transcripts, as might occur when antisense transcription suppresses sense transcription. The search will perform all pairwise comparisons between the chosen Comparison samples and the chosen Reference samples. Below is an example where there is an increase in antisense transcripts and a decrease in sense transcripts in the Comparison sample: \n<br/><br/>\n<div align=\"center\">\n     <img src=\"/a/images/sense_antisense_1.png\">\n</div>\n<br/><br/>\nAn example of the TPM data for a gene is shown below. You can select the direction and the magnitude of change for the sense and antisense transcripts.\n<br/><br/>\n<div align=\"center\">\n      <img src=\"/a/images/sense_antisense_2.png\">\n</div>\n<br/><br/>\nThe results page lists the genes, along with each pair of samples (Reference-&gt;Comparison), that meet the criteria. The results page also shows a graph depicting all pairwise fold-changes in antisense and sense transcripts that is useful in identifying which samples meet the criteria that you selected AND whether this pattern is observed across all samples. \n<br/><br/>\n<div align=\"center\">\n      <img src=\"/a/images/sense_antisense_3.png\">\n</div>\n<br/><br/>\nEach point shows the sense fold-change and the antisense fold-change between a pair of samples. A point on the red dotted diagonal line represents a pair of samples where the antisense fold-change and the sense fold-change are the same. Sample pairs that meet the fold-change critera are represented by points located within the corner of the graph that is closed off with a vertical and a horizontal red dotted line. (Note that some pairs meet the fold-change criteria but do not meet the change in antisense fraction, which is an advanced parameter. If you want to identify more genes, then you should decrease the value of this parameter.)  On the Results page, you can click on the graph to open a new browser window containing an enlarged graph. The enlarged graph can be moused-over to show which sample comparison is represented by each point.\n<br/><br/>",
+      "defaultAttributes": [
+        "primary_key",
+        "organism",
+        "gene_product",
+        "sample_pairs",
+        "max_FC_product",
+        "cquiJHB_SRP106313_ebi_rnaSeq_RSRC_Both_strands_expr_graph",
+        "cquiJHB_SRP106313_ebi_rnaSeq_RSRC_strand_specific_fold_graph"
+      ],
+      "groups": [
+        {
+          "displayType": "dynamic",
+          "displayName": "Dynamic Parameters Group",
+          "name": "dynamicParams",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "antisense_direction",
+            "antisense_fold_change",
+            "sense_direction",
+            "sense_fold_change",
+            "samples_ref_antisense",
+            "samples_comp_antisense",
+            "antisense_floor",
+            "protein_coding_only"
+          ]
+        },
+        {
+          "displayType": "ShowHide",
+          "displayName": "Advanced Parameters",
+          "name": "advancedParams",
+          "description": "",
+          "isVisible": false,
+          "parameters": [
+            "fraction_change_antisense"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "newBuild": "58.0",
+      "shortDisplayName": "Host seeking vs resting mosquitoes (sense antisense)",
+      "paramNames": [
+        "antisense_direction",
+        "antisense_fold_change",
+        "sense_direction",
+        "sense_fold_change",
+        "samples_ref_antisense",
+        "samples_comp_antisense",
+        "antisense_floor",
+        "protein_coding_only",
+        "fraction_change_antisense"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesBySenseAntisense",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Find genes whose antisense transcripts ",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Select whether the number of antisense transcripts should increase or decrease in the Comparison Sample relative to the Reference Sample.",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "increase",
+              "increase",
+              null
+            ],
+            [
+              "decrease",
+              "decrease",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "antisense_direction",
+          "initialDisplayValue": "increase",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "with a fold change >=",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Enter a non-negative number. The fold change is the fold increase/decrease (as selected above) when going from the Reference Sample to the Comparison sample.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "antisense_fold_change",
+          "initialDisplayValue": "2",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "while the same gene's sense transcripts ",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Select whether the number of sense transcripts should increase or decrease in the Comparison Sample relative to the Reference Sample.",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "decrease",
+              "decrease",
+              null
+            ],
+            [
+              "increase",
+              "increase",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "sense_direction",
+          "initialDisplayValue": "decrease",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "with a fold change >=",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Enter a non-negative number.  The fold change is the fold increase/decrease (as selected above) when going from the Reference Sample to the Comparison sample.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "sense_fold_change",
+          "initialDisplayValue": "2",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "between expression in any of the following Reference Samples:",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Choose one or more samples. Each of the chosen Comparison samples will be compared to each of the Reference samples. To identify genes that meet the fold-change criteria relative to any of the Reference samples, choose all Reference samples.",
+          "dependentParams": [],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "Sugar_fed",
+              "Sugar_fed",
+              null
+            ],
+            [
+              "Blood_fed",
+              "Blood_fed",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "samples_ref_antisense",
+          "initialDisplayValue": "[\"Sugar_fed\",\"Blood_fed\"]",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "and expression in any of the following Comparison Samples:",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Choose one or more samples. Each of these chosen Comparison samples will be compared to each of the chosen Reference Samples. To identify genes that meet the fold-change criteria in only one sample, select that sample. To identify genes that meet the fold-change criteria in any sample, select all of the samples.",
+          "dependentParams": [
+            "antisense_floor"
+          ],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "Sugar_fed",
+              "Sugar_fed",
+              null
+            ],
+            [
+              "Blood_fed",
+              "Blood_fed",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "samples_comp_antisense",
+          "initialDisplayValue": "[\"Sugar_fed\",\"Blood_fed\"]",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "To calculate fold-changes, use a floor of: ",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Choose the minimum number of reads per gene for the floor. The number of reads that map to a gene is used to calculate a gene's TPM. In this search, a gene's change in expression value between two samples is represented as fold change (FC) such that FC = TPM(comparison) divided by TPM(reference). Misleading FC values can result when one of those TPM values is close to zero. To avoid misleading FC values, we raise very low TPM values to a default TPM floor which represents 10 mapped reads for the gene. The TPM value for the default floor is determined by two factors: (1) the amount of sequencing for the particular dataset, and (2) the average transcript size for the organism. The floor can be adjusted with the pull-down menu. Choosing a floor value greater than default effectively increases the expression threshold and may reduce the number of genes returned by the search. If you choose multiple samples for either reference or comparison, we apply your chosen floor after calculating the average, min, max or median of the sample expression values. In some cases (e.g., scaled data), a default floor cannot be calculated and thus is set to 1 TPM.",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "0.29",
+              "10 reads (0.29 TPM)",
+              null
+            ],
+            [
+              "0.14500000000000000000",
+              "5 reads (0.14500000000000000000 TPM)",
+              null
+            ],
+            [
+              "0.58",
+              "20 reads (0.58 TPM)",
+              null
+            ],
+            [
+              "1.45",
+              "50 reads (1.45 TPM)",
+              null
+            ],
+            [
+              "2.90",
+              "100 reads (2.90 TPM)",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "antisense_floor",
+          "initialDisplayValue": "0.29",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Protein Coding Only:",
+          "minSelectedCount": 1,
+          "maxSelectedCount": 1,
+          "isVisible": true,
+          "type": "single-pick-vocabulary",
+          "help": "Should only protein coding genes be returned?",
+          "dependentParams": [],
+          "displayType": "select",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "yes",
+              "protein coding",
+              null
+            ],
+            [
+              "no",
+              "all",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "protein_coding_only",
+          "initialDisplayValue": "yes",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "dynamicParams"
+        },
+        {
+          "displayName": "Change in antisense fraction >= ",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "The fraction of total transcripts that are antisense must change (up or down) by at least this amount. Enter a number between 0 and 1. Larger fractions will select for genes with a large fraction of antisense in one sample and small fraction of antisense in the other sample.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": true,
+          "allowEmptyValue": false,
+          "name": "fraction_change_antisense",
+          "initialDisplayValue": "0.5",
+          "properties": {
+            "organisms": [
+              "FILL"
+            ],
+            "specificAttribution": []
+          },
+          "group": "advancedParams"
+        }
+      ],
+      "properties": {
+        "organisms": [
+          "FILL"
+        ],
+        "specificAttribution": []
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

@@ -95,6 +95,7 @@ from pathfinder.ai.graph.turn_status import (
 from pathfinder.ai.lead.deleted_steps import ask_about_the_removals
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
+from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import (
     budget_stop_report,
@@ -266,6 +267,7 @@ async def _drive_lead_stream(
     capture.parked_call_answered = deferred_results is not None
     resume_prompt = _run_prompt(state, resumption)
     resume_messages = approvals.resume_history(parked) if parked is not None else None
+    bind_scripted_scope(deps.runtime.site_id, state.user_prompt)
     usage_acc = RunUsage()
     limits = lead_usage_limits()
     lead_model = resolve_lead_model_context(

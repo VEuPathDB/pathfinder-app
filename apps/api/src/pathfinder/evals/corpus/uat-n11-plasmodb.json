@@ -1,0 +1,44 @@
+{
+  "name": "uat-n11-plasmodb",
+  "turns": [
+    "Please remember for future sessions that I prefer the Su et al. strand-specific dataset for gametocyte expression, then tell me what you stored."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A request to remember stores the preference and builds nothing.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "Su et al"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n11",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

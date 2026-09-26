@@ -76,6 +76,8 @@ htmlcov/
 # Playwright
 apps/web/playwright-report/
 apps/web/test-results/
+apps/web/blob-report/
+apps/web/all-blob-reports/
 apps/web/e2e/.auth/
 
 # Next.js

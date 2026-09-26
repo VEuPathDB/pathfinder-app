@@ -27,6 +27,7 @@ from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
     EdaComparison,
     EdaEntityCount,
+    EdaVizPart,
     EdaVolcanoPoint,
 )
 from pathfinder.services.eda import binding
@@ -246,6 +247,7 @@ def _viz_chunk(
         effect_direction=effect_direction,
         summary=summary,
         points=points,
+        retained_point_ids=[point.point_id for point in points if point.retained],
         comparison=comparison or EdaComparison(group_a=["normal"], group_b=["febrile"]),
         **extra,
     )
@@ -325,6 +327,28 @@ def test_the_viz_chunk_caps_the_points_and_keeps_every_retained_one() -> None:
     sent = chunk.data["points"]
     assert len(sent) == 4000
     assert sum(1 for point in sent if point["retained"]) == 20
+
+
+def test_the_viz_chunk_lists_every_retained_id_beyond_the_plot_cap() -> None:
+    """A comparison that keeps 4,402 genes plots 4,000 and lists all 4,402."""
+    points = [_point(i, retained=i % 3 != 0) for i in range(6603)]
+    kept = [point.point_id for point in points if point.retained]
+    chunk = _viz_chunk(
+        summary=_summary(total_rows=6603, retained=4402, retained_up=4402),
+        points=points,
+    )
+    assert (len(chunk.data["points"]), chunk.data["retainedPointIds"]) == (
+        4000,
+        kept,
+    )
+    assert len(kept) == 4402
+
+
+def test_a_plot_without_its_retained_ids_is_refused() -> None:
+    chunk = _viz_chunk(summary=_summary(), points=[_point(1, retained=True)])
+    stale = {k: v for k, v in chunk.data.items() if k != "retainedPointIds"}
+    with pytest.raises(ValidationError, match="retainedPointIds"):
+        EdaVizPart.model_validate(stale)
 
 
 async def test_the_analysis_state_chunk_names_the_part_kind(

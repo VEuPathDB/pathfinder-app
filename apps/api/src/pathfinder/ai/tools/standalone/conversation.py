@@ -29,14 +29,25 @@ from pathfinder.services.strategies.persist import (
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
+NOT_STORED = (
+    "The rename found no stored conversation, so nothing was renamed. Say so, "
+    "and do not call the rename again."
+)
 
-async def _rename_the_thread(deps: AgentDeps, name: str) -> str | None:
-    """Rename the thread the turn runs on; None when the turn names no thread."""
+
+async def _rename_the_thread(deps: AgentDeps, name: str) -> str:
+    """The name the thread stored, or ``name`` when the turn names no thread.
+
+    A thread the store does not hold refuses the rename.
+    """
     if deps.conversation_id is None or deps.db_session_factory is None:
-        return None
-    return await rename_strategy_everywhere(
+        return name
+    stored = await rename_strategy_everywhere(
         deps.conversation_id, name, session_factory=deps.db_session_factory
     )
+    if stored is None:
+        raise ModelRetry(NOT_STORED)
+    return stored
 
 
 async def rename_strategy(
@@ -69,7 +80,7 @@ async def rename_strategy(
         raise ModelRetry(msg)
 
     old_name = graph.name
-    graph.name = await _rename_the_thread(ctx.deps, new_name) or new_name
+    graph.name = await _rename_the_thread(ctx.deps, new_name)
     graph.description = description
     graph.save_history(f"Renamed from '{old_name}' to '{graph.name}'")
 

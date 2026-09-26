@@ -1,85 +1,92 @@
-import { test, expect } from "../fixtures/test";
-import { combineNode } from "../fixtures/ast";
+/**
+ * The candidate drug-targets journey: a vague request asks first and builds
+ * from the answers, a second build request leaves the strategy standing, a
+ * step is added, the operator is flipped on the canvas, and a question about
+ * the flip changes nothing.
+ */
 
-test.describe("P. falciparum candidate drug-targets journey (6 turns)", () => {
-  test("vague prompt -> 16-node verified strategy -> UI op-change impact", async ({
+import { test, expect } from "../fixtures/test";
+import { prompt } from "../fixtures/arcs";
+import { LAYOUTS, SIGNAL_PEPTIDE, layoutOf } from "../fixtures/arc-layouts";
+import { expectBuild } from "../fixtures/build-checks";
+import { readConversation, readNodes, siteOrganism } from "../fixtures/site-reads";
+import {
+  combineWith,
+  expectCanvasSaved,
+  nodeById,
+  openCanvas,
+} from "../fixtures/strategy-builds";
+
+test.describe("Candidate drug-targets journey", { tag: "@turn" }, () => {
+  test.describe.configure({ timeout: 900_000 });
+
+  test("vague request -> questions and a build -> second build -> add a step -> canvas flip -> impact", async ({
     chatPage,
     graphPage,
-    sitePicker,
     apiClient,
+    page,
+    siteId,
   }) => {
-    // Six turns at up to 43 s each, plus the wait for a free worker slot on
-    // each one, do not fit the journey project's own budget.
-    test.setTimeout(test.info().timeout + 300_000);
+    const organism = siteOrganism(siteId);
+    await chatPage.startOn(siteId);
 
-    await chatPage.goto();
-    await sitePicker.selectSite("plasmodb");
-    await chatPage.newChat("plasmodb");
-
-    // Turn 1: vague drug-target question
     await chatPage.send(
-      "I want to find candidate drug targets in Plasmodium - kinases that are expressed, don't vary much, and have no human equivalent.",
+      prompt(
+        "consult",
+        `I want to find candidate drug targets in ${organism}: genes that are expressed, do not vary much, and have no human equivalent.`,
+      ),
     );
-    await chatPage.expectClarifyingQuestions();
+    await chatPage.answerConsultCarousel();
+    await chatPage.expectIdle(240_000);
+    await expect(page.getByTestId("consult-recap")).toContainText("Your answers");
 
-    // Turn 2: user clarifies all four
-    await chatPage.send(
-      "Use P. falciparum 3D7. For 'expressed' use trophozoite-stage mass spec OR DeRisi microarray top 10%. For 'doesn't vary much' use dN/dS ≤ 1.3 on the Broad 3K SNP array. For 'no human equivalent' use the phylogenetic profile pattern %hsap:N%pfal:Y%.",
+    const id = chatPage.lastStrategyId ?? "";
+    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+    const signalStep = (await readConversation(apiClient, id)).steps?.find(
+      (step) => step.searchName === SIGNAL_PEPTIDE,
     );
-    await chatPage.expectIdle();
+    expect(signalStep?.wdkStepId ?? 0).toBeGreaterThan(0);
 
-    // Turn 3: broaden with InterPro + EC -> execution -> verification FAIL
-    await chatPage.send(
-      "Add InterPro PF00069 (Pkinase) and EC 2.7.-.- to broaden kinase identification.",
+    await chatPage.sendAndSettle(
+      prompt("second-build", `Build a strategy for ${organism} protein kinases.`),
     );
-    await chatPage.expectVerificationFeedback();
+    expect(layoutOf(await readNodes(apiClient, id))).toEqual(LAYOUTS.single);
+    const afterSecond = (await readConversation(apiClient, id)).steps ?? [];
+    expect(afterSecond.map((step) => step.wdkStepId)).toEqual([signalStep?.wdkStepId]);
 
-    // Turn 4: a fix request on a built thread is refused, not rebuilt
-    // The mock's fix arc runs the build sequence again; build_strategy
-    // refuses on a thread that has a strategy, and the script answers the
-    // refusal instead of claiming a verification it never ran.
-    await chatPage.send(
-      "Fix the phylogenetic pattern by loosening to %MAMM:N%pfal:Y%.",
-    );
-    await chatPage.expectAssistantMessage(/Nothing was built/);
-    await chatPage.expectAssistantMessage(/edit_strategy/);
-
-    // Turn 5: UI mutation - flip the combine operator
-    const conversationId = chatPage.lastStrategyId;
-    expect(conversationId).toBeTruthy();
-    const astUrl = `/api/v1/conversations/${conversationId as string}/ast`;
-    const combine = await combineNode(await apiClient.get(astUrl));
-    expect(combine.operator).toBe("UNION");
-    const combineStepId = combine.id as string;
-
-    await graphPage.goToStrategy("plasmodb", conversationId as string);
-    await graphPage.expectStrategyTopbar();
-    await graphPage.expectNodeVisible(combineStepId);
-    await graphPage.changeOperator(combineStepId, "INTERSECT");
-    await expect(graphPage.strategyPageSyncState).toHaveAttribute(
-      "data-sync-state",
-      "idle",
-      { timeout: 30_000 },
+    await chatPage.sendAndSettle(
+      prompt(
+        "add-step",
+        "Also keep only those predicted to be exported to the host cell.",
+      ),
     );
     await expect
-      .poll(async () => (await combineNode(await apiClient.get(astUrl))).operator, {
+      .poll(async () => layoutOf(await readNodes(apiClient, id)).operators, {
+        timeout: 60_000,
+      })
+      .toEqual(["INTERSECT"]);
+
+    const combineId = combineWith(await readNodes(apiClient, id), "INTERSECT").id ?? "";
+    await openCanvas(graphPage, siteId, id);
+    await graphPage.expectNodeVisible(combineId);
+    await graphPage.changeOperator(combineId, "UNION");
+    await expectCanvasSaved(graphPage);
+    await expect
+      .poll(async () => nodeById(await readNodes(apiClient, id), combineId).operator, {
         timeout: 30_000,
       })
-      .toBe("INTERSECT");
+      .toBe("UNION");
     await graphPage.strategyPageBackButton.click();
-    await graphPage.expectOnChatRoute(conversationId as string);
+    await graphPage.expectOnChatRoute(id);
 
-    // Turn 6: ask for impact analysis
-    await chatPage.send(
-      "What's the impact of switching the InterPro/GO combine to INTERSECT?",
+    const flipped = await readConversation(apiClient, id);
+    await chatPage.sendAndSettle(
+      prompt("impact", "What is the impact of switching the combine to UNION?"),
     );
-    await chatPage.expectAssistantMessage(/impact|drops|stricter|operator/i, {
-      timeout: 90_000,
-    });
-
-    const resp = await apiClient.get(
-      `/api/v1/conversations/${conversationId as string}`,
+    expect(layoutOf(await readNodes(apiClient, id)).operators).toEqual(["UNION"]);
+    const asked = await readConversation(apiClient, id);
+    expect((asked.steps ?? []).map((step) => step.wdkStepId)).toEqual(
+      (flipped.steps ?? []).map((step) => step.wdkStepId),
     );
-    expect(resp.ok()).toBeTruthy();
   });
 });

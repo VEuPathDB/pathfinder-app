@@ -1,0 +1,50 @@
+{
+  "name": "uat-c14-plasmodb",
+  "turns": [
+    "Which genes are in this document?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "The genes an attached PDF lists are read back by id.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "PF3D7_0709000",
+      "PF3D7_1133400",
+      "PF3D7_0102600"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-composer.md#c14",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {
+    "0": [
+      "table.pdf"
+    ]
+  },
+  "newConversationBefore": []
+}

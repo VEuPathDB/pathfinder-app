@@ -55,6 +55,7 @@ export function TraceRow({
       <div data-testid="trace-row" className="flex h-6 items-center gap-2 text-xs">
         <glyph.Icon
           data-testid="trace-row-status"
+          data-status={row.status}
           className={cn("size-3 shrink-0", glyph.className)}
           aria-hidden
         />

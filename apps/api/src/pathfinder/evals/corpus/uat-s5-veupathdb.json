@@ -1,0 +1,55 @@
+{
+  "name": "uat-s5-veupathdb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Carry these to their orthologs in Toxoplasma gondii ME49."
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "A request for the orthologs in another organism is one orthology transform over the seed, reported as that organism's genes.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByOrthologs((GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains))",
+    "recordType": "transcript",
+    "stepCount": 4,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologs": {
+        "organism": "Toxoplasma gondii ME49"
+      }
+    },
+    "replyMentions": [
+      "ME49"
+    ],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 87,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s5",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -63,6 +63,10 @@ export function toUserMessage(err: unknown, fallback = "Request failed."): strin
     return msg !== "" ? msg : err.statusText !== "" ? err.statusText : fallback;
   }
 
+  // fetch rejects with a TypeError when the network fails, and its message is
+  // the browser's, not a sentence written for the user.
+  if (err instanceof TypeError) return fallback;
+
   if (err instanceof Error) {
     // The chat transport rethrows the response body as the message.
     const body = extractErrorMessage(parseJson(err.message));

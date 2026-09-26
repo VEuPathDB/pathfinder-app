@@ -179,6 +179,7 @@ class VolcanoView:
     effect_size_label: str
     total_points: int
     retained_points: int
+    retained_point_ids: list[str]
     points: list[VolcanoPoint]
 
 
@@ -192,14 +193,13 @@ def volcano_view(
     A row with no readable effect size has no x coordinate and is dropped. A
     row with no readable p-value keeps its place and never passes the cut.
     """
-    kept = set(
-        retained_point_ids(
-            stats,
-            effect_size_threshold=thresholds.effect_size_threshold,
-            significance_threshold=thresholds.significance_threshold,
-            effect_direction=thresholds.effect_direction,
-        )
+    kept_ids = retained_point_ids(
+        stats,
+        effect_size_threshold=thresholds.effect_size_threshold,
+        significance_threshold=thresholds.significance_threshold,
+        effect_direction=thresholds.effect_direction,
     )
+    kept = set(kept_ids)
     points = [
         VolcanoPoint(
             point_id=row.point_id,
@@ -215,6 +215,7 @@ def volcano_view(
         effect_size_label=stats.effect_size_label,
         total_points=len(stats.statistics),
         retained_points=len(kept),
+        retained_point_ids=kept_ids,
         points=points,
     )
 

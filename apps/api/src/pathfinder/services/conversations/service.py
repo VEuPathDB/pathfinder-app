@@ -35,7 +35,7 @@ from pathfinder.persistence.repositories import (
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations import strategy_ops
-from pathfinder.services.conversations.authz import get_owned_thread_or_404
+from pathfinder.services.conversations.authz import get_owned_thread
 from pathfinder.services.conversations.begin import begin_conversation
 from pathfinder.services.conversations.duplicate import (
     DuplicatedConversation,
@@ -130,7 +130,7 @@ class ConversationService:
     async def get_detail(
         self, conversation_id: UUID, user_id: UUID
     ) -> ConversationResponse:
-        conversation, strategy = await get_owned_thread_or_404(
+        conversation, strategy = await get_owned_thread(
             self._repo,
             conversation_id,
             user_id,
@@ -223,7 +223,7 @@ class ConversationService:
         delete_from_wdk: bool,
         cascade: bool,
     ) -> None:
-        conversation, strategy = await get_owned_thread_or_404(
+        conversation, strategy = await get_owned_thread(
             self._repo,
             conversation_id,
             user_id,

@@ -6,7 +6,7 @@ import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaCompar
 import type { VolcanoThresholds } from "@/lib/components/charts/types";
 import { VolcanoChart } from "@/lib/components/charts/VolcanoChart";
 import { higherIn } from "@/lib/eda/comparison";
-import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
+import { selectedGeneIds } from "@/lib/eda/volcanoSelection";
 import { useEdaStore } from "@/state/eda";
 
 import {
@@ -43,9 +43,9 @@ function cutSentence(
 export function VolcanoPanel({ payload }: { payload: EdaViz }) {
   const thresholds = useEdaStore((s) => s.volcanoThresholds);
   const points = payload.points;
-  const selection = selectVolcanoGenes(points, thresholds);
+  const selected = selectedGeneIds(payload, thresholds);
   const byId = pointsById(points);
-  const listed = selection.selected.slice(0, READOUT_LIMIT);
+  const listed = selected.slice(0, READOUT_LIMIT);
 
   return (
     <div className="space-y-3">
@@ -68,7 +68,7 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
             data-testid="eda-volcano-selection"
             className="text-xs text-muted-foreground"
           >
-            {`${String(selection.selected.length)} ${selection.selected.length === 1 ? "gene" : "genes"} selected, ${String(payload.retainedPoints)} of ${String(payload.totalPoints)} retained by the comparison`}
+            {`${String(selected.length)} ${selected.length === 1 ? "gene" : "genes"} selected, ${String(payload.retainedPoints)} of ${String(payload.totalPoints)} retained by the comparison`}
           </p>
           <table className="mt-2 w-full text-left text-[11px]">
             <thead className="text-muted-foreground">
@@ -93,12 +93,12 @@ export function VolcanoPanel({ payload }: { payload: EdaViz }) {
               })}
             </tbody>
           </table>
-          {selection.selected.length > READOUT_LIMIT ? (
+          {selected.length > READOUT_LIMIT ? (
             <p
               data-testid="eda-volcano-readout-cap"
               className="mt-1 text-[11px] text-muted-foreground"
             >
-              {`The first ${String(READOUT_LIMIT)} of ${String(selection.selected.length)} selected genes are listed.`}
+              {`The first ${String(READOUT_LIMIT)} of ${String(selected.length)} selected genes are listed.`}
             </p>
           ) : null}
         </div>

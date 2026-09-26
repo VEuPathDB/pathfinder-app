@@ -25,8 +25,8 @@ def test_an_empty_run_reports_a_zero_pass_rate() -> None:
 
 def test_a_green_run_reports_one() -> None:
     summary = _summary(
-        CaseResult(name="a", passed=True),
-        CaseResult(name="b", passed=True),
+        CaseResult(name="a", verdict="pass"),
+        CaseResult(name="b", verdict="pass"),
     )
 
     assert summary.passed == 2
@@ -36,8 +36,8 @@ def test_a_green_run_reports_one() -> None:
 
 def test_an_errored_case_counts_as_neither_passed_nor_failed() -> None:
     summary = _summary(
-        CaseResult(name="a", passed=True),
-        CaseResult(name="b", passed=False, error="boom"),
+        CaseResult(name="a", verdict="pass"),
+        CaseResult(name="b", verdict="fail", error="boom"),
     )
 
     assert summary.passed == 1
@@ -51,7 +51,7 @@ def test_the_serialized_summary_carries_the_counts_and_the_differences() -> None
     summary = _summary(
         CaseResult(
             name="a",
-            passed=False,
+            verdict="fail",
             differences=[
                 CaseDifference(field="structure", expected="x", actual="y"),
             ],
@@ -63,3 +63,26 @@ def test_the_serialized_summary_carries_the_counts_and_the_differences() -> None
     assert payload["passRate"] == 0.0
     assert payload["caseCount"] == 1
     assert payload["cases"][0]["differences"][0]["field"] == "structure"
+
+
+def test_a_re_measure_counts_as_neither_passed_nor_failed() -> None:
+    summary = _summary(
+        CaseResult(name="a", verdict="pass", observed_count=116),
+        CaseResult(name="b", verdict="re-measure", observed_count=140),
+        CaseResult(name="c", verdict="fail", observed_count=None),
+    )
+
+    counted = (summary.passed, summary.re_measure, summary.failed, summary.errored)
+    assert counted == (1, 1, 1, 0)
+    assert [case.passed for case in summary.cases] == [True, False, False]
+
+
+def test_the_serialized_case_carries_its_verdict_and_its_count() -> None:
+    summary = _summary(CaseResult(name="a", verdict="re-measure", observed_count=140))
+
+    payload = summary.model_dump(by_alias=True, mode="json")
+
+    assert payload["reMeasure"] == 1
+    assert {
+        key: payload["cases"][0][key] for key in ("verdict", "observedCount", "passed")
+    } == {"verdict": "re-measure", "observedCount": 140, "passed": False}

@@ -1,0 +1,48 @@
+{
+  "name": "uat-e2-plasmodb",
+  "turns": [
+    "Open the PlasmoDB study 'Heat shock response in sensitive mutants (LRR5, DHC)' and compare the wild type samples with the DHC mutant samples by differential expression on the sense counts."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A study comparison runs the differential expression and adds its genes as one step.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByEdaVizWithCompute",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "DESeq"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 201,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-eda.md#e2",
+    "curatorNote": "Needs --via-worker: the compute is a durable task."
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

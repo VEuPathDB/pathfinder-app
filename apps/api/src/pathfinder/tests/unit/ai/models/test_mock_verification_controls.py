@@ -1,11 +1,10 @@
-"""The mock VERIFY tests the build against controls when the request names them."""
+"""The mock VERIFY, picked by its tools, tests the root against the site's controls
+when the message names the controls-test arc, and samples a root first."""
 
 from __future__ import annotations
 
-from collections.abc import Generator
+import contextvars
 
-import pytest
-from assistant_core.models.scripted import current_scope_id, current_user_text
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -18,9 +17,14 @@ from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import ToolDefinition
 
+from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
+from pathfinder.ai.lead.verify_dispatch import work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
+from pathfinder.ai.models.mock.site_values import SiteValues
+from pathfinder.tests.unit.ai.models._mock_turns import verify_order
 
-_VERIFY_TOOLS = ("run_control_tests_on_step", "run_control_tests_on_search")
+_VERIFY_TOOLS = ("run_control_tests_on_step", "get_strategy", "get_sample_records")
+_STRATEGY = {"steps": [{"id": "step_root", "wdkStepId": 555}]}
 
 
 def _info() -> AgentInfo:
@@ -34,83 +38,49 @@ def _info() -> AgentInfo:
     )
 
 
-@pytest.fixture
-def scoped_text(request: pytest.FixtureRequest) -> Generator[str]:
-    text: str = request.param
-    text_token = current_user_text.set(text)
-    scope_token = current_scope_id.set("plasmodb")
-    yield text
-    current_user_text.reset(text_token)
-    current_scope_id.reset(scope_token)
+def _next(text: str, messages: list[ModelMessage]) -> str | dict[str, object]:
+    def run() -> str | dict[str, object]:
+        bind_scripted_scope("vectorbase", text)
+        match PATHFINDER_SCRIPT.response_part(messages, _info()):
+            case ToolCallPart() as call:
+                return call.args_as_dict()
+            case prose:
+                return prose.content
+
+    return contextvars.copy_context().run(run)
 
 
-def _work_order() -> list[ModelMessage]:
-    return [ModelRequest(parts=[UserPromptPart(content="Verification work order")])]
-
-
-def _call(messages: list[ModelMessage]) -> ToolCallPart:
-    part = PATHFINDER_SCRIPT.response_part(messages, _info())
-    assert isinstance(part, ToolCallPart)
-    return part
-
-
-@pytest.mark.parametrize(
-    "scoped_text", ["Find kinases and check them against my controls."], indirect=True
-)
-def test_a_request_that_names_controls_runs_a_control_test_first(
-    scoped_text: str,
-) -> None:
-    del scoped_text
-    call = _call(_work_order())
-
-    assert call.tool_name == "run_control_tests_on_search"
-    assert call.args_as_dict() == {
-        "target_search_name": "GenesByTaxon",
-        "target_parameters": {
-            "organism": {
-                "type": "multi-pick-vocabulary",
-                "values": ["Plasmodium falciparum 3D7"],
-            }
-        },
-        "positive_controls": ["PF3D7_0102600", "PF3D7_0709000", "PF3D7_1133400"],
-        "negative_controls": ["TGME49_205250"],
-    }
-
-
-@pytest.mark.parametrize(
-    "scoped_text", ["Find kinases and check them against my controls."], indirect=True
-)
-def test_the_digest_follows_the_control_test(scoped_text: str) -> None:
-    del scoped_text
-    tested: list[ModelMessage] = [
-        *_work_order(),
-        ModelResponse(
-            parts=[
-                ToolCallPart(
-                    tool_name="run_control_tests_on_search",
-                    args={},
-                    tool_call_id="call_controls",
-                )
-            ]
-        ),
+def _read_strategy(order: str) -> list[ModelMessage]:
+    call = ToolCallPart(tool_name="get_strategy", args={}, tool_call_id="read")
+    return [
+        ModelRequest(parts=[UserPromptPart(content=order)]),
+        ModelResponse(parts=[call]),
         ModelRequest(
             parts=[
                 ToolReturnPart(
-                    tool_name="run_control_tests_on_search",
-                    content={"stepId": 1},
-                    tool_call_id="call_controls",
+                    tool_name="get_strategy", content=_STRATEGY, tool_call_id="read"
                 )
             ]
         ),
     ]
 
-    assert _call(tested).tool_name == "final_result"
+
+def test_a_root_the_order_does_not_name_is_tested_as_the_strategy_read_names_it() -> (
+    None
+):
+    controls = SiteValues.for_site("vectorbase").controls
+    order = work_order("mock verification", None, None)
+
+    args = _next("Test it [[arc:controls-test]]", _read_strategy(order))
+
+    assert args == {
+        "wdk_step_id": 555,
+        "positive_controls": controls.positive_ids,
+        "negative_controls": controls.negative_ids,
+    }
 
 
-@pytest.mark.parametrize("scoped_text", ["Find kinases in 3D7."], indirect=True)
-def test_a_request_without_controls_goes_straight_to_the_digest(
-    scoped_text: str,
-) -> None:
-    del scoped_text
+def test_an_arc_without_controls_samples_the_root() -> None:
+    args = _next("Find genes [[arc:single]]", _read_strategy(verify_order(12)))
 
-    assert _call(_work_order()).tool_name == "final_result"
+    assert args == {"wdk_step_id": 555, "limit": 2}

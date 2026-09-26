@@ -1,0 +1,42 @@
+{
+  "name": "uat-n12-toxodb",
+  "turns": [
+    "I'm investigating virulence factors in Toxoplasma gondii"
+  ],
+  "siteId": "toxodb",
+  "assistantId": "pathfinder",
+  "rationale": "A statement of context builds nothing; at most it offers a build.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "toxodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n12",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

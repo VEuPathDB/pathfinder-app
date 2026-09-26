@@ -161,6 +161,7 @@ async def test_viz_draws_the_default_cut_when_the_analysis_stores_none(
     assert silent[0]["retained"] is False
     retained = [p for p in body["points"] if p["retained"]]
     assert len(retained) == body["retainedPoints"]
+    assert body["retainedPointIds"] == [p["pointId"] for p in retained]
     assert all(abs(p["effectSize"]) >= 1.0 for p in retained)
     assert all(p["pValue"] <= 0.05 for p in retained)
 

@@ -87,3 +87,36 @@ in the client's resumed read
 `apps/web/e2e/feature/no-dev-overlays.spec.ts` pins the result: no
 `nextjs-portal`, no `[data-nextjs-dev-overlay]`, no `.tsqd-parent-container`,
 and the nav rail's Settings button opens the dialog on the first click.
+
+# The stack's capacity, measured
+
+The whole suite (167 tests, 54 files) ran with `--fully-parallel` forced from
+the command line on one `ubuntu-latest` runner (4 vCPU, 16 GB), one cell per
+worker concurrency (c), worker container count (x) and Playwright worker count
+(w). `unexpected` is a test that failed after its retries, `flaky` one that
+passed on a retry.
+
+| cell | Playwright minutes | unexpected | flaky | worker CPU peak | api CPU peak |
+|---|---|---|---|---|---|
+| c8 x1 w2 | 16.9 | 0 | 0 | 89 % | 55 % |
+| c4 x1 w2 | 17.9 | 0 | 2 | 87 % | 103 % |
+| c4 x2 w2 | 20.0 | 0 | 1 | 99 % | 101 % |
+| c8 x1 w4 | 19.4 | 4 | 11 | 88 % | 99 % |
+| c4 x1 w4 | 23.8 | 0 | 20 | 96 % | 98 % |
+| c4 x2 w4 | 25.3 | 0 | 9 | 94 % | 101 % |
+| c8 x1 w8 | 29.9 | 21 | 42 | 91 % | 101 % |
+| c4 x1 w8 | 29.5 | 31 | 36 | 69 % | 100 % |
+| c4 x2 w8 | 30.9 | 29 | 39 | 99 % | 101 % |
+
+What the table settles:
+
+- **Two Playwright workers per runner.** Every cell at four or eight workers
+  fails or flakes, on every stack shape, and is slower: the api process holds
+  one full core in every cell, so the runner is the ceiling, not the worker's
+  job slots. A second worker container adds nothing at two workers.
+- **Worker concurrency 8, one container.** The one cell with no failure and no
+  flake, and the fastest. The e2e overlay sets it.
+- **Serialization was not the fix.** The turn-driving projects ran in parallel
+  here with no failure at two workers, so `fullyParallel: false` is removed and
+  the speed comes from shards across runners, each at two workers.
+

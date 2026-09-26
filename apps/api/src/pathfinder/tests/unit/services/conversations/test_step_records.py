@@ -38,7 +38,7 @@ def _install(
     async def _owned(*_args: Any, **_kwargs: Any) -> Any:
         return stored
 
-    monkeypatch.setattr(step_records, "get_owned_thread_or_404", _owned)
+    monkeypatch.setattr(step_records, "get_owned_thread", _owned)
     monkeypatch.setattr(step_records, "get_strategy_api", lambda _site_id: api)
     return api
 

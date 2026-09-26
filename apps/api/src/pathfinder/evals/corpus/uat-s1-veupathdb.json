@@ -1,0 +1,50 @@
+{
+  "name": "uat-s1-veupathdb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes whose proteins have a predicted signal peptide."
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "One stated feature is one search, run for the site's own organism.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesWithSignalPeptide",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "SignalP-6.0"
+    ],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": true,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 479,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s1",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

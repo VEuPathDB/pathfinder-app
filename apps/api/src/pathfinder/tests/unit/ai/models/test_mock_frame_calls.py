@@ -8,23 +8,35 @@ e2e run, and reads there as a pipeline fault.
 from __future__ import annotations
 
 import pytest
-from pydantic import TypeAdapter
-from pydantic_ai.messages import ToolCallPart, ToolReturnPart
+from pydantic import TypeAdapter, ValidationError
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from veupathdb.domain.strategy import CombineOp
 
+from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.specs import (
     CriterionReply,
+    CriterionSpec,
     SpecPlan,
-    combined_spec,
     criterion_replies,
     frame_call,
-    go_spec,
-    interpro_spec,
-    organism_for,
     proposal_args,
     set_structure_args,
     sheet_call_args,
+)
+from pathfinder.ai.models.mock.strategy_specs import (
+    combined_spec,
+    count_spec,
+    go_spec,
+    intersect_spec,
+    minus_spec,
     single_spec,
+    union_spec,
+    zero_spec,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
@@ -32,46 +44,51 @@ from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.domain.strategy.operational_spec import StructureNode
 
 _PF = "Plasmodium falciparum 3D7"
-_SPECS = [single_spec(_PF), go_spec(_PF), interpro_spec(_PF), combined_spec(_PF)]
+_PLASMO = SiteValues.for_site("plasmodb")
+_SPECS = [
+    build(_PLASMO)
+    for build in (
+        single_spec,
+        go_spec,
+        union_spec,
+        intersect_spec,
+        minus_spec,
+        combined_spec,
+        count_spec,
+        zero_spec,
+    )
+]
 
 
-def _reply(criterion_id: str, names: list[str]) -> CriterionReply:
+def _reply(crit: CriterionSpec, names: list[str]) -> CriterionReply:
     return CriterionReply(
-        criterion_id=criterion_id, params_template=dict.fromkeys(names)
+        criterion_id=crit.criterion_id,
+        search_name=crit.search_name,
+        params_template=dict.fromkeys(names),
     )
 
 
-def _bound(criterion_id: str) -> CriterionReply:
-    return CriterionReply(criterion_id=criterion_id, resolved_params={"organism": "x"})
+def _bound(crit: CriterionSpec) -> CriterionReply:
+    return CriterionReply(
+        criterion_id=crit.criterion_id,
+        search_name=crit.search_name,
+        resolved_params={"organism": "x"},
+    )
+
+
+_DISCOVERED = frozenset({"search_for_searches", "list_searches"})
 
 
 def _called(*calls: ToolCallPart) -> frozenset[str]:
-    return frozenset(call.tool_name for call in calls)
+    """The calls made, the two catalog reads a frame opens with among them."""
+    return frozenset(call.tool_name for call in calls) | _DISCOVERED
 
 
 # ── Site awareness ──────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize(
-    ("site_id", "organism"),
-    [
-        ("plasmodb", _PF),
-        ("cryptodb", "Cryptosporidium parvum Iowa II"),
-        ("fungidb", "Aspergillus fumigatus Af293"),
-        ("tritrypdb", "Leishmania major strain Friedlin"),
-        ("toxodb", "Toxoplasma gondii ME49"),
-    ],
-)
-def test_each_site_gets_an_organism_of_its_own(site_id: str, organism: str) -> None:
-    assert organism_for(site_id) == organism
-
-
-def test_an_unlisted_site_falls_back_to_the_plasmo_organism() -> None:
-    assert organism_for("veupathdb") == _PF
-
-
 def test_the_organism_reaches_every_criterion_of_the_spec() -> None:
-    spec = combined_spec("Toxoplasma gondii ME49")
+    spec = combined_spec(SiteValues.for_site("toxodb"))
     organisms = [
         value
         for crit in spec.criteria
@@ -91,26 +108,28 @@ def test_a_proposal_names_exactly_the_sheet_parameters(spec: SpecPlan) -> None:
 
     for criterion in spec.criteria:
         sheet = dict.fromkeys(["organism", "some_other_param"])
-        args = proposal_args(criterion, sheet)
+        args = proposal_args(criterion, sheet, "")
 
         assert set(args["params"]) == set(sheet)
         assert adapter.validate_python(args["params"])
 
 
 def test_a_sheet_parameter_the_spec_does_not_value_is_proposed_as_null() -> None:
-    criterion = interpro_spec(_PF).criteria[0]
+    criterion = union_spec(_PLASMO).criteria[1]
 
-    params = proposal_args(criterion, dict.fromkeys(["text_expression", "unknown"]))[
+    params = proposal_args(criterion, dict.fromkeys(["min_tm", "unknown"]), "")[
         "params"
     ]
 
-    assert params == {"text_expression": "kinase", "unknown": None}
+    assert params == {"min_tm": "2", "unknown": None}
 
 
 def test_a_proposal_says_why_by_the_first_parameter_it_values() -> None:
-    criterion = go_spec(_PF).criteria[0]
+    criterion = go_spec(_PLASMO).criteria[0]
 
-    why = proposal_args(criterion, dict.fromkeys(["go_term", "go_typeahead"]))["why"]
+    why = proposal_args(criterion, dict.fromkeys(["go_term", "go_typeahead"]), "")[
+        "why"
+    ]
 
     assert SearchChoice.model_validate(why) == SearchChoice(
         basis="parameter",
@@ -120,17 +139,17 @@ def test_a_proposal_says_why_by_the_first_parameter_it_values() -> None:
 
 
 def test_a_proposal_that_values_nothing_gives_no_reason() -> None:
-    criterion = go_spec(_PF).criteria[0]
+    criterion = go_spec(_PLASMO).criteria[0]
 
-    assert "why" not in proposal_args(criterion, dict.fromkeys(["go_term"]))
+    assert "why" not in proposal_args(criterion, dict.fromkeys(["go_term"]), "")
 
 
 def test_a_canned_value_for_a_parameter_the_site_omits_is_never_sent() -> None:
     # GenesByGoTerm publishes different visible params per site; only the ones
     # the sheet lists may be proposed, or the tool refuses the whole call.
-    criterion = go_spec(_PF).criteria[0]
+    criterion = go_spec(_PLASMO).criteria[0]
 
-    params = proposal_args(criterion, dict.fromkeys(["organism", "go_typeahead"]))[
+    params = proposal_args(criterion, dict.fromkeys(["organism", "go_typeahead"]), "")[
         "params"
     ]
 
@@ -148,53 +167,58 @@ def test_the_sheet_is_read_before_the_params_are_proposed(spec: SpecPlan) -> Non
 
 @pytest.mark.parametrize("spec", _SPECS)
 def test_discovery_precedes_every_criterion(spec: SpecPlan) -> None:
-    # set_criterion's search_name is enum-guarded to discovered names, so a
-    # frame that binds before listing the catalog is refused on its second
-    # search. The first call must put the whole catalog in the universe.
-    first = frame_call(spec, frozenset(), [])
+    """A ranked read opens the pass, and the listing puts every name in the
+    enum-guarded universe before anything is bound."""
+    first = frame_call(spec, frozenset(), [], "")
+    second = frame_call(spec, frozenset({first.tool_name}), [], "")
 
-    assert first.tool_name == "list_searches"
-    assert first.args_as_dict() == {"record_type": "transcript"}
+    assert (first.tool_name, first.args_as_dict()) == (
+        "search_for_searches",
+        {"query": spec.title},
+    )
+    assert (second.tool_name, second.args_as_dict()) == (
+        "list_searches",
+        {"record_type": "transcript"},
+    )
 
 
 def test_discovery_is_not_repeated_once_called() -> None:
-    spec = interpro_spec(_PF)
-    discovery = frame_call(spec, frozenset(), [])
+    spec = union_spec(_PLASMO)
 
-    nxt = frame_call(spec, _called(discovery), [])
+    nxt = frame_call(spec, _called(), [], "")
 
     assert nxt.tool_name == "set_criterion"
 
 
 def test_frame_reads_the_sheet_then_proposes_then_moves_on() -> None:
-    spec = interpro_spec(_PF)
+    spec = union_spec(_PLASMO)
     first, second = spec.criteria
-    discovery = frame_call(spec, frozenset(), [])
+    discovery = frame_call(spec, frozenset(), [], "")
 
-    sheet_call = frame_call(spec, _called(discovery), [])
+    sheet_call = frame_call(spec, _called(discovery), [], "")
     assert sheet_call.args_as_dict()["criterion_id"] == first.criterion_id
     assert "params" not in sheet_call.args_as_dict()
 
-    replies = [_reply(first.criterion_id, ["text_expression"])]
-    proposal = frame_call(spec, _called(discovery, sheet_call), replies)
-    assert proposal.args_as_dict()["params"] == {"text_expression": "kinase"}
+    replies = [_reply(first, ["signalp_version"])]
+    proposal = frame_call(spec, _called(discovery, sheet_call), replies, "")
+    assert proposal.args_as_dict()["params"] == {"signalp_version": "SignalP-6.0"}
 
-    replies = [_bound(first.criterion_id)]
-    nxt = frame_call(spec, _called(discovery, sheet_call, proposal), replies)
+    replies = [_bound(first)]
+    nxt = frame_call(spec, _called(discovery, sheet_call, proposal), replies, "")
     assert nxt.args_as_dict()["criterion_id"] == second.criterion_id
 
 
 def test_a_refused_proposal_is_retried_not_skipped() -> None:
     # The tool raises ModelRetry for a value it cannot match, so no reply
     # carries resolved params. Marching on would build an empty strategy.
-    spec = single_spec(_PF)
+    spec = single_spec(_PLASMO)
     crit = spec.criteria[0]
-    discovery = frame_call(spec, frozenset(), [])
-    sheet_call = frame_call(spec, _called(discovery), [])
-    replies = [_reply(crit.criterion_id, ["organism"])]
-    proposal = frame_call(spec, _called(discovery, sheet_call), replies)
+    discovery = frame_call(spec, frozenset(), [], "")
+    sheet_call = frame_call(spec, _called(discovery), [], "")
+    replies = [_reply(crit, ["organism"])]
+    proposal = frame_call(spec, _called(discovery, sheet_call), replies, "")
 
-    again = frame_call(spec, _called(discovery, sheet_call, proposal), replies)
+    again = frame_call(spec, _called(discovery, sheet_call, proposal), replies, "")
 
     assert again.tool_name == "set_criterion"
     assert again.args_as_dict()["criterion_id"] == crit.criterion_id
@@ -202,21 +226,23 @@ def test_a_refused_proposal_is_retried_not_skipped() -> None:
 
 
 def test_structure_follows_once_every_criterion_is_bound() -> None:
-    spec = interpro_spec(_PF)
-    discovery = frame_call(spec, frozenset(), [])
-    replies = [_bound(c.criterion_id) for c in spec.criteria]
+    spec = union_spec(_PLASMO)
+    discovery = frame_call(spec, frozenset(), [], "")
+    replies = [_bound(c) for c in spec.criteria]
 
-    assert frame_call(spec, _called(discovery), replies).tool_name == "set_structure"
+    assert (
+        frame_call(spec, _called(discovery), replies, "").tool_name == "set_structure"
+    )
 
 
 def test_the_frame_result_follows_the_structure() -> None:
-    spec = interpro_spec(_PF)
-    discovery = frame_call(spec, frozenset(), [])
-    replies = [_bound(c.criterion_id) for c in spec.criteria]
-    structure = frame_call(spec, _called(discovery), replies)
+    spec = union_spec(_PLASMO)
+    discovery = frame_call(spec, frozenset(), [], "")
+    replies = [_bound(c) for c in spec.criteria]
+    structure = frame_call(spec, _called(discovery), replies, "")
 
     assert (
-        frame_call(spec, _called(discovery, structure), replies).tool_name
+        frame_call(spec, _called(discovery, structure), replies, "").tool_name
         == "final_result"
     )
 
@@ -224,14 +250,18 @@ def test_the_frame_result_follows_the_structure() -> None:
 def test_the_go_criterion_carries_the_vocabulary_half_only() -> None:
     # go_term and go_typeahead are ORed halves of one criterion; a proposal
     # that fills both is refused by set_criterion.
-    for spec in (go_spec(_PF), combined_spec(_PF)):
+    for spec in (go_spec(_PLASMO), combined_spec(_PLASMO)):
         go = next(c for c in spec.criteria if c.search_name == "GenesByGoTerm")
 
         assert go.values["go_typeahead"] == ["GO:0004672"]
-        assert "go_term" not in go.values
+        assert go.values["go_term"] is None
 
 
 # ── Reading the tool's reply back ───────────────────────────────────
+
+
+def _run(part: ToolReturnPart) -> list[ModelMessage]:
+    return [ModelRequest(parts=[part])]
 
 
 def test_a_real_set_criterion_result_parses_into_a_reply() -> None:
@@ -244,7 +274,7 @@ def test_a_real_set_criterion_result_parses_into_a_reply() -> None:
         tool_name="set_criterion", content=result, tool_call_id="call-1"
     )
 
-    (reply,) = criterion_replies([part])
+    (reply,) = criterion_replies(_run(part))
 
     assert reply.criterion_id == "c1"
     assert list(reply.params_template) == ["organism"]
@@ -261,17 +291,28 @@ def test_a_serialized_reply_parses_the_same_way() -> None:
         tool_call_id="call-1",
     )
 
-    (reply,) = criterion_replies([part])
+    (reply,) = criterion_replies(_run(part))
 
     assert reply.resolved_params == {"organism": '["x"]'}
 
 
-def test_a_retry_message_yields_no_reply() -> None:
+def test_a_compacted_reply_yields_no_reply() -> None:
     part = ToolReturnPart(
         tool_name="set_criterion", content="no entry matching", tool_call_id="call-1"
     )
 
-    assert criterion_replies([part]) == []
+    assert criterion_replies(_run(part)) == []
+
+
+def test_a_reply_of_another_shape_fails() -> None:
+    part = ToolReturnPart(
+        tool_name="set_criterion",
+        content={"criterionId": "c1", "paramsTemplate": 5},
+        tool_call_id="call-1",
+    )
+
+    with pytest.raises(ValidationError, match="paramsTemplate"):
+        criterion_replies(_run(part))
 
 
 def test_another_tool_s_return_is_ignored() -> None:
@@ -279,7 +320,7 @@ def test_another_tool_s_return_is_ignored() -> None:
         tool_name="set_structure", content={"criteriaCombined": 2}, tool_call_id="s-1"
     )
 
-    assert criterion_replies([part]) == []
+    assert criterion_replies(_run(part)) == []
 
 
 # ── The structure call ──────────────────────────────────────────────
@@ -293,7 +334,7 @@ def test_the_structure_call_is_a_tree_over_the_specs_criteria(spec: SpecPlan) ->
 
 
 def test_the_two_leaf_spec_unions_its_leaves() -> None:
-    root = StructureNode.model_validate(set_structure_args(interpro_spec(_PF))["root"])
+    root = StructureNode.model_validate(set_structure_args(union_spec(_PLASMO))["root"])
 
     assert root.kind == "combine"
     assert root.operator == CombineOp.UNION
@@ -301,7 +342,9 @@ def test_the_two_leaf_spec_unions_its_leaves() -> None:
 
 
 def test_the_all_param_spec_nests_a_union_inside_an_intersect() -> None:
-    root = StructureNode.model_validate(set_structure_args(combined_spec(_PF))["root"])
+    root = StructureNode.model_validate(
+        set_structure_args(combined_spec(_PLASMO))["root"]
+    )
 
     assert root.operator == CombineOp.INTERSECT
     assert root.inputs[0].operator == CombineOp.UNION

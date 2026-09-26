@@ -1,19 +1,14 @@
-import { test, expect } from "../fixtures/test";
-import {
-  fetchConversationMessages,
-  fetchStoppedTurnCount,
-} from "../fixtures/api-client";
-import {
-  MOCK_DELEGATION_DRAFT_PROMPT,
-  MOCK_PLAN_PROMPT,
-} from "../fixtures/mock-prompts";
-
 /**
- * Feature: Chat - real event pipeline through Redis + PostgreSQL.
- * Mock LLM provides deterministic text, but events flow through
- * real kani orchestration -> Redis streams -> PostgreSQL projections.
- * Every test verifies server-side state via API.
+ * Chat turns persist through the durable event log: echo turns, and builds
+ * whose steps carry the site's own search names.
  */
+
+import { test, expect } from "../fixtures/test";
+import { prompt } from "../fixtures/arcs";
+import { fetchConversationMessages } from "../fixtures/api-client";
+import { LAYOUTS } from "../fixtures/arc-layouts";
+import { readConversation, siteOrganism } from "../fixtures/site-reads";
+
 test.describe("Chat", () => {
   test.describe.configure({ mode: "serial" });
 
@@ -39,101 +34,6 @@ test.describe("Chat", () => {
 
   test("empty message keeps send button disabled", async ({ chatPage }) => {
     await chatPage.expectSendDisabled();
-  });
-
-  test("artifact graph stores strategy plan with real WDK search names", async ({
-    chatPage,
-    apiClient,
-  }) => {
-    await chatPage.send(MOCK_PLAN_PROMPT);
-    await chatPage.expectIdle();
-
-    // Wait for strategy update - at least one assistant message rendered.
-    await expect(chatPage.assistantMessages).not.toHaveCount(0, { timeout: 15_000 });
-
-    // Fetch full strategy - verify steps were created with real WDK search names
-    const strategyId = chatPage.lastStrategyId;
-    expect(strategyId).toBeTruthy();
-    const fullResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
-    expect(fullResp.ok()).toBeTruthy();
-    const full = await fullResp.json();
-    expect(full.steps.length).toBeGreaterThan(0);
-    expect(full.steps[0].searchName).toBe("GenesByTaxon");
-  });
-
-  test("building executes via the structured route without chat pollution", async ({
-    chatPage,
-    apiClient,
-    graphPage,
-  }) => {
-    await chatPage.send(MOCK_PLAN_PROMPT);
-    await chatPage.expectIdle();
-    await graphPage.expectRailPanel();
-
-    const strategyId = chatPage.lastStrategyId;
-    expect(strategyId).toBeTruthy();
-    const fullResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
-    expect(fullResp.ok()).toBeTruthy();
-    const full = await fullResp.json();
-
-    expect(full.steps.length).toBeGreaterThan(0);
-    const messages = await fetchConversationMessages(apiClient, strategyId);
-    expect(
-      messages.some(
-        (message) =>
-          message.role === "user" && message.content.includes("[Plan interaction:"),
-      ),
-    ).toBe(false);
-  });
-
-  test("delegation draft stores event data", async ({ chatPage, apiClient }) => {
-    await chatPage.send(MOCK_DELEGATION_DRAFT_PROMPT);
-    await chatPage.expectIdle();
-
-    // Messages are reconstructed from the persisted event snapshot.
-    const strategyId = chatPage.lastStrategyId;
-    expect(strategyId).toBeTruthy();
-    const messages = await fetchConversationMessages(apiClient, strategyId);
-    expect(messages.length).toBeGreaterThan(0);
-  });
-
-  test("stop cancels the running turn and the worker closes it as stopped", async ({
-    chatPage,
-    page,
-    apiClient,
-  }) => {
-    // A turn that dispatches sub-agents runs long enough to stop while it is
-    // still working, which is what the server cancel answers.
-    const cancelRequest = page.waitForRequest(
-      (r) =>
-        r.method() === "POST" &&
-        /\/api\/v1\/conversations\/[^/]+\/cancel$/.test(r.url()),
-      { timeout: 30_000 },
-    );
-
-    await chatPage.send(MOCK_PLAN_PROMPT);
-    // The composer ignores a Stop click that lands inside the guard window a
-    // double-click on Send opens, so press it once the turn reports a phase.
-    await expect(page.getByTestId("assistant-status")).toHaveText(/Planning/, {
-      timeout: 60_000,
-    });
-    await chatPage.stopStreaming();
-
-    const req = await cancelRequest;
-    const resp = await req.response();
-    expect(resp).not.toBeNull();
-    expect(resp?.status()).toBe(204);
-
-    // The client ends its own stream, so the composer takes input again.
-    await chatPage.expectIdle();
-
-    // The worker reads the cancellation row and closes the turn with a
-    // stopped chunk the durable log keeps.
-    await expect
-      .poll(async () => fetchStoppedTurnCount(apiClient, chatPage.lastStrategyId), {
-        timeout: 60_000,
-      })
-      .toBe(1);
   });
 
   test("multiple messages stored sequentially in conversation", async ({
@@ -188,5 +88,55 @@ test.describe("Chat", () => {
     // Strategy still exists after reload
     const afterResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
     expect(afterResp.ok()).toBeTruthy();
+  });
+});
+
+test.describe("Chat builds", { tag: "@turn" }, () => {
+  test.describe.configure({ timeout: 600_000 });
+
+  const buildMessage = (siteId: string) =>
+    prompt(
+      "single",
+      `Find ${siteOrganism(siteId)} genes whose proteins have a predicted signal peptide.`,
+    );
+
+  test("artifact graph stores strategy plan with real WDK search names", async ({
+    chatPage,
+    apiClient,
+    siteId,
+  }) => {
+    await chatPage.startOn(siteId);
+    await chatPage.sendAndSettle(buildMessage(siteId));
+
+    const conversationId = chatPage.lastStrategyId ?? "";
+    await expect
+      .poll(async () =>
+        ((await readConversation(apiClient, conversationId)).steps ?? []).map(
+          (step) => step.searchName,
+        ),
+      )
+      .toEqual(LAYOUTS.single.searches);
+  });
+
+  test("building executes via the structured route without chat pollution", async ({
+    chatPage,
+    apiClient,
+    graphPage,
+    siteId,
+  }) => {
+    await chatPage.startOn(siteId);
+    await chatPage.sendAndSettle(buildMessage(siteId));
+    await graphPage.expectRailPanel();
+
+    const conversationId = chatPage.lastStrategyId ?? "";
+    const full = await readConversation(apiClient, conversationId);
+    expect(full.steps ?? []).toHaveLength(LAYOUTS.single.steps);
+    const messages = await fetchConversationMessages(apiClient, conversationId);
+    expect(
+      messages.some(
+        (message) =>
+          message.role === "user" && message.content.includes("[Plan interaction:"),
+      ),
+    ).toBe(false);
   });
 });

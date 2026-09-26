@@ -135,6 +135,7 @@ describe("eda zod schemas", () => {
       effectDirection: "upAndDown",
       totalPoints: 5511,
       retainedPoints: 1543,
+      retainedPointIds: [],
       points: [
         {
           pointId: "PF3D7_MIT04200",
@@ -147,6 +148,24 @@ describe("eda zod schemas", () => {
     });
     expect(parsed.success).toBe(true);
     expect(parsed.data?.points[0]?.pValue).toBeNull();
+  });
+
+  it("refuses a plot that carries no retained id list", () => {
+    const parsed = edaVizPartSchema.safeParse({
+      datasetId: "DS_e973eadd57",
+      analysisId: "t4fszEJ",
+      chart: "volcano",
+      effectSizeLabel: "log2(Fold Change)",
+      effectSizeThreshold: 1,
+      significanceThreshold: 0.05,
+      effectDirection: "upAndDown",
+      totalPoints: 5511,
+      retainedPoints: 1543,
+      points: [],
+    });
+    expect(parsed.error?.issues.map((issue) => issue.path)).toEqual([
+      ["retainedPointIds"],
+    ]);
   });
 
   it("rejects a chart name no compute produces", () => {

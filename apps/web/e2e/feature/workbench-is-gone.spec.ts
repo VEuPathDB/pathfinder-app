@@ -5,8 +5,8 @@ import { test, expect } from "../fixtures/test";
  * nav rail links no workbench.
  */
 test.describe("The workbench is gone", () => {
-  test("a site's workbench address answers the app's 404", async ({ page }) => {
-    const response = await page.goto("/plasmodb/workbench");
+  test("a site's workbench address answers the app's 404", async ({ page, siteId }) => {
+    const response = await page.goto(`/${siteId}/workbench`);
 
     expect(response?.status()).toBe(404);
     await expect(page.getByText("this page couldn't be found")).toBeVisible();

@@ -141,6 +141,40 @@ describe("a thread the route names", () => {
     expect(seen).toContain("detail");
     expect(seen).toContain("snapshot");
   });
+
+  it("goes back to the conversation list when the conversation is gone", async () => {
+    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    recordReads(404);
+
+    renderView();
+
+    await waitFor(() => {
+      expect(vi.mocked(redirect)).toHaveBeenCalledWith("/plasmodb/conversation");
+    });
+  });
+
+  it("goes back to the conversation list when the conversation is another user's", async () => {
+    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    server.use(
+      http.get(BASE, () =>
+        HttpResponse.json(
+          {
+            type: "/errors/FORBIDDEN",
+            title: "Forbidden",
+            status: 403,
+            code: "FORBIDDEN",
+          },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    renderView();
+
+    await waitFor(() => {
+      expect(vi.mocked(redirect)).toHaveBeenCalledWith("/plasmodb/conversation");
+    });
+  });
 });
 
 describe("a thread this tab created, reopened on its own id", () => {

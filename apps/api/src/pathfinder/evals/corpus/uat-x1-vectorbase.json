@@ -1,0 +1,46 @@
+{
+  "name": "uat-x1-vectorbase",
+  "turns": [
+    "Which genes are upregulated in female mosquitoes after a blood meal?"
+  ],
+  "siteId": "vectorbase",
+  "assistantId": "pathfinder",
+  "rationale": "The same question on VectorBase binds the site's own blood-fed versus sugar-fed search.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByMicroarrayDirectagamPEST_microarrayExpression_E-MTAB-1621_Bloodfed_vs_Sugarfed_RSRC",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 6,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "vectorbase",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-cross-site.md#x1",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

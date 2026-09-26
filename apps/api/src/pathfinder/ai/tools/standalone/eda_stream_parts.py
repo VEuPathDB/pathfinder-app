@@ -102,10 +102,14 @@ def eda_viz_chunk(
     effect_direction: str,
     summary: RetainedSummary,
     points: list[EdaVolcanoPoint],
+    retained_point_ids: list[str],
     comparison: EdaComparison,
     caption: str = "",
 ) -> DataChunk:
-    """The volcano, capped so one message does not carry every gene."""
+    """The volcano, capped so one message does not carry every gene.
+
+    The retained ids are the export, so they are never capped.
+    """
     ordered = sorted(points, key=lambda point: not point.retained)
     payload = EdaVizPart(
         dataset_id=dataset_id,
@@ -118,6 +122,7 @@ def eda_viz_chunk(
         total_points=summary.total_rows,
         retained_points=summary.retained,
         points=ordered[:_MAX_VIZ_POINTS],
+        retained_point_ids=retained_point_ids,
         caption=caption,
         comparison=comparison,
     )

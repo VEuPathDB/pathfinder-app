@@ -1,0 +1,55 @@
+{
+  "name": "uat-s5-vectorbase",
+  "turns": [
+    "Find Anopheles gambiae PEST genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Carry these to their orthologs in Aedes aegypti LVP_AGWG."
+  ],
+  "siteId": "vectorbase",
+  "assistantId": "pathfinder",
+  "rationale": "A request for the orthologs in another organism is one orthology transform over the seed, reported as that organism's genes.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByOrthologs((GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains))",
+    "recordType": "transcript",
+    "stepCount": 4,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologs": {
+        "organism": "Aedes aegypti LVP_AGWG"
+      }
+    },
+    "replyMentions": [
+      "LVP_AGWG"
+    ],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 850,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "vectorbase",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s5",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

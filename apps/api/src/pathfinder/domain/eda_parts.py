@@ -195,6 +195,12 @@ class EdaVizPart(CamelModel):
     total_points: int = Field(ge=0)
     retained_points: int = Field(ge=0)
     points: list[EdaVolcanoPoint]
+    retained_point_ids: list[str] = Field(
+        description=(
+            "Every point id the cut retains, in the service's order. The "
+            "points are capped for the plot; this list is not."
+        ),
+    )
     caption: str = Field(
         default="",
         description=(

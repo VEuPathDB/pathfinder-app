@@ -1,0 +1,47 @@
+{
+  "name": "uat-c9-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Analyze my current strategy. Summarize topology and step flow, any weak spots or redundant steps, concrete improvement suggestions, and what I should try next."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "An analysis request answers in prose and ends on no card, with the strategy unchanged.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 116,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-composer.md#c9",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

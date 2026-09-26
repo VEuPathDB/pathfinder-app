@@ -51,6 +51,7 @@ const VIZ = {
   effectDirection: "upOnly" as const,
   totalPoints: 5511,
   retainedPoints: 1543,
+  retainedPointIds: ["PF3D7_0100200"],
   points: [
     {
       pointId: "PF3D7_0100200",

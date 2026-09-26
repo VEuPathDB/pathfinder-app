@@ -21,6 +21,7 @@ vi.mock("@/lib/components/charts/echartsRegistry", () => ({
 }));
 
 import type { ReactElement, ReactNode } from "react";
+import type { EdaViz } from "@pathfinder/shared";
 
 import { useEdaStore } from "@/state/eda";
 import {
@@ -359,6 +360,42 @@ describe("DataEdaViz other charts", () => {
       "This comparison returned no points",
     );
     expect(screen.queryByTestId("eda-viz-volcano")).toBe(null);
+  });
+});
+
+describe("DataEdaViz gene ids past the plot cap", () => {
+  const KEPT = 4402;
+  const PLOTTED = 4000;
+  const ids = Array.from(
+    { length: KEPT },
+    (_, index) => `AAEL${String(index).padStart(6, "0")}`,
+  );
+  const capped: EdaViz = {
+    ...EDA_VOLCANO_VIZ_FIXTURE,
+    totalPoints: 6603,
+    retainedPoints: KEPT,
+    retainedPointIds: ids,
+    points: ids.slice(0, PLOTTED).map((pointId) => ({
+      pointId,
+      effectSize: 2,
+      pValue: 0.001,
+      adjustedPValue: 0.01,
+      retained: true,
+    })),
+  };
+
+  it("counts and copies every retained id, not the plotted points", () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<DataEdaViz data={capped} />);
+
+    expect(screen.getByText("Gene ids (4,402)")).toBeInTheDocument();
+    expect(screen.getByTestId("eda-viz-volcano-selection")).toHaveTextContent(
+      "4,402 genes selected at these thresholds - 4,402 of 6,603 retained",
+    );
+    fireEvent.click(screen.getByTestId("eda-viz-copy-gene-ids"));
+    const copied = (writeText.mock.calls[0]?.[0] as string).split(", ");
+    expect([copied.length, copied[KEPT - 1]]).toEqual([KEPT, "AAEL004401"]);
   });
 });
 

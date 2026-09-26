@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The eval harness is pydantic-evals, and the summary shape is ours
-description: pydantic-evals ships with the pinned pydantic-ai and owns the dataset, the case loop, the evaluator protocol and the report; the machine-readable run summary is a local model, so a change of harness does not change the SLI feed. Building a runner from scratch was rejected as a reimplementation of an installed library. The graded tree distance is now written in pure Python inside `pathfinder/evals/`, because taking it from the retired thesis harness would drag zss, numpy and scipy into the API image.
+description: pydantic-evals ships with the pinned pydantic-ai and owns the dataset, the case loop, the evaluator protocol and the report; the machine-readable run summary is a local model, so a change of harness does not change the SLI feed. The run always drives the configured provider, and a recorded count is judged pass, re-measure or fail against the site build it was read on. Building a runner from scratch was rejected as a reimplementation of an installed library. The graded tree distance is now written in pure Python inside `pathfinder/evals/`, because taking it from the retired thesis harness would drag zss, numpy and scipy into the API image.
 tags: [ws-v, evals, testing, observability]
 generated: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-23T00:00:00Z }
@@ -83,16 +83,33 @@ that search must carry, and those are what parameter fidelity reads. Every case
 result carries the four numbers, on a pass as well as on a failure: a trend is
 drawn from how far a run moved, not only from whether it crossed the line.
 
-# The limitation the runner states in its own docstring
+# The run is always the configured provider
 
-With `PATHFINDER_CHAT_PROVIDER=mock` the model is a script. A run therefore
-tests the **pipeline** - routing, materialisation, persistence, the shape the
-phases assemble, and the verdict the turn reports - and not the model. It cannot
-settle whether a real model would have chosen that route.
+A run drives the model the deployment configures; there is no corpus run under
+the scripted provider. The script routes on a token a Playwright spec writes
+into its message, so a corpus prompt reaches it unmarked and answers nothing a
+case could judge. What the scripted provider proves (routing, materialisation,
+persistence, the shape the phases assemble) is the e2e suite's and the unit
+tier's to prove.
 
-The case shape is provider-agnostic for exactly this reason: a real-model run is
-the same corpus with a different provider flag, and the same expectations then
-answer a stronger question.
+# The verdict is a label, not a boolean
+
+A case that records a count (`ExpectedOutcome.root_count`: the count, the site
+build it held on, and the date read) is judged by `pathfinder.evals.drift.classify`
+into one of three labels, which the harness records as its evaluator's output
+and the summary counts beside passed and failed:
+
+* `fail`: any difference that is not the count (a changed tree, a missing reply
+  phrase, a wrong unit, a gate that did not come), or the count off on the same
+  site build the case recorded, since the data is fixed on a build;
+* `pass`: the count off on a new build and within `max(5, 10 %)` of the record;
+* `re-measure`: the count off on a new build and outside that band, which is a
+  re-measurement of the record and not a defect.
+
+A boolean cannot tell a site release from a regression. The verdicts are read
+by the person who runs the pre-release report: a `re-measure` is re-measured, a
+`fail` is re-run once and then recorded as a finding. No workflow blocks on
+them, because a real model's answer is a trend and not a gate.
 
 # The promotion policy
 

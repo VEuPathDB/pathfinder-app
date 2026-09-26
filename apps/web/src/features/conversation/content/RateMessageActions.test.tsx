@@ -3,6 +3,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { onlineManager } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 
@@ -95,6 +96,7 @@ describe("RateMessageActions", () => {
   });
 
   afterEach(() => {
+    onlineManager.setOnline(true);
     vi.clearAllMocks();
   });
 
@@ -180,5 +182,24 @@ describe("RateMessageActions", () => {
     await waitFor(() => {
       expect(dislike()).toHaveAttribute("aria-pressed", "true");
     });
+  });
+
+  it("says the rating was not saved when the browser is offline", async () => {
+    installHandlers(stubs());
+    server.use(
+      http.put(`${CONVERSATIONS}/${conversationId}/messages/${MESSAGE_ID}/rating`, () =>
+        HttpResponse.error(),
+      ),
+    );
+    renderActions();
+    const user = userEvent.setup({ delay: null });
+    onlineManager.setOnline(false);
+
+    await user.click(like());
+
+    await waitFor(() => {
+      expect(toastError).toHaveBeenCalledWith("The rating was not saved.");
+    });
+    expect(like()).toHaveAttribute("aria-pressed", "false");
   });
 });

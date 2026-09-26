@@ -18,6 +18,32 @@ to `main`, because the pull request that landed the commit already ran them and
 the private repository's Actions minutes are metered. A scheduled run treats
 every path as changed.
 
+The full-stack tier builds once and runs in shards. `e2e-build` builds the api
+and web images on the Actions layer cache and hands them to the shards as one
+workflow artifact, never as a registry tag. `e2e-shard-check` fails when the
+tests `playwright test --list --shard i/N` names over every shard differ from
+the unsharded list, test for test. Each of the `E2E_SHARDS` shard jobs loads
+the images, starts `api web worker` from `docker-compose.yml` and
+`docker-compose.e2e.yml` with `--no-build --wait`, and runs its slice at two
+Playwright workers against one worker container at `WORKER_CONCURRENCY` 8: the
+only shape [the capacity measurement](../decisions/the-e2e-stack-serves-the-production-build.md)
+ran with no failure and no flake. `e2e-merge-report` merges the shards' blob
+reports into one HTML report and fails when a shard failed. CI sets
+`E2E_SITES=plasmodb,vectorbase`, so every turn-driving test runs once per site.
+
+A retried test's trace records every request header and every typed value, so
+it holds the registered account's VEuPathDB token and, where a spec signs in,
+its email and password. The token cannot be revoked: it is an ES512 JWT from
+the VEuPathDB OAuth server that lives three years, the server has no revoke
+endpoint, and WDK's `/logout` only swaps the caller's cookie for a guest one, so
+the old token still answers `/users/current` as the account. The shard job
+therefore runs `apps/web/scripts/redact-traces.mjs` over `blob-report/` before
+the upload, and the upload runs only when that step passed. The script blanks
+every JWT and the account's email and password (raw, JSON-escaped to three
+levels, URL-encoded) in every text entry of every zip, nested trace zips
+included; the merged HTML report is built from the redacted blobs. Screenshots
+and videos are not rewritten, and a password field draws as dots.
+
 # Backend (`apps/api`)
 
 ```
@@ -93,7 +119,7 @@ Two limits are worth knowing. The guard runs per test, so anything at collection
 
 A unit test that needs a real connection carries `@pytest.mark.allow_network`. No production test does: the two database-backed ones live in `tests/integration/`, where they belong. A new marked test needs a reason, because the marker is how the guard is defeated.
 
-The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need either, and CI skips the tests that ask for the registered account. An autouse fixture in `src/pathfinder/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
+The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need the credential and `live_model` the only one allowed to need the key; CI skips the tests that ask for the registered account, and `live_model` is deselected by `addopts` so a developer's key in `.env` is never spent by a default run (the pre-release report selects it with `-m live_model`). An autouse fixture in `src/pathfinder/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
 
 ```
 D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
@@ -106,6 +132,30 @@ env VEUPATHDB_AUTH_TOKEN= WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_T
 mv "$H/api.env" .env; mv "$H/root.env" ../../.env; mv "$H/ollama_models.yaml" ../../; \
 docker compose --env-file ../../.env.dev exec db dropdb -U postgres "$D"
 ```
+
+**The model-driven flows are a pre-release report, read by a person, never a
+gate.** A real model's answer is not deterministic, and the rule above holds: an
+eval is a tracked trend until it has caught a real regression and held stable.
+No workflow runs the model, because the run needs a provider key and the
+repository is public. Before a release, from a machine that already holds the
+deployment's key (the developer machine against the dev stack, or cedar), run
+every `evals/corpus/uat-<flow>-<site>.json` case through the real worker:
+
+```bash
+cd apps/api
+uv run python -m pathfinder.devtools.evals run --via-worker \
+  --only $(ls src/pathfinder/evals/corpus/uat-*.json | xargs -n1 basename | sed 's/.json$//') \
+  --out summary.json
+uv run pytest src/pathfinder/tests/integration/ai -m live_model -q   # the injection judge
+```
+
+A case ends `pass`, `fail` or `re-measure`. A `fail` is read, not enforced: the
+runner re-runs the case once, and a second `fail` on the same structure is a
+finding to record in `docs/knowledge/uat/findings.md` before the tag, or a
+recorded expectation to correct. A `re-measure` (a count a new site build moved
+outside its tolerance) is re-measured and the case's `root_count` rewritten
+with the new build. The summary of the run that preceded a release is kept
+beside the run directory; nothing in `publish-images.yml` reads it.
 
 ## The science verifies in two lanes
 
@@ -153,7 +203,7 @@ uv run python -m pathfinder.devtools.evals corpus                 # the cases
 uv run python -m pathfinder.devtools.evals run --out summary.json  # run them
 ```
 
-The corpus lives in `apps/api/src/pathfinder/evals/corpus/`, one JSON file per case, each carrying its own provenance as data. A case arrives one of two ways: promoted from the staging queue by `pathfinder.devtools.evals promote`, or written from a cataloged failure in `backlog/`. No case names a user; see [the linkage decision](../decisions/a-staged-eval-case-carries-its-user-until-promotion.md).
+The corpus lives in `apps/api/src/pathfinder/evals/corpus/`, one JSON file per case, each carrying its own provenance as data. A case arrives one of three ways: promoted from the staging queue by `pathfinder.devtools.evals promote`, written from a cataloged failure in `backlog/`, or written by hand from a UAT flow's table (`uat-<flow>-<site>`, `provenance.reference` naming the flow). No case names a user; see [the linkage decision](../decisions/a-staged-eval-case-carries-its-user-until-promotion.md).
 
 **A case is a thread, not a prompt.** `turns` is a list driven in order on one
 conversation id, so a case can pin a state a first message cannot reach: an
@@ -164,16 +214,15 @@ values that search must carry. Every case result also carries the four
 distances of [the harness decision](../decisions/the-eval-harness-is-pydantic-evals.md),
 on a pass as well as on a failure.
 
-**A building case needs a VEuPathDB login.** Only the model is mocked, so a
-case whose expectation names a structure pushes real steps to the site named in
-`siteId`. Without `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` the run is
-unauthenticated, the catalog reads answer 403 and the case reports
-`builtStrategy: expected 'true', got 'false'`. The non-building cases need no
-credential.
+**Every case needs a VEuPathDB login and the model key.** The run drives the
+real model, and a case whose expectation names a structure pushes real steps to
+the site named in `siteId`. Without `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` the run
+is unauthenticated, the catalog reads answer 403 and the case reports
+`builtStrategy: expected 'true', got 'false'`.
 
-**A run under the deterministic provider tests the pipeline, not the model.** The mock is a script, so a green run says the routing, the materialisation, the persistence and the reported verdict still behave; it does not say a real model would have chosen that route. The corpus is provider-agnostic, so a real-model run is the same command with a different provider.
+**A run always drives the configured provider.** The scripted provider routes on a token a Playwright spec writes into its message, so a corpus prompt reaches it unmarked and settles nothing; what the script proves belongs to the e2e suite and the unit tier. A case states how it runs: `effort` (the level the flow was measured at; `--effort` on the command line wins), `gates` (`auto` answers every card with its recommendation, `stop` leaves the last gate unanswered, or a list of per-gate answers with a comment), and `attachments` per turn. `--via-worker` runs the turns through the worker so a durable tool executes.
 
-The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences. It is the logic layer's feed into the observability contract.
+**A recorded count is judged against the site build.** A case that carries `root_count` (the count, the build it held on, the date read) gets one of three verdicts from `pathfinder.evals.drift.classify`: `fail` for any difference that is not the count, or the count off on the same build; `pass` for the count off on a new build within `max(5, 10 %)`; `re-measure` for the count off on a new build outside that band. The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences, with `re_measure` counted beside passed and failed. It is the logic layer's feed into the observability contract, and the pre-release report reads it.
 
 # The three platform packages
 

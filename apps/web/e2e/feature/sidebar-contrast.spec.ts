@@ -3,39 +3,41 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { test, expect } from "../fixtures/test";
 
 /**
- * Feature: the active conversation row reads on every site palette, and a
+ * Feature: the active conversation row reads on the other site palettes, and a
  * viewer who asked for reduced motion sees it settled from its first paint.
+ * The project's own site is audited by L4 in `uat/layout-access.spec.ts`.
  *
  * The row is tinted with the site's primary; its timestamp is a foreground
  * tone over that tint, and axe holds it to the 4.5:1 body-text ratio. An
  * entrance animation that ignores the preference paints the row at a fraction
  * of its opacity, which is where an audit reads the text below that ratio.
  */
-for (const siteId of ["veupathdb", "fungidb", "plasmodb", "toxodb"]) {
-  test(`the active conversation row meets the contrast ratio on ${siteId}`, async ({
-    page,
-    chatPage,
-    sidebarPage,
-    sitePicker,
-  }) => {
-    await chatPage.goto();
-    await sitePicker.selectSite(siteId);
-    await sitePicker.expectCurrentSite(siteId);
-    await chatPage.send("first conversation");
-    await chatPage.expectAssistantMessage(/\[mock\]/);
-    await sidebarPage.expectAtLeastOneConversation();
-    await page.mouse.move(0, 0);
+for (const siteId of ["veupathdb", "fungidb", "toxodb"]) {
+  test(
+    `the active conversation row meets the contrast ratio on ${siteId}`,
+    {
+      tag: "@named-site",
+    },
+    async ({ page, chatPage, sidebarPage, sitePicker }) => {
+      await chatPage.goto();
+      await sitePicker.selectSite(siteId);
+      await sitePicker.expectCurrentSite(siteId);
+      await chatPage.send("first conversation");
+      await chatPage.expectAssistantMessage(/\[mock\]/);
+      await sidebarPage.expectAtLeastOneConversation();
+      await page.mouse.move(0, 0);
 
-    const result = await new AxeBuilder({ page })
-      .include('[data-testid="conversation-item"]')
-      .withRules(["color-contrast"])
-      .analyze();
+      const result = await new AxeBuilder({ page })
+        .include('[data-testid="conversation-item"]')
+        .withRules(["color-contrast"])
+        .analyze();
 
-    const details = result.violations.flatMap((v) =>
-      v.nodes.map((n) => `${n.html}: ${n.any.map((c) => c.message).join(" ")}`),
-    );
-    expect(details, details.join("\n")).toEqual([]);
-  });
+      const details = result.violations.flatMap((v) =>
+        v.nodes.map((n) => `${n.html}: ${n.any.map((c) => c.message).join(" ")}`),
+      );
+      expect(details, details.join("\n")).toEqual([]);
+    },
+  );
 }
 
 test("a new conversation row is painted settled under reduced motion", async ({

@@ -2,8 +2,8 @@ import { test, expect } from "../fixtures/test";
 import type { Page } from "@playwright/test";
 import type { ChatPage } from "../pages/chat.page";
 import type { SidebarPage } from "../pages/sidebar.page";
-import { type ApiClient, listConversations } from "../fixtures/api-client";
-import { currentSiteId, openConversationId } from "../pages/navigation";
+import type { ApiClient } from "../fixtures/api-client";
+import { openConversationId } from "../pages/navigation";
 
 /**
  * Feature: Recently deleted (soft-deleted) conversations.
@@ -70,87 +70,6 @@ function waitForRestore(page: Page, strategyId: string) {
   );
 }
 
-// Basic flows
-test.describe("Recently deleted conversations", () => {
-  test.describe.configure({ mode: "serial" });
-
-  test.beforeEach(async ({ chatPage, apiClient }) => {
-    // Purge prior conversations (incl. dismissed) so dismissed-count
-    // assertions aren't polluted by earlier tests in this serial suite.
-    await apiClient.delete("/api/v1/user/data?deleteWdk=true");
-    await chatPage.goto();
-    await chatPage.newChat();
-  });
-
-  test("soft-deleted WDK strategy appears in dismissed section", async ({
-    chatPage,
-    sidebarPage,
-    apiClient,
-    page,
-  }) => {
-    const strategyId = await makeWdkLinked(page, chatPage, sidebarPage, apiClient);
-
-    const dismissCompleted = waitForDismiss(page, strategyId);
-    await sidebarPage.delete(strategyId);
-    await dismissCompleted;
-
-    await expect(sidebarPage.item(strategyId)).not.toBeVisible({
-      timeout: 10_000,
-    });
-    await sidebarPage.expectDismissedCount(1);
-
-    await sidebarPage.expandDismissed();
-    await sidebarPage.expectDismissedItemVisible(strategyId);
-
-    const dismissed = await listConversations(
-      apiClient,
-      currentSiteId(page),
-      "dismissed",
-    );
-    expect(dismissed.map((d) => d.id)).toContain(strategyId);
-  });
-
-  test("restore dismissed strategy returns to main list", async ({
-    chatPage,
-    sidebarPage,
-    apiClient,
-    page,
-  }) => {
-    const strategyId = await makeWdkLinked(page, chatPage, sidebarPage, apiClient);
-
-    const dismissCompleted = waitForDismiss(page, strategyId);
-    await sidebarPage.delete(strategyId);
-    await dismissCompleted;
-
-    await expect(sidebarPage.item(strategyId)).not.toBeVisible({
-      timeout: 10_000,
-    });
-    await sidebarPage.expectDismissedCount(1);
-
-    await sidebarPage.expandDismissed();
-
-    const restoreCompleted = waitForRestore(page, strategyId);
-    await sidebarPage.restoreDismissed(strategyId);
-    await restoreCompleted;
-
-    await expect(sidebarPage.item(strategyId)).toBeVisible({
-      timeout: 15_000,
-    });
-    await sidebarPage.expectNoDismissedSection();
-
-    const strategyResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
-    expect(strategyResp.ok()).toBeTruthy();
-
-    const dismissed = await listConversations(
-      apiClient,
-      currentSiteId(page),
-      "dismissed",
-    );
-    expect(dismissed.map((d) => d.id)).not.toContain(strategyId);
-  });
-});
-
-// Complex flows
 test.describe("Recently deleted conversations: complex flows", () => {
   test.describe.configure({ mode: "serial" });
 

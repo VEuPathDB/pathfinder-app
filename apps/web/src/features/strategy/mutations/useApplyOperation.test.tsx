@@ -17,6 +17,7 @@ vi.mock("sonner", () => ({
 import { toast } from "sonner";
 import { applyOperationEndpointMutationRequestSchema } from "@pathfinder/shared/generated/zod/applyOperationEndpointSchema";
 import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
+import { APIError } from "@/lib/api/http";
 import { useStrategyStore } from "@/state/strategy/store";
 import { useApplyOperation } from "./useApplyOperation";
 import { makeQueryHarness } from "./__tests__/strategyTestUtils";
@@ -136,6 +137,40 @@ describe("useApplyOperation", () => {
       expect(harness.getStrategy("strategy-1")?.steps[0]?.displayName).toBe("A");
       expect(useStrategyStore.getState().lastFailedOperation).not.toBeNull();
     });
+  });
+
+  it("leaves the pending state and says what the site answered when a save fails", async () => {
+    const harness = makeQueryHarness(
+      makeStrategy([step({ id: "a", displayName: "A", searchName: "GenesByGoTerm" })]),
+    );
+    applyOperationEndpointMock.mockRejectedValueOnce(
+      new APIError("HTTP 502 Bad Gateway", {
+        status: 502,
+        statusText: "Bad Gateway",
+        url: "/api/v1/conversations/strategy-1/operations",
+        data: { title: "VectorBase did not answer.", status: 502, code: "WDK_ERROR" },
+      }),
+    );
+    const { result } = renderHook(() => useApplyOperation("strategy-1"), {
+      wrapper: harness.wrapper,
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          op: {
+            kind: "updateStepParams",
+            stepId: "a",
+            parameters: { go_term: { type: "string", value: "GO:0016301" } },
+          },
+        }),
+      ).rejects.toThrow();
+    });
+
+    await waitFor(() => {
+      expect([result.current.isPending, result.current.isError]).toEqual([false, true]);
+    });
+    expect(toast.error).toHaveBeenCalledWith("VectorBase did not answer.");
   });
 
   it("says in one sentence which parameter kept a step from being saved", async () => {

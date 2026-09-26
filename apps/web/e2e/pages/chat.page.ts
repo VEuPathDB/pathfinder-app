@@ -38,6 +38,13 @@ export class ChatPage {
     await expect(this.composer).toBeVisible({ timeout: 60_000 });
   }
 
+  /** Open the site's conversation route and a fresh conversation on it. */
+  async startOn(siteId: string) {
+    await this.page.goto(`/${siteId}/conversation`);
+    await expect(this.composer).toBeVisible({ timeout: 60_000 });
+    await this.newChat(siteId);
+  }
+
   /** The strategy ID created by the last `newChat()` call. */
   lastStrategyId: string | null = null;
 
@@ -109,6 +116,13 @@ export class ChatPage {
   async sendTurn(message: string, pattern: RegExp) {
     await this.send(message);
     await this.awaitTurn(pattern);
+  }
+
+  /** Send `message` and wait until its turn put a new reply on the thread and
+   *  the composer accepts input again, whatever the reply says. */
+  async sendAndSettle(message: string) {
+    await this.send(message);
+    await this.expectIdle(TURN_BUDGET_MS);
   }
 
   /** Wait out a turn the app started on its own, such as the edit a revert

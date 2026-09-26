@@ -15,12 +15,12 @@ from pathfinder.persistence.repositories.conversation_strategy import (
 from pathfinder.platform.errors import ErrorCode, ForbiddenError, NotFoundError
 
 
-async def get_owned_thread_or_404(
+async def get_owned_thread(
     conv_repo: ConversationRepository,
     conversation_id: UUID,
     user_id: UUID,
 ) -> ConversationWithStrategy:
-    """The conversation and its strategy projection, for an owner."""
+    """The conversation and its strategy projection: 404 when none exists, 403 when another user owns it."""
     found = await conv_repo.get_with_strategy(conversation_id)
     if found is None:
         raise NotFoundError(

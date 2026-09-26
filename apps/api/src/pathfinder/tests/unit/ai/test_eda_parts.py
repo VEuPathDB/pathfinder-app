@@ -131,6 +131,7 @@ def test_a_plot_part_defaults_its_caption_to_the_empty_string() -> None:
         effect_direction="upAndDown",
         total_points=0,
         retained_points=0,
+        retained_point_ids=[],
         points=[],
     )
     preview = EdaSubsetPreviewPart(
@@ -286,6 +287,7 @@ def test_the_viz_part_carries_the_chart_kind_and_its_series() -> None:
         effect_direction="upAndDown",
         total_points=5511,
         retained_points=1543,
+        retained_point_ids=["PF3D7_0100200"],
         points=[
             EdaVolcanoPoint(
                 point_id="PF3D7_0100200",
@@ -299,6 +301,7 @@ def test_the_viz_part_carries_the_chart_kind_and_its_series() -> None:
     dumped = part.model_dump(by_alias=True)
     assert dumped["chart"] == "volcano"
     assert dumped["retainedPoints"] == 1543
+    assert dumped["retainedPointIds"] == ["PF3D7_0100200"]
     assert dumped["points"][0]["pointId"] == "PF3D7_0100200"
 
 

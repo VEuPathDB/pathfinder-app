@@ -10,9 +10,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from assistant_core.platform.db import async_session_factory
+from pydantic_ai.exceptions import ModelRetry
 from veupathdb.errors import WDKError
 from veupathdb.wdk import build_wdk_step_tree
 
@@ -320,3 +322,26 @@ async def test_the_agents_rename_renames_the_thread_everywhere(
     )
     assert [c.kwargs["name"] for c in api.named("update_strategy")] == [_TITLE]
     assert lock.held_at_wdk == [False]
+
+
+async def test_the_agents_rename_of_a_thread_the_store_lacks_is_refused(
+    monkeypatch: pytest.MonkeyPatch, api: StubAPI, sets: Sets
+) -> None:
+    threads = thread_row(name="Kinase hunt", ast_name="Kinase hunt")
+    _install(monkeypatch, api, threads)
+    session = session_with(leaf("step_a"), {"step_a": 440537303})
+    deps = AgentDeps(
+        site_id="plasmodb",
+        strategy_session=session,
+        conversation_id=uuid4(),
+        db_session_factory=async_session_factory,
+        agent_state=AgentToolState(),
+        turn_markers=TurnMarkers(),
+    )
+
+    with pytest.raises(ModelRetry, match="found no stored conversation"):
+        await rename_strategy(run_context_for(deps), new_name=_TITLE, description="d")
+
+    assert session.graph is not None
+    assert session.graph.name == "Test"
+    assert api.named("update_strategy") == []

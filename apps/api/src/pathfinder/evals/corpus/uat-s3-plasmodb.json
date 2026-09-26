@@ -1,0 +1,48 @@
+{
+  "name": "uat-s3-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes that have a predicted signal peptide or 2 to 99 transmembrane domains."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "Two features joined by 'or' are two searches under one UNION.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide UNION GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": true,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "UNION",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 1203,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s3",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

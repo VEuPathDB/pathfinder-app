@@ -41,6 +41,7 @@ from pathfinder.persistence.models import ControlSet
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.evidence import separation
+from pathfinder.services.experiment.seed.catalog import get_seeds_for_site
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests._support.separation import SIGNAL_PEPTIDE, recorded_separation
 from pathfinder.tests.integration.chat._helpers import (
@@ -52,7 +53,16 @@ from pathfinder.tests.integration.chat._helpers import (
 )
 from pathfinder.tests.integration.http.conftest import client_for
 
-_PROMPT = "separate my controls: the signal peptide seed, exact"
+_SEED = next(
+    seed
+    for seed in get_seeds_for_site("plasmodb")
+    if seed.name == "PF3D7 Signal Peptide Genes"
+).control_set
+_PROMPT = (
+    "Find a strategy that separates these controls, exact. [[arc:separation]]\n"
+    f"Positive controls: {' '.join(_SEED.positive_ids)}\n"
+    f"Negative controls: {' '.join(_SEED.negative_ids)}"
+)
 _RUN = "separate_controls"
 _ADOPT = "adopt_separating_strategy"
 _TIMEOUT_SECONDS = 120.0

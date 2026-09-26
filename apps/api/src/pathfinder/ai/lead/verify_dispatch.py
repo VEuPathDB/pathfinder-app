@@ -231,10 +231,48 @@ def _with_the_misfits(caveats: list[str], review: VerificationReview) -> list[st
 
 @dataclass(frozen=True)
 class _HeldDigest:
-    """The digest the ledger lets stand, and the reason it refused a success."""
+    """The digest the ledger lets stand, and the ledger's reason for a failure."""
 
     digest: VerificationDigest
     refused_because: str | None = None
+
+
+@dataclass(frozen=True)
+class _Refusal:
+    """Why the ledger cannot support a success, and the cause it records."""
+
+    reason: str
+    cause: FailureCause | None = None
+
+
+def _ledger_refusal(deps: LeadDeps, digest: VerificationDigest) -> _Refusal | None:
+    """The first reason the build, the spec or the review gives against success."""
+    ledger = derive_ledger(deps.state, deps.intent)
+    contradiction = build_contradiction(
+        ledger.build,
+        built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
+    )
+    if contradiction is not None:
+        return _Refusal(contradiction)
+    structural = structure_contradiction(
+        deps.state.domain.requirements,
+        deps.state.domain.operational_spec,
+    )
+    if structural is not None:
+        return _Refusal(structural, FailureCause.STRUCTURE_VIOLATION)
+    words = unexpressed_words(deps.state.domain.operational_spec)
+    if words:
+        return _Refusal(
+            f"the request states {', '.join(repr(w) for w in words)}, and no search "
+            f"the strategy runs can state it"
+        )
+    unmet = digest.review.unmet()
+    if not unmet:
+        return None
+    return _Refusal(
+        f"the check reports {count_noun(len(unmet), 'requirement')} unmet: "
+        f"{', '.join(repr(row.text) for row in unmet)}"
+    )
 
 
 def _digest_the_build_supports(
@@ -244,45 +282,15 @@ def _digest_the_build_supports(
 
     The digest decides the reply, the memory auto-write and the eval verdict,
     so a success it cannot support is corrected here rather than at each
-    reader.
+    reader. A failure the check found keeps its digest and takes the reason.
     """
+    refusal = _ledger_refusal(deps, digest)
+    if refusal is None:
+        return _HeldDigest(digest)
     if not digest.success:
-        return _HeldDigest(digest)
-    ledger = derive_ledger(deps.state, deps.intent)
-    contradiction = build_contradiction(
-        ledger.build,
-        built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
-    )
-    if contradiction is not None:
-        return _HeldDigest(
-            digest_held_to_the_build(digest, contradiction), contradiction
-        )
-    structural = structure_contradiction(
-        deps.state.domain.requirements,
-        deps.state.domain.operational_spec,
-    )
-    if structural is not None:
-        return _HeldDigest(
-            digest_held_to_the_build(
-                digest, structural, failure_cause=FailureCause.STRUCTURE_VIOLATION
-            ),
-            structural,
-        )
-    words = unexpressed_words(deps.state.domain.operational_spec)
-    if words:
-        reason = (
-            f"the request states {', '.join(repr(w) for w in words)}, and no search "
-            f"the strategy runs can state it"
-        )
-        return _HeldDigest(digest_held_to_the_build(digest, reason), reason)
-    unmet = digest.review.unmet()
-    if not unmet:
-        return _HeldDigest(digest)
-    reason = (
-        f"the check reports {count_noun(len(unmet), 'requirement')} unmet: "
-        f"{', '.join(repr(row.text) for row in unmet)}"
-    )
-    return _HeldDigest(digest_held_to_the_build(digest, reason), reason)
+        return _HeldDigest(digest, refusal.reason)
+    held = digest_held_to_the_build(digest, refusal.reason, failure_cause=refusal.cause)
+    return _HeldDigest(held, refusal.reason)
 
 
 async def verify_strategy(

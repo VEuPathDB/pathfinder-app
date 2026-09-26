@@ -56,6 +56,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^(apps/web/|packages/shared-ts/).*
+      - id: redact-traces-web
+        name: the trace redaction (web)
+        entry: bash -c "cd apps/web && node --test scripts/redact-traces.test.mjs"
+        language: system
+        pass_filenames: false
+        files: ^apps/web/scripts/redact-traces.*
       - id: weak-assertions-web
         name: weak-assertion check (web, and the checker)
         entry: bash -c "cd apps/web && yarn check:weak-assertions && node --test scripts/check-weak-assertions.test.mjs"

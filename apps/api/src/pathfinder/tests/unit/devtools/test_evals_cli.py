@@ -60,11 +60,16 @@ def test_run_takes_a_case_filter_and_an_output_file() -> None:
     assert args.out == "s.json"
 
 
-def test_run_uses_the_deterministic_provider_unless_asked_otherwise() -> None:
+def test_run_has_no_provider_switch() -> None:
+    with pytest.raises(SystemExit):
+        _build_parser().parse_args(["run", "--real"])
+
+
+def test_run_can_hand_every_turn_to_the_worker() -> None:
     parser = _build_parser()
 
-    assert parser.parse_args(["run"]).real is False
-    assert parser.parse_args(["run", "--real"]).real is True
+    assert parser.parse_args(["run"]).via_worker is False
+    assert parser.parse_args(["run", "--via-worker"]).via_worker is True
 
 
 def test_run_takes_one_effort_for_every_role() -> None:

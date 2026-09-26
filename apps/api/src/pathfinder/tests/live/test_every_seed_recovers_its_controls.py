@@ -13,12 +13,13 @@ import pytest
 from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.controls import leftover_strategy_ids
 
-from pathfinder.devtools.seeds import STRATEGY_NAME, measure_seed, site_build
+from pathfinder.devtools.seeds import STRATEGY_NAME, measure_seed
 from pathfinder.services.experiment.seed.catalog import (
     SEED_DATABASES,
     get_seeds_for_site,
 )
 from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
+from pathfinder.services.wdk_build import site_build
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio, pytest.mark.slow]
 

@@ -27,6 +27,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.pre_turn import pathfinder_pre_turn
+from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.tools.standalone.eda_stream_parts import eda_analysis_state_chunk
@@ -114,7 +115,7 @@ def _turn(conversation_id: UUID, user_id: UUID) -> tuple[PipelineState, Context]
         user_id=user_id,
         site_id=_SITE,
         mode="strategy",
-        user_prompt="Which of these genes are kinases?",
+        user_prompt="Which of these genes are kinases? [[arc:kinase-question]]",
         user_message_id=uuid4(),
     )
     context = Context(
@@ -129,6 +130,7 @@ def _turn(conversation_id: UUID, user_id: UUID) -> tuple[PipelineState, Context]
 
 async def _instructions_the_lead_read(state: PipelineState, context: Context) -> str:
     deps = LeadDeps(state=state, intent=None, runtime=context, retrieved_memories=[])
+    bind_scripted_scope(context.site_id, state.user_prompt)
     result = await build_lead_agent().run(
         state.user_prompt, deps=deps, model=get_mock_model()
     )

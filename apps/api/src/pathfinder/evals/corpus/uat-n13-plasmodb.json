@@ -1,0 +1,43 @@
+{
+  "name": "uat-n13-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Build a strategy for P. falciparum 3D7 protein kinases."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A second build request on a thread that holds a strategy edits it or asks, and never discards it unasked.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n13",
+    "curatorNote": "Not measured in the flow tables; the case pins only that a strategy remains."
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

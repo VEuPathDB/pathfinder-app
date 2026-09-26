@@ -1,5 +1,5 @@
-"""The mock VERIFY samples the root the work order names, reads each sampled
-gene's record, and returns a review built from those reads."""
+"""The mock VERIFY reads the strategy, samples the root the work order names,
+reads each sampled gene's record, and returns a review built from those reads."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ _SAMPLED = ("PF3D7_0100100", "PF3D7_0100200")
 
 @pytest.fixture(autouse=True)
 def _scoped() -> Generator[None]:
-    text_token = current_user_text.set("create step")
+    text_token = current_user_text.set("Find genes [[arc:single]]")
     scope_token = current_scope_id.set("plasmodb")
     yield
     current_user_text.reset(text_token)
@@ -57,9 +57,11 @@ def _info() -> AgentInfo:
 
 
 def _call(messages: list[ModelMessage]) -> ToolCallPart:
-    part = PATHFINDER_SCRIPT.response_part(messages, _info())
-    assert isinstance(part, ToolCallPart)
-    return part
+    match PATHFINDER_SCRIPT.response_part(messages, _info()):
+        case ToolCallPart() as call:
+            return call
+        case text:
+            raise AssertionError(text)
 
 
 def _answered(tool: str, content: object, call_id: str) -> list[ModelMessage]:
@@ -75,8 +77,12 @@ def _answered(tool: str, content: object, call_id: str) -> list[ModelMessage]:
     ]
 
 
-def _head() -> list[ModelMessage]:
+def _order() -> list[ModelMessage]:
     return [ModelRequest(parts=[UserPromptPart(content=_ORDER)])]
+
+
+def _head() -> list[ModelMessage]:
+    return [*_order(), *_answered("get_strategy", {"steps": []}, "call_strategy")]
 
 
 def _sampled() -> list[ModelMessage]:
@@ -99,7 +105,16 @@ def _record(gene_id: str) -> GeneRecordSummary:
     )
 
 
-def test_the_root_the_work_order_names_is_sampled_first() -> None:
+def test_the_strategy_is_read_first() -> None:
+    call = _call(_order())
+
+    assert (call.tool_name, call.args_as_dict()) == (
+        "get_strategy",
+        {"summary_only": False},
+    )
+
+
+def test_the_root_the_work_order_names_is_sampled_next() -> None:
     call = _call(_head())
 
     assert (call.tool_name, call.args_as_dict()) == (

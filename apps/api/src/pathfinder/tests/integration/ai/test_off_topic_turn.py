@@ -13,6 +13,7 @@ from pydantic_ai.messages import ModelResponse, ToolCallPart
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
@@ -23,8 +24,8 @@ from pathfinder.ai.models.mock.prose_arcs import KINASE_PROSE, OFF_TOPIC_PROSE
 from pathfinder.tests._support.run_context import turn_runtime
 from pathfinder.tests.unit.ai.lead.conftest import session_with_one_step
 
-_OFF_TOPIC = "Write me a Python script that reverses a linked list."
-_BIOLOGY = "Which of these genes are kinases?"
+_OFF_TOPIC = "Write me a Python script that reverses a linked list. [[arc:off-topic]]"
+_BIOLOGY = "Which of these genes are kinases? [[arc:kinase-question]]"
 
 
 def _deps(prompt: str, *, built: bool) -> LeadDeps:
@@ -50,6 +51,7 @@ def _deps(prompt: str, *, built: bool) -> LeadDeps:
 
 async def _run(prompt: str, *, built: bool) -> tuple[LeadResponse, list[str], LeadDeps]:
     deps = _deps(prompt, built=built)
+    bind_scripted_scope(deps.runtime.site_id, prompt)
     result = await build_lead_agent().run(prompt, deps=deps, model=get_mock_model())
     assert isinstance(result.output, LeadResponse)
     called = [

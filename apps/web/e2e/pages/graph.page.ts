@@ -97,11 +97,26 @@ export class GraphPage {
    * Strategy toggle reads "Open Strategy" until a spec clicks it.
    */
   async openRailStrategyPanel() {
-    const toggle = this.page.getByRole("button", { name: "Open Strategy" });
-    if ((await toggle.count()) > 0) {
-      await toggle.click();
-    }
+    await this.showRailStrategy();
     await this.expectRailPanel();
+  }
+
+  /** Bring the rail's Strategy panel on screen, with steps or without. */
+  async showRailStrategy() {
+    // The rail mounts with the conversation, so a page still rendering is not
+    // read as one whose panel is already open.
+    await expect(this.page.getByTestId("message-composer")).toBeVisible({
+      timeout: ROUTE_TIMEOUT_MS,
+    });
+    const open = this.page.getByRole("button", { name: "Open Strategy", exact: true });
+    if ((await open.count()) > 0) {
+      await open.click();
+    }
+  }
+
+  /** The Strategy panel's heading when the conversation holds no strategy. */
+  get railEmptyHeading(): Locator {
+    return this.page.getByText("No strategy built yet", { exact: true });
   }
 
   /** How many step rows the rail lists, once it lists any. */
@@ -227,6 +242,29 @@ export class GraphPage {
     });
     await this.editorSheet.getByRole("button", { name: "Close" }).click();
     await expect(this.editorSheet).toBeHidden({ timeout: 10_000 });
+  }
+
+  /**
+   * Save the editor and wait up to 60 s for the save to settle. A save the
+   * site refuses or lets time out ends in "Save failed"; the answer says which.
+   */
+  async saveEditorOrSiteRefusal(): Promise<"saved" | "site-refused"> {
+    await this.editorSheet.getByTestId("step-editor-save").click();
+    await expect(this.editorSyncState).not.toHaveAttribute(
+      "data-sync-state",
+      "saving",
+      {
+        timeout: 60_000,
+      },
+    );
+    if ((await this.editorSyncState.getAttribute("data-sync-state")) === "error") {
+      await expect(this.editorSyncState).toHaveText("Save failed");
+      return "site-refused";
+    }
+    await expect(this.editorSyncState).toHaveAttribute("data-sync-state", "idle");
+    await this.editorSheet.getByRole("button", { name: "Close" }).click();
+    await expect(this.editorSheet).toBeHidden({ timeout: 10_000 });
+    return "saved";
   }
 
   primaryEdgeInto(targetStepId: string): Locator {

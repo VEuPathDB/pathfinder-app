@@ -76,6 +76,7 @@ from pathfinder.ai.tools.standalone.optimization import (
 )
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.separation import separate_controls
+from pathfinder.ai.tools.standalone.strategy_rename import rename_strategy
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
 from pathfinder.ai.tools.toolsets._dynamic import (
@@ -159,6 +160,7 @@ def build_lead_agent() -> LeadAgent:
             Tool(read_gene_ids_from_gene_set),
             Tool(read_gene_ids_from_strategy),
             Tool(compare_variants_scored),
+            Tool(rename_strategy),
             Tool(clear_strategy, requires_approval=True),
             Tool(delete_step, requires_approval=True),
             Tool(consult_user, requires_approval=True),

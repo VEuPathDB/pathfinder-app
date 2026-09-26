@@ -45,7 +45,7 @@ def _app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     async def _user() -> Any:
         return stored[0].user_id
 
-    monkeypatch.setattr(step_records, "get_owned_thread_or_404", _owned)
+    monkeypatch.setattr(step_records, "get_owned_thread", _owned)
     monkeypatch.setattr(step_records, "get_strategy_api", lambda _site_id: api)
     app = FastAPI()
     app.include_router(router)

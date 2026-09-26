@@ -1,0 +1,46 @@
+{
+  "name": "uat-a1-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes whose proteins have a predicted signal peptide."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "The same request at another effort reaches the same result.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesWithSignalPeptide",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 479,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-settings-account.md#a1",
+    "curatorNote": "Steps 2 to 4 of the flow read the model and effort in the usage label; the case pins the result at the Fast preset's effort."
+  },
+  "effort": "low",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

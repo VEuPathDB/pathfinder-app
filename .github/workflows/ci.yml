@@ -15,6 +15,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The e2e shard count, and the sites every turn-driving test runs on.
+env:
+  E2E_SHARDS: 10
+  E2E_SITES: plasmodb,vectorbase
+
 jobs:
   changes:
     name: Detect changes
@@ -244,6 +249,10 @@ jobs:
         working-directory: apps/web
         run: node --test scripts/check-boundaries.test.mjs
 
+      - name: Check the trace redaction
+        working-directory: apps/web
+        run: node --test scripts/redact-traces.test.mjs
+
       # Both ratchets are green on the trunk, so a red line here names a test
       # added without a value assertion or an index-based locator.
       - name: Check test assertion strength
@@ -288,12 +297,12 @@ jobs:
         working-directory: apps/web
         run: yarn test:coverage
 
-  test-e2e:
-    name: E2E (Playwright)
+  # The full-stack tier builds once, runs E2E_SHARDS shards at two Playwright
+  # workers each and merges their reports. A push to main does not run it: the
+  # pull request that landed the change already did.
+  e2e-build:
+    name: E2E build
     runs-on: ubuntu-latest
-    # Full-stack; runs on a pull request, the nightly run and a hand-started
-    # run, on api or web changes, after web lint+test (skip-safe). A push to
-    # main does not run it: the pull request that landed it already did.
     needs: [changes, lint-web, test-web]
     if: >-
       ${{ !cancelled()
@@ -303,6 +312,108 @@ jobs:
         && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true') }}
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # The worker runs the api image, so two builds serve the three services.
+      - name: Build the api image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          tags: pathfinder-e2e-api:ci
+          push: false
+          outputs: type=docker,dest=/tmp/pathfinder-api.tar
+          cache-from: type=gha,scope=e2e-api
+          cache-to: type=gha,scope=e2e-api,mode=max
+
+      - name: Build the web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          target: runner
+          build-args: NEXT_PUBLIC_API_URL=http://api:8000
+          tags: pathfinder-e2e-web:ci
+          push: false
+          outputs: type=docker,dest=/tmp/pathfinder-web.tar
+          cache-from: type=gha,scope=e2e-web
+          cache-to: type=gha,scope=e2e-web,mode=max
+
+      # The image layers are gzip already, so the artifact stores them as they are.
+      - name: Upload the images
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-images
+          path: |
+            /tmp/pathfinder-api.tar
+            /tmp/pathfinder-web.tar
+          retention-days: 1
+          compression-level: 0
+
+  e2e-shard-check:
+    name: E2E shards cover the suite
+    runs-on: ubuntu-latest
+    needs: [changes, lint-web, test-web]
+    if: >-
+      ${{ !cancelled()
+        && github.event_name != 'push'
+        && needs.lint-web.result != 'failure'
+        && needs.test-web.result != 'failure'
+        && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true') }}
+    outputs:
+      shards: ${{ steps.shards.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-web
+
+      # A test the shards drop never runs, and a test two shards hold runs twice.
+      - name: Check every test is in exactly one shard
+        working-directory: apps/web
+        run: |
+          set -o pipefail
+          export LC_ALL=C
+          tests() { yarn playwright test --list --reporter=list "$@" | grep -E '^  \[' | sort; }
+          tests > "$RUNNER_TEMP/unsharded.txt"
+          for i in $(seq 1 "$E2E_SHARDS"); do tests --shard "$i/$E2E_SHARDS"; done | sort > "$RUNNER_TEMP/sharded.txt"
+          total=$(wc -l < "$RUNNER_TEMP/unsharded.txt")
+          [ "$total" -gt 0 ] || { echo "::error::playwright listed no tests"; exit 1; }
+          if ! cmp -s "$RUNNER_TEMP/unsharded.txt" "$RUNNER_TEMP/sharded.txt"; then
+            echo "::error::The $E2E_SHARDS shards do not run every test exactly once."
+            comm -3 "$RUNNER_TEMP/unsharded.txt" "$RUNNER_TEMP/sharded.txt"
+            exit 1
+          fi
+          echo "$total tests, each in exactly one of $E2E_SHARDS shards"
+
+      - name: Name the shards
+        id: shards
+        run: echo "list=$(jq -cn --argjson n "$E2E_SHARDS" '[range(1; $n + 1)]')" >> "$GITHUB_OUTPUT"
+
+  e2e-shard:
+    name: E2E shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    needs: [e2e-build, e2e-shard-check]
+    # An explicit condition, so a skipped web lint or test upstream does not skip the shards.
+    if: ${{ !cancelled() && needs.e2e-build.result == 'success' && needs.e2e-shard-check.result == 'success' }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.e2e-shard-check.outputs.shards) }}
+    env:
+      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the images
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-images
+          path: ${{ runner.temp }}/e2e-images
+
+      - name: Load the images
+        run: |
+          docker load -i "$RUNNER_TEMP/e2e-images/pathfinder-api.tar"
+          docker load -i "$RUNNER_TEMP/e2e-images/pathfinder-web.tar"
 
       # Self-contained test env; secret is generated per run, never committed.
       # Compose interpolates the whole file, so SEARXNG_SECRET needs a value
@@ -320,32 +431,28 @@ jobs:
           printf 'API_SECRET_KEY=%s\n' "$(openssl rand -hex 32)" >> .env.test
           printf 'SEARXNG_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env.test
 
-      - name: Build + start the stack (mock provider, test env)
+      # The stack boots while the next two steps install the browsers; the
+      # wait step reads how the bring-up ended.
+      - name: Start the stack
         run: |
-          docker compose --env-file .env.test \
-            -f docker-compose.yml -f docker-compose.e2e.yml \
-            up -d --build api web worker
-
-      - name: Wait for API + web
-        run: |
-          ok=
-          for _ in $(seq 1 60); do
-            curl -fsS http://localhost:8000/health/ready >/dev/null 2>&1 && { ok=1; break; }
-            sleep 5
-          done
-          [ -n "$ok" ] || { echo "API not ready"; docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.e2e.yml logs api | tail -80; exit 1; }
-          ok=
-          for _ in $(seq 1 30); do
-            curl -fsS http://localhost:3000/ >/dev/null 2>&1 && { ok=1; break; }
-            sleep 2
-          done
-          [ -n "$ok" ] || { echo "web not ready"; docker compose --env-file .env.test -f docker-compose.yml -f docker-compose.e2e.yml logs web | tail -50; exit 1; }
+          (
+            status=0
+            docker compose --env-file .env.test up -d --no-build --wait --wait-timeout 300 api web worker || status=$?
+            echo "$status" > "$RUNNER_TEMP/stack-up.status"
+          ) > "$RUNNER_TEMP/stack-up.log" 2>&1 &
 
       - uses: ./.github/actions/setup-web
 
       - name: Install Playwright browsers
         working-directory: apps/web
         run: yarn playwright install --with-deps
+
+      - name: Wait for the stack
+        timeout-minutes: 6
+        run: |
+          until [ -s "$RUNNER_TEMP/stack-up.status" ]; do sleep 2; done
+          cat "$RUNNER_TEMP/stack-up.log"
+          exit "$(cat "$RUNNER_TEMP/stack-up.status")"
 
       # The suite acts as a registered VEuPathDB account; global setup signs
       # in with these and exports the token the fixtures read.
@@ -355,41 +462,79 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
-        run: yarn test:e2e
+          SHARD: ${{ matrix.shard }}
+        run: yarn playwright test --shard "$SHARD/$E2E_SHARDS" --reporter=blob
 
-      # Names the same overlay set the bring-up used, so a stack that dies
-      # before Playwright starts still prints why.
+      # A trace records request headers and typed values, so every VEuPathDB
+      # token and the account's email and password leave the blob before upload.
+      - name: Redact the account from the blob report
+        id: redact
+        if: ${{ !cancelled() }}
+        working-directory: apps/web
+        env:
+          WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
+          WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
+        run: node scripts/redact-traces.mjs blob-report
+
+      # The blob holds every failed test's trace and snapshot for the merged report.
+      - name: Upload the blob report
+        if: ${{ !cancelled() && steps.redact.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: apps/web/blob-report
+          retention-days: 1
+          if-no-files-found: ignore
+
+      # COMPOSE_FILE names the overlay set the bring-up used, so a stack that
+      # dies before Playwright starts still prints why.
       - name: Stack logs on failure
         if: failure()
         run: |
-          docker compose --env-file .env.test \
-            -f docker-compose.yml -f docker-compose.e2e.yml \
-            ps -a
+          docker compose --env-file .env.test ps -a
           for c in api worker web db; do
             docker inspect --format "$c: {{json .State}}" "pathfinder-app-$c-1" || true
           done
           free -m
           df -h /
-          docker compose --env-file .env.test \
-            -f docker-compose.yml -f docker-compose.e2e.yml \
-            logs --no-color api worker web db
-
-      # The page snapshot and trace of every failed spec, for a failure that
-      # does not reproduce on a developer machine.
-      - name: Upload Playwright results on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-results
-          path: apps/web/test-results
-          retention-days: 7
-          if-no-files-found: ignore
+          docker compose --env-file .env.test logs --no-color api worker web db
 
       - name: Tear down
         if: always()
+        run: docker compose --env-file .env.test down -v
+
+  e2e-merge-report:
+    name: E2E report
+    runs-on: ubuntu-latest
+    needs: e2e-shard
+    if: ${{ !cancelled() && needs.e2e-shard.result != 'skipped' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-web
+
+      - name: Download the blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          merge-multiple: true
+          path: apps/web/all-blob-reports
+
+      - name: Merge the reports
+        working-directory: apps/web
+        run: yarn playwright merge-reports --reporter html,github ./all-blob-reports
+
+      - name: Upload the HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+
+      - name: Fail when a shard failed
+        if: ${{ needs.e2e-shard.result == 'failure' }}
         run: |
-          docker compose --env-file .env.test \
-            -f docker-compose.yml -f docker-compose.e2e.yml down -v
+          echo "::error::At least one e2e shard failed; the playwright-report artifact names the tests."
+          exit 1
 
   # Make this the single required status check (skipped jobs aren't failures).
   ci-status:
@@ -409,7 +554,10 @@ jobs:
       - lint-web
       - check-shared-ts
       - test-web
-      - test-e2e
+      - e2e-build
+      - e2e-shard-check
+      - e2e-shard
+      - e2e-merge-report
     steps:
       - name: Fail if any required job failed or was cancelled
         run: |

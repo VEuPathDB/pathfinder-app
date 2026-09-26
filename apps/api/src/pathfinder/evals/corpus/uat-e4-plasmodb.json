@@ -1,0 +1,44 @@
+{
+  "name": "uat-e4-plasmodb",
+  "turns": [
+    "Open the PlasmoDB study 'Heat shock response in sensitive mutants (LRR5, DHC)' and compare the wild type samples with the DHC mutant samples by differential expression on the sense counts. Do not make a strategy step."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A comparison the researcher asks to keep out of the strategy adds no step.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "DESeq"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-eda.md#e4",
+    "curatorNote": "Needs --via-worker: the compute is a durable task."
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

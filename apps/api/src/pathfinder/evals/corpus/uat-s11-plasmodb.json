@@ -1,0 +1,49 @@
+{
+  "name": "uat-s11-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide, excluding any gene with 2 to 99 transmembrane domains.",
+    "Remove the transmembrane-domain step."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "Removing one input of a combine leaves the other search alone, with no approval card for a chat edit.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesWithSignalPeptide",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 479,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s11",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

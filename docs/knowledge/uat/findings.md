@@ -314,3 +314,148 @@ Pass 2 re-check: the delete card (`p2/fnd7/t3`) and the sweep card (`p2/fnd2/t3`
 **Fix.** The turn writes its prose before it parks on the card (the prose rides the deferred call, or is emitted before it).
 
 **What you'd get.** The analysis as text, then the card.
+
+---
+
+## FND-15 - A rating sent while offline shows the browser's error, not the product's sentence
+
+Fixed in a17: a network failure answers the caller's sentence (`lib/api/errors.ts::toUserMessage` returns the fallback for a `TypeError`, which is what `fetch` rejects with and whose message is the browser's).
+
+**What I did.** R6 step 3 from the Playwright suite on the mock stack: a built S2 thread on plasmodb, the browser set offline through the Playwright context, then `Good response` clicked on the reply.
+
+**What I got.** The toast read `Failed to fetch`. The flow table expects `The rating was not saved.`
+
+**Why that's wrong.** The researcher reads a browser message in the product's voice and cannot tell whether the rating reached the server; the same wording differs by browser (`Load failed` on Safari).
+
+**Why it happens.** `toUserMessage` forwards the message of every `Error`, and a failed `fetch` rejects with a `TypeError` whose message is the browser's.
+
+**Fix.** A `TypeError` answers the caller's fallback sentence.
+
+**What you'd get.** Toast `The rating was not saved.` on every browser; the same for every other caller that passes its own sentence.
+
+---
+
+## FND-16 - "Reset all local settings" leaves the model preset in place
+
+Fixed in a17: the reset removes the key the store persists under.
+
+**What I did.** A1 from the suite: opened the Model tab (`Balanced` pressed), picked `Fast`, ran `Reset all local settings`.
+
+**What I got.** The page reloaded with `Fast` still pressed.
+
+**Why that's wrong.** The reset's own prompt says it clears the model preferences, and it does not.
+
+**Why it happens.** `state/useSettingsStore.ts::resetAllPersistedSettings` removes `pathfinder-settings`, and the store is saved under the dated key `state/middleware.ts` builds (`pathfinder-settings-20260625`).
+
+**Fix.** The reset calls each persisted store's own `persist.clearStorage()`, so the key it writes is the key it clears.
+
+**What you'd get.** `Balanced` pressed after the reload.
+
+---
+
+## FND-17 - The file chooser keeps the previous model's file types
+
+Fixed in a17: the attachment adapter follows the current model.
+
+**What I did.** C15 from the suite: switched the message-reading model to GPT-5.6 Luna. The Attach button then read `Attach a gene-ID list, an image or a PDF`.
+
+**What I got.** The chooser's accepted types were still `.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain`. After a reload they include images and PDFs.
+
+**Why that's wrong.** A researcher who has just picked an image-reading model cannot select an image until they reload.
+
+**Why it happens.** The attachment adapter is rebuilt on every render, but assistant-ui's composer notifies its listeners only when cancel, send-disabled or the queue changes, never when the adapter changes, so `ComposerPrimitive.AddAttachment` reads a stale accepted-types list from the composer snapshot (the same gap is in the latest published assistant-ui).
+
+**Fix.** `AttachButton` owns its own file input whose `accept` is the same value its label reads, and hands the chosen file to the composer, which still checks the live adapter.
+
+**What you'd get.** Images and PDFs offered right after the switch.
+
+---
+
+## FND-18 - A saved strategy lists no count
+
+Fixed in a17: saving carries the root's count.
+
+**What I did.** S7 from the suite on plasmodb and vectorbase: saved a built 3-step strategy (root 116 genes on plasmodb, 343 on vectorbase) as a reusable strategy and opened Saved strategies.
+
+**What I got.** The row reads `3 steps` only. The database row has `estimated_size` NULL while its stored step counts give the root 116 (343 on vectorbase).
+
+**Why that's wrong.** The flow expects `3 steps - 116 genes`; a saved strategy with no count cannot be compared with another at a glance.
+
+**Why it happens.** `services/strategies/wdk_sync.py::upsert_chat` stores the strategy AST with its step counts and never writes `estimated_size`.
+
+**Fix.** The save sets `estimated_size` from the stored root count.
+
+**What you'd get.** `3 steps - 116 genes` (343 on vectorbase).
+
+---
+
+## FND-19 - The EDA gene-id list is cut at 4,000
+
+Fixed in a17: the id list carries every retained gene; only the plot's points are capped.
+
+**What I did.** E2, E3 and E4 from the suite on vectorbase: a comparison that keeps 4,402 genes.
+
+**What I got.** The list under the plot reads `Gene ids (4,000)` and `Copy gene ids` copies 4,000.
+
+**Why that's wrong.** 402 retained genes are silently missing from the copied list, an export.
+
+**Why it happens.** `ai/tools/standalone/eda_stream_parts.py` caps the points sent to the thread at 4,000 for the plot, and the id list reads the capped points.
+
+**Fix.** The part carries the full retained id list beside the capped points, and the list reads it.
+
+**What you'd get.** `Gene ids (4,402)`.
+
+---
+
+## FND-20 - Rating a reply while offline shows no message
+
+Fixed in a17: the rating mutation runs regardless of the browser's online state, so it fails at once and the toast shows.
+
+**What I did.** R6 step 3 from the suite: the browser set offline, then `Good response` clicked on the reply (after FND-15's fix to the error mapping).
+
+**What I got.** Nothing appears; the notifications area is empty.
+
+**Why that's wrong.** The flow expects `The rating was not saved.`; the researcher gets no sign the rating was lost.
+
+**Why it happens.** The rating mutation in `RateMessageActions.tsx` uses TanStack Query's default network mode, which pauses a mutation while offline instead of failing it, so its error handler never runs.
+
+**Fix.** `networkMode: "always"` on that mutation.
+
+**What you'd get.** The toast `The rating was not saved.`.
+
+---
+
+## FND-21 - Another user's conversation address shows a spinner forever
+
+Fixed in a17: a 403 on the conversation read is treated as no conversation, and the view redirects to the conversation list.
+
+**What I did.** F12 from the suite: a second dev-login user opened another user's `/plasmodb/conversation/<id>`.
+
+**What I got.** The page stays on that address with the view's spinner. The api answered 403 `FORBIDDEN` for the conversation (the ownership helper `services/conversations/authz.py::get_owned_thread` raises `ForbiddenError` for another user's thread, as the tenancy decision requires).
+
+**Why that's wrong.** A researcher who follows a colleague's link waits on a spinner with no way out and no message.
+
+**Why it happens.** `lib/api/strategy.ts::fetchStrategy` turned only a 404 into "no conversation"; a 403 left the read in an error state, `ChatView` redirects only when the data is null, and the transcript read never starts.
+
+**Fix.** A 403 on the read is "not the caller's conversation" and answers null like a 404.
+
+**What you'd get.** A redirect to `/plasmodb/conversation`.
+
+---
+
+## FND-22 - The rail shows no strategy after an EDA export lands during a slow conversation read
+
+Fixed in a17: the strategy write cancels the conversation read in flight before it stores, so an older read cannot overwrite it.
+
+**What I did.** The EDA export-step spec on the mock stack, repeated three times with two Playwright workers; then once with the conversation read held until the export answered.
+
+**What I got.** The tab read `This step is now the strategy's first step.` while the thread's rail read `No strategy built yet` and the strategy panel was absent after 20 s. In the passing trace the conversation read took 278 ms and the export landed 417 ms after that read started; under load the read is the slower of the two, and two of three parallel repeats failed.
+
+**Why that's wrong.** The researcher is told the step began the strategy and the rail says there is none, until a reload: the read is never stale (`staleTime: Infinity`).
+
+**Why it happens.** `lib/api/strategy.ts::writeStrategy` stores the exported strategy with `setQueryData` while the conversation read started at page open is still in flight; that read answers with the older strategy, which has no step, and replaces the written one.
+
+**Fix.** `writeStrategy` cancels the conversation read before it writes; every caller (the export, operations, step-count refreshes, the slash commands) is covered.
+
+**What you'd get.** The rail lists the exported step at once; the spec now holds the first read until the export answers, so it exercises the race every time.
+

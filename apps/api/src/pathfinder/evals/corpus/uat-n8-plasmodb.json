@@ -1,0 +1,57 @@
+{
+  "name": "uat-n8-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Carry these to their orthologs in Toxoplasma gondii ME49."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A transform the site's organism sheet does not reach builds nothing; picking the portal keeps the conversation here and names the portal, with no further question.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "portal"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 116,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n8",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": [
+    {
+      "accept": true,
+      "comment": null,
+      "picks": [
+        "portal"
+      ]
+    }
+  ],
+  "attachments": {},
+  "newConversationBefore": []
+}

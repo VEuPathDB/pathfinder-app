@@ -29,6 +29,12 @@ class LiveStepState(CamelModel):
     parameters: dict[str, str] = Field(default_factory=dict)
     """The values stored on the step, which outrank the name it carries."""
 
+    wdk_step_id: int | None = None
+    """The step's id on the site. ``None`` means the site does not hold it."""
+
+    is_root: bool = False
+    """True for the step whose count is the strategy's count."""
+
 
 class LiveStrategyState(CamelModel):
     """What the strategy actually is, read fresh from the session and the site."""
@@ -58,6 +64,7 @@ async def read_live_state(
     sync_state = session.sync_state
     counts = await read_wdk_step_counts(sync_state, site_id) if sync_state else {}
     refused = sync_state.wdk_push_errors if sync_state else {}
+    root_id = strategy_root_id(graph, sync_state)
     steps = [
         LiveStepState(
             step_id=step.id,
@@ -65,11 +72,12 @@ async def read_live_state(
             search_name=response.search_name,
             estimated_size=citable_count(step.id, counts=counts, refused=refused),
             parameters=wire_map(step.parameters or {}),
+            wdk_step_id=response.wdk_step_id,
+            is_root=step.id == root_id,
         )
         for step in graph.steps.values()
         if (response := build_step_response(graph, step, sync_state)) is not None
     ]
-    root_id = strategy_root_id(graph, sync_state)
     root_count = (
         citable_count(root_id, counts=counts, refused=refused)
         if root_id is not None

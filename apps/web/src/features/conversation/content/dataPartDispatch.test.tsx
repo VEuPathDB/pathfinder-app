@@ -284,6 +284,7 @@ describe("message dispatch", () => {
               significanceThreshold: 0.05,
               totalPoints: 5511,
               retainedPoints: 1543,
+              retainedPointIds: [],
               points: [
                 {
                   pointId: "PF3D7_MIT04200",

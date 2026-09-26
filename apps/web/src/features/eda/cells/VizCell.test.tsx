@@ -61,6 +61,7 @@ const VOLCANO = {
   effectDirection: "upAndDown" as const,
   totalPoints: 5,
   retainedPoints: 3,
+  retainedPointIds: ["PF3D7_0100200", "PF3D7_0100300", "PF3D7_0100400"],
   points: [
     {
       pointId: "PF3D7_0100100",
@@ -112,6 +113,7 @@ function vizResponse(totalPoints: number, overrides: Record<string, unknown> = {
     effectDirection: "upAndDown",
     totalPoints,
     retainedPoints: 3,
+    retainedPointIds: VOLCANO.retainedPointIds,
     points: VOLCANO.points,
     comparison: { groupA: ["normal"], groupB: ["febrile"] },
     ...overrides,
@@ -183,6 +185,7 @@ describe("VizCell reads the figure", () => {
             effectSizeThreshold: 2,
             significanceThreshold: 0.01,
             effectDirection: "upOnly",
+            retainedPointIds: ["PF3D7_0100200"],
           }),
         ),
       ),
@@ -339,14 +342,14 @@ describe("VizCell draws the plot the store holds", () => {
     );
   });
 
-  it("reads out every selected gene with its effect size and p-value", () => {
+  it("reads out every retained gene, in the service's order, with its effect size and p-value", () => {
     useEdaStore.getState().applyViz(VOLCANO);
     render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
     const rows = screen.getAllByTestId(/^eda-volcano-gene-/);
     expect(rows.map((row) => row.textContent)).toEqual([
       "PF3D7_01002003.941.96e-5",
-      "PF3D7_01004002.202.00e-2",
       "PF3D7_0100300-2.501.00e-3",
+      "PF3D7_01004002.202.00e-2",
     ]);
   });
 
@@ -358,9 +361,13 @@ describe("VizCell draws the plot the store holds", () => {
       adjustedPValue: 1e-6,
       retained: true,
     }));
-    useEdaStore
-      .getState()
-      .applyViz({ ...VOLCANO, points, totalPoints: 60, retainedPoints: 60 });
+    useEdaStore.getState().applyViz({
+      ...VOLCANO,
+      points,
+      totalPoints: 60,
+      retainedPoints: 60,
+      retainedPointIds: points.map((point) => point.pointId),
+    });
     render(<VizCell siteId="plasmodb" conversationId="conv-1" />);
     expect(screen.getAllByTestId(/^eda-volcano-gene-/)).toHaveLength(50);
     expect(screen.getByTestId("eda-volcano-readout-cap")).toHaveTextContent(

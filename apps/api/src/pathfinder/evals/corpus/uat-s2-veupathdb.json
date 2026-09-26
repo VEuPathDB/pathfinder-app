@@ -1,0 +1,48 @@
+{
+  "name": "uat-s2-veupathdb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains."
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "Two features joined by 'and' are two searches under one INTERSECT, built in one turn.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": true,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": 4,
+    "unmetRequirements": 0,
+    "rootCount": {
+      "count": 116,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s2",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

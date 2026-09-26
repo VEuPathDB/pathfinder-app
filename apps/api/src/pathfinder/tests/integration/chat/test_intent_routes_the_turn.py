@@ -17,9 +17,12 @@ from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
 _REMEMBER_PROMPT = (
-    "Please remember for future sessions: I always work with P. falciparum 3D7."
+    "Please remember for future sessions: I always work with P. falciparum 3D7. "
+    "[[arc:remember]]"
 )
-_CONTEXT_PROMPT = "I'm investigating virulence factors in Leishmania major"
+_CONTEXT_PROMPT = (
+    "I'm investigating virulence factors in Leishmania major [[arc:context]]"
+)
 _CONTEXT_REPLY = (
     "Good area to be in. I have not built anything yet. Say the word and I "
     "will put a candidate strategy together for it."

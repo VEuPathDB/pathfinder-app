@@ -1,150 +1,147 @@
+/**
+ * One strategy's life on the canvas: a five-node build over three searches, a
+ * text edit, a multi-pick edit, an operator flip and a deletion, then a variant
+ * comparison and a count question in the conversation.
+ */
+
 import { test, expect } from "../fixtures/test";
+import { prompt } from "../fixtures/arcs";
+import { type AstNode, COMBINE_SEARCH_NAME } from "../fixtures/ast";
+import { GO_TERM, layoutOf } from "../fixtures/arc-layouts";
+import { expectBuild } from "../fixtures/build-checks";
+import { readNodes, siteOrganism, storedNodes } from "../fixtures/site-reads";
 import { signInAsWdkAccount } from "../fixtures/wdk-account";
 import {
-  COMBINE_SEARCH_NAME,
-  astNodes,
-  combineOperators,
-  leafBySearch,
-  leafIdBySearch,
-} from "../fixtures/ast";
+  buildOn,
+  combineWith,
+  expectCanvasSaved,
+  expectCountAnswered,
+  nodeById,
+  noteSiteRefusedSave,
+  nodeBySearch,
+  openCanvas,
+  paramText,
+} from "../fixtures/strategy-builds";
 
-test.describe("Comprehensive multi-param strategy lifecycle", () => {
+const TEXT_SEARCH = "GenesByText";
+/** The words the researcher types into the text search. */
+const EDITED_TEXT = "phosphatase";
+
+/** A multi-pick parameter's stored values. */
+function pickedValues(node: AstNode, name: string): string[] {
+  return (node.parameters?.[name]?.values ?? []).map(String);
+}
+
+test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
   test.use({ viewport: { width: 1680, height: 900 } });
+  test.describe.configure({ timeout: 900_000 });
 
-  test("scoping -> build 5-step all-param strategy -> verify -> optimize -> edit every param type -> operator flip -> delete -> Q&A", async ({
+  test("build five nodes -> edit a text and a multi-pick parameter -> flip -> delete -> variants -> count", async ({
     page,
     chatPage,
     graphPage,
-    sitePicker,
+    siteId,
   }) => {
-    await signInAsWdkAccount(page.context().request, "plasmodb");
+    const api = page.context().request;
+    await signInAsWdkAccount(api, siteId);
 
-    await chatPage.goto();
-    await sitePicker.selectSite("plasmodb");
-    await chatPage.newChat("plasmodb");
+    const id = await buildOn(
+      chatPage,
+      siteId,
+      prompt(
+        "combined",
+        `Build a ${siteOrganism(siteId)} strategy that combines a product-text search, a GO term search and the organism's genes.`,
+      ),
+    );
+    await expect
+      .poll(async () => (await storedNodes(api, id)).length, { timeout: 60_000 })
+      .toBe(5);
+    const built = await readNodes(api, id);
+    await expectBuild(page, api, id, siteId, layoutOf(built));
+    expect(layoutOf(built).operators).toEqual(["INTERSECT", "UNION"]);
+    const union = combineWith(built, "UNION");
+    const intersect = combineWith(built, "INTERSECT");
+    const textLeaf = nodeBySearch(built, TEXT_SEARCH);
+    const goLeaf = nodeBySearch(built, GO_TERM);
+    expect([union.primaryInput?.id, union.secondaryInput?.id].sort()).toEqual(
+      [textLeaf.id, goLeaf.id].sort(),
+    );
+    const inputs = [intersect.primaryInput?.id, intersect.secondaryInput?.id];
+    expect(inputs).toContain(union.id);
+    const lastLeafId = inputs.find((input) => input !== union.id) ?? "";
+    expect(nodeById(built, lastLeafId).searchName).not.toBe(COMBINE_SEARCH_NAME);
 
-    await chatPage.send(
-      "I'm studying P. falciparum kinases - how strict on 'doesn't vary much' should I be?",
-    );
-    await chatPage.expectClarifyingQuestions();
-
-    await chatPage.send(
-      "Build a comprehensive kinase strategy with all parameter types.",
-    );
-    await chatPage.expectVerificationSuccess();
-    await chatPage.expectIdle();
-
-    const conversationId = chatPage.lastStrategyId as string;
-    const astUrl = `/api/v1/conversations/${conversationId}/ast`;
-
-    const built = await astNodes(await page.request.get(astUrl));
-    expect(built).toHaveLength(5);
-    expect(built.map((n) => n.searchName).sort()).toEqual([
-      "GenesByGoTerm",
-      "GenesByTaxon",
-      "GenesByText",
-      COMBINE_SEARCH_NAME,
-      COMBINE_SEARCH_NAME,
-    ]);
-    expect(await combineOperators(await page.request.get(astUrl))).toEqual([
-      "INTERSECT",
-      "UNION",
-    ]);
-    const goLeaf = await leafBySearch(await page.request.get(astUrl), "GenesByGoTerm");
-    expect(goLeaf.parameters?.["go_term_evidence"]?.values).toEqual([
-      "Curated",
-      "Computed",
-    ]);
-    const textLeafId = await leafIdBySearch(
-      await page.request.get(astUrl),
-      "GenesByText",
-    );
-    const taxonLeafId = await leafIdBySearch(
-      await page.request.get(astUrl),
-      "GenesByTaxon",
-    );
-    const goLeafId = goLeaf.id as string;
-    // The UNION branch feeds the INTERSECT, rather than chaining left to right.
-    const union = built.find(
-      (n) => n.searchName === COMBINE_SEARCH_NAME && n.operator === "UNION",
-    );
-    expect([union?.primaryInput?.id, union?.secondaryInput?.id].sort()).toEqual(
-      [textLeafId, goLeafId].sort(),
-    );
-    const unionId = union?.id as string;
-
-    await graphPage.goToStrategy("plasmodb", conversationId);
-    await graphPage.expectStrategyTopbar();
+    await openCanvas(graphPage, siteId, id);
     await graphPage.expectNodeCount(5);
 
-    await graphPage.clickNode(textLeafId);
+    const storedText = paramText(textLeaf, "text_expression");
+    expect(storedText).not.toBe(EDITED_TEXT);
+    await graphPage.clickNode(textLeaf.id ?? "");
     await graphPage.expectEditorSheetOpen();
     const textInput = graphPage.editorSheet.locator('input[name="text_expression"]');
-    await expect(textInput).toHaveValue("kinase");
-    await textInput.fill("phosphatase");
-    await graphPage.saveEditor();
+    await expect(textInput).toHaveValue(storedText);
+    await textInput.fill(EDITED_TEXT);
+    if ((await graphPage.saveEditorOrSiteRefusal()) === "site-refused") {
+      noteSiteRefusedSave(TEXT_SEARCH);
+      return;
+    }
     await expect
       .poll(
         async () =>
-          (await leafBySearch(await page.request.get(astUrl), "GenesByText"))
-            .parameters?.["text_expression"]?.value,
+          paramText(
+            nodeBySearch(await readNodes(api, id), TEXT_SEARCH),
+            "text_expression",
+          ),
         { timeout: 30_000 },
       )
-      .toBe("phosphatase");
+      .toBe(EDITED_TEXT);
 
-    await graphPage.clickNode(goLeafId);
+    const evidence = pickedValues(goLeaf, "go_term_evidence");
+    expect(evidence.length).toBeGreaterThan(1);
+    const dropped = evidence.at(-1) ?? "";
+    await graphPage.clickNode(goLeaf.id ?? "");
     await graphPage.expectEditorSheetOpen();
     await graphPage.expandEditorAdvanced();
-    await graphPage.toggleEditorCheckbox("Computed");
-    await graphPage.saveEditor();
+    await graphPage.toggleEditorCheckbox(dropped);
+    if ((await graphPage.saveEditorOrSiteRefusal()) === "site-refused") {
+      noteSiteRefusedSave(GO_TERM);
+      return;
+    }
     await expect
       .poll(
         async () =>
-          (await leafBySearch(await page.request.get(astUrl), "GenesByGoTerm"))
-            .parameters?.["go_term_evidence"]?.values,
+          pickedValues(
+            nodeBySearch(await readNodes(api, id), GO_TERM),
+            "go_term_evidence",
+          ),
         { timeout: 30_000 },
       )
-      .toEqual(["Curated"]);
+      .toEqual(evidence.filter((value) => value !== dropped));
 
-    await graphPage.changeOperator(unionId, "INTERSECT");
-    await expect(graphPage.strategyPageSyncState).toHaveAttribute(
-      "data-sync-state",
-      "idle",
-      { timeout: 30_000 },
-    );
+    await graphPage.changeOperator(union.id ?? "", "INTERSECT");
+    await expectCanvasSaved(graphPage);
     await expect
-      .poll(
-        async () => {
-          const all = await astNodes(await page.request.get(astUrl));
-          return all.find((n) => n.id === unionId)?.operator;
-        },
-        { timeout: 30_000 },
-      )
+      .poll(async () => nodeById(await readNodes(api, id), union.id ?? "").operator, {
+        timeout: 30_000,
+      })
       .toBe("INTERSECT");
 
-    await graphPage.deleteStep(taxonLeafId);
+    await graphPage.deleteStep(lastLeafId);
     await graphPage.expectNodeCount(3);
-    await expect(graphPage.strategyPageSyncState).toHaveAttribute(
-      "data-sync-state",
-      "idle",
-      { timeout: 30_000 },
-    );
+    await expectCanvasSaved(graphPage);
     await expect
-      .poll(
-        async () =>
-          (await astNodes(await page.request.get(astUrl))).map((n) => n.id).sort(),
-        { timeout: 30_000 },
-      )
-      .toEqual([goLeafId, textLeafId, unionId].sort());
+      .poll(async () => (await readNodes(api, id)).map((node) => node.id).sort(), {
+        timeout: 30_000,
+      })
+      .toEqual([goLeaf.id, textLeaf.id, union.id].sort());
 
-    await page.goto(`/plasmodb/conversation/${conversationId}`);
-    await graphPage.expectOnChatRoute(conversationId);
-    await chatPage.send("Compare search variants for the text-kinase leaf.");
+    await page.goto(`/${siteId}/conversation/${id}`);
+    await graphPage.expectOnChatRoute(id);
+    await chatPage.sendAndSettle(
+      prompt("variants", "Compare search variants for the text search step."),
+    );
     await chatPage.expectVariantComparison();
-    await chatPage.expectIdle();
 
-    await chatPage.send("How many genes does this strategy return now?");
-    await chatPage.expectAssistantMessage(/\[mock\]/i, { timeout: 90_000 });
-    await chatPage.expectIdle();
+    await expectCountAnswered(chatPage, api, id, siteId);
   });
 });

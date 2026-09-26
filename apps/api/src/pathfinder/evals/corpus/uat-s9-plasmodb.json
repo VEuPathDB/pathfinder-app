@@ -1,0 +1,55 @@
+{
+  "name": "uat-s9-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide, excluding any gene with 2 to 99 transmembrane domains.",
+    "Change the transmembrane range to 1 to 99."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A parameter edit changes one step's value and keeps the layout and the other criterion.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide MINUS GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByTransmembraneDomains": {
+        "min_tm": "1"
+      }
+    },
+    "replyMentions": [
+      "signal peptide"
+    ],
+    "replyOmits": [
+      "transcripts"
+    ],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "MINUS",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 191,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-standard.md#s9",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -103,6 +103,132 @@ Result: `pass`, `fail`, `blocked` or `re-measure`. Bug ids: the tracker's, comma
 | L1 to L5 | once | | |
 | H1 | both accounts | | |
 
+## Flows under test
+
+Where each flow runs without a runner. The e2e spec drives the flow on the mock stack (only the model is mocked; `@turn` tests run once per site in `E2E_SITES`, plasmodb and vectorbase in CI). The model check runs the flow on the real model before a release, from a machine that holds the key, against the recorded expectation. The fault spec plays a wrong model and asserts the guard that corrects it. `none` names why a flow stays with the runner; `-` in the model-check column marks a flow whose expectation is not a model decision, and in the fault column a flow with no guard of its own; every fault test is in `apps/web/e2e/uat/faults.spec.ts`.
+
+| Flow | e2e spec | model check | fault spec |
+|---|---|---|---|
+| F1 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F2 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F3 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F4 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F5 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F6 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F7 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F8 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F9 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F10 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F11 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| F12 | `apps/web/e2e/uat/first-run.spec.ts`; step 8 needs a second VEuPathDB account | - | - |
+| S1 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s1-{plasmodb,vectorbase,toxodb,fungidb,veupathdb}` | `transcript-count`, `misstated-count`, `unlisted-search`, `value-as-term`, `off-vocabulary` |
+| S2 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s2-{plasmodb,vectorbase,toxodb,fungidb,veupathdb}` | `long-reason` |
+| S3 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s3-plasmodb` | - |
+| S4 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s4-plasmodb` | - |
+| S5 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s5-{plasmodb,vectorbase,toxodb,fungidb,veupathdb}` | - |
+| S6 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s6-plasmodb` | - |
+| S7 | `apps/web/e2e/uat/strategy-standard.spec.ts` | - | - |
+| S8 | `apps/web/e2e/uat/strategy-standard.spec.ts` | - | - |
+| S9 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s9-plasmodb` | - |
+| S10 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s10-plasmodb` | - |
+| S11 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s11-plasmodb` | - |
+| S12 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s12-plasmodb` | - |
+| S13 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s13-plasmodb` | - |
+| S14 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s14-plasmodb` | - |
+| S15 | `apps/web/e2e/uat/strategy-standard.spec.ts` | `uat-s15-plasmodb` | - |
+| S16 | `apps/web/e2e/uat/strategy-standard.spec.ts` | - | - |
+| N1 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n1-plasmodb` | `short-card-reply` |
+| N2 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n2-plasmodb` | - |
+| N3 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n3-plasmodb` | the `cross-organism` arc (FND-4) |
+| N4 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n4-plasmodb` | - |
+| N5 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n5-plasmodb` | `misnamed-deletion` |
+| N6 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | the `live_model` judge test in the same pre-release run | - |
+| N7 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n7-plasmodb` | `short-card-reply` (FND-14, also seen here) |
+| N8 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n8-plasmodb` | the `portal-only` arc (FND-12) |
+| N9 | `apps/web/e2e/uat/strategy-exceptions.spec.ts`; step 2 on the mock stack holds that every stored step runs a search plasmodb lists; that plasmodb builds nothing is the model check's | `uat-s2-toxodb` (step 1), `uat-n9-plasmodb` (step 2) | - |
+| N10 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n10-plasmodb` | - |
+| N11 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n11-plasmodb` | - |
+| N12 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n12-toxodb` | - |
+| N13 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n13-plasmodb` | - |
+| V1 | `apps/web/e2e/uat/verification.spec.ts` | - | `all-unclear` |
+| V2 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v2-plasmodb` | `repeat-control-test`, `unbacked-controls` |
+| V3 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v3-plasmodb` | `sweep-without-controls` |
+| V4 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v4-plasmodb` | - |
+| V5 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v5-plasmodb` | - |
+| V6 | none: the research tool source is not on the e2e stack | `uat-v6-plasmodb` | - |
+| V7 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v7-plasmodb` | - |
+| E1 | `apps/web/e2e/uat/eda.spec.ts` | - | - |
+| E2 | `apps/web/e2e/uat/eda.spec.ts` | `uat-e2-plasmodb` | `all-unclear` (FND-6, also seen here) |
+| E3 | `apps/web/e2e/uat/eda.spec.ts` | - | - |
+| E4 | `apps/web/e2e/uat/eda.spec.ts` | `uat-e4-plasmodb` | - |
+| E5 | none: step 2 is an edit on the site's own page; steps 3 and 4 are `apps/web/e2e/feature/eda-read-only-tab.spec.ts`, route-mocked | - | - |
+| E6 | none: a VDI upload installs on the site | - | - |
+| E7 | none: needs the E6 upload | - | - |
+| E8 | `apps/web/e2e/uat/eda.spec.ts` | `uat-e8-plasmodb` | the `eda-other-site` arc (FND-11) |
+| M1 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
+| M2 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
+| M3 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
+| M4 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
+| M5 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
+| M6 | `apps/web/e2e/uat/memory-notes.spec.ts` | `uat-m6-plasmodb` | - |
+| C1 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C2 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C3 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C4 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C5 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C6 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C7 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C8 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C9 | `apps/web/e2e/uat/composer.spec.ts` | `uat-c9-plasmodb` | `short-card-reply` (FND-14, also seen here) |
+| C10 | `apps/web/e2e/uat/composer.spec.ts` | `uat-c10-plasmodb` | - |
+| C11 | `apps/web/e2e/uat/composer.spec.ts` | `uat-c11-plasmodb` | - |
+| C12 | `apps/web/e2e/uat/composer.spec.ts` | `uat-c12-plasmodb` | - |
+| C13 | `apps/web/e2e/uat/composer.spec.ts` | `uat-c13-plasmodb` | - |
+| C14 | `apps/web/e2e/uat/composer.spec.ts` | `uat-c14-plasmodb` | - |
+| C15 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| C16 | `apps/web/e2e/uat/composer.spec.ts` | - | - |
+| A1 | `apps/web/e2e/uat/settings-account.spec.ts`; steps 2 to 4 need a real model | `uat-a1-plasmodb` (steps 2 to 4) | - |
+| A2 | `apps/web/e2e/uat/settings-account.spec.ts`; step 1 only; the e2e stack runs with personal keys off | - | - |
+| A3 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
+| A4 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
+| A5 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
+| A6 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
+| A7 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
+| G1 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | `uat-g1-plasmodb` | - |
+| G2 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | - | - |
+| G3 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | - | - |
+| G4 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | - | - |
+| X1 | `apps/web/e2e/uat/cross-site.spec.ts`; the mock stack holds that every stored step runs a search the site lists and that other sites' experiments are labelled and never bound; which experiment ranks first and whether plasmodb builds nothing are the model check's (the fake embedder ranks by name) | `uat-x1-vectorbase`, `uat-e8-plasmodb` (the plasmodb half) | - |
+| X2 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s2-{plasmodb,vectorbase,toxodb,fungidb}` | - |
+| X3 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-vectorbase`, `uat-s5-toxodb` | `all-unclear` (FND-6, also seen here) |
+| X4 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-fungidb` | - |
+| X5 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-s5-veupathdb` (step 1), `uat-x5-veupathdb` (step 2) | `syntenic-left-off` |
+| X6 | `apps/web/e2e/uat/cross-site.spec.ts` | `uat-x6-vectorbase`, `uat-n8-plasmodb` (the plasmodb half) | - |
+| R1 | none: an operator takes a site down | - | - |
+| R2 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| R3 | none: needs a provider key | - | - |
+| R4 | none: an operator stops the worker | - | - |
+| R5 | none: thirty real edits | - | - |
+| R6 | `apps/web/e2e/uat/first-run.spec.ts` | - | - |
+| R7 | none: needs a slow site | - | - |
+| R8 | none: an operator spends the allowance | - | - |
+| D1 | none: a check against the deployment | - | - |
+| D2 | none: a check against the deployment | - | - |
+| D3 | none: a check against the deployment | - | - |
+| D4 | none: a check against the deployment | - | - |
+| D5 | none: a check against the deployment | - | - |
+| D6 | none: a check against the deployment | - | - |
+| D7 | none: a check against the deployment | - | - |
+| D8 | none: a check against the deployment | - | - |
+| D9 | none: a check against the deployment | - | - |
+| D10 | none: a check against the deployment | - | - |
+| D11 | none: a check against the deployment | - | - |
+| L1 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
+| L2 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
+| L3 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
+| L4 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
+| L5 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
+
 ## Coverage
 
 Where each rule, card, background tool, thread part, command, settings tab and refusal is exercised. `code only` marks an invariant no screen can show; its test in the repository holds it.

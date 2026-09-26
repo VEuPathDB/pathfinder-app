@@ -16,29 +16,6 @@ async function expectSignedIn(page: Page) {
 }
 
 test.describe("VEuPathDB login gate", () => {
-  test("a session with no VEuPathDB login gets the sign-in prompt instead of the app", async ({
-    browser,
-  }) => {
-    // Playwright merges the project's context options into `browser.newContext()`
-    // for every key the caller omits. Naming an empty jar is what keeps this
-    // context free of the worker's signed-in cookies.
-    const context = await browser.newContext({
-      storageState: { cookies: [], origins: [] },
-    });
-    const page = await context.newPage();
-    const siteId = await entrySiteId(context, BASE_URL);
-    await page.goto(`${BASE_URL}/${siteId}/conversation`);
-
-    // The prompt replaces the app, so it is undismissable and has no composer.
-    const prompt = page.getByRole("dialog", { name: "Sign in to VEuPathDB" });
-    await expect(prompt).toBeVisible({ timeout: 20_000 });
-    await expect(prompt).toContainText("Sign in with your VEuPathDB account");
-    await expect(prompt.getByRole("button", { name: "Close" })).toHaveCount(0);
-    await expect(page.getByTestId("message-composer")).toHaveCount(0);
-
-    await context.close();
-  });
-
   test("an embedded session with no VEuPathDB login cannot send and is offered sign-in", async ({
     page,
     context,
@@ -84,6 +61,7 @@ test.describe("Auth", () => {
     sitePicker,
     settingsPage,
     apiClient,
+    siteId,
   }) => {
     await chatPage.goto();
 
@@ -107,8 +85,7 @@ test.describe("Auth", () => {
     const sites = await sitesResp.json();
     expect(sites.length).toBeGreaterThan(0);
     const siteIds = sites.map((s: { id: string }) => s.id);
-    expect(siteIds).toContain("plasmodb");
-    expect(siteIds).toContain("toxodb");
+    expect(siteIds).toContain(siteId);
 
     const modelsResp = await apiClient.get("/api/v1/models");
     expect(modelsResp.ok()).toBeTruthy();

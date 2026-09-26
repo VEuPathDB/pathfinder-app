@@ -35,6 +35,7 @@ from pathfinder.ai.lead.contract_messages import (
     unstated_qualifier_message,
     unverified_build_message,
 )
+from pathfinder.ai.lead.count_claims import misstated_count_message, misstated_counts
 from pathfinder.ai.lead.deleted_steps import misnamed_removal
 from pathfinder.ai.lead.evidence_claims import (
     control_claims,
@@ -137,6 +138,7 @@ MismatchKind = Literal[
     "unbacked_evidence",
     "misnamed_deletion",
     "counted_in_the_wrong_unit",
+    "misstated_count",
 ]
 
 
@@ -362,6 +364,21 @@ def _counted_in_the_wrong_unit(report: LeadResponse, record: TurnRecord) -> str 
     return counted_in_the_wrong_unit_message(record.record_type, noun, wrong)
 
 
+def _misstated_count(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A count the reply states for the strategy is one a step of it holds, or
+    held when the message arrived."""
+    if not record.record_type or not record.step_counts:
+        return None
+    noun = counted_noun(record.record_type)
+    stated = misstated_counts(
+        report.prose,
+        noun=noun,
+        record_type=record.record_type,
+        held=(*record.step_counts, *record.counts_at_arrival),
+    )
+    return misstated_count_message(noun, stated, record.step_counts) if stated else None
+
+
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -384,6 +401,7 @@ _RULES: tuple[
     ("unbacked_evidence", _unbacked_evidence),
     ("misnamed_deletion", _misnamed_deletion),
     ("counted_in_the_wrong_unit", _counted_in_the_wrong_unit),
+    ("misstated_count", _misstated_count),
 )
 
 

@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-import { findConsultRecap, findPendingConsult } from "./consultData";
+import { findConsultRecap, findPendingConsult, findProposal } from "./consultData";
 
 function assistant(parts: UIMessage["parts"]): UIMessage {
   return { id: "m1", role: "assistant", parts };
@@ -113,5 +113,33 @@ describe("findConsultRecap", () => {
       },
     ]);
     expect(findConsultRecap(message)).toBe(null);
+  });
+});
+
+describe("findProposal", () => {
+  it("reads the card off the arguments propose_changes advertises", () => {
+    // pydantic-ai flattens the one model argument, so the fields sit at the top.
+    const message = assistant([
+      {
+        type: "tool-propose_changes",
+        toolCallId: "call-7",
+        state: "approval-requested",
+        approval: { id: "appr-7" },
+        input: {
+          reply: "One change would make this strategy more specific.",
+          question: "Add one more search to make this strategy more specific?",
+          proposedChanges: ["Keep only the genes another search of the site returns"],
+        },
+      },
+    ]);
+
+    expect(findProposal(message, "call-7")).toEqual({
+      proposal: {
+        question: "Add one more search to make this strategy more specific?",
+        proposedChanges: ["Keep only the genes another search of the site returns"],
+      },
+      decision: "pending",
+      approvalId: "appr-7",
+    });
   });
 });

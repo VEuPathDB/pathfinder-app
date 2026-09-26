@@ -21,10 +21,6 @@ from assistant_core.graph.turn_state import (
     SubAgentApprovalPending,
 )
 from assistant_core.models.capture import maybe_wrap_model
-from assistant_core.models.scripted import (
-    current_scope_id,
-    current_user_text,
-)
 from assistant_core.platform.logging import get_logger
 from langgraph.config import get_stream_writer
 from pydantic import BaseModel
@@ -44,6 +40,7 @@ from pydantic_ai.usage import RunUsage
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_events import (
     _announce_approval,
     _close_answered_approval,
@@ -311,10 +308,7 @@ async def stream_sub_agent[OutputT: BaseModel](
     baseline = deps.sub_agent_usage_by_call.get(
         parent_tool_call_id, SubAgentCallUsage()
     )
-    # The mock model reads these to pick a site-valid search and branch its
-    # canned plan.
-    current_scope_id.set(deps.runtime.site_id)
-    current_user_text.set(deps.state.user_prompt)
+    bind_scripted_scope(deps.runtime.site_id, deps.state.user_prompt)
     emit_chunk(
         writer,
         turn_status_event(

@@ -1,0 +1,51 @@
+{
+  "name": "uat-n4-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with 30 to 99 transmembrane domains.",
+    "Relax the minimum to 15 transmembrane domains."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A zero result is said, and relaxing the threshold edits the same step to a result the site returns.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByTransmembraneDomains",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByTransmembraneDomains": {
+        "min_tm": "15"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 9,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n4",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -17,7 +17,7 @@ from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.step_rationale import said_beside
 from pathfinder.domain.strategy.step_words import StepWords
-from pathfinder.evals.case import EvalCase
+from pathfinder.evals.case import EvalCase, GateEnd
 from pathfinder.evals.distance import (
     ComparisonNode,
     StrategyDistance,
@@ -69,6 +69,11 @@ def root_operator(ast: StrategyAst) -> str | None:
     if root.infer_kind() != "combine" or root.operator is None:
         return None
     return root.operator.value
+
+
+def root_count(ast: StrategyAst) -> int | None:
+    """The count the site answered for the root step, or None when it answered none."""
+    return (ast.step_counts or {}).get(ast.root.id)
 
 
 def final_count_below_every_input(ast: StrategyAst) -> bool | None:
@@ -127,6 +132,9 @@ class ObservedOutcome(CamelModel):
     # The requirement rows of the check on the strategy, or None when no check
     # judged it.
     requirements: RequirementCounts | None = None
+    root_count: int | None = None
+    # None when the last turn stopped on a gate no card shows, such as a task.
+    ends_on: GateEnd | None = None
 
 
 class CaseDifference(CamelModel):
@@ -185,6 +193,7 @@ def _value_differences(
             expected.final_count_below_every_input,
             observed.final_count_below_every_input,
         ),
+        ("endsOn", expected.ends_on, observed.ends_on),
     )
     return [
         CaseDifference(field=field, expected=str(want), actual=str(got))
@@ -397,6 +406,7 @@ __all__ = [
     "RequirementCounts",
     "final_count_below_every_input",
     "requirement_counts",
+    "root_count",
     "root_operator",
     "score_case",
     "step_reasons",

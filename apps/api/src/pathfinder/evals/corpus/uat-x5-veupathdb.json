@@ -1,0 +1,52 @@
+{
+  "name": "uat-x5-veupathdb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Carry these to their syntenic orthologs in Toxoplasma gondii ME49."
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "Syntenic orthologs across two genera are an empty transform, and the reply says 0 and why.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByOrthologs((GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains))",
+    "recordType": "transcript",
+    "stepCount": 4,
+    "verified": false,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologs": {
+        "organism": "Toxoplasma gondii ME49",
+        "isSyntenic": "yes"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 0,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-cross-site.md#x5",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

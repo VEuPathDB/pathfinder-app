@@ -1,0 +1,46 @@
+{
+  "name": "uat-n2-plasmodb",
+  "turns": [
+    "Find P. falciparum 3D7 genes with a predicted GPI anchor"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A feature no search states is named as missing, and no step is titled with it.",
+  "expected": {
+    "buildsStrategy": null,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "GPI"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [
+      "GPI"
+    ],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n2",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

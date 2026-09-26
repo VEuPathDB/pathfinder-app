@@ -149,3 +149,20 @@ async def test_an_unsynced_strategy_reads_nothing_and_stays_fresh() -> None:
     )
 
     assert refreshed.domain.stale_build is None
+
+
+async def test_the_hook_records_the_counts_the_site_held_when_the_message_arrived(
+    monkeypatch: Any,
+) -> None:
+    api = AsyncMock()
+    api.get_strategy = AsyncMock(return_value=_details({11: 587}))
+    monkeypatch.setattr(
+        "pathfinder.services.strategies.live_counts.get_strategy_api",
+        lambda site_id: api,
+    )
+
+    refreshed = await refresh_live_strategy_state(
+        _state(), _context(_session(synced=True))
+    )
+
+    assert refreshed.turn_markers.counts_at_arrival == [587]

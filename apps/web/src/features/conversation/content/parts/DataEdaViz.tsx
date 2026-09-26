@@ -14,7 +14,7 @@ import type {
   VolcanoThresholds,
 } from "@/lib/components/charts/types";
 import { comparisonLine } from "@/lib/eda/comparison";
-import { selectVolcanoGenes } from "@/lib/eda/volcanoSelection";
+import { selectedGeneIds } from "@/lib/eda/volcanoSelection";
 import { useEdaStore, useHydrateEdaPart } from "@/state/eda";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
@@ -159,7 +159,7 @@ function VolcanoReadouts({
   data: EdaViz;
   thresholds: VolcanoThresholds;
 }) {
-  const { selected } = selectVolcanoGenes(data.points, thresholds);
+  const selected = selectedGeneIds(data, thresholds);
   const listed = selected.slice(0, GENE_LIST_LIMIT);
   const hidden = selected.length - listed.length;
 

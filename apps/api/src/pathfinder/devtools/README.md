@@ -71,7 +71,7 @@ No DB and no re-run needed to inspect a past run - the files are the interface.
 | `--capture-wdk` | also record raw WDK httpx round-trips to `wdk/`. |
 | `--via-worker` | run the turn through the **real worker** (defers a `chat_turn:run` job) instead of in-process, so **durable tools actually execute** (enrichment, control tests, optimization) and verification can complete. The worker writes `llm/` to the shared run-dir (captures the durable resumes too - the post-result phase agents); the devtool waits for the turn to settle, then replays the persisted `conversation_events` into `events.jsonl`/`tools/`/`diagnosis`. Use this whenever the in-process run can't finish because a durable tool raises (the `AppNotOpen`/stub case). Requires the worker container running. |
 | `--capture-llm` | (in-process runs) record the exact LLM I/O per call to `llm/NN-<role>-{request,response}.json` - the full system prompt (`instructions`), the complete typed message history **as the model receives it** (incl. `tool-return` / `retry-prompt` parts - i.e. whether the model actually sees an error/directive), the tool definitions offered, model settings, and the response parts + usage + finish reason. The ground-truth plane for "does the model truly see X". Read with `inspect <dir> --llm [role]`. |
-| `--mock` | use the deterministic FunctionModel (free; also sets `API_ENV=test`). Default is the real configured provider. |
+| `--mock` | use the scripted model (free; also sets `API_ENV=test`). It routes on a token in the prompt, `[[arc:<name>]]` from the registry in `ai/models/mock/registry.py` (with an optional `[[fault:<name>]]`); a prompt with no token is echoed. Default is the real configured provider. |
 | `--email` / `--password` | WDK login override; default to `WDK_DEV_EMAIL` / `WDK_DEV_PASSWORD` (set in `.env.dev`). |
 | `--assistant <id>` | which assistant to run. It applies when the thread is new; naming another assistant than an existing thread's is refused. Default: the registry's default. |
 | `--quiet` | suppress the live trace; still writes artifacts + prints the summary. |
@@ -238,18 +238,45 @@ docker compose --env-file .env.dev exec -T api uv run python -m pathfinder.devto
   # --turn "first message" --turn "second message" overrides the staged requests
 docker compose --env-file .env.dev exec -T api uv run python -m pathfinder.devtools.evals corpus
 docker compose --env-file .env.dev exec -T api uv run python -m pathfinder.devtools.evals run \
-  --out /data/pf-runs/evals/summary.json
+  --via-worker --only uat-s2-plasmodb --out /data/pf-runs/evals/summary.json
 ```
 
 `extract` runs one extraction pass by hand; the worker runs it daily on the
 `maintenance` queue.
 
-**A run under the deterministic provider tests the pipeline, not the model.**
-The mock is a script that routes on keywords, so a green run says the routing,
-the materialisation, the persistence and the reported verdict still behave. The
-corpus is provider-agnostic: a real-model run is the same command with a
-different provider (`--real`), and `--effort none|low|medium|high` runs every
-role of every case at one effort, as the chat debugger's flag does.
+**A run is always on the configured provider.** The mock routes by an explicit
+marker, so a corpus prompt reaches no arc there; the e2e suite and the unit tier
+hold what the pipeline checks. A run needs a VEuPathDB login
+(`WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD`), as the chat debugger does.
+
+| flag | effect |
+|------|--------|
+| `--only NAME ...` | the cases to run; every case when absent |
+| `--effort none\|low\|medium\|high` | every role of every case at one effort; wins over the case's `effort` |
+| `--via-worker` | every turn through the real worker, so durable tools execute (control tests, sweeps, separations, EDA computes) |
+| `--out FILE` | writes `EvalRunSummary` as JSON |
+
+A case can name how it runs, each field compared or applied only when set:
+
+| field | meaning |
+|-------|---------|
+| `effort` | the effort the case was measured at |
+| `gates` | `auto` answers every gate as `--approve auto` does; `stop` leaves the last turn's gate unanswered; a list answers the case's cards in order through `respond`: `{accept, comment}` an approval or offer card (`--accept`, `--deny --reason`), `{picks}` a question card (`--answer QID=VALUE`, each question taking the options whose label holds a pick, else its recommended ones); a card past the last answer, or of another kind, is left unanswered |
+| `newConversationBefore` | the turns that open a new conversation for the same researcher, so a memory is read across threads |
+| `attachments` | turn index to file names under `evals/corpus/files/`, sent as the composer attaches them |
+| `expected.rootCount` | `{count, build, measuredOn}`: the root count a flow recorded, the site build it held on, and the date it was read |
+| `expected.endsOn` | `none`, `consult`, `approval` or `proposal` (an offer card): the gate the last turn stopped on |
+
+**A verdict is `pass`, `re-measure` or `fail`.** The run reads each site's
+`buildNumber` once (`services/wdk_build.py`). Any difference but the root count
+fails: a changed tree, a missing phrase, a wrong unit, a gate that did not come.
+With only the count off, the same build fails, a new build within the larger of
+5 genes or 10 % passes, and a new build outside it is a `re-measure` (the exit
+criteria's rules for a count that moved). The summary counts `reMeasure` beside
+`passed`, `failed` and `errored`. Each case carries its `observedCount` and, whenever it differs from the recorded count, `countDrift`, which names both counts with their builds, a pass inside the band included.
+
+The `uat-<flow>-<site>` cases are the model-driven UAT flows, written from the
+flow tables under `docs/knowledge/uat/`; their provenance names the flow.
 
 ---
 

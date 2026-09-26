@@ -7,7 +7,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import (
+    CaseProvenance,
+    EvalCase,
+    ExpectedOutcome,
+    GateAnswer,
+)
+from pathfinder.evals.redaction import RedactionFailedError
 from pathfinder.evals.store import (
     CORPUS_DIR,
     case_names,
@@ -102,3 +108,56 @@ def test_every_shipped_case_states_its_turns() -> None:
     for case in load_corpus():
         assert case.turns
         assert all(turn.strip() for turn in case.turns)
+
+
+_EMAIL = "someone@example.org"
+
+
+@pytest.mark.parametrize(
+    "update",
+    [
+        {"turns": [f"write to {_EMAIL}"]},
+        {"rationale": f"asked by {_EMAIL}"},
+        {"expected": ExpectedOutcome(builds_strategy=True, reply_mentions=[_EMAIL])},
+        {"expected": ExpectedOutcome(builds_strategy=True, reply_omits=[_EMAIL])},
+        {"expected": ExpectedOutcome(builds_strategy=True, step_titles_omit=[_EMAIL])},
+        {
+            "expected": ExpectedOutcome(
+                builds_strategy=True,
+                parameters={"GenesByText": {"text_expression": _EMAIL}},
+            )
+        },
+        {"attachments": {0: [f"{_EMAIL}.csv"]}},
+        {"gates": [GateAnswer(accept=False, comment=f"ask {_EMAIL}")]},
+        {"gates": [GateAnswer(picks=[_EMAIL])]},
+        {
+            "provenance": CaseProvenance(
+                site="plasmodb",
+                assistant="pathfinder",
+                origin="promoted",
+                staging_id="0f0f",
+                added_at="2026-08-23",
+                curator_note=f"from {_EMAIL}",
+            )
+        },
+    ],
+    ids=[
+        "turn",
+        "rationale",
+        "reply-mentions",
+        "reply-omits",
+        "step-titles-omit",
+        "parameter-value",
+        "attachment-name",
+        "gate-comment",
+        "question-pick",
+        "curator-note",
+    ],
+)
+def test_every_free_text_field_is_checked_for_an_identity(
+    update: dict[str, object],
+) -> None:
+    case = _case("a-case").model_copy(update=update)
+
+    with pytest.raises(RedactionFailedError, match="email"):
+        case.assert_de_identified()

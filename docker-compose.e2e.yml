@@ -20,17 +20,22 @@
 #     -f docker-compose.e2e.yml \
 #     up -d --build --wait api worker web
 #   cd apps/web && export WDK_TEST_TOKEN=... && yarn test:e2e
+#
+# CI builds the two images once, loads them on every shard runner, and starts
+# the stack with --no-build, so the image names below are what a shard runs.
 
 services:
   api:
+    image: pathfinder-e2e-api:ci
+    pull_policy: never
     environment:
       API_ENV: test
       PATHFINDER_CHAT_PROVIDER: mock
       # The suite carries no API key, so every vector is the deterministic one.
       EMBEDDING_BACKEND: fake
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test
-      # The suite drives the portal plus five component sites; warming the
-      # other catalogs would only slow the boot.
+      # The suite drives only the sites this file lists; warming the other
+      # catalogs would only slow the boot.
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml
     volumes:
       - ./e2e-sites.yaml:/app/e2e-sites.yaml:ro
@@ -42,19 +47,34 @@ services:
       start_period: 120s
 
   worker:
+    image: pathfinder-e2e-api:ci
+    pull_policy: never
     environment:
       API_ENV: test
       PATHFINDER_CHAT_PROVIDER: mock
       EMBEDDING_BACKEND: fake
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/pathfinder_test
       VEUPATHDB_SITES_CONFIG: /app/e2e-sites.yaml
+      # The measured capacity of one runner at two Playwright workers
+      # (docs/knowledge/decisions/the-e2e-stack-serves-the-production-build.md).
+      WORKER_CONCURRENCY: "8"
     volumes:
       - ./e2e-sites.yaml:/app/e2e-sites.yaml:ro
 
   web:
+    image: pathfinder-e2e-web:ci
+    pull_policy: never
     build:
       # Overrides the dev overlay's `dev` target when both files are layered.
       target: runner
+    # The image's own check, polled every 5 s so `up --wait` returns soon
+    # after the first render.
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))\""]
+      interval: 5s
+      timeout: 30s
+      retries: 10
+      start_period: 60s
 
   db:
     environment:

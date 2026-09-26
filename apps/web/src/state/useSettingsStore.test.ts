@@ -1,5 +1,8 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, it, expect, beforeEach } from "vitest";
-import { useSettingsStore } from "./useSettingsStore";
+import { resetAllPersistedSettings, useSettingsStore } from "./useSettingsStore";
 
 beforeEach(() => {
   useSettingsStore.getState().resetToDefaults();
@@ -63,5 +66,18 @@ describe("state/useSettingsStore", () => {
     expect(s.showRawToolCalls).toBe(false);
     expect(s.phaseModels).toEqual({});
     expect(s.phaseReasoning).toEqual({});
+  });
+
+  it("resetAllPersistedSettings removes the stored model picks", () => {
+    useSettingsStore.getState().setPhaseModel("lead", "openai:gpt-5.4");
+    expect(window.localStorage.getItem("pathfinder-settings-20260625")).toContain(
+      "openai:gpt-5.4",
+    );
+
+    resetAllPersistedSettings();
+
+    expect(
+      Object.keys(window.localStorage).filter((key) => key.startsWith("pathfinder-")),
+    ).toEqual([]);
   });
 });

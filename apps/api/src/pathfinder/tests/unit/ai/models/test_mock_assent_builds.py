@@ -25,11 +25,11 @@ from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
 
 ASSENT = (
     "Yes, rerun the differential expression and then create the strategy step "
-    "from the genes that pass."
+    "from the genes that pass. [[arc:assent]]"
 )
 IMPERATIVE = (
     "Please run the differential expression now and add the resulting genes "
-    "as a step in my strategy."
+    "as a step in my strategy. [[arc:assent]]"
 )
 
 _LEAD_TOOLS = (
@@ -64,9 +64,11 @@ def scoped_text(request: pytest.FixtureRequest) -> Generator[str]:
 
 
 def _next_call(messages: list[ModelMessage]) -> ToolCallPart:
-    part = PATHFINDER_SCRIPT.response_part(messages, _info())
-    assert isinstance(part, ToolCallPart)
-    return part
+    match PATHFINDER_SCRIPT.response_part(messages, _info()):
+        case ToolCallPart() as call:
+            return call
+        case text:
+            raise AssertionError(text)
 
 
 @pytest.mark.parametrize("scoped_text", [ASSENT, IMPERATIVE], indirect=True)

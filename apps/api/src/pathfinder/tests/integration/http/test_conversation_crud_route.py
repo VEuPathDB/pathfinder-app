@@ -125,7 +125,8 @@ async def test_other_user_cannot_read_conversation(
 
     async with _client_for(app, other.id) as intruder:
         resp = await intruder.get(f"/api/v1/conversations/{conv_id}")
-    assert resp.status_code in (403, 404)
+    assert resp.status_code == 403
+    assert resp.json()["code"] == "FORBIDDEN"
 
 
 async def _link_to_wdk(api_client: httpx.AsyncClient, name: str, wdk_id: int) -> str:

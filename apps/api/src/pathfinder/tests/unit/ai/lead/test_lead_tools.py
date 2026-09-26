@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from assistant_core.graph.stream_events import ToolSummaryPayload
@@ -16,9 +17,11 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
+from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
+from pathfinder.ai.models.mock.kept_arcs import SAVED_GENE_SET_NAME
 from pathfinder.ai.tools.standalone import export, gene_record, gene_sets
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
 from pathfinder.ai.tools.toolsets import execution
@@ -201,7 +204,8 @@ async def test_clearing_without_confirmation_is_a_retry() -> None:
     assert sorted(graph.steps) == ["step_a"]
 
 
-_SAVE_REQUEST = "Save the 155 genes as a gene set called gametocyte candidates."
+_SAVE_REQUEST = "Save the genes of this strategy as a gene set. [[arc:save-gene-set]]"
+_ROOT_GENES = ["PF3D7_0709000", "PF3D7_1133400"]
 
 
 async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_toolset(
@@ -210,7 +214,14 @@ async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_tools
     """The scripted turn runs on the real Lead and its real registrations."""
     saved: list[GeneSet] = []
     monkeypatch.setattr(gene_sets, "store_gene_set", saved.append)
-    deps = lead_deps(pipeline_state(user_prompt=_SAVE_REQUEST))
+    monkeypatch.setattr(gene_sets, "step_gene_ids", AsyncMock(return_value=_ROOT_GENES))
+    monkeypatch.setattr(
+        gene_sets, "visible_parameter_names", AsyncMock(return_value=set())
+    )
+    deps = lead_deps(
+        pipeline_state(user_prompt=_SAVE_REQUEST), strategy_session=_cleared_session()
+    )
+    bind_scripted_scope("plasmodb", _SAVE_REQUEST)
 
     result = await build_lead_agent().run(
         _SAVE_REQUEST,
@@ -219,19 +230,22 @@ async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_tools
     )
 
     assert isinstance(result.output, LeadResponse)
-    assert [(gs.name, gs.gene_ids) for gs in saved] == [
-        ("mock gene set", ["PF3D7_0709000", "PF3D7_1133400"]),
+    assert [(gs.name, gs.gene_ids, gs.wdk_step_id) for gs in saved] == [
+        (SAVED_GENE_SET_NAME, _ROOT_GENES, 100),
     ]
     assert saved[0].user_id == deps.runtime.user_id
     assert [gs.id for gs in deps.created_gene_sets] == [saved[0].id]
 
 
-_CONTEXT_STATEMENT = "I'm investigating virulence factors in Leishmania major."
+_CONTEXT_STATEMENT = (
+    "I'm investigating virulence factors in Leishmania major. [[arc:context]]"
+)
 
 
 async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None:
     """The mock script classifies without a message text and answers once."""
     deps = lead_deps(pipeline_state(user_prompt=_CONTEXT_STATEMENT))
+    bind_scripted_scope("plasmodb", _CONTEXT_STATEMENT)
 
     result = await build_lead_agent().run(
         _CONTEXT_STATEMENT,
@@ -251,7 +265,9 @@ async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None
     assert deps.intent.classification is IntentClassification.CONTEXT_STATEMENT
 
 
-_EXPORT_REQUEST = "Export the gene set 'gametocyte secreted candidates' as a CSV."
+_EXPORT_REQUEST = (
+    "Export the gene set 'gametocyte secreted candidates' as a CSV. [[arc:export]]"
+)
 _EXPORT_URL = "https://pathfinder.example.org/api/v1/exports/e1"
 
 
@@ -276,7 +292,7 @@ class _ExportService:
 @pytest.fixture
 def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
     saved = GeneSet(
-        id="gs_mock_export",
+        id="gs_saved_export",
         name="gametocyte secreted candidates",
         site_id="plasmodb",
         gene_ids=["PF3D7_0709000", "PF3D7_1133400"],
@@ -288,6 +304,9 @@ def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(export, "get_gene_set", _one)
     monkeypatch.setattr(export, "get_export_service", _ExportService)
+    monkeypatch.setattr(
+        gene_sets, "list_stored_gene_sets", AsyncMock(return_value=[saved])
+    )
 
 
 @pytest.mark.usefixtures("_exportable_gene_set")
@@ -296,6 +315,7 @@ async def test_an_export_request_reaches_the_export_tool_and_answers_with_the_li
 ):
     """A saved set is exported without a strategy, so the Lead exports it."""
     deps = lead_deps(pipeline_state(user_prompt=_EXPORT_REQUEST))
+    bind_scripted_scope("plasmodb", _EXPORT_REQUEST)
 
     result = await build_lead_agent().run(
         _EXPORT_REQUEST,

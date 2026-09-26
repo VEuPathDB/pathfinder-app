@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a16"
+    "version": "0.2.0a17"
   },
   "paths": {
     "/health": {
@@ -7974,6 +7974,13 @@
             "type": "integer",
             "title": "Retainedpoints"
           },
+          "retainedPointIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retainedpointids"
+          },
           "points": {
             "items": {
               "$ref": "#/components/schemas/EdaVizPointResponse"
@@ -7994,6 +8001,7 @@
           "effectDirection",
           "totalPoints",
           "retainedPoints",
+          "retainedPointIds",
           "points",
           "comparison"
         ],
@@ -15164,6 +15172,14 @@
             "title": "Points",
             "type": "array"
           },
+          "retainedPointIds": {
+            "description": "Every point id the cut retains, in the service's order. The points are capped for the plot; this list is not.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Retainedpointids",
+            "type": "array"
+          },
           "caption": {
             "default": "",
             "description": "One sentence the model wrote about the plot. Empty when it wrote none, and the figure is then captioned from the numbers alone.",
@@ -15192,7 +15208,8 @@
           "effectDirection",
           "totalPoints",
           "retainedPoints",
-          "points"
+          "points",
+          "retainedPointIds"
         ],
         "title": "EdaVizPart",
         "type": "object"
@@ -15333,7 +15350,7 @@
         "type": "object"
       },
       "EvidenceVerdict": {
-        "description": "The verdict as the ledger holds it after the build check.\n\n``refused_because`` is the ledger's own sentence for a refused success.",
+        "description": "The verdict as the ledger holds it after the build check.\n\n``refused_because`` is the ledger's own sentence for a verdict it does not\nsupport, whichever side found the failure.",
         "properties": {
           "supported": {
             "title": "Supported",

@@ -156,7 +156,8 @@ class CriterionCitations(CamelModel):
 class EvidenceVerdict(CamelModel):
     """The verdict as the ledger holds it after the build check.
 
-    ``refused_because`` is the ledger's own sentence for a refused success.
+    ``refused_because`` is the ledger's own sentence for a verdict it does not
+    support, whichever side found the failure.
     """
 
     model_config = ConfigDict(frozen=True)

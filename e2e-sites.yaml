@@ -1,4 +1,4 @@
-# E2E site set: the portal plus the five component sites the suite drives.
+# E2E site set: the portal plus the six component sites the suite drives.
 # Entries copied from the bundled sites.yaml; base URLs must stay identical.
 
 sites:
@@ -37,6 +37,12 @@ sites:
     display_name: FungiDB (Fungi)
     base_url: https://fungidb.org/fungidb/service
     project_id: FungiDB
+    is_portal: false
+  vectorbase:
+    name: VectorBase
+    display_name: VectorBase (Vectors)
+    base_url: https://vectorbase.org/vectorbase/service
+    project_id: VectorBase
     is_portal: false
 
 default_site: veupathdb

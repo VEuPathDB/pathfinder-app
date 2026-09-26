@@ -1,0 +1,49 @@
+{
+  "name": "uat-c11-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes with 30 to 99 transmembrane domains.",
+    "Diagnose my current strategy. Call get_live_strategy_state, walk through each step's count, and identify where results collapse. Suggest the likely cause and concrete fixes."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A diagnosis names the step that returns 0 and leaves the strategy as it stood.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByTransmembraneDomains",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "transmembrane"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 0,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-composer.md#c11",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -40,8 +40,8 @@ from pathfinder.platform.durable_worker import durable_call_refusal
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.begin import begin_conversation
 
-# The durable tool the Lead calls on a saved set, under the name the model uses.
-SWEEP_TOOL = "optimize_search_parameters"
+# The durable tool the separation arc calls, under the name the model uses.
+DURABLE_TOOL = "separate_controls"
 
 
 def test_parse_run_args_maps_phase_models_and_run_dir(tmp_path: Path) -> None:
@@ -262,7 +262,7 @@ async def test_respond_finds_gate_from_checkpoint_not_run_dir(tmp_path: Path) ->
     conv = uuid4()
     run_args = parse_run_args(
         [
-            "consult me before planning: find female-enriched genes",
+            "consult me before planning: find female-enriched genes [[arc:consult]]",
             "--site",
             "plasmodb",
             "--mock",
@@ -456,7 +456,7 @@ async def test_a_durable_call_is_declined_and_the_run_writes_its_artifacts(
     """The debugger runs no worker, so the turn ends with the refusal on record."""
     args = parse_run_args(
         [
-            "Tune the parameters of the kinase step",
+            "Find a strategy that separates my controls [[arc:separation]]",
             "--site",
             "plasmodb",
             "--mock",
@@ -475,6 +475,6 @@ async def test_a_durable_call_is_declined_and_the_run_writes_its_artifacts(
     summary = json.loads((run_dir / "summary.json").read_text())
     assert summary["status"] == "ok"
     transcript = (run_dir / "transcript.md").read_text()
-    assert f"[lead] {SWEEP_TOOL}" in transcript
-    assert durable_call_refusal(SWEEP_TOOL) in transcript
-    assert _answers_to(run_dir, SWEEP_TOOL) == [durable_call_refusal(SWEEP_TOOL)]
+    assert f"[lead] {DURABLE_TOOL}" in transcript
+    assert durable_call_refusal(DURABLE_TOOL) in transcript
+    assert _answers_to(run_dir, DURABLE_TOOL) == [durable_call_refusal(DURABLE_TOOL)]

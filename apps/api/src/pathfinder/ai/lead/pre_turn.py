@@ -152,6 +152,7 @@ async def refresh_live_strategy_state(
     await hydrate_spec_from_the_strategy(working_state, context)
     _state_every_analysis(working_state, context.strategy_session.get_graph(None))
     _record_the_spec_the_turn_started_from(working_state)
+    _record_the_counts_the_turn_started_from(working_state, live_counts)
     return working_state
 
 
@@ -255,6 +256,20 @@ def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:
     state.domain.spec_before_turn = (
         None if entry_spec is None else entry_spec.model_copy(deep=True)
     )
+
+
+def _record_the_counts_the_turn_started_from(
+    state: PipelineState, counts: dict[str, int | None]
+) -> None:
+    """Keep the step counts the site held when the message arrived.
+
+    A turn that resumes a parked call keeps the record its message started.
+    """
+    if state.resumes_parked_call:
+        return
+    state.turn_markers.counts_at_arrival = [
+        count for count in counts.values() if count is not None
+    ]
 
 
 async def hydrate_spec_from_the_strategy(

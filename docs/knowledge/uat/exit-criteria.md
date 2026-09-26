@@ -55,7 +55,7 @@ VEuPathDB data changes between site releases. Every expected number in these doc
 | Situation | Rule |
 |---|---|
 | Same build, count equal | pass |
-| Same build, count differs | The runner opens the strategy with `Open in <Site>` on the evidence card. If the site shows the app's number, the expected number is stale: result `re-measure`, not a failure. If the site shows another number, it is a **blocker** (a wrong count presented as right). |
+| Same build, count differs | The pre-release report reports `fail` here, because it cannot open the site; the runner decides between the two outcomes that follow. The runner opens the strategy with `Open in <Site>` on the evidence card. If the site shows the app's number, the expected number is stale: result `re-measure`, not a failure. If the site shows another number, it is a **blocker** (a wrong count presented as right). |
 | New build, count within the tolerance | pass; write the new number and build beside the old one |
 | New build, count outside the tolerance | same check on the site as above: `re-measure` when the site agrees with the app, blocker when it does not |
 | Any build, the step layout differs | fail. The layout (searches, operators, transforms, their order) does not drift with data. |

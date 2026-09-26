@@ -26,7 +26,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import ToolDefinition
-from veupathdb.domain.parameters import MultiPickValue
+from veupathdb.domain.parameters import MultiPickValue, StringValue
 
 from pathfinder.ai.lead.edit_messages import edit_work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
@@ -41,16 +41,16 @@ from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.tests._support.tool_exchange import tool_exchange
 
 _PF = "Plasmodium falciparum 3D7"
-_PV = "Plasmodium vivax P01"
-_BUILD_TEXT = "Build me a strategy for 3D7 genes."
-_CRITERION = "step_taxon"
+_EDIT_TEXT = "Change the transmembrane range to 1 to 99. [[arc:edit-param]]"
+_BUILD_TEXT = "Find genes with a signal peptide. [[arc:single]]"
+_CRITERION = "step_tm"
 _FRAME_TOOLS = ("set_criterion", "set_structure", "list_searches")
 
 
 @pytest.fixture
-def plasmo_build() -> Generator[None]:
+def plasmo_turn(request: pytest.FixtureRequest) -> Generator[None]:
     """The user text and site the script branches on, for one test."""
-    text_token = current_user_text.set(_BUILD_TEXT)
+    text_token = current_user_text.set(request.param)
     scope_token = current_scope_id.set("plasmodb")
     yield
     current_user_text.reset(text_token)
@@ -69,9 +69,11 @@ def _info() -> AgentInfo:
 
 
 def _next_call(messages: list[ModelMessage]) -> ToolCallPart:
-    part = PATHFINDER_SCRIPT.response_part(messages, _info())
-    assert isinstance(part, ToolCallPart)
-    return part
+    match PATHFINDER_SCRIPT.response_part(messages, _info()):
+        case ToolCallPart() as call:
+            return call
+        case text:
+            raise AssertionError(text)
 
 
 def _edit_order() -> str:
@@ -80,10 +82,13 @@ def _edit_order() -> str:
         criteria=[
             Criterion(
                 id=_CRITERION,
-                text=f"{_PF} genes",
-                search_name="GenesByTaxon",
+                text=f"{_PF} genes with 2 to 99 transmembrane domains",
+                search_name="GenesByTransmembraneDomains",
                 role="seed",
-                resolved_params={"organism": MultiPickValue(values=[_PF])},
+                resolved_params={
+                    "organism": MultiPickValue(values=[_PF]),
+                    "min_tm": StringValue(value="2"),
+                },
             )
         ],
         structure=SpecStructure(
@@ -91,8 +96,8 @@ def _edit_order() -> str:
         ),
     )
     return edit_work_order(
-        "swap the organism",
-        "keep the rest",
+        "change the domain range",
+        _EDIT_TEXT,
         spec,
         pending=SpecDiff(),
         answered=spec,
@@ -105,18 +110,25 @@ def _oversized_listing() -> list[str]:
     return [f"GenesBy{index:060d}" for index in range(6000)]
 
 
-def _compacted(work_order: str, criterion_id: str = _CRITERION) -> list[ModelMessage]:
+def _compacted(
+    work_order: str,
+    criterion_id: str = _CRITERION,
+    search_name: str = "GenesByTransmembraneDomains",
+) -> list[ModelMessage]:
     """A FRAME run whose catalog read has been folded into a digest."""
     sheet: dict[str, Any] = {
         "criterionId": criterion_id,
-        "paramsTemplate": {"organism": None},
+        "searchName": search_name,
+        "paramsTemplate": {"organism": None, "min_tm": None},
     }
     bound: dict[str, Any] = {
         "criterionId": criterion_id,
-        "resolvedParams": {"organism": [_PF]},
+        "searchName": search_name,
+        "resolvedParams": {"organism": [_PF], "min_tm": "1"},
     }
     history = [
         ModelRequest(parts=[UserPromptPart(content=work_order)]),
+        *tool_exchange(0, "search_for_searches", []),
         *tool_exchange(1, "list_searches", _oversized_listing()),
         *tool_exchange(2, "set_criterion", sheet),
         *tool_exchange(3, "set_criterion", bound),
@@ -145,7 +157,8 @@ def test_the_digest_calls_count_as_calls_already_made() -> None:
     assert "set_criterion" in names
 
 
-@pytest.mark.usefixtures("plasmo_build")
+@pytest.mark.parametrize("plasmo_turn", [_EDIT_TEXT], indirect=True)
+@pytest.mark.usefixtures("plasmo_turn")
 def test_an_edit_survives_the_compaction_of_its_own_history() -> None:
     call = _next_call(_compacted(_edit_order()))
 
@@ -154,15 +167,16 @@ def test_an_edit_survives_the_compaction_of_its_own_history() -> None:
         {
             "criterionId": _CRITERION,
             "disposition": "changed",
-            "changedParams": {"organism": _PV},
+            "changedParams": {"min_tm": "1"},
         }
     ]
 
 
-@pytest.mark.usefixtures("plasmo_build")
+@pytest.mark.parametrize("plasmo_turn", [_BUILD_TEXT], indirect=True)
+@pytest.mark.usefixtures("plasmo_turn")
 def test_a_build_does_not_read_the_catalog_the_digest_records() -> None:
     order = f"FRAME work order: build\nUser's goal: {_BUILD_TEXT}"
 
-    call = _next_call(_compacted(order, "taxon_genes"))
+    call = _next_call(_compacted(order, "signal_peptide", "GenesWithSignalPeptide"))
 
     assert call.tool_name == "set_structure"

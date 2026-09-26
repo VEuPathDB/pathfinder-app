@@ -7,7 +7,8 @@ Usage::
     python -m pathfinder.devtools.evals promote <staging-id> --name <case-name> \\
         --rationale "what this pins" [--turn ...] [--note ...]
     python -m pathfinder.devtools.evals corpus
-    python -m pathfinder.devtools.evals run [--only NAME ...] [--out FILE] [--real]
+    python -m pathfinder.devtools.evals run [--only NAME ...] [--out FILE] \\
+        [--effort EFFORT] [--via-worker]
 
 ``promote`` writes the corpus file and ends the association: the staged row
 keeps its content hash and loses its user, its thread and its extract.
@@ -146,18 +147,25 @@ def _list_corpus() -> int:
     return 0
 
 
+_MARKS = {"pass": "PASS", "re-measure": "RE-MEASURE", "fail": "FAIL"}
+
+
 def _run(args: argparse.Namespace) -> int:
     summary = asyncio.run(
         run_corpus(
-            run_root=RUN_ROOT, only=args.only, mock=not args.real, effort=args.effort
+            run_root=RUN_ROOT,
+            only=args.only,
+            effort=args.effort,
+            via_worker=args.via_worker,
         ),
     )
     if args.out:
         payload = summary.model_dump(by_alias=True, mode="json")
         Path(args.out).write_text(json.dumps(payload, indent=2) + "\n")
     for case in summary.cases:
-        mark = "PASS" if case.passed else "FAIL"
-        print(f"{mark}  {case.name}  {case.duration_seconds}s")
+        mark = "ERROR" if case.error else _MARKS[case.verdict]
+        count = "" if case.observed_count is None else f"  count {case.observed_count}"
+        print(f"{mark}  {case.name}  {case.duration_seconds}s{count}")
         if case.distance is not None:
             print(
                 f"      distance: topology {case.distance.topology}, "
@@ -167,14 +175,16 @@ def _run(args: argparse.Namespace) -> int:
             )
         if case.error:
             print(f"      error: {case.error}")
-        for difference in case.differences:
+        drift = [] if case.count_drift is None else [case.count_drift]
+        for difference in [*case.differences, *drift]:
             print(
                 f"      {difference.field}: expected {difference.expected!r}, "
                 f"got {difference.actual!r}",
             )
     print(
         f"--- {summary.passed}/{summary.case_count} passed "
-        f"(failed {summary.failed}, errored {summary.errored}) "
+        f"(re-measure {summary.re_measure}, failed {summary.failed}, "
+        f"errored {summary.errored}) "
         f"harness={summary.harness} provider={summary.provider}",
     )
     if args.out:
@@ -216,22 +226,28 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     promote.add_argument("--note", default="", help="curator note")
 
-    run = sub.add_parser("run", help="run the corpus through the turn pipeline")
-    run.add_argument("--only", nargs="*", default=[], metavar="NAME")
-    run.add_argument("--out", default=None, metavar="FILE")
-    run.add_argument(
-        "--real",
-        action="store_true",
+    run = sub.add_parser(
+        "run",
         help=(
-            "run against the configured provider instead of the deterministic "
-            "one; needs WDK_DEV_EMAIL and WDK_DEV_PASSWORD"
+            "run the corpus through the turn pipeline on the configured provider; "
+            "needs WDK_DEV_EMAIL and WDK_DEV_PASSWORD"
         ),
     )
+    run.add_argument("--only", nargs="*", default=[], metavar="NAME")
+    run.add_argument("--out", default=None, metavar="FILE")
     run.add_argument(
         "--effort",
         choices=chat.EFFORTS,
         default=None,
-        help="reasoning effort for every role (else each role's tier effort)",
+        help=(
+            "reasoning effort for every role of every case (else the case's "
+            "effort, else each role's tier effort)"
+        ),
+    )
+    run.add_argument(
+        "--via-worker",
+        action="store_true",
+        help="run every turn through the real worker, so durable tools execute",
     )
     return parser
 

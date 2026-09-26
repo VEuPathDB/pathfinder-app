@@ -15,14 +15,15 @@ from pydantic_ai.messages import (
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_pins import pinned_operational_spec
-from pathfinder.ai.models.mock import arcs
+from pathfinder.ai.models.mock.kept_arcs import consult
+from pathfinder.ai.models.mock.lead_flow import build_journey
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._answered_draft import framed
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
-_BUILD = "Find protein kinases in P. falciparum 3D7."
-_CONSULT = "Consult me before planning this strategy."
+_BUILD = "Find protein kinases in P. falciparum 3D7. [[arc:single]]"
+_CONSULT = "Consult me before planning this strategy. [[arc:consult]]"
 
 
 def _pinned(spec: OperationalSpec | None) -> str:
@@ -33,8 +34,10 @@ def _pinned(spec: OperationalSpec | None) -> str:
     return rendered
 
 
-def _classification(messages: list[ModelMessage]) -> IntentClassification:
-    head = arcs._lead_sequence(messages)[0]
+def _classification(
+    sequence: list[ToolCallPart],
+) -> IntentClassification:
+    head = sequence[0]
     assert head.tool_name == "classify_user_intent"
     return UserIntent.model_validate(head.args_as_dict()["intent"]).classification
 
@@ -54,7 +57,7 @@ def test_a_build_request_extends_only_a_framed_draft(
         ModelRequest(parts=[UserPromptPart(content=_BUILD)], instructions=_pinned(spec))
     ]
 
-    assert _classification(turn) == expected
+    assert _classification(build_journey(turn)) == expected
 
 
 @pytest.mark.parametrize(
@@ -84,4 +87,4 @@ def test_a_resumed_consult_extends_only_a_framed_draft(
         ),
     ]
 
-    assert _classification(turn) == expected
+    assert _classification(consult(turn)) == expected

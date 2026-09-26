@@ -39,6 +39,8 @@ function RateButtons({ conversationId, messageId }: RateButtonsProps) {
   const rate = useMutation({
     // One scope per message, so its clicks reach the server in order.
     scope: { id: `rating:${messageId}` },
+    // Offline, a click fails at once and says so, rather than wait to be resent.
+    networkMode: "always",
     mutationFn: async (next: Rating | null) => {
       if (next === null) {
         await clearMessageRating(conversationId, messageId);

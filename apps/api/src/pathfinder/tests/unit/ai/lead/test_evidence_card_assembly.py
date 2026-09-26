@@ -291,3 +291,37 @@ async def test_a_parked_check_emits_no_card(
 
     assert collector.data_of("data-evidence-card") == []
     assert deps.state.domain.last_evidence_card is None
+
+
+_FAILED_DIGEST = VerificationDelta.model_validate(
+    {
+        "digest": {
+            "disposition": "done",
+            "prose": "The strategy returns no genes.",
+            "reason": "The root step returned 0 genes.",
+            "success": False,
+        }
+    }
+)
+
+
+@pytest.mark.parametrize("digest", [_DIGEST, _FAILED_DIGEST])
+async def test_a_failed_verdict_names_the_build_whichever_side_found_it(
+    monkeypatch: pytest.MonkeyPatch,
+    collector: ChunkCollector,
+    digest: VerificationDelta,
+) -> None:
+    del collector
+    deps = _checked_deps()
+    built = deps.state.domain.last_build_outcome
+    assert built is not None
+    deps.state.domain.last_build_outcome = replace(built, zero_step_ids=["s1"])
+
+    await _dispatch(monkeypatch, deps, digest)
+
+    card = deps.state.domain.last_evidence_card
+    assert card is not None
+    assert (card.verdict.supported, card.verdict.refused_because) == (
+        False,
+        "the build pushed 1 step, failed 0, skipped 0 and left 1 empty",
+    )

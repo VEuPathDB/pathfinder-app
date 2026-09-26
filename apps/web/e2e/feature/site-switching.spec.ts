@@ -15,7 +15,7 @@ function entrySite(sites: SiteRow[]): SiteRow {
   return entry;
 }
 
-test.describe("Site Switching", () => {
+test.describe("Site Switching", { tag: "@named-site" }, () => {
   test.describe.configure({ mode: "serial" });
 
   test.beforeEach(async ({ chatPage }) => {
@@ -37,19 +37,5 @@ test.describe("Site Switching", () => {
     expect(siteIds).toContain("cryptodb");
 
     await sitePicker.expectCurrentSite(entrySite(sites).id);
-  });
-
-  test("switching the site updates the picker, and switching back restores it", async ({
-    sitePicker,
-    page,
-  }) => {
-    await expect(page.getByRole("button", { name: /switch site/i })).toBeVisible({
-      timeout: 5_000,
-    });
-    await sitePicker.selectSite("toxodb");
-    await sitePicker.expectCurrentSite("toxodb");
-
-    await sitePicker.selectSite("plasmodb");
-    await sitePicker.expectCurrentSite("plasmodb");
   });
 });

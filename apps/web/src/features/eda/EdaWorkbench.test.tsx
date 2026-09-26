@@ -108,6 +108,7 @@ const VOLCANO = {
   effectDirection: "upAndDown",
   totalPoints: 2,
   retainedPoints: 1,
+  retainedPointIds: ["PF3D7_0100200"],
   points: [
     {
       pointId: "PF3D7_0100100",

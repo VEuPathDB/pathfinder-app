@@ -1,6 +1,6 @@
 """Fetches WDK strategies and syncs them into the local conversation records."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from uuid import UUID
 
 from assistant_core.persistence.models import Conversation
@@ -15,6 +15,7 @@ from veupathdb_mcp.wdk import (
 
 from pathfinder.domain.strategy.combine_naming import given_by_a_researcher
 from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.evals.scoring import root_count
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -142,6 +143,21 @@ def wdk_chat_name(payload: StrategyAst, wdk_id: int) -> str:
     return payload.name or root_name or placeholder_strategy_name(wdk_id)
 
 
+def import_write(spec: WdkChatSpec, *, name: str) -> ConversationUpdate:
+    """The strategy columns an import writes; the stored count is the root's."""
+    return ConversationUpdate(
+        strategy_ast=spec.strategy_ast.model_copy(update={"name": name}),
+        record_type=spec.record_type,
+        wdk_strategy_id=spec.wdk_id,
+        wdk_strategy_id_set=True,
+        is_saved=spec.is_saved,
+        is_saved_set=True,
+        step_count=spec.step_count,
+        estimated_size=root_count(spec.strategy_ast),
+        estimated_size_set=True,
+    )
+
+
 async def upsert_chat(
     *,
     conv_repo: ConversationRepository,
@@ -161,19 +177,10 @@ async def upsert_chat(
     )
     existing = None if found is None else found[0]
     if existing:
-        name = existing.name or spec.name
+        write = import_write(spec, name=existing.name or spec.name)
         await conv_repo.update_conversation(
             existing.id,
-            ConversationUpdate(
-                name=None if existing.name else spec.name,
-                strategy_ast=spec.strategy_ast.model_copy(update={"name": name}),
-                record_type=spec.record_type,
-                wdk_strategy_id=spec.wdk_id,
-                wdk_strategy_id_set=True,
-                is_saved=spec.is_saved,
-                is_saved_set=True,
-                step_count=spec.step_count,
-            ),
+            replace(write, name=None if existing.name else spec.name),
         )
         conversation = await conv_repo.get_by_id(existing.id)
     else:
@@ -183,20 +190,13 @@ async def upsert_chat(
             assistant_id=owner.assistant_id,
             name=spec.name,
         )
+        write = import_write(spec, name=created.name)
         await conv_repo.update_conversation(
             created.id,
-            ConversationUpdate(
-                strategy_ast=spec.strategy_ast.model_copy(
-                    update={"name": created.name}
-                ),
-                record_type=spec.record_type,
-                wdk_strategy_id=spec.wdk_id,
-                wdk_strategy_id_set=True,
+            replace(
+                write,
                 wdk_strategy_created_here=created_here,
                 wdk_strategy_created_here_set=True,
-                is_saved=spec.is_saved,
-                is_saved_set=True,
-                step_count=spec.step_count,
             ),
         )
         conversation = await conv_repo.get_by_id(created.id)
@@ -232,6 +232,8 @@ async def lazy_fetch_wdk_detail(
                 strategy_ast=payload,
                 record_type=payload.record_type,
                 step_count=len(walk(payload.root)),
+                estimated_size=root_count(payload),
+                estimated_size_set=True,
                 is_saved=is_saved,
                 is_saved_set=True,
                 touch_updated_at=False,

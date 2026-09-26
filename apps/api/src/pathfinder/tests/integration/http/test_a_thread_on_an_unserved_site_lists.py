@@ -21,8 +21,8 @@ _E2E_SITES = Path(__file__).resolve().parents[7] / "e2e-sites.yaml"
 
 
 @pytest.fixture
-def six_sites(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """The deployment serves the portal and five component sites, not giardiadb."""
+def served_sites(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """The deployment serves the sites of `e2e-sites.yaml`, the portal and six component sites, not giardiadb."""
     monkeypatch.setenv("VEUPATHDB_SITES_CONFIG", str(_E2E_SITES))
     get_settings.cache_clear()
     reset_site_router()
@@ -56,10 +56,10 @@ async def _linked_thread(
 async def test_the_unscoped_list_answers_every_row(
     app: FastAPI,
     patch_app_db_engine: None,
-    six_sites: None,
+    served_sites: None,
     db_session: AsyncSession,
 ) -> None:
-    del patch_app_db_engine, six_sites
+    del patch_app_db_engine, served_sites
     user = await make_user(db_session)
     served = await _linked_thread(db_session, user.id, "plasmodb", 123)
     unserved = await _linked_thread(db_session, user.id, "giardiadb", 124)

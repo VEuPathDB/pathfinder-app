@@ -1,0 +1,48 @@
+{
+  "name": "uat-n1-plasmodb",
+  "turns": [
+    "Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "Three undefined terms end the turn on a question card, and the answers go on to a build from the request plus the answers.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": null,
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n1",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": [
+    {
+      "accept": true,
+      "comment": null,
+      "picks": []
+    }
+  ],
+  "attachments": {},
+  "newConversationBefore": []
+}

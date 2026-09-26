@@ -22,7 +22,6 @@ from pydantic import ConfigDict, Field
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold
 
 COMBINE_LABEL = "COMBINE"
-_ANY_LABEL = "*"
 _OPERATOR_WEIGHT = 0.3
 _PARAMETER_WEIGHT = 0.7
 
@@ -198,7 +197,7 @@ class _Forest:
     b_nodes: list[ComparisonNode]
     b_left: list[int]
     treedist: list[list[float]]
-    cost: LabelCost
+    cost: LabelCost | None
 
     def fill(self, i: int, j: int) -> None:
         li, lj = self.a_left[i], self.b_left[j]
@@ -214,8 +213,10 @@ class _Forest:
                 deleted = forest[x - 1][y] + 1.0
                 inserted = forest[x][y - 1] + 1.0
                 if self.a_left[a_index] == li and self.b_left[b_index] == lj:
-                    renamed = forest[x - 1][y - 1] + self.cost(
-                        self.a_nodes[a_index], self.b_nodes[b_index]
+                    renamed = forest[x - 1][y - 1] + (
+                        0.0
+                        if self.cost is None
+                        else self.cost(self.a_nodes[a_index], self.b_nodes[b_index])
                     )
                     forest[x][y] = min(deleted, inserted, renamed)
                     self.treedist[a_index][b_index] = forest[x][y]
@@ -230,9 +231,12 @@ class _Forest:
 def _tree_edit_distance(
     left: ComparisonNode,
     right: ComparisonNode,
-    cost: LabelCost,
+    cost: LabelCost | None,
 ) -> float:
-    """The Zhang-Shasha distance, with insert and delete costing one each."""
+    """The Zhang-Shasha distance, with insert and delete costing one each.
+
+    With no cost a rename is free, so only the shape is compared.
+    """
     a_nodes, a_left = _postorder(left)
     b_nodes, b_left = _postorder(right)
     run = _Forest(
@@ -252,17 +256,12 @@ def _tree_edit_distance(
 def _normalized(
     left: ComparisonNode,
     right: ComparisonNode,
-    cost: LabelCost,
+    cost: LabelCost | None,
 ) -> float:
     size = max(len(_postorder(left)[0]), len(_postorder(right)[0]))
     if size == 0:
         return 0.0
     return _tree_edit_distance(left, right, cost) / size
-
-
-def _topology_cost(left: ComparisonNode, right: ComparisonNode) -> float:
-    del left, right
-    return 0.0
 
 
 def _labelled_cost(left: ComparisonNode, right: ComparisonNode) -> float:
@@ -350,7 +349,7 @@ def strategy_distance(
     """The four-layer reading of how far ``produced`` is from ``expected``."""
     fidelity = parameter_fidelity(expected, produced)
     return StrategyDistance(
-        topology=_rounded(_normalized(expected, produced, _topology_cost)),
+        topology=_rounded(_normalized(expected, produced, None)),
         search_selection=_rounded(_jaccard_distance(expected, produced)),
         labelled=_rounded(_normalized(expected, produced, _labelled_cost)),
         parameter_fidelity=None if fidelity is None else _rounded(fidelity),

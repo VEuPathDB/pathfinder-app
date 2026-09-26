@@ -8,29 +8,36 @@
  */
 
 import type { APIRequestContext } from "@playwright/test";
+import type { SiteResponse } from "@pathfinder/shared";
 
 import { test, expect } from "../../fixtures/test";
 import { DATASET_ID, FEBRILE_FILTER, SITE_ID, STUDY_TITLE } from "../../fixtures/eda";
+import { siteRow } from "../../fixtures/site-reads";
 import { wdkTestToken } from "../../fixtures/wdk-account";
-import { echoOf } from "./prompts";
 
 const OPEN_TURN = "show me heat shock genes";
 const FILTER_CHIP = "eda-filter-chip-0";
-const SITE = "https://plasmodb.org";
+
+/** The plain echo reply for `text`, which calls no tool. */
+function echoOf(text: string): RegExp {
+  return new RegExp(`\\[mock\\] ${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
+}
 
 /** Write the analysis's subset through the site's own EDA service. */
 async function setSubsetOnTheSite(
   request: APIRequestContext,
+  site: SiteResponse,
   analysisId: string,
   filters: unknown[],
 ): Promise<void> {
   const headers = { Cookie: `Authorization=${wdkTestToken()}` };
-  const me = await request.get(`${SITE}/plasmo/service/users/current`, { headers });
-  expect(me.ok(), `users/current ${me.status()}`).toBeTruthy();
+  const me = await request.get(`${site.baseUrl}/users/current`, { headers });
+  expect(me.status(), "users/current").toBe(200);
   const { id } = (await me.json()) as { id: number };
-  const url = `${SITE}/eda/users/${String(id)}/analyses/PlasmoDB/${analysisId}`;
+  const origin = new URL(site.baseUrl).origin;
+  const url = `${origin}/eda/users/${String(id)}/analyses/${site.projectId}/${analysisId}`;
   const read = await request.get(url, { headers });
-  expect(read.ok(), `analysis read ${read.status()}`).toBeTruthy();
+  expect(read.status(), "analysis read").toBe(200);
   const { descriptor } = (await read.json()) as {
     descriptor: { subset: Record<string, unknown> } & Record<string, unknown>;
   };
@@ -43,7 +50,7 @@ async function setSubsetOnTheSite(
       },
     },
   });
-  expect(written.ok(), `analysis write ${written.status()}`).toBeTruthy();
+  expect(written.ok(), `analysis write ${written.status()}`).toBe(true);
 }
 
 interface AnalysisRead {
@@ -61,13 +68,10 @@ test.describe("Branching a thread with a study open", () => {
 
   test("a branch opens its own analysis and leaves the parent's site subset alone", async ({
     chatPage,
-    sitePicker,
     apiClient,
     page,
   }) => {
-    await chatPage.goto();
-    await sitePicker.selectSite(SITE_ID);
-    await chatPage.newChat(SITE_ID);
+    await chatPage.startOn(SITE_ID);
 
     await chatPage.sendTurn(OPEN_TURN, echoOf(OPEN_TURN));
     const parentId = chatPage.lastStrategyId as string;
@@ -76,13 +80,14 @@ test.describe("Branching a thread with a study open", () => {
     const bound = await apiClient.patch(`/api/v1/conversations/${parentId}/eda`, {
       data: { action: "bind", siteId: SITE_ID, datasetId: DATASET_ID },
     });
-    expect(bound.ok(), `bind ${bound.status()}: ${await bound.text()}`).toBeTruthy();
+    expect(bound.status(), `bind ${await bound.text()}`).toBe(200);
     const parentBound = (await bound.json()) as AnalysisRead;
     const parentAnalysisId = parentBound.analysis?.analysisId ?? "";
     expect(parentAnalysisId).not.toBe("");
     expect(parentBound.analysis?.studyDisplayName).toBe(STUDY_TITLE);
 
-    await setSubsetOnTheSite(page.request, parentAnalysisId, [FEBRILE_FILTER]);
+    const site = await siteRow(apiClient, SITE_ID);
+    await setSubsetOnTheSite(page.request, site, parentAnalysisId, [FEBRILE_FILTER]);
     const reread = await apiClient.get(`/api/v1/conversations/${parentId}/eda`);
     expect(((await reread.json()) as AnalysisRead).analysis?.numFilters).toBe(1);
 
@@ -105,10 +110,7 @@ test.describe("Branching a thread with a study open", () => {
     const branchBound = await apiClient.patch(`/api/v1/conversations/${branchId}/eda`, {
       data: { action: "bind", siteId: SITE_ID, datasetId: DATASET_ID },
     });
-    expect(
-      branchBound.ok(),
-      `branch bind ${branchBound.status()}: ${await branchBound.text()}`,
-    ).toBeTruthy();
+    expect(branchBound.status(), `branch bind ${await branchBound.text()}`).toBe(200);
     const branchAnalysis = ((await branchBound.json()) as AnalysisRead).analysis;
     expect(branchAnalysis?.studyDisplayName).toBe(STUDY_TITLE);
     expect(branchAnalysis?.numFilters).toBe(0);

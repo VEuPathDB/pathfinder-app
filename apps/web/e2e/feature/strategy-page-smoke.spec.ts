@@ -1,36 +1,25 @@
 /**
- * Smoke test for the strategy overhaul UI surfaces.
- *
- * Bypasses the chat planning flow - seeds a strategy via direct API POST,
- * then exercises the new /strategy route, CanvasTopbar, rail panel, and
- * editor Sheet. Useful when the chat infrastructure is unavailable.
+ * The strategy surfaces on a strategy made through the api, with no turn: the
+ * rail's step list, the canvas route and its topbar, the step editor and the
+ * keys that move between them.
  */
+
+import type { ConversationResponse } from "@pathfinder/shared";
+
 import { test, expect } from "../fixtures/test";
-import type { BrowserContext, Page } from "@playwright/test";
-
-const SITE_ID = "plasmodb";
-
-/** Expand the right rail's Strategy panel so the StrategyPanel content mounts. */
-async function openStrategyRailPanel(page: Page): Promise<void> {
-  const openBtn = page.getByRole("button", { name: /open strategy/i });
-  await openBtn.click();
-}
+import type { ApiClient } from "../fixtures/api-client";
 
 interface SeededStrategy {
   conversationId: string;
   rootStepId: string;
 }
 
-async function seedStrategyViaApi(
-  ctx: BrowserContext,
-  baseURL: string,
-): Promise<SeededStrategy> {
-  const req = ctx.request;
-  const resp = await req.post(`${baseURL}/api/v1/conversations`, {
-    headers: { "X-Requested-With": "XMLHttpRequest" },
+/** A one-step strategy stored through the api on `siteId`. */
+async function seedStrategy(api: ApiClient, siteId: string): Promise<SeededStrategy> {
+  const resp = await api.post("/api/v1/conversations", {
     data: {
       name: "Smoke test strategy",
-      siteId: SITE_ID,
+      siteId,
       strategyAst: {
         recordType: "transcript",
         root: {
@@ -49,99 +38,147 @@ async function seedStrategyViaApi(
       },
     },
   });
-  if (!resp.ok()) {
-    const body = await resp.text();
-    throw new Error(`seedStrategyViaApi: ${resp.status()} ${body}`);
-  }
-  const conversation = (await resp.json()) as {
-    id: string;
-    rootStepId: string | null;
-  };
-  if (conversation.rootStepId === null) {
-    throw new Error("seedStrategyViaApi: rootStepId missing");
-  }
-  return {
-    conversationId: conversation.id,
-    rootStepId: conversation.rootStepId,
-  };
+  expect(resp.status(), `seed ${await resp.text()}`).toBe(201);
+  const conversation = (await resp.json()) as ConversationResponse;
+  const rootStepId = conversation.rootStepId ?? "";
+  expect(rootStepId).not.toBe("");
+  return { conversationId: conversation.id, rootStepId };
 }
 
-test.describe("Strategy page smoke (post-overhaul)", () => {
-  test.describe.configure({ mode: "serial" });
-
-  test("rail panel renders the read-only step list with Open button", async ({
-    context,
+test.describe("Strategy page smoke", () => {
+  test("the rail lists the step and opens the canvas, and Esc returns", async ({
     page,
     graphPage,
+    apiClient,
+    siteId,
   }) => {
-    const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-    const { conversationId } = await seedStrategyViaApi(context, baseURL);
+    const { conversationId } = await seedStrategy(apiClient, siteId);
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
-    await openStrategyRailPanel(page);
-    await graphPage.expectRailPanel();
+    await page.goto(`/${siteId}/conversation/${conversationId}`);
+    await graphPage.openRailStrategyPanel();
     await expect(graphPage.railOpenButton).toBeVisible();
-    await expect(graphPage.railFooter).toContainText(/step/);
-    expect(await graphPage.railStepRows.count()).toBeGreaterThan(0);
-  });
+    await expect(graphPage.railFooter).toHaveText("1 step");
+    await expect(graphPage.railStepRows).toHaveCount(1);
 
-  test("clicking rail Open navigates to /strategy with topbar", async ({
-    context,
-    page,
-    graphPage,
-  }) => {
-    const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-    const { conversationId } = await seedStrategyViaApi(context, baseURL);
-
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
-    await openStrategyRailPanel(page);
-    await graphPage.expectRailPanel();
     await graphPage.railOpenButton.click();
     await graphPage.expectOnStrategyRoute(conversationId);
     await graphPage.expectStrategyTopbar();
+    await expect(graphPage.strategyPageNameInput).toBeVisible();
+    await expect(graphPage.strategyPageStepCount).toHaveText("1 step");
+    await expect(graphPage.strategyPageSyncState).toBeVisible();
     await expect(graphPage.strategyPageBackButton).toBeVisible();
-    await expect(graphPage.strategyPageStepCount).toContainText(/step/);
+    await expect(graphPage.canvasControls).toBeVisible({ timeout: 10_000 });
+    await expect(graphPage.selectionActionBar).toBeHidden();
+
+    await page.keyboard.press("Escape");
+    await graphPage.expectOnChatRoute(conversationId);
   });
 
-  test("clicking a step row deep-links to /strategy/step/[id] with editor open", async ({
-    context,
+  test("a rail row deep-links to its step, and a reload keeps the editor open", async ({
     page,
     graphPage,
+    apiClient,
+    siteId,
   }) => {
-    const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-    const { conversationId, rootStepId } = await seedStrategyViaApi(context, baseURL);
+    const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
-    await openStrategyRailPanel(page);
-    await graphPage.expectRailPanel();
+    await page.goto(`/${siteId}/conversation/${conversationId}`);
+    await graphPage.openRailStrategyPanel();
     await graphPage.railStepRow(rootStepId).click();
-    await graphPage.expectOnStrategyRoute(conversationId);
     await expect(page).toHaveURL(
       new RegExp(`/conversation/${conversationId}/strategy/step/${rootStepId}`),
       { timeout: 10_000 },
     );
     await graphPage.expectEditorSheetOpen();
     await expect(graphPage.editorFooter).toBeVisible();
+    await expect(graphPage.editorStepNameInput).toBeVisible();
+
+    await page.reload();
+    await graphPage.expectOnStrategyRoute(conversationId);
+    await graphPage.expectEditorSheetOpen();
   });
 
-  test("back-to-chat returns to the conversation route", async ({
-    context,
+  test("Esc closes the editor, and a second Esc returns to the conversation", async ({
+    page,
     graphPage,
+    apiClient,
+    siteId,
   }) => {
-    const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-    const { conversationId } = await seedStrategyViaApi(context, baseURL);
+    const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(SITE_ID, conversationId);
+    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.clickNode(rootStepId);
+    await graphPage.expectEditorSheetOpen();
+
+    await page.keyboard.press("Escape");
+    await graphPage.expectEditorSheetClosed();
+    await graphPage.expectOnStrategyRoute(conversationId);
+
+    await page.keyboard.press("Escape");
+    await graphPage.expectOnChatRoute(conversationId);
+    await graphPage.openRailStrategyPanel();
+    await expect(graphPage.railStepRows).toHaveCount(1);
+  });
+
+  test("Back to conversation returns to the conversation route", async ({
+    graphPage,
+    apiClient,
+    siteId,
+  }) => {
+    const { conversationId } = await seedStrategy(apiClient, siteId);
+
+    await graphPage.goToStrategy(siteId, conversationId);
     await graphPage.expectStrategyTopbar();
     await graphPage.strategyPageBackButton.click();
     await graphPage.expectOnChatRoute(conversationId);
   });
 
-  test("canvas controls are mounted on /strategy", async ({ context, graphPage }) => {
-    const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
-    const { conversationId } = await seedStrategyViaApi(context, baseURL);
+  test("the r key lays the graph out again and keeps its node", async ({
+    page,
+    graphPage,
+    apiClient,
+    siteId,
+  }) => {
+    const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(SITE_ID, conversationId);
-    await expect(graphPage.canvasControls).toBeVisible({ timeout: 10_000 });
+    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.expectStrategyTopbar();
+    await graphPage.expectNodeCount(1);
+
+    await page.mouse.click(400, 400);
+    await page.keyboard.press("r");
+    await graphPage.expectNodeCount(1);
+    await graphPage.expectNodeVisible(rootStepId);
+  });
+
+  test("a strategy that validates shows no validation alert", async ({
+    graphPage,
+    apiClient,
+    siteId,
+  }) => {
+    const { conversationId } = await seedStrategy(apiClient, siteId);
+
+    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.expectStrategyTopbar();
+    await expect(graphPage.validationAlert).toBeHidden();
+  });
+
+  test("the editor's More actions menu is reachable past the close button", async ({
+    page,
+    graphPage,
+    apiClient,
+    siteId,
+  }) => {
+    const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
+
+    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.clickNode(rootStepId);
+    await graphPage.expectEditorSheetOpen();
+    await graphPage.editorSheet
+      .getByRole("button", { name: "More actions" })
+      .click({ timeout: 10_000 });
+    await expect(page.getByRole("menuitem", { name: "Delete step" })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 });

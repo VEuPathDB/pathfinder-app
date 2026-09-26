@@ -1,0 +1,54 @@
+{
+  "name": "uat-n7-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes that have a predicted signal peptide or 2 to 99 transmembrane domains.",
+    "Offer me one change that would make this strategy more specific, as a proposal I can accept or decline. Do not change anything yet.",
+    "yes"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A declined offer is not taken by a later bare yes: the strategy stays as it stood.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide UNION GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 1203,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-strategy-exceptions.md#n7",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": [
+    {
+      "accept": false,
+      "comment": "Not now: a kinase filter is too narrow for what I need.",
+      "picks": null
+    }
+  ],
+  "attachments": {},
+  "newConversationBefore": []
+}

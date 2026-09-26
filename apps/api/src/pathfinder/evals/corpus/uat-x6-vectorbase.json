@@ -1,0 +1,49 @@
+{
+  "name": "uat-x6-vectorbase",
+  "turns": [
+    "Find Anopheles gambiae PEST genes with a predicted signal peptide and 2 to 99 transmembrane domains.",
+    "Carry these to their orthologs in Plasmodium falciparum 3D7."
+  ],
+  "siteId": "vectorbase",
+  "assistantId": "pathfinder",
+  "rationale": "An organism the site's orthology sheet does not reach builds nothing and names the portal.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "portal"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 343,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "vectorbase",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-cross-site.md#x6",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": "stop",
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -1,25 +1,26 @@
-import { test, expect } from "../fixtures/a11y";
-import { MOCK_PLAN_PROMPT } from "../fixtures/mock-prompts";
-
 /**
- * The researcher journey, once per component site: site switch, multi-round
- * chat, a strategy from the planning artifact, and a follow-up turn. Real WDK,
- * real Postgres, real worker; only the LLM is mocked.
+ * The researcher journey, once per named component site: a site switch, chat
+ * rounds that build nothing, a one-search build, and a follow-up on the built
+ * conversation. Real WDK, real Postgres, real worker; only the model is mocked.
  */
 
-interface ChatRound {
-  readonly prompt: string;
-  readonly reply: RegExp;
-}
+import { test, expect } from "../fixtures/a11y";
+import { prompt } from "../fixtures/arcs";
+import { listConversations } from "../fixtures/api-client";
+import { LAYOUTS } from "../fixtures/arc-layouts";
+import { expectBuild } from "../fixtures/build-checks";
+import { readConversation, siteOrganism } from "../fixtures/site-reads";
+
+/** A round the context arc answers, or one with no token that the echo answers. */
+type ChatRound =
+  | { readonly kind: "context"; readonly text: string }
+  | { readonly kind: "echo"; readonly text: string; readonly reply: RegExp };
 
 interface SiteJourney {
   readonly siteId: string;
   readonly title: string;
   readonly rounds: readonly ChatRound[];
-  /** Query string of the conversations read that proves the strategy landed. */
-  readonly conversationsQuery: string;
-  readonly expectConversations: "ok" | "non-empty";
-  readonly followUp?: ChatRound;
+  readonly followUp?: { readonly text: string; readonly reply: RegExp };
 }
 
 const JOURNEYS: readonly SiteJourney[] = [
@@ -28,19 +29,17 @@ const JOURNEYS: readonly SiteJourney[] = [
     title: "malaria drug resistance",
     rounds: [
       {
-        prompt:
-          "I'm investigating chloroquine resistance mechanisms in Plasmodium falciparum",
-        reply: /have not built anything yet/i,
+        kind: "context",
+        text: "I'm investigating chloroquine resistance mechanisms in Plasmodium falciparum",
       },
       {
-        prompt: "Can you help me find genes involved in drug resistance?",
+        kind: "echo",
+        text: "Can you help me find genes involved in drug resistance?",
         reply: /\[mock\].*Can you help/,
       },
     ],
-    conversationsQuery: "",
-    expectConversations: "non-empty",
     followUp: {
-      prompt: "Based on these results, what pathways should I investigate?",
+      text: "Based on these results, what pathways should I investigate?",
       reply: /\[mock\].*pathways/i,
     },
   },
@@ -49,34 +48,33 @@ const JOURNEYS: readonly SiteJourney[] = [
     title: "toxoplasma host invasion",
     rounds: [
       {
-        prompt: "I'm studying host cell invasion mechanisms in Toxoplasma gondii",
-        reply: /\[mock\]/,
+        kind: "echo",
+        text: "I'm studying host cell invasion mechanisms in Toxoplasma gondii",
+        reply: /\[mock\].*host cell invasion/,
       },
       {
-        prompt: "What micronemal and rhoptry proteins are involved in attachment?",
+        kind: "echo",
+        text: "What micronemal and rhoptry proteins are involved in attachment?",
         reply: /\[mock\].*micronemal/i,
       },
     ],
-    conversationsQuery: "?siteId=toxodb",
-    expectConversations: "ok",
   },
   {
     siteId: "tritrypdb",
     title: "leishmania virulence factors",
     rounds: [
       {
-        prompt: "I'm investigating virulence factors in Leishmania major",
-        reply: /have not built anything yet/i,
+        kind: "context",
+        text: "I'm investigating virulence factors in Leishmania major",
       },
       {
-        prompt: "What surface proteases are involved in host macrophage invasion?",
+        kind: "echo",
+        text: "What surface proteases are involved in host macrophage invasion?",
         reply: /\[mock\].*surface/i,
       },
     ],
-    conversationsQuery: "",
-    expectConversations: "non-empty",
     followUp: {
-      prompt: "The strategy shows interesting protease genes, what about drug targets?",
+      text: "The strategy shows interesting protease genes, what about drug targets?",
       reply: /\[mock\].*drug targets/i,
     },
   },
@@ -85,83 +83,90 @@ const JOURNEYS: readonly SiteJourney[] = [
     title: "cryptosporidium intestinal infection",
     rounds: [
       {
-        prompt: "I'm studying Cryptosporidium parvum intestinal infection mechanisms",
-        reply: /\[mock\]/,
+        kind: "echo",
+        text: "I'm studying Cryptosporidium parvum intestinal infection mechanisms",
+        reply: /\[mock\].*intestinal infection/,
       },
       {
-        prompt: "What oocyst wall proteins are important for environmental survival?",
+        kind: "echo",
+        text: "What oocyst wall proteins are important for environmental survival?",
         reply: /\[mock\].*oocyst/i,
       },
     ],
-    conversationsQuery: "?siteId=cryptodb",
-    expectConversations: "ok",
   },
   {
     siteId: "fungidb",
     title: "fungal pathogenesis",
     rounds: [
       {
-        prompt: "I'm researching antifungal drug targets in Aspergillus fumigatus",
-        reply: /\[mock\]/,
+        kind: "echo",
+        text: "I'm researching antifungal drug targets in Aspergillus fumigatus",
+        reply: /\[mock\].*antifungal/,
       },
       {
-        prompt: "What cell wall biosynthesis enzymes are potential drug targets?",
+        kind: "echo",
+        text: "What cell wall biosynthesis enzymes are potential drug targets?",
         reply: /\[mock\].*cell wall/i,
       },
       {
-        prompt: "Particularly interested in glucan synthase and chitin synthase",
+        kind: "echo",
+        text: "Particularly interested in glucan synthase and chitin synthase",
         reply: /\[mock\].*glucan/i,
       },
     ],
-    conversationsQuery: "",
-    expectConversations: "ok",
     followUp: {
-      prompt:
-        "The strategy confirms cell wall synthesis genes, what's the clinical relevance?",
+      text: "The strategy confirms cell wall synthesis genes, what's the clinical relevance?",
       reply: /\[mock\].*clinical/i,
     },
   },
 ];
 
 for (const journey of JOURNEYS) {
-  test.describe(`${journey.title} journey on ${journey.siteId}`, () => {
-    test("chat, strategy and API verification", async ({
-      chatPage,
-      graphPage,
-      page,
-      apiClient,
-      sitePicker,
-    }) => {
-      await chatPage.goto();
-      await sitePicker.selectSite(journey.siteId);
-      await sitePicker.expectCurrentSite(journey.siteId);
+  test.describe(
+    `${journey.title} journey on ${journey.siteId}`,
+    { tag: "@named-site" },
+    () => {
+      test.describe.configure({ timeout: 600_000 });
 
-      for (const round of journey.rounds) {
-        await chatPage.send(round.prompt);
-        await chatPage.expectAssistantMessage(round.reply);
-        await chatPage.expectIdle();
-      }
+      test("chat rounds, a build and a follow-up", async ({
+        chatPage,
+        page,
+        apiClient,
+        sitePicker,
+      }) => {
+        await chatPage.goto();
+        await sitePicker.selectSite(journey.siteId);
+        await sitePicker.expectCurrentSite(journey.siteId);
+        await chatPage.newChat(journey.siteId);
+        const id = chatPage.lastStrategyId ?? "";
 
-      await chatPage.send(MOCK_PLAN_PROMPT);
-      await graphPage.expectRailPanel();
-      await chatPage.expectIdle();
+        for (const round of journey.rounds) {
+          if (round.kind === "echo") {
+            await chatPage.sendTurn(round.text, round.reply);
+            continue;
+          }
+          await chatPage.sendAndSettle(prompt("context", round.text));
+          await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
+          expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
+        }
 
-      const conversations = await apiClient.get(
-        `/api/v1/conversations${journey.conversationsQuery}`,
-      );
-      expect(conversations.ok()).toBeTruthy();
-      if (journey.expectConversations === "non-empty") {
-        const rows = (await conversations.json()) as unknown[];
-        expect(rows.length).toBeGreaterThan(0);
-      }
+        await chatPage.sendAndSettle(
+          prompt(
+            "single",
+            `Find ${siteOrganism(journey.siteId)} genes whose proteins have a predicted signal peptide.`,
+          ),
+        );
+        await expectBuild(page, apiClient, id, journey.siteId, LAYOUTS.single);
+        const listed = await listConversations(apiClient, journey.siteId);
+        expect(listed.map((row) => row.id)).toContain(id);
 
-      const followUp = journey.followUp;
-      if (followUp !== undefined) {
-        await page.goto("/");
-        await chatPage.send(followUp.prompt);
-        await chatPage.expectAssistantMessage(followUp.reply);
-        await chatPage.expectIdle();
-      }
-    });
-  });
+        const followUp = journey.followUp;
+        if (followUp !== undefined) {
+          await page.goto(`/${journey.siteId}/conversation/${id}`);
+          await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
+          await chatPage.sendTurn(followUp.text, followUp.reply);
+        }
+      });
+    },
+  );
 }

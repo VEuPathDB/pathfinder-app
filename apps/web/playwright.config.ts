@@ -1,36 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import type { SiteOption } from "./e2e/fixtures/test";
+
 const isCI = Boolean(process.env["CI"]);
 
-// Feature specs that send a message through the mock provider and wait on a
-// turn. Their data-part waits starve when every worker slot holds a turn, so
-// they run in the serialized `feature-turns` project instead of `feature`.
-const turnDrivingFeatureSpecs = [
-  "**/e2e/feature/attachments.spec.ts",
-  "**/e2e/feature/auth.spec.ts",
-  "**/e2e/feature/auto-build.spec.ts",
-  "**/e2e/feature/branch-switch.spec.ts",
-  "**/e2e/feature/chat.spec.ts",
-  "**/e2e/feature/conversations.spec.ts",
-  "**/e2e/feature/dependent-strategy.spec.ts",
-  "**/e2e/feature/dismissed-strategies.spec.ts",
-  "**/e2e/feature/execution-phase.spec.ts",
-  "**/e2e/feature/experiment-flows.spec.ts",
-  "**/e2e/feature/fork-branch.spec.ts",
-  "**/e2e/feature/gene-set-figure.spec.ts",
-  "**/e2e/feature/insert-saved.spec.ts",
-  "**/e2e/feature/site-help-assistant.spec.ts",
-  "**/e2e/feature/slash-commands.spec.ts",
-  "**/e2e/feature/strategy-complex-edit.spec.ts",
-  "**/e2e/feature/strategy-duplicate-rename.spec.ts",
-  "**/e2e/feature/strategy-graph.spec.ts",
-  "**/e2e/feature/strategy-operator-persistence.spec.ts",
-  "**/e2e/feature/strategy-overhaul.spec.ts",
-  "**/e2e/feature/strategy-param-edit.spec.ts",
-  "**/e2e/feature/thread-surgery/*.spec.ts",
-  "**/e2e/feature/usage-reconciliation.spec.ts",
-  "**/e2e/feature/user-data.spec.ts",
-];
+/** The sites the turn-driving specs run on, from `E2E_SITES` (comma separated). */
+const turnSites = (process.env["E2E_SITES"] ?? "plasmodb")
+  .split(",")
+  .map((site) => site.trim())
+  .filter((site) => site !== "");
+
+/** A test that sends an arc token; its outcome depends on the site's data. */
+const TURN_TAG = /@turn\b/;
+/** A test whose subject is a named site; it runs once, whatever `E2E_SITES` holds. */
+const NAMED_SITE_TAG = /@named-site\b/;
 
 /**
  * Playwright E2E test configuration.
@@ -55,6 +38,9 @@ const turnDrivingFeatureSpecs = [
  *      export WDK_TEST_TOKEN=...   # from .env.dev; never printed or committed
  *      yarn test:e2e
  *
+ *    `E2E_SITES=plasmodb,vectorbase yarn test:e2e` runs every `@turn` test once
+ *    per site; the UI-only and `@named-site` tests run once either way.
+ *
  * ## CI
  *
  * The GitHub Actions workflow starts both servers, sets PLAYWRIGHT_BASE_URL,
@@ -71,7 +57,7 @@ const turnDrivingFeatureSpecs = [
  * worker's user. The postcondition client in `e2e/fixtures/api-client.ts` copies
  * the whole browser cookie jar, so it carries both cookies too.
  */
-export default defineConfig({
+export default defineConfig<SiteOption>({
   testDir: "./e2e",
   // Waits for the web container to accept connections, then renders each route
   // pattern once so the first spec to enter one does not pay the cold render
@@ -79,7 +65,7 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   timeout: isCI ? 120_000 : 60_000,
   expect: { timeout: 15_000 },
-  retries: isCI ? 2 : 0,
+  retries: isCI ? 1 : 0,
   forbidOnly: isCI,
   fullyParallel: true,
   workers: 2,
@@ -96,27 +82,27 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
   },
 
+  // One `turns@<site>` project per site in `E2E_SITES`, so a merged report
+  // keeps both sites apart; the UI-only specs and the named-site specs run once.
   projects: [
+    ...turnSites.map((siteId) => ({
+      name: `turns@${siteId}`,
+      grep: TURN_TAG,
+      grepInvert: NAMED_SITE_TAG,
+      timeout: 300_000,
+      use: { siteId },
+    })),
     {
-      name: "feature",
-      testDir: "./e2e/feature",
-      testIgnore: turnDrivingFeatureSpecs,
+      name: "feature@plasmodb",
+      grepInvert: [TURN_TAG, NAMED_SITE_TAG],
       timeout: 120_000,
+      use: { siteId: "plasmodb" },
     },
     {
-      name: "feature-turns",
-      testDir: "./e2e/feature",
-      testMatch: turnDrivingFeatureSpecs,
-      timeout: 120_000,
-      fullyParallel: false,
-    },
-    {
-      name: "journey",
-      testDir: "./e2e/journey",
-      timeout: 180_000,
-      // Journey tests drive several turns against live VEuPathDB WDK APIs,
-      // so they run one at a time.
-      fullyParallel: false,
+      name: "sites",
+      grep: NAMED_SITE_TAG,
+      timeout: 300_000,
+      use: { siteId: "plasmodb" },
     },
   ],
 

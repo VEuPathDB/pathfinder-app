@@ -34,7 +34,7 @@ from pathfinder.platform.errors import (
     NotFoundError,
     SiteUnavailableError,
 )
-from pathfinder.services.conversations.authz import get_owned_thread_or_404
+from pathfinder.services.conversations.authz import get_owned_thread
 from pathfinder.services.conversations.responses import (
     ConversationResponse,
     build_conversation_response,
@@ -91,9 +91,7 @@ async def get_ast(
     conversation_id: UUID,
     user_id: UUID,
 ) -> JSONObject:
-    _conversation, strategy = await get_owned_thread_or_404(
-        repo, conversation_id, user_id
-    )
+    _conversation, strategy = await get_owned_thread(repo, conversation_id, user_id)
     strategy_ast = strategy.strategy_ast
     if not strategy_ast:
         raise NotFoundError(
@@ -183,11 +181,11 @@ async def apply_operation(
     """
     # A thread the caller does not own takes no lock. The state is read again
     # inside the lock, because another writer may have moved it since.
-    await get_owned_thread_or_404(repo, conversation_id, user_id)
+    await get_owned_thread(repo, conversation_id, user_id)
     op = await save_dataset_sources(site_id, op)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
         locked_repo = ConversationRepository(locked)
-        conversation, strategy = await get_owned_thread_or_404(
+        conversation, strategy = await get_owned_thread(
             locked_repo, conversation_id, user_id
         )
         session = build_strategy_session(
@@ -233,10 +231,10 @@ async def refresh_counts(
     researcher reaches for when the numbers on screen stop describing it. The
     values the site holds are stored with its counts.
     """
-    await get_owned_thread_or_404(repo, conversation_id, user_id)
+    await get_owned_thread(repo, conversation_id, user_id)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
         locked_repo = ConversationRepository(locked)
-        conversation, strategy = await get_owned_thread_or_404(
+        conversation, strategy = await get_owned_thread(
             locked_repo, conversation_id, user_id
         )
         session = build_strategy_session(
@@ -292,9 +290,7 @@ async def save_substrategy(
     user_id: UUID,
     params: SaveSubstrategyParams,
 ) -> SavedSubstrategyResult:
-    conversation, strategy = await get_owned_thread_or_404(
-        repo, conversation_id, user_id
-    )
+    conversation, strategy = await get_owned_thread(repo, conversation_id, user_id)
     if not strategy.strategy_ast:
         raise ValidationError(
             title="conversation has no strategy",
@@ -355,9 +351,9 @@ async def insert_saved(
 ) -> InsertSavedResult:
     # The insert reads the stored tree, reads and clones a saved WDK strategy,
     # and writes the whole tree back, so it holds the lock across all three.
-    await get_owned_thread_or_404(repo, conversation_id, user_id)
+    await get_owned_thread(repo, conversation_id, user_id)
     async with strategy_write_lock(conversation_id, async_session_factory) as locked:
-        conversation, strategy = await get_owned_thread_or_404(
+        conversation, strategy = await get_owned_thread(
             ConversationRepository(locked), conversation_id, user_id
         )
         if params.target_step_id and not strategy.strategy_ast:

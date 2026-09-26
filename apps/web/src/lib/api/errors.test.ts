@@ -152,7 +152,16 @@ describe("a body the transport rethrows as text", () => {
   });
 
   it("leaves a plain message alone", () => {
-    expect(toUserMessage(new Error("Failed to fetch"))).toBe("Failed to fetch");
+    expect(toUserMessage(new Error("Boom"))).toBe("Boom");
+  });
+
+  it("answers the caller's sentence when the network failed", () => {
+    expect(
+      toUserMessage(new TypeError("Failed to fetch"), "The rating was not saved."),
+    ).toBe("The rating was not saved.");
+    expect(
+      toUserMessage(new TypeError("Load failed"), "The rating was not saved."),
+    ).toBe("The rating was not saved.");
   });
 });
 

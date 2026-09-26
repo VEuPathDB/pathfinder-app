@@ -80,9 +80,11 @@ class TurnRecord(CamelModel):
     # The steps this turn deleted, and the steps the strategy holds now.
     deleted_steps: tuple[NamedStep, ...] = ()
     standing_steps: tuple[NamedStep, ...] = ()
-    # The strategy's record type, and the count of each step it holds.
+    # The strategy's record type, the count of each step it holds, and the
+    # counts its steps held when the message arrived.
     record_type: str = ""
     step_counts: tuple[int, ...] = ()
+    counts_at_arrival: tuple[int, ...] = ()
 
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
@@ -181,6 +183,7 @@ def turn_record(
         else tuple(named_step(node) for node in graph.steps.values()),
         record_type="" if graph is None else graph.record_type or "",
         step_counts=_step_counts(deps),
+        counts_at_arrival=tuple(markers.counts_at_arrival),
     )
 
 

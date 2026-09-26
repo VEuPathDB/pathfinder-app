@@ -1,13 +1,9 @@
 import { test } from "../fixtures/test";
 
+/** Moving between the Settings tabs by pointer and by keyboard. */
 test.describe("Settings", () => {
   test.beforeEach(async ({ chatPage }) => {
     await chatPage.goto();
-  });
-
-  test("open settings shows all tabs", async ({ settingsPage }) => {
-    await settingsPage.open();
-    await settingsPage.expectAllTabsVisible();
   });
 
   test("switch between settings tabs", async ({ settingsPage }) => {
@@ -32,13 +28,5 @@ test.describe("Settings", () => {
     await settingsPage.expectOnlyTabActive("Model");
     await page.keyboard.press("End");
     await settingsPage.expectOnlyTabActive("Seeding");
-  });
-
-  test("close settings modal", async ({ settingsPage }) => {
-    await settingsPage.open();
-    await settingsPage.close();
-
-    await settingsPage.open();
-    await settingsPage.expectAllTabsVisible();
   });
 });

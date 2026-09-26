@@ -60,6 +60,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "read_ledger_section": Reversibility.READ,
     "recover_failed_steps": Reversibility.REVISIONED_WRITE,
     "remember": Reversibility.UNREVISIONED_WRITE,
+    "rename_strategy": Reversibility.UNREVISIONED_WRITE,
     "run_eda_compute": Reversibility.DURABLE,
     "save_gene_set": Reversibility.UNREVISIONED_WRITE,
     "search_eda_studies": Reversibility.READ,

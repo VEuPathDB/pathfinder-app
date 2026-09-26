@@ -1,6 +1,6 @@
 [project]
 name = "pathfinder-api"
-version = "0.2.0a16"
+version = "0.2.0a17"
 description = "VEuPathDB Strategy Builder Chatbot API"
 requires-python = ">=3.14"
 dependencies = [
@@ -75,8 +75,11 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["src/pathfinder/tests"]
+# A command line -m replaces this, so `-m live_model` selects the lane.
+addopts = ["-m", "not live_model"]
 markers = [
     "live_wdk: tests that make live HTTP calls to VEuPathDB WDK endpoints (require network)",
+    "live_model: tests that make live calls to the deployment's model provider (require OPENAI_API_KEY)",
     "allow_network: unit tests that are allowed to open a real network connection",
     "slow: live checks that take more than a few minutes",
 ]

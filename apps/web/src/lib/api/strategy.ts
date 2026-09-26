@@ -32,12 +32,16 @@ function stepRecordsKeyPrefix(conversationId: string) {
   return [{ url: route.url, params: { conversation_id: conversationId } }] as const;
 }
 
-/** Store a strategy the server answered. Every step answer read before it is stale. */
+/**
+ * Store a strategy the server answered. A read still in flight began before this
+ * answer, so it is cancelled; every step answer read before it is stale.
+ */
 export function writeStrategy(
   client: QueryClient,
   conversationId: string,
   strategy: Strategy,
 ): void {
+  void client.cancelQueries({ queryKey: strategyQueryKey(conversationId) });
   client.setQueryData<Strategy>(strategyQueryKey(conversationId), strategy);
   void client.invalidateQueries({ queryKey: stepRecordsKeyPrefix(conversationId) });
 }
@@ -53,12 +57,16 @@ export async function refetchStrategy(
   ]);
 }
 
+/** The caller's conversation, or null when there is none: a conversation that
+ *  belongs to another user is refused with 403 and is none of the caller's. */
 async function fetchStrategy(conversationId: string): Promise<Strategy | null> {
   try {
     const raw = await getStrategy(conversationId);
     return toStrategy(raw);
   } catch (err) {
-    if (err instanceof APIError && err.status === 404) return null;
+    if (err instanceof APIError && (err.status === 404 || err.status === 403)) {
+      return null;
+    }
     throw err;
   }
 }

@@ -145,6 +145,9 @@ class TurnMarkers(CamelModel):
     requirements_added: list[Constraint] = Field(default_factory=list)
     # The steps this turn deleted, as they stood before the delete.
     deleted_steps: list[NamedStep] = Field(default_factory=list)
+    # The step counts the site held when the message arrived. A reply may
+    # state one of them after a step leaves.
+    counts_at_arrival: list[int] = Field(default_factory=list)
     # The questions the latest answer under this message closed.
     answered: AnsweredQuestions | None = None
     # The researcher answered a consult, or accepted a proposal, under this message.

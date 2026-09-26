@@ -44,6 +44,14 @@ describe("TraceRow", () => {
     expect(screen.getByTestId("trace-row")).toHaveTextContent("Preview samples");
   });
 
+  it.each(GLYPHS)("names the %s status on the glyph", (status) => {
+    render(<TraceRow row={row({ status })} showRaw={false} nameFor={label} />);
+    expect(screen.getByTestId("trace-row-status")).toHaveAttribute(
+      "data-status",
+      status,
+    );
+  });
+
   it("gives every status a glyph of its own", () => {
     const seen = GLYPHS.map(([status]) => {
       render(<TraceRow row={row({ status })} showRaw={false} nameFor={label} />);

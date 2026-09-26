@@ -1,82 +1,64 @@
-import { test, expect } from "../fixtures/test";
-import type { APIRequestContext } from "@playwright/test";
-import { signInAsWdkAccount } from "../fixtures/wdk-account";
-import { astNodes, leafIdBySearch } from "../fixtures/ast";
-import type { ChatPage } from "../pages/chat.page";
-import type { SitePickerComponent } from "../pages/site-picker.page";
-
-/** The leaf of the two-leaf kinase spec that a saved strategy is combined with. */
-const TARGET_LEAF_SEARCH = "GenesByText";
-
 /**
- * Build the two-leaf kinase strategy. Its verification reports a zero-result
- * leaf, and the steps are pushed either way, so the strategy is insertable.
+ * The insert-saved route: a clean refusal for a saved strategy that does not
+ * load or a malformed body, and a saved strategy inserted next to a step as the
+ * expanded input of a new combine.
  */
-async function buildInterpro(
+
+import type { Page } from "@playwright/test";
+import type { ConversationResponse } from "@pathfinder/shared";
+import type { InsertSavedResponse } from "@pathfinder/shared/generated/types/InsertSavedResponse";
+
+import { test, expect } from "../fixtures/test";
+import { prompt } from "../fixtures/arcs";
+import { type ApiClient, CSRF_HEADERS } from "../fixtures/api-client";
+import { COMBINE_SEARCH_NAME } from "../fixtures/ast";
+import { LAYOUTS, SIGNAL_PEPTIDE } from "../fixtures/arc-layouts";
+import { expectBuild } from "../fixtures/build-checks";
+import { readConversation, readNodes, siteOrganism } from "../fixtures/site-reads";
+import { buildOn, nodeBySearch } from "../fixtures/strategy-builds";
+import { signInAsWdkAccount } from "../fixtures/wdk-account";
+import type { ChatPage } from "../pages/chat.page";
+
+/** Build the one-search strategy and return its conversation id. */
+async function buildSingle(
   chatPage: ChatPage,
-  sitePicker: SitePickerComponent,
+  page: Page,
+  api: ApiClient,
+  siteId: string,
 ): Promise<string> {
-  await chatPage.goto();
-  await sitePicker.selectSite("plasmodb");
-  await chatPage.newChat("plasmodb");
-  await chatPage.send(
-    "Build a strategy for P. falciparum 3D7 kinases using InterPro PF00069 and GO terms.",
-  );
-  await chatPage.expectVerificationFeedback();
-  const id = chatPage.lastStrategyId;
-  expect(id).toBeTruthy();
-  return id as string;
-}
-
-async function buildPlasmo(
-  chatPage: ChatPage,
-  sitePicker: SitePickerComponent,
-): Promise<string> {
-  await chatPage.goto();
-  await sitePicker.selectSite("plasmodb");
-  await chatPage.newChat("plasmodb");
-  await chatPage.send("create delegation");
-  await chatPage.expectVerificationSuccess();
-  await chatPage.expectIdle();
-  const id = chatPage.lastStrategyId;
-  expect(id).toBeTruthy();
-  return id as string;
-}
-
-/** The id of the leaf a saved strategy is inserted next to. */
-async function targetLeafId(
-  api: APIRequestContext,
-  conversationId: string,
-): Promise<string> {
-  return leafIdBySearch(
-    await api.get(`/api/v1/conversations/${conversationId}/ast`),
-    TARGET_LEAF_SEARCH,
-  );
-}
-
-async function wdkStrategyIdOf(
-  apiClient: APIRequestContext,
-  conversationId: string,
-): Promise<number | null> {
-  const resp = await apiClient.get(`/api/v1/conversations/${conversationId}`);
-  expect(resp.ok()).toBeTruthy();
-  return ((await resp.json()) as { wdkStrategyId: number | null }).wdkStrategyId;
-}
-
-test.describe("Insert saved sub-strategy", () => {
-  test("returns a clean 404 / 422 on unloadable saved id and malformed body", async ({
+  const id = await buildOn(
     chatPage,
-    sitePicker,
+    siteId,
+    prompt(
+      "single",
+      `Find ${siteOrganism(siteId)} genes whose proteins have a predicted signal peptide.`,
+    ),
+  );
+  await expectBuild(page, api, id, siteId, LAYOUTS.single);
+  return id;
+}
+
+/** The id of the step a saved strategy is inserted next to. */
+async function targetStepId(api: ApiClient, conversationId: string): Promise<string> {
+  return nodeBySearch(await readNodes(api, conversationId), SIGNAL_PEPTIDE).id ?? "";
+}
+
+test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
+  test.describe.configure({ timeout: 600_000 });
+
+  test("a saved id that does not load answers 404 and a malformed body 422", async ({
+    chatPage,
     apiClient,
+    page,
+    siteId,
   }) => {
-    const targetConvId = await buildInterpro(chatPage, sitePicker);
-    // A real step id, so the 404 can only come from the saved strategy id.
-    const stepId = await targetLeafId(apiClient, targetConvId);
+    const target = await buildSingle(chatPage, page, apiClient, siteId);
+    const stepId = await targetStepId(apiClient, target);
 
     const notFound = await apiClient.post(
-      `/api/v1/conversations/${targetConvId}/insert-saved`,
+      `/api/v1/conversations/${target}/insert-saved`,
       {
-        params: { siteId: "plasmodb" },
+        params: { siteId },
         data: {
           targetStepId: stepId,
           savedWdkStrategyId: 999_999_999,
@@ -91,91 +73,66 @@ test.describe("Insert saved sub-strategy", () => {
     expect(body.status).toBe(404);
 
     const malformed = await apiClient.post(
-      `/api/v1/conversations/${targetConvId}/insert-saved`,
-      {
-        params: { siteId: "plasmodb" },
-        data: { savedWdkStrategyId: 123, operator: "UNION" },
-      },
+      `/api/v1/conversations/${target}/insert-saved`,
+      { params: { siteId }, data: { savedWdkStrategyId: 123, operator: "UNION" } },
     );
     expect(malformed.status()).toBe(422);
   });
 
-  test("inserts a saved WDK strategy as an expanded combine input (real account)", async ({
+  test("a saved strategy goes in next to a step as an expanded combine input", async ({
     page,
     chatPage,
-    sitePicker,
+    siteId,
   }) => {
-    test.setTimeout(180_000);
-
     const ctx = page.context().request;
-    const csrf = { "X-Requested-With": "XMLHttpRequest" };
-    await signInAsWdkAccount(ctx, "plasmodb");
+    await signInAsWdkAccount(ctx, siteId);
     await page.reload();
 
     const created: string[] = [];
     try {
-      const savedConvId = await buildPlasmo(chatPage, sitePicker);
-      created.push(savedConvId);
-      await expect
-        .poll(() => wdkStrategyIdOf(ctx, savedConvId), { timeout: 60_000 })
-        .toBeTruthy();
-      const savedWdkStrategyId = await wdkStrategyIdOf(ctx, savedConvId);
-      const marked = await ctx.patch(`/api/v1/conversations/${savedConvId}`, {
+      const saved = await buildSingle(chatPage, page, ctx, siteId);
+      created.push(saved);
+      const savedWdkStrategyId =
+        (await readConversation(ctx, saved)).wdkStrategyId ?? 0;
+      expect(savedWdkStrategyId).toBeGreaterThan(0);
+      const marked = await ctx.patch(`/api/v1/conversations/${saved}`, {
         data: { isSaved: true },
-        headers: csrf,
+        headers: CSRF_HEADERS,
       });
-      expect(marked.ok()).toBeTruthy();
+      expect(marked.status()).toBe(200);
+      expect(((await marked.json()) as ConversationResponse).isSaved).toBe(true);
 
-      const targetConvId = await buildInterpro(chatPage, sitePicker);
-      created.push(targetConvId);
-      await expect
-        .poll(() => wdkStrategyIdOf(ctx, targetConvId), { timeout: 60_000 })
-        .toBeTruthy();
-      const before = (
-        await astNodes(await ctx.get(`/api/v1/conversations/${targetConvId}/ast`))
-      ).length;
-      const stepId = await targetLeafId(ctx, targetConvId);
+      const target = await buildSingle(chatPage, page, ctx, siteId);
+      created.push(target);
+      const before = (await readNodes(ctx, target)).length;
+      const stepId = await targetStepId(ctx, target);
 
-      const inserted = await ctx.post(
-        `/api/v1/conversations/${targetConvId}/insert-saved`,
-        {
-          params: { siteId: "plasmodb" },
-          data: {
-            targetStepId: stepId,
-            savedWdkStrategyId: savedWdkStrategyId as number,
-            operator: "UNION",
-          },
-          headers: csrf,
-        },
-      );
-      expect(
-        inserted.ok(),
-        `insert ${inserted.status()}: ${await inserted.text()}`,
-      ).toBeTruthy();
-      const result = (await inserted.json()) as {
-        insertedSavedWdkStrategyId: number;
-        combineStepId: string;
-        wdkStrategyId: number;
-      };
+      const inserted = await ctx.post(`/api/v1/conversations/${target}/insert-saved`, {
+        params: { siteId },
+        data: { targetStepId: stepId, savedWdkStrategyId, operator: "UNION" },
+        headers: CSRF_HEADERS,
+      });
+      expect(inserted.status(), `insert ${await inserted.text()}`).toBe(200);
+      const result = (await inserted.json()) as InsertSavedResponse;
       expect(result.insertedSavedWdkStrategyId).toBe(savedWdkStrategyId);
-      expect(result.combineStepId).toBeTruthy();
-      expect(typeof result.wdkStrategyId).toBe("number");
+      expect(result.combineStepId).not.toBe("");
+      expect(result.wdkStrategyId).toBeGreaterThan(0);
 
-      const after = await astNodes(
-        await ctx.get(`/api/v1/conversations/${targetConvId}/ast`),
-      );
+      const after = await readNodes(ctx, target);
       expect(after.length).toBeGreaterThan(before);
-      const expandedRefs = after
-        .filter((n) => n.searchName === "__combine__")
-        .map((n) => n.expandedStrategyId)
-        .filter((v): v is number => v != null);
-      expect(expandedRefs).toContain(savedWdkStrategyId);
+      const expanded = after.filter(
+        (node) =>
+          node.searchName === COMBINE_SEARCH_NAME &&
+          node.expandedStrategyId === savedWdkStrategyId,
+      );
+      expect(expanded.map((node) => node.id)).toEqual([result.combineStepId]);
+      expect(expanded.map((node) => node.operator)).toEqual(["UNION"]);
     } finally {
       for (const id of created) {
         await ctx
           .delete(`/api/v1/conversations/${id}`, {
             params: { deleteFromWdk: "true" },
-            headers: csrf,
+            headers: CSRF_HEADERS,
           })
           .catch(() => undefined);
       }

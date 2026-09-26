@@ -22,10 +22,8 @@ import os
 import sys
 from pathlib import Path
 
-from pydantic import ConfigDict
 from veupathdb.domain.strategy import DEFAULT_COMBINE_OPERATOR, StrategyStepNode
-from veupathdb.errors import VEuPathDBError, validate_response
-from veupathdb.model import CamelModel
+from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
     CombinedStepSpec,
     NewStepSpec,
@@ -34,7 +32,6 @@ from veupathdb.wdk import (
     WDKStepTree,
     encode_params,
     get_strategy_api,
-    get_wdk_client,
     password_login,
 )
 from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
@@ -42,20 +39,9 @@ from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.services.experiment.seed.catalog import SEEDS_DIR, get_seeds_for_site
 from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
+from pathfinder.services.wdk_build import site_build
 
 STRATEGY_NAME = "pathfinder seed measure"
-
-
-class _ServiceRoot(CamelModel):
-    model_config = ConfigDict(extra="ignore")
-
-    build_number: str
-
-
-async def site_build(site_id: str) -> str:
-    """The build number the site's service root reports."""
-    raw = await get_wdk_client(site_id).get("/")
-    return validate_response(_ServiceRoot, raw, "WDK service root").build_number
 
 
 async def _push(

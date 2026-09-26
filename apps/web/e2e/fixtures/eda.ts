@@ -150,6 +150,7 @@ export const VOLCANO_VIZ = {
   effectDirection: "upAndDown",
   totalPoints: 3,
   retainedPoints: 1,
+  retainedPointIds: ["PF3D7_0100200"],
   points: [
     {
       pointId: "PF3D7_0100100",
@@ -184,6 +185,7 @@ export const VOLCANO_RESPONSE = {
   effectDirection: VOLCANO_VIZ.effectDirection,
   totalPoints: VOLCANO_VIZ.totalPoints,
   retainedPoints: VOLCANO_VIZ.retainedPoints,
+  retainedPointIds: VOLCANO_VIZ.retainedPointIds,
   points: VOLCANO_VIZ.points,
   comparison: { groupA: COMPUTE.groupA, groupB: COMPUTE.groupB },
 };

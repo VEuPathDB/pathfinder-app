@@ -720,7 +720,12 @@ def _build_respond_body(args: RespondArgs, gate: Gate) -> ChatRequestBody:
     raise GateResponseError(msg)
 
 
-async def run_respond(args: RespondArgs) -> int:
+async def drive_respond(args: RespondArgs) -> tuple[RunCapture, Gate] | None:
+    """Answer the pending gate and run on to completion or to the next gate.
+
+    None when no gate is pending. The eval runner reads the capture; the command
+    line prints it.
+    """
     async with attach_application():
         if args.mock:
             os.environ["PATHFINDER_CHAT_PROVIDER"] = "mock"
@@ -757,8 +762,7 @@ async def run_respond(args: RespondArgs) -> int:
         if gate.kind == "none":
             gate = _current_gate(capture)
         if gate.kind == "none":
-            print("no pending gate to respond to (turn already complete)")
-            return 0
+            return None
         body = _build_respond_body(args, gate)
 
         with capture_tracebacks(args.run_dir):
@@ -772,8 +776,17 @@ async def run_respond(args: RespondArgs) -> int:
 
         capture.flush()
         _write_gate(args.run_dir, final_gate)
-        _report(capture, final_gate)
-        return 1 if capture.has_error else 0
+        return capture, final_gate
+
+
+async def run_respond(args: RespondArgs) -> int:
+    answered = await drive_respond(args)
+    if answered is None:
+        print("no pending gate to respond to (turn already complete)")
+        return 0
+    capture, final_gate = answered
+    _report(capture, final_gate)
+    return 1 if capture.has_error else 0
 
 
 def _report(capture: RunCapture, gate: Gate) -> None:

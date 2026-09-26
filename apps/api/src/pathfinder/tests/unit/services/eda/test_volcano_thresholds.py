@@ -184,6 +184,7 @@ def test_a_row_with_no_p_value_is_plotted_at_its_effect_size_and_never_kept() ->
     assert silent.retained is False
     assert view.total_points == 2
     assert view.retained_points == 1
+    assert view.retained_point_ids == ["A"]
 
 
 def test_a_row_with_an_unreadable_p_value_is_plotted_as_one_with_none() -> None:
@@ -217,6 +218,7 @@ def test_the_recorded_statistics_plot_every_row_that_has_an_effect_size() -> Non
     assert view.total_points == 201
     assert len(view.points) == 201
     assert view.retained_points == 67
+    assert view.retained_point_ids == [p.point_id for p in view.points if p.retained]
     silent = [point for point in view.points if point.p_value is None]
     assert [point.point_id for point in silent] == ["PF3D7_MIT04200"]
     assert silent[0].retained is False

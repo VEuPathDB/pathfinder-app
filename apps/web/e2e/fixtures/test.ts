@@ -25,15 +25,25 @@ type TestFixtures = {
   apiClient: ApiClient;
 };
 
+/** The site a project runs its specs on; `playwright.config.ts` sets it per project. */
+export type SiteOption = {
+  siteId: string;
+};
+
 /** Worker-scoped fixtures (shared across tests in a worker). */
-type WorkerFixtures = {
+type WorkerFixtures = SiteOption & {
   workerStorageState: string;
 };
 
 export const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
+/** The site a spec opens when its project names none. */
+export const DEFAULT_SITE = "plasmodb";
+
 export const test = base.extend<TestFixtures, WorkerFixtures>({
   // Worker-scoped
+
+  siteId: [DEFAULT_SITE, { option: true, scope: "worker" }],
 
   /**
    * Each worker signs in as its own PathFinder user (`/dev/login?user_id=worker-{N}`)

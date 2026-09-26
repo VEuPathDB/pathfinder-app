@@ -1,122 +1,98 @@
-import { test, expect } from "../fixtures/a11y";
-import { MOCK_PLAN_PROMPT } from "../fixtures/mock-prompts";
-
 /**
- * Journey: Full Researcher Lifecycle - PlasmoDB (Complete Arc)
- *
- * The most comprehensive journey test. Covers the ENTIRE user lifecycle:
- * Auth -> multi-round chat -> strategy creation -> the build's gene set ->
- * site switching with isolation verification -> settings -> API verification
- * at every stage.
- *
- * Real WDK API, real PostgreSQL. Only the LLM is mocked.
+ * The researcher's lifecycle on the project's site: two chat rounds, a build and
+ * its gene set, a switch to another site that holds none of it, the settings,
+ * and a last round after which the gene set is unchanged. Only the model is
+ * mocked.
  */
-test.describe("Full Researcher Lifecycle", () => {
-  test("end-to-end research workflow with full output verification", async ({
+
+import type { GeneSet } from "@pathfinder/shared";
+
+import { test, expect } from "../fixtures/a11y";
+import { prompt } from "../fixtures/arcs";
+import type { ApiClient } from "../fixtures/api-client";
+import { LAYOUTS } from "../fixtures/arc-layouts";
+import { expectBuild } from "../fixtures/build-checks";
+import { readConversation, siteOrganism } from "../fixtures/site-reads";
+
+async function geneSetsOn(api: ApiClient, siteId: string): Promise<GeneSet[]> {
+  const resp = await api.get(`/api/v1/gene-sets?siteId=${siteId}`);
+  expect(resp.status()).toBe(200);
+  return (await resp.json()) as GeneSet[];
+}
+
+test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
+  test.describe.configure({ timeout: 600_000 });
+
+  test("chat, build, gene set, another site, settings and a last round", async ({
     chatPage,
-    graphPage,
     sidebarPage,
     sitePicker,
     settingsPage,
     page,
     apiClient,
+    siteId,
   }) => {
-    // Phase 1: Chat & Strategy (PlasmoDB)
-    // Switch to PlasmoDB for this journey
+    const organism = siteOrganism(siteId);
+    const otherSite = siteId === "toxodb" ? "plasmodb" : "toxodb";
+
     await chatPage.goto();
-    await sitePicker.selectSite("plasmodb");
+    await sitePicker.selectSite(siteId);
+    await chatPage.newChat(siteId);
 
-    // Start fresh conversation
-    await chatPage.newChat();
-
-    // Chat round 1
-    await chatPage.send("find drug resistance genes in Plasmodium falciparum");
-    await chatPage.expectAssistantMessage(/\[mock\]/);
-    await chatPage.expectIdle();
-
-    // Chat round 2
-    await chatPage.send(
-      "I want to focus on chloroquine and artemisinin resistance mechanisms",
+    await chatPage.sendTurn(
+      `find drug resistance genes in ${organism}`,
+      /\[mock\].*drug resistance/,
     );
-    await chatPage.expectAssistantMessage(/\[mock\].*chloroquine/i);
-    await chatPage.expectIdle();
+    await chatPage.sendTurn(
+      "I want to focus on chloroquine and artemisinin resistance mechanisms",
+      /\[mock\].*chloroquine/,
+    );
 
-    // Chat round 3 - build the strategy
-    await chatPage.send(MOCK_PLAN_PROMPT);
-    await graphPage.expectRailPanel();
+    await chatPage.sendAndSettle(
+      prompt(
+        "single",
+        `Find ${organism} genes whose proteins have a predicted signal peptide.`,
+      ),
+    );
+    const id = chatPage.lastStrategyId ?? "";
+    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+    let geneSetId = "";
+    await expect
+      .poll(
+        async () => {
+          geneSetId = (await readConversation(apiClient, id)).geneSetId ?? "";
+          return geneSetId;
+        },
+        { timeout: 60_000 },
+      )
+      .not.toBe("");
+    const builtSet = (await geneSetsOn(apiClient, siteId)).find(
+      (set) => set.id === geneSetId,
+    );
+    expect(builtSet?.geneCount ?? 0).toBeGreaterThan(0);
 
-    // Verify strategy exists via API - use captured ID for isolation
-    const strategyId = chatPage.lastStrategyId;
-    expect(strategyId).toBeTruthy();
-    const stratResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
-    expect(stratResp.ok()).toBeTruthy();
-    const latestStrategy = await stratResp.json();
-    expect(latestStrategy.steps.length).toBeGreaterThan(0);
+    await sitePicker.selectSite(otherSite);
+    await sitePicker.expectCurrentSite(otherSite);
+    expect(await geneSetsOn(apiClient, otherSite)).toEqual([]);
 
-    // Phase 2: The build's gene set, read back through the API
-    await chatPage.expectIdle();
-    const builtResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    expect(builtResp.ok()).toBeTruthy();
-    const builtSets = (await builtResp.json()) as {
-      id: string;
-      source: string;
-      geneCount: number;
-      geneIds: string[];
-    }[];
-    const builtSet = builtSets.find((gs) => gs.source === "strategy");
-    expect(builtSet).toBeDefined();
-    expect(builtSet?.geneCount).toBeGreaterThan(0);
-    expect(builtSet?.geneIds[0]).toMatch(/^PF3D7_/);
-
-    // Phase 3: Site Switching - Isolation Verification
-    // Switch to ToxoDB
-    await sitePicker.selectSite("toxodb");
-    await sitePicker.expectCurrentSite("toxodb");
-
-    // Clean any stale ToxoDB gene sets before checking isolation.
-    const staleToxoResp = await apiClient.get("/api/v1/gene-sets?siteId=toxodb");
-    if (staleToxoResp.ok()) {
-      const staleToxo = (await staleToxoResp.json()) as { id: string }[];
-      await Promise.all(
-        staleToxo.map((gs) => apiClient.delete(`/api/v1/gene-sets/${gs.id}`)),
-      );
-    }
-
-    // API confirms no ToxoDB gene sets
-    const toxoResp = await apiClient.get("/api/v1/gene-sets?siteId=toxodb");
-    expect(toxoResp.ok()).toBeTruthy();
-    const toxoSets = await toxoResp.json();
-    expect(toxoSets.length).toBe(0);
-
-    // Phase 4: Return to PlasmoDB & Settings
-    await sitePicker.selectSite("plasmodb");
-    await sitePicker.expectCurrentSite("plasmodb");
-
-    // Settings modal
+    await sitePicker.selectSite(siteId);
+    await sitePicker.expectCurrentSite(siteId);
     await settingsPage.open();
     await settingsPage.expectAllTabsVisible();
     await settingsPage.openTab("Data");
     await settingsPage.close();
 
-    // Phase 5: Final Chat & Conversation Persistence
-    // The sidebar lists one site's conversations, and this journey's live on
-    // PlasmoDB, so return to the PlasmoDB chat rather than to "/" (which
-    // resolves to the portal).
-    await page.goto("/plasmodb/conversation");
-    await expect(page.getByTestId("message-composer")).toBeVisible();
-
-    // Verify conversations still exist in sidebar
+    await page.goto(`/${siteId}/conversation/${id}`);
+    await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await sidebarPage.expectAtLeastOneConversation();
+    await chatPage.sendTurn(
+      "Summarize my findings from the resistance gene analysis",
+      /\[mock\].*findings/,
+    );
 
-    // Send final message
-    await chatPage.send("Summarize my findings from the resistance gene analysis");
-    await chatPage.expectAssistantMessage(/\[mock\].*findings/i);
-    await chatPage.expectIdle();
-
-    // API verification: the build's gene set is still intact.
-    const finalResp = await apiClient.get("/api/v1/gene-sets?siteId=plasmodb");
-    const finalSets = (await finalResp.json()) as { id: string; geneCount: number }[];
-    const finalSet = finalSets.find((gs) => gs.id === builtSet?.id);
+    const finalSet = (await geneSetsOn(apiClient, siteId)).find(
+      (set) => set.id === geneSetId,
+    );
     expect(finalSet?.geneCount).toBe(builtSet?.geneCount);
   });
 });

@@ -1,0 +1,49 @@
+{
+  "name": "uat-v7-plasmodb",
+  "turns": [
+    "Find Plasmodium falciparum 3D7 genes whose proteins have a predicted signal peptide.",
+    "Compare the SignalP-6.0 and SignalP-4.1 versions of this search."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A comparison of two variants reads both and leaves the strategy as it stood.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesWithSignalPeptide",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "SignalP-4.1"
+    ],
+    "replyOmits": [],
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 479,
+      "build": "71",
+      "measuredOn": "2026-09-24"
+    },
+    "endsOn": null
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-25",
+    "stagingId": "",
+    "reference": "uat/flows-verification.md#v7",
+    "curatorNote": "Not measured in the flow tables."
+  },
+  "effort": "medium",
+  "gates": "auto",
+  "attachments": {},
+  "newConversationBefore": []
+}

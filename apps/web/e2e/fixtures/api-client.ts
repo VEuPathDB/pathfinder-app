@@ -21,7 +21,7 @@ export async function createApiClient(
 
 export type ApiClient = APIRequestContext;
 
-/** The sites `e2e-sites.yaml` serves: the portal and the five component sites. */
+/** The sites `e2e-sites.yaml` serves: the portal and the six component sites. */
 export const E2E_SITE_IDS = [
   "veupathdb",
   "plasmodb",
@@ -29,6 +29,7 @@ export const E2E_SITE_IDS = [
   "cryptodb",
   "tritrypdb",
   "fungidb",
+  "vectorbase",
 ] as const;
 
 /** One row of a conversations list. */
@@ -44,6 +45,9 @@ export interface ConversationRow {
  * detail, so a refused list never reads as an empty or undefined one.
  */
 export async function listBody<T>(resp: APIResponse, what: string): Promise<T[]> {
+  if (!resp.ok()) {
+    throw new Error(`${what} answered ${resp.status()}: ${await resp.text()}`);
+  }
   const body: unknown = await resp.json();
   if (!Array.isArray(body)) {
     throw new Error(`${what} answered ${resp.status()}: ${JSON.stringify(body)}`);
@@ -189,23 +193,24 @@ function geneSetListUrls(baseURL: string): string[] {
   ];
 }
 
-/** Delete every gene set of the calling user, on every site the suite serves. */
+/**
+ * Delete every gene set of the calling user, on every site the suite serves.
+ * The lists are read one at a time: each holds an api database connection.
+ */
 async function clearGeneSets(req: APIRequestContext, baseURL: string): Promise<void> {
-  await Promise.all(
-    geneSetListUrls(baseURL).map(async (url) => {
-      const geneSets = await listBody<{ id: string }>(await req.get(url), url);
-      await Promise.all(
-        geneSets.map(async (gs) =>
-          deleted(
-            await req.delete(`${baseURL}/api/v1/gene-sets/${gs.id}`, {
-              headers: CSRF_HEADERS,
-            }),
-            `gene set ${gs.id}`,
-          ),
+  for (const url of geneSetListUrls(baseURL)) {
+    const geneSets = await listBody<{ id: string }>(await req.get(url), url);
+    await Promise.all(
+      geneSets.map(async (gs) =>
+        deleted(
+          await req.delete(`${baseURL}/api/v1/gene-sets/${gs.id}`, {
+            headers: CSRF_HEADERS,
+          }),
+          `gene set ${gs.id}`,
         ),
-      );
-    }),
-  );
+      ),
+    );
+  }
 }
 
 /**
@@ -251,7 +256,8 @@ export async function clearUserData(
           deleted(
             await req.delete(
               `${baseURL}/api/v1/conversations/${row.id}?deleteFromWdk=true`,
-              { headers: CSRF_HEADERS },
+              // Each delete also deletes the strategy on the site, which can be slow.
+              { headers: CSRF_HEADERS, timeout: 120_000 },
             ),
             `conversation ${row.id}`,
           ),
