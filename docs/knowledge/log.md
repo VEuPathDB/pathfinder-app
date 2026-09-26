@@ -42,9 +42,15 @@
   shown red with the guard removed. Measured on a CI runner, two Playwright
   workers is the only count with no failure (four flake 9 to 20 tests, eight
   fail 21 to 31; the api holds one full core in every cell), so the e2e job
-  builds the two images once, runs ten shards at two workers each with
+  builds the two images once, runs sixteen shards at two workers each with
   `WORKER_CONCURRENCY=8`, checks that the shards cover the list exactly once,
-  and merges the report. Retries drop to one. A retried test's trace held the suite account's token, a three-year stateless JWT that neither WDK's logout nor the OAuth server can revoke, so every blob report is redacted (`apps/web/scripts/redact-traces.mjs`: every JWT, the account's email and password, raw, JSON-escaped and URL-encoded, in every zip entry) before its upload, and the upload runs only when the redaction passed. Two mock-only debts found on the way (the review's root organism read from a stubbed answer, a ranking tie decided on rounded scores) were fixed in the same release, so the backlog card for each left with it.
+  and merges the report. Retries drop to one. Measured on the release run:
+  the e2e path takes 10.9 minutes (shards of 3.1 to 8.9 minutes, each carrying
+  about 2.5 minutes of stack start) against 26.1 for the single job it
+  replaces, and the whole run takes 17.5 minutes, bounded by the integration
+  tier at 17.2, so the e2e job is no longer the long pole; the runner's
+  compose refuses `--wait` on a dependency without a healthcheck, so the shard
+  polls the api's readiness and the worker's heartbeat itself. A retried test's trace held the suite account's token, a three-year stateless JWT that neither WDK's logout nor the OAuth server can revoke, so every blob report is redacted (`apps/web/scripts/redact-traces.mjs`: every JWT, the account's email and password, raw, JSON-escaped and URL-encoded, in every zip entry) before its upload, and the upload runs only when the redaction passed. Two mock-only debts found on the way (the review's root organism read from a stubbed answer, a ranking tie decided on rounded scores) were fixed in the same release, so the backlog card for each left with it.
 
 * **What the suite found in the product.** Seven findings, FND-15 to FND-22 in
   `docs/knowledge/uat/findings.md`, all fixed: an offline rating showed the
