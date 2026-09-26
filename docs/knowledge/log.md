@@ -1,5 +1,67 @@
 # Log
 
+## 2026-09-27
+
+* **The verdict moves to the Lead.** The evidence card no longer grades the
+  strategy: `Supported` and `Not supported` are gone with the Status column and
+  the requirement count, and the card keeps the facts (each requirement in the
+  researcher's words with the step that answers it, the sampled genes and
+  whether each fits, the sources, the controls table). What VERIFY finds is
+  typed (`domain/caveats.py`): a gap (an unmet or unexpressed requirement, a
+  word no search states, a combination joined the wrong way) or a caveat (a
+  control test that returned 52 of 80 positives and 2 of 40 negatives, sampled
+  genes that are unclear, a threshold the site applied at another value, a build
+  that left a step empty), each rendered to one sentence in one place. Two
+  turn-contract rules make the Lead say it: a reply that omits a gap's words or
+  a caveat's numbers is refused and corrected once. The internal pass/fail
+  stays for the case auto-write and the eval cases.
+
+* **What the a17 model report found.** Eight of the 58 recorded flows failed
+  twice on the real model; three were the record's, five the product's, all
+  fixed (FND-24 to FND-30 in `docs/knowledge/uat/findings.md`). An organism
+  phrase the message states whole is one requirement: the intent gate reads the
+  site's organism list and refuses a classification that splits "Anopheles
+  gambiae PEST" into an organism and a "PEST genes" constraint, or borrows a
+  word of it into a combination term (`domain/strategy/organism_phrases.py`).
+  A word is a qualifier only when the text puts it in the same compound as the
+  parameter name that owns it ("host cell" is not `singleCellDataset`'s "single
+  cell"; 58 of plasmodb's 137 qualifier stems can now be set aside by their
+  phrase), and only the owning search can outstate a bound one, never a word in
+  another search's option label. A range facet binds as `{min, max}` or as
+  `facet<=x`: the tool server writes the shape WDK accepts per facet
+  (`veupathdb-mcp` v0.2.0a30, WDK-PARAM-012), and a proposal carries an object
+  value as its JSON text; live, `max_minor_allele_frequency<=0.05` narrows
+  5,643 P. falciparum 3D7 genes to 421 and 8,183 T. gondii ME49 genes to 50.
+  The exported analysis binding carries the entity and variable the compute ran
+  on, so the study-step check states "DESeq on Sense Count". A card reply's
+  control-list size must be one the turn holds. A free text part of the Lead
+  model never reaches the thread; only the validated reply or a card's reply
+  does, so a reasoning block streamed before the call is not shown.
+
+* **A wrong model is played for each new rule.** Five more fault arcs prove the
+  new guards from the browser: a reply that omits a caveat or a gap, a card
+  reply that states two fewer positive controls than it was given, a
+  classification that splits the strain off an organism, and a single open
+  value asked in prose. Every arc's final reply now passes the real turn
+  contract, including the corrected reply after a fault, which reads its
+  added-search lines from the model's own draft once the history has elided
+  the build's answer.
+
+* **One open value is asked on the question card.** The Lead instruction that
+  sent a single open value to prose flips: every open question or slot is asked
+  through `consult_user`, one question each, with the options the ledger lists
+  and the recommended one marked, and a contract rule refuses a question asked
+  in prose while the frame still needs the user.
+
+* **The model report reads as it runs.** `evals run` prints each case's
+  verdict the moment it is known, a gene-id list attachment reaches the model
+  the way the composer sends it (`ai/conversation/gene_list_marker.py`, one
+  owner for the marker), the reply-phrase check ignores hyphens and case, and
+  the corpus keeps only expectations the product owes the researcher: a
+  sentence the product writes, a fact the reply must carry, the structure, the
+  count, the gate. Prose the model may or may not write, and the number of
+  requirement rows it splits a request into, are no longer asserted.
+
 ## 2026-09-26
 
 * **Every user-driven UAT flow runs on the mock stack.** The scripted model
