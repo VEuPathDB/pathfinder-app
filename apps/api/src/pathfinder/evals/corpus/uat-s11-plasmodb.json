@@ -6,13 +6,13 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Removing one input of a combine leaves the other search alone, with no approval card for a chat edit.",
+  "rationale": "Removing one input of a combine leaves the other search alone; the removal is asked on the delete card, and approving it builds nothing new and runs no check.",
   "expected": {
     "buildsStrategy": true,
     "structure": "GenesWithSignalPeptide",
     "recordType": "transcript",
     "stepCount": 1,
-    "verified": true,
+    "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
     "replyMentions": [],
@@ -43,7 +43,11 @@
     "curatorNote": ""
   },
   "effort": "medium",
-  "gates": "stop",
+  "gates": [
+    {
+      "accept": true
+    }
+  ],
   "attachments": {},
   "newConversationBefore": []
 }

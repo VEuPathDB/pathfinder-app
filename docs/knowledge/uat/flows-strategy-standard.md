@@ -136,7 +136,7 @@ Measured today: not added; six binds failed on `GenesByAntibodyArraypfal3D7_micr
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | The S4 conversation | Send `Remove the transmembrane-domain step.` | Layout `GenesWithSignalPeptide`, 1 step, 479 genes; no approval card (a chat edit). Measured: 479, $0.051 |
+| 1 | The S4 conversation | Send `Remove the transmembrane-domain step.` | Card `Delete step 'Plasmodium falciparum 3D7 genes with 2 to 99 transmembrane domains' (GenesByTransmembraneDomains, 840 genes)?` naming the step it removes; `Approve` gives layout `GenesWithSignalPeptide`, 1 step, 479 genes. Measured: 479, $0.051 |
 | 2 | A fresh S2 conversation, canvas | Hover the TM node, `More actions`, `Delete step` | Dialog `Delete this step?` with the step name and the ways the combine can be resolved (no dialog when there is only one); after `Delete`: 1 step, 479 genes |
 
 ## S12 - Replace a subtree - plasmodb

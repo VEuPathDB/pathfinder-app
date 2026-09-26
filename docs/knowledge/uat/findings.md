@@ -604,3 +604,93 @@ Fixed in a18: the card hold drops every free text part of the Lead model's own s
 **Fix.** The hold drops every text part of the Lead model's own stream. No runtime release.
 
 **What you'd get.** The reply starts at "I can build this strategy ...".
+
+---
+
+## FND-31 - The organism alone binds a criterion
+
+Found by the a18 model report (2026-09-27, build 71, `evals run --via-worker`, Luna medium). Open.
+
+**What I did.** vectorbase S1 `Find Anopheles gambiae PEST genes whose proteins have a predicted signal peptide.`, S2 the same with `and 2 to 99 transmembrane domains`; plasmodb N1 `Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent.` with the card's recommended option taken.
+
+**What I got.** The intent gate holds (FND-24): S1 refuses `organism "Anopheles gambiae"` + `other "PEST genes"` twice and records `"Anopheles gambiae PEST"` whole on the third call. FRAME then makes the organism a criterion. S2 call 22: `c_pest`, text `Anopheles gambiae PEST genes`, `GenesByGeneModelChars`, `gene_model_char null`, `organism_select_none ["Anopheles gambiae PEST"]`, why `{term: "Organism", basis: parameter, reason: "Organism is Anopheles gambiae PEST for the gene-model search."}`; answer `c_pest set to GenesByGeneModelChars, 13,845 genes, sets Organism`. S1 call 17: the same search with `gene_model_char "organism=Anopheles gambiae PEST"`, why term `Gene Model Characteristics`; recorded. N1 call 51: `c_isolate_conservation`, text `Low variation between Plasmodium falciparum isolates, using the site's default isolate-conservation threshold`, `GenesByNgsSnps` with every value null except `organismSinglePick ["Plasmodium falciparum 3D7"]`, why `{term: "Organism", basis: parameter}`; answer `5,594 genes, sets Organism`. Trees: S1 `(GenesByGeneModelChars INTERSECT GenesWithSignalPeptide)`, 3 steps for 1 (13,845 and 2,928 under 2,928); S2 5 steps for 3 (343); N1 5 steps, 500 genes, with the reply saying `'do not vary much between isolates' is still unmet`. The N1 card offered `Use the site's default isolate-conservation threshold` and `I will specify a dataset and cutoff`, two options the Lead wrote, not values a sheet lists.
+
+**Why that's wrong.** The saved strategy carries a 13,845-gene step of every PEST gene that the researcher never asked for, and the S1 reply presents it as "the organism-specific gene set required by your request". On N1 one of the three filters is the whole-genome default of a SNP search, so the 500 "candidates" were never filtered on variation.
+
+**Why it happens.** `ai/tools/standalone/_frame_rationale.py::_checked_term` sends `basis: parameter` to `_set_parameter`, which accepts any parameter that holds a value, the search's organism parameter included; only `basis: organism` is held to a value that states the criterion. `ai/agents/frame.py` step 1 never says the organism the request names is a value of each search and not a property. The a18 design assumed nothing asks FRAME for an organism leaf once the intent is whole.
+
+**Fix.** A criterion whose only set parameter is the search's organism parameter, or whose deciding value is made of the organism entry's words alone, is refused on any basis; a transform's target organism is the exception. One line in the FRAME instruction states the rule.
+
+**What you'd get.** S1 `GenesWithSignalPeptide`, 1 step, 2,928; S2 3 steps, 343; N1's call 51 comes back as a retry that names the rule.
+
+---
+
+## FND-32 - A refused classification ends the turn with nothing built
+
+Found by the a18 model report. Open.
+
+**What I did.** vectorbase S1, the once-only re-run of the same message.
+
+**What I got.** Call 1 `classify_user_intent` (organism `"Anopheles gambiae"`, other `"PEST genes"`) is refused with `The message names the organism "Anopheles gambiae PEST", one entry of this site's organism list. Record it whole as the organism constraint`. Call 2 is `read_ledger_section(frame)` -> `## Frame (no spec yet)`. The reply: `I could not build the search for Anopheles gambiae PEST genes whose proteins have a predicted signal peptide, so the strategy is unchanged.` No second classification, no frame pass, no strategy. The first run of the same message classified on the third call and built.
+
+**Why that's wrong.** The researcher reads that the site could not build a one-search request that it builds every other time, and nothing tells them what to change.
+
+**Why it happens.** A retry refusal on `classify_user_intent` (`ai/lead/lead_tools.py`) is a `ModelRetry` the model may answer by not calling again; the turn contract (`ai/lead/turn_contract.py`) refuses a reply that names an unbuilt strategy on a turn whose classification was accepted, and has no rule for a turn whose classification was never accepted.
+
+**Fix.** A reply on a turn that holds no accepted classification is refused by the contract with the refusal's own sentence, so the model classifies again or asks the researcher the question the refusal states.
+
+**What you'd get.** The re-run classifies whole on its second call and builds `GenesWithSignalPeptide`, 2,928.
+
+---
+
+## FND-33 - A step is removed without the delete card
+
+Found by the a18 model report. Open.
+
+**What I did.** plasmodb S11: turn 1 `(GenesWithSignalPeptide MINUS GenesByTransmembraneDomains)`, 363 genes; turn 2 `Remove the transmembrane-domain step.` Three runs (a17 report, a18 report, a18 re-run).
+
+**What I got.** The a18 run calls `delete_step(step_id "step_4de475de")` with the reply `I found the transmembrane-domain search step: "Plasmodium falciparum 3D7 genes with 2 to 99 transmembrane domains." Removing it will also remove its exclusion from the strategy ... Please approve the removal.` and the turn ends on the approval card. The a17 run and the a18 re-run call no `delete_step`: turn 2 is `classify_user_intent`, `drop_criterion`, `set_structure`, then VERIFY, 1 step, 479 genes, no card.
+
+**Why that's wrong.** `ai/lead/_lead_instructions.py` says a step the user wants gone is removed with `delete_step` and the user approves the call (FND-7), and two runs of three remove it through an edit pass with no card. The case and flow S11 recorded the two runs that break the rule as the expectation.
+
+**Why it happens.** Nothing enforces the rule: `ai/lead/edit_dispatch.py::edit_strategy` accepts a pass whose only change drops a criterion the live strategy holds as a built step.
+
+**Fix.** The case and flow S11 expect the card and approve it (corrected with this finding). The edit dispatch refuses a pass whose only change is the removal of a built step, with the `delete_step` sentence.
+
+**What you'd get.** Card `Delete step 'Plasmodium falciparum 3D7 genes with 2 to 99 transmembrane domains' (GenesByTransmembraneDomains, 840 genes)?`, and after Approve `GenesWithSignalPeptide`, 1 step, 479, on every run.
+
+---
+
+## FND-34 - Attached positive controls become a strategy, not a control set
+
+Found by the a18 model report. Open.
+
+**What I did.** plasmodb C12, a fresh conversation: `Use these genes as my positive controls.` with the composer's marker `Attached gene-ID list from controls.csv: PF3D7_0709000, PF3D7_1133400`. Two runs.
+
+**What I got.** Run 1: `classify_user_intent` records `clarification_response` on a first message that answers no question, goal `Use PF3D7_0709000 and PF3D7_1133400 as positive control genes for the ongoing analysis.`; FRAME binds two `GeneBySingleLocusTag` criteria, `set_structure` UNION, VERIFY runs `run_control_tests_on_step` on them (2 of 2 recovered); the reply: `The positive-control strategy is built and verified. ... the union of both exact-ID steps returns 2 genes.` No `build_control_set` call. Run 2: `classify_user_intent`, then `remember(kind preference, "positive-control-genes")`, and `Nothing was built`. Neither run saves a control set; `list_control_sets` stays empty.
+
+**Why that's wrong.** The researcher's controls land as a two-gene strategy or as a free-text memory, so a later control test or sweep has no `control_set_id` to take.
+
+**Why it happens.** `ai/lead/_lead_instructions.py` ties no rule to an attached gene-id list or to "use these as controls"; its control rules are the sweep and `separate_controls`. `classify_user_intent` accepts `clarification_response` on a conversation that holds no asked question (`ai/lead/intent.py`).
+
+**Fix.** Genes the researcher names as positive or negative controls, typed or in an attached list, with no strategy asked for, are saved with `build_control_set`; with positives only, the reply asks for negatives. A `clarification_response` on a conversation with no open question is refused. The case pins the saved control set.
+
+**What you'd get.** `build_control_set(positive_ids=[PF3D7_0709000, PF3D7_1133400])`, a `Build control set` trace row, and a reply that asks for negative controls (flow C12's expectation).
+
+---
+
+## FND-35 - The repetition guard stops VERIFY inside one parallel batch and the turn fails
+
+Found by the a18 model report. Open.
+
+**What I did.** fungidb S5: turn 1 Af293 signal peptide + 2 to 99 TM (64 genes); turn 2 `Carry these to their orthologs in Aspergillus nidulans FGSC A4.`
+
+**What I got.** The strategy is right: `GenesByOrthologs(...)`, 4 steps, 257 genes (748, 1,341, 64 under it). VERIFY reads its 8 sampled genes (calls 17 to 24, the `SAMPLED_GENE_LIMIT` of 8), lists notes, then issues one parallel batch of `get_sample_records` plus six `read_gene_record` of the same genes (calls 26 to 32). Inside that batch: `You have called read_gene_record 10 times in this run, which is past the call budget for it. You were already asked to stop calling it and called it again. The run stops here.` (and the same at 12). Turn status `error`; the reply: `I stopped this turn on an error I could not recover from: Verification sub-agent did not return a VerificationDelta. Send the message again and I will start over from it.` The re-run of the same case passed (257, verified).
+
+**Why that's wrong.** A correct 257-gene strategy reaches the researcher as an error with an instruction to resend, and the resend re-frames a strategy that is already right.
+
+**Why it happens.** `assistant_core/capabilities/repetition_guard.py::ToolRepetitionGuard._check_cap` escalates on `count > cap + 1` by count alone, so the ninth and tenth calls of one batch get the warning and the stop before the model has read either; `ai/lead/verify_dispatch.py::run_verification` raises `TypeError` when the stopped run returns no delta, and the turn fails instead of ending unverified.
+
+**Fix.** Runtime: the stop escalates only on a call the model issues after it has read the warning (a later request, not a sibling in the same batch). PathFinder: a stopped check records no verdict, and the Lead states that the check did not finish; nothing raises.
+
+**What you'd get.** Turn 2 ends `verified: true` on 257, or at worst on an unverified strategy and a sentence saying the check stopped.
