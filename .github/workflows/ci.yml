@@ -437,7 +437,8 @@ jobs:
         run: |
           (
             status=0
-            docker compose --env-file .env.test up -d --no-build --wait --wait-timeout 300 api web worker || status=$?
+            docker compose --env-file .env.test up -d --no-build --wait --wait-timeout 300 api web || status=$?
+            docker compose --env-file .env.test up -d --no-build worker || status=$?
             echo "$status" > "$RUNNER_TEMP/stack-up.status"
           ) > "$RUNNER_TEMP/stack-up.log" 2>&1 &
 
@@ -447,12 +448,22 @@ jobs:
         working-directory: apps/web
         run: yarn playwright install --with-deps
 
+      # `--wait` refuses a service with no healthcheck, and the worker serves no
+      # HTTP, so its liveness is read from the api's heartbeat view instead.
       - name: Wait for the stack
         timeout-minutes: 6
         run: |
           until [ -s "$RUNNER_TEMP/stack-up.status" ]; do sleep 2; done
           cat "$RUNNER_TEMP/stack-up.log"
-          exit "$(cat "$RUNNER_TEMP/stack-up.status")"
+          status="$(cat "$RUNNER_TEMP/stack-up.status")"
+          [ "$status" = 0 ] || exit "$status"
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:8000/health/system | jq -e '.workerAlive == true' > /dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          echo "the worker never reported a heartbeat"
+          docker compose --env-file .env.test logs --no-color worker | tail -60
+          exit 1
 
       # The suite acts as a registered VEuPathDB account; global setup signs
       # in with these and exports the token the fixtures read.
