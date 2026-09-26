@@ -19,9 +19,7 @@
         "isSyntenic": "yes"
       }
     },
-    "replyMentions": [
-      "3D7"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

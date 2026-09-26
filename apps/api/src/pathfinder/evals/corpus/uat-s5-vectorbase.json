@@ -19,9 +19,7 @@
         "organism": "Aedes aegypti LVP_AGWG"
       }
     },
-    "replyMentions": [
-      "LVP_AGWG"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

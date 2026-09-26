@@ -16,6 +16,7 @@ the build each site reports at the start of the run.
 from __future__ import annotations
 
 import datetime
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +32,7 @@ from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 from veupathdb.domain.strategy import StrategyAst
 
+from pathfinder.ai.conversation.gene_list_marker import gene_list_marker
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.assistants.registry import get_assistant_registry
@@ -65,6 +67,9 @@ from pathfinder.platform.config import get_settings
 from pathfinder.services.wdk_build import site_build
 
 HARNESS = "pydantic-evals"
+# A gene-id list goes to the model as the text the composer writes for it.
+_GENE_LIST_SUFFIXES = frozenset({".csv", ".tsv", ".txt"})
+_GENE_ID_HEADER = re.compile(r"^gene.?id$", re.IGNORECASE)
 _VERDICT: TypeAdapter[DriftVerdict] = TypeAdapter(DriftVerdict)
 
 
@@ -153,6 +158,24 @@ async def observe(
     )
 
 
+def _gene_list_text(path: Path) -> str:
+    """The composer's text for a gene-id list: each line's first column, once."""
+    firsts = (
+        re.split(r"[,\t]", line)[0].strip() for line in path.read_text().splitlines()
+    )
+    ids = list(dict.fromkeys(f for f in firsts if f and not _GENE_ID_HEADER.match(f)))
+    return gene_list_marker(path.name, ids)
+
+
+def _turn_message(case: EvalCase, index: int) -> tuple[str, list[Path]]:
+    """The turn's text with its gene-id lists appended, and the files sent inline."""
+    paths = attachment_paths(case, index)
+    lists = [p for p in paths if p.suffix.lower() in _GENE_LIST_SUFFIXES]
+    inline = [p for p in paths if p not in lists]
+    text = "\n\n".join([case.turns[index], *map(_gene_list_text, lists)])
+    return text, inline
+
+
 def _approve(case: EvalCase, index: int) -> Literal["auto", "prompt"]:
     """How a turn meets its gates: answered by the policy, or left for the case."""
     match case.gates:
@@ -238,7 +261,8 @@ async def run_one_case(
     reply = ""
     ended = Gate(kind="none")
     answers = case.gate_answers()
-    for index, prompt in enumerate(case.turns):
+    for index in range(len(case.turns)):
+        prompt, inline = _turn_message(case, index)
         if index in case.new_conversation_before:
             conversation_id = uuid4()
         if index == last and last > 0:
@@ -253,7 +277,7 @@ async def run_one_case(
             quiet=True,
             assistant=case.assistant_id,
             effort=case.effort if effort is None else effort,
-            attachments=attachment_paths(case, index),
+            attachments=inline,
         )
         capture, ended = await drive_run(args)
         while answers and _answers_the_gate(answers[0], ended):
@@ -276,7 +300,8 @@ async def run_one_case(
 class CaseVerdict(Evaluator[EvalCase, ObservedOutcome, None]):
     """The corpus expectation, as the label the harness records: a drift verdict.
 
-    ``builds`` holds the build each site reported at the start of the run.
+    ``builds`` holds the build each site reported at the start of the run. Each
+    verdict is printed the moment it is known, so a long run shows its progress.
     """
 
     builds: dict[str, str]
@@ -285,7 +310,32 @@ class CaseVerdict(Evaluator[EvalCase, ObservedOutcome, None]):
         self,
         ctx: EvaluatorContext[EvalCase, ObservedOutcome, None],
     ) -> DriftVerdict:
-        return classify(ctx.inputs, ctx.output, self.builds[ctx.inputs.site_id])
+        build = self.builds[ctx.inputs.site_id]
+        verdict = classify(ctx.inputs, ctx.output, build)
+        print(_progress_line(ctx, verdict, build), flush=True)
+        return verdict
+
+
+def _progress_line(
+    ctx: EvaluatorContext[EvalCase, ObservedOutcome, None],
+    verdict: DriftVerdict,
+    build: str,
+) -> str:
+    """One case's verdict, its time, its root count and its first difference."""
+    drift = count_difference(ctx.inputs, ctx.output, build)
+    named = [
+        *score_case(ctx.inputs, ctx.output).differences,
+        *([] if drift is None else [drift]),
+    ]
+    count = "-" if ctx.output.root_count is None else str(ctx.output.root_count)
+    first = (
+        "-"
+        if not named
+        else f"{named[0].field}: expected {named[0].expected!r}, got {named[0].actual!r}"
+    )
+    return (
+        f"{verdict} {ctx.inputs.name} {round(ctx.duration, 3)}s count={count}  {first}"
+    )
 
 
 def build_dataset(

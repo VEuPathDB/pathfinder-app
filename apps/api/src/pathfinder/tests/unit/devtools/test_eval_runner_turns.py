@@ -10,9 +10,14 @@ from uuid import UUID
 
 import pytest
 
-from pathfinder.devtools import eval_runner
+from pathfinder.ai.conversation.gene_list_marker import (
+    ParsedGeneList,
+    parse_gene_list_marker,
+)
+from pathfinder.devtools import eval_runner, evals
 from pathfinder.devtools.chat import RespondArgs, RunArgs
 from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption
+from pathfinder.evals import store
 from pathfinder.evals.case import (
     CaseProvenance,
     EvalCase,
@@ -572,3 +577,116 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
         [second],
         [second, second],
     )
+
+
+def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cases = [
+        _counted("uat-s1-plasmodb", "plasmodb", 479),
+        _counted("uat-s2-plasmodb", "plasmodb", 116),
+    ]
+    produced = {"uat-s1-plasmodb": 479, "uat-s2-plasmodb": 140}
+    printed_before_each_case: list[str] = []
+
+    async def _site_build(site_id: str) -> str:
+        del site_id
+        return "71"
+
+    async def _run_one_case(
+        case: EvalCase,
+        *,
+        run_root: Path,
+        effort: str | None,
+        via_worker: bool,
+    ) -> ObservedOutcome:
+        del run_root, effort, via_worker
+        printed_before_each_case.append(capsys.readouterr().out)
+        return ObservedOutcome(built_strategy=True, root_count=produced[case.name])
+
+    monkeypatch.setattr(eval_runner, "load_corpus", lambda: cases)
+    monkeypatch.setattr(eval_runner, "site_build", _site_build)
+    monkeypatch.setattr(eval_runner, "run_one_case", _run_one_case)
+    monkeypatch.setattr(evals, "RUN_ROOT", tmp_path)
+    monkeypatch.setattr(evals, "route_framework_logs_to_stderr", lambda: None)
+
+    assert evals.main(["run"]) == 0
+
+    after = capsys.readouterr().out.splitlines()
+    first = printed_before_each_case[1].split()
+    second, _, difference = after[0].partition("  ")
+    assert (printed_before_each_case[0], first[:2], first[3:]) == (
+        "",
+        ["pass", "uat-s1-plasmodb"],
+        ["count=479", "-"],
+    )
+    assert (second.split()[:2], second.split()[3:], difference) == (
+        ["fail", "uat-s2-plasmodb"],
+        ["count=140"],
+        "rootCount: expected '116 (build 71)', got '140 (build 71)'",
+    )
+    assert (after[1].split()[:2], after[-1].split()[:2]) == (
+        ["PASS", "uat-s1-plasmodb"],
+        ["---", "1/2"],
+    )
+
+
+async def test_a_gene_list_file_reaches_the_turn_as_the_composer_writes_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    files = tmp_path / "files"
+    files.mkdir()
+    (files / "controls.csv").write_text(
+        "geneId,product\n"
+        "PF3D7_0709000,CRT\n"
+        "PF3D7_1133400,AMA1\n"
+        "PF3D7_0102600,unspecified\n"
+        "PF3D7_0709000,CRT\n"
+    )
+    (files / "table.png").write_bytes(b"\x89PNG")
+    monkeypatch.setattr(store, "ATTACHMENTS_DIR", files)
+    installed = _install(monkeypatch, [set()])
+
+    await eval_runner.run_one_case(
+        _case(
+            "Use these genes as my positive controls.",
+            attachments={0: ["controls.csv", "table.png"]},
+        ),
+        run_root=tmp_path,
+    )
+
+    (driven,) = installed.driven
+    listed = parse_gene_list_marker(driven.prompt)
+    assert driven.prompt == (
+        "Use these genes as my positive controls.\n\n"
+        "Attached gene-ID list from controls.csv: "
+        "PF3D7_0709000, PF3D7_1133400, PF3D7_0102600"
+    )
+    assert (listed, driven.attachments) == (
+        ParsedGeneList(
+            file_name="controls.csv",
+            gene_ids=["PF3D7_0709000", "PF3D7_1133400", "PF3D7_0102600"],
+        ),
+        [files / "table.png"],
+    )
+
+
+async def test_a_gene_list_file_with_no_ids_says_so(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    (tmp_path / "empty.txt").write_text("gene_id\n\n")
+    monkeypatch.setattr(store, "ATTACHMENTS_DIR", tmp_path)
+    installed = _install(monkeypatch, [set()])
+
+    await eval_runner.run_one_case(
+        _case("Use these.", attachments={0: ["empty.txt"]}), run_root=tmp_path
+    )
+
+    assert [(a.prompt, a.attachments) for a in installed.driven] == [
+        (
+            "Use these.\n\nAttached file empty.txt contained no recognizable gene IDs.",
+            [],
+        ),
+    ]

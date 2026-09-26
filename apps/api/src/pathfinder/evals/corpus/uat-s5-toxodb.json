@@ -19,9 +19,7 @@
         "organism": "Neospora caninum Liverpool"
       }
     },
-    "replyMentions": [
-      "Liverpool"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

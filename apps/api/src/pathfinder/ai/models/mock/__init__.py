@@ -19,8 +19,8 @@ from assistant_core.models.scripted import (
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
+from pathfinder.ai.conversation.gene_list_marker import parse_gene_list_marker
 from pathfinder.ai.models.mock.arc import Arc, Role, Script
-from pathfinder.ai.models.mock.arc_args import attached_gene_list
 from pathfinder.ai.models.mock.directive import ECHO, ArcDirective, directive_of
 from pathfinder.ai.models.mock.faults import fault_call, without_fault_calls
 from pathfinder.ai.models.mock.lead_flow import classified_this_turn
@@ -64,7 +64,7 @@ def _lead_arc(messages: list[ModelMessage], directive: ArcDirective) -> Arc:
     token is the attachment arc, since a file cannot carry a token."""
     if deferred_tool_resolved(messages, "consult_user"):
         return arc_named("consult")
-    attached = attached_gene_list(joined_user_text(messages)) is not None
+    attached = parse_gene_list_marker(joined_user_text(messages)) is not None
     if directive.arc == ECHO and attached:
         return arc_named("attachment")
     return arc_named(directive.arc)

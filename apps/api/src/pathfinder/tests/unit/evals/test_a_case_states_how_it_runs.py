@@ -8,6 +8,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
+from pathfinder.ai.lead.intent_gate import DECLINED_OFFER_REFUSAL
 from pathfinder.evals.case import CaseProvenance, EvalCase, GateAnswer, RecordedCount
 from pathfinder.evals.store import (
     ATTACHMENTS_DIR,
@@ -271,9 +272,36 @@ def test_every_uat_case_arrived_from_a_uat_flow() -> None:
     assert origins == {"uat-flow"}
 
 
-def test_the_v5_case_asks_for_the_offer_by_its_nouns_and_no_count() -> None:
-    assert load_case("uat-v5-plasmodb").expected.reply_mentions == [
-        "declined",
-        "positive",
-        "negative",
-    ]
+def test_a_uat_case_asserts_no_prose_the_model_words_its_own_way() -> None:
+    phrases = {
+        case.name: case.expected.reply_mentions
+        for case in load_corpus()
+        if case.name.startswith("uat-") and case.expected.reply_mentions
+    }
+
+    assert phrases == {
+        "uat-c13-plasmodb": ["PF3D7_0709000", "PF3D7_1133400", "PF3D7_0102600"],
+        "uat-c14-plasmodb": ["PF3D7_0709000", "PF3D7_1133400", "PF3D7_0102600"],
+        "uat-m6-plasmodb": ["Su et al"],
+        "uat-n7-plasmodb": [DECLINED_OFFER_REFUSAL],
+        "uat-n8-plasmodb": ["portal"],
+        "uat-s15-plasmodb": ["heat shock protein"],
+        "uat-x6-vectorbase": ["portal"],
+    }
+
+
+def test_a_uat_case_holds_the_check_to_zero_unmet_rows_not_a_met_count() -> None:
+    counted = {
+        case.name: (case.expected.met_requirements, case.expected.unmet_requirements)
+        for case in load_corpus()
+        if case.name.startswith("uat-")
+        and (
+            case.expected.met_requirements is not None
+            or case.expected.unmet_requirements is not None
+        )
+    }
+
+    assert counted == {
+        f"uat-s2-{site}": (None, 0)
+        for site in ("fungidb", "plasmodb", "toxodb", "vectorbase", "veupathdb")
+    }

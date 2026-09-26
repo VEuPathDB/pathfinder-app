@@ -19,9 +19,7 @@
         "min_tm": "1"
       }
     },
-    "replyMentions": [
-      "signal peptide"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

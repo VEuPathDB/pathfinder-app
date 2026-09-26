@@ -19,9 +19,7 @@
         "organism": "Aspergillus nidulans FGSC A4"
       }
     },
-    "replyMentions": [
-      "FGSC A4"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

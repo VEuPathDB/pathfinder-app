@@ -14,9 +14,7 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [
-      "Su et al"
-    ],
+    "replyMentions": [],
     "replyOmits": [],
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,

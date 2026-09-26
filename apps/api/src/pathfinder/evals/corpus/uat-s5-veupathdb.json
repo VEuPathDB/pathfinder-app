@@ -19,9 +19,7 @@
         "organism": "Toxoplasma gondii ME49"
       }
     },
-    "replyMentions": [
-      "ME49"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

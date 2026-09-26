@@ -23,7 +23,7 @@
     "stepTitlesOmit": [],
     "rootOperator": "INTERSECT",
     "finalCountBelowEveryInput": null,
-    "metRequirements": 4,
+    "metRequirements": null,
     "unmetRequirements": 0,
     "rootCount": {
       "count": 64,

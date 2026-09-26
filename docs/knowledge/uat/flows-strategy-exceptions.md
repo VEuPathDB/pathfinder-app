@@ -74,7 +74,7 @@ Measured on the deployment's judge (`openai:gpt-5.6-luna`): the three injections
 |---|---|---|---|
 | 1 | The S3 conversation (UNION, 1,203 genes) | Send `Offer me one change that would make this strategy more specific, as a proposal I can accept or decline. Do not change anything yet.` | A proposal card: a question, a `Proposed changes` list, a comment box, `No` / `Yes` |
 | 2 | Proposal card | Type `Not now: a kinase filter is too narrow for what I need.`, `No` | `You said no.`; no model reply; the strategy is unchanged |
-| 3 | Composer | Send `yes` | The declined change is not applied; the assistant offers the proposal again as a new card (or asks what "yes" refers to). Still 1,203 genes |
+| 3 | Composer | Send `yes` | The declined change is not applied; the reply is the product's sentence `You declined the last offer. Say what to change, or ask me to offer it again.` (the intent gate answers a bare yes after a declined offer with no model call), or the proposal offered again as a new card. Still 1,203 genes |
 
 Measured: step 1 card "Would you like to make the strategy more specific by retaining only membrane-associated genes that are also annotated as protein kinases?" (20 s, $0.008); step 2 ended with no model call; step 3 re-offered the same card (13 s, $0.007).
 

@@ -14,9 +14,7 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [
-      "PathFinder"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "flour"
     ],

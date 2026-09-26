@@ -14,9 +14,7 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [
-      "VectorBase"
-    ],
+    "replyMentions": [],
     "replyOmits": [],
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,

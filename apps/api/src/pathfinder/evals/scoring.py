@@ -8,6 +8,7 @@ graded distance beside the verdict.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -26,6 +27,7 @@ from pathfinder.evals.distance import (
 )
 
 NO_STRATEGY = "(none)"
+_SPACING = re.compile(r"[\s-]+")
 
 
 def _node_signature(node: StrategyStepNode, inputs: list[str]) -> str:
@@ -202,13 +204,18 @@ def _value_differences(
     ]
 
 
+def _phrase_form(text: str) -> str:
+    """Text as a phrase is matched: no case, a hyphen reads as a space, one space."""
+    return _SPACING.sub(" ", text.casefold())
+
+
 def _phrase_differences(
     case: EvalCase,
     observed: ObservedOutcome,
 ) -> list[CaseDifference]:
-    reply = observed.reply_text.casefold()
-    missing = [p for p in case.expected.reply_mentions if p.casefold() not in reply]
-    present = [p for p in case.expected.reply_omits if p.casefold() in reply]
+    reply = _phrase_form(observed.reply_text)
+    missing = [p for p in case.expected.reply_mentions if _phrase_form(p) not in reply]
+    present = [p for p in case.expected.reply_omits if _phrase_form(p) in reply]
     differences: list[CaseDifference] = []
     if missing:
         differences.append(

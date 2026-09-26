@@ -14,9 +14,7 @@
     "verified": true,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [
-      "DESeq"
-    ],
+    "replyMentions": [],
     "replyOmits": [],
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,

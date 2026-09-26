@@ -19,9 +19,7 @@
         "organism": "Plasmodium vivax P01"
       }
     },
-    "replyMentions": [
-      "P01"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

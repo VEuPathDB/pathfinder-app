@@ -15,9 +15,7 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [
-      "UAT G1"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

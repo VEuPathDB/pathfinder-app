@@ -16,7 +16,9 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [],
+    "replyMentions": [
+      "You declined the last offer. Say what to change, or ask me to offer it again."
+    ],
     "replyOmits": [],
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,

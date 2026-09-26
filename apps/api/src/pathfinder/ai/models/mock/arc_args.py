@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
-
 
 def _variant_text_params(expression: str, organism: str) -> dict[str, Any]:
     return {
@@ -59,36 +57,3 @@ def consult_args() -> dict[str, Any]:
             },
         ],
     }
-
-
-_ATTACHMENT_MARKER = "Attached gene-ID list from"
-
-
-class AttachedGeneList(BaseModel):
-    """The file an attachment came from and the gene ids it carried."""
-
-    source_name: str
-    gene_ids: list[str]
-
-    @property
-    def control_set_name(self) -> str:
-        """Name the control set after the file, so two uploads stay apart."""
-        return f"Controls from {self.source_name}"
-
-
-def attached_gene_list(text: str) -> AttachedGeneList | None:
-    """Pull the file name and the cleaned gene IDs the composer's attachment
-    adapter inlined as ``Attached gene-ID list from <name>: ID, ID, ...``
-    (plain framing so the input injection scanner doesn't flag it)."""
-    marker = text.find(_ATTACHMENT_MARKER)
-    if marker == -1:
-        return None
-    colon = text.find(":", marker)
-    if colon == -1:
-        return None
-    source_name = text[marker + len(_ATTACHMENT_MARKER) : colon].strip()
-    line = text[colon + 1 :].splitlines()[0]
-    gene_ids = [token.strip() for token in line.split(",") if token.strip()]
-    if not source_name or not gene_ids:
-        return None
-    return AttachedGeneList(source_name=source_name, gene_ids=gene_ids)

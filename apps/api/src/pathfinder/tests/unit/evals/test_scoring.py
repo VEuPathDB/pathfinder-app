@@ -344,3 +344,33 @@ def test_a_run_that_built_nothing_carries_no_distance() -> None:
     observed = ObservedOutcome(built_strategy=False, reply_text="stored it")
 
     assert score_case(case, observed).distance is None
+
+
+def test_a_reply_phrase_ignores_hyphens_case_and_repeated_spaces() -> None:
+    case = _case(
+        ExpectedOutcome(
+            builds_strategy=None,
+            reply_mentions=["signal peptide", "SignalP-6.0"],
+            reply_omits=["Verified  end-to-end"],
+        )
+    )
+    observed = ObservedOutcome(
+        built_strategy=True,
+        reply_text=(
+            "Kept the predicted signal-peptide criterion; it uses SIGNALP 6.0.\n"
+            "Verified end to end."
+        ),
+    )
+
+    assert [(d.field, d.expected) for d in score_case(case, observed).differences] == [
+        ("replyOmits", "Verified  end-to-end"),
+    ]
+
+
+def test_a_reply_that_lacks_the_phrase_still_fails() -> None:
+    case = _case(ExpectedOutcome(builds_strategy=None, reply_mentions=["SignalP-6.0"]))
+    observed = ObservedOutcome(built_strategy=True, reply_text="It uses SignalP 5.0.")
+
+    assert [d.field for d in score_case(case, observed).differences] == [
+        "replyMentions"
+    ]

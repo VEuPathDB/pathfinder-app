@@ -14,9 +14,7 @@
     "verified": true,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": [
-      "SignalP-6.0"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "transcripts"
     ],

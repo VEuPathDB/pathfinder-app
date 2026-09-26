@@ -46,7 +46,7 @@ Measured runs of these prompts: S1 plasmodb 479 (101 s, $0.074). S2 plasmodb 116
 |---|---|---|---|
 | 1 | Sidebar | `New conversation` | Empty thread |
 | 2 | Composer | Send `Find <X> genes whose proteins have a predicted signal peptide.` | The build pattern above |
-| 3 | Thread | Read | Layout `GenesWithSignalPeptide`; `Strategy updated` `1 step, <S1> genes`; evidence step row `Predicted Signal Peptide`; the reply names SignalP-6.0 |
+| 3 | Thread | Read | Layout `GenesWithSignalPeptide`; `Strategy updated` `1 step, <S1> genes`; evidence step row `Predicted Signal Peptide` with `signalp_version` `SignalP-6.0` in its parameters (a reply that names the version is welcome and not required) |
 | 4 | Trace, row `Choose a search` | Read the summary | It must count genes. Today it reads `479 transcripts` (FND-5, major) |
 
 ## S2 - Two searches, INTERSECT - core

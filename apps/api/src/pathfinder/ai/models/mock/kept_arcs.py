@@ -13,11 +13,8 @@ from assistant_core.models.scripted import (
 )
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.arc_args import (
-    attached_gene_list,
-    consult_args,
-    variant_args,
-)
+from pathfinder.ai.conversation.gene_list_marker import parse_gene_list_marker
+from pathfinder.ai.models.mock.arc_args import consult_args, variant_args
 from pathfinder.ai.models.mock.calls import classify, lead_final
 from pathfinder.ai.models.mock.lead_flow import build_journey
 from pathfinder.ai.models.mock.message_words import message, named_after
@@ -139,14 +136,17 @@ def variants() -> list[ToolCallPart]:
 
 def attachment(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Save the gene ids an attached file carried as a control set."""
-    attached = attached_gene_list(joined_user_text(messages))
+    attached = parse_gene_list_marker(joined_user_text(messages))
     if attached is None:
         return [lead_final("No attached gene-ID list reached this turn.", "await_user")]
     return [
         classify("new_strategy"),
         scripted_call(
             "build_control_set",
-            {"name": attached.control_set_name, "positive_ids": attached.gene_ids},
+            {
+                "name": f"Controls from {attached.file_name}",
+                "positive_ids": attached.gene_ids,
+            },
         ),
         lead_final(_CONTROLS_PROSE, "await_user"),
     ]
