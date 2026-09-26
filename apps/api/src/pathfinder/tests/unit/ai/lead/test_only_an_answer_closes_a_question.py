@@ -54,12 +54,12 @@ def test_the_answering_intents_are_the_answers_and_the_changes() -> None:
         - {IntentClassification.NEW_STRATEGY}
     ),
 )
-def test_a_message_that_answers_nothing_leaves_the_question_open(
+async def test_a_message_that_answers_nothing_leaves_the_question_open(
     kind: IntentClassification,
 ) -> None:
     deps = draft_deps(_ASIDE, domain=_asked())
 
-    classify(deps, kind)
+    await classify(deps, kind)
 
     domain = deps.state.domain
     assert domain.open_questions == [QUESTION]
@@ -78,12 +78,12 @@ def test_a_message_that_answers_nothing_leaves_the_question_open(
         IntentClassification.EXTEND_STRATEGY,
     ],
 )
-def test_a_message_that_can_answer_closes_the_question(
+async def test_a_message_that_can_answer_closes_the_question(
     kind: IntentClassification,
 ) -> None:
     deps = draft_deps(_ANSWER, domain=_asked())
 
-    classify(deps, kind)
+    await classify(deps, kind)
 
     assert deps.state.domain.open_questions == []
     assert deps.state.turn_markers.answered == AnsweredQuestions(
@@ -92,24 +92,24 @@ def test_a_message_that_can_answer_closes_the_question(
 
 
 @pytest.mark.parametrize("built", [False, True], ids=["no_step", "a_built_step"])
-def test_a_new_request_drops_the_questions_and_answers_none(built: bool) -> None:
+async def test_a_new_request_drops_the_questions_and_answers_none(built: bool) -> None:
     """The questions were about the request the message sets aside."""
     session = session_with_one_step() if built else None
     deps = draft_deps(_ANSWER, domain=_asked(), strategy_session=session)
 
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
 
     assert deps.state.domain.open_questions == []
     assert deps.state.turn_markers.answered is None
 
 
-def test_the_answer_after_an_aside_continues_the_asked_draft() -> None:
+async def test_the_answer_after_an_aside_continues_the_asked_draft() -> None:
     deps = draft_deps(_ASIDE, domain=_asked())
-    classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
+    await classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
     deps.state.user_prompt = _ANSWER
     deps.state.user_message_id = uuid4()
 
-    classify(deps, IntentClassification.CLARIFICATION_RESPONSE)
+    await classify(deps, IntentClassification.CLARIFICATION_RESPONSE)
     order = frame_work_order("bind the evidence", deps)
 
     assert order.splitlines()[0] == (
@@ -125,12 +125,16 @@ _ASKED_THIS_TURN = OpenQuestion(
 )
 
 
-def test_a_reclassification_to_an_answer_closes_the_question_open_at_arrival() -> None:
+async def test_a_reclassification_to_an_answer_closes_the_question_open_at_arrival() -> (
+    None
+):
     """A corrected classifier still answers what was open when the message came."""
     deps = draft_deps(_ANSWER, domain=_asked())
-    classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
+    await classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
 
-    classify(deps, IntentClassification.CLARIFICATION_RESPONSE, call_id="t_classify_2")
+    await classify(
+        deps, IntentClassification.CLARIFICATION_RESPONSE, call_id="t_classify_2"
+    )
 
     assert deps.state.domain.open_questions == []
     assert deps.state.turn_markers.answered == AnsweredQuestions(
@@ -138,13 +142,15 @@ def test_a_reclassification_to_an_answer_closes_the_question_open_at_arrival() -
     )
 
 
-def test_a_reclassification_closes_only_the_question_open_at_arrival() -> None:
+async def test_a_reclassification_closes_only_the_question_open_at_arrival() -> None:
     """A question this turn asked waits on the next message's answer."""
     deps = draft_deps(_ANSWER, domain=_asked())
-    classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
+    await classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
     deps.state.domain.record_questions([_ASKED_THIS_TURN])
 
-    classify(deps, IntentClassification.CLARIFICATION_RESPONSE, call_id="t_classify_2")
+    await classify(
+        deps, IntentClassification.CLARIFICATION_RESPONSE, call_id="t_classify_2"
+    )
 
     assert deps.state.domain.open_questions == [_ASKED_THIS_TURN]
     assert deps.state.turn_markers.answered == AnsweredQuestions(

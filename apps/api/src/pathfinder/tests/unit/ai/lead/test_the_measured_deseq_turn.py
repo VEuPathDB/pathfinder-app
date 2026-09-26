@@ -69,7 +69,8 @@ async def test_the_second_comparison_waits_and_the_edit_commits_nothing(
     assert [c.id for c in thread.answered.criteria] == [first.step_id]
     order = thread.work_orders[-1]
     assert (
-        f"- [{first.step_id}] Genes higher in 24h than in 18h (DESeq, |effect| >= 1, "
+        f"- [{first.step_id}] Genes higher in 24h than in 18h "
+        f"(DESeq, |effect| >= 1, "
         f"p <= 0.05) -> analysis workflow, BOUND: keep it"
     ) in order
     assert "eda_analysis_spec" not in order

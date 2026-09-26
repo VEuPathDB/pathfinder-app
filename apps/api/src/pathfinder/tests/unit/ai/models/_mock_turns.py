@@ -179,10 +179,17 @@ class _Tools:
         self.state.frame_set_criterion(
             Criterion(id=cid, text=str(args["text"]), search_name=search)
         )
+        params = args["params"]
+        opened = [
+            {"paramName": name, "options": SHEET_ORGANISMS[self.site_id]}
+            for name in ("organism",)
+            if name in params and params[name] is None
+        ]
         return {
             "criterionId": cid,
             "searchName": search,
-            "resolvedParams": args["params"],
+            "resolvedParams": params,
+            "openSlots": opened,
         }
 
     def _eda_filters(self, args: dict[str, Any]) -> dict[str, Any]:

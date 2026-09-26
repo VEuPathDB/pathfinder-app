@@ -209,7 +209,9 @@ describe("message dispatch", () => {
   it("renders the evidence card of a check through the merged map", () => {
     render(<Thread content={[{ type: "data-evidence-card", data: EVIDENCE_CARD }]} />);
     expect(screen.getByTestId("data-evidence-card")).toBeInTheDocument();
-    expect(screen.getByTestId("evidence-verdict").textContent).toBe("Supported");
+    expect(screen.getByTestId("figure-caption").textContent).toBe(
+      "2 of 3 positive controls returned, 0 of 2 negative controls returned, 1 step counted on the site.",
+    );
     expect(toastError).not.toHaveBeenCalled();
   });
 

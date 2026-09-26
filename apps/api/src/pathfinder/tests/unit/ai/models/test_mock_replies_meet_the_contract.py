@@ -1,6 +1,7 @@
 """The first reply of every arc that builds or edits is one the real turn
 contract accepts: it names each added search beside its reason, and the count.
-A check of a built thread is accepted as a turn that wrote nothing."""
+A check of a built thread is accepted as a turn that wrote nothing, and every
+reply after a check states each gap and each caveat the check found."""
 
 from __future__ import annotations
 
@@ -36,6 +37,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
     user_intent,
 )
+from pathfinder.tests.unit.ai.models._mock_findings import checked, holding
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins
 from pathfinder.tests.unit.ai.models._mock_turns import ADDED_SEARCH, Scene, names, play
 
@@ -102,6 +104,29 @@ def test_a_reply_that_writes_the_strategy_meets_the_contract(
         deps.state.turn_markers.added_searches = [ADDED_SEARCH]
 
     mismatches = reconcile(report, turn_record(run_context_for(deps)))
+
+    assert [(m.kind, m.sentence) for m in mismatches] == []
+
+
+@pytest.mark.parametrize("site_id", SITES)
+@pytest.mark.parametrize("framed", [False, True])
+@pytest.mark.parametrize("arc", sorted(ARCS))
+def test_a_reply_after_a_check_states_its_gaps_and_caveats(
+    arc: str, site_id: str, framed: bool
+) -> None:
+    scene = Scene(
+        instructions=framed_pins() if framed else "",
+        answers={"verify_strategy": checked()},
+    )
+    calls = play("lead", site_id, f"Do it [[arc:{arc}]]", scene=scene)
+    if "verify_strategy" not in names(calls):
+        return
+    report = LeadResponse.model_validate(calls[-1].args_as_dict())
+    deps = building_deps() if report.strategy_changed else reading_deps()
+    if _WRITES & set(names(calls)):
+        deps.state.turn_markers.added_searches = [ADDED_SEARCH]
+
+    mismatches = reconcile(report, holding(turn_record(run_context_for(deps))))
 
     assert [(m.kind, m.sentence) for m in mismatches] == []
 

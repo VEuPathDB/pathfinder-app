@@ -146,7 +146,7 @@ async function expectOrthologs(
   expect(paramText(transform, "organism")).not.toContain(siteOrganism(siteId));
   await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
 
-  const card = await expectEvidence(page, /Supported|Not supported/, counts.root);
+  const card = await expectEvidence(page, counts.root);
   const genes = await sampledGeneIds(card);
   expect(genes.length).toBeGreaterThan(0);
   for (const gene of genes)
@@ -291,10 +291,12 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     expect(empty.root).toBe(0);
     const syntenic = nodeBySearch(await readNodes(apiClient, branch), ORTHOLOGS);
     expect(paramText(syntenic, "isSyntenic")).toBe("yes");
-    const refused = page.getByTestId("data-evidence-card").filter({
-      has: page.getByTestId("evidence-verdict").filter({ hasText: "Not supported" }),
-    });
-    await expect(refused).not.toHaveCount(0, { timeout: 60_000 });
+    await expectEvidence(page, 0);
+    await expect(
+      chatPage.assistantReply(
+        /The build pushed \d+ steps?, failed 0, skipped 0 and left 1 empty/,
+      ),
+    ).not.toHaveCount(0);
     await expect(chatPage.assistantReply(countPattern(0))).not.toHaveCount(0);
 
     await page.goto(`/${portal}/conversation/${id}`);

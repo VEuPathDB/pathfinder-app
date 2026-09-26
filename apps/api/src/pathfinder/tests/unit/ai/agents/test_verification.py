@@ -16,8 +16,7 @@ def test_a_numeric_parameter_is_restated_only_from_the_constraint_report() -> No
         "entry. Write the bound value and the realized reading that entry "
         "carries; never add an interpretation of your own next to a number "
         '("80 (top 10%)"). An entry whose status is substituted is a '
-        "deviation: report the realized reading, set ``honored=False``, and "
-        "carry it into ``caveats``."
+        "deviation: report the realized reading and set ``honored=False``."
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
 
 
@@ -53,8 +52,8 @@ def test_a_compute_steps_significance_threshold_is_its_significance_filter() -> 
 def test_a_study_step_the_site_could_not_read_is_a_pending_check() -> None:
     assert (
         "A step under ``unread_analyses`` is a study step whose analysis the site "
-        "did not describe: set ``success`` from the other checks and name that step "
-        "in ``caveats`` as a pending check, never as passed or missing."
+        "did not describe: set ``success`` from the other checks; the runtime lists "
+        "that step as pending, never as passed or missing."
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
 
 

@@ -21,7 +21,6 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
-    EvidenceVerdict,
 )
 from pathfinder.evals.case import ExpectedOutcome
 from pathfinder.evals.store import load_case
@@ -196,7 +195,6 @@ async def test_the_staged_verdict_carries_the_threads_evidence_card(
             )
         ],
         citations=[],
-        verdict=EvidenceVerdict(supported=True),
     )
     conversation_id = await _seed_thread(session_maker, user_id=consenting_user)
     async with session_maker() as session:

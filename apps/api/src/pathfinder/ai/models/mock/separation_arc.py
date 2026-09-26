@@ -12,6 +12,7 @@ from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.findings import findings
 from pathfinder.ai.models.mock.message_words import turn_controls
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
@@ -24,8 +25,6 @@ from pathfinder.domain.separation import SEPARATION_BUDGET_MIN
 
 _RUN = "separate_controls"
 _ADOPT = "adopt_separating_strategy"
-# The reply each card call of the arc carries.
-_RUN_REPLY = "[mock] I will measure the seed's two lists against the site's searches."
 _ADOPT_REPLY = "[mock] The separation found a strategy; the card offers to build it."
 _NOT_RUN = "The separation run did not start, so I have no strategy to offer."
 
@@ -46,13 +45,22 @@ def _built_prose(messages: list[ModelMessage]) -> str:
         for added in added_searches(messages, _ADOPT)
         if added.rationale is not None
     ]
-    return "\n".join(
+    built = "\n".join(
         [
             "I built the strategy the separation run measured. It runs:",
             *lines,
             "",
             "The check tested it with the controls it was measured on.",
         ]
+    )
+    return f"{built}{findings(messages)}"
+
+
+def run_reply(positives: list[str], negatives: list[str]) -> str:
+    """The run card's reply, stating the size of each list the call carries."""
+    return (
+        f"[mock] I will measure your {len(set(positives))} positive and "
+        f"{len(set(negatives))} negative controls against the site's searches."
     )
 
 
@@ -69,7 +77,7 @@ def separation(messages: list[ModelMessage]) -> list[ToolCallPart]:
                 "negative_controls": negatives,
                 "mode": "exact",
                 "budget": SEPARATION_BUDGET_MIN,
-                "reply": _RUN_REPLY,
+                "reply": run_reply(positives, negatives),
             },
         ),
     ]

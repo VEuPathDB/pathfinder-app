@@ -49,7 +49,7 @@ PathFinder has no dark-mode switch and does not follow the operating system; its
 |---|---|---|---|
 | 1 | The operating system in dark mode | Reload | The app stays light (by design; see [known limits](known-limits.md)) |
 | 2 | Browser console | Run `document.documentElement.dataset.theme = "dark"` | Thread, cards, canvas and Settings turn dark without a reload; text stays readable |
-| 3 | Same | Read the evidence card and the E3 volcano | `Not met` (red) and `No search states it` (amber) distinguishable; volcano points and threshold lines visible |
+| 3 | Same | Read the evidence card and the E3 volcano | `Nothing in the strategy answers it` and `No search on this site states it` readable in `Answered by`; volcano points and threshold lines visible |
 | 4 | Sidebar, light | Read the active row | Readable (the e2e suite holds its contrast to 4.5:1 on four sites) |
 
 ## L5 - Screen-reader names - once

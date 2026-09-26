@@ -33,7 +33,7 @@ Expected numbers, measured on 2026-09-24: the comparison `wildtype` (group A) ag
 | 2 | Thread | Read the study card | Titled with the study; `8 of 12 Sample, 45,760 of 68,640 pfal3D7 htseq counts`; chip `genotype is one of wildtype, delta-DHC mutant`; `Open in PlasmoDB`; `Open study` |
 | 3 | Thread | Read the task row | `Run differential expression`, `~120 s`, progress `Checking for a cached result`, `Starting the compute`, `Reading the statistics`, `Compute complete` |
 | 4 | Thread | Read the figure | Volcano titled with the effect size (`log2(Fold Change)`); caption ends `201 of 5,490 genes retained).`; `Group A: wildtype - Group B: delta-DHC mutant`; `Gene ids (201)` with `Copy gene ids` |
-| 5 | Thread | Read the rest | `Strategy updated` `1 step, 201 genes`, step `Genes that differ between wildtype and delta-DHC mutant` (`GenesByEdaVizWithCompute`); evidence card `Supported` |
+| 5 | Thread | Read the rest | `Strategy updated` `1 step, 201 genes`, step `Genes that differ between wildtype and delta-DHC mutant` (`GenesByEdaVizWithCompute`); an evidence card under the reply |
 | 6 | Reply | Read | DESeq, sense counts, 5,490 genes tested, 201 pass, 31 higher in delta-DHC mutant, 170 higher in wild type |
 | 7 | Right rail `Studies` | Read | The study, the analysis name, `1 filter - 1 computation` |
 

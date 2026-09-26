@@ -15,7 +15,7 @@ from pydantic_ai.messages import (
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_pins import pinned_operational_spec
-from pathfinder.ai.models.mock.kept_arcs import consult
+from pathfinder.ai.models.mock.consult_arc import consult
 from pathfinder.ai.models.mock.lead_flow import build_journey
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.tests._support.run_context import run_context_for
@@ -87,4 +87,4 @@ def test_a_resumed_consult_extends_only_a_framed_draft(
         ),
     ]
 
-    assert _classification(consult(turn)) == expected
+    assert _classification([consult(turn)]) == expected

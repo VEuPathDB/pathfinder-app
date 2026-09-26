@@ -7,6 +7,7 @@ from assistant_core.models.scripted import scripted_call
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.findings import findings
 from pathfinder.ai.models.mock.lead_flow import (
     BUILD,
     build_classification,
@@ -146,7 +147,8 @@ def sweep(messages: list[ModelMessage]) -> list[ToolCallPart]:
         *journey[1:-2],
         _swept(built, messages),
         lead_final(
-            f"{_SWEEP_PROSE}{written_tail(messages, built_count_sentence(messages))}",
+            f"{_SWEEP_PROSE}{findings(messages)}"
+            f"{written_tail(messages, built_count_sentence(messages))}",
             "await_user",
             strategy_changed=True,
         ),

@@ -20,6 +20,7 @@ from pathfinder.ai.lead.verify_dispatch import (
     verification_scope,
     work_order,
 )
+from pathfinder.domain.caveats import RequirementGap, SampleCaveat
 from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.constraints import ConstraintKind
@@ -201,10 +202,9 @@ async def test_an_unmet_requirement_refuses_the_success(
 ) -> None:
     delta, _dispatch = await _run(monkeypatch, _deps(), {"requirements": [_UNMET]})
 
-    assert delta.digest.success is False
-    assert delta.digest.reason == (
-        "Verification reported success, but the check reports 1 requirement "
-        "unmet: 'at least 2 transmembrane domains'."
+    assert (delta.digest.success, delta.digest.gaps) == (
+        False,
+        [RequirementGap(text="at least 2 transmembrane domains", status="unmet")],
     )
 
 
@@ -237,12 +237,7 @@ async def test_genes_that_do_not_fit_are_counted_in_the_caveats(
         },
     )
 
-    assert delta.digest.caveats == [
-        (
-            "1 of 2 sampled genes do not fit: `PF3D7_0100200` (the product names a "
-            "membrane protein)"
-        )
-    ]
+    assert delta.digest.caveats == [SampleCaveat(unclear=0, misfit=1, total=2)]
     card = deps.state.domain.last_evidence_card
     assert card is not None
     assert [gene.gene_id for gene in card.review.sampled_genes] == [

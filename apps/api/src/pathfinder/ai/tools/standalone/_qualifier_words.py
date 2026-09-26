@@ -36,6 +36,8 @@ _SUFFIXES = (
 _TOKEN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 _NAME_PART = re.compile(r"[^A-Za-z0-9]+|(?<=[a-z0-9])(?=[A-Z])")
 _TAG = re.compile(r"<[^>]+>")
+# Two words of the text are adjacent across spaces or one hyphen.
+_JOIN = re.compile(r"\s*-?\s*")
 # A word after one of these, or under this prefix, is stated as absent.
 _NEGATING = frozenset({"no", "not", "non", "without"})
 _NEGATED_PREFIX = "non-"
@@ -71,12 +73,21 @@ def stems_of(text: str) -> set[str]:
     return {stem(part) for word in words for part in word.split("-") if part}
 
 
+def _modifier(word: str | None) -> str | None:
+    """The stem of a word that can modify the next one, or None."""
+    if word and word.isalpha() and len(word) >= _MIN_STEM:
+        return stem(word)
+    return None
+
+
 @dataclass(frozen=True)
 class Qualifier:
-    """A word of the criterion text, as written, and the stem it is read by."""
+    """A word of the criterion text as first written, the stem it is read by,
+    and the modifier the text puts directly before each of its occurrences."""
 
     word: str
     stem: str
+    modifiers: frozenset[str | None]
 
 
 def qualifiers_of(text: str) -> list[Qualifier]:
@@ -84,25 +95,49 @@ def qualifiers_of(text: str) -> list[Qualifier]:
 
     A negated word states an absence, so it is not one of them.
     """
-    found: list[Qualifier] = []
+    found: dict[str, Qualifier] = {}
+    lowered = text.casefold()
     previous = ""
-    for token in _TOKEN.findall(text.casefold()):
+    before: str | None = None
+    end = 0
+    for match in _TOKEN.finditer(lowered):
+        token = match.group()
         negated = token.startswith(_NEGATED_PREFIX) or previous in _NEGATING
-        previous = token
+        adjacent = _JOIN.fullmatch(lowered[end : match.start()]) is not None
+        previous, end = token, match.end()
+        words = token.split("-")
+        modifiers = [before if adjacent else None, *words[:-1]]
+        before = words[-1]
         if negated or token in _NEGATING:
             continue
-        for word in token.split("-"):
+        for word, modifier in zip(words, modifiers, strict=True):
             read = stem(word)
-            if (
-                word.isalpha()
-                and len(read) >= _MIN_STEM
-                and read not in {q.stem for q in found}
-            ):
-                found.append(Qualifier(word=word, stem=read))
-    return found
+            if not word.isalpha() or len(read) < _MIN_STEM:
+                continue
+            first = found.setdefault(read, Qualifier(word, read, frozenset()))
+            found[read] = Qualifier(
+                first.word, read, first.modifiers | {_modifier(modifier)}
+            )
+    return list(found.values())
 
 
-def the_one_search_naming(listing: Iterable[WDKSearch]) -> dict[str, str]:
+@dataclass(frozen=True)
+class Owner:
+    """The one search whose parameter names carry a stem, and the modifier
+    each of those names puts directly before it."""
+
+    search: str
+    modifiers: frozenset[str | None]
+
+    def names(self, qualifier: Qualifier) -> bool:
+        """Whether one occurrence of the word stands in a compound a parameter
+        name puts it in."""
+        return None in qualifier.modifiers | self.modifiers or bool(
+            qualifier.modifiers & self.modifiers
+        )
+
+
+def the_one_search_naming(listing: Iterable[WDKSearch]) -> dict[str, Owner]:
     """Each stem exactly one of the record type's searches carries in a
     parameter name, and that search.
 
@@ -111,22 +146,28 @@ def the_one_search_naming(listing: Iterable[WDKSearch]) -> dict[str, str]:
     qualifier.
     """
     owners: defaultdict[str, set[str]] = defaultdict(set)
+    modifiers: defaultdict[str, set[str | None]] = defaultdict(set)
     for search in listing:
         for name in search.param_names:
-            for part in _NAME_PART.split(name):
-                if part:
-                    owners[stem(part)].add(search.url_segment)
+            parts = [part for part in _NAME_PART.split(name) if part]
+            for before, part in zip([None, *parts], parts, strict=False):
+                owners[stem(part)].add(search.url_segment)
+                modifiers[stem(part)].add(_modifier(before))
     return {
-        word: next(iter(names)) for word, names in owners.items() if len(names) == 1
+        word: Owner(next(iter(names)), frozenset(modifiers[word]))
+        for word, names in owners.items()
+        if len(names) == 1
     }
+
+
+def _name_stems(name: str) -> frozenset[str]:
+    """The stems of the parts of a WDK name."""
+    return frozenset(stem(part) for part in _NAME_PART.split(name) if part)
 
 
 def named_stems(definition: WDKSearch) -> frozenset[str]:
     """The stems of the search's own name and display name."""
-    parts = _NAME_PART.split(definition.url_segment)
-    return frozenset(stem(part) for part in parts if part) | stems_of(
-        definition.display_name
-    )
+    return _name_stems(definition.url_segment) | stems_of(definition.display_name)
 
 
 def spoken_stems(definition: WDKSearch) -> frozenset[str]:
@@ -143,7 +184,7 @@ def spoken_stems(definition: WDKSearch) -> frozenset[str]:
 class Statement:
     """A visible parameter that can state a qualifier, and how.
 
-    When the parameter's own name carries it, any value but ``off`` states it
+    When the parameter's name or display name carries it, any value but ``off`` states it
     and ``terms`` is empty; otherwise ``terms`` are the options whose label
     carries it. ``terms`` and ``off`` hold each option by its term and its label.
     """
@@ -184,7 +225,7 @@ def statements(
         if not param.is_visible or param.type == _INPUT_STEP or param.name in besides:
             continue
         options = _flat_options(param)
-        named = wanted in stems_of(param.display_name)
+        named = wanted in stems_of(param.display_name) | _name_stems(param.name)
         by_label = frozenset(
             value
             for t, label in options

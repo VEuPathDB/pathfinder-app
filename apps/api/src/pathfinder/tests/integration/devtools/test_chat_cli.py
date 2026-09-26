@@ -15,6 +15,7 @@ from assistant_core.platform.context import (
 from assistant_core.platform.db import async_session_factory
 from pydantic import BaseModel, ConfigDict, Field
 
+from pathfinder.ai.models.mock.consult_arc import OPEN_QUESTION
 from pathfinder.assistants.site_help.mock import SITES_REPLY
 from pathfinder.devtools import chat
 from pathfinder.devtools.capture import RunCapture
@@ -39,6 +40,10 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.durable_worker import durable_call_refusal
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.tests._support.recorded_searches import (
+    serve_recorded_plasmodb,
+    suite_search,
+)
 
 # The durable tool the separation arc calls, under the name the model uses.
 DURABLE_TOOL = "separate_controls"
@@ -255,9 +260,14 @@ async def test_run_prompt_stops_at_gate_then_respond_advances(tmp_path: Path) ->
 
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
-async def test_respond_finds_gate_from_checkpoint_not_run_dir(tmp_path: Path) -> None:
+async def test_respond_finds_gate_from_checkpoint_not_run_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The pending gate is derived from the conversation checkpoint (SSOT), so
     ``respond`` finds it without --run-dir pointing at the gate's turn."""
+    serve_recorded_plasmodb(
+        monkeypatch, [suite_search("search_genes_with_signal_peptide")]
+    )
     run_dir = tmp_path / "run"
     conv = uuid4()
     run_args = parse_run_args(
@@ -286,7 +296,7 @@ async def test_respond_finds_gate_from_checkpoint_not_run_dir(tmp_path: Path) ->
     assert derived.kind == "consult"
     assert derived.tool == "consult_user"
     assert derived.tool_call_id == gate["toolCallId"]
-    assert {q.id for q in derived.consult_questions} == {"q1", "q2"}
+    assert [q.prompt for q in derived.consult_questions] == [OPEN_QUESTION]
 
 
 @pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")

@@ -13,7 +13,7 @@ status: draft
 
 | Severity | Definition | Examples |
 |---|---|---|
-| Blocker | Data loss; a wrong count presented as right; a security or privacy breach; a flow that cannot complete. | The evidence card says `Supported` beside a count the site does not show. Researcher B sees researcher A's conversation. A turn ends in `Response failed` on a core flow twice in a row. A delete removes a strategy the dialog did not name. |
+| Blocker | Data loss; a wrong count presented as right; a security or privacy breach; a flow that cannot complete. | The reply states a count the site does not show. Researcher B sees researcher A's conversation. A turn ends in `Response failed` on a core flow twice in a row. A delete removes a strategy the dialog did not name. |
 | Major | The flow completes, but an intermediate is wrong, a message misleads, or a broken layout hides information. | A trace row says `479 transcripts` for 479 genes. A refusal names the wrong site. The Strategy panel footer is cut off at 1024 px. |
 | Minor | Wording, spacing, a glitch that blocks nothing. | Grammar (`1 steps`), a raw site id (`genes on plasmodb`), a tooltip that clips. |
 

@@ -46,16 +46,10 @@ const LIST_WORDS: Record<ControlKind, { returned: string; notReturned: string }>
   negative: { returned: "returned", notReturned: "excluded" },
 };
 
-function verdictLine(card: EvidenceCard): string {
-  const { verdict } = card;
-  if (!verdict.supported) {
-    return verdict.refusedBecause == null
-      ? "Not supported"
-      : `Not supported: ${verdict.refusedBecause}`;
-  }
-  const pending = verdict.pendingChecks ?? [];
-  if (pending.length === 0) return "Supported";
-  return `Supported, ${pending.length} ${pending.length === 1 ? "check" : "checks"} pending: ${pending.join(", ")}`;
+/** The study steps the site did not describe, so their check did not run. */
+function pendingLine(pending: readonly string[]): string {
+  const noun = pending.length === 1 ? "check" : "checks";
+  return `${pending.length} ${noun} pending: ${pending.join(", ")}`;
 }
 
 function controlRow(set: ControlSetEvidence, kind: ControlKind): ExhibitRow {
@@ -238,9 +232,11 @@ export function EvidenceCardBody({
 }): ReactElement {
   return (
     <div data-testid="evidence-card-body" className="min-w-0 space-y-3">
-      <p data-testid="evidence-verdict" className="text-sm font-medium">
-        {verdictLine(card)}
-      </p>
+      {(card.pendingChecks ?? []).length > 0 ? (
+        <p data-testid="evidence-pending" className="text-[11px] text-muted-foreground">
+          {pendingLine(card.pendingChecks ?? [])}
+        </p>
+      ) : null}
       {superseded ? (
         <p data-testid="evidence-superseded" className="text-[11px] text-warning">
           Superseded: the strategy changed after this check.

@@ -19,7 +19,8 @@ from pydantic_ai.messages import (
 from pathfinder.ai.lead.build_messages import build_would_replace_the_strategy
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.models.mock import role_script
-from pathfinder.ai.models.mock.kept_arcs import consult, recap
+from pathfinder.ai.models.mock.consult_arc import consult
+from pathfinder.ai.models.mock.kept_arcs import recap
 from pathfinder.ai.models.mock.lead_flow import (
     BUILD_REFUSED_MARKER,
     FEEDBACK_PROSE,
@@ -109,7 +110,7 @@ def test_a_verification_that_passes_is_answered_with_the_success() -> None:
     assert seq[-1].args_as_dict()["nextState"] == "complete"
 
 
-def test_a_verification_that_fails_is_answered_with_the_zero() -> None:
+def test_a_verification_that_fails_is_answered_with_the_problem() -> None:
     seq = build_journey(_verified(success=False))
 
     assert _prose(seq) == f"{FEEDBACK_PROSE} The strategy returns 479 genes."
@@ -174,10 +175,12 @@ def test_a_refused_consult_resume_reports_the_refusal_too() -> None:
     msgs: list[ModelMessage] = [
         _user("Consult me first [[arc:consult]]"),
         *_exchange("consult_user", "answered", "c0"),
+        *_exchange("classify_user_intent", "ok", "c1"),
+        *_exchange("frame_problem", {"summary": "framed"}, "f1"),
         *_refused("build_strategy", build_would_replace_the_strategy(2), "b1"),
     ]
 
-    assert _prose(consult(msgs)).endswith(_WHICH_STEPS)
+    assert _prose([consult(msgs)]).endswith(_WHICH_STEPS)
 
 
 def test_an_earlier_turns_refusal_does_not_bend_the_next_turn() -> None:

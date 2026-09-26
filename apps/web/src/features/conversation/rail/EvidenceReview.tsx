@@ -20,7 +20,6 @@ const REQUIREMENT_COLUMNS = [
   { head: "Requirement" },
   { head: "Answered by" },
   { head: "How" },
-  { head: "Status" },
 ] as const;
 
 const GENE_COLUMNS = [
@@ -29,18 +28,6 @@ const GENE_COLUMNS = [
   { head: "Fits" },
   { head: "Why" },
 ] as const;
-
-const STATUS_WORDS: Record<RequirementCheck["status"], string> = {
-  met: "Met",
-  unmet: "Not met",
-  unexpressed: "No search states it",
-};
-
-const STATUS_TONE: Record<RequirementCheck["status"], string> = {
-  met: "",
-  unmet: "text-destructive",
-  unexpressed: "text-warning",
-};
 
 const HOW_WORDS: Record<RequirementCheck["how"], string> = {
   search: "by a search",
@@ -78,14 +65,30 @@ export function sampleCountLine(genes: readonly SampledGene[]): string {
   return clauses.join(", ");
 }
 
-/** How many stated requirements the strategy meets. */
-export function requirementCountLine(rows: readonly RequirementCheck[]): string {
-  const met = rows.filter((row) => row.status === "met").length;
-  return `${met} of ${rows.length} ${rows.length === 1 ? "requirement" : "requirements"} met`;
+/** The ids that answer a row, or what the site or the strategy lacks for it. */
+function answeredBy(row: RequirementCheck): ReactElement {
+  const ids = row.answeredBy ?? [];
+  if (row.status === "unexpressed" || ids.length === 0) {
+    return (
+      <span key="by" data-testid="evidence-requirement-answer">
+        {row.status === "unexpressed"
+          ? "No search on this site states it"
+          : "Nothing in the strategy answers it"}
+      </span>
+    );
+  }
+  return (
+    <span
+      key="by"
+      data-testid="evidence-requirement-answer"
+      className="font-mono break-all"
+    >
+      {ids.join(", ")}
+    </span>
+  );
 }
 
 function requirementRow(row: RequirementCheck, index: number): ExhibitRow {
-  const answeredBy = row.answeredBy ?? [];
   return {
     key: `${index}-${row.text}`,
     cells: [
@@ -95,21 +98,8 @@ function requirementRow(row: RequirementCheck, index: number): ExhibitRow {
           {`Message ${row.turn}${row.note == null || row.note === "" ? "" : `. ${row.note}`}`}
         </p>
       </div>,
-      answeredBy.length > 0 ? (
-        <span key="by" className="font-mono break-all">
-          {answeredBy.join(", ")}
-        </span>
-      ) : (
-        "-"
-      ),
+      answeredBy(row),
       HOW_WORDS[row.how],
-      <span
-        key="status"
-        data-testid="evidence-requirement-status"
-        className={STATUS_TONE[row.status]}
-      >
-        {STATUS_WORDS[row.status]}
-      </span>,
     ],
   };
 }
@@ -182,9 +172,6 @@ export function EvidenceReview({
     <div data-testid="evidence-review" className="space-y-3">
       {rows.length > 0 ? (
         <div data-testid="evidence-requirements">
-          <p className="mb-1.5 text-[11px] text-muted-foreground">
-            {requirementCountLine(rows)}
-          </p>
           <ExhibitTable columns={REQUIREMENT_COLUMNS} rows={rows.map(requirementRow)} />
         </div>
       ) : null}

@@ -4,15 +4,22 @@
  * else; every count and id is read from the site at run time.
  */
 
-import type { Page } from "@playwright/test";
 import type { MemoryItem, MemoryListResponse } from "@pathfinder/shared";
+import type { ParamSpecResponse } from "@pathfinder/shared/generated/types/ParamSpecResponse";
+import type { WDKTreeBoxVocabNode } from "@pathfinder/shared/generated/types/WDKTreeBoxVocabNode";
 
 import { test, expect } from "../fixtures/test";
 import { INJECTION_TEST_MESSAGE, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
 import type { AstNode } from "../fixtures/ast";
 import { LAYOUTS, ORTHOLOGS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
-import { expectBuild, openTrace, traceRows } from "../fixtures/build-checks";
+import {
+  expectBuild,
+  expectEvidence,
+  expectEveryRequirementAnswered,
+  openTrace,
+  traceRows,
+} from "../fixtures/build-checks";
 import {
   countPattern,
   readConversation,
@@ -30,6 +37,9 @@ const S2_TEXT = (organism: string) =>
   `Find ${organism} genes with a predicted signal peptide and 2 to 99 transmembrane domains.`;
 const S3_TEXT = (organism: string) =>
   `Find ${organism} genes that have a predicted signal peptide or 2 to 99 transmembrane domains.`;
+
+/** The one value the consult arc's frame leaves open, as its card asks it. */
+const OPEN_ORGANISM_QUESTION = "Which organism should the signal peptide search read?";
 
 const INJECTION_REFUSAL =
   "This message was refused by prompt-injection screening. Rewrite it and send it again.";
@@ -88,6 +98,34 @@ function nodeBySearch(nodes: readonly AstNode[], searchName: string): AstNode {
   return matches[0] as AstNode;
 }
 
+/**
+ * Every term of the organism vocabulary the signal peptide search publishes on
+ * `siteId`, and the terms a step can be bound to: the leaves.
+ */
+async function organismVocabulary(
+  api: ApiClient,
+  siteId: string,
+): Promise<{ terms: string[]; leaves: string[] }> {
+  const resp = await api.post(
+    `/api/v1/sites/${siteId}/searches/transcript/GenesWithSignalPeptide/param-specs`,
+    { data: {}, headers: { "X-Requested-With": "XMLHttpRequest" } },
+  );
+  expect(resp.status(), "organism vocabulary").toBe(200);
+  const specs = (await resp.json()) as ParamSpecResponse[];
+  const tree = specs.find((spec) => spec.name === "organism")?.vocabulary;
+  const terms: string[] = [];
+  const leaves: string[] = [];
+  const walk = (node: WDKTreeBoxVocabNode): void => {
+    const term = node.data?.term ?? "";
+    const children = node.children ?? [];
+    if (term !== "") terms.push(term);
+    if (term !== "" && children.length === 0) leaves.push(term);
+    for (const child of children) walk(child);
+  };
+  if (tree != null && !Array.isArray(tree)) walk(tree);
+  return { terms, leaves };
+}
+
 /** The conversation holds no step, here and in the rail. */
 async function expectNoStrategy(
   graphPage: GraphPage,
@@ -106,13 +144,6 @@ async function preferences(api: ApiClient): Promise<MemoryItem[]> {
   const resp = await api.get("/api/v1/memories");
   expect(resp.status()).toBe(200);
   return ((await resp.json()) as MemoryListResponse).preferences;
-}
-
-/** The evidence card whose verdict starts with `verdict`. */
-function evidenceWithVerdict(page: Page, verdict: RegExp) {
-  return page.getByTestId("data-evidence-card").filter({
-    has: page.getByTestId("evidence-verdict").filter({ hasText: verdict }),
-  });
 }
 
 /** Open the canvas and wait for its topbar to settle. */
@@ -152,27 +183,33 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     const carousel = page.getByTestId("consult-carousel");
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     await expect(carousel).toContainText("A few questions before I build the plan");
-    await expect(carousel).toContainText(/1 \/ \d+/);
-    const counter = /1 \/ (\d+)/.exec((await carousel.textContent()) ?? "");
-    const questions = Number(counter?.[1] ?? "0");
-    expect(questions).toBeGreaterThan(0);
-    await expect(carousel).toContainText("Recommended");
+    await expect(carousel).toContainText("1 / 1");
+    const slide = carousel.getByTestId("consult-slide");
+    await expect(slide).toContainText(OPEN_ORGANISM_QUESTION);
+    const options = slide.locator('[data-testid^="consult-option-"]');
+    await expect(options).not.toHaveCount(0);
+    const offered = await options.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("aria-label") ?? ""),
+    );
+    const vocabulary = await organismVocabulary(apiClient, siteId);
+    expect(offered.length).toBeGreaterThan(1);
+    expect(offered.filter((label) => !vocabulary.terms.includes(label))).toEqual([]);
+    const recommended = options.filter({ hasText: "Recommended" });
+    await expect(recommended).toHaveCount(1);
+    await expect(recommended).toHaveAttribute("aria-label", siteOrganism(siteId));
+    expect(vocabulary.leaves).toContain(siteOrganism(siteId));
     await expect(carousel.getByTestId("consult-back")).toBeDisabled();
-    await expect(
-      carousel.getByTestId(questions > 1 ? "consult-next" : "consult-submit"),
-    ).toBeVisible();
+    await expect(carousel.getByTestId("consult-submit")).toBeVisible();
     await expectNoStrategy(graphPage, apiClient, id);
 
     await chatPage.answerConsultCarousel();
     const recap = page.getByTestId("consult-recap");
     await expect(recap).toContainText("Your answers", { timeout: 60_000 });
-    await expect(recap.getByTestId("consult-recap-question")).toHaveCount(questions);
-    await expect(recap.getByTestId("consult-recap-answer")).toHaveCount(questions);
-    await expect(recap.getByTestId("consult-recap-question")).toContainText(
-      Array.from({ length: questions }, () => "Q:"),
+    await expect(recap.getByTestId("consult-recap-question")).toHaveText(
+      `Q: ${OPEN_ORGANISM_QUESTION}`,
     );
-    await expect(recap.getByTestId("consult-recap-answer")).toContainText(
-      Array.from({ length: questions }, () => "A:"),
+    await expect(recap.getByTestId("consult-recap-answer")).toHaveText(
+      `A: ${siteOrganism(siteId)}`,
     );
 
     await expect(page.getByTestId("data-graph-snapshot")).not.toHaveCount(0, {
@@ -210,8 +247,8 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
         .getByTestId("evidence-requirements")
         .getByRole("row")
         .filter({ hasText: /GPI/i });
-      await expect(requirement.getByTestId("evidence-requirement-status")).toHaveText(
-        "No search states it",
+      await expect(requirement.getByTestId("evidence-requirement-answer")).toHaveText(
+        "No search on this site states it",
         { timeout: 60_000 },
       );
     }
@@ -261,13 +298,12 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       LAYOUTS["zero-then-relax"],
     );
     expect(empty.root).toBe(0);
-    await expect(
-      evidenceWithVerdict(page, /^Not supported/).getByTestId("evidence-verdict"),
-    ).toHaveText(
-      "Not supported: the build pushed 1 step, failed 0, skipped 0 and left 1 empty",
-      { timeout: 60_000 },
+    await expectEvidence(page, 0);
+    const zeroReply = await replyText(apiClient, id);
+    expect(zeroReply).toContain(
+      "The build pushed 1 step, failed 0, skipped 0 and left 1 empty",
     );
-    expect(await replyText(apiClient, id)).toMatch(countPattern(0));
+    expect(zeroReply).toMatch(countPattern(0));
     const strict = paramText(
       nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE),
       "min_tm",
@@ -305,9 +341,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       LAYOUTS["zero-then-relax"],
     );
     expect(relaxed.root).toBeGreaterThan(0);
-    await expect(
-      evidenceWithVerdict(page, /^Supported/).getByTestId("evidence-verdict"),
-    ).toHaveText("Supported", { timeout: 60_000 });
+    await expectEveryRequirementAnswered(await expectEvidence(page, relaxed.root));
   });
 
   test("N5 - An edit that would break the tree", async ({

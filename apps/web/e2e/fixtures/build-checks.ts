@@ -78,18 +78,44 @@ export async function expectBuild(
   return counts;
 }
 
-/** The evidence card of the latest check reads `verdict` and states the root count. */
-export async function expectEvidence(
-  page: Page,
-  verdict: string | RegExp,
-  rootCount: number,
-): Promise<Locator> {
+/** The words a requirement row shows in place of a step that answers it. */
+export const UNANSWERED =
+  /^(Nothing in the strategy answers it|No search on this site states it)$/;
+
+/** The evidence card of a check that states the root count, and no verdict. */
+export async function expectEvidence(page: Page, rootCount: number): Promise<Locator> {
   const card = page.getByTestId("data-evidence-card").filter({
     has: page.getByTestId("evidence-steps").filter({ hasText: printed(rootCount) }),
   });
   await expect(card).not.toHaveCount(0, { timeout: 60_000 });
-  await expect(card.getByTestId("evidence-verdict")).toContainText(verdict);
+  await expect(card.getByTestId("evidence-verdict")).toHaveCount(0);
   return card;
+}
+
+/** Every requirement row of the card names the steps that answer it. */
+export async function expectEveryRequirementAnswered(card: Locator): Promise<void> {
+  const answers = card.getByTestId("evidence-requirement-answer");
+  await expect(answers).not.toHaveCount(0);
+  for (const answer of await answers.allTextContents())
+    expect(answer.trim()).not.toMatch(UNANSWERED);
+}
+
+/**
+ * The check's controls caveat as the ledger words it: the positives returned
+ * when one is missed, the negatives returned when one comes back.
+ */
+export function controlsCaveat(
+  recovered: number,
+  positives: number,
+  admitted: number,
+  negatives: number,
+): string {
+  return [
+    ...(recovered < positives
+      ? [`${recovered} of ${positives} positive controls returned`]
+      : []),
+    ...(admitted > 0 ? [`${admitted} of ${negatives} negative controls returned`] : []),
+  ].join("; ");
 }
 
 /** The gene ids an evidence card's sampled-gene table lists, one per body row. */

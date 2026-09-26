@@ -71,15 +71,14 @@ def test_a_boolean_is_read_as_its_json_word() -> None:
     }
 
 
-def test_a_nested_object_is_refused_naming_the_parameter() -> None:
-    # A filter value travels as a JSON string, never as a bare object.
+def test_a_list_holding_an_object_is_refused_naming_the_parameter() -> None:
     with pytest.raises(ValueError, match="ngsSnp_strain_meta"):
-        coerce_proposals({"ngsSnp_strain_meta": {"filters": []}})
+        coerce_proposals({"ngsSnp_strain_meta": [{"filters": []}]})
 
 
 def test_the_annotation_reports_the_offending_parameter() -> None:
     with pytest.raises(ValidationError, match="ngsSnp_strain_meta"):
-        _ADAPTER.validate_python({"ngsSnp_strain_meta": {"filters": []}})
+        _ADAPTER.validate_python({"ngsSnp_strain_meta": [{"filters": []}]})
 
 
 def test_bracketed_text_that_is_not_json_stays_text() -> None:

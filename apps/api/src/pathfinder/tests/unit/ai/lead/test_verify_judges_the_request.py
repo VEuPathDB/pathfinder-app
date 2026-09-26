@@ -88,9 +88,9 @@ def _push_name(ctx: RunContext[AgentDeps]) -> str:
     return f"{_PUSH_NAME}{ctx.deps.user_prompt}"
 
 
-def _classified(prompt: str) -> LeadDeps:
+async def _classified(prompt: str) -> LeadDeps:
     deps = lead_deps(pipeline_state(user_prompt=prompt))
-    classify_user_intent(
+    await classify_user_intent(
         run_context_for(deps, tool_call_id="call_classify"),
         UserIntent(
             classification=IntentClassification.NEW_STRATEGY,
@@ -126,7 +126,7 @@ def test_the_verification_agent_pins_the_researchers_request() -> None:
 async def test_verify_is_shown_the_request_under_its_own_heading(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sent = await _verify_instructions(monkeypatch, _classified(VACCINE))
+    sent = await _verify_instructions(monkeypatch, await _classified(VACCINE))
 
     assert sent.split(_HEADING)[1].split("\n\n")[0] == f"{_NUMBERED}\n1. {VACCINE}"
 
@@ -134,7 +134,7 @@ async def test_verify_is_shown_the_request_under_its_own_heading(
 async def test_the_paraphrase_is_labelled_as_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sent = await _verify_instructions(monkeypatch, _classified(VACCINE))
+    sent = await _verify_instructions(monkeypatch, await _classified(VACCINE))
 
     intent_lines = [line for line in sent.splitlines() if line.startswith("- intent:")]
 
@@ -146,7 +146,7 @@ async def test_the_paraphrase_is_labelled_as_one(
 async def test_a_clarification_is_judged_with_the_request_it_answers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    deps = _classified(VACCINE)
+    deps = await _classified(VACCINE)
     deps.state.user_prompt = _CLARIFICATION
 
     sent = await _verify_instructions(monkeypatch, deps)
@@ -159,7 +159,7 @@ async def test_a_clarification_is_judged_with_the_request_it_answers(
 async def test_the_request_leaves_the_push_name_as_it_was(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    deps = _classified(VACCINE)
+    deps = await _classified(VACCINE)
     deps.state.user_prompt = _CLARIFICATION
 
     sent = await _verify_instructions(monkeypatch, deps)

@@ -17,11 +17,11 @@ from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
+from pathfinder.domain.caveats import BuildCaveat, ControlsCaveat
 from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     CriterionCitations,
-    EvidenceVerdict,
     VerificationReview,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
@@ -108,7 +108,7 @@ _BASE = CardSources(
     ),
     spec=_spec(),
     control_tests=(_test_run(_LEAF), _test_run(440299001, call="call_old")),
-    verdict=EvidenceVerdict(supported=True),
+    pending_checks=[],
     review=VerificationReview(),
 )
 
@@ -149,7 +149,7 @@ def test_every_field_equals_its_source() -> None:
             criterion_id="c1", criterion_text="protein kinases", references=[_PAPER]
         )
     ]
-    assert card.verdict == EvidenceVerdict(supported=True)
+    assert card.pending_checks == []
 
 
 def test_a_site_that_did_not_answer_leaves_every_site_count_empty() -> None:
@@ -306,7 +306,7 @@ _FAILED_DIGEST = VerificationDelta.model_validate(
 
 
 @pytest.mark.parametrize("digest", [_DIGEST, _FAILED_DIGEST])
-async def test_a_failed_verdict_names_the_build_whichever_side_found_it(
+async def test_the_build_and_the_controls_are_caveats_whichever_side_found_them(
     monkeypatch: pytest.MonkeyPatch,
     collector: ChunkCollector,
     digest: VerificationDelta,
@@ -317,11 +317,21 @@ async def test_a_failed_verdict_names_the_build_whichever_side_found_it(
     assert built is not None
     deps.state.domain.last_build_outcome = replace(built, zero_step_ids=["s1"])
 
-    await _dispatch(monkeypatch, deps, digest)
+    delta = await _dispatch(monkeypatch, deps, digest)
 
+    assert isinstance(delta, VerificationDelta)
+    assert (delta.digest.success, delta.digest.caveats) == (
+        False,
+        [
+            BuildCaveat(pushed=1, failed=0, skipped=0, empty=1),
+            ControlsCaveat(
+                positives_returned=7,
+                positives_total=10,
+                negatives_returned=1,
+                negatives_total=12,
+            ),
+        ],
+    )
     card = deps.state.domain.last_evidence_card
     assert card is not None
-    assert (card.verdict.supported, card.verdict.refused_because) == (
-        False,
-        "the build pushed 1 step, failed 0, skipped 0 and left 1 empty",
-    )
+    assert "verdict" not in card.model_dump(by_alias=True)

@@ -53,8 +53,8 @@ _ASKED_THIS_TURN = OpenQuestion(question="Which life-cycle stage decides c_stage
 _FRESH = "Operationalize into criteria"
 
 
-def test_classifying_the_answer_keeps_the_questions_it_answers() -> None:
-    state = answering_deps().state
+async def test_classifying_the_answer_keeps_the_questions_it_answers() -> None:
+    state = (await answering_deps()).state
 
     assert state.domain.open_questions == []
     assert state.turn_markers.answered == AnsweredQuestions(
@@ -62,20 +62,24 @@ def test_classifying_the_answer_keeps_the_questions_it_answers() -> None:
     )
 
 
-def test_a_second_classification_keeps_a_question_asked_this_turn_open() -> None:
+async def test_a_second_classification_keeps_a_question_asked_this_turn_open() -> None:
     deps = draft_deps("find surface proteins", domain=StrategyDomainState())
-    classify(deps, IntentClassification.NEW_STRATEGY, call_id="c1")
+    await classify(deps, IntentClassification.NEW_STRATEGY, call_id="c1")
     deps.state.domain.operational_spec = framed(None)
     deps.state.domain.record_questions([_ASKED_THIS_TURN])
 
-    classify(deps, IntentClassification.EXTEND_STRATEGY, call_id="c2")
+    await classify(deps, IntentClassification.EXTEND_STRATEGY, call_id="c2")
 
     assert deps.state.domain.open_questions == [_ASKED_THIS_TURN]
     assert deps.state.turn_markers.answered is None
 
 
-def test_the_order_after_an_answer_lists_the_bound_criteria_and_the_answer() -> None:
-    order = frame_work_order("proceed with signal-peptide evidence", answering_deps())
+async def test_the_order_after_an_answer_lists_the_bound_criteria_and_the_answer() -> (
+    None
+):
+    order = frame_work_order(
+        "proceed with signal-peptide evidence", await answering_deps()
+    )
 
     assert order.startswith(
         "FRAME work order: the previous pass ended with a question the "
@@ -106,10 +110,10 @@ def test_a_fresh_thread_gets_the_fresh_order() -> None:
     assert _FRESH in order
 
 
-def test_a_strategy_on_the_site_is_not_briefed_as_a_continuation() -> None:
+async def test_a_strategy_on_the_site_is_not_briefed_as_a_continuation() -> None:
     """A draft hydrated from a live strategy has steps and no build outcome."""
     deps = draft_deps(ANSWER, strategy_session=session_with_one_step())
-    classify(deps)
+    await classify(deps)
 
     order = frame_work_order("re-frame", deps)
 
@@ -125,7 +129,7 @@ async def test_a_draft_framed_after_a_clear_is_continued(
         monkeypatch, spec=built_spec(), session=session_holding(built_tree())
     )
     thread.deps.state.user_message_id = uuid4()
-    classify(thread.deps, IntentClassification.NEW_STRATEGY)
+    await classify(thread.deps, IntentClassification.NEW_STRATEGY)
     await thread.clear()
     thread.frames(
         lambda _found: framed(None),
@@ -138,7 +142,7 @@ async def test_a_draft_framed_after_a_clear_is_continued(
     await thread.next_turn()
     thread.deps.state.user_prompt = ANSWER
     thread.deps.state.user_message_id = uuid4()
-    classify(thread.deps)
+    await classify(thread.deps)
 
     order = frame_work_order("proceed", thread.deps)
 
@@ -150,10 +154,10 @@ async def test_a_draft_framed_after_a_clear_is_continued(
     assert all(f"- [{cid}] {cid} property -> " in order for cid in BOUND)
 
 
-def test_a_new_request_over_an_unbuilt_draft_is_framed_afresh() -> None:
+async def test_a_new_request_over_an_unbuilt_draft_is_framed_afresh() -> None:
     message = "Forget that. Find transporters on chromosome 5."
     deps = draft_deps(message)
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
 
     order = frame_work_order("frame the new request", deps)
 
@@ -163,11 +167,11 @@ def test_a_new_request_over_an_unbuilt_draft_is_framed_afresh() -> None:
     assert "Every other bound criterion stays exactly as it is" not in order
 
 
-def test_a_bound_draft_with_no_question_is_continued_from_the_message() -> None:
+async def test_a_bound_draft_with_no_question_is_continued_from_the_message() -> None:
     deps = draft_deps(
         "continue", domain=StrategyDomainState(operational_spec=framed(None))
     )
-    classify(deps)
+    await classify(deps)
 
     order = frame_work_order("continue the frame", deps)
 
@@ -214,7 +218,7 @@ async def test_the_answering_turn_binds_only_the_open_criterion(
     await thread.next_turn()
     thread.deps.state.user_prompt = ANSWER
     thread.deps.state.user_message_id = uuid4()
-    classify(thread.deps)
+    await classify(thread.deps)
     thread.frames(
         lambda _found: framed("signal peptide"),
         declared=[*kept(*BOUND), *declared("changed", OPEN)],

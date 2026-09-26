@@ -26,7 +26,7 @@ from pathfinder.ai.tools.standalone.experiment import (
     control_test_run,
     run_control_tests_on_step,
 )
-from pathfinder.domain.evidence import EvidenceVerdict, VerificationReview
+from pathfinder.domain.evidence import VerificationReview
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.lead.conftest import ChunkCollector
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
@@ -90,7 +90,7 @@ def _card(runs: list[ControlTestRun]) -> list[tuple[str, int, int, int, float]]:
         node_results=(),
         spec=None,
         control_tests=tuple(runs),
-        verdict=EvidenceVerdict(supported=True),
+        pending_checks=[],
         review=VerificationReview(),
     )
     card = assemble_evidence_card(

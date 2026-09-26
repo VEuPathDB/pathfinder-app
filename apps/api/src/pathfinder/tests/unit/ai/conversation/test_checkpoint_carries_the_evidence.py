@@ -13,7 +13,6 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
-    EvidenceVerdict,
 )
 
 
@@ -39,7 +38,6 @@ def test_a_checked_turns_evidence_survives_strict_roundtrip() -> None:
         steps=[],
         controls=[tested],
         citations=[],
-        verdict=EvidenceVerdict(supported=True),
     )
     serde = build_checkpoint_serde(PATHFINDER_CHECKPOINT_TYPES)
 

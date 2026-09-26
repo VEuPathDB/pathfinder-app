@@ -30,17 +30,17 @@ Check on the S1, S2 and S5 builds of [standard flows](flows-strategy-standard.md
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Figure `Evidence` under the reply | Read the caption | `<m> of <m> requirements met, 8 of 8 sampled genes fit, <n> steps counted on the site.` when every sampled gene fits; otherwise the sample clause counts each fit word (`5 fit, 3 unclear`) |
-| 2 | Verdict | Read | `Supported` |
+| 1 | Figure `Evidence` under the reply | Read the caption | `8 of 8 sampled genes fit, <n> steps counted on the site.` when every sampled gene fits; otherwise the sample clause counts each fit word (`5 fit, 3 unclear`) |
+| 2 | Card and reply | Read | The card carries no verdict line; the reply states each gap with what is missing and each caveat with its numbers (`2 of 8 sampled genes unclear`) |
 | 3 | Step table | Read | One row per step: `Step`, `Recorded at the build`, `On the site at the check`; the two counts equal; no `(changed on the site)` |
-| 4 | Requirement table | Read | `Requirement`, `Answered by`, `How`, `Status`; one row per stated requirement with `Message 1` beneath; every `Status` `Met` |
+| 4 | Requirement table | Read | `Requirement`, `Answered by`, `How`; one row per stated requirement with `Message 1` beneath; a row nothing answers reads `Nothing in the strategy answers it` in `Answered by`, and a row no search states reads `No search on this site states it` |
 | 5 | Sampled genes | Read | `Gene`, `Product`, `Fits`, `Why`; genes of the requested organism; `Why` cites a record value (S1: `signalp_60_probability=...`) |
 | 6 | `Sources the check read` | Click one | The site's gene record page opens |
 | 7 | `Open in <Site>` | Click | The site shows the same tree and root count |
-| 8 | Right rail `Progress`, `Checking` tab | Read | The same card, with `complete yes`, `successful yes` |
+| 8 | Right rail `Progress`, `Checking` tab | Read | The same card, with `complete yes`, the gaps and caveats lists, and no `successful` row |
 | 9 | Composer | Change a parameter (S9), then reopen the older card in the rail | `Superseded: the strategy changed after this check.`; the older answer carries `Superseded - strategy changed since this answer` |
 
-A card that shows `0 of 8 sampled genes fit` beside `Supported` when every gene is `Unclear` is FND-6 (major).
+A reply that leaves out the sample count when every gene is `Unclear` is FND-6 (major): the card's line reads `8 of 8 sampled genes unclear`, and the reply states it.
 
 ## V2 - Control tests on a step - core on plasmodb
 
@@ -48,9 +48,9 @@ A card that shows `0 of 8 sampled genes fit` beside `Supported` when every gene 
 |---|---|---|---|
 | 1 | The S1 conversation (479 genes) | Send `Test this strategy against my controls.` followed by the two lines above | One task row `Run control tests` with a percent, then its summary; one figure `Control tests` (`Table <n>`) |
 | 2 | `Control tests` table | Read | Caption `Table <n>. Control tests on Predicted Signal Peptide: target 479 records, 52 positive controls recovered (recall 0.65), 2 negative controls returned (false-positive rate 0.05).`; rows `Positive` 80 / 52 and `Negative` 40 / 2 |
-| 3 | Evidence card | Read | Verdict `Not supported` (the controls are not all separated); control table `Positive` 80, 52 returned, 28 not returned, `0.65`; `Negative` 40, 2 returned, 38 not returned, `0.05`; `Negatives returned: PF3D7_0508800, PF3D7_1215900` |
+| 3 | Evidence card | Read | No verdict line; control table `Positive` 80, 52 returned, 28 not returned, `0.65`; `Negative` 40, 2 returned, 38 not returned, `0.05`; `Negatives returned: PF3D7_0508800, PF3D7_1215900` |
 | 4 | Right rail `Tasks` | Read | `Run control tests`, status `complete` |
-| 5 | Reply | Read | 52 of 80, 2 of 40, the two negatives named |
+| 5 | Reply | Read | `52 of 80 positive controls returned; 2 of 40 negative controls returned`, the two negatives named |
 
 Measured today: the reply was right (52 of 80, 38 of 40 excluded, the two negatives named), but the check ran 52 control tests (52 task rows, 521 s) and the card kept only the last partial one: `Negative`, 16 controls, 1 returned, no `Positive` row (FND-2, blocker). $0.031.
 
@@ -70,13 +70,12 @@ The tree depends on the budget and on which candidates the site answers that day
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation | Send `Find me a strategy that separates these controls, in exact mode.` followed by the two lines above | A reply that proposes the run in words (the two lists, exact mode, a budget of about 600 requests, about five minutes). No run yet |
-| 2 | Composer | Send `Yes, run it.` | Approval card `Run the separation? It measures candidate searches against your controls on the site and takes about five minutes.`, `Deny` / `Approve` |
-| 3 | Approval card | `Approve` | Task row `Separate the controls`, `~300 s`; progress lines: `Resolved 80 positive and 40 negative ids`, `Uploaded the controls as one dataset`, `Collected <n> candidates: ...`, one line per measured search (`<search>: <p> of 80 positives, <q> of 40 negatives, <genes> genes`), `Assembled the exact strategy from <k> criteria`, `The assembled strategy returns <p> of 80 positives and <q> of 40 negatives in <genes> genes` |
-| 4 | Figure `Separation` | Read | A matrix `Positives returned`, `Positives missed`, `Negatives admitted`, `Negatives excluded`; the offered tree; the criteria table `Search`, `Its own step`, `Ablation` with one `without it: <+/-p> positives, <+/-q> negatives` line per criterion; `<i> of <m> measured searches tell the positives from the negatives`; `<used> of <budget> requests`; when it falls short, one sentence per shortfall |
-| 5 | Adoption card | Read | `Build the separating strategy: ...?` or `Build the closest strategy found: ...?`, a `Why not? (optional, sent with a no)` box, `No` / `Yes` |
-| 6 | Adoption card | `Yes` | `You said yes.`; `Strategy updated` with the offered tree; every step count equals the offer's; the check runs `Run control tests` on the root with the same 120 ids |
-| 7 | Evidence card | Read | The positive and negative counts equal the offer's `<p> of 80` and `<q> of 40`; the step table equals the site |
+| 1 | New conversation | Send `Find me a strategy that separates these controls, in exact mode.` followed by the two lines above | Approval card `Run the separation? It measures candidate searches against your controls on the site and takes about five minutes.`, `Deny` / `Approve`, on this first message. No run yet |
+| 2 | Approval card | `Approve` | Task row `Separate the controls`, `~300 s`; progress lines: `Resolved 80 positive and 40 negative ids`, `Uploaded the controls as one dataset`, `Collected <n> candidates: ...`, one line per measured search (`<search>: <p> of 80 positives, <q> of 40 negatives, <genes> genes`), `Assembled the exact strategy from <k> criteria`, `The assembled strategy returns <p> of 80 positives and <q> of 40 negatives in <genes> genes` |
+| 3 | Figure `Separation` | Read | A matrix `Positives returned`, `Positives missed`, `Negatives admitted`, `Negatives excluded`; the offered tree; the criteria table `Search`, `Its own step`, `Ablation` with one `without it: <+/-p> positives, <+/-q> negatives` line per criterion; `<i> of <m> measured searches tell the positives from the negatives`; `<used> of <budget> requests`; when it falls short, one sentence per shortfall |
+| 4 | Adoption card | Read | `Build the separating strategy: ...?` or `Build the closest strategy found: ...?`, a `Why not? (optional, sent with a no)` box, `No` / `Yes` |
+| 5 | Adoption card | `Yes` | `You said yes.`; `Strategy updated` with the offered tree; every step count equals the offer's; the check runs `Run control tests` on the root with the same 120 ids |
+| 6 | Evidence card | Read | The positive and negative counts equal the offer's `<p> of 80` and `<q> of 40`; the step table equals the site |
 
 Measured today (budget 600): 39 candidates, 30 measured, 18 informative, 581 of 600 requests, 135 s. Offer `Build the closest strategy found: 3 searches returning 75 of 80 positives and 3 of 40 negatives in 1,221 genes?`; tree `UNION(UNION(GenesWithSignalPeptide, GenesByGoTerm GO:0044217), GenesBySubcellularLocalizationpfal3D7_subcellular_localization_ApicoplastTargeting_RSRC)`; ablation `without it: -17 positives, -1 negatives`, `without it: -9 positives, 0 negatives`, `without it: -9 positives, -1 negatives`. After `Yes`: 5 steps, counts 479, 637, 957, 495, 1,221 on the site; 2 control tests (the same counts); card `Positive` 80, 75 returned, `0.94`, `Negative` 40, 3 returned, `0.07`, note `Positives among the returned controls: 75 of 78 returned, 80 positives in 120 controls, one-sided hypergeometric p = 5.7e-22`; verdict `Not supported` (no exact separator); 136 s, $0.018. An earlier run the same day at budget 400 offered 61 of 80, 2 of 40, 1,132 genes: the tree moves with the budget; the invariant is that the card, the offer and the site agree.
 
@@ -84,7 +83,7 @@ Measured today (budget 600): 39 candidates, 30 measured, 18 informative, 581 of 
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Repeat V4 steps 1 to 5 in a new conversation | Type `Too broad for a vaccine screen.` in `Why not?`, `No` | `You said no.`; no model reply; no strategy built |
+| 1 | Repeat V4 steps 1 to 4 in a new conversation | Type `Too broad for a vaccine screen.` in `Why not?`, `No` | `You said no.`; no model reply; no strategy built |
 | 2 | Composer | Send `What did you offer me?` | The reply restates the declined offer's counts and that it was declined; nothing is built |
 
 ## V6 - Citations on the evidence card - plasmodb

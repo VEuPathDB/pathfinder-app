@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import CoreSchema, PydanticOmit
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
@@ -19,6 +21,7 @@ from pathfinder.ai.graph.turn_records import (
 )
 from pathfinder.ai.lead.intent import REQUEST_INTENTS, UserIntent
 from pathfinder.ai.lead.proposal import DeclinedProposal
+from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
@@ -78,6 +81,18 @@ class ConstraintCheck(CamelModel):
     note: str = ""
 
 
+class OmittedFromInput:
+    """A field the validation schema omits and the serialization schema keeps."""
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, schema: CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        if handler.mode == "validation":
+            raise PydanticOmit
+        return handler(schema)
+
+
 class VerificationDigest(CamelModel):
     disposition: PhaseDisposition = Field(
         description=(
@@ -106,7 +121,10 @@ class VerificationDigest(CamelModel):
         ),
     )
     key_findings: list[str] = Field(default_factory=list, max_length=10)
-    caveats: list[str] = Field(default_factory=list, max_length=10)
+    # What the check measured short of the request, and what the strategy does
+    # not answer. The runtime sets both, so the checker's schema omits them.
+    caveats: Annotated[list[Caveat], OmittedFromInput] = Field(default_factory=list)
+    gaps: Annotated[list[Gap], OmittedFromInput] = Field(default_factory=list)
     pending_checks: list[str] = Field(
         default_factory=list,
         description=(

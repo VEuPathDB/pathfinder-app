@@ -15,7 +15,6 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
-    EvidenceVerdict,
 )
 from pathfinder.tests.unit.ai.lead.conftest import RetryRecordingScript
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
@@ -115,7 +114,6 @@ async def test_the_last_checks_card_backs_the_digest() -> None:
             steps=[],
             controls=[_NINE_OF_TEN.evidence],
             citations=[],
-            verdict=EvidenceVerdict(supported=True),
         ),
     )
     script = RetryRecordingScript(

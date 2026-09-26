@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -21,7 +21,6 @@ from pathfinder.domain.evidence import (
     ControlTestEvidence,
     CriterionCitations,
     EvidenceCard,
-    EvidenceVerdict,
     SiteRead,
     VerificationReview,
 )
@@ -47,7 +46,8 @@ class CardSources:
     node_results: Sequence[NodeResult]
     spec: OperationalSpec | None
     control_tests: Sequence[ControlTestRun]
-    verdict: EvidenceVerdict
+    # The study steps the site did not describe, by label.
+    pending_checks: Sequence[str]
     # The checker's review, as the record of the turn lets it stand.
     review: VerificationReview
 
@@ -75,17 +75,23 @@ def _steps(sources: CardSources, site: SiteCounts | None) -> list[CheckedStepCou
     ]
 
 
-def _controls(sources: CardSources) -> list[ControlTestEvidence]:
+def judged_control_tests(
+    runs: Iterable[ControlTestRun], live_wdk_step_ids: frozenset[int]
+) -> list[ControlTestEvidence]:
     """Every control id tested on each target the judged strategy still holds."""
-    tests = merged_control_tests(
+    return merged_control_tests(
         run.evidence
-        for run in sources.control_tests
+        for run in runs
         if run.origin == "control_test"
         and (
             run.evidence.wdk_step_id is None
-            or run.evidence.wdk_step_id in sources.live_wdk_step_ids
+            or run.evidence.wdk_step_id in live_wdk_step_ids
         )
     )
+
+
+def _controls(sources: CardSources) -> list[ControlTestEvidence]:
+    tests = judged_control_tests(sources.control_tests, sources.live_wdk_step_ids)
     return [with_enrichment(tested) for tested in tests]
 
 
@@ -124,7 +130,7 @@ def assemble_evidence_card(
         steps=_steps(sources, site),
         controls=_controls(sources),
         citations=_citations(sources.spec),
-        verdict=sources.verdict,
+        pending_checks=list(sources.pending_checks),
         review=sources.review,
     )
 
@@ -134,7 +140,7 @@ def _sources(
     *,
     check_id: str,
     revision: str,
-    verdict: EvidenceVerdict,
+    pending_checks: Sequence[str],
     review: VerificationReview,
 ) -> CardSources:
     session = deps.runtime.strategy_session
@@ -153,7 +159,7 @@ def _sources(
         node_results=derive_ledger(deps.state, deps.intent).build.node_results,
         spec=deps.state.domain.operational_spec,
         control_tests=deps.state.turn_markers.control_tests,
-        verdict=verdict,
+        pending_checks=pending_checks,
         review=review,
     )
 
@@ -163,12 +169,16 @@ async def publish_evidence_card(
     *,
     check_id: str,
     revision: str,
-    verdict: EvidenceVerdict,
+    pending_checks: Sequence[str],
     review: VerificationReview,
 ) -> EvidenceCard:
     """Read the site once, keep the card as the conversation's last and stream it."""
     sources = _sources(
-        deps, check_id=check_id, revision=revision, verdict=verdict, review=review
+        deps,
+        check_id=check_id,
+        revision=revision,
+        pending_checks=pending_checks,
+        review=review,
     )
     site = (
         None
@@ -181,4 +191,9 @@ async def publish_evidence_card(
     return card
 
 
-__all__ = ["CardSources", "assemble_evidence_card", "publish_evidence_card"]
+__all__ = [
+    "CardSources",
+    "assemble_evidence_card",
+    "judged_control_tests",
+    "publish_evidence_card",
+]

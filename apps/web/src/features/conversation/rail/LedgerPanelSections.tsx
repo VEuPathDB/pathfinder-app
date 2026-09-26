@@ -196,20 +196,16 @@ export function VerificationSection({
   detail?: boolean;
 }) {
   const digest = verification.digest;
-  const pending = digest?.success === true ? (digest.pendingChecks ?? []) : [];
+  const pending = digest?.pendingChecks ?? [];
   return (
     <LedgerSection title={phaseLabel("verification")}>
       <LedgerRow label="complete" value={<BoolBadge value={verification.complete} />} />
-      <LedgerRow
-        label="successful"
-        value={
-          pending.length > 0 ? (
-            <StatusPill text={`${pending.length} pending`} tone="warn" />
-          ) : (
-            <BoolBadge value={verification.successful} />
-          )
-        }
-      />
+      {pending.length > 0 && (
+        <LedgerRow
+          label="checks"
+          value={<StatusPill text={`${pending.length} pending`} tone="warn" />}
+        />
+      )}
       {evidence !== null && evidence.card.controls.length > 0 && (
         <LedgerRow label="controls returned" value={controlCounts(evidence)} />
       )}

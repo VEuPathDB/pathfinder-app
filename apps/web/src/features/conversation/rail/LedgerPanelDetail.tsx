@@ -206,9 +206,15 @@ export function VerificationDetail({
   if (digest == null && evidence === null) return null;
   return (
     <div className="mt-2 min-w-0 space-y-2 border-t border-border pt-2">
-      {digest != null && digest.prose !== "" && <Markdown>{digest.prose}</Markdown>}
       <MarkdownList label="key findings" items={digest?.keyFindings ?? []} />
-      <MarkdownList label="caveats" items={digest?.caveats ?? []} />
+      <MarkdownList
+        label="gaps"
+        items={(digest?.gaps ?? []).map((gap) => gap.sentence)}
+      />
+      <MarkdownList
+        label="caveats"
+        items={(digest?.caveats ?? []).map((caveat) => caveat.sentence)}
+      />
       <MarkdownList label="pending checks" items={digest?.pendingChecks ?? []} />
       {evidence !== null && (
         <EvidenceCardBody card={evidence.card} superseded={evidence.superseded} />

@@ -46,6 +46,7 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     framing_deps,
     kinds,
     off_topic_deps,
+    open_frame_deps,
     reading_deps,
     reply,
 )
@@ -222,14 +223,17 @@ class TestTheBlamedSiteRule:
 
 
 class TestTheUnrecordedQuestionRule:
-    def test_a_question_the_reply_does_not_record_is_a_mismatch(self) -> None:
+    def test_an_open_value_asked_in_prose_is_the_question_card_s_rule(self) -> None:
         mismatches = reconcile(
             reply(ASKING_REPLY),
-            turn_record(run_context_for(framing_deps())),
+            turn_record(run_context_for(open_frame_deps())),
         )
 
-        assert [m.kind for m in mismatches] == ["unrecorded_question"]
-        assert "asked_questions" in mismatches[0].sentence
+        assert [m.kind for m in mismatches] == ["open_value_in_prose"]
+        assert "question card (consult_user)" in mismatches[0].sentence
+
+    def test_a_framed_turn_with_nothing_open_reads_no_question_in_prose(self) -> None:
+        assert kinds(framing_deps(), reply(ASKING_REPLY)) == []
 
     def test_a_reply_from_a_turn_that_framed_nothing_stands(self) -> None:
         assert kinds(blame_deps(), reply(ASKING_REPLY)) == []

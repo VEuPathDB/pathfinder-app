@@ -27,31 +27,9 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
     criteria_under,
 )
+from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
-_WORD_RE = re.compile(r"[a-z0-9]+")
 _CAMEL_BOUNDARY_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
-
-# Words that name no evidence. Every WDK gene search carries "genes", so a term
-# that overlaps a criterion only there names nothing.
-_FILLER_WORDS = frozenset(
-    {
-        "a",
-        "an",
-        "and",
-        "by",
-        "for",
-        "from",
-        "gene",
-        "genes",
-        "in",
-        "of",
-        "on",
-        "or",
-        "the",
-        "to",
-        "with",
-    }
-)
 
 _REQUIRED_OPERATOR: dict[CombinationOperator, CombineOp] = {
     "OR": CombineOp.UNION,
@@ -69,7 +47,7 @@ def required_operator(operator: CombinationOperator) -> CombineOp:
 def _words(text: str) -> frozenset[str]:
     """The content words of a phrase, with camel-case names split apart."""
     spaced = _CAMEL_BOUNDARY_RE.sub(" ", text)
-    return frozenset(_WORD_RE.findall(spaced.lower())) - _FILLER_WORDS
+    return frozenset(words_of(spaced)) - FILLER_WORDS
 
 
 def combination_terms_overlap(first: str, second: str) -> bool:
@@ -302,12 +280,22 @@ def _split_operator(
     return operator
 
 
-def combination_violation(
+class CombinationBreach(NamedTuple):
+    """A stated combination the tree does not honor, and the operator it joins
+    the criteria with instead."""
+
+    required: CombineOp
+    expression: str
+    built: str
+    message: str
+
+
+def combination_breach(
     request: CombinationRequest,
     matched_ids: Collection[str],
     structure: SpecStructure,
-) -> str | None:
-    """Why this tree does not state the requested combination, or None.
+) -> CombinationBreach | None:
+    """How this tree breaks the requested combination, or None.
 
     Every combine that joins two or more of the named criteria and nothing
     else carries the stated operator, at any depth under the meeting node.
@@ -317,25 +305,38 @@ def combination_violation(
     if meeting is None or meeting.operator is not required:
         found = None if meeting is None else meeting.operator
         joined = "no combine node" if found is None else found.value
-        return (
-            f"the user requires {request.expression!r}: those criteria must meet "
-            f"at {required.value}, but the tree joins them at {joined}"
+        return CombinationBreach(
+            required=required,
+            expression=request.expression,
+            built=joined,
+            message=(
+                f"the user requires {request.expression!r}: those criteria must "
+                f"meet at {required.value}, but the tree joins them at {joined}"
+            ),
         )
     split = _split_operator(meeting, frozenset(matched_ids), required)
     if split is None:
         return None
-    return (
-        f"the user requires {request.expression!r}: every combine over those "
-        f"criteria must be {required.value}, but the tree joins two of them "
-        f"at {split.value}"
+    return CombinationBreach(
+        required=required,
+        expression=request.expression,
+        built=split.value,
+        message=(
+            f"the user requires {request.expression!r}: every combine over those "
+            f"criteria must be {required.value}, but the tree joins two of them "
+            f"at {split.value}"
+        ),
     )
 
 
-class CombinationBreach(NamedTuple):
-    """A stated combination the tree does not honor."""
-
-    required: CombineOp
-    message: str
+def combination_violation(
+    request: CombinationRequest,
+    matched_ids: Collection[str],
+    structure: SpecStructure,
+) -> str | None:
+    """Why this tree does not state the requested combination, or None."""
+    breach = combination_breach(request, matched_ids, structure)
+    return None if breach is None else breach.message
 
 
 def first_combination_violation(
@@ -359,10 +360,7 @@ def first_combination_violation(
         matched = match_terms(request.terms, criteria)
         if matched is None or not enough_members(matched):
             continue
-        message = combination_violation(request, matched.members.values(), structure)
-        if message is not None:
-            return CombinationBreach(
-                required=required_operator(request.operator),
-                message=message,
-            )
+        breach = combination_breach(request, matched.members.values(), structure)
+        if breach is not None:
+            return breach
     return None

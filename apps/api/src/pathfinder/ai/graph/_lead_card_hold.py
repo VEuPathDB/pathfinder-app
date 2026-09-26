@@ -2,7 +2,8 @@
 
 A card call carries the turn's reply as its ``reply`` argument. Every card of
 a response waits: cards the contract denies are dropped, and cards it passes
-are written when the run ends, each after its reply as text.
+are written when the run ends, each after its reply as text. A free text part
+of the Lead model is never the reply, so the hold drops it.
 """
 
 from __future__ import annotations
@@ -62,14 +63,13 @@ def _reply_of(call_id: str, card: list[BaseChunk]) -> list[BaseChunk]:
 
 @dataclass
 class CardHold:
-    """The text and the card calls a run has not released yet.
+    """The card calls a run has not released yet.
 
     ``resumed`` names the calls a resumed run re-announces: those were shown
     on the turn that made them, so they pass.
     """
 
     resumed: Collection[str] = ()
-    _text: list[BaseChunk] = field(default_factory=list)
     _cards: dict[str, list[BaseChunk]] = field(default_factory=dict)
     _dropped: set[str] = field(default_factory=set)
 
@@ -79,34 +79,24 @@ class CardHold:
             chunk.tool_call_id in self._cards or chunk.tool_call_id in self._dropped
         ):
             self._dropped.update(self._cards)
-            self._text.clear()
             self._cards.clear()
             return []
         if isinstance(chunk, _TEXT):
-            self._text.append(chunk)
             return []
         if isinstance(chunk, _CallChunk) and self._holds(chunk):
             self._cards[chunk.tool_call_id].append(chunk)
             return []
-        if self._cards:
-            return [chunk]
-        return [*self.release(), chunk]
+        return [chunk]
 
     def release(self) -> list[BaseChunk]:
-        """The held text, then each held card whole, in the order they began.
-
-        A card's reply replaces any text written beside it, so the reply the
-        contract read is the only reply the researcher reads.
-        """
-        text = [] if self._cards else list(self._text)
+        """Each held card whole, after its reply, in the order they began."""
         cards = [
             chunk
             for call_id, card in self._cards.items()
             for chunk in (*_reply_of(call_id, card), *card)
         ]
-        self._text.clear()
         self._cards.clear()
-        return [*text, *cards]
+        return cards
 
     def _holds(self, chunk: _CallChunk) -> bool:
         if (

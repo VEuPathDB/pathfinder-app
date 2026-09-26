@@ -18,6 +18,7 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import Script, history_free
 from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.findings import findings
 from pathfinder.ai.models.mock.lead_flow import classified_this_turn
 from pathfinder.ai.models.mock.message_words import message
 from pathfinder.ai.models.mock.reads import (
@@ -202,7 +203,9 @@ def _exported(messages: list[ModelMessage]) -> ToolCallPart:
         )
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})
-    return lead_final(_EXPORTED_PROSE, "complete", strategy_changed=True)
+    return lead_final(
+        f"{_EXPORTED_PROSE}{findings(messages)}", "complete", strategy_changed=True
+    )
 
 
 @dataclass(frozen=True)

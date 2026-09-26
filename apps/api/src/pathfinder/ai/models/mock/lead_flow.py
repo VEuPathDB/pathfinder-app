@@ -19,8 +19,10 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import Script, Sequence
 from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final
+from pathfinder.ai.models.mock.findings import findings
 from pathfinder.ai.models.mock.reads import (
     added_search_lines,
+    drafted_search_lines,
     frame_is_ready,
     live_count_sentence,
     refusal_of,
@@ -34,8 +36,8 @@ SUCCESS_PROSE = (
     "cleanly: root size looks right and the leaves are non-empty."
 )
 FEEDBACK_PROSE = (
-    "**Verification found a problem.** The root **returned 0** genes, so a "
-    "search is too narrow. Relax it and I will re-verify."
+    "**Verification found a problem.** The check does not support the strategy "
+    "as it stands."
 )
 # The reply to each refused build, in the words a researcher reads: what
 # stopped it, then the question that unblocks it.
@@ -151,7 +153,7 @@ def written_tail(messages: list[ModelMessage], count: str | None = None) -> str:
     """What a reply that wrote the strategy ends on: each search the turn
     added with its reason, then ``count``, else the count the site answers now."""
     count = count or live_count_sentence(messages)
-    lines = added_search_lines(messages)
+    lines = added_search_lines(messages) or drafted_search_lines(messages)
     return f"\n\n{lines}\n\n{count}" if lines else f" {count}"
 
 
@@ -162,9 +164,10 @@ def _checked(
     *,
     changed: bool = True,
 ) -> list[ToolCallPart]:
-    """Verify, read the count the site answers now, and state it beside each
-    search the turn added, named with its reason."""
-    tail = written_tail(messages)
+    """Verify, state each gap and caveat the check found, read the count the
+    site answers now, and state it beside each search the turn added, named
+    with its reason."""
+    tail = f"{findings(messages)}{written_tail(messages)}"
     final = (
         lead_final(f"{success}{tail}", "complete", strategy_changed=changed)
         if verified(messages)

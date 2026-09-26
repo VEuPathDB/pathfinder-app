@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 
 from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.derive import derive_ledger
@@ -22,6 +23,7 @@ from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead._answered_draft import QUESTION, framed
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     BUDGET,
@@ -42,6 +44,14 @@ _NEW = "Scrap it. Find transporters in P. berghei ANKA."
 _OLD_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", "P. falciparum 3D7")
 _NEW_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", "P. berghei ANKA")
 _REBUILT = "step_transporters"
+
+
+@pytest.fixture(autouse=True)
+def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _organisms(site_id: str) -> list[str]:
+        return recorded_organisms(site_id)
+
+    monkeypatch.setattr(lead_tools, "list_organisms", _organisms)
 
 
 @pytest.fixture(autouse=True)
@@ -70,7 +80,7 @@ async def _cleared() -> LeadDeps:
     )
     state.user_message_id = uuid4()
     deps = lead_deps(state, strategy_session=built_session())
-    classify_user_intent(
+    await classify_user_intent(
         run_context_for(deps, "t_classify"),
         UserIntent(
             classification=IntentClassification.NEW_STRATEGY,

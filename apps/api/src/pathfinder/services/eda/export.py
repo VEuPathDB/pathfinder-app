@@ -21,7 +21,7 @@ from veupathdb.eda import (
 )
 from veupathdb_mcp.catalog import EdaStepRequest
 
-from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
+from pathfinder.domain.eda_parts import EdaEffectDirection
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, AnalysisKind
 from pathfinder.services.eda.authoring import serialize_spec
 from pathfinder.services.eda.compute import (
@@ -186,22 +186,28 @@ def analysis_binding(
         ),
         None,
     )
-    comparison = (
-        None if compared is None else comparison_of(compared.descriptor.configuration)
-    )
-    method = (
-        None
-        if compared is None
-        else compared.descriptor.configuration.differential_expression_method
-    )
+    if compared is None:
+        return stated.model_copy(
+            update={
+                **cut.model_dump(),
+                "words": _uncompared_words(spec.display_name, cut),
+            }
+        )
+    configuration = compared.descriptor.configuration
+    comparison = comparison_of(configuration)
+    method = configuration.differential_expression_method
+    measured = configuration.value_variable
     return stated.model_copy(
         update={
+            **cut.model_dump(),
             "comparison": comparison,
             "method": method,
-            "effect_direction": cut.effect_direction,
-            "effect_size_threshold": cut.effect_size_threshold,
-            "significance_threshold": cut.significance_threshold,
-            "words": _cut_words(spec.display_name, comparison, method, cut),
+            "value_entity_id": measured.entity_id,
+            "value_variable": measured.variable_id,
+            "words": (
+                f"{direction_sentence(comparison, cut.effect_direction)} "
+                f"({method}, {_bounds(cut)})"
+            ),
         }
     )
 
@@ -211,21 +217,15 @@ def _subset_words(display_name: str, subset: list[str]) -> str:
     return f"{named}: {'; '.join(subset)}" if subset else named
 
 
-def _cut_words(
-    display_name: str,
-    comparison: EdaComparison | None,
-    method: str | None,
-    cut: VolcanoThresholds,
-) -> str:
-    """The genes a volcano cut keeps, named by its groups when it compares two."""
-    bounds = f"|effect| >= {cut.effect_size_threshold:g}, p <= {cut.significance_threshold:g}"
-    if comparison is None:
-        return (
-            f"The genes past the volcano cut of the analysis {display_name!r} "
-            f"({cut.effect_direction}, {bounds})"
-        )
+def _bounds(cut: VolcanoThresholds) -> str:
+    return f"|effect| >= {cut.effect_size_threshold:g}, p <= {cut.significance_threshold:g}"
+
+
+def _uncompared_words(display_name: str, cut: VolcanoThresholds) -> str:
+    """The genes a volcano cut keeps when no comparison names its groups."""
     return (
-        f"{direction_sentence(comparison, cut.effect_direction)} ({method}, {bounds})"
+        f"The genes past the volcano cut of the analysis {display_name!r} "
+        f"({cut.effect_direction}, {_bounds(cut)})"
     )
 
 

@@ -22,7 +22,10 @@ from pathfinder.ai.lead.dispatch_context import (
     defer_dispatch,
     dispatch_call_id,
 )
-from pathfinder.ai.lead.evidence_card import publish_evidence_card
+from pathfinder.ai.lead.evidence_card import (
+    judged_control_tests,
+    publish_evidence_card,
+)
 from pathfinder.ai.lead.ledger import (
     build_contradiction,
     digest_held_to_the_build,
@@ -42,11 +45,14 @@ from pathfinder.ai.lead.verify_review import (
     review_held_to_the_turn,
 )
 from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
-from pathfinder.domain.evidence import (
-    SAMPLED_GENE_LIMIT,
-    EvidenceVerdict,
-    VerificationReview,
+from pathfinder.domain.caveats import (
+    BuildCaveat,
+    Caveat,
+    Gap,
+    check_gaps,
+    measured_caveats,
 )
+from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT, VerificationReview
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
@@ -193,17 +199,18 @@ async def run_verification(
     review = review_held_to_the_turn(
         delta.digest.review, review_record(deps, scope.messages)
     )
-    held = _digest_the_build_supports(
-        deps,
+    findings = _findings(deps, review)
+    digest = _held(
         delta.digest.model_copy(
             update={
                 "pending_checks": pending,
                 "review": review,
-                "caveats": _with_the_misfits(delta.digest.caveats, review),
+                "gaps": findings.gaps,
+                "caveats": _caveats(deps, review, findings.build),
             }
         ),
+        findings,
     )
-    digest = held.digest
     revision = strategy_revision(live_tree(graph))
     deps.state.domain.record_verdict(digest, revision=revision)
     deps.state.turn_markers.verified = digest.passed
@@ -211,86 +218,74 @@ async def run_verification(
         deps,
         check_id=parent_tool_call_id,
         revision=revision,
-        verdict=EvidenceVerdict(
-            supported=digest.success,
-            pending_checks=digest.pending_checks,
-            refused_because=held.refused_because,
-        ),
+        pending_checks=digest.pending_checks,
         review=digest.review,
     )
     return VerificationDelta(digest=digest)
 
 
-def _with_the_misfits(caveats: list[str], review: VerificationReview) -> list[str]:
-    """The caveats, led by the count of sampled genes that do not fit."""
-    line = review.misfit_caveat()
-    if line is None or line in caveats:
-        return caveats
-    return [line, *caveats][:10]
-
-
 @dataclass(frozen=True)
-class _HeldDigest:
-    """The digest the ledger lets stand, and the ledger's reason for a failure."""
+class _Findings:
+    """What the build, the spec and the review give against a success."""
 
-    digest: VerificationDigest
-    refused_because: str | None = None
+    gaps: list[Gap]
+    build: BuildCaveat | None
+
+    def sentence(self) -> str | None:
+        """Every finding in one clause, or None when there is none."""
+        found = [
+            *([] if self.build is None else [self.build.sentence]),
+            *(gap.sentence for gap in self.gaps),
+        ]
+        return "; ".join(found) if found else None
+
+    def cause(self) -> FailureCause | None:
+        breaks_structure = any(gap.kind == "structure" for gap in self.gaps)
+        return FailureCause.STRUCTURE_VIOLATION if breaks_structure else None
 
 
-@dataclass(frozen=True)
-class _Refusal:
-    """Why the ledger cannot support a success, and the cause it records."""
-
-    reason: str
-    cause: FailureCause | None = None
-
-
-def _ledger_refusal(deps: LeadDeps, digest: VerificationDigest) -> _Refusal | None:
-    """The first reason the build, the spec or the review gives against success."""
+def _findings(deps: LeadDeps, review: VerificationReview) -> _Findings:
+    """The build's counts when it does not support a success, and every gap."""
     ledger = derive_ledger(deps.state, deps.intent)
-    contradiction = build_contradiction(
-        ledger.build,
-        built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
-    )
-    if contradiction is not None:
-        return _Refusal(contradiction)
-    structural = structure_contradiction(
-        deps.state.domain.requirements,
-        deps.state.domain.operational_spec,
-    )
-    if structural is not None:
-        return _Refusal(structural, FailureCause.STRUCTURE_VIOLATION)
-    words = unexpressed_words(deps.state.domain.operational_spec)
-    if words:
-        return _Refusal(
-            f"the request states {', '.join(repr(w) for w in words)}, and no search "
-            f"the strategy runs can state it"
-        )
-    unmet = digest.review.unmet()
-    if not unmet:
-        return None
-    return _Refusal(
-        f"the check reports {count_noun(len(unmet), 'requirement')} unmet: "
-        f"{', '.join(repr(row.text) for row in unmet)}"
+    spec = deps.state.domain.operational_spec
+    return _Findings(
+        gaps=check_gaps(
+            structure=structure_contradiction(deps.state.domain.requirements, spec),
+            words=unexpressed_words(spec),
+            review=review,
+        ),
+        build=build_contradiction(
+            ledger.build,
+            built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
+        ),
     )
 
 
-def _digest_the_build_supports(
-    deps: LeadDeps, digest: VerificationDigest
-) -> _HeldDigest:
+def _caveats(
+    deps: LeadDeps, review: VerificationReview, build: BuildCaveat | None
+) -> list[Caveat]:
+    """What the check measured short of the request, read from the records."""
+    session = deps.runtime.strategy_session
+    return measured_caveats(
+        build=build,
+        controls=judged_control_tests(
+            deps.state.turn_markers.control_tests,
+            frozenset(live_wdk_step_ids(session)),
+        ),
+        genes=review.sampled_genes,
+    )
+
+
+def _held(digest: VerificationDigest, findings: _Findings) -> VerificationDigest:
     """Hold the verdict to what the ledger recorded.
 
-    The digest decides the reply, the memory auto-write and the eval verdict,
-    so a success it cannot support is corrected here rather than at each
-    reader. A failure the check found keeps its digest and takes the reason.
+    The digest decides the memory auto-write and the eval verdict, so a success
+    it cannot support is corrected here rather than at each reader.
     """
-    refusal = _ledger_refusal(deps, digest)
-    if refusal is None:
-        return _HeldDigest(digest)
-    if not digest.success:
-        return _HeldDigest(digest, refusal.reason)
-    held = digest_held_to_the_build(digest, refusal.reason, failure_cause=refusal.cause)
-    return _HeldDigest(held, refusal.reason)
+    sentence = findings.sentence()
+    if sentence is None or not digest.success:
+        return digest
+    return digest_held_to_the_build(digest, sentence, failure_cause=findings.cause())
 
 
 async def verify_strategy(

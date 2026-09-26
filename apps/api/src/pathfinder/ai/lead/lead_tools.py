@@ -9,6 +9,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
+from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
@@ -21,6 +22,7 @@ from pathfinder.ai.lead.intent import (
     IntentClassification,
     UserIntent,
     already_classified_message,
+    organism_refusal,
     unstated_operator_refusal,
 )
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
@@ -43,7 +45,7 @@ from pathfinder.domain.memory import MemoryKind
 LedgerSectionName = Literal["frame", "build", "verification"]
 
 
-def classify_user_intent(
+async def classify_user_intent(
     ctx: RunContext[LeadDeps],
     intent: UserIntent,
 ) -> ToolReturn[UserIntent]:
@@ -159,6 +161,9 @@ def classify_user_intent(
     ):
         raise ModelRetry(already_classified_message(held.classification))
     refusal = unstated_operator_refusal(intent, state.user_prompt)
+    if refusal is None and intent.explicit_constraints:
+        vocabulary = await list_organisms(ctx.deps.runtime.site_id)
+        refusal = organism_refusal(intent, state.user_prompt, vocabulary)
     if refusal is not None:
         raise ModelRetry(refusal)
     ctx.deps.intent = intent

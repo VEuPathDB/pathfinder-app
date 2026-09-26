@@ -55,7 +55,7 @@ export const EVIDENCE_CARD: EvidenceCard = {
       references: ["https://doi.org/10.1038/nature12970"],
     },
   ],
-  verdict: { supported: true, pendingChecks: [], refusedBecause: null },
+  pendingChecks: [],
 };
 
 /** A card a real plasmodb check left, as `data-evidence-card` carried it: the
@@ -98,11 +98,7 @@ export const REVIEWED_CARD: EvidenceCard = {
   ],
   controls: [],
   citations: [],
-  verdict: {
-    supported: true,
-    pendingChecks: [],
-    refusedBecause: null,
-  },
+  pendingChecks: [],
   review: {
     requirements: [
       {

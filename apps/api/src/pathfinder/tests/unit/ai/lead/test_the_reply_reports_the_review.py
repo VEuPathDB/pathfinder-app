@@ -1,4 +1,4 @@
-"""The reply of a turn that checked the strategy names every requirement the
+"""The reply of a turn that checked the strategy names every requirement row the
 check found unmet or unexpressed, and states no sampled-gene count the check's
 sample does not hold."""
 
@@ -11,9 +11,9 @@ from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import reconcile
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.domain.caveats import check_gaps
 from pathfinder.domain.evidence import (
     EvidenceCard,
-    EvidenceVerdict,
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -70,6 +70,7 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
             reason="one requirement unmet",
             success=False,
             review=review,
+            gaps=check_gaps(structure=None, words=[], review=review),
         ),
         revision=revision,
     )
@@ -82,7 +83,6 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
         steps=[],
         controls=[],
         citations=[],
-        verdict=EvidenceVerdict(supported=False),
         review=review,
     )
     state.turn_markers.verification_dispatched = verified_this_turn
@@ -97,13 +97,11 @@ def test_a_reply_silent_about_an_unmet_requirement_is_refused() -> None:
 
     assert [(m.kind, m.sentence) for m in found] == [
         (
-            "unreported_requirement",
+            "unstated_gap",
             (
-                "The check reports requirements the strategy does not meet: "
-                "'at least 2 transmembrane domains' (unmet: no step reads "
-                "transmembrane domains). Your reply does not name them. Name "
-                "each as written here, and say what the strategy returns "
-                "without it."
+                "The check found what the strategy does not answer: 'at least 2 "
+                "transmembrane domains': nothing in the strategy answers it. Your "
+                "reply does not say so; state each with what is missing."
             ),
         )
     ]

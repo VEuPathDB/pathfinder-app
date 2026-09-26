@@ -62,42 +62,32 @@ describe("DataEvidenceCard", () => {
     ).toBe(EVIDENCE_CARD.strategyUrl);
   });
 
-  it("states a refused success in the ledger's own words", () => {
-    render(
-      <DataEvidenceCard
-        data={{
-          ...EVIDENCE_CARD,
-          verdict: {
-            supported: false,
-            pendingChecks: [],
-            refusedBecause:
-              "this turn built nothing and no step of the strategy is in VEuPathDB",
-          },
-        }}
-      />,
-    );
+  it("draws the facts of the check and no verdict", () => {
+    render(<DataEvidenceCard data={REVIEWED_CARD} />);
 
-    expect(screen.getByTestId("evidence-verdict").textContent).toBe(
-      "Not supported: this turn built nothing and no step of the strategy is in VEuPathDB",
+    const body = screen.getByTestId("evidence-card-body").textContent;
+    expect([
+      /Supported/.test(body),
+      /Not supported/.test(body),
+      /requirements met/.test(body),
+    ]).toEqual([false, false, false]);
+    expect(screen.getByTestId("evidence-sample-count").textContent).toBe(
+      "8 of 8 sampled genes unclear",
     );
+    expect(
+      within(screen.getByTestId("evidence-steps")).getAllByText("116"),
+    ).toHaveLength(2);
   });
 
-  it("shows a pending check as neither a pass nor a failure", () => {
+  it("lists the study steps the site did not describe as pending", () => {
     render(
       <DataEvidenceCard
-        data={{
-          ...EVIDENCE_CARD,
-          verdict: {
-            supported: true,
-            pendingChecks: ["Febrile vs normal"],
-            refusedBecause: null,
-          },
-        }}
+        data={{ ...EVIDENCE_CARD, pendingChecks: ["Febrile vs normal"] }}
       />,
     );
 
-    expect(screen.getByTestId("evidence-verdict").textContent).toBe(
-      "Supported, 1 check pending: Febrile vs normal",
+    expect(screen.getByTestId("evidence-pending").textContent).toBe(
+      "1 check pending: Febrile vs normal",
     );
   });
 
@@ -144,26 +134,26 @@ describe("DataEvidenceCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("captions the requirements met and each fit word of the sampled genes", () => {
+  it("captions each fit word of the sampled genes", () => {
     render(<DataEvidenceCard data={REVIEWED_CARD} />);
 
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "4 of 4 requirements met, 8 of 8 sampled genes unclear, 3 steps counted on the site.",
+      "8 of 8 sampled genes unclear, 3 steps counted on the site.",
     );
   });
 
-  it("lists each requirement with what answers it, how and its status", () => {
+  it("lists each requirement with what answers it and how", () => {
     render(<DataEvidenceCard data={REVIEWED_CARD} />);
 
     const rows = within(screen.getByTestId("evidence-requirements")).getAllByRole(
       "row",
     );
     expect(rows.map((row) => row.textContent)).toEqual([
-      "RequirementAnswered byHowStatus",
-      'P. falciparum 3D7 genesMessage 1. Both component searches use `organism=["Plasmodium falciparum 3D7"]`.step_80bbac4f, step_e7a86f13by a parameterMet',
-      "with a signal peptideMessage 1. `GenesWithSignalPeptide` uses `signalp_version=SignalP-6.0`.step_80bbac4fby a searchMet",
-      "at least 2 transmembrane domainsMessage 1. `GenesByTransmembraneDomains` uses `min_tm=2` and `max_tm=99`.step_e7a86f13by a parameterMet",
-      "signal peptide and at least 2 transmembrane domainsMessage 1. The root is an `INTERSECT` of the signal-peptide and transmembrane-domain steps.step_901d23ccby the structureMet",
+      "RequirementAnswered byHow",
+      'P. falciparum 3D7 genesMessage 1. Both component searches use `organism=["Plasmodium falciparum 3D7"]`.step_80bbac4f, step_e7a86f13by a parameter',
+      "with a signal peptideMessage 1. `GenesWithSignalPeptide` uses `signalp_version=SignalP-6.0`.step_80bbac4fby a search",
+      "at least 2 transmembrane domainsMessage 1. `GenesByTransmembraneDomains` uses `min_tm=2` and `max_tm=99`.step_e7a86f13by a parameter",
+      "signal peptide and at least 2 transmembrane domainsMessage 1. The root is an `INTERSECT` of the signal-peptide and transmembrane-domain steps.step_901d23ccby the structure",
     ]);
   });
 
@@ -196,14 +186,22 @@ describe("DataEvidenceCard", () => {
       "row",
     );
     expect(rows.map((row) => row.textContent)).toEqual([
-      "RequirementAnswered byHowStatus",
-      "orthologs in P. vivaxMessage 2step_3c1d9a02by a transformMet",
-      "up in gametocytesMessage 2step_3c1d9a02by an analysisMet",
+      "RequirementAnswered byHow",
+      "orthologs in P. vivaxMessage 2step_3c1d9a02by a transform",
+      "up in gametocytesMessage 2step_3c1d9a02by an analysis",
     ]);
   });
 
-  it("marks a requirement the strategy does not meet", () => {
+  it("says in Answered by what nothing answers and what no search states", () => {
     const review = REVIEWED_CARD.review ?? {};
+    const unanswered = (text: string, status: "unmet" | "unexpressed") => ({
+      text,
+      turn: 1,
+      answeredBy: [],
+      how: "search" as const,
+      status,
+      note: "",
+    });
     render(
       <DataEvidenceCard
         data={{
@@ -211,24 +209,21 @@ describe("DataEvidenceCard", () => {
           review: {
             ...review,
             requirements: [
-              {
-                text: "at least 2 transmembrane domains",
-                turn: 1,
-                answeredBy: [],
-                how: "search",
-                status: "unmet",
-                note: "no step reads transmembrane domains",
-              },
+              unanswered("at least 2 transmembrane domains", "unmet"),
+              unanswered("exported to the host cell", "unexpressed"),
             ],
           },
         }}
       />,
     );
 
-    const status = screen.getByTestId("evidence-requirement-status");
-    expect([status.textContent, status.className]).toEqual([
-      "Not met",
-      "text-destructive",
+    expect(
+      screen
+        .getAllByTestId("evidence-requirement-answer")
+        .map((cell) => cell.textContent),
+    ).toEqual([
+      "Nothing in the strategy answers it",
+      "No search on this site states it",
     ]);
   });
 
@@ -261,7 +256,6 @@ describe("DataEvidenceCard", () => {
 
     const sections = Array.from(screen.getByTestId("evidence-card-body").children);
     expect(sections.map((section) => section.getAttribute("data-testid"))).toEqual([
-      "evidence-verdict",
       "evidence-controls",
       "evidence-steps",
       "evidence-citations",

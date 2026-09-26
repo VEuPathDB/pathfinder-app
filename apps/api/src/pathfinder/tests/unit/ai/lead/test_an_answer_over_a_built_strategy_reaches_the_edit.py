@@ -34,7 +34,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
 _ANSWERED = f"Question asked: {QUESTION.question}\nAnswer: {ANSWER}"
 
 
-def _answering(
+async def _answering(
     monkeypatch: pytest.MonkeyPatch, kind: IntentClassification
 ) -> DisagreementThread:
     """A built thread holding one open question, and the message that follows."""
@@ -45,7 +45,7 @@ def _answering(
     state.domain.open_questions = [QUESTION]
     state.user_prompt = ANSWER
     state.user_message_id = uuid4()
-    classify(thread.deps, kind)
+    await classify(thread.deps, kind)
     return thread
 
 
@@ -57,10 +57,10 @@ def _answering(
         IntentClassification.EDIT_STRATEGY,
     ],
 )
-def test_frame_is_not_offered_over_a_built_strategy(
+async def test_frame_is_not_offered_over_a_built_strategy(
     monkeypatch: pytest.MonkeyPatch, kind: IntentClassification
 ) -> None:
-    thread = _answering(monkeypatch, kind)
+    thread = await _answering(monkeypatch, kind)
 
     offered = tools_the_turn_offers(thread.deps, ["frame_problem", "edit_strategy"])
 
@@ -70,7 +70,7 @@ def test_frame_is_not_offered_over_a_built_strategy(
 async def test_the_edit_order_carries_the_question_and_its_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    thread = _answering(monkeypatch, IntentClassification.CLARIFICATION_RESPONSE)
+    thread = await _answering(monkeypatch, IntentClassification.CLARIFICATION_RESPONSE)
     thread.frames(lambda found: found, declared=kept(SURFACE, STAGE))
 
     delta = await thread.edit()
@@ -115,7 +115,7 @@ def _budget_stops(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 async def test_the_budget_retry_of_the_edit_carries_the_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    thread = _answering(monkeypatch, IntentClassification.CLARIFICATION_RESPONSE)
+    thread = await _answering(monkeypatch, IntentClassification.CLARIFICATION_RESPONSE)
     orders = _budget_stops(monkeypatch)
 
     await thread.edit()
@@ -160,7 +160,7 @@ async def test_the_budget_retry_of_the_edit_carries_the_pending_changes(
     state.domain.open_questions = [QUESTION]
     state.user_prompt = ANSWER
     state.user_message_id = uuid4()
-    classify(thread.deps, IntentClassification.CLARIFICATION_RESPONSE)
+    await classify(thread.deps, IntentClassification.CLARIFICATION_RESPONSE)
     orders = _budget_stops(monkeypatch)
 
     await thread.edit()

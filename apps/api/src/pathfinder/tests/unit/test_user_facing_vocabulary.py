@@ -316,7 +316,7 @@ def test_the_rule_names_the_words_and_their_replacements() -> None:
         assert f"{word}," in text, word
     assert "``DS_``/``ENT_``/``VAR_`` id" in text
     assert "study, search, strategy, step, sample, gene and plan" in text
-    assert "digest's prose, key findings, caveats and reason" in text
+    assert "digest's prose, key findings and reason" in text
 
 
 @pytest.mark.parametrize(

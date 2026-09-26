@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import re
+
 from assistant_core.models.scripted import (
+    called_tool_parts,
     current_turn,
     retry_prompt_parts,
     tool_return_parts,
@@ -69,10 +72,19 @@ def turn_start_instructions(messages: list[ModelMessage]) -> str:
     return instructions_of(current_turn(messages)[:1])
 
 
+def pinned_on(message: ModelMessage) -> str | None:
+    """The instructions a request pins, or None for a response."""
+    match message:
+        case ModelRequest(instructions=instructions):
+            return instructions or ""
+        case _:
+            return None
+
+
 def instructions_of(messages: list[ModelMessage]) -> str:
     """The instructions pinned on the newest request of the run."""
-    requests = [msg for msg in messages if isinstance(msg, ModelRequest)]
-    return (requests[-1].instructions or "") if requests else ""
+    pinned = [text for msg in messages if (text := pinned_on(msg)) is not None]
+    return pinned[-1] if pinned else ""
 
 
 class _Step(ToolAnswer):
@@ -315,6 +327,24 @@ def added_search_lines(messages: list[ModelMessage]) -> str:
         + ("" if a.rationale is None else f", chosen for {a.rationale.term}")
         for a in added
     )
+
+
+_SEARCH_LINE = re.compile(r"^- .+, chosen for .+$", re.MULTILINE)
+
+
+class _Draft(ToolAnswer):
+    prose: str = ""
+
+
+def drafted_search_lines(messages: list[ModelMessage]) -> str:
+    """The added-search lines of the newest reply this turn drafted, which the
+    model still holds once the history compacts the write's answer."""
+    drafts = [
+        _Draft.model_validate(part.args_as_dict())
+        for part in called_tool_parts(current_turn(messages))
+        if part.tool_name == "final_result"
+    ]
+    return "\n".join(_SEARCH_LINE.findall(drafts[-1].prose)) if drafts else ""
 
 
 class _Summary(ToolAnswer):

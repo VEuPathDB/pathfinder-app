@@ -57,9 +57,10 @@ Lead asks in prose.
   ends with `?` - whatever `next_state` says and whether the turn framed, unless the reply
   records `asked_questions` or the researcher answered a card (a consult or an accepted proposal)
   under this message. The correction sends an offer to `propose_changes`, a question for a value
-  to `asked_questions`, and anything else to a reply without a question. The earlier trigger
-  stands beside it: a framed turn waiting on the user that asks anywhere in its prose and records
-  nothing is refused with the `asked_questions` correction.
+  to `asked_questions`, and anything else to a reply without a question. A value a frame pass of
+  the turn leaves open is the question card's: `open_value_in_prose`
+  (`ai/lead/verdict_claims.py`) refuses any reply that does not end on a card while
+  `TurnRecord.frame_open_questions` holds a value, and `_unrecorded_question` stands aside for it.
 - **The reply is an argument of the card call and streams before it.** Every call that ends a
   Lead turn on a card - `propose_changes`, `consult_user`, `adopt_separating_strategy`,
   `optimize_search_parameters`, `separate_controls`, `clear_strategy` and `delete_step`

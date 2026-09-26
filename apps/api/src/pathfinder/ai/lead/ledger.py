@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
-from assistant_core.graph.tool_summary import count_noun
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
@@ -24,6 +23,7 @@ from pathfinder.ai.lead.ledger_sections import (
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.ai.lead.turn_briefing import ANALYSIS_CHANGED_AFTER_THE_CARD
+from pathfinder.domain.caveats import BuildCaveat, StructureGap
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.combination_check import first_combination_violation
 from pathfinder.domain.strategy.constraints import Constraint
@@ -33,8 +33,10 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 
 
-def build_contradiction(build: BuildSection, *, built_step_count: int) -> str | None:
-    """Why a success verdict cannot stand over this build, or None.
+def build_contradiction(
+    build: BuildSection, *, built_step_count: int
+) -> BuildCaveat | None:
+    """The build's counts when a success verdict cannot stand over it, or None.
 
     The ledger records what reached VEuPathDB. A digest may add detail to it
     and may never overrule it.
@@ -42,20 +44,21 @@ def build_contradiction(build: BuildSection, *, built_step_count: int) -> str | 
     if build.outcome is None:
         if built_step_count:
             return None
-        return "this turn built nothing and no step of the strategy is in VEuPathDB"
+        return BuildCaveat(pushed=0, failed=0, skipped=0, empty=0)
     if build.is_clean():
         return None
-    return (
-        f"the build pushed {count_noun(build.pushed_count, 'step')}, failed "
-        f"{build.failed_count}, skipped {build.skipped_count} and left "
-        f"{len(build.zero_result_steps)} empty"
+    return BuildCaveat(
+        pushed=build.pushed_count,
+        failed=build.failed_count,
+        skipped=build.skipped_count,
+        empty=len(build.zero_result_steps),
     )
 
 
 def structure_contradiction(
     requirements: Sequence[Constraint], spec: OperationalSpec | None
-) -> str | None:
-    """Why a success verdict cannot stand over this spec's structure, or None.
+) -> StructureGap | None:
+    """The stated combination this spec's structure breaks, or None.
 
     A build check reads what was pushed. A tree that joins the criteria the
     user asked to union is wrong before anything is pushed.
@@ -63,7 +66,9 @@ def structure_contradiction(
     if spec is None or spec.structure is None:
         return None
     breach = first_combination_violation(requirements, spec.criteria, spec.structure)
-    return None if breach is None else breach.message
+    if breach is None:
+        return None
+    return StructureGap(expression=breach.expression, built=breach.built)
 
 
 _SITE_TERMS = ("the site", "veupathdb")
@@ -134,15 +139,14 @@ def digest_held_to_the_build(
         update={
             "success": False,
             "failure_cause": failure_cause or digest.failure_cause,
-            "reason": f"Verification reported success, but {contradiction}.",
+            "reason": (
+                "Verification reported success, and the ledger records what the "
+                "strategy does not answer."
+            ),
             "prose": (
                 f"Verification cannot be reported: {contradiction}. "
                 f"The checker's own account of the run follows.\n\n{digest.prose}"
             ),
-            "caveats": [
-                f"The verification verdict was refused: {contradiction}",
-                *digest.caveats,
-            ][:10],
         },
     )
 
@@ -247,6 +251,7 @@ class InvestigationLedger(CamelModel):
                 f"- complete: {self.verification.complete}",
                 f"- successful: {self.verification.successful}",
                 *([f"- pending_checks: {', '.join(pending)}"] if pending else []),
+                *self._check_lines(),
                 "",
                 "## Constraints",
                 f"- blocking: {self.constraints.blocking}",
@@ -266,6 +271,16 @@ class InvestigationLedger(CamelModel):
         lines.extend(self._open_analysis_lines())
         lines.extend(self._declined_proposal_lines())
         return "\n".join(lines)
+
+    def _check_lines(self) -> list[str]:
+        """Each gap and each caveat of the last check, as the reply states them."""
+        digest = self.verification.digest
+        if digest is None:
+            return []
+        return [
+            *(f"- gap: {gap.sentence}" for gap in digest.gaps),
+            *(f"- caveat: {caveat.sentence}" for caveat in digest.caveats),
+        ]
 
     def _open_analysis_lines(self) -> list[str]:
         """The analysis the thread holds open, and whether it moved past its card."""

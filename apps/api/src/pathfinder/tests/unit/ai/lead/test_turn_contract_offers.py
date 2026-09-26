@@ -1,5 +1,6 @@
 """A reply that ends on a question records it: a proposal card for an offer,
-``asked_questions`` for a value, or no question at all."""
+the question card for a value the frame left open, ``asked_questions`` for any
+other value, or no question at all."""
 
 from __future__ import annotations
 
@@ -12,8 +13,8 @@ from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     building_deps,
-    framing_deps,
     kinds,
+    open_frame_deps,
     reply,
 )
 
@@ -75,15 +76,15 @@ class TestAReplyThatEndsOnAQuestion:
 
         assert kinds(building_deps(), report) == []
 
-    def test_a_framed_turn_waiting_on_a_question_inside_its_reply_is_refused(
+    def test_an_open_frame_s_question_inside_its_reply_asks_for_the_card(
         self,
     ) -> None:
         mismatches = reconcile(
             reply(A_QUESTION_THEN_A_STATEMENT),
-            turn_record(run_context_for(framing_deps())),
+            turn_record(run_context_for(open_frame_deps())),
         )
 
-        assert [m.kind for m in mismatches] == ["unrecorded_question"]
+        assert [m.kind for m in mismatches] == ["open_value_in_prose"]
         assert "``propose_changes``" not in mismatches[0].sentence
 
 

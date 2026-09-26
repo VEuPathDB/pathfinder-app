@@ -18,11 +18,12 @@ from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import WDKError
 from veupathdb.testing.wdk_fixtures import RecordedWDKResponse, load_recorded
 from veupathdb.wdk import VEuPathDBClient, WDKSearch, WDKSearchResponse
-from veupathdb_mcp import tool_payloads
+from veupathdb_mcp import catalog, tool_payloads
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     ResolvedSearch,
+    SearchMatch,
     ValidationCallbacks,
     format_param_info_typed,
 )
@@ -72,14 +73,23 @@ def suite_search(fixture: str) -> WDKSearch:
 
 
 @cache
-def _listing() -> tuple[WDKSearch, ...]:
-    body = _suite("transcript_search_param_names").json_body()
+def _recorded_listing(fixture: str) -> tuple[WDKSearch, ...]:
+    body = _suite(fixture).json_body()
     return tuple(_Listing.model_validate(body).searches)
+
+
+def _listing() -> tuple[WDKSearch, ...]:
+    return _recorded_listing("transcript_search_param_names")
 
 
 def transcript_listing() -> list[WDKSearch]:
     """Every plasmodb transcript search with the names of its parameters."""
     return list(_listing())
+
+
+def toxodb_transcript_listing() -> list[WDKSearch]:
+    """Every toxodb transcript search with the names of its parameters."""
+    return list(_recorded_listing("transcript_search_param_names_toxodb"))
 
 
 @cache
@@ -138,6 +148,49 @@ def serve_recorded_listing(monkeypatch: pytest.MonkeyPatch) -> None:
         ]
 
     monkeypatch.setattr(tool_payloads, "list_search_listings", _listings)
+
+
+def serve_recorded_semantic_search(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer ``search_for_searches`` from plasmodb's recorded listing: every
+    search whose name or display name shares a word with the query, ranked by
+    the words shared."""
+
+    async def _matches(
+        _site_id: str,
+        record_type: str | list[str] | None,
+        query: str,
+        *,
+        keywords: list[str] | None = None,
+        category: str | None = None,
+        limit: int = 20,
+    ) -> list[SearchMatch]:
+        del category
+        asked = {w for w in query.lower().split() if len(w) > 3} | {
+            k.lower() for k in (keywords or [])
+        }
+        ranked: list[tuple[int, WDKSearch]] = []
+        for search in _listing():
+            words = {
+                *search.url_segment.lower().split(),
+                *search.display_name.lower().split(),
+            }
+            shared = sum(1 for w in asked if any(w in word for word in words))
+            if shared:
+                ranked.append((shared, search))
+        ranked.sort(key=lambda pair: (-pair[0], pair[1].url_segment))
+        kind = record_type if isinstance(record_type, str) else "transcript"
+        return [
+            SearchMatch(
+                name=s.url_segment,
+                display_name=s.display_name,
+                description=s.description or "",
+                record_type=kind,
+                relevance=float(shared),
+            )
+            for shared, s in ranked[:limit]
+        ]
+
+    monkeypatch.setattr(catalog, "search_for_searches", _matches)
 
 
 def _response(definition: WDKSearch) -> WDKSearchResponse:
@@ -245,6 +298,7 @@ def serve_recorded_plasmodb(
     """A whole turn on plasmodb reads the recorded listing and these recorded
     definitions, and the site publishes no count."""
     serve_recorded_listing(monkeypatch)
+    serve_recorded_semantic_search(monkeypatch)
     serve_recorded(monkeypatch, definitions)
     serve_recorded_definitions(monkeypatch, definitions)
     serve_recorded_record_types(monkeypatch)

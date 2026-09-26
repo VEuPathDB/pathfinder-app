@@ -11,7 +11,13 @@ import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
 import { LAYOUTS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
-import { expectBuild, openTrace, traceRows } from "../fixtures/build-checks";
+import {
+  controlsCaveat,
+  expectBuild,
+  expectEveryRequirementAnswered,
+  openTrace,
+  traceRows,
+} from "../fixtures/build-checks";
 import {
   type SiteCounts,
   countPattern,
@@ -140,6 +146,14 @@ async function runSeparation(chatPage: ChatPage, page: Page, siteId: string) {
     "Run the separation? It measures candidate searches against your controls on the site and takes about five minutes.",
     { timeout: 60_000 },
   );
+  const pasted = pastedControls(siteId);
+  await expect(
+    chatPage.assistantReply(
+      new RegExp(
+        `your ${pasted.positive_ids.length} positive and ${pasted.negative_ids.length} negative controls`,
+      ),
+    ),
+  ).toHaveCount(1);
   await approval.getByTestId("tool-approval-approve").click();
   await expect(page.getByTestId("tool-approval-decision")).toContainText("Approved");
   await expect(
@@ -180,10 +194,10 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
 
     await expect(card.getByTestId("figure-caption")).toHaveText(
       new RegExp(
-        `^(\\d+) of \\1 requirements? met, (\\d+) of \\2 sampled genes? fits?, ${LAYOUTS.intersect.steps} steps counted on the site\\.$`,
+        `^(\\d+) of \\1 sampled genes? fits?, ${LAYOUTS.intersect.steps} steps counted on the site\\.$`,
       ),
     );
-    await expect(card.getByTestId("evidence-verdict")).toHaveText("Supported");
+    await expect(card.getByTestId("evidence-verdict")).toHaveCount(0);
     await expectStepTable(card, counts);
 
     const requirements = card.getByTestId("evidence-requirements");
@@ -191,11 +205,8 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       "Requirement",
       "Answered by",
       "How",
-      "Status",
     ]);
-    const statuses = requirements.getByTestId("evidence-requirement-status");
-    await expect(statuses).not.toHaveCount(0);
-    for (const status of await statuses.allTextContents()) expect(status).toBe("Met");
+    await expectEveryRequirementAnswered(card);
     for (const row of await bodyCells(requirements))
       expect(row[0]).toContain("Message 1");
 
@@ -225,13 +236,13 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     );
 
     const rail = await openChecking(page);
-    await expect(rail.getByTestId("evidence-verdict")).toHaveText("Supported");
+    await expect(rail.getByTestId("evidence-verdict")).toHaveCount(0);
     await expect(
       rail.getByText("complete", { exact: true }).locator(".."),
     ).toContainText("yes");
-    await expect(
-      rail.getByText("successful", { exact: true }).locator(".."),
-    ).toContainText("yes");
+    await expect(rail.getByText("successful", { exact: true })).toHaveCount(0);
+    await expect(rail.getByText("gaps", { exact: true })).toHaveCount(0);
+    await expect(rail.getByText("caveats", { exact: true })).toHaveCount(0);
     await expect(rail.getByTestId("evidence-superseded")).toHaveCount(0);
 
     const tm = paramText(
@@ -310,6 +321,14 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     const reply = await replyText(apiClient, id);
     expect(reply).toMatch(countPattern(numberOf(positive[2] ?? "")));
     expect(reply).toMatch(countPattern(numberOf(negative[2] ?? "")));
+    const caveat = controlsCaveat(
+      numberOf(positive[2] ?? ""),
+      positives,
+      numberOf(negative[2] ?? ""),
+      negatives,
+    );
+    // A set the strategy separates whole measures no caveat, and the reply states none.
+    expect(reply.includes(`The check measured: ${caveat}`)).toBe(caveat !== "");
 
     const tasks = await openRail(page, "Tasks");
     await expect(
@@ -448,6 +467,9 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       `${admitted} of ${negatives} negative controls returned`,
     );
     await expectStepTable(evidence, counts);
+    expect(await replyText(apiClient, id)).toContain(
+      controlsCaveat(recovered, positives, admitted, negatives),
+    );
   });
 
   test("V5 - A no with a comment", async ({

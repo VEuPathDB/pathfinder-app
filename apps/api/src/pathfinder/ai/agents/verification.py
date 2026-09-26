@@ -71,8 +71,8 @@ significant genes is met by it, so never report that step as lacking one. \
 Each requested value comes back as a ``constraint_report`` entry. \
 ``get_strategy`` states each study step by what it selects, under ``analyses``. \
 A step under ``unread_analyses`` is a study step whose analysis the site did \
-not describe: set ``success`` from the other checks and name that step in \
-``caveats`` as a pending check, never as passed or missing.
+not describe: set ``success`` from the other checks; the runtime lists that \
+step as pending, never as passed or missing.
 
 ### Controls
 - ``run_control_tests_on_step(wdk_step_id, positive_controls?, \
@@ -87,7 +87,7 @@ test files every id, and a repeat is answered from it with no new task.
 
 Every control test you run is recorded, and the evidence card under your check \
 lists each control id it filed. State a control count or a control gene id in \
-``prose``, ``key_findings`` or ``caveats`` only as a test of this turn filed it; \
+``prose`` or ``key_findings`` only as a test of this turn filed it; \
 the runtime refuses any other once.
 
 ### Gene sets
@@ -179,10 +179,9 @@ you read (a sampled value such as ``tm_count`` 3, the product, a GO term, an \
 expression value). Judge a gene from its sampled values and its record, never \
 from its id. Membership in the strategy is not evidence of fit: a \
 gene fits only when its record shows what the request names, and is \
-``unclear`` when the record does not show it. A gene that does not fit is a \
-caveat with the count \
-("2 of 8 sampled genes do not fit: ..."); the runtime writes that line from \
-your entries. A gene whose record no read of this turn returned is refused.
+``unclear`` when the record does not show it. The runtime counts the genes \
+that are unclear or do not fit ("2 of 8 sampled genes unclear") from your \
+entries. A gene whose record no read of this turn returned is refused.
 
 ### 3. Literature and the web (your choice)
 
@@ -209,13 +208,14 @@ make results available for downstream analysis.
 Constraints section, emit one ``constraint_report`` entry (``label``, \
 ``requested``, ``realized``, ``honored``, ``note``). If any user-explicit \
 constraint is not honored - a substituted data type, a dropped statistical \
-threshold - set ``success=False`` and add the deviation to ``caveats``. \
+threshold - set ``success=False``, ``honored=False`` on its entry, and its \
+requirement row ``unmet``. \
 Never report success while a user-explicit constraint is unmet. \
 A numeric parameter is restated ONLY from its ``constraint_report`` entry. \
 Write the bound value and the realized reading that entry carries; never add \
 an interpretation of your own next to a number ("80 (top 10%)"). An entry \
-whose status is substituted is a deviation: report the realized reading, set \
-``honored=False``, and carry it into ``caveats``. \
+whose status is substituted is a deviation: report the realized reading and \
+set ``honored=False``. \
 A combination constraint is honored when the built root operator matches the \
 researcher's connective; an INTERSECT count is at most its smallest input and \
 a UNION count at least its largest, so a final count above the smallest input \
@@ -253,7 +253,6 @@ Return exactly one ``VerificationDelta`` wrapping a ``VerificationDigest``:
 - ``digest.reason`` (required, short): one sentence.
 - ``digest.key_findings`` (optional, <=10): bullet-style facts the user \
   should walk away with.
-- ``digest.caveats`` (optional, <=10): open issues / limitations.
 - ``digest.review`` (required): ``requirements``, ``sampled_genes`` and \
   ``sources``, as the three parts above describe. The evidence card shows \
   all three to the researcher.
@@ -263,14 +262,14 @@ Return exactly one ``VerificationDelta`` wrapping a ``VerificationDigest``:
 
 ### Formatting - write readable GitHub-flavored Markdown
 
-``prose``, ``key_findings`` and ``caveats`` are rendered as Markdown in the \
-UI. Make them scannable:
+``prose`` and ``key_findings`` are rendered as Markdown in the UI. Make them \
+scannable:
 - Wrap every literal identifier in backticks: search names \
   (`` `GenesByText` ``), gene/transcript IDs (`` `PF3D7_1133400` ``), \
   parameter names and values (`` `text_fields=product` ``), step IDs, and \
   organism abbreviations.
 - **Bold** the key number in a finding (e.g. ``**61** genes``).
-- Keep each ``key_finding`` / ``caveat`` to one line; no trailing period-only \
+- Keep each ``key_finding`` to one line; no trailing period-only \
   fragments. Do NOT prefix them with ``-`` or ``*`` - the UI adds bullets.
 - ``prose`` may use short paragraphs; do not dump raw JSON or unlabeled counts.
 
@@ -313,7 +312,7 @@ def _unbacked_in(ctx: RunContext[AgentDeps], digest: VerificationDigest) -> list
     markers = ctx.deps.turn_markers
     scope = ctx.deps.verification_scope
     review = digest.review
-    text = "\n".join([digest.prose, *digest.key_findings, *digest.caveats])
+    text = "\n".join([digest.prose, *digest.key_findings])
     results = backing_results(
         (run.evidence for run in markers.control_tests), scope.last_card, ()
     )

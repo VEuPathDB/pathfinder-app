@@ -13,7 +13,10 @@ from pathfinder.ai.lead.ledger_sections import (
     render_structure,
 )
 from pathfinder.domain.evidence import VerificationReview
-from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operational_spec import Criterion, OpenSlot
+
+# The choices of one open slot the ledger prints.
+_OPTION_WINDOW = 8
 
 
 def render_constraints_full(section: ConstraintSection) -> str:
@@ -57,13 +60,23 @@ def render_frame_full(section: FrameSection) -> str:
     if spec.open_slots:
         parts.append("\n### Open slots (user must answer)")
         parts.extend(
-            f"- {s.criterion_id or '-'}.{s.param_name}: {s.question}"
+            f"- {s.criterion_id or '-'}.{s.param_name}: {_asked(s)}"
             for s in spec.open_slots
         )
     if spec.dropped:
         parts.append("\n### Dropped criteria")
         parts.extend(f"- {d.text} - {d.reason}" for d in spec.dropped)
     return "\n".join(parts)
+
+
+def _asked(slot: OpenSlot) -> str:
+    """The slot's question and the choices the question card offers for it."""
+    if not slot.options:
+        return slot.question
+    shown = slot.options[:_OPTION_WINDOW]
+    rest = len(slot.options) - len(shown)
+    more = [f"{rest} more"] if rest else []
+    return f"{slot.question}; options: {' | '.join([*shown, *more])}"
 
 
 def _search_label(crit: Criterion) -> str:
@@ -87,7 +100,7 @@ def _render_criterion(crit: Criterion) -> list[str]:
     if reason is not None:
         out.append(f"    WHY {reason.line()}")
     out.extend(f"    {name}={value!r}" for name, value in crit.resolved_params.items())
-    out.extend(f"    OPEN {s.param_name}: {s.question}" for s in crit.open_params)
+    out.extend(f"    OPEN {s.param_name}: {_asked(s)}" for s in crit.open_params)
     out.extend(
         f"    CHOICES {a.param_name}: holds {a.bound}, "
         f"{count_noun(a.option_count, 'option')}"
@@ -143,9 +156,12 @@ def render_verification_full(section: VerificationSection) -> str:
     if d.key_findings:
         parts.append("\n### Key findings")
         parts.extend(f"- {kf}" for kf in d.key_findings)
+    if d.gaps:
+        parts.append("\n### Gaps")
+        parts.extend(f"- {gap.sentence}" for gap in d.gaps)
     if d.caveats:
         parts.append("\n### Caveats")
-        parts.extend(f"- {c}" for c in d.caveats)
+        parts.extend(f"- {caveat.sentence}" for caveat in d.caveats)
     parts.extend(_review_lines(d.review))
     return "\n".join(parts)
 

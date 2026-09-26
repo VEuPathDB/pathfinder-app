@@ -5,21 +5,28 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Three undefined terms end the turn on a question card, and the answers go on to a build from the request plus the answers.",
+  "rationale": "Three undefined terms end the turn on a question card; its recommended answers build three criteria under INTERSECT: blood-stage expression, the variant characteristic with the chosen cutoff, and no human ortholog.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,
-    "recordType": null,
-    "stepCount": null,
+    "recordType": "transcript",
+    "stepCount": 5,
     "verified": null,
     "stepIdsUnchanged": null,
-    "parameters": {},
+    "parameters": {
+      "GenesByVariantCharacteristics": {
+        "organism_select_none": "Plasmodium falciparum 3D7"
+      },
+      "GenesByOrthologPattern": {
+        "excluded_species": "hsap"
+      }
+    },
     "replyMentions": [],
     "replyOmits": [],
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,
     "stepTitlesOmit": [],
-    "rootOperator": null,
+    "rootOperator": "INTERSECT",
     "finalCountBelowEveryInput": null,
     "metRequirements": null,
     "unmetRequirements": null,

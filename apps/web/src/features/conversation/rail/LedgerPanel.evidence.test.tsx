@@ -85,7 +85,9 @@ describe("the Verification tab draws the check's evidence card", () => {
   it("shows every control id, both counts of each step, the citations and the links", () => {
     openVerification(snapshot("rev-1"));
 
-    expect(screen.getByTestId("evidence-verdict").textContent).toBe("Supported");
+    expect(screen.getByTestId("evidence-card-body").textContent).not.toMatch(
+      /Supported/,
+    );
     expect(screen.getByTestId("evidence-ids-positive-returned").textContent).toBe(
       "PF3D7_0102600, PF3D7_0709000",
     );

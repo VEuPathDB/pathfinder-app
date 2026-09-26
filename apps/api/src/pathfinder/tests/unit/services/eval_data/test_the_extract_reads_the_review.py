@@ -1,19 +1,21 @@
-"""The verdict an extract reads carries the check's requirement rows, and the
-card's review, redacted."""
+"""The verdict an extract reads carries the check's requirement rows, its typed
+caveats and gaps, and the card's review, redacted."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
 from assistant_core.platform.types import JSONObject
+from pydantic import ValidationError
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.graph.stream_events import evidence_card_event, ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
+from pathfinder.domain.caveats import ControlsCaveat, WordGap
 from pathfinder.domain.evidence import (
     Citation,
     EvidenceCard,
-    EvidenceVerdict,
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -59,6 +61,15 @@ def _chunks() -> list[LoggedChunk]:
         reason="checked",
         success=True,
         review=_REVIEW,
+        caveats=[
+            ControlsCaveat(
+                positives_returned=52,
+                positives_total=80,
+                negatives_returned=2,
+                negatives_total=40,
+            ),
+        ],
+        gaps=[WordGap(word="ada@example.org")],
     )
     ledger = ledger_update_event(
         ledger=ledger_with(VerificationSection(digest=digest))
@@ -73,7 +84,6 @@ def _chunks() -> list[LoggedChunk]:
             steps=[],
             controls=[],
             citations=[],
-            verdict=EvidenceVerdict(supported=True),
             review=_REVIEW,
         )
     ).model_dump(by_alias=True, mode="json", exclude_none=True)
@@ -104,3 +114,34 @@ def test_the_cards_review_is_redacted() -> None:
         "as [redacted-email] expects",
         "https://[redacted-credential]@example.org/page",
     )
+
+
+def test_the_typed_caveats_and_gaps_are_read_redacted() -> None:
+    verdict = read_verification(_chunks())
+
+    assert verdict is not None
+    assert [caveat.sentence for caveat in verdict.caveats] == [
+        "52 of 80 positive controls returned; 2 of 40 negative controls returned"
+    ]
+    assert [gap.sentence for gap in verdict.gaps] == [
+        "'[redacted-email]': no search the strategy runs states it"
+    ]
+
+
+def test_a_log_written_before_caveats_were_typed_is_refused() -> None:
+    ledger = ledger_update_event(
+        ledger=ledger_with(
+            VerificationSection(
+                digest=VerificationDigest(
+                    disposition=PhaseDisposition.DONE,
+                    prose="prose",
+                    reason="checked",
+                    success=True,
+                )
+            )
+        )
+    ).model_dump(by_alias=True, mode="json", exclude_none=True)
+    ledger["data"]["verification"]["digest"]["caveats"] = ["2 of 8 genes unclear"]
+
+    with pytest.raises(ValidationError, match=r"caveats\.0"):
+        read_verification([LoggedChunk.model_validate({"chunk": ledger})])

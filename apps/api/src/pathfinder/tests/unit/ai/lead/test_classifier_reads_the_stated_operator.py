@@ -7,6 +7,7 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
+from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
@@ -25,6 +26,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.domain.strategy._vaccine_request import (
     VACCINE,
@@ -55,6 +57,14 @@ _CRITERIA = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _organisms(site_id: str) -> list[str]:
+        return recorded_organisms(site_id)
+
+    monkeypatch.setattr(lead_tools, "list_organisms", _organisms)
+
+
 def _intent(operator: str) -> UserIntent:
     return UserIntent(
         classification=IntentClassification.NEW_STRATEGY,
@@ -81,10 +91,10 @@ def _chain(operator: CombineOp) -> SpecStructure:
     return SpecStructure(root=node)
 
 
-def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
+async def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
     state = pipeline_state(user_prompt=VACCINE)
     intent = _intent("AND")
-    classify_user_intent(
+    await classify_user_intent(
         run_context_for(lead_deps(state), tool_call_id="call_classify"), intent
     )
     state.domain.operational_spec = OperationalSpec(
@@ -98,12 +108,12 @@ def _combination_after_build(operator: CombineOp) -> GroundedConstraint:
     return grounded
 
 
-def test_a_hoisted_or_is_refused_and_names_the_connectives() -> None:
+async def test_a_hoisted_or_is_refused_and_names_the_connectives() -> None:
     state = pipeline_state(user_prompt=VACCINE)
     ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
 
     with pytest.raises(ModelRetry) as refused:
-        classify_user_intent(ctx, _intent("OR"))
+        await classify_user_intent(ctx, _intent("OR"))
 
     text = str(refused.value)
     assert '", and "' in text
@@ -114,10 +124,10 @@ def test_a_hoisted_or_is_refused_and_names_the_connectives() -> None:
     assert ctx.deps.intent is None
 
 
-def test_the_same_requirements_joined_by_and_are_recorded_as_the_users() -> None:
+async def test_the_same_requirements_joined_by_and_are_recorded_as_the_users() -> None:
     state = pipeline_state(user_prompt=VACCINE)
 
-    classify_user_intent(
+    await classify_user_intent(
         run_context_for(lead_deps(state), tool_call_id="call_classify"),
         _intent("AND"),
     )
@@ -127,16 +137,16 @@ def test_the_same_requirements_joined_by_and_are_recorded_as_the_users() -> None
     ]
 
 
-def test_an_intersect_build_honors_the_stated_and() -> None:
-    grounded = _combination_after_build(CombineOp.INTERSECT)
+async def test_an_intersect_build_honors_the_stated_and() -> None:
+    grounded = await _combination_after_build(CombineOp.INTERSECT)
 
     assert grounded.status is ConstraintStatus.GROUNDED
     assert grounded.realized_value == "INTERSECT"
     assert is_blocking(grounded) is False
 
 
-def test_a_union_build_breaks_the_stated_and() -> None:
-    grounded = _combination_after_build(CombineOp.UNION)
+async def test_a_union_build_breaks_the_stated_and() -> None:
+    grounded = await _combination_after_build(CombineOp.UNION)
 
     assert grounded.status is ConstraintStatus.UNGROUNDABLE
     assert is_blocking(grounded) is True
@@ -171,26 +181,26 @@ def test_verify_reads_the_intent_as_the_request_and_the_users_constraints() -> N
     assert "A request that names no organism cannot fail on species" in guidance
 
 
-def test_a_second_classification_that_changes_nothing_is_refused() -> None:
+async def test_a_second_classification_that_changes_nothing_is_refused() -> None:
     state = pipeline_state(user_prompt=VACCINE)
     ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    classify_user_intent(ctx, _intent("AND"))
+    await classify_user_intent(ctx, _intent("AND"))
 
     with pytest.raises(ModelRetry) as refused:
-        classify_user_intent(ctx, _intent("AND"))
+        await classify_user_intent(ctx, _intent("AND"))
 
     assert "already classified as new_strategy" in str(refused.value)
     assert len(state.domain.requirements) == 1
 
 
-def test_a_second_classification_may_change_the_classification() -> None:
+async def test_a_second_classification_may_change_the_classification() -> None:
     state = pipeline_state(user_prompt=VACCINE)
     ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
-    classify_user_intent(ctx, _intent("AND"))
+    await classify_user_intent(ctx, _intent("AND"))
     changed = _intent("AND").model_copy(
         update={"classification": IntentClassification.EXTEND_STRATEGY}
     )
 
-    classify_user_intent(ctx, changed)
+    await classify_user_intent(ctx, changed)
 
     assert ctx.deps.intent is changed

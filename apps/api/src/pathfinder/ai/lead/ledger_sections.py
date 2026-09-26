@@ -26,6 +26,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
+    OpenSlot,
     OperationalSpec,
     StructureNode,
 )
@@ -157,13 +158,19 @@ class FrameSection(CamelModel):
     def bound_count(self) -> int:
         return sum(1 for c in self.spec.criteria if c.bound) if self.spec else 0
 
+    def open_slots(self) -> list[OpenSlot]:
+        """Every value the spec leaves for the user: its own slots and each
+        criterion's."""
+        if self.spec is None:
+            return []
+        return [
+            *self.spec.open_slots,
+            *(slot for c in self.spec.criteria for slot in c.open_params),
+        ]
+
     @computed
     def open_slot_count(self) -> int:
-        if self.spec is None:
-            return 0
-        return len(self.spec.open_slots) + sum(
-            len(c.open_params) for c in self.spec.criteria
-        )
+        return len(self.open_slots())
 
     @computed
     def dropped_count(self) -> int:
@@ -175,11 +182,7 @@ class FrameSection(CamelModel):
 
     @computed
     def needs_user(self) -> bool:
-        if self.spec is None:
-            return False
-        return bool(self.spec.open_slots) or any(
-            c.open_params for c in self.spec.criteria
-        )
+        return bool(self.open_slots())
 
     @computed
     def contrasts(self) -> list[ContrastSummary]:

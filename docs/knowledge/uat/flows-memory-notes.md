@@ -60,7 +60,7 @@ Measured: every S2 build saved and pinned one note ("Note saved: Signal peptide 
 | 4 | Dialog | Change the summary to `UAT edited summary`, `Save` | The row shows the new summary; the next turn's recall uses it |
 | 5 | `Content (JSON)` | Enter `[1]` | `Invalid JSON - must be an object.`; `Save` disabled |
 | 6 | A `Cases` row (from S2) | `Delete <name>` | Browser confirm `Delete "<name>"? PathFinder will not save it again on its own.`; OK removes it |
-| 7 | New conversation | Send the S2 prompt again and wait for `Supported` | The deleted case is not written back: the `Cases` count is unchanged |
+| 7 | New conversation | Send the S2 prompt again and wait for the evidence card | The deleted case is not written back: the `Cases` count is unchanged |
 
 ## M6 - A preference remembered across conversations - core on plasmodb
 

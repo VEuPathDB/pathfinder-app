@@ -310,7 +310,7 @@ test.describe("Studies", () => {
       await expect(page.getByTestId("rail-strategy-panel")).toContainText(
         exportedStepName(viz),
       );
-      await expectEvidence(page, "Supported", counts.root);
+      await expectEvidence(page, counts.root);
 
       await expectStudiesRail(page, apiClient, id);
     });

@@ -13,7 +13,6 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
-    EvidenceVerdict,
 )
 
 _RECOVERED = [f"PF3D7_{index:07d}" for index in range(7)]
@@ -139,14 +138,12 @@ def test_the_card_lists_every_text_a_reader_can_see() -> None:
             ControlTestEvidence(tested_label="the tested step", positive=_positive())
         ],
         citations=[],
-        verdict=EvidenceVerdict(
-            supported=False, refused_because="this turn built nothing"
-        ),
+        pending_checks=["Febrile vs normal"],
     )
 
     assert card.texts() == [
         "https://plasmodb.org/plasmo/app/workspace/strategies/300/7",
-        "this turn built nothing",
+        "Febrile vs normal",
         "Genes by Molecular Weight",
         "the tested step",
     ]

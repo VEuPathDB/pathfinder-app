@@ -40,7 +40,7 @@ _CARD_ANSWER = '"Which localisation evidence?" -> signal peptide'
 async def _answered_on_a_card() -> LeadDeps:
     """One turn: a new request, FRAME asks, the researcher answers the card."""
     deps = draft_deps("find surface proteins", domain=StrategyDomainState())
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
     deps.state.domain.operational_spec = framed(None)
     deps.state.domain.record_questions([QUESTION])
     deps.state.pending_approval = PendingApproval(
@@ -86,7 +86,7 @@ async def test_the_frame_after_a_card_answer_reads_the_question_and_answer() -> 
 
 
 async def test_a_card_answer_with_no_open_question_changes_no_answer() -> None:
-    deps = answering_deps()
+    deps = await answering_deps()
     deps.state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_consult", tool_name="consult_user"
     )
@@ -137,7 +137,7 @@ def stopping_dispatches(monkeypatch: pytest.MonkeyPatch) -> list[PhaseRun]:
 async def test_a_budget_retry_of_an_answer_repeats_the_answered_order(
     stopping_dispatches: list[PhaseRun],
 ) -> None:
-    deps = answering_deps()
+    deps = await answering_deps()
 
     await run_frame(
         deps=deps,

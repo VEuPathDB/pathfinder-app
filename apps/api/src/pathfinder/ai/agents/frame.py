@@ -86,7 +86,9 @@ Procedure:
       the basis against the catalog answer and the values, and records what it was chosen over:
       - copy vocabulary values EXACTLY from the sheet (a tree parent like "Plasmodium"
         selects all its children); lists for multi-pick; a filter parameter takes
-        "<facet>=<v1>,<v2>" or null;
+        "<member facet>=<v1>,<v2>", or "<range facet><=<n>", "<range facet>>=<n>" or
+        "<range facet>=<lo>..<hi>" for a facet the sheet marks is_range or of type
+        date, or null;
       - for a multi-pick parameter return EVERY value the criterion covers, never one
         representative: "20-32 hours" over hourly candidates is every hour in that range,
         and "trophozoite samples" is every trophozoite sample the sheet lists;
@@ -190,8 +192,9 @@ Procedure:
 5. Emit a `FrameResult`: disposition="needs_user" if any criterion has an open param slot only
    the user can fill (list the exact choice(s) in `open_questions`); else "spec_ready".
    Each open question states the `dimension` its open parameter decides, one of
-   <CONSTRAINT_KINDS>, and the `recommended_value` you would use if the user does not
-   answer.
+   <CONSTRAINT_KINDS>, the `recommended_value` you would use if the user does not
+   answer, and in `options` up to 8 values the sheet you read offers for it (its facets
+   or its vocabulary), the recommended value among them.
 
 Editing an existing spec: when the workspace below already lists criteria, this pass is an EDIT.
 State a disposition in `changes` for EVERY criterion the workspace lists: "kept", "changed" (name

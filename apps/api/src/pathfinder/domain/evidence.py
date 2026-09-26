@@ -153,20 +153,6 @@ class CriterionCitations(CamelModel):
     references: list[str] = Field(min_length=1)
 
 
-class EvidenceVerdict(CamelModel):
-    """The verdict as the ledger holds it after the build check.
-
-    ``refused_because`` is the ledger's own sentence for a verdict it does not
-    support, whichever side found the failure.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    supported: bool
-    pending_checks: list[str] = Field(default_factory=list)
-    refused_because: str | None = None
-
-
 class RequirementCheck(CamelModel):
     """One requirement the researcher stated, and what in the strategy answers it."""
 
@@ -288,24 +274,9 @@ class VerificationReview(CamelModel):
         description="Each paper or page a research read of this turn returned.",
     )
 
-    def unmet(self) -> list[RequirementCheck]:
-        """The requirements the strategy can state and does not."""
-        return [row for row in self.requirements if row.status == "unmet"]
-
     def to_report(self) -> list[RequirementCheck]:
         """The requirements a reply must name: the unmet and the unexpressed."""
         return [row for row in self.requirements if row.status != "met"]
-
-    def misfit_caveat(self) -> str | None:
-        """One line counting the sampled genes that do not fit, or None."""
-        misfits = [gene for gene in self.sampled_genes if gene.fits == "no"]
-        if not misfits:
-            return None
-        listed = "; ".join(f"`{gene.gene_id}` ({gene.why})" for gene in misfits)
-        return (
-            f"{len(misfits)} of {len(self.sampled_genes)} sampled genes do not "
-            f"fit: {listed}"
-        )
 
     def texts(self) -> list[str]:
         """Every text of the review that is not a gene id or a step id."""
@@ -340,19 +311,15 @@ class EvidenceCard(CamelModel):
     steps: list[CheckedStepCount]
     controls: list[ControlTestEvidence]
     citations: list[CriterionCitations]
-    verdict: EvidenceVerdict
+    # The study steps whose analysis the site did not describe, so no check ran.
+    pending_checks: list[str] = Field(default_factory=list)
     review: VerificationReview = Field(default_factory=VerificationReview)
 
     def texts(self) -> list[str]:
         """Every text on the card that is not a count, a gene id or a WDK id."""
         return [
             *([] if self.strategy_url is None else [self.strategy_url]),
-            *(
-                []
-                if self.verdict.refused_because is None
-                else [self.verdict.refused_because]
-            ),
-            *self.verdict.pending_checks,
+            *self.pending_checks,
             *(step.title for step in self.steps),
             *(test.tested_label for test in self.controls),
             *(
@@ -374,7 +341,6 @@ __all__ = [
     "ControlTestEvidence",
     "CriterionCitations",
     "EvidenceCard",
-    "EvidenceVerdict",
     "GeneFit",
     "RequirementCheck",
     "RequirementHow",

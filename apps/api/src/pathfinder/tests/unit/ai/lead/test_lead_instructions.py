@@ -345,3 +345,10 @@ def test_the_delete_paragraph_says_what_a_combine_delete_takes() -> None:
         "second input with it" in instructions
     )
     assert "no delete does that" in instructions
+
+
+def test_the_instructions_state_each_caveat_in_the_ledgers_own_sentence() -> None:
+    assert (
+        "State each ``caveat`` the Verification section lists in its own sentence, "
+        "word for word"
+    ) in _flat(LEAD_INSTRUCTIONS)

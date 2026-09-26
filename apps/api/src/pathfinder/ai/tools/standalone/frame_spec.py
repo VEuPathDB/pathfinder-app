@@ -173,7 +173,9 @@ async def set_criterion(
 
     A value must be copied from the sheet's vocabulary when the parameter has
     one (a tree parent term selects its children); a number or free text is the
-    literal the request states; a filter parameter takes "<facet>=<v1>,<v2>".
+    literal the request states; a filter parameter takes "<member facet>=<v1>,<v2>",
+    or "<range facet><=<n>", "<range facet>>=<n>" or "<range facet>=<lo>..<hi>"
+    for a facet the sheet marks is_range or of type date.
     ``null`` means the request does not determine it: the search default applies
     and is reported in ``defaulted_params``, or the parameter becomes an open
     slot when there is no default. Do not pass null for a numeric parameter when

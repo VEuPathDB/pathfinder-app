@@ -45,7 +45,7 @@ async def test_an_edit_over_a_step_no_spec_states_edits_that_step(
         domain=StrategyDomainState(),
         strategy_session=session_with_one_step(step_id="eda_step"),
     )
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
     assert tools_the_turn_offers(deps, _EDIT_TOOLS) == frozenset({"edit_strategy"})
 
     delta = await run_edit(deps=deps, parent_tool_call_id="e1", reason="add it")
@@ -65,7 +65,7 @@ async def test_an_edit_after_this_turns_frame_names_only_the_build(
     work_orders: list[str],
 ) -> None:
     deps = draft_deps(_MESSAGE, domain=StrategyDomainState())
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
     deps.state.domain.operational_spec = framed("signal peptide")
     deps.state.turn_markers.framed = True
     offered = tools_the_turn_offers(deps, _EDIT_TOOLS)

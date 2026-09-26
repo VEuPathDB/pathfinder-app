@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from pathfinder.domain.caveats import sample_caveat
 from pathfinder.domain.evidence import (
     SAMPLED_GENE_LIMIT,
     Citation,
@@ -64,23 +65,18 @@ def test_the_sample_holds_at_most_the_limit() -> None:
         VerificationReview(sampled_genes=genes)
 
 
-def test_only_genes_that_do_not_fit_make_the_counted_caveat() -> None:
-    mixed = VerificationReview(
-        sampled_genes=[
-            _gene("PF3D7_0100100", "yes"),
-            _gene("PF3D7_0100200", "no", "product is a histone, no kinase domain"),
-            _gene("PF3D7_0100300", "unclear", "product is hypothetical"),
-            _gene("PF3D7_0100400", "no", "product is a ribosomal protein"),
-        ]
-    )
-    fitting = VerificationReview(sampled_genes=[_gene("PF3D7_0100100", "yes")])
+def test_only_genes_that_do_not_fit_or_are_unclear_make_the_sample_caveat() -> None:
+    mixed = [
+        _gene("PF3D7_0100100", "yes"),
+        _gene("PF3D7_0100200", "no", "product is a histone, no kinase domain"),
+        _gene("PF3D7_0100300", "unclear", "product is hypothetical"),
+        _gene("PF3D7_0100400", "no", "product is a ribosomal protein"),
+    ]
+    caveat = sample_caveat(mixed)
 
-    assert (mixed.misfit_caveat(), fitting.misfit_caveat()) == (
-        (
-            "2 of 4 sampled genes do not fit: `PF3D7_0100200` (product is a "
-            "histone, no kinase domain); `PF3D7_0100400` (product is a ribosomal "
-            "protein)"
-        ),
+    assert caveat is not None
+    assert (caveat.sentence, sample_caveat([_gene("PF3D7_0100100", "yes")])) == (
+        "1 of 4 sampled genes unclear; 2 of 4 sampled genes do not fit",
         None,
     )
 
@@ -101,7 +97,6 @@ def test_the_rows_a_reply_must_name_are_the_unmet_and_the_unexpressed() -> None:
     review = VerificationReview(requirements=[met, unmet, unexpressed])
 
     assert review.to_report() == [unmet, unexpressed]
-    assert review.unmet() == [unmet]
 
 
 def test_a_citation_is_checked_by_every_identifier_it_carries() -> None:

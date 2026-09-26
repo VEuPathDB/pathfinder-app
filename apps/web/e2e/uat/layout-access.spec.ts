@@ -142,7 +142,7 @@ test.describe("Layout and access", () => {
       await expect(graphPage.railFooter).toHaveText("3 steps");
       expect(await unclipped(graphPage.railFooter)).toBe(true);
 
-      const card = await expectEvidence(page, "Supported", counts.root);
+      const card = await expectEvidence(page, counts.root);
       const clipped = await card
         .locator("td, th")
         .evaluateAll((cells) =>
@@ -378,7 +378,7 @@ test.describe("Layout and access", () => {
       ]) {
         await expect(reply.getByRole("button", { name, exact: true })).toBeVisible();
       }
-      await expectEvidence(page, "Supported", counts.root);
+      await expectEvidence(page, counts.root);
 
       const sets = siteControlSets(siteId);
       const controls =

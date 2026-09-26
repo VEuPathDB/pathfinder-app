@@ -1,0 +1,3243 @@
+{
+  "provenance": {
+    "site": "toxodb",
+    "method": "GET",
+    "url": "https://toxodb.org/toxo/service/record-types/transcript?format=expanded",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-26",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searches": [
+      {
+        "urlSegment": "AllGenes",
+        "fullName": "GeneQuestions.AllGenes",
+        "displayName": "All Genes",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "TranscriptsFromGenes",
+        "fullName": "GeneQuestions.TranscriptsFromGenes",
+        "displayName": "Transform Transcripts to Genes",
+        "paramNames": [
+          "transcript_result"
+        ]
+      },
+      {
+        "urlSegment": "GenesByUserDatasetGeneList",
+        "fullName": "GeneQuestions.GenesByUserDatasetGeneList",
+        "displayName": "Gene List (User Datasets)",
+        "paramNames": [
+          "geneListUserDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesByOldAnnotation",
+        "fullName": "GeneQuestions.GenesByOldAnnotation",
+        "displayName": "Annotation Changes Since Previous ToxoDB Release",
+        "paramNames": [
+          "plasmo_new_product",
+          "plasmo_new_cds",
+          "plasmo_new_go",
+          "plasmo_new_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByLocation",
+        "fullName": "GeneQuestions.GenesByLocation",
+        "displayName": "Genomic Location",
+        "paramNames": [
+          "organismSinglePick",
+          "chromosomeOptional",
+          "sequenceId",
+          "start_point",
+          "end_point"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGeneType",
+        "fullName": "GeneQuestions.GenesByGeneType",
+        "displayName": "Gene Type",
+        "paramNames": [
+          "organism",
+          "geneType",
+          "includePseudogenes"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGeneModelChars",
+        "fullName": "GeneQuestions.GenesByGeneModelChars",
+        "displayName": "Gene Model Characteristics",
+        "paramNames": [
+          "organism_select_none",
+          "gene_or_transcript",
+          "gene_model_char"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEdaSubset",
+        "fullName": "GeneQuestions.GenesByEdaSubset",
+        "displayName": "Gene Dataset Filtering",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeUserDataset",
+        "fullName": "GeneQuestions.GenesByPhenotypeUserDataset",
+        "displayName": "Phenotype (User Datasets)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByDESeqUserDataset",
+        "fullName": "GeneQuestions.GenesByDESeqUserDataset",
+        "displayName": "RNA-Seq Differential Expression (User Datasets)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEdaVizWithCompute",
+        "fullName": "GeneQuestions.GenesByEdaVizWithCompute",
+        "displayName": "Gene Dataset Filtering",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_ToxoDB_tgonGT1_CrisprFunctionalProfiling_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_ToxoDB_tgonGT1_CrisprFunctionalProfiling_Phenotype_RSRC",
+        "displayName": "Fitness during in vitro cell culture and in vivo murine T. gondii acute infection (Genome-wide CRISPR screen) Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEdaSubset_ToxoDB_tgonGT1_CrisprScreen_Phenotype_RSRC",
+        "fullName": "GeneQuestions.GenesByPhenotypeEdaSubset_ToxoDB_tgonGT1_CrisprScreen_Phenotype_RSRC",
+        "displayName": "Fitness during the T. gondii lytic cycle. (Genome-Wide CRISPR Screen) Phenotype",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCellularLocalizationEdaSubset_ToxoDB_tgonME49_LOPIT_CellularLocalization_RSRC",
+        "fullName": "GeneQuestions.GenesByCellularLocalizationEdaSubset_ToxoDB_tgonME49_LOPIT_CellularLocalization_RSRC",
+        "displayName": "Hyper LOPIT Global mapping of protein subcellular location Cellular Localization",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByLongReadEvidence_tgonME49_Stuart_Ralph_nanopore_longReadRnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByLongReadEvidence_tgonME49_Stuart_Ralph_nanopore_longReadRnaSeq_RSRC",
+        "displayName": "TgPRU delta KU80 Nanopore RNA-Seq",
+        "paramNames": [
+          "long_read_datasets",
+          "ismTypes",
+          "supporting_read_count",
+          "transcript_length"
+        ]
+      },
+      {
+        "urlSegment": "GenesByExonCount",
+        "fullName": "GeneQuestions.GenesByExonCount",
+        "displayName": "Exon Count",
+        "paramNames": [
+          "organism",
+          "scope",
+          "num_exons_gte",
+          "num_exons_lte"
+        ]
+      },
+      {
+        "urlSegment": "GenesByParalogCount",
+        "fullName": "GeneQuestions.GenesByParalogCount",
+        "displayName": "Paralog Count",
+        "paramNames": [
+          "organism",
+          "num_paralogs"
+        ]
+      },
+      {
+        "urlSegment": "GenesByIsoelectricPoint",
+        "fullName": "GeneQuestions.GenesByIsoelectricPoint",
+        "displayName": "Isoelectric Point",
+        "paramNames": [
+          "organism",
+          "min_isoelectric_point",
+          "max_isoelectric_point"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMolecularWeight",
+        "fullName": "GeneQuestions.GenesByMolecularWeight",
+        "displayName": "Molecular Weight",
+        "paramNames": [
+          "organism",
+          "min_molecular_weight",
+          "max_molecular_weight"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySecondaryStructure",
+        "fullName": "GeneQuestions.GenesBySecondaryStructure",
+        "displayName": "Protein Secondary Structure",
+        "paramNames": [
+          "organism",
+          "min_coil",
+          "max_coil",
+          "min_strand",
+          "max_strand",
+          "min_helix",
+          "max_helix"
+        ]
+      },
+      {
+        "urlSegment": "GenesByEcNumber",
+        "fullName": "GeneQuestions.GenesByEcNumber",
+        "displayName": "EC Number",
+        "paramNames": [
+          "organism",
+          "ec_source",
+          "ec_number_pattern",
+          "ec_wildcard"
+        ]
+      },
+      {
+        "urlSegment": "InternalGenesByEcNumber",
+        "fullName": "GeneQuestions.InternalGenesByEcNumber",
+        "displayName": "EC Number",
+        "paramNames": [
+          "ec_wildcard"
+        ]
+      },
+      {
+        "urlSegment": "GenesByIntronJunctions",
+        "fullName": "GeneQuestions.GenesByIntronJunctions",
+        "displayName": "Unannotated Intron Junctions",
+        "paramNames": [
+          "organism",
+          "min_total_unique",
+          "percent_max",
+          "max_flanking_bp"
+        ]
+      },
+      {
+        "urlSegment": "GenesByNgsSnps",
+        "fullName": "GeneQuestions.GenesByNgsSnps",
+        "displayName": "SNV Characteristics Within a Group of Samples",
+        "paramNames": [
+          "organismSinglePick",
+          "eda_sample_table_suffix",
+          "variation_sample_meta",
+          "WebServicesPath",
+          "ReadFrequencyPercent",
+          "MinPercentMinorAlleles",
+          "MinPercentIsolateCalls",
+          "snp_class",
+          "occurrences_lower",
+          "occurrences_upper",
+          "dn_ds_ratio_lower",
+          "dn_ds_ratio_upper",
+          "snp_density_lower",
+          "snp_density_upper"
+        ]
+      },
+      {
+        "urlSegment": "GenesByVariantCharacteristics",
+        "fullName": "GeneQuestions.GenesByVariantCharacteristics",
+        "displayName": "Short Variant Characteristics",
+        "paramNames": [
+          "organism_select_none",
+          "gene_variant_stats"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMassSpec",
+        "fullName": "GeneQuestions.GenesByMassSpec",
+        "displayName": "Mass Spec. Evidence",
+        "paramNames": [
+          "ms_assay",
+          "min_sequence_count",
+          "sample_vs_all",
+          "min_spectrum_count"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPTM",
+        "fullName": "GeneQuestions.GenesByPTM",
+        "displayName": "Post-Translational Modification",
+        "paramNames": [
+          "ptm_type",
+          "ptm_assay",
+          "ptm_operator",
+          "ptm_count"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithEpitopes",
+        "fullName": "GeneQuestions.GenesWithEpitopes",
+        "displayName": "Epitope Presence (IEDB)",
+        "paramNames": [
+          "organism",
+          "peptide_mismatch",
+          "taxon_match",
+          "protein_match"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySimilarity",
+        "fullName": "GeneQuestions.GenesBySimilarity",
+        "displayName": "BLAST",
+        "paramNames": [
+          "BlastDatabaseType",
+          "BlastAlgorithm",
+          "BlastDatabaseOrganism",
+          "BlastQuerySequence",
+          "BlastRecordClass",
+          "-e",
+          "-b",
+          "-filter"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMultiBlast",
+        "fullName": "GeneQuestions.GenesByMultiBlast",
+        "displayName": "BLAST",
+        "paramNames": [
+          "MultiBlastDatabaseType",
+          "BlastAlgorithm",
+          "BlastDatabaseOrganism",
+          "BlastQuerySequence",
+          "BlastJobDescription",
+          "ExpectationValue",
+          "NumQueryResults",
+          "MaxMatchesQueryRange",
+          "WordSize",
+          "ScoringMatrix",
+          "MatchMismatchScore",
+          "GapCosts",
+          "CompAdjust",
+          "FilterLowComplex",
+          "SoftMask",
+          "LowerCaseMask"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMotifSearch",
+        "fullName": "GeneQuestions.GenesByMotifSearch",
+        "displayName": "Protein Motif Pattern",
+        "paramNames": [
+          "motif_expression",
+          "motif_organism"
+        ]
+      },
+      {
+        "urlSegment": "GenesByInterproDomain",
+        "fullName": "GeneQuestions.GenesByInterproDomain",
+        "displayName": "InterPro Domain",
+        "paramNames": [
+          "organism",
+          "domain_database",
+          "domain_typeahead",
+          "domain_accession"
+        ]
+      },
+      {
+        "urlSegment": "GenesByGoTerm",
+        "fullName": "GeneQuestions.GenesByGoTerm",
+        "displayName": "GO Term",
+        "paramNames": [
+          "organism",
+          "go_term_evidence",
+          "go_term_slim",
+          "go_typeahead",
+          "go_term"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMetabolicPathway",
+        "fullName": "GeneQuestions.GenesByMetabolicPathway",
+        "displayName": "Metabolic Pathway",
+        "paramNames": [
+          "organism",
+          "pathways_source",
+          "metabolic_pathway_id_with_genes",
+          "pathway_wildcard",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMetabolicPathwayIDKegg",
+        "fullName": "GeneQuestions.GenesByMetabolicPathwayIDKegg",
+        "displayName": "Metabolic Pathway Id- KEGG",
+        "paramNames": [
+          "organism",
+          "pathways_source",
+          "metabolic_pathway_id_with_genes",
+          "pathway_wildcard",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMetabolicPathwayHagai",
+        "fullName": "GeneQuestions.GenesByMetabolicPathwayHagai",
+        "displayName": "Metabolic Pathway - MPMP",
+        "paramNames": [
+          "org_with_Hagai_pathways",
+          "metabolic_pathway"
+        ]
+      },
+      {
+        "urlSegment": "GenesByReactionCompounds",
+        "fullName": "GeneQuestions.GenesByReactionCompounds",
+        "displayName": "Substrates/Products",
+        "paramNames": [
+          "organism",
+          "chebi_compound_id",
+          "compound_type",
+          "exact_match_only",
+          "exclude_incomplete_ec",
+          "pathways_source"
+        ]
+      },
+      {
+        "urlSegment": "GenesByTransmembraneDomains",
+        "fullName": "GeneQuestions.GenesByTransmembraneDomains",
+        "displayName": "Transmembrane Domain Count",
+        "paramNames": [
+          "organism",
+          "min_tm",
+          "max_tm"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithSignalPeptide",
+        "fullName": "GeneQuestions.GenesWithSignalPeptide",
+        "displayName": "Predicted Signal Peptide",
+        "paramNames": [
+          "organism",
+          "signalp_version"
+        ]
+      },
+      {
+        "urlSegment": "GenesByOrthologPattern",
+        "fullName": "GeneQuestions.GenesByOrthologPattern",
+        "displayName": "Orthology Phylogenetic Profile",
+        "paramNames": [
+          "profile_pattern",
+          "included_species",
+          "excluded_species",
+          "phyletic_indent_map",
+          "phyletic_term_map",
+          "organism"
+        ]
+      },
+      {
+        "urlSegment": "GeneByTranscriptID",
+        "fullName": "GeneQuestions.GeneByTranscriptID",
+        "displayName": "transcript ID",
+        "paramNames": [
+          "single_gene_id"
+        ]
+      },
+      {
+        "urlSegment": "GeneBySingleLocusTag",
+        "fullName": "GeneQuestions.GeneBySingleLocusTag",
+        "displayName": "ID",
+        "paramNames": [
+          "single_gene_id"
+        ]
+      },
+      {
+        "urlSegment": "GeneByLocusTag",
+        "fullName": "GeneQuestions.GeneByLocusTag",
+        "displayName": "List of IDs",
+        "paramNames": [
+          "ds_gene_ids"
+        ]
+      },
+      {
+        "urlSegment": "GenesByText",
+        "fullName": "GeneQuestions.GenesByText",
+        "displayName": "Text (product name, notes, etc.)",
+        "paramNames": [
+          "text_search_organism",
+          "text_expression",
+          "document_type",
+          "text_fields"
+        ]
+      },
+      {
+        "urlSegment": "GenesByTaxon",
+        "fullName": "GeneQuestions.GenesByTaxon",
+        "displayName": "Organism",
+        "paramNames": [
+          "organism"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchiptgonME49_chipChipExper_Einstein_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchiptgonME49_chipChipExper_Einstein_RSRC",
+        "displayName": "Chromatin Immunoprecipitation (RH PLK CTG) - Active Transcriptome ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_tgonME49_chipChipExper_Einstein_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchiptgonME49_chipChipExper_Einstein_ME1_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchiptgonME49_chipChipExper_Einstein_ME1_RSRC",
+        "displayName": "Chromatin Immunoprecipitation (H3K4me1) - Active Transcriptome ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_tgonME49_chipChipExper_Einstein_ME1_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchiptgonME49_chipChipExper_Einstein_centromeres_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchiptgonME49_chipChipExper_Einstein_centromeres_RSRC",
+        "displayName": "Centromere Identification (CenH3-HA, H3K9me2) ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_tgonME49_chipChipExper_Einstein_centromeres_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchiptgonME49_chipChipExper_Hakimi_Ali_2_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchiptgonME49_chipChipExper_Hakimi_Ali_2_RSRC",
+        "displayName": "Chromatin Immunoprecipitation (TBP1 TBP2, RPB9, TgSET8)- Chromosome-wide binding sites ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_tgonME49_chipChipExper_Hakimi_Ali_2_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByChIPchiptgonME49_chipChipExper_Hakimi_Ali_RSRC",
+        "fullName": "GeneQuestions.GenesByChIPchiptgonME49_chipChipExper_Hakimi_Ali_RSRC",
+        "displayName": "Genome-wide Histone H4(K5-K8-K12-K16) Acetylation sites ChIP on Chip Evidence",
+        "paramNames": [
+          "chipchip_samples_tgonME49_chipChipExper_Hakimi_Ali_RSRC",
+          "chip_distance",
+          "chip_direction",
+          "chip_score"
+        ]
+      },
+      {
+        "urlSegment": "GenesByNonnuclearLocation",
+        "fullName": "GeneQuestions.GenesByNonnuclearLocation",
+        "displayName": "Genomic Location (Non-nuclear)",
+        "paramNames": [
+          "org_with_nonnuclear_genes",
+          "nonnuclear_sequence",
+          "start_point",
+          "end_point"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCentromereProximity",
+        "fullName": "GeneQuestions.GenesByCentromereProximity",
+        "displayName": "Proximity to Centromeres",
+        "paramNames": [
+          "org_with_centromere_genes",
+          "max_centromere_distance",
+          "centromere_chromosome"
+        ]
+      },
+      {
+        "urlSegment": "GenesByTelomereProximity",
+        "fullName": "GeneQuestions.GenesByTelomereProximity",
+        "displayName": "Proximity to Telomeres",
+        "paramNames": [
+          "organismSinglePick",
+          "telomere_chromosomes",
+          "distanceFromTelomere"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPdbSimilarity",
+        "fullName": "GeneQuestions.GenesByPdbSimilarity",
+        "displayName": "PDB 3D Structures",
+        "paramNames": [
+          "organism",
+          "clades",
+          "pvalue_cutoff"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithAlphafold",
+        "fullName": "GeneQuestions.GenesWithAlphafold",
+        "displayName": "AlphaFold Predictions",
+        "paramNames": [
+          "organismsWithAlphafold"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySingleCell",
+        "fullName": "GeneQuestions.GenesBySingleCell",
+        "displayName": "Single Cell RNA-Seq Evidence",
+        "paramNames": [
+          "organismsWithSingleCell",
+          "singleCellDataset"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithUserComments",
+        "fullName": "GeneQuestions.GenesWithUserComments",
+        "displayName": "User Comments",
+        "paramNames": [
+          "organism_select_all"
+        ]
+      },
+      {
+        "urlSegment": "GenesWithApolloAnnotation",
+        "fullName": "GeneQuestions.GenesWithApolloAnnotation",
+        "displayName": "Apollo Annotation Comments",
+        "paramNames": [
+          "organism_select_all"
+        ]
+      },
+      {
+        "urlSegment": "GenesByToxoProfileSimilarity",
+        "fullName": "GeneQuestions.GenesByToxoProfileSimilarity",
+        "displayName": "T.g. Cell Cycle (similarity)",
+        "paramNames": [
+          "ProfileGeneId",
+          "ProfileDistanceMethod",
+          "ProfileNumToReturn",
+          "ProfileMissingPtsPercent",
+          "profile_profile_set",
+          "ProfileSearchGoal",
+          "profile_time_shift",
+          "ProfileScaleFactor",
+          "ProfileMinPoints"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCopyNumber",
+        "fullName": "GeneQuestions.GenesByCopyNumber",
+        "displayName": "Copy Number (CNV)",
+        "paramNames": [
+          "organismSinglePick",
+          "eda_sample_table_suffix",
+          "cnv_sample_meta",
+          "medianOrIndividual",
+          "CNV_type",
+          "operator",
+          "copyNumber"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCopyNumberComparison",
+        "fullName": "GeneQuestions.GenesByCopyNumberComparison",
+        "displayName": "Copy Number Comparison (CNV)",
+        "paramNames": [
+          "organismSinglePick",
+          "eda_sample_table_suffix",
+          "cnv_sample_meta",
+          "medianOrIndividual",
+          "comparisonOperator"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Mouse brain bradyzoite transcriptomes at 28, 90, 120 days post infection RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRC",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N caninum isolates during bovine infection RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRC",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N. caninum strains RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Reid_tachy_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Reid_tachy_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome 3 and 4 days post-infection (VEG NcLIV) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (VEG) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_RH_mRNA_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_RH_mRNA_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (RH) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (GT1) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (ME49) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Reid_tachy_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Reid_tachy_ebi_rnaSeq_RSRC",
+        "displayName": "N. caninum Liverpool Tachyzoite Transcriptome Days 3 and 4 RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Boothroyd_oocyst_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Boothroyd_oocyst_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Oocyst Time Series (M4) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite and merozoite transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Knoll_Laura_Pittman_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Knoll_Laura_Pittman_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Transcriptome during acute or chronic infection in mouse brain RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Saeij_Jeroen_strains_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Saeij_Jeroen_strains_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Transcriptomes of 29 strains during murine macrophage infection RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_SwierzyFourInfectedCells_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_SwierzyFourInfectedCells_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 T gondii Transcriptome during infection in 4 mouse cell types RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Comparative ribosome profiling of intracellular and extracellular parasites RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Reid_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Reid_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 Life Cycle Stages Transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Walker_gametocytes_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Walker_gametocytes_ebi_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 Gametocytes vs 2 Asexual Stages RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Feline enterocyte, tachyzoite, bradyzoite stage transcriptome RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_He_WT_gra18_Infection_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_He_WT_gra18_Infection_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Transcriptome of Wild-Type and gra18 mutant strains of T. gondii RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_Ramakrishnan_Tachy_Cyst_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_Ramakrishnan_Tachy_Cyst_ebi_rnaSeq_RSRC",
+        "displayName": "B. besnoiti strain Bb-Ger1 Tachyzoite and tissue cyst transcriptomes RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Johnson_infection_mouse_brain_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Johnson_infection_mouse_brain_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Parasite transcriptome during infection in mouse brain. RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_waldman_brady_master_reg_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_waldman_brady_master_reg_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Stage-specific RNA-sequencing in Toxoplasma gondii RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 RNA-seq of tartrolon E-treated T. gondii RH parasites RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_MORC_RNAseq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_MORC_RNAseq_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 RNA-Seq of MORC WT and MORC KD parasites RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 RNA-Seq of CPSF4 WT and CPSF4 KD parasites RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 T. gondii during spontaneous differentiation in primary rat brain cells. RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 Transcriptome of E. tenella from infected chicken caecal tissues RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella transcriptome during infection in chicken macrophage-like cells (Dual RNA-Seq) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_toxo_rat_tgme49_rnaseq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_toxo_rat_tgme49_rnaseq_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 T. gondii during infection in IEC18 cells (Dual RNA-Seq) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqefalBayerHaberkorn1970_E_falciformis_dualRNAseq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqefalBayerHaberkorn1970_E_falciformis_dualRNAseq_ebi_rnaSeq_RSRC",
+        "displayName": "E. falciformis Bayer Haberkorn 1970 Eimeria transcriptome during infection in mice (Dual RNA-Seq) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRC",
+        "displayName": "T. gondii ME49 Full life-cycle transcriptome of T. gondii RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRC",
+        "displayName": "C. suis strain Wien I Transcriptome from asexual to sexual in vitro development of Cystoisospora suis RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_etenHoughton2021_monensin_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_etenHoughton2021_monensin_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 Monensin treatment in sensitive and resistant E tenella strains RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "B. besnoiti strain Bb-Ger1 Early infection of Besnoitia besnoiti tachyzoites in Bovine monocyte-derived macrophages RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_etenHoughton2021_toltrazuril_trx_RNASeq_ebi_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_etenHoughton2021_toltrazuril_trx_RNASeq_ebi_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella response to toltrazuril RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRC",
+        "displayName": "E. maxima Weybridge Sporulation in two stains of E maxima (APU-1, APU02) RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRC",
+        "displayName": "C. suis strain Wien I RNASeq Cystoisospora suis strain Wien I. RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_miRNA_3Stages_rnaSeq_RSRC",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_miRNA_3Stages_rnaSeq_RSRC",
+        "displayName": "E. tenella Houghton 2021 miRNA of E. tenella in the unsporulated oocyst, sporulated oocyst and schizogony stages RNA-Seq (fold change)",
+        "paramNames": [
+          "dataset_url",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Mouse brain bradyzoite transcriptomes at 28, 90, 120 days post infection RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N caninum isolates during bovine infection RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N. caninum strains RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Reid_tachy_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Reid_tachy_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome 3 and 4 days post-infection (VEG NcLIV) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (VEG) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_RH_mRNA_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_RH_mRNA_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (RH) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (GT1) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (ME49) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Reid_tachy_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Reid_tachy_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "N. caninum Liverpool Tachyzoite Transcriptome Days 3 and 4 RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Boothroyd_oocyst_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Boothroyd_oocyst_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Oocyst Time Series (M4) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_ME49_bradyzoite_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_ME49_bradyzoite_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Bradyzoite in vitro Transcriptome (ME49) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Buchholz_Boothroyd_M4_in_vivo_bradyzoite_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Buchholz_Boothroyd_M4_in_vivo_bradyzoite_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Bradyzoite in vivo transcriptome (M4) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite and merozoite transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Knoll_Laura_Pittman_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Knoll_Laura_Pittman_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Transcriptome during acute or chronic infection in mouse brain RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Saeij_Jeroen_strains_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Saeij_Jeroen_strains_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Transcriptomes of 29 strains during murine macrophage infection RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_SwierzyFourInfectedCells_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_SwierzyFourInfectedCells_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 T gondii Transcriptome during infection in 4 mouse cell types RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Comparative ribosome profiling of intracellular and extracellular parasites RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Reid_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Reid_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 Life Cycle Stages Transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Walker_gametocytes_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Walker_gametocytes_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 Gametocytes vs 2 Asexual Stages RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Feline enterocyte, tachyzoite, bradyzoite stage transcriptome RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_He_WT_gra18_Infection_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_He_WT_gra18_Infection_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Transcriptome of Wild-Type and gra18 mutant strains of T. gondii RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_Ramakrishnan_Tachy_Cyst_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_Ramakrishnan_Tachy_Cyst_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "B. besnoiti strain Bb-Ger1 Tachyzoite and tissue cyst transcriptomes RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Johnson_infection_mouse_brain_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Johnson_infection_mouse_brain_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Parasite transcriptome during infection in mouse brain. RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_waldman_brady_master_reg_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_waldman_brady_master_reg_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Stage-specific RNA-sequencing in Toxoplasma gondii RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 RNA-seq of tartrolon E-treated T. gondii RH parasites RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_MORC_RNAseq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_MORC_RNAseq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 RNA-Seq of MORC WT and MORC KD parasites RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 RNA-Seq of CPSF4 WT and CPSF4 KD parasites RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 T. gondii during spontaneous differentiation in primary rat brain cells. RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 Transcriptome of E. tenella from infected chicken caecal tissues RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella transcriptome during infection in chicken macrophage-like cells (Dual RNA-Seq) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_toxo_rat_tgme49_rnaseq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_toxo_rat_tgme49_rnaseq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 T. gondii during infection in IEC18 cells (Dual RNA-Seq) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqefalBayerHaberkorn1970_E_falciformis_dualRNAseq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqefalBayerHaberkorn1970_E_falciformis_dualRNAseq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. falciformis Bayer Haberkorn 1970 Eimeria transcriptome during infection in mice (Dual RNA-Seq) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "T. gondii ME49 Full life-cycle transcriptome of T. gondii RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "C. suis strain Wien I Transcriptome from asexual to sexual in vitro development of Cystoisospora suis RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_etenHoughton2021_monensin_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_etenHoughton2021_monensin_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 Monensin treatment in sensitive and resistant E tenella strains RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "B. besnoiti strain Bb-Ger1 Early infection of Besnoitia besnoiti tachyzoites in Bovine monocyte-derived macrophages RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_etenHoughton2021_toltrazuril_trx_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_etenHoughton2021_toltrazuril_trx_RNASeq_ebi_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella response to toltrazuril RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRCPercentile",
+        "displayName": "E. maxima Weybridge Sporulation in two stains of E maxima (APU-1, APU02) RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRCPercentile",
+        "displayName": "C. suis strain Wien I RNASeq Cystoisospora suis strain Wien I. RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_miRNA_3Stages_rnaSeq_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_miRNA_3Stages_rnaSeq_RSRCPercentile",
+        "displayName": "E. tenella Houghton 2021 miRNA of E. tenella in the unsporulated oocyst, sporulated oocyst and schizogony stages RNA-Seq (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Mouse brain bradyzoite transcriptomes at 28, 90, 120 days post infection RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N caninum isolates during bovine infection RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N. caninum strains RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Reid_tachy_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Reid_tachy_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome 3 and 4 days post-infection (VEG NcLIV) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (VEG) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (GT1) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (ME49) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Reid_tachy_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Reid_tachy_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "N. caninum Liverpool Tachyzoite Transcriptome Days 3 and 4 RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Tachyzoite and merozoite transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Knoll_Laura_Pittman_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Knoll_Laura_Pittman_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Transcriptome during acute or chronic infection in mouse brain RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Saeij_Jeroen_strains_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Saeij_Jeroen_strains_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Transcriptomes of 29 strains during murine macrophage infection RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_SwierzyFourInfectedCells_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_SwierzyFourInfectedCells_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 T gondii Transcriptome during infection in 4 mouse cell types RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Comparative ribosome profiling of intracellular and extracellular parasites RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Reid_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Reid_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. tenella Houghton 2021 Life Cycle Stages Transcriptomes RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Walker_gametocytes_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Walker_gametocytes_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. tenella Houghton 2021 Gametocytes vs 2 Asexual Stages RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Feline enterocyte, tachyzoite, bradyzoite stage transcriptome RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_He_WT_gra18_Infection_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_He_WT_gra18_Infection_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Transcriptome of Wild-Type and gra18 mutant strains of T. gondii RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Johnson_infection_mouse_brain_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Johnson_infection_mouse_brain_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Parasite transcriptome during infection in mouse brain. RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_waldman_brady_master_reg_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_waldman_brady_master_reg_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Stage-specific RNA-sequencing in Toxoplasma gondii RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 RNA-seq of tartrolon E-treated T. gondii RH parasites RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_MORC_RNAseq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_MORC_RNAseq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 RNA-Seq of MORC WT and MORC KD parasites RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 RNA-Seq of CPSF4 WT and CPSF4 KD parasites RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 T. gondii during spontaneous differentiation in primary rat brain cells. RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. tenella Houghton 2021 Transcriptome of E. tenella from infected chicken caecal tissues RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella transcriptome during infection in chicken macrophage-like cells (Dual RNA-Seq) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_toxo_rat_tgme49_rnaseq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_toxo_rat_tgme49_rnaseq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 T. gondii during infection in IEC18 cells (Dual RNA-Seq) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqefalBayerHaberkorn1970_E_falciformis_dualRNAseq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqefalBayerHaberkorn1970_E_falciformis_dualRNAseq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. falciformis Bayer Haberkorn 1970 Eimeria transcriptome during infection in mice (Dual RNA-Seq) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "T. gondii ME49 Full life-cycle transcriptome of T. gondii RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "C. suis strain Wien I Transcriptome from asexual to sexual in vitro development of Cystoisospora suis RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_etenHoughton2021_monensin_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_etenHoughton2021_monensin_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. tenella Houghton 2021 Monensin treatment in sensitive and resistant E tenella strains RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "B. besnoiti strain Bb-Ger1 Early infection of Besnoitia besnoiti tachyzoites in Bovine monocyte-derived macrophages RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_etenHoughton2021_toltrazuril_trx_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_etenHoughton2021_toltrazuril_trx_RNASeq_ebi_rnaSeq_RSRCDESeq",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella response to toltrazuril RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRCDESeq",
+        "displayName": "E. maxima Weybridge Sporulation in two stains of E maxima (APU-1, APU02) RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRCDESeq",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRCDESeq",
+        "displayName": "C. suis strain Wien I RNASeq Cystoisospora suis strain Wien I. RNA-Seq (Differential Expression)",
+        "paramNames": [
+          "eda_dataset_id",
+          "eda_analysis_spec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicstgonGT1_quantitativeMassSpec_Ramirez_Flores_Vesicles_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicstgonGT1_quantitativeMassSpec_Ramirez_Flores_Vesicles_RSRC",
+        "displayName": "T. gondii GT1 Self-assembled vesicles (RH) quantitative proteomics Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicstgonME49_quantitativeMassSpec_Knoll_TgME49_Quant_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicstgonME49_quantitativeMassSpec_Knoll_TgME49_Quant_RSRC",
+        "displayName": "T. gondii ME49 Mouse brain bradyzoite proteomics time course - quantitative Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsncanLIV_quantitativeMassSpec_Horcajo_Tachyzoite_quant_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsncanLIV_quantitativeMassSpec_Horcajo_Tachyzoite_quant_RSRC",
+        "displayName": "N. caninum Liverpool Tachyzoite proteome (12, 36, 56 hpi) of virulent and avirulent N. caninum (Quant) Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Sullivan_GSE22100_GCN5-A_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Sullivan_GSE22100_GCN5-A_RSRC",
+        "displayName": "T. gondii ME49 Differential Expression Profiling GCN5-A mutant Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Kim_PMRT1_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Kim_PMRT1_RSRC",
+        "displayName": "T. gondii ME49 PMRT1 KO, WT and KOCM expression profiles Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz-Bz_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz-Bz_RSRC",
+        "displayName": "T. gondii ME49 Bradyzoite Differentiation (Multiple 6-hr time points and Extended time series) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz_RSRC",
+        "displayName": "T. gondii ME49 Expression profiling of 3 archetypal lineages Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Carruthers_GSE20480_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Carruthers_GSE20480_RSRC",
+        "displayName": "T. gondii ME49 Tachyzoite transcriptome during invasion (RH) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Matrajt_GSE23174_Bz_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Matrajt_GSE23174_Bz_RSRC",
+        "displayName": "T. gondii ME49 Mutants and wild-type expression profiles during bradyzoite differentiation Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_White_GSE16037_Tz-Bz_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_White_GSE16037_Tz-Bz_RSRC",
+        "displayName": "T. gondii ME49 Bradyzoite Differentiation Expression Profiles (ME49, GT1, CTGara) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_White_GSE19092_CellCycle_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_White_GSE19092_CellCycle_RSRC",
+        "displayName": "T. gondii ME49 Cell Cycle Expression Profiles (RH) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_BoothroydAnderson_Tz-Bz_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_BoothroydAnderson_Tz-Bz_RSRC",
+        "displayName": "T. gondii ME49 Bradyzoite Differentiation (3-day time series)(Pru) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Behnke_Merozoite_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Behnke_Merozoite_RSRC",
+        "displayName": "T. gondii ME49 Merozoite Gene Expression Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Boothroyd_LifeCycle_RSRC",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Boothroyd_LifeCycle_RSRC",
+        "displayName": "T. gondii ME49 Oocyst, tachyzoite, and bradyzoite developmental expression profiles (M4) Microarray (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicstgonME49_quantitativeMassSpec_Wastling_tgon_strains_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicstgonME49_quantitativeMassSpec_Wastling_tgon_strains_RSRC",
+        "displayName": "T. gondii ME49 Proteome During an Infection in H. sapiens (Quant)(GT1 ME49 RH VEG) Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsncanLIV_quantitativeMassSpec_Wastling_quant_massSpec_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsncanLIV_quantitativeMassSpec_Wastling_quant_massSpec_RSRC",
+        "displayName": "N. caninum Liverpool Proteome During an Infection in Homo sapiens (Quant) Proteomics (fold change)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "hard_floor",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Sullivan_GSE22100_GCN5-A_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Sullivan_GSE22100_GCN5-A_RSRCPercentile",
+        "displayName": "T. gondii ME49 Differential Expression Profiling GCN5-A mutant Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Kim_PMRT1_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Kim_PMRT1_RSRCPercentile",
+        "displayName": "T. gondii ME49 PMRT1 KO, WT and KOCM expression profiles Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz-Bz_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz-Bz_RSRCPercentile",
+        "displayName": "T. gondii ME49 Bradyzoite Differentiation (Multiple 6-hr time points and Extended time series) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Roos-Tz_RSRCPercentile",
+        "displayName": "T. gondii ME49 Expression profiling of 3 archetypal lineages Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Carruthers_GSE20480_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Carruthers_GSE20480_RSRCPercentile",
+        "displayName": "T. gondii ME49 Tachyzoite transcriptome during invasion (RH) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Matrajt_GSE23174_Bz_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Matrajt_GSE23174_Bz_RSRCPercentile",
+        "displayName": "T. gondii ME49 Mutants and wild-type expression profiles during bradyzoite differentiation Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_White_GSE16037_Tz-Bz_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_White_GSE16037_Tz-Bz_RSRCPercentile",
+        "displayName": "T. gondii ME49 Bradyzoite Differentiation Expression Profiles (ME49, GT1, CTGara) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_White_GSE19092_CellCycle_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_White_GSE19092_CellCycle_RSRCPercentile",
+        "displayName": "T. gondii ME49 Cell Cycle Expression Profiles (RH) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_BoothroydAnderson_Tz-Bz_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_BoothroydAnderson_Tz-Bz_RSRCPercentile",
+        "displayName": "T. gondii ME49 Bradyzoite Differentiation (3-day time series)(Pru) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Behnke_Merozoite_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Behnke_Merozoite_RSRCPercentile",
+        "displayName": "T. gondii ME49 Merozoite Gene Expression Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByMicroarraytgonME49_microarrayExpression_Boothroyd_LifeCycle_RSRCPercentile",
+        "fullName": "GeneQuestions.GenesByMicroarraytgonME49_microarrayExpression_Boothroyd_LifeCycle_RSRCPercentile",
+        "displayName": "T. gondii ME49 Oocyst, tachyzoite, and bradyzoite developmental expression profiles (M4) Microarray (percentile)",
+        "paramNames": [
+          "profileset_generic",
+          "samples_percentile_generic",
+          "min_expression_percentile",
+          "max_expression_percentile",
+          "any_or_all",
+          "protein_coding_only",
+          "channel"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirecttgonGT1_quantitativeMassSpec_Foe_Lipidome_Palmitoylome_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirecttgonGT1_quantitativeMassSpec_Foe_Lipidome_Palmitoylome_RSRC",
+        "displayName": "T. gondii GT1 Lipidome and palmitoylome for T. gondii Proteomics (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirecttgonME49_quantitativeMassSpec_Dooren_Mitochondrial_Matrix_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirecttgonME49_quantitativeMassSpec_Dooren_Mitochondrial_Matrix_RSRC",
+        "displayName": "T. gondii ME49 Mitochondrial Matrix Quantitative Proteome Proteomics (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirecttgonME49_quantitativeMassSpec_Hanggeli_4Clones_iTop3_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirecttgonME49_quantitativeMassSpec_Hanggeli_4Clones_iTop3_RSRC",
+        "displayName": "T. gondii ME49 Comparative proteomics of 4 SAG1 KO clones by iLFQ Proteomics (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirecttgonME49_quantitativeMassSpec_Hanggeli_SAG1_iTop3_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirecttgonME49_quantitativeMassSpec_Hanggeli_SAG1_iTop3_RSRC",
+        "displayName": "T. gondii ME49 Comparative proteomics of 4 SAG1 KO clones by iTop3 Proteomics (direct comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "fold_difference",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N caninum isolates during bovine infection changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqncanLIV_Horcajo_bovine_infection_parasites_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "N. caninum Liverpool Transcriptomes of virulent and avirulent N. caninum strains changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_VEG_mRNA_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (VEG) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_RH_mRNA_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_RH_mRNA_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (RH) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_GT1_mRNA_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (GT1) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Gregory_ME49_mRNA_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Tachyzoite Transcriptome Time Series (ME49) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Boothroyd_oocyst_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Boothroyd_oocyst_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Oocyst Time Series (M4) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_RamakrishnanTachyzoiteAndMerozoite_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Tachyzoite and merozoite transcriptomes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Hassan_intra_extra_ribo_profiling_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Comparative ribosome profiling of intracellular and extracellular parasites changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_Ramakrishnan_enteroepithelial_stages_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Feline enterocyte, tachyzoite, bradyzoite stage transcriptome changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_Ramakrishnan_Tachy_Cyst_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_Ramakrishnan_Tachy_Cyst_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "B. besnoiti strain Bb-Ger1 Tachyzoite and tissue cyst transcriptomes changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgME49_tartrolonE_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 RNA-seq of tartrolon E-treated T. gondii RH parasites changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_CPSF4KD_RNAseq_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 RNA-Seq of CPSF4 WT and CPSF4 KD parasites changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgonME49_infection_in_rat_RNASeq_RSRC_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 T. gondii during spontaneous differentiation in primary rat brain cells. changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_in_chicken_caecal_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "E. tenella Houghton 2021 Transcriptome of E. tenella from infected chicken caecal tissues changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqetenHoughton2021_Eten_infect_chicken_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "E. tenella Houghton 2021 Eimeria tenella transcriptome during infection in chicken macrophage-like cells (Dual RNA-Seq) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "T. gondii ME49 Full life-cycle transcriptome of T. gondii changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_csuiWienI_Asexual_To_Sexual_Cruz_RNASeq_RSRC_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "C. suis strain Wien I Transcriptome from asexual to sexual in vitro development of Cystoisospora suis changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqbbesBbGer1_bbesBbGer1_Alvarez_early_bbes_in_MO_RNASeq_ebi_rnaSeq_RSRCSenseAntisense",
+        "displayName": "B. besnoiti strain Bb-Ger1 Early infection of Besnoitia besnoiti tachyzoites in Bovine monocyte-derived macrophages changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqemaxWeybridge_APU1_APU2_Tucker_2024_rnaSeq_RSRCSenseAntisense",
+        "displayName": "E. maxima Weybridge Sporulation in two stains of E maxima (APU-1, APU02) changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRCSenseAntisense",
+        "fullName": "GeneQuestions.GenesByRNASeqcsuiWienI_RNASeq_csuiWienI_rnaSeq_RSRCSenseAntisense",
+        "displayName": "C. suis strain Wien I RNASeq Cystoisospora suis strain Wien I. changes in sense and antisense transcripts",
+        "paramNames": [
+          "antisense_direction",
+          "antisense_fold_change",
+          "sense_direction",
+          "sense_fold_change",
+          "samples_ref_antisense",
+          "samples_comp_antisense",
+          "antisense_floor",
+          "protein_coding_only",
+          "fraction_change_antisense"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectPValuetgonGT1_quantitativeMassSpec_Foe_Lipidome_Palmitoylome_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectPValuetgonGT1_quantitativeMassSpec_Foe_Lipidome_Palmitoylome_RSRC",
+        "displayName": "T. gondii GT1 Lipidome and palmitoylome for T. gondii Proteomics (direct confidence comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_direct_generic_confidence",
+          "dcc_p_value",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectPValuetgonME49_quantitativeMassSpec_Dooren_Mitochondrial_Matrix_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectPValuetgonME49_quantitativeMassSpec_Dooren_Mitochondrial_Matrix_RSRC",
+        "displayName": "T. gondii ME49 Mitochondrial Matrix Quantitative Proteome Proteomics (direct confidence comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_direct_generic_confidence",
+          "dcc_p_value",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectPValuetgonME49_quantitativeMassSpec_Hanggeli_4Clones_iTop3_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectPValuetgonME49_quantitativeMassSpec_Hanggeli_4Clones_iTop3_RSRC",
+        "displayName": "T. gondii ME49 Comparative proteomics of 4 SAG1 KO clones by iLFQ Proteomics (direct confidence comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_direct_generic_confidence",
+          "dcc_p_value",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByProteomicsDirectPValuetgonME49_quantitativeMassSpec_Hanggeli_SAG1_iTop3_RSRC",
+        "fullName": "GeneQuestions.GenesByProteomicsDirectPValuetgonME49_quantitativeMassSpec_Hanggeli_SAG1_iTop3_RSRC",
+        "displayName": "T. gondii ME49 Comparative proteomics of 4 SAG1 KO clones by iTop3 Proteomics (direct confidence comparison)",
+        "paramNames": [
+          "profileset_generic",
+          "regulated_dir",
+          "samples_direct_generic_confidence",
+          "dcc_p_value",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesByRNASeqUserDataset",
+        "fullName": "GeneQuestions.GenesByRNASeqUserDataset",
+        "displayName": "RNA-Seq Fold Chg (User Datasets)",
+        "paramNames": [
+          "rna_seq_dataset",
+          "profileset_generic",
+          "regulated_dir",
+          "samples_fc_ref_generic",
+          "min_max_avg_ref",
+          "samples_fc_comp_generic",
+          "min_max_avg_comp",
+          "fold_change",
+          "protein_coding_only"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySubcellularLocalization",
+        "fullName": "InternalGeneDatasetQuestions.GenesBySubcellularLocalization",
+        "displayName": "Subcellular Localization",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByMicroarrayEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByMicroarrayEvidence",
+        "displayName": "Microarray Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByRNASeqEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByRNASeqEvidence",
+        "displayName": "RNA-Seq Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByChIPchip",
+        "fullName": "InternalGeneDatasetQuestions.GenesByChIPchip",
+        "displayName": "ChIP on Chip Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByPhenotypeEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByPhenotypeEvidence",
+        "displayName": "Phenotype Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByCellularLocalizationEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByCellularLocalizationEvidence",
+        "displayName": "Cellular Localization Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByLongReadEvidence",
+        "fullName": "InternalGeneDatasetQuestions.GenesByLongReadEvidence",
+        "displayName": "Long Read Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByQuantitativeProteomics",
+        "fullName": "InternalGeneDatasetQuestions.GenesByQuantitativeProteomics",
+        "displayName": "Quantitative Mass Spec. Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByMassSpecEvidence",
+        "fullName": "InternalQuestions.GenesByMassSpecEvidence",
+        "displayName": "Mass Spectrometry Evidence",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByProteinStructure",
+        "fullName": "InternalQuestions.GenesByProteinStructure",
+        "displayName": "Protein Structure",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "GenesByOrthologs",
+        "fullName": "InternalQuestions.GenesByOrthologs",
+        "displayName": "Transform by Orthology",
+        "paramNames": [
+          "gene_result",
+          "organism",
+          "isSyntenic"
+        ]
+      },
+      {
+        "urlSegment": "GenesByPathwaysTransform",
+        "fullName": "InternalQuestions.GenesByPathwaysTransform",
+        "displayName": "Transform to Genes",
+        "paramNames": [
+          "pathway_result",
+          "organism",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByCompoundsTransform",
+        "fullName": "InternalQuestions.GenesByCompoundsTransform",
+        "displayName": "Transform to Genes",
+        "paramNames": [
+          "compound_result",
+          "organism",
+          "compound_type",
+          "pathways_source",
+          "exact_match_only",
+          "exclude_incomplete_ec"
+        ]
+      },
+      {
+        "urlSegment": "GenesByWeightFilter",
+        "fullName": "InternalQuestions.GenesByWeightFilter",
+        "displayName": "Filter by assigned Weight",
+        "paramNames": [
+          "gene_result",
+          "min_weight",
+          "max_weight"
+        ]
+      },
+      {
+        "urlSegment": "TranscriptRecordClasses_TranscriptRecordClassByRealtimeBasket",
+        "fullName": "InternalQuestions.TranscriptRecordClasses_TranscriptRecordClassByRealtimeBasket",
+        "displayName": "Current Transcript Basket",
+        "paramNames": []
+      },
+      {
+        "urlSegment": "TranscriptRecordClasses_TranscriptRecordClassBySnapshotBasket",
+        "fullName": "InternalQuestions.TranscriptRecordClasses_TranscriptRecordClassBySnapshotBasket",
+        "displayName": "Copy of Transcript Basket",
+        "paramNames": [
+          "TranscriptRecordClasses_TranscriptRecordClassDataset"
+        ]
+      },
+      {
+        "urlSegment": "boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "fullName": "InternalQuestions.boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "displayName": "Combine Gene results",
+        "paramNames": [
+          "bq_left_op_TranscriptRecordClasses_TranscriptRecordClass",
+          "bq_right_op_TranscriptRecordClasses_TranscriptRecordClass",
+          "bq_operator"
+        ]
+      },
+      {
+        "urlSegment": "single_record_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "fullName": "InternalQuestions.single_record_question_TranscriptRecordClasses_TranscriptRecordClass",
+        "displayName": "Single Gene",
+        "paramNames": [
+          "primaryKeys"
+        ]
+      },
+      {
+        "urlSegment": "GeneDumpQuestion",
+        "fullName": "GeneDumpQuestions.GeneDumpQuestion",
+        "displayName": "Find genes to dump",
+        "paramNames": [
+          "gff_organism"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySequenceSourceId",
+        "fullName": "GeneDumpQuestions.GenesBySequenceSourceId",
+        "displayName": "Genomic Source ID",
+        "paramNames": [
+          "sequenceId"
+        ]
+      },
+      {
+        "urlSegment": "GenesBySpanLogic",
+        "fullName": "SpanQuestions.GenesBySpanLogic",
+        "displayName": "Genes by Relative Location",
+        "paramNames": [
+          "span_sentence",
+          "span_operation",
+          "span_strand",
+          "span_output",
+          "region_a",
+          "region_b",
+          "span_a",
+          "span_begin_a",
+          "span_begin_direction_a",
+          "span_begin_offset_a",
+          "span_end_a",
+          "span_end_direction_a",
+          "span_end_offset_a",
+          "span_b",
+          "span_begin_b",
+          "span_begin_direction_b",
+          "span_begin_offset_b",
+          "span_end_b",
+          "span_end_direction_b",
+          "span_end_offset_b"
+        ]
+      },
+      {
+        "urlSegment": "UnifiedBlast",
+        "fullName": "UniversalQuestions.UnifiedBlast",
+        "displayName": "BLAST",
+        "paramNames": [
+          "BlastDatabaseType",
+          "BlastAlgorithm",
+          "BlastDatabaseOrganism",
+          "BlastQuerySequence",
+          "BlastRecordClass",
+          "-e",
+          "-b",
+          "-filter"
+        ]
+      },
+      {
+        "urlSegment": "SRT",
+        "fullName": "InternalQuestions2.SRT",
+        "displayName": "Sequence Retrieval Tool",
+        "paramNames": [
+          "genes_ids",
+          "contigs_ids",
+          "orfs_ids"
+        ]
+      }
+    ]
+  }
+}

@@ -48,7 +48,6 @@ def _digest(*pending: str) -> VerificationDigest:
         prose="61 genes; the check of step_de is pending.",
         reason="counts plausible",
         success=True,
-        caveats=["The cut of step_de is pending: the site did not describe it."],
         pending_checks=list(pending),
     )
 

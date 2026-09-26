@@ -10,6 +10,8 @@ from typing import Literal, NamedTuple
 from pydantic import Field
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.words import WORD, words_of
+
 
 class ConstraintKind(StrEnum):
     DATA_TYPE = "data_type"
@@ -61,6 +63,7 @@ class GroundedConstraint(CamelModel):
 
 _QUESTION_LIMIT = 300
 _LABEL_LIMIT = 120
+_OPTIONS_LIMIT = 8
 
 
 class OpenQuestion(CamelModel):
@@ -73,6 +76,8 @@ class OpenQuestion(CamelModel):
     question: str = Field(min_length=1, max_length=_QUESTION_LIMIT)
     dimension: ConstraintKind = ConstraintKind.OTHER
     recommended_value: str = ""
+    # The values the question card offers, read from the sheet the pass read.
+    options: list[str] = Field(default_factory=list, max_length=_OPTIONS_LIMIT)
 
     @property
     def decides_a_dimension(self) -> bool:
@@ -98,13 +103,8 @@ class OpenQuestion(CamelModel):
         )
 
 
-_WORD_RE = re.compile(r"[a-z0-9]+")
 # A binomial is a genus and a species epithet, and only a genus abbreviates.
 _BINOMIAL_WORDS = 2
-
-
-def _words(text: str) -> list[str]:
-    return _WORD_RE.findall(text.casefold())
 
 
 def message_states(message: str, value: str) -> bool:
@@ -115,8 +115,8 @@ def message_states(message: str, value: str) -> bool:
     short value whose words all appear somewhere in the message counts as
     stated.
     """
-    carried = set(_words(message))
-    stated = _words(value)
+    carried = set(words_of(message))
+    stated = words_of(value)
     return bool(stated) and all(word in carried for word in stated)
 
 
@@ -126,7 +126,7 @@ def _genus_abbreviated(value: str) -> str:
     A one-word name abbreviates to a single letter, which names nothing, so it
     is returned whole.
     """
-    words = _words(value)
+    words = words_of(value)
     if len(words) < _BINOMIAL_WORDS:
         return value
     return " ".join([words[0][0], *words[1:]])
@@ -309,7 +309,6 @@ class CombinationRequest(CamelModel):
         return _SEPARATORS[self.operator].join(self.terms)
 
 
-_TOKEN_RE = re.compile(r"[a-z0-9]+", re.IGNORECASE)
 _AND_OR_RE = re.compile(r"\band\s*/\s*or\b", re.IGNORECASE)
 _UNION_RE = re.compile(r"\bunion\b", re.IGNORECASE)
 _INTERSECT_RE = re.compile(r"\bintersect(?:ion|s|ed)?\b", re.IGNORECASE)
@@ -396,7 +395,7 @@ def _window(wanted: set[str], words: Sequence[str]) -> tuple[int, int] | None:
 
 def _span(term: str, tokens: Sequence[re.Match[str]]) -> _Span | None:
     """Where the message carries the term: its phrase, else its words' shortest run."""
-    wanted = _words(term)
+    wanted = words_of(term)
     words = [token.group().casefold() for token in tokens]
     found = _phrase(wanted, words) or _window(set(wanted), words)
     if not wanted or found is None:
@@ -412,10 +411,10 @@ def _between(message: str, first: _Span, second: _Span) -> tuple[str, list[str]]
     """
     if second.start >= first.end:
         text = message[first.end : second.start]
-        return text, _words(text)
+        return text, words_of(text)
     text = message[first.start : second.start]
-    own = set(_words(first.term))
-    return text, [word for word in _words(text) if word not in own]
+    own = set(words_of(first.term))
+    return text, [word for word in words_of(text) if word not in own]
 
 
 def _stated_by(text: str, words: Sequence[str]) -> _Stated:
@@ -467,7 +466,7 @@ def read_combination(
     consecutive terms in message order. An "or" inside one term's span is an
     alternative within that term, so it is never read as a connective.
     """
-    tokens = list(_TOKEN_RE.finditer(message))
+    tokens = list(WORD.finditer(message))
     located = [_span(term, tokens) for term in request.terms]
     spans = sorted(
         (span for span in located if span is not None),
@@ -478,7 +477,7 @@ def read_combination(
     pairs = list(itertools.pairwise(spans))
     between = [_between(message, first, second) for first, second in pairs]
     clause = _CLAUSE_BREAK_RE.split(message[: spans[0].start])[-1]
-    opening = [*_words(clause), *_words(spans[0].term)[:1]]
+    opening = [*words_of(clause), *words_of(spans[0].term)[:1]]
     default: CombinationOperator = "OR" if _EITHER in opening else "AND"
     operators = _resolved([_stated_by(*joined) for joined in between], default)
     return CombinationReading(

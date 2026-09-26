@@ -37,7 +37,7 @@ Measured: toxodb `10 searches, experiments on plasmodb`; vectorbase `5 searches,
 | 2 | toxodb, the S2 conversation (78 genes) | Send `Carry these to their orthologs in Neospora caninum Liverpool.` | Same layout, `isSyntenic=no`: 145 genes, `NCLIV_` ids |
 | 3 | Each | Step editor of the transform | `Syntenic Orthologs Only?` reads `no` |
 
-Measured: both built `isSyntenic=yes`: vectorbase 235, toxodb 69 (FND-1, blocker). The vectorbase card read `0 of 8 sampled genes fit` beside `Supported` (FND-6).
+Measured: both built `isSyntenic=yes`: vectorbase 235, toxodb 69 (FND-1, blocker). The vectorbase card read `0 of 8 sampled genes fit` beside `Supported` (FND-6). Pass 2 (2026-09-25, build 71): toxodb built the 78-gene seed and the transform with `isSyntenic` at its default, 145 genes. The nightly case `uat-s5-toxodb` holds those values.
 
 ## X4 - Orthology on fungidb - core
 
@@ -52,7 +52,7 @@ Measured: the transform was not found; a question card said "The site does not p
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | veupathdb, the S2 conversation (P. falciparum 3D7, 116 genes) | Send `Carry these to their orthologs in Toxoplasma gondii ME49.` | `GenesByOrthologs`, `organism=Toxoplasma gondii ME49`, `isSyntenic=no`: 87 genes, `TGME49_` ids |
-| 2 | Same, a branch of step 1's source | Send `Carry these to their syntenic orthologs in Toxoplasma gondii ME49.` | 0 genes (no synteny across these genera); the reply says 0 and why; verdict `Not supported` naming the empty step |
+| 2 | Same, a branch of step 1's source | Send `Carry these to their syntenic orthologs in Toxoplasma gondii ME49.` | 0 genes (no synteny across these genera); the reply says 0 and why; the reply states the build caveat naming the empty step |
 
 Measured: the portal seed built once and failed once; both transform attempts failed on 500s from unrelated search definitions (`GenesByGeneType`, `GenesByRNASeqtgonME49_tgme49_spor_ocyst_rnaseq_ebi_rnaSeq_RSRC`, `GenesByAntibodyArraypfal3D7_microarrayAntibody_Loffler_Natural_Infection`), and the reply blamed the orthology search (FND-3, blocker).
 

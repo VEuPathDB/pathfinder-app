@@ -316,7 +316,7 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 | An organism another site holds (the portal sentence) | N8, X6 |
 | Another site's experiment never bound | N9 |
 | A qualifier no search states (`No search states it`) | N2 |
-| An empty step (`Not supported: the build pushed ... left 1 empty`) | N4 |
+| An empty step (the reply states `The build pushed ... left 1 empty`) | N4 |
 | A delete the tree cannot place | N5 |
 | An offer declined, then a bare yes | N7 |
 | A second build on a built conversation | N13 |

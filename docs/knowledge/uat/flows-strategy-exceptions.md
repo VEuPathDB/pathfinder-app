@@ -19,7 +19,7 @@ All on plasmodb unless stated. A refusal the code renders is matched word for wo
 | 2 | Strategy panel | Read | `No strategy built yet` |
 | 3 | Question card | Answer each, `Submit` | `Your answers` recap with `Q:` / `A:` lines; the turn goes on to build from the original request plus the answers |
 
-Measured today: no card. Every bind failed on a 500 from an unrelated search (FND-3); 71 tool calls, $0.297; the reply ended on a statement. Re-run once FND-3 is fixed.
+Measured on 2026-09-25 (two nightly runs of `uat-n1-plasmodb`, build 71): the first asked in prose with no card (a recommended cutoff of maximum minor-allele frequency <= 1%); the second put one question on a card, `Which metric and cutoff should define "do not vary much between isolates"?`, with the recommended option `Highest minor-allele frequency <= 5%`. After that answer the bind of `GenesByVariantCharacteristics` was refused ("has no parameter that states 'isolates'") and nothing was built. The case expects three criteria under INTERSECT once the value binds: blood-stage expression, `GenesByVariantCharacteristics` with the chosen cutoff, and `GenesByOrthologPattern` excluding Homo sapiens.
 
 ## N2 - A word no search states
 
@@ -43,9 +43,9 @@ Measured today: the refusal came after three steps were created on the site; the
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation | Send `Find Plasmodium falciparum 3D7 genes with 30 to 99 transmembrane domains.` | Layout `GenesByTransmembraneDomains` (`min_tm=30`); 0 genes (WDK: 0); `Strategy updated` `1 step, 0 genes`; verdict `Not supported: the build pushed 1 step, failed 0, skipped 0 and left 1 empty`; the reply says 0 genes |
+| 1 | New conversation | Send `Find Plasmodium falciparum 3D7 genes with 30 to 99 transmembrane domains.` | Layout `GenesByTransmembraneDomains` (`min_tm=30`); 0 genes (WDK: 0); `Strategy updated` `1 step, 0 genes`; the reply states the build's caveat `The build pushed 1 step, failed 0, skipped 0 and left 1 empty` and the evidence card shows the empty step |
 | 2 | Canvas | Hover the node's `0 results` | `0 results - try:` with `Relax overly strict parameters/filters (broader thresholds, stages, experiments).` |
-| 3 | Composer | Send `Relax the minimum to 15 transmembrane domains.` | The same step with `min_tm=15`: 9 genes (WDK: 9); verdict `Supported` |
+| 3 | Composer | Send `Relax the minimum to 15 transmembrane domains.` | The same step with `min_tm=15`: 9 genes (WDK: 9); an evidence card with no gap in the reply |
 
 Measured: 0 then 9. 80 s + $0.073, then $0.066.
 

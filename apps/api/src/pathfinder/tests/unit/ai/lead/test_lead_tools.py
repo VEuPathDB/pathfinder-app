@@ -96,12 +96,12 @@ def test_the_classifier_takes_no_message_text_from_the_model() -> None:
     ]
 
 
-def test_the_classifier_records_the_message_the_turn_answers() -> None:
+async def test_the_classifier_records_the_message_the_turn_answers() -> None:
     """The recorded request is the state's prompt, whatever the model states."""
     state = pipeline_state(user_prompt=_REAL_MESSAGE)
     ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
 
-    classify_user_intent(
+    await classify_user_intent(
         ctx,
         UserIntent(
             classification=IntentClassification.NEW_STRATEGY,

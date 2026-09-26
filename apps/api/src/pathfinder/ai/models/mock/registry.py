@@ -15,6 +15,7 @@ from pathfinder.ai.models.mock import (
 )
 from pathfinder.ai.models.mock.arc import Arc, Script, Sequence, history_free
 from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.consult_arc import consult, open_value_frame
 from pathfinder.ai.models.mock.eda_arc import (
     eda_compare,
     eda_compare_no_step,
@@ -140,7 +141,7 @@ ARCS: dict[str, Arc] = {
     "clear": _arc(lead(edit_arcs.clear)),
     "proposal": _arc(lead(edit_arcs.proposal), frame=frame_edits.add_step_frame),
     "sweep": _arc(lead(edit_arcs.sweep)),
-    "consult": _arc(lead(kept_arcs.consult)),
+    "consult": _arc(consult, frame=open_value_frame),
     "no-search-states-it": _arc(lead(_summarized), frame=frame_arcs.no_search_frame),
     "cross-organism": _arc(lead(_cross), frame=frame_arcs.cross_organism_frame),
     "portal-only": _arc(lead(_portal), frame=frame_arcs.portal_frame),

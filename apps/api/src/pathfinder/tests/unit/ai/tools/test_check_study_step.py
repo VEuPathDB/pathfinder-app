@@ -233,7 +233,7 @@ class TestAComputeStep:
         )
 
         assert summary == (
-            "3,984 records at 2-fold and p 0.05, DESeq: genes that differ "
+            "3,984 records at 2-fold and p 0.05, DESeq on READ_COUNT: genes that differ "
             "between normal and febrile"
         )
 
@@ -270,7 +270,7 @@ class TestAComputeStepThatWasAlsoFiltered:
         )
 
         assert summary == (
-            "3,984 records at 2-fold and p 0.05, DESeq: genes that differ "
+            "3,984 records at 2-fold and p 0.05, DESeq on READ_COUNT: genes that differ "
             "between normal and febrile, 1 filter"
         )
 

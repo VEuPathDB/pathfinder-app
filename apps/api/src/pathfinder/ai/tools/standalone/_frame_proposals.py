@@ -57,7 +57,7 @@ class DeclaredAssumption(CamelModel):
 
 class _Proposal(BaseModel):
     """One proposed value as the model may type it: a string, a number, a list,
-    a JSON-encoded list, or null."""
+    a JSON-encoded list, a filter object, or null."""
 
     model_config = ConfigDict(coerce_numbers_to_str=True)
     value: str | list[str] | None = None
@@ -69,6 +69,12 @@ class _Proposal(BaseModel):
         if isinstance(v, bool):
             return "true" if v else "false"
         return v
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _json_text(cls, v: object) -> object:
+        """A filter object reaches the tool server as its JSON text."""
+        return json.dumps(v) if isinstance(v, dict) else v
 
     @field_validator("value", mode="before")
     @classmethod

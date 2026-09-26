@@ -193,7 +193,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     const message = prompt("intersect", S2_TEXT(siteOrganism(siteId)));
     const first = await buildOn(chatPage, siteId, message);
     const counts = await expectBuild(page, apiClient, first, siteId, LAYOUTS.intersect);
-    await expectEvidence(page, "Supported", counts.root);
+    await expectEvidence(page, counts.root);
     const written = await writtenBy(apiClient, "cases", first);
 
     const reply = chatPage.assistantReply(countPattern(counts.root));
@@ -262,7 +262,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     const message = prompt("union", S3_TEXT(siteOrganism(siteId)));
     const first = await buildOn(chatPage, siteId, message);
     const counts = await expectBuild(page, apiClient, first, siteId, LAYOUTS.union);
-    await expectEvidence(page, "Supported", counts.root);
+    await expectEvidence(page, counts.root);
     const written = await writtenBy(apiClient, "cases", first);
 
     const reply = chatPage.assistantReply(countPattern(counts.root));
@@ -525,7 +525,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
 
     const rerun = await buildOn(chatPage, siteId, message);
     const counts = await expectBuild(page, apiClient, rerun, siteId, LAYOUTS.intersect);
-    await expectEvidence(page, "Supported", counts.root);
+    await expectEvidence(page, counts.root);
     expect(await caseTags(apiClient, outcome.key)).toBeNull();
     expect((await listMemories(apiClient)).cases).toHaveLength(casesLeft);
   });

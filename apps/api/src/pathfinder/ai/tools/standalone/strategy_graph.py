@@ -12,8 +12,8 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field, JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
+from veupathdb.eda import EdaForbiddenError, EdaServerError
 from veupathdb_mcp import ToolErrorPayload, tool_error
-from veupathdb_mcp.catalog import EdaStepRequest
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import ConstraintCheck
@@ -171,6 +171,8 @@ class StudyStepCheck(CamelModel):
     # The groups a compute step compares, its method, and the side it keeps.
     comparison: EdaComparison | None = None
     method: str | None = None
+    # The measurement the compute ran on, by the study's name for it.
+    value_variable: str | None = None
     effect_direction: EdaEffectDirection | None = None
     # One sentence per subset filter the step carries, in the sheet's words.
     subset_filters: list[str] = Field(default_factory=list)
@@ -221,23 +223,27 @@ def _threshold_checks(
     return [check for check in found if check is not None]
 
 
-async def _subset_filters(site_id: str, request: EdaStepRequest) -> list[str]:
-    """The sentences a study step's own subset filters read as.
+async def _variable_names(site_id: str, dataset_id: str) -> dict[tuple[str, str], str]:
+    """The names the researcher knows a study's variables by.
 
-    The study is read for the names the researcher knows the variables by, so
-    a step that carries no filter needs no read. A study this account cannot
-    reach costs the sentences those names and nothing else.
+    A study the check cannot read now names none, so each variable reads as its
+    id. The step's own document still states what ran.
     """
-    filters = exported_subset(request)
-    if not filters:
-        return []
     try:
-        _entry, study = await get_study_detail_for_dataset(
-            site_id, request.eda_dataset_id
-        )
-    except UnknownEdaDatasetError:
-        return filter_summaries(filters, display_names={})
-    return filter_summaries(filters, display_names=display_names(study))
+        _entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
+    except UnknownEdaDatasetError, EdaForbiddenError, EdaServerError:
+        return {}
+    return display_names(study)
+
+
+def _measured(
+    binding: AnalysisBinding, names: dict[tuple[str, str], str]
+) -> str | None:
+    """The study's name for the variable the compute ran on, else its id."""
+    if binding.value_variable is None:
+        return None
+    key = (binding.value_entity_id or "", binding.value_variable)
+    return names.get(key, binding.value_variable)
 
 
 async def check_study_step(
@@ -253,7 +259,8 @@ async def check_study_step(
     parameter. This reads that cut and the step's record count, so a study step
     is verified by its own numbers instead of reported as unverified. A subset
     step states its cut as ``subset_filters``, one sentence per filter; a
-    compute step states it as volcano thresholds.
+    compute step states it as volcano thresholds, and ``value_variable`` names
+    the measurement the compute ran on, such as a sense or an antisense count.
 
     Pass ``requested_fold_change`` as a fold change (2 for "at least
     2-fold") and ``requested_significance`` as the p-value the user asked for.
@@ -316,7 +323,12 @@ async def check_study_step(
     sync_state = session.sync_state
     count = sync_state.step_counts.get(step_id) if sync_state else None
     thresholds = _cut(binding)
-    subset_filters = await _subset_filters(ctx.deps.site_id, request)
+    filters = exported_subset(request)
+    names = (
+        await _variable_names(ctx.deps.site_id, request.eda_dataset_id)
+        if filters or binding.value_variable is not None
+        else {}
+    )
     check = StudyStepCheck(
         step_id=step_id,
         search_name=step.search_name,
@@ -325,8 +337,9 @@ async def check_study_step(
         thresholds=thresholds,
         comparison=binding.comparison,
         method=binding.method,
+        value_variable=_measured(binding, names),
         effect_direction=binding.effect_direction,
-        subset_filters=subset_filters,
+        subset_filters=filter_summaries(filters, display_names=names),
         checks=(
             []
             if thresholds is None
@@ -365,7 +378,8 @@ def _compared(check: StudyStepCheck) -> str:
     if check.comparison is None or check.effect_direction is None:
         return ""
     kept = direction_sentence(check.comparison, check.effect_direction)
-    return f", {check.method}: {kept[0].lower()}{kept[1:]}"
+    measured = "" if check.value_variable is None else f" on {check.value_variable}"
+    return f", {check.method}{measured}: {kept[0].lower()}{kept[1:]}"
 
 
 def _study_step_summary(check: StudyStepCheck) -> str:

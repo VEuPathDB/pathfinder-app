@@ -25,6 +25,7 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     control_test_deps,
     framing_deps,
     off_topic_deps,
+    open_frame_deps,
     reading_deps,
     reply,
 )
@@ -48,7 +49,7 @@ def _scripted_answer(prose: str) -> RetryRecordingScript:
 
 class TestTheOneCorrection:
     def test_two_mismatches_are_listed_in_rule_order_under_one_heading(self) -> None:
-        deps = framing_deps()
+        deps = open_frame_deps()
         deps.state.turn_markers.intent_classified = True
         report = reply(ASKING_REPLY, changed=True)
 
@@ -58,9 +59,9 @@ class TestTheOneCorrection:
         text = str(raised.value)
         assert text.startswith(CONTRACT_HEADING)
         assert "no build, edit, delete, clear or export" in text
-        assert "asked_questions" in text
+        assert "question card (consult_user)" in text
         assert text.index("no build, edit, delete, clear or export") < text.index(
-            "asked_questions"
+            "question card (consult_user)"
         )
 
     def test_the_second_answer_goes_through(self) -> None:

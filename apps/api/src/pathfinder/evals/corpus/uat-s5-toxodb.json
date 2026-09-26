@@ -6,7 +6,7 @@
   ],
   "siteId": "toxodb",
   "assistantId": "pathfinder",
-  "rationale": "A request for the orthologs in another organism is one orthology transform over the seed, reported as that organism's genes.",
+  "rationale": "A request for the orthologs in another organism is one orthology transform over the seed, reported as that organism's genes. This case is also the organism-phrase proof: \"Neospora caninum Liverpool\" is bound as one organism name, with synteny at its default.",
   "expected": {
     "buildsStrategy": true,
     "structure": "GenesByOrthologs((GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains))",
@@ -16,7 +16,8 @@
     "stepIdsUnchanged": null,
     "parameters": {
       "GenesByOrthologs": {
-        "organism": "Neospora caninum Liverpool"
+        "organism": "Neospora caninum Liverpool",
+        "isSyntenic": "no"
       }
     },
     "replyMentions": [],
@@ -43,7 +44,7 @@
     "origin": "uat-flow",
     "addedAt": "2026-09-25",
     "stagingId": "",
-    "reference": "uat/flows-strategy-standard.md#s5",
+    "reference": "uat/flows-strategy-standard.md#s5 uat/findings.md#fnd-1",
     "curatorNote": ""
   },
   "effort": "medium",

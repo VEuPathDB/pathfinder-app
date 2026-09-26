@@ -21,7 +21,11 @@ from pathfinder.domain.evidence import (
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import OpenQuestion
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    OperationalSpec,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -146,6 +150,22 @@ def blame_deps() -> LeadDeps:
 def framing_deps() -> LeadDeps:
     deps = lead_deps(pipeline_state(user_prompt="Now build.", user_message_id=uuid4()))
     deps.state.turn_markers.framed = True
+    return deps
+
+
+def open_frame_deps() -> LeadDeps:
+    """A turn whose frame pass left one value for the user to choose."""
+    deps = framing_deps()
+    deps.state.domain.open_questions = [
+        OpenQuestion(question="Which gametocyte RNA-seq study?")
+    ]
+    study = OpenSlot(criterion_id="c_expr", param_name="dataset_url")
+    deps.state.domain.operational_spec = OperationalSpec(
+        goal="gametocyte genes",
+        criteria=[
+            Criterion(id="c_expr", text="up in gametocytes", open_params=[study])
+        ],
+    )
     return deps
 
 

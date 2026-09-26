@@ -11,7 +11,12 @@ import { test, expect } from "../fixtures/test";
 import { type ArcName, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
 import { LAYOUTS, ORTHOLOGS, layoutOf } from "../fixtures/arc-layouts";
-import { expectBuild, expectEvidence, openTrace } from "../fixtures/build-checks";
+import {
+  controlsCaveat,
+  expectBuild,
+  expectEvidence,
+  openTrace,
+} from "../fixtures/build-checks";
 import {
   printed,
   readConversation,
@@ -34,15 +39,29 @@ type FaultName =
   | "off-vocabulary"
   | "unbacked-controls"
   | "misstated-count"
-  | "misnamed-deletion";
+  | "misnamed-deletion"
+  | "unstated-caveat"
+  | "unstated-gap"
+  | "misstated-control-list"
+  | "organism-split"
+  | "open-value-in-prose";
 
 const TURN_BUDGET_MS = 600_000;
+/** The requirement the unstated-gap fault's check finds nothing answers. */
+const UNMET = "annotated as essential";
+/** The one value the consult arc's frame leaves open, as its card asks it. */
+const OPEN_QUESTION = "Which organism should the signal peptide search read?";
 const CONTRACT = /^This reply does not match what the turn did:/;
 
 const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
 const S2_TEXT = (organism: string) =>
   `Find ${organism} genes with a predicted signal peptide and 2 to 99 transmembrane domains.`;
+
+/** `text` as a pattern that matches it literally. */
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 /** The arc's message with the fault token after the arc token. */
 function faulted(arcName: ArcName, fault: FaultName, text: string): string {
@@ -140,8 +159,40 @@ function controlSet(siteId: string) {
   return chosen;
 }
 
-function controlLines(siteId: string): string {
-  const set = controlSet(siteId);
+/** The body cells of the controls table on the one card that holds it. */
+async function controlRows(page: Page): Promise<string[][]> {
+  const card = page
+    .getByTestId("data-evidence-card")
+    .filter({ has: page.getByTestId("evidence-controls") });
+  await expect(card).toHaveCount(1, { timeout: TURN_BUDGET_MS });
+  return bodyCells(card.getByTestId("evidence-controls"));
+}
+
+/** The controls caveat the card's table measures, as the ledger words it. */
+function caveatOf(rows: readonly string[][]): string {
+  const cell = (label: string, index: number) =>
+    Number(
+      (rows.find((cells) => cells[0] === label)?.[index] ?? "0").replace(/,/g, ""),
+    );
+  return controlsCaveat(
+    cell("Positive", 2),
+    cell("Positive", 1),
+    cell("Negative", 2),
+    cell("Negative", 1),
+  );
+}
+
+/** A control set whose positives are not signal peptide genes, so a signal
+ * peptide strategy misses some of them. */
+function otherControlSet(siteId: string) {
+  const other = siteControlSets(siteId).find(
+    (set) => !/signal peptide/i.test(set.name),
+  );
+  if (other === undefined) throw new Error(`the ${siteId} seeds carry one control set`);
+  return other;
+}
+
+function controlLines(siteId: string, set = controlSet(siteId)): string {
   return [
     `Positive controls: ${set.positive_ids.join(" ")}`,
     `Negative controls: ${set.negative_ids.join(" ")}`,
@@ -297,12 +348,15 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
 
-    const card = await expectEvidence(page, "Supported", counts.root);
+    const card = await expectEvidence(page, counts.root);
     const sampled = card.getByTestId("evidence-sampled-genes");
     const rows = await sampled.locator("tbody tr").count();
     expect(rows).toBeGreaterThan(0);
     await expect(card.getByTestId("evidence-sample-count")).toHaveText(
       `${rows} of ${rows} sampled ${rows === 1 ? "gene" : "genes"} unclear`,
+    );
+    expect(await replyText(apiClient, id)).toContain(
+      `${rows} of ${rows} sampled genes unclear`,
     );
   });
 
@@ -453,7 +507,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     expect(await loggedRefusals(apiClient, id)).toContain(
       "String should have at least 20 characters",
     );
-    await expect(chatPage.assistantReply(/Two choices shape the steps/)).toHaveCount(1);
+    await expect(chatPage.assistantReply(/One value decides the steps/)).toHaveCount(1);
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
   });
 
@@ -611,5 +665,158 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
           .map((node) => String(node.parameters?.["isSyntenic"]?.value ?? "")),
       )
       .toEqual(["yes"]);
+  });
+
+  test("A reply silent about a caveat the check measured is corrected", async ({
+    chatPage,
+    apiClient,
+    page,
+    siteId,
+  }) => {
+    const id = await sendOn(
+      chatPage,
+      siteId,
+      prompt("single", S1_TEXT(siteOrganism(siteId))),
+    );
+    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+
+    await chatPage.sendAndSettle(
+      faulted(
+        "controls-test",
+        "unstated-caveat",
+        `Test this strategy against my controls.\n${controlLines(siteId, otherControlSet(siteId))}`,
+      ),
+    );
+    const caveat = caveatOf(await controlRows(page));
+    expect(caveat, "the control set measures a shortfall").not.toBe("");
+    await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
+
+    await openTraces(chatPage);
+    await expectCorrection(page);
+    expect(await loggedRefusals(apiClient, id)).toContain(
+      `The check measured ${caveat}. Your reply does not state it; give the numbers.`,
+    );
+    await expect(chatPage.assistantReply(new RegExp(escaped(caveat)))).toHaveCount(1);
+  });
+
+  test("A reply silent about a requirement nothing answers is corrected", async ({
+    chatPage,
+    apiClient,
+    page,
+    siteId,
+  }) => {
+    const id = await sendOn(
+      chatPage,
+      siteId,
+      faulted(
+        "single",
+        "unstated-gap",
+        `Find ${siteOrganism(siteId)} genes whose proteins have a predicted signal peptide and are ${UNMET}.`,
+      ),
+    );
+    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+
+    const row = (await expectEvidence(page, counts.root))
+      .getByTestId("evidence-requirements")
+      .getByRole("row")
+      .filter({ hasText: UNMET });
+    await expect(row.getByTestId("evidence-requirement-answer")).toHaveText(
+      "Nothing in the strategy answers it",
+    );
+    await openTraces(chatPage);
+    await expectCorrection(page);
+    const gap = `'${UNMET}': nothing in the strategy answers it`;
+    expect(await loggedRefusals(apiClient, id)).toContain(
+      `The check found what the strategy does not answer: ${gap}. Your reply does not say so; state each with what is missing.`,
+    );
+    const corrected = chatPage.assistantReply(new RegExp(escaped(gap)));
+    await expect(corrected).toHaveCount(1);
+    await expect(corrected).toContainText(/.+, chosen for /);
+  });
+
+  test("FND-29 - a separation card that misstates its list size is sent again", async ({
+    chatPage,
+    page,
+    siteId,
+  }) => {
+    await chatPage.startOn(siteId);
+    await chatPage.send(
+      faulted(
+        "separation",
+        "misstated-control-list",
+        `Find me a strategy that separates these controls, in exact mode.\n${controlLines(siteId)}`,
+      ),
+    );
+    const approval = page.getByTestId("approval-card");
+    await expect(approval.getByTestId("approval-card-title")).toHaveText(
+      /^Run the separation\?/,
+      { timeout: 240_000 },
+    );
+    await expect(approval).toHaveCount(1);
+    const set = controlSet(siteId);
+    const positives = set.positive_ids.length;
+    const negatives = set.negative_ids.length;
+    await expect(
+      chatPage.assistantReply(
+        new RegExp(`your ${positives} positive and ${negatives} negative controls`),
+      ),
+    ).toHaveCount(1);
+    await expect(
+      chatPage.assistantReply(new RegExp(`your ${positives - 2} positive and `)),
+    ).toHaveCount(0);
+  });
+
+  test("FND-24 - a classification that splits the organism is refused", async ({
+    chatPage,
+    apiClient,
+    page,
+    siteId,
+  }) => {
+    const organism = siteOrganism(siteId);
+    const strain = organism.split(" ").slice(2).join(" ");
+    const id = await sendOn(
+      chatPage,
+      siteId,
+      faulted("single", "organism-split", S1_TEXT(organism)),
+    );
+
+    await openTraces(chatPage);
+    const refused = errorRows(page, "Read the request");
+    await expect(refused).toHaveCount(1);
+    await expect(refused.getByTestId("trace-row-summary")).toHaveText(
+      new RegExp(`^The message names the organism "${escaped(organism)}"`),
+    );
+    expect(await loggedRefusals(apiClient, id)).toContain(
+      `The message names the organism "${organism}", one entry of this site's organism list. Record it whole as the organism constraint; "${strain}" is part of its name, not a requirement of its own.`,
+    );
+    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+  });
+
+  test("An open value asked in prose is corrected to the question card", async ({
+    chatPage,
+    apiClient,
+    page,
+    siteId,
+  }) => {
+    await chatPage.startOn(siteId);
+    const id = chatPage.lastStrategyId ?? "";
+    await chatPage.send(
+      faulted(
+        "consult",
+        "open-value-in-prose",
+        "Find drug targets that are expressed in the blood stage and have no human equivalent.",
+      ),
+    );
+
+    const carousel = page.getByTestId("consult-carousel");
+    await expect(carousel).toBeVisible({ timeout: 240_000 });
+    await expect(carousel.getByTestId("consult-slide")).toContainText(OPEN_QUESTION);
+    await openTraces(chatPage);
+    await expectCorrection(page);
+    expect(await loggedRefusals(apiClient, id)).toContain(
+      `The spec leaves "${OPEN_QUESTION}" open. Ask it on the question card (consult_user) with its options; a question in prose is refused.`,
+    );
+    await expect(chatPage.assistantReply(/I recommend/)).toHaveCount(0);
+    expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
   });
 });

@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a17"
+    "version": "0.2.0a18"
   },
   "paths": {
     "/health": {
@@ -13587,7 +13587,7 @@
         "type": "array"
       },
       "AnalysisBinding": {
-        "description": "The genes one exported analysis selects, and the document that selects them.\n\n``step_parameters`` is the step's own document, carried as an opaque value\nlike a saved strategy's subtree.",
+        "description": "The genes one exported analysis selects, and the document that selects them.\n\n``step_parameters`` is the step's own document, carried as an opaque value\nlike a saved strategy's subtree. ``value_entity_id`` and ``value_variable``\nname the variable the compute measured; a variable id is scoped to its entity.",
         "properties": {
           "datasetId": {
             "title": "Datasetid",
@@ -13613,6 +13613,28 @@
               }
             ],
             "title": "Method"
+          },
+          "valueEntityId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valueentityid"
+          },
+          "valueVariable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valuevariable"
           },
           "effectDirection": {
             "anyOf": [
@@ -13778,6 +13800,48 @@
           "estimatedDurationSeconds"
         ],
         "title": "BackgroundTaskStarted",
+        "type": "object"
+      },
+      "BuildCaveat": {
+        "description": "A build that did not put every step on the site with genes in it.",
+        "properties": {
+          "kind": {
+            "const": "build",
+            "default": "build",
+            "title": "Kind",
+            "type": "string"
+          },
+          "pushed": {
+            "title": "Pushed",
+            "type": "integer"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "empty": {
+            "title": "Empty",
+            "type": "integer"
+          },
+          "sentence": {
+            "description": "The count of each outcome of the build.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pushed",
+          "failed",
+          "skipped",
+          "empty",
+          "sentence"
+        ],
+        "title": "BuildCaveat",
         "type": "object"
       },
       "BuildOutcome": {
@@ -14625,6 +14689,48 @@
         "title": "ControlTestResults",
         "type": "object"
       },
+      "ControlsCaveat": {
+        "description": "A control test that missed a positive or returned a negative.",
+        "properties": {
+          "kind": {
+            "const": "controls",
+            "default": "controls",
+            "title": "Kind",
+            "type": "string"
+          },
+          "positivesReturned": {
+            "default": 0,
+            "title": "Positivesreturned",
+            "type": "integer"
+          },
+          "positivesTotal": {
+            "default": 0,
+            "title": "Positivestotal",
+            "type": "integer"
+          },
+          "negativesReturned": {
+            "default": 0,
+            "title": "Negativesreturned",
+            "type": "integer"
+          },
+          "negativesTotal": {
+            "default": 0,
+            "title": "Negativestotal",
+            "type": "integer"
+          },
+          "sentence": {
+            "description": "The shortfall of each set, with its counts.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sentence"
+        ],
+        "title": "ControlsCaveat",
+        "type": "object"
+      },
       "ConversationTitlePayload": {
         "description": "Payload for the conversation-title chunk.",
         "properties": {
@@ -15328,8 +15434,12 @@
             "title": "Citations",
             "type": "array"
           },
-          "verdict": {
-            "$ref": "#/components/schemas/EvidenceVerdict"
+          "pendingChecks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pendingchecks",
+            "type": "array"
           },
           "review": {
             "$ref": "#/components/schemas/VerificationReview"
@@ -15343,42 +15453,9 @@
           "siteRead",
           "steps",
           "controls",
-          "citations",
-          "verdict"
+          "citations"
         ],
         "title": "EvidenceCard",
-        "type": "object"
-      },
-      "EvidenceVerdict": {
-        "description": "The verdict as the ledger holds it after the build check.\n\n``refused_because`` is the ledger's own sentence for a verdict it does not\nsupport, whichever side found the failure.",
-        "properties": {
-          "supported": {
-            "title": "Supported",
-            "type": "boolean"
-          },
-          "pendingChecks": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Pendingchecks",
-            "type": "array"
-          },
-          "refusedBecause": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Refusedbecause"
-          }
-        },
-        "required": [
-          "supported"
-        ],
-        "title": "EvidenceVerdict",
         "type": "object"
       },
       "FailureCause": {
@@ -16438,6 +16515,42 @@
         "title": "RequirementCheck",
         "type": "object"
       },
+      "RequirementGap": {
+        "description": "A requirement row the check found unmet or that no search can state.",
+        "properties": {
+          "kind": {
+            "const": "requirement",
+            "default": "requirement",
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unmet",
+              "unexpressed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The requirement, in the researcher's words, and what is missing.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "status",
+          "sentence"
+        ],
+        "title": "RequirementGap",
+        "type": "object"
+      },
       "RequirementHow": {
         "enum": [
           "search",
@@ -16455,6 +16568,43 @@
           "unexpressed"
         ],
         "type": "string"
+      },
+      "SampleCaveat": {
+        "description": "A sample of the result where a gene is unclear or does not fit.",
+        "properties": {
+          "kind": {
+            "const": "sample",
+            "default": "sample",
+            "title": "Kind",
+            "type": "string"
+          },
+          "unclear": {
+            "title": "Unclear",
+            "type": "integer"
+          },
+          "misfit": {
+            "title": "Misfit",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "sentence": {
+            "description": "The unclear and the misfit genes, each out of the sample.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unclear",
+          "misfit",
+          "total",
+          "sentence"
+        ],
+        "title": "SampleCaveat",
+        "type": "object"
       },
       "SampledGene": {
         "description": "One gene of the result, read from its record and judged against the request.",
@@ -17169,6 +17319,38 @@
         "title": "StrategyRevisionPayload",
         "type": "object"
       },
+      "StructureGap": {
+        "description": "A combination the researcher stated that the strategy joins another way.",
+        "properties": {
+          "kind": {
+            "const": "structure",
+            "default": "structure",
+            "title": "Kind",
+            "type": "string"
+          },
+          "expression": {
+            "title": "Expression",
+            "type": "string"
+          },
+          "built": {
+            "title": "Built",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The combination, and the operator the strategy joins it with.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expression",
+          "built",
+          "sentence"
+        ],
+        "title": "StructureGap",
+        "type": "object"
+      },
       "StructureNode": {
         "description": "One node of the stated tree.\n\nA copy restates the subtree it holds, which the tree states elsewhere, and\nis stated as criteria of its own before anything builds it.",
         "properties": {
@@ -17812,10 +17994,52 @@
           },
           "caveats": {
             "items": {
-              "type": "string"
+              "discriminator": {
+                "mapping": {
+                  "build": "#/components/schemas/BuildCaveat",
+                  "controls": "#/components/schemas/ControlsCaveat",
+                  "sample": "#/components/schemas/SampleCaveat"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ControlsCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/SampleCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/BuildCaveat"
+                }
+              ]
             },
-            "maxItems": 10,
             "title": "Caveats",
+            "type": "array"
+          },
+          "gaps": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "requirement": "#/components/schemas/RequirementGap",
+                  "structure": "#/components/schemas/StructureGap",
+                  "word": "#/components/schemas/WordGap"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RequirementGap"
+                },
+                {
+                  "$ref": "#/components/schemas/WordGap"
+                },
+                {
+                  "$ref": "#/components/schemas/StructureGap"
+                }
+              ]
+            },
+            "title": "Gaps",
             "type": "array"
           },
           "pendingChecks": {
@@ -17918,6 +18142,33 @@
           "successful"
         ],
         "title": "VerificationSection",
+        "type": "object"
+      },
+      "WordGap": {
+        "description": "A word the request states that no search the strategy runs can state.",
+        "properties": {
+          "kind": {
+            "const": "word",
+            "default": "word",
+            "title": "Kind",
+            "type": "string"
+          },
+          "word": {
+            "title": "Word",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The word, and that no search states it.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "word",
+          "sentence"
+        ],
+        "title": "WordGap",
         "type": "object"
       },
       "StreamPartsSchemaIndex": {

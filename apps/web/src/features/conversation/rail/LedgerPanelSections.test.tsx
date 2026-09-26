@@ -179,7 +179,22 @@ const VERIFY_WITH_DIGEST = {
     reason: "sizes look right",
     success: true,
     keyFindings: ["61 genes overlap the gold set"],
-    caveats: ["product-name search matched 0"],
+    caveats: [
+      {
+        kind: "sample" as const,
+        unclear: 2,
+        misfit: 0,
+        total: 8,
+        sentence: "2 of 8 sampled genes unclear",
+      },
+    ],
+    gaps: [
+      {
+        kind: "word" as const,
+        word: "exported",
+        sentence: "'exported': no search the strategy runs states it",
+      },
+    ],
   },
 };
 
@@ -223,11 +238,31 @@ describe("sections tolerate the optional lists exclude_none drops", () => {
 });
 
 describe("VerificationSection detail", () => {
-  it("renders prose, findings and caveats in detail mode", () => {
-    render(<VerificationSection verification={VERIFY_WITH_DIGEST} detail />);
-    expect(screen.getByText(/61 gametocyte genes/)).toBeInTheDocument();
+  it("renders findings, gaps and caveats and no verdict in detail mode", () => {
+    render(
+      <VerificationSection
+        verification={{
+          ...VERIFY_WITH_DIGEST,
+          successful: false,
+          digest: {
+            ...VERIFY_WITH_DIGEST.digest,
+            success: false,
+            prose: "Verification cannot be reported: 'exported': no search.",
+          },
+        }}
+        detail
+      />,
+    );
     expect(screen.getByText(/61 genes overlap the gold set/)).toBeInTheDocument();
-    expect(screen.getByText(/product-name search matched 0/)).toBeInTheDocument();
+    expect(screen.getByText("2 of 8 sampled genes unclear")).toBeInTheDocument();
+    expect(
+      screen.getByText("'exported': no search the strategy runs states it"),
+    ).toBeInTheDocument();
+    expect([
+      screen.queryByText(/Verification cannot be reported/),
+      screen.queryByText("successful"),
+      screen.queryByText("no"),
+    ]).toEqual([null, null, null]);
   });
 
   it("names the study steps whose check is pending", () => {
@@ -244,7 +279,7 @@ describe("VerificationSection detail", () => {
     expect(screen.getByText("step_de")).toBeInTheDocument();
   });
 
-  it("shows a pass with a pending check as pending, not as a pass", () => {
+  it("counts the pending checks and draws no pass or failure", () => {
     render(
       <VerificationSection
         verification={{
@@ -257,7 +292,7 @@ describe("VerificationSection detail", () => {
     expect(screen.getByText("1 pending")).toBeInTheDocument();
     // The one "yes" left is the complete row's.
     expect(screen.getAllByText("yes")).toHaveLength(1);
-    expect(screen.queryByText("no")).not.toBeInTheDocument();
+    expect(screen.queryByText("successful")).toBeNull();
   });
 
   it("omits digest prose in summary mode", () => {

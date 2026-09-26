@@ -34,26 +34,3 @@ def variant_args(organism: str) -> dict[str, Any]:
             },
         ],
     }
-
-
-def consult_args() -> dict[str, Any]:
-    return {
-        "reply": "[mock] Two choices shape the steps, so I ask them before planning.",
-        "questions": [
-            {
-                "id": "q1",
-                "prompt": "Fold-change threshold?",
-                "kind": "single_choice",
-                "options": [
-                    {"label": "2-fold", "recommended": True},
-                    {"label": "5-fold"},
-                ],
-            },
-            {
-                "id": "q2",
-                "prompt": "Include the microarray arm?",
-                "kind": "single_choice",
-                "options": [{"label": "Yes"}, {"label": "No"}],
-            },
-        ],
-    }

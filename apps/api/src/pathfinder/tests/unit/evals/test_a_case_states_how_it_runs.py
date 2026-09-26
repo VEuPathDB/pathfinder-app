@@ -162,7 +162,15 @@ def test_a_comment_goes_with_a_no_only() -> None:
 def test_the_v5_case_says_yes_to_the_run_and_no_to_the_offer() -> None:
     case = load_case("uat-v5-plasmodb")
 
-    assert (case.gate_answers(), case.expected.builds_strategy) == (
+    assert (
+        [turn.splitlines()[0] for turn in case.turns],
+        case.gate_answers(),
+        case.expected.builds_strategy,
+    ) == (
+        [
+            "Find me a strategy that separates these controls, in exact mode.",
+            "What did you offer me?",
+        ],
         [
             GateAnswer(accept=True),
             GateAnswer(accept=False, comment="Too broad for a vaccine screen."),
@@ -286,6 +294,7 @@ def test_a_uat_case_asserts_no_prose_the_model_words_its_own_way() -> None:
         "uat-n7-plasmodb": [DECLINED_OFFER_REFUSAL],
         "uat-n8-plasmodb": ["portal"],
         "uat-s15-plasmodb": ["heat shock protein"],
+        "uat-v2-plasmodb": ["52 of 80", "2 of 40"],
         "uat-x6-vectorbase": ["portal"],
     }
 
@@ -305,3 +314,88 @@ def test_a_uat_case_holds_the_check_to_zero_unmet_rows_not_a_met_count() -> None
         f"uat-s2-{site}": (None, 0)
         for site in ("fungidb", "plasmodb", "toxodb", "vectorbase", "veupathdb")
     }
+
+
+def test_the_v2_case_reads_the_control_counts_in_the_reply_and_no_verdict() -> None:
+    case = load_case("uat-v2-plasmodb")
+
+    assert (
+        case.expected.verified,
+        case.expected.reply_mentions,
+        case.rationale,
+    ) == (
+        None,
+        ["52 of 80", "2 of 40"],
+        (
+            "The reply states the recovered positives and the returned negatives "
+            "with their counts."
+        ),
+    )
+
+
+def test_the_v4_case_stops_at_the_run_approval_on_its_first_message() -> None:
+    case = load_case("uat-v4-plasmodb")
+
+    assert (
+        len(case.turns),
+        case.turns[0].splitlines()[0],
+        case.gates,
+        case.expected.ends_on,
+        case.expected.builds_strategy,
+    ) == (
+        1,
+        "Find me a strategy that separates these controls, in exact mode.",
+        "stop",
+        "approval",
+        False,
+    )
+
+
+def test_the_s5_toxodb_case_carries_the_seed_to_neospora_without_synteny() -> None:
+    case = load_case("uat-s5-toxodb")
+    expected = case.expected
+
+    assert (
+        case.turns[1],
+        expected.parameters,
+        expected.root_count,
+        case.provenance.reference,
+        "Neospora caninum Liverpool" in case.rationale,
+    ) == (
+        "Carry these to their orthologs in Neospora caninum Liverpool.",
+        {
+            "GenesByOrthologs": {
+                "organism": "Neospora caninum Liverpool",
+                "isSyntenic": "no",
+            }
+        },
+        RecordedCount(count=145, build="71", measured_on=datetime.date(2026, 9, 24)),
+        "uat/flows-strategy-standard.md#s5 uat/findings.md#fnd-1",
+        True,
+    )
+
+
+def test_the_n1_case_answers_the_card_and_builds_the_three_criteria() -> None:
+    case = load_case("uat-n1-plasmodb")
+    expected = case.expected
+
+    assert (
+        case.gate_answers(),
+        expected.builds_strategy,
+        expected.root_operator,
+        expected.step_count,
+        expected.parameters,
+        expected.verified,
+    ) == (
+        [GateAnswer(picks=[])],
+        True,
+        "INTERSECT",
+        5,
+        {
+            "GenesByVariantCharacteristics": {
+                "organism_select_none": "Plasmodium falciparum 3D7"
+            },
+            "GenesByOrthologPattern": {"excluded_species": "hsap"},
+        },
+        None,
+    )

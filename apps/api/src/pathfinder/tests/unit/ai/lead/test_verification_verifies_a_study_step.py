@@ -24,6 +24,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StepKind, StrategyStep
+from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -31,6 +32,7 @@ from pathfinder.ai.lead import evidence_card, sub_agent_stream, sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
+from pathfinder.ai.tools.standalone import strategy_graph
 from pathfinder.ai.tools.standalone.strategy_graph import StudyStepCheck
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
@@ -38,6 +40,7 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.eda_doubles import permission_entry, study_of
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 
@@ -261,6 +264,24 @@ def collector(monkeypatch: pytest.MonkeyPatch) -> _Collector:
     monkeypatch.setattr(sub_agent_stream, "get_stream_writer", lambda: captured)
     monkeypatch.setattr(evidence_card, "get_stream_writer", lambda: captured)
     return captured
+
+
+@pytest.fixture(autouse=True)
+def _serve_the_study(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The study names the count column the compute ran on."""
+
+    async def _detail(
+        _site: str, _dataset_id: str
+    ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
+        counts = {
+            "id": "SEQUENCE_READ_COUNT_ANTISENSE",
+            "displayName": "Antisense Count",
+            "type": "integer",
+            "dataShape": "continuous",
+        }
+        return permission_entry(), study_of([counts], entity_id="ENT_fd574cd6")
+
+    monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", _detail)
 
 
 async def _verify(

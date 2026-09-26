@@ -7,16 +7,14 @@ import re
 
 from assistant_core.models.scripted import (
     current_scope_id,
-    deferred_tool_resolved,
     joined_user_text,
     scripted_call,
 )
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.conversation.gene_list_marker import parse_gene_list_marker
-from pathfinder.ai.models.mock.arc_args import consult_args, variant_args
+from pathfinder.ai.models.mock.arc_args import variant_args
 from pathfinder.ai.models.mock.calls import classify, lead_final
-from pathfinder.ai.models.mock.lead_flow import build_journey
 from pathfinder.ai.models.mock.message_words import message, named_after
 from pathfinder.ai.models.mock.reads import (
     empty_steps_sentence,
@@ -178,10 +176,3 @@ def gene_question(messages: list[ModelMessage]) -> list[ToolCallPart]:
         scripted_call("read_gene_record", {"gene_id": gene_id}),
         lead_final(prose, "await_user", sources=sources),
     ]
-
-
-def consult(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    """Ask the design questions; the answered card resumes the build."""
-    if deferred_tool_resolved(messages, "consult_user"):
-        return build_journey(messages)
-    return [classify("new_strategy"), scripted_call("consult_user", consult_args())]

@@ -160,7 +160,4 @@ def test_a_resumed_run_writes_the_calls_it_re_announces_at_once() -> None:
         ["tool-input-available:A"],
         ["tool-output-available:A"],
     ]
-    assert _written(hold, [*_reply("t"), FinishStepChunk()]) == [
-        *REPLY,
-        "finish-step:",
-    ]
+    assert _written(hold, [*_reply("t"), FinishStepChunk()]) == ["finish-step:"]

@@ -73,7 +73,7 @@ async def test_an_edit_on_a_thread_with_no_strategy_keeps_the_framed_spec() -> N
     )
     deps.state.domain.spec_before_turn = None
     deps.state.user_message_id = uuid4()
-    classify(deps, IntentClassification.EDIT_STRATEGY)
+    await classify(deps, IntentClassification.EDIT_STRATEGY)
 
     with pytest.raises(ModelRetry) as excinfo:
         await run_edit(deps=deps, parent_tool_call_id="t1", reason="edit it")

@@ -8,6 +8,7 @@ from pathfinder.ai.lead.build_messages import build_would_replace_the_strategy
 from pathfinder.ai.models.mock.edit_arcs import DELETED_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins, memory_pins
+from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
 from pathfinder.tests.unit.ai.models._mock_turns import (
     BUILT_ROOT_WDK_ID,
     CONTROL_SET_ID,
@@ -15,6 +16,7 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
     LIVE_ROOT_COUNT,
     LIVE_ROOT_WDK_ID,
     NOT_HERE,
+    SHEET_ORGANISMS,
     Scene,
     args_of,
     built_thread,
@@ -79,7 +81,7 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
         "optimize_search_parameters",
         "final_result",
     ],
-    "consult": ["classify_user_intent", "consult_user", *BUILD[1:]],
+    "consult": FRAMED,
     "no-search-states-it": FRAMED,
     "cross-organism": FRAMED,
     "portal-only": FRAMED,
@@ -151,6 +153,25 @@ def test_the_lead_plays_the_arc(arc: str, site_id: str) -> None:
     calls = play("lead", site_id, f"{text} [[arc:{arc}]]", scene=Scene(refused=refused))
 
     assert names(calls) == LEAD_SEQUENCES[arc]
+
+
+@pytest.mark.parametrize("site_id", SITES)
+def test_a_value_the_frame_leaves_open_is_asked_on_the_card(site_id: str) -> None:
+    scene = Scene(answers={"frame_problem": asking_frame(site_id)})
+
+    calls = play("lead", site_id, "Do it [[arc:consult]]", scene=scene)
+    [card] = args_of(calls, "consult_user")
+
+    assert names(calls) == [*FRAMED[:2], "consult_user", *BUILD]
+    assert [
+        (q["prompt"], [(o["label"], o["recommended"]) for o in q["options"]])
+        for q in card["questions"]
+    ] == [
+        (
+            "Which organism should the signal peptide search read?",
+            [(o, i == 0) for i, o in enumerate(SHEET_ORGANISMS[site_id])],
+        )
+    ]
 
 
 @pytest.mark.parametrize("site_id", SITES)

@@ -69,13 +69,13 @@ def framed(evidence: str | None) -> OperationalSpec:
     )
 
 
-def classify(
+async def classify(
     deps: LeadDeps,
     kind: IntentClassification = IntentClassification.CLARIFICATION_RESPONSE,
     *,
     call_id: str = "t_classify",
 ) -> None:
-    classify_user_intent(
+    await classify_user_intent(
         run_context_for(deps, call_id),
         UserIntent(classification=kind, inferred_goal="use signal-peptide evidence"),
     )
@@ -100,8 +100,8 @@ def draft_deps(
     return lead_deps(state, strategy_session=strategy_session)
 
 
-def answering_deps() -> LeadDeps:
+async def answering_deps() -> LeadDeps:
     """The turn after FRAME asked: the question is answered by this message."""
     deps = draft_deps(ANSWER)
-    classify(deps)
+    await classify(deps)
     return deps

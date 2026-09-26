@@ -12,24 +12,13 @@ from assistant_core.graph.tool_summary import count_noun
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.orthology import OrganismChange
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
-
-
-def unrecorded_question_message() -> str:
-    """Why a reply that asks the user something and records nothing is refused."""
-    return (
-        "Your reply asks the user a question and records none. The next turn "
-        "reads ``asked_questions``, not your prose, so a question that is not "
-        "there is asked again and a value you recommend is lost. Return the "
-        "same reply with one ``asked_questions`` entry per question: the "
-        "question, the value you recommend for it, and the dimension it "
-        "decides."
-    )
 
 
 def unrecorded_offer_message() -> str:
@@ -383,31 +372,24 @@ def unnamed_record_organism_message(change: OrganismChange) -> str:
     )
 
 
-def unreported_requirement_message(rows: Sequence[RequirementCheck]) -> str:
-    """Why a reply silent about a requirement its check found unmet is refused.
+def unstated_gap_message(gaps: Sequence[Gap]) -> str:
+    """Why a reply silent about what the strategy does not answer is refused.
 
-    A reply that names only what the strategy meets reads as a strategy that
-    meets everything the researcher asked.
+    A reply that names only what the strategy answers reads as a strategy that
+    answers everything the researcher asked.
     """
-    listed = "; ".join(f"'{row.text}' ({row.status}: {row.note})" for row in rows)
+    listed = "; ".join(gap.sentence for gap in gaps)
     return (
-        f"The check reports requirements the strategy does not meet: {listed}. "
-        f"Your reply does not name them. Name each as written here, and say what "
-        f"the strategy returns without it."
+        f"The check found what the strategy does not answer: {listed}. Your "
+        f"reply does not say so; state each with what is missing."
     )
 
 
-def unstated_qualifier_message(words: Sequence[str]) -> str:
-    """Why a reply that is silent about a requirement no search could state is refused.
-
-    The strategy was built without it, so a reply that stays silent reads as
-    a strategy that honours it.
-    """
-    listed = ", ".join(f"'{word}'" for word in words)
+def unstated_caveat_message(caveats: Sequence[Caveat]) -> str:
+    """Why a reply that leaves out a shortfall the check measured is refused."""
+    listed = "; ".join(caveat.sentence for caveat in caveats)
     return (
-        f"The request states {listed}, and no search this pass read has a "
-        f"parameter that states it, so the strategy does not. Say so in the "
-        f"reply, naming each word, and what the strategy returns without it."
+        f"The check measured {listed}. Your reply does not state it; give the numbers."
     )
 
 

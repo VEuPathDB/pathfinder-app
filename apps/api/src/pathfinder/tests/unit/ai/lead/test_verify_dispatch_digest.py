@@ -18,6 +18,7 @@ from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
 from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.caveats import BuildCaveat, StructureGap
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
@@ -132,16 +133,14 @@ async def test_success_over_a_zero_push_build_is_refused(
 
     assert delta.digest.success is False
     assert delta.digest.reason == (
-        "Verification reported success, but this turn built nothing and no "
-        "step of the strategy is in VEuPathDB."
+        "Verification reported success, and the ledger records what the strategy "
+        "does not answer."
     )
-    assert "built nothing" in delta.digest.prose
-    assert delta.digest.caveats == [
-        (
-            "The verification verdict was refused: this turn built nothing and no "
-            "step of the strategy is in VEuPathDB"
-        ),
-    ]
+    assert delta.digest.prose.startswith(
+        "Verification cannot be reported: The build pushed 0 steps, failed 0, "
+        "skipped 0 and left 0 empty."
+    )
+    assert delta.digest.caveats == [BuildCaveat(pushed=0, failed=0, skipped=0, empty=0)]
     recorded = deps.state.domain.verification_digest
     assert recorded is not None
     assert recorded.success is False
@@ -263,8 +262,9 @@ async def test_success_over_a_violated_combination_is_refused(
 
     assert delta.digest.success is False
     assert delta.digest.failure_cause is FailureCause.STRUCTURE_VIOLATION
-    assert _COMBINATION in delta.digest.reason
-    assert "INTERSECT" in delta.digest.prose
+    assert delta.digest.gaps == [
+        StructureGap(expression=_COMBINATION, built="INTERSECT")
+    ]
     assert deps.state.turn_markers.verified is False
 
 

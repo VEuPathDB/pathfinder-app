@@ -28,7 +28,10 @@ class FrameResult(CamelModel):
         default_factory=list,
         description=(
             "One entry per open slot only the user can decide, each naming "
-            "the dimension its answer states and the value you recommend."
+            "the dimension its answer states, the value you recommend, and in "
+            "`options` up to 8 values the sheet you read offers for it: its "
+            "facets or its vocabulary. The Lead asks it on the question card "
+            "with those options."
         ),
     )
     changes: list[CriterionChange] = Field(

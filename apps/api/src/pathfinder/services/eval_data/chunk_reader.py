@@ -13,6 +13,7 @@ from assistant_core.conversation.ui_message_reducer import USER_MESSAGE_CHUNK_TY
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
+from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.evidence import (
     Citation,
     EvidenceCard,
@@ -52,7 +53,8 @@ class DigestView(CamelModel):
     success: bool
     reason: str = ""
     key_findings: list[str] = Field(default_factory=list)
-    caveats: list[str] = Field(default_factory=list)
+    caveats: list[Caveat] = Field(default_factory=list)
+    gaps: list[Gap] = Field(default_factory=list)
     pending_checks: list[str] = Field(default_factory=list)
     review: VerificationReview = Field(default_factory=VerificationReview)
 
@@ -156,7 +158,6 @@ def _redacted_review(review: VerificationReview) -> VerificationReview:
 
 def _redacted(card: EvidenceCard) -> EvidenceCard:
     """The card with every text on it redacted; counts and ids are not identity."""
-    verdict = card.verdict
     return card.model_copy(
         update={
             "strategy_url": (
@@ -179,16 +180,7 @@ def _redacted(card: EvidenceCard) -> EvidenceCard:
                 )
                 for cited in card.citations
             ],
-            "verdict": verdict.model_copy(
-                update={
-                    "pending_checks": [redact_text(p) for p in verdict.pending_checks],
-                    "refused_because": (
-                        None
-                        if verdict.refused_because is None
-                        else redact_text(verdict.refused_because)
-                    ),
-                }
-            ),
+            "pending_checks": [redact_text(p) for p in card.pending_checks],
             "review": _redacted_review(card.review),
         }
     )
@@ -220,8 +212,9 @@ def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | No
         success=latest.success,
         reason=redact_text(latest.reason),
         key_findings=[redact_text(line) for line in latest.key_findings],
-        caveats=[redact_text(line) for line in latest.caveats],
-        pending_checks=latest.pending_checks,
+        caveats=latest.caveats,
+        gaps=[gap.redacted(redact_text) for gap in latest.gaps],
+        pending_checks=[redact_text(step) for step in latest.pending_checks],
         requirements=[_redacted_row(row) for row in latest.review.requirements],
         evidence=read_evidence(rows),
     )

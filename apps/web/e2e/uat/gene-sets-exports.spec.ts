@@ -151,7 +151,7 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
     const site = siteShortName(siteId);
     const url = (await readConversation(apiClient, id)).wdkUrl ?? "";
     expect(url).toMatch(/\/app\/workspace\/strategies\/\d+$/);
-    const card = await expectEvidence(page, "Supported", counts.root);
+    const card = await expectEvidence(page, counts.root);
     await expect(
       card.getByRole("link", { name: `Run GO, pathway or word enrichment in ${site}` }),
     ).toHaveAttribute("href", new RegExp(`^${literal(url)}(/\\d+)?$`));

@@ -477,3 +477,130 @@ Fixed in a17: a recalled-memory part whose data does not match the current wire 
 
 **What you'd get.** Conversations from a16 on show the date; older ones show the stale-part notice on that figure.
 
+---
+
+## FND-24 - The organism phrase is split
+
+Fixed in a18: the intent gate holds an organism phrase the message states whole to the site's organism vocabulary and refuses a split of it.
+
+**What I did.** vectorbase, turn 1 of S5 and X6: `Find Anopheles gambiae PEST genes with a predicted signal peptide and 2 to 99 transmembrane domains.` Two runs each.
+
+**What I got.** All six vectorbase runs of a PEST prompt (S5 x2, X6 x2, S2, S1): `classify_user_intent` records organism `"Anopheles gambiae"` and a separate hard `user_explicit` constraint `"PEST genes"` (labels "PEST gene annotation", "Gene annotation: PEST genes", "gene category"). FRAME then binds a third leaf in 4 of 6: `GenesByText` text `"PEST"` in `GeneModelCharacteristics` (13,845 genes) or `GenesByGeneModelChars` with `organism_select_none ["Anopheles gambiae PEST"]` (13,845 genes). S5 ends on 6 steps instead of 4, X6 on 5 instead of 3; root counts 850 and 343 are unchanged. The plasmodb S2 prompt ("Plasmodium falciparum 3D7") never splits.
+
+**Why that's wrong.** The strategy carries a step the researcher never asked for, and the S5 reply presents it as biology: "searching the gene-model characteristics for the PEST annotation". PEST is the strain.
+
+**Why it happens.** `ai/lead/lead_tools.py:151-172` (`classify_user_intent`) accepts every constraint the model writes into `ai/lead/intent.py:100-108` (`UserIntent.explicit_constraints`); the only check on the intent is `unstated_operator_refusal` (`intent.py:122-143`). Nothing holds an organism phrase to the site's organism vocabulary, which the tool server already reads (`veupathdb_mcp.gene_lookup.list_organisms`, `.venv/.../veupathdb_mcp/gene_lookup/organisms.py:18-34`, the `organism` vocabulary of `SequencesByTaxon`; `assistants/site_help/agent.py:145` calls it).
+
+**Fix.** The gate refuses a classification that records part of an organism entry the message states whole, or a requirement built from a word inside that entry.
+
+**What you'd get.** Organism `"Anopheles gambiae PEST"`, no "PEST genes" constraint; X6 3 steps, 343; S5 4 steps, 850 (the recorded expectations).
+
+---
+
+## FND-25 - The exported binding drops the value variable
+
+Fixed in a18: the exported analysis binding and the study-step check carry the value variable the compute ran on, named by the study.
+
+**What I did.** plasmodb E2: `Open the PlasmoDB study 'Heat shock response in sensitive mutants (LRR5, DHC)' and compare the wild type samples with the DHC mutant samples by differential expression on the sense counts.`
+
+**What I got.** `run_eda_compute` with `value_variable {"variableId": "SEQUENCE_READ_COUNT_SENSE"}`, DESeq, "201 of 5490 genes pass ... 31 higher in delta-DHC mutant and 170 higher in wildtype". The step's `eda_analysis_spec` holds `"valueVariable":{"variableId":"SEQUENCE_READ_COUNT_SENSE"}`. `check_study_step` returns "201 records at 2-fold and p 0.05, DESeq: genes that differ between wildtype and delta-DHC mutant". VERIFY: "Use sense counts" `unexpressed` (run 1) / `unmet` (rerun), note "No step parameter or analysis specification states the count type.", `success: false`.
+
+**Why that's wrong.** The analysis is right and the card reads `Not supported`; the reply tells the researcher the 201 genes lack "verified sense-count selection".
+
+**Why it happens.** `services/eda/export.py:162-206` (`analysis_binding`) copies the comparison, the method and the volcano cut off the compute's configuration, never its `value_variable` (`.venv/.../veupathdb/eda/models.py:371-378`, `EdaDifferentialExpressionConfig.value_variable`). `domain/strategy/analysis_binding.py:27-42` has no field for it, so `ai/tools/standalone/strategy_graph.py:163-177` (`StudyStepCheck`) and its summary (`:371-385`) state no count type.
+
+**Fix.** The binding and the check carry the value variable, named by the study.
+
+**What you'd get.** "201 records at 2-fold and p 0.05, DESeq on <display name of SEQUENCE_READ_COUNT_SENSE>: ...", "Use sense counts" met, 201, one step.
+
+---
+
+## FND-26 - "cell" of "host cell" is read as a qualifier
+
+Fixed in a18: a word is a qualifier only when the text puts it in the same compound as the parameter name that owns it.
+
+**What I did.** plasmodb S10: the S2 request (116 genes), then `Also keep only those predicted to be exported to the host cell, with an ExportPred score of at least 10.`
+
+**What I got.** FRAME bound `GenesByExportPrediction`, `min_exportpred_score=10` (191 genes), root INTERSECT 25 genes, 5 steps; criterion text "predicted to be exported to the host cell with an ExportPred score of at least 10 in Plasmodium falciparum 3D7 genes"; `unexpressedQualifiers: ["cell"]` (21 events). Run 1: the ledger refused VERIFY's success, "the request states 'cell', and no search the strategy runs can state it". Rerun: VERIFY wrote "The literal host `cell` qualifier" `unexpressed`.
+
+**Why that's wrong.** ExportPred predicts export into the host erythrocyte; the strategy answers the request at the recorded count (25) and the card says `Not supported` over one word of a noun phrase.
+
+**Why it happens.** `ai/tools/standalone/_qualifier_words.py:105-121` (`the_one_search_naming`) makes a qualifier of any stem exactly one transcript search carries in a parameter name. On the cached plasmodb catalog, `cell` belongs to `GenesBySingleCell` through `organismsWithSingleCell` and `singleCellDataset` (Single Cell RNA-Seq Evidence). `_frame_qualifiers.py:154` keeps it, `GenesByExportPrediction` speaks no "cell" (its description says "exported protein"), no sibling states it, so `_frame_qualifiers.py:186-196` files it in `left` and `:118-120` records it; the ledger refuses at `ai/lead/verify_dispatch.py:268-273`.
+
+**Fix.** A qualifier is the phrase the owning parameter names; a word that heads a different compound in the text is not that phrase.
+
+**What you'd get.** No unexpressed word, 25 genes, 5 steps; the evidence card shows no refusal.
+
+---
+
+## FND-27 - Another search "outstates" through an experiment's title
+
+Fixed in a18: only the search whose parameter names made the word a qualifier can outstate a bound search; a word in another search's option label states nothing.
+
+**What I did.** plasmodb N1: `Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent.`, the question card answered with its recommended option.
+
+**What I got.** Rerun: `consult_user` asked "Which metric and cutoff should define "do not vary much between isolates"?"; the answer `["Highest minor-allele frequency <= 5%"]` reached the model. Three binds of `GenesByVariantCharacteristics` (texts "genes whose highest minor-allele frequency is at most 5% across P. falciparum isolates") were refused: "Short Variant Characteristics has no parameter that states 'isolates'. On plasmodb, P. vivax P01 Patient isolates cultured through the intraerythrocytic development cycle RNA-Seq (percentile) carries 'isolates' (Experiment). Bind that search." The turn built nothing.
+
+**Why that's wrong.** The researcher answers the question and gets no strategy; FRAME is told to bind a P. vivax expression experiment for a P. falciparum conservation criterion.
+
+**Why it happens.** `isolat` is a qualifier because `GenesByNgsSnps` (SNV Characteristics Within a Group of Samples) names `MinPercentIsolateCalls` (cached plasmodb catalog). The refusal at `_frame_qualifiers.py:186-202` takes the first sibling whose `statements()` (`_qualifier_words.py:174-216`) finds the stem anywhere, including one option label of an `Experiment` parameter, which is a dataset title. The carrier it names is not the search that made the word a qualifier.
+
+**Fix.** Only the search that owns the qualifier can outstate the bound search; with 2.3 the N1 phrases stop being qualifiers at all.
+
+**What you'd get.** `GenesByVariantCharacteristics` binds (once 2.5 lands), three criteria build.
+
+---
+
+## FND-28 - A range facet has no bindable form
+
+Fixed in a18: the tool server writes a range facet as {min, max} and a member facet as a list (veupathdb-mcp v0.2.0a30), and a proposal carries an object value as its JSON text.
+
+**What I did.** N1 run 1, FRAME on `GenesByVariantCharacteristics`.
+
+**What I got.** `gene_variant_stats: "variants_per_kb=0"` became `{"filters":[{"includeUnknown":false,"field":"variants_per_kb","type":"number","value":["0"],"isRange":true}]}` and WDK answered "Invalid stable value. Can't parse JSON. JSONObject["value"] is not a JSONObject (class org.json.JSONArray)". The object form `{"filters":[{"type":"number","field":"variants_per_kb","value":{"max":0,"min":0},"isRange":true,...}]}` was refused by the tool: "Value error, gene_variant_stats: Input should be a valid string". The sheet showed `value_format: {"type": "filter", "filters": [{"field": "<field>", "value": <value>}]}` with 16 facets, 15 of them `type number, is_range true`.
+
+**Why that's wrong.** No value FRAME can write reaches WDK, so every isolate-variation criterion on every site fails; the Lead then asks in prose.
+
+**Why it happens.** Two places. `veupathdb-mcp` `catalog/_param_filters.py:49-62` types a clause's `value` as `list[JsonValue]` and wraps a scalar or an object into a list, and `:158-185` writes the `facet=value` shorthand as a member list whatever `field.is_range` says; WDK's contract (wdk-client `Components/AttributeFilter/Types.ts:60-61,106-110`) is `RangeValue = {min?, max?}` for a range facet and a list only for a member facet. PathFinder's `ai/tools/standalone/_frame_proposals.py:58-103` types every proposal as `str | list[str] | None`, so the object form never reaches the tool server.
+
+**Fix.** The tool server writes the WDK shape per facet; PathFinder carries an object proposal as its JSON text.
+
+**What you'd get.** `{"field":"max_minor_allele_frequency","type":"number","isRange":true,"value":{"max":0.05}}` accepted by WDK, a count on the step.
+
+---
+
+## FND-29 - The separation card states a list size the call does not carry
+
+Fixed in a18: a turn-contract rule holds every stated control-list size to a list the turn holds.
+
+**What I did.** plasmodb V4, the controls message with 80 positives and 40 negatives.
+
+**What I got.** `separate_controls` args `positive_controls` 80 ids; card reply "using the 78 positive controls" (run 1), "the 81 positive controls" (rerun). Run 1's final reply: "one malformed extra negative entry, so it had 41 entries rather than the 40". The card contract passed both.
+
+**Why that's wrong.** The researcher approves a run on a card that misstates what it measures, and reads a list-size claim no record supports.
+
+**Why it happens.** `ai/lead/card_contract.py:55-90` reconciles the card reply through `turn_contract.reconcile`; the only control-count reader is `ai/lead/evidence_claims.py:22-27` (`_COUNT`), which reads "<n> of <m> positive controls". A bare "the 78 positive controls" is read by nothing, and `TurnRecord` (`ai/lead/turn_record.py:47-87`) holds no size of the lists the card's call carries.
+
+**Fix.** A contract rule holds every stated control-list size to a list the turn holds.
+
+**What you'd get.** The first card reply is denied with "Your reply says 78 positive controls; the lists this turn holds are 80 positive and 40 negative controls", and the second states 80.
+
+The "41 entries" sentence names entries, not controls; 2.6 does not read it, and no rule is added for that one wording.
+
+---
+
+## FND-30 - A reasoning block reaches the reply
+
+Fixed in a18: the card hold drops every free text part of the Lead model's own stream; the researcher reads only the validated reply or a card's reply.
+
+**What I did.** N1 run 1.
+
+**What I got.** Before the `final_result` call the Lead model streamed a text part in the OpenAI `commentary` phase: `text-start` id `7cac3451-...`, deltas `<th`, `ink`, `>\n\n`, `</`, `think`, `>`, `text-end` (events 316-323). The reply the researcher reads is that part followed by the `lead-prose-*` part: it begins with `<think>\n\n</think>`.
+
+**Why that's wrong.** The researcher reads model markup as the first line of the answer.
+
+**Why it happens.** The Lead's output type is `[LeadResponse, DeferredToolRequests]` (`ai/lead/lead_agent.py:139`), so a free text part is never the reply, yet `ai/graph/_lead_card_hold.py:85-87` holds it and `:101` releases it whenever no card waits; the real reply is written separately by `ai/graph/_lead_capture.py:254-266`. The runtime adapter (`assistant_core/conversation/vercel_adapter.py:81-86`) forwards the part as any text part should; the choice of what a turn shows is PathFinder's.
+
+**Fix.** The hold drops every text part of the Lead model's own stream. No runtime release.
+
+**What you'd get.** The reply starts at "I can build this strategy ...".

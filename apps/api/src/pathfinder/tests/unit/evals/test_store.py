@@ -161,3 +161,9 @@ def test_every_free_text_field_is_checked_for_an_identity(
 
     with pytest.raises(RedactionFailedError, match="email"):
         case.assert_de_identified()
+
+
+def test_the_organism_proof_case_loads_and_is_de_identified() -> None:
+    case = load_case("uat-s5-toxodb")
+
+    assert (case.site_id, case.assert_de_identified()) == ("toxodb", True)

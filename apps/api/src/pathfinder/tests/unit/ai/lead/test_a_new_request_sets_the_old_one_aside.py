@@ -48,9 +48,9 @@ def _old_request(*, built: bool = False) -> StrategyDomainState:
     )
 
 
-def _new_request(domain: StrategyDomainState) -> LeadDeps:
+async def _new_request(domain: StrategyDomainState) -> LeadDeps:
     deps = draft_deps(_NEW, domain=domain)
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
     return deps
 
 
@@ -67,8 +67,10 @@ def _edit_order(deps: LeadDeps, spec: OperationalSpec) -> str:
     )
 
 
-def test_a_new_request_over_an_unbuilt_draft_sets_the_request_state_aside() -> None:
-    domain = _new_request(_old_request(built=True)).state.domain
+async def test_a_new_request_over_an_unbuilt_draft_sets_the_request_state_aside() -> (
+    None
+):
+    domain = (await _new_request(_old_request(built=True))).state.domain
 
     assert domain.operational_spec is None
     assert domain.requirements == []
@@ -78,8 +80,8 @@ def test_a_new_request_over_an_unbuilt_draft_sets_the_request_state_aside() -> N
     assert domain.last_build_outcome is None
 
 
-def test_the_fresh_order_reads_the_new_request_alone() -> None:
-    deps = _new_request(_old_request())
+async def test_the_fresh_order_reads_the_new_request_alone() -> None:
+    deps = await _new_request(_old_request())
 
     order = frame_work_order("frame the new request", deps)
 
@@ -92,12 +94,12 @@ def test_the_fresh_order_reads_the_new_request_alone() -> None:
     assert (draft.goal, draft.criteria) == (_NEW, [])
 
 
-def test_a_new_request_over_a_built_strategy_keeps_the_request() -> None:
+async def test_a_new_request_over_a_built_strategy_keeps_the_request() -> None:
     deps = draft_deps(
         _NEW, domain=_old_request(), strategy_session=session_with_one_step()
     )
 
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
 
     domain = deps.state.domain
     assert domain.original_request == _OLD
@@ -105,11 +107,13 @@ def test_a_new_request_over_a_built_strategy_keeps_the_request() -> None:
     assert domain.operational_spec == framed(None)
 
 
-def test_a_new_request_over_a_built_strategy_reaches_the_edit_as_no_answer() -> None:
+async def test_a_new_request_over_a_built_strategy_reaches_the_edit_as_no_answer() -> (
+    None
+):
     deps = draft_deps(
         _NEW, domain=_old_request(), strategy_session=session_with_one_step()
     )
-    classify(deps, IntentClassification.NEW_STRATEGY)
+    await classify(deps, IntentClassification.NEW_STRATEGY)
     spec = deps.state.domain.operational_spec
     assert spec is not None
 
@@ -123,14 +127,14 @@ def test_a_new_request_over_a_built_strategy_reaches_the_edit_as_no_answer() -> 
     assert QUESTION.question not in order
 
 
-def test_a_reclassification_keeps_the_frame_this_turn_already_ran() -> None:
+async def test_a_reclassification_keeps_the_frame_this_turn_already_ran() -> None:
     """A reclassification after this turn framed sets nothing aside."""
     deps = draft_deps(_NEW, domain=StrategyDomainState(original_request=_NEW))
-    classify(deps, IntentClassification.EXTEND_STRATEGY)
+    await classify(deps, IntentClassification.EXTEND_STRATEGY)
     deps.state.domain.operational_spec = framed("signal peptide")
     deps.state.turn_markers.framed = True
 
-    classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
+    await classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
 
     assert deps.state.domain.operational_spec == framed("signal peptide")
     assert deps.state.domain.original_request == _NEW
@@ -138,13 +142,13 @@ def test_a_reclassification_keeps_the_frame_this_turn_already_ran() -> None:
     assert offered == frozenset({"build_strategy"})
 
 
-def test_a_reclassification_keeps_the_request_this_turn_already_built() -> None:
+async def test_a_reclassification_keeps_the_request_this_turn_already_built() -> None:
     """A reclassification after this turn wrote the strategy sets nothing aside."""
     deps = draft_deps(_NEW, domain=_old_request())
-    classify(deps, IntentClassification.EXTEND_STRATEGY)
+    await classify(deps, IntentClassification.EXTEND_STRATEGY)
     deps.state.turn_markers.built = True
 
-    classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
+    await classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
 
     domain = deps.state.domain
     assert domain.original_request == _OLD
@@ -152,26 +156,26 @@ def test_a_reclassification_keeps_the_request_this_turn_already_built() -> None:
     assert domain.operational_spec == framed(None)
 
 
-def test_a_reclassification_keeps_the_answers_a_consult_took_this_turn() -> None:
+async def test_a_reclassification_keeps_the_answers_a_consult_took_this_turn() -> None:
     """A consult the researcher answered is work, though it licenses a new frame."""
     deps = draft_deps(_NEW, domain=_old_request())
-    classify(deps, IntentClassification.EXTEND_STRATEGY)
+    await classify(deps, IntentClassification.EXTEND_STRATEGY)
     deps.state.turn_markers.consulted = True
 
-    classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
+    await classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
 
     assert deps.state.domain.requirements == [_ORGANISM]
     assert deps.state.domain.original_request == _OLD
 
 
-def test_a_reclassification_to_a_new_request_before_any_frame_sets_the_old_aside() -> (
+async def test_a_reclassification_to_a_new_request_before_any_frame_sets_the_old_aside() -> (
     None
 ):
     """The classifier corrects itself before any work, so the old request goes."""
     deps = draft_deps(_NEW, domain=_old_request())
-    classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
+    await classify(deps, IntentClassification.FOLLOW_UP_QUESTION)
 
-    classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
+    await classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
 
     domain = deps.state.domain
     assert domain.original_request == _NEW
@@ -181,15 +185,17 @@ def test_a_reclassification_to_a_new_request_before_any_frame_sets_the_old_aside
     assert framing_goal(deps.state) == _NEW
 
 
-def test_a_reclassification_to_a_new_request_over_steps_drops_the_answer() -> None:
+async def test_a_reclassification_to_a_new_request_over_steps_drops_the_answer() -> (
+    None
+):
     """The questions a new request sets aside are not answered by it."""
     deps = draft_deps(
         _NEW, domain=_old_request(), strategy_session=session_with_one_step()
     )
-    classify(deps, IntentClassification.CLARIFICATION_RESPONSE)
+    await classify(deps, IntentClassification.CLARIFICATION_RESPONSE)
     assert deps.state.turn_markers.answered is not None
 
-    classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
+    await classify(deps, IntentClassification.NEW_STRATEGY, call_id="t_classify_2")
 
     assert deps.state.turn_markers.answered is None
     assert deps.state.domain.original_request == _OLD
@@ -240,7 +246,7 @@ async def test_the_budget_retry_of_a_new_request_continues_the_fresh_frame(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     orders = _stopping_frame(monkeypatch)
-    deps = _new_request(_old_request())
+    deps = await _new_request(_old_request())
 
     await run_frame(
         deps=deps,
@@ -265,7 +271,7 @@ async def test_the_budget_retry_over_a_draft_with_no_step_is_no_edit(
         goal=_OLD, criteria=[Criterion(id="c_surface", text="on the surface")]
     )
     deps = draft_deps(_NEW, domain=StrategyDomainState(operational_spec=unbound))
-    classify(deps)
+    await classify(deps)
 
     await run_frame(
         deps=deps,

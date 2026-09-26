@@ -18,7 +18,7 @@ Every count below is genes (WDK `estimatedSize`), measured on build 71 on 2026-0
 | Status line under the reply | `Planning...`, then `Checking...` |
 | Trace | Groups `PLANNING` and `CHECKING` (CSS); rows `Find searches`, `Read a search`, `Choose a search`, `Arrange the steps`, `Read the strategy`, `Count results`, `Read sample records` |
 | Figure `Strategy updated` | caption `<n> steps, <root count> genes` |
-| Figure `Evidence` | verdict `Supported`; step table `Step`, `Recorded at the build`, `On the site at the check`, both columns equal; `<m> of <m> requirements met`; up to 8 sampled genes; link `Open in <Site>` |
+| Figure `Evidence` | no verdict line; step table `Step`, `Recorded at the build`, `On the site at the check`, both columns equal; the requirement table; up to 8 sampled genes; link `Open in <Site>` |
 | Reply | names each step by the search it runs (`Predicted Signal Peptide`, `Transmembrane Domain Count`, `Transform by Orthology`) with the reason, and states the root count |
 | Right rail `Strategy` | opens by itself; footer `<n> steps`; `Open` goes to the canvas |
 | Canvas (`Open`) | topbar `<n> steps` and `Saved`; each search node shows `<count> genes`; combine badge `Intersect`, `Union`, `Minus`, `Right minus`, `Colocate` |

@@ -18,18 +18,28 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
-from pathfinder.ai.models.mock import fault_calls
+from pathfinder.ai.models.mock import fault_calls, reply_faults
 from pathfinder.ai.models.mock.arc import Role
 
 
 @dataclass(frozen=True)
 class Fault:
     """The role a fault plays in, the wrong call it makes there, and how many
-    times the turn makes it before the arc goes on."""
+    times the turn makes it before the arc goes on. ``setup`` is the wrong call
+    of another role that gives this one something to be wrong about."""
 
     applies_to: Role
     wrong_call: fault_calls.WrongCall
     times: int = 1
+    setup: Fault | None = None
+
+    def playing(self, role: Role) -> Fault | None:
+        """The part of the fault this role plays, or None."""
+        if self.applies_to == role:
+            return self
+        if self.setup is not None and self.setup.applies_to == role:
+            return self.setup
+        return None
 
 
 # A FRAME tool may be refused three times; the fourth refusal stops the pass.
@@ -49,8 +59,18 @@ FAULTS: dict[str, Fault] = {
     "unbacked-controls": Fault("lead", fault_calls.unbacked_controls),
     "misstated-count": Fault("lead", fault_calls.misstated_count),
     "misnamed-deletion": Fault("lead", fault_calls.misnamed_deletion),
+    "unstated-caveat": Fault("lead", reply_faults.unstated_caveat),
+    "unstated-gap": Fault(
+        "lead",
+        reply_faults.unstated_gap,
+        setup=Fault("verification", reply_faults.unmet_requirement),
+    ),
+    "misstated-control-list": Fault("lead", reply_faults.misstated_control_list),
+    "organism-split": Fault("lead", reply_faults.organism_split),
+    "open-value-in-prose": Fault("lead", reply_faults.open_value_in_prose),
 }
 
+ANSWER = "final_result"
 # The id prefix that marks a call a fault made, which the arc does not count.
 _FAULT_CALL = "fault_"
 
@@ -93,8 +113,8 @@ def fault_call(
     the fault has answered."""
     if name is None:
         return None
-    fault = fault_named(name)
-    if fault.applies_to != role:
+    fault = fault_named(name).playing(role)
+    if fault is None:
         return None
     wrong = fault.wrong_call(messages)(intended)
     if wrong is None or _answered(messages, wrong, fault.times):
@@ -120,15 +140,29 @@ def _answers_a_fault(part: object) -> bool:
             return False
 
 
+def _a_draft(part: object) -> bool:
+    """A reply a fault wrote, which the model reads back as its own draft."""
+    match part:
+        case ToolCallPart(tool_name=name):
+            return name == ANSWER
+        case _:
+            return False
+
+
 def without_fault_calls(messages: list[ModelMessage]) -> list[ModelMessage]:
     """The run as the arc reads it: every call a fault made, and the answer or
-    refusal it got, is left out."""
+    refusal it got, is left out. A refused reply stays as the model's draft."""
     kept: list[ModelMessage] = []
     for message in messages:
         match message:
             case ModelResponse(parts=parts):
                 kept.append(
-                    replace(message, parts=[p for p in parts if not made_by_a_fault(p)])
+                    replace(
+                        message,
+                        parts=[
+                            p for p in parts if not made_by_a_fault(p) or _a_draft(p)
+                        ],
+                    )
                 )
             case ModelRequest(parts=parts):
                 kept.append(

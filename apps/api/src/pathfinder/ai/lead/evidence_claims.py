@@ -1,5 +1,6 @@
-"""The control counts, control gene ids and sampled-gene counts a reply states,
-held to the tests the turn ran and the sample the check judged."""
+"""The control counts, control list sizes, control gene ids and sampled-gene
+counts a reply states, held to the tests the turn ran and the sample the check
+judged."""
 
 from __future__ import annotations
 
@@ -12,10 +13,12 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
+    GeneFit,
     SampledGene,
 )
 
 ControlKind = Literal["positive", "negative"]
+_KINDS: tuple[ControlKind, ...] = ("positive", "negative")
 
 _EMPHASIS = re.compile(r"\*+")
 # A count names controls: "positive controls", or the kind as a noun ("negatives").
@@ -23,6 +26,17 @@ _COUNT = re.compile(
     r"(?<![\w.])(\d[\d,]*)\s*(?:of|out of|/)\s*(?:the\s+|all\s+)?(\d[\d,]*)\s+"
     r"(?:known\s+|reference\s+|tested\s+)?(positive|negative)"
     r"(?:\s+controls?\b|s\b)",
+    re.IGNORECASE,
+)
+# A list size is a count whose noun is the list itself: "the 80 positive
+# controls", "81 positives", "80 positive and 40 negative controls". A count
+# after a word that picks a part of the list ("the top 20 positives") is not.
+_LIST = re.compile(
+    r"(?<![\w.,])(?:(?P<part>top|bottom|first|last|best|highest|lowest|"
+    r"remaining|other|only|extra|additional)\s+)?"
+    r"(?P<size>\d[\d,]*)\s+(?:known\s+|reference\s+|tested\s+)?"
+    r"(?P<kind>positive|negative)"
+    r"(?:\s+controls?\b|s\b|(?=\s+and\s+\d[\d,]*\s+(?:positive|negative)\s+controls?\b))",
     re.IGNORECASE,
 )
 # A clause ends at a sentence end, a line break or a contrast.
@@ -45,12 +59,13 @@ _RETURNED = re.compile(
     r"\b(?:returned|recovered|found|retrieved|captured|admitted)\b", re.IGNORECASE
 )
 # "all 8 sampled genes fit", "6 of 8 sampled genes fit", "2 of the 8 sampled
-# genes do not fit".
+# genes do not fit", "2 of 8 sampled genes are unclear".
 _SAMPLE = re.compile(
     r"\b(?:(?P<all>all)(?:\s+(?P<all_of>\d+))?"
     r"|(?P<stated>\d+)\s*(?:of|out of|/)\s*(?:the\s+)?(?P<of>\d+))"
     r"\s+sampled\s+genes?\s+"
-    r"(?P<negated>(?:do|does|did)\s+not\s+|(?:don|doesn|didn)'t\s+)?fit\b",
+    r"(?:(?:are\s+|is\s+|were\s+|was\s+)?(?P<unclear>unclear)\b"
+    r"|(?P<negated>(?:do|does|did)\s+not\s+|(?:don|doesn|didn)'t\s+)?fit\b)",
     re.IGNORECASE,
 )
 
@@ -145,12 +160,12 @@ def _number(text: str) -> int:
     return int(text.replace(",", ""))
 
 
-def _count_claims(prose: str) -> list[ControlClaim]:
+def _count_claims(prose: str) -> list[CountClaim]:
     return [
         CountClaim(
             stated=_number(match[1]),
             of=_number(match[2]),
-            kind="positive" if match[3].casefold() == "positive" else "negative",
+            kind=_kind(match[3]),
             returned=_filed_as_returned(clause),
         )
         for clause in _CLAUSE_END.split(prose)
@@ -183,30 +198,47 @@ def _id_claims(prose: str) -> list[ControlClaim]:
     return claims
 
 
+def count_claims(prose: str) -> list[CountClaim]:
+    """Every control count the prose states."""
+    return _count_claims(_EMPHASIS.sub("", prose))
+
+
 def control_claims(prose: str) -> list[ControlClaim]:
     """Every control count and control gene id the prose states."""
     plain = _EMPHASIS.sub("", prose)
     return [*_count_claims(plain), *_id_claims(plain)]
 
 
+_FIT_WORDS: dict[GeneFit, str] = {
+    "yes": "fit",
+    "no": "do not fit",
+    "unclear": "unclear",
+}
+
+
 @dataclass(frozen=True)
 class SampleClaim:
-    """A stated number of sampled genes that fit, or do not, out of a total.
+    """A stated number of sampled genes that fit, do not, or are unclear, out
+    of a total.
 
     ``stated`` None is "all"; ``of`` None is a total the prose does not give.
     """
 
     stated: int | None
     of: int | None
-    fits: bool
+    fits: GeneFit
 
     def text(self) -> str:
         count = "all" if self.stated is None else str(self.stated)
         total = "" if self.of is None else f" {self.of}"
         if self.stated is not None and self.of is not None:
             total = f" of {self.of}"
-        verb = "fit" if self.fits else "do not fit"
-        return f"{count}{total} sampled genes {verb}"
+        return f"{count}{total} sampled genes {_FIT_WORDS[self.fits]}"
+
+    def holds(self, count: int, total: int) -> bool:
+        """Whether the claim states this count of genes out of this total."""
+        stated = total if self.stated is None else self.stated
+        return (stated, total if self.of is None else self.of) == (count, total)
 
     def unbacked(self, genes: Sequence[SampledGene]) -> str | None:
         """Why the sample does not hold the count, or None when it does."""
@@ -215,10 +247,8 @@ class SampleClaim:
             return f"{said}, and no check sampled a gene."
         fitting = sum(1 for gene in genes if gene.fits == "yes")
         misfits = [gene.gene_id for gene in genes if gene.fits == "no"]
-        wanted = fitting if self.fits else len(misfits)
-        stated = len(genes) if self.stated is None else self.stated
-        total = len(genes) if self.of is None else self.of
-        if (stated, total) == (wanted, len(genes)):
+        wanted = sum(1 for gene in genes if gene.fits == self.fits)
+        if self.holds(wanted, len(genes)):
             return None
         listed = ", ".join(f"`{gene_id}`" for gene_id in misfits)
         named = f" ({listed})" if listed else ""
@@ -229,8 +259,14 @@ class SampleClaim:
         )
 
 
+def _fit(match: re.Match[str]) -> GeneFit:
+    if match["unclear"] is not None:
+        return "unclear"
+    return "no" if match["negated"] is not None else "yes"
+
+
 def sample_claims(prose: str) -> list[SampleClaim]:
-    """Every count of sampled genes that fit, or do not, the prose states."""
+    """Every count of sampled genes that fit, do not, or are unclear, the prose states."""
     return [
         SampleClaim(
             stated=None if match["all"] else int(match["stated"]),
@@ -239,7 +275,7 @@ def sample_claims(prose: str) -> list[SampleClaim]:
                 if (total := match["all_of"] or match["of"]) is not None
                 else None
             ),
-            fits=match["negated"] is None,
+            fits=_fit(match),
         )
         for match in _SAMPLE.finditer(_EMPHASIS.sub("", prose))
     ]
@@ -255,6 +291,85 @@ def unbacked_sample_claims(
         if sentence is not None and sentence not in found:
             found.append(sentence)
     return found
+
+
+@dataclass(frozen=True)
+class ControlList:
+    """A list of controls of one kind the turn holds, by its size."""
+
+    kind: ControlKind
+    size: int
+
+    def text(self) -> str:
+        return f"{self.size} {self.kind}"
+
+
+@dataclass(frozen=True)
+class ListClaim:
+    """A stated size of a list of controls of one kind."""
+
+    stated: int
+    kind: ControlKind
+
+    def text(self) -> str:
+        return f"{self.stated} {self.kind} controls"
+
+
+def _kind(text: str) -> ControlKind:
+    return "positive" if text.casefold() == "positive" else "negative"
+
+
+def list_claims(prose: str) -> list[ListClaim]:
+    """Every count the prose states whose noun is a list of controls.
+
+    A count out of a total is a result, not a size, and a count of a part of
+    the list names no list.
+    """
+    return [
+        ListClaim(stated=_number(match["size"]), kind=_kind(match["kind"]))
+        for clause in _CLAUSE_END.split(_EMPHASIS.sub("", prose))
+        for match in _LIST.finditer(_COUNT.sub(" ", clause))
+        if not match["part"]
+    ]
+
+
+def control_lists(tests: Iterable[ControlTestEvidence]) -> tuple[ControlList, ...]:
+    """The size of every list of controls the results were measured on."""
+    held = tuple(tests)
+    return tuple(
+        dict.fromkeys(
+            ControlList(kind=kind, size=each.controls_count)
+            for kind in _KINDS
+            for each in _sets(held, kind)
+        )
+    )
+
+
+def unbacked_list_claims(
+    claims: Sequence[ListClaim],
+    lists: Sequence[ControlList],
+    tests: Sequence[ControlTestEvidence],
+) -> list[ListClaim]:
+    """The claims that are neither a list of their kind nor a count a control
+    result backs (returned or not returned), each once.
+
+    A kind the turn holds no list of has no size to hold a claim to.
+    """
+    backed = {
+        (kind, count)
+        for kind in _KINDS
+        for each in _sets(tests, kind)
+        for count in (each.returned_count, len(each.not_returned))
+    }
+    return list(
+        dict.fromkeys(
+            claim
+            for claim in claims
+            if any(held.kind == claim.kind for held in lists)
+            and ControlList(kind=claim.kind, size=claim.stated) not in lists
+            and (claim.kind, claim.stated) not in backed
+        )
+    )
 
 
 def backing_results(
@@ -281,12 +396,18 @@ def unbacked_claims(
 
 __all__ = [
     "ControlClaim",
+    "ControlList",
     "CountClaim",
     "IdClaim",
+    "ListClaim",
     "SampleClaim",
     "backing_results",
     "control_claims",
+    "control_lists",
+    "count_claims",
+    "list_claims",
     "sample_claims",
     "unbacked_claims",
+    "unbacked_list_claims",
     "unbacked_sample_claims",
 ]

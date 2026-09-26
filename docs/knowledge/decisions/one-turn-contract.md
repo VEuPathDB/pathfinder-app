@@ -65,13 +65,18 @@ through) is refused whatever the turn did and whatever `next_state` says, unless
 card they accepted. The correction names the three ways out: an offer goes on a proposal card
 (`propose_changes`), a question for a value goes in `asked_questions`, anything else ends without
 a question. A reply that ends on a card is reconciled too, before the card is shown, by the
-deferred-call handler that denies the card with the correction. The first trigger stays beside it: a framed turn waiting on the user that asks
-anywhere in its prose and records nothing. See
+deferred-call handler that denies the card with the correction. A value a frame pass of the
+turn leaves open is asked on the question card: `open_value_in_prose` refuses a reply that does
+not end on a card while one is open, with its options from the ledger's `OPEN` line or the
+question's `options`. See
 [an-offer-is-a-card-not-prose](an-offer-is-a-card-not-prose.md).
 
 The `unbacked_evidence` rule reads the prose against the control tests the turn recorded: a
 control count or a control gene id the reply states must be one a test of this turn filed
-(`ai/lead/evidence_claims.py`, see [VERIFY shows its evidence](verify-shows-its-evidence.md)).
+(`ai/lead/evidence_claims.py`, see [VERIFY shows its evidence](verify-shows-its-evidence.md)). A
+bare list size ("the 80 positive controls", "81 positives") is held by `misstated_control_list`
+(`ai/lead/verdict_claims.py`) to a list the turn holds: the lists a `separate_controls` card call
+carries, or the size a control result was measured on.
 
 The `counted_in_the_wrong_unit` rule reads the prose against the counts of the steps the
 strategy holds: a transcript strategy is counted in genes (`graph_helpers.py::counted_noun`), so

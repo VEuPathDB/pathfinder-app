@@ -6,6 +6,8 @@ same record as a typed reply before the card reaches the researcher.
 
 from __future__ import annotations
 
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict, Field
 from pydantic_ai import RunContext
 from pydantic_ai.tools import (
     DeferredToolApprovalResult,
@@ -16,6 +18,7 @@ from pydantic_ai.tools import (
 
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, CardCallReply
 from pathfinder.ai.lead.deleted_steps import DELETE_TOOL
+from pathfinder.ai.lead.evidence_claims import ControlList
 from pathfinder.ai.lead.proposal import ADOPT_TOOL, OFFER_TOOLS, AdoptionArgs
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
@@ -40,6 +43,31 @@ CARD_TOOLS: frozenset[str] = frozenset(
 )
 
 _NOT_SHOWN = "The card was not shown to the researcher. Answer again with the card."
+
+
+class _SeparationLists(CamelModel):
+    """The control lists a separation card's call carries."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    positive_controls: list[str] = Field(default_factory=list)
+    negative_controls: list[str] = Field(default_factory=list)
+
+    def lists(self) -> tuple[ControlList, ...]:
+        return (
+            ControlList(kind="positive", size=len(set(self.positive_controls))),
+            ControlList(kind="negative", size=len(set(self.negative_controls))),
+        )
+
+
+def _card_lists(requests: DeferredToolRequests) -> tuple[ControlList, ...]:
+    """The control lists every separation call of one response carries."""
+    return tuple(
+        held
+        for call in requests.approvals
+        if call.tool_name == SEPARATION.tool_name
+        for held in _SeparationLists.model_validate(call.args_as_dict()).lists()
+    )
 
 
 def _reply_beside_the_card(requests: DeferredToolRequests) -> str:
@@ -73,9 +101,11 @@ def hold_the_contract_on_a_card(
         for call in requests.approvals
         if call.tool_name == ADOPT_TOOL
     ]
-    record = turn_record(ctx, card_offer=next(iter(adoptions), None)).model_copy(
-        update={"ends_on_a_card": True}
-    )
+    record = turn_record(
+        ctx,
+        card_offer=next(iter(adoptions), None),
+        card_lists=_card_lists(requests),
+    ).model_copy(update={"ends_on_a_card": True})
     report = LeadResponse(
         prose=_reply_beside_the_card(requests),
         strategy_changed=record.changed_strategy,

@@ -7,10 +7,15 @@ from pydantic import ConfigDict
 from pydantic_ai import RunContext
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
 from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.evidence_claims import backing_results
+from pathfinder.ai.lead.evidence_claims import (
+    ControlList,
+    backing_results,
+    control_lists,
+)
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
     turn_builds,
@@ -18,17 +23,15 @@ from pathfinder.ai.lead.intent_gate import (
 )
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
+    FrameSection,
     VerificationSection,
     unexpressed_words,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
-from pathfinder.domain.evidence import (
-    ControlTestEvidence,
-    RequirementCheck,
-    SampledGene,
-)
+from pathfinder.domain.caveats import Caveat, Gap, WordGap
+from pathfinder.domain.evidence import ControlTestEvidence, SampledGene
 from pathfinder.domain.separation import offers_evidence
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
@@ -65,15 +68,21 @@ class TurnRecord(CamelModel):
     created_control_sets: tuple[CreatedControlSet, ...]
     created_gene_sets: tuple[CreatedGeneSet, ...]
     added_searches: tuple[AddedSearch, ...] = ()
-    # The words the spec states that no search its framing pass read can state.
-    unexpressed_qualifiers: tuple[str, ...] = ()
+    # What the strategy does not answer: the gaps of this turn's check, and the
+    # words no search states on a turn that framed or changed the strategy.
+    gaps: tuple[Gap, ...] = ()
+    # What this turn's check measured short of the request.
+    caveats: tuple[Caveat, ...] = ()
     # The control results a reply may cite: this turn's, the last check's and
     # the separation offers'.
     control_results: tuple[ControlTestEvidence, ...] = ()
+    # The size of every list of controls the card's call carries or a control
+    # result was measured on.
+    control_lists: tuple[ControlList, ...] = ()
+    # The values a frame pass of this turn left for the user to choose.
+    frame_open_questions: tuple[str, ...] = ()
     # The genes the last check of this strategy sampled, as its card shows them.
     sampled_genes: tuple[SampledGene, ...] = ()
-    # The requirements a check of this turn found unmet or unexpressed.
-    requirements_to_report: tuple[RequirementCheck, ...] = ()
     answered_a_card: bool = False
     # The reply is the one a card call carries, and the card asks its question.
     ends_on_a_card: bool = False
@@ -118,12 +127,37 @@ def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
     return tuple(sorted(name for name in ctx.retries if name in offered))
 
 
-def _requirements_to_report(deps: LeadDeps) -> tuple[RequirementCheck, ...]:
-    """The rows a check of this turn found unmet or unexpressed."""
-    verdict = deps.state.turn_verdict
-    if not deps.state.turn_markers.verification_dispatched or verdict is None:
-        return ()
-    return tuple(verdict.review.to_report())
+def _checked(deps: LeadDeps) -> VerificationDigest | None:
+    """The digest of a check this turn ran on the strategy as it stands, or None."""
+    if not deps.state.turn_markers.verification_dispatched:
+        return None
+    return deps.state.turn_verdict
+
+
+def _gaps(deps: LeadDeps) -> tuple[Gap, ...]:
+    """The gaps of this turn's check, and on a turn that framed or changed the
+    strategy, every word its spec states and no search can state."""
+    markers = deps.state.turn_markers
+    checked = _checked(deps)
+    words = (
+        unexpressed_words(deps.state.domain.operational_spec)
+        if markers.framed or markers.changed_strategy
+        else []
+    )
+    return tuple(
+        dict.fromkeys(
+            [
+                *([] if checked is None else checked.gaps),
+                *(WordGap(word=word) for word in words),
+            ]
+        )
+    )
+
+
+def _caveats(deps: LeadDeps) -> tuple[Caveat, ...]:
+    """What this turn's check measured short of the request."""
+    checked = _checked(deps)
+    return () if checked is None else tuple(checked.caveats)
 
 
 def _cited_offers(deps: LeadDeps, card_offer: str | None) -> list[ControlTestEvidence]:
@@ -136,19 +170,46 @@ def _cited_offers(deps: LeadDeps, card_offer: str | None) -> list[ControlTestEvi
     )
 
 
+def _frame_open_questions(deps: LeadDeps, frame: FrameSection) -> tuple[str, ...]:
+    """The questions a frame pass of this turn recorded, or else the open slots
+    of the spec a frame pass of this turn wrote. A spec with no open slot asks
+    nothing, whatever an earlier pass recorded."""
+    if not frame.needs_user:
+        return ()
+    markers = deps.state.turn_markers
+    arrived = set(markers.questions_at_arrival)
+    asked = tuple(
+        q.question
+        for q in deps.state.domain.open_questions
+        if q.question not in arrived
+    )
+    if asked or not markers.framed:
+        return asked
+    return tuple(slot.question or slot.param_name for slot in frame.open_slots())
+
+
 def turn_record(
-    ctx: RunContext[LeadDeps], *, card_offer: str | None = None
+    ctx: RunContext[LeadDeps],
+    *,
+    card_offer: str | None = None,
+    card_lists: tuple[ControlList, ...] = (),
 ) -> TurnRecord:
     """Everything the contract reads about the turn this reply answers.
 
     ``card_offer`` is the task id of the separation offer the turn's card
-    carries, or None.
+    carries, or None. ``card_lists`` are the control lists the card's call
+    carries.
     """
     deps = ctx.deps
     markers = deps.state.turn_markers
     ledger = derive_ledger(deps.state, deps.intent)
     card = deps.state.domain.card_of_the_strategy()
     graph = deps.runtime.strategy_session.get_graph(None)
+    results = backing_results(
+        (run.evidence for run in markers.control_tests),
+        card,
+        _cited_offers(deps, card_offer),
+    )
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=markers.build_unverified,
@@ -166,16 +227,12 @@ def turn_record(
         created_control_sets=tuple(markers.created_control_sets),
         created_gene_sets=tuple(markers.created_gene_sets),
         added_searches=tuple(markers.added_searches),
-        unexpressed_qualifiers=tuple(
-            unexpressed_words(deps.state.domain.operational_spec)
-        ),
-        control_results=backing_results(
-            (run.evidence for run in markers.control_tests),
-            card,
-            _cited_offers(deps, card_offer),
-        ),
+        gaps=_gaps(deps),
+        caveats=_caveats(deps),
+        control_results=results,
+        control_lists=tuple(dict.fromkeys((*card_lists, *control_lists(results)))),
+        frame_open_questions=_frame_open_questions(deps, ledger.frame),
         sampled_genes=() if card is None else tuple(card.review.sampled_genes),
-        requirements_to_report=_requirements_to_report(deps),
         answered_a_card=markers.consulted or markers.accepted_proposal,
         deleted_steps=tuple(markers.deleted_steps),
         standing_steps=()

@@ -67,7 +67,7 @@ asked again for the rest of the turn (`StrategyGraph.unreadable_searches`,
 never stored; it belongs to the graph each turn builds). A step the catalog still cannot
 read is reported as unread, never as no study step: `check_study_step` says
 so, and `get_strategy` lists it under `unread_analyses`. VERIFY sets its
-verdict from the other checks and names that step in its caveats, and the
+verdict from the other checks, and the
 runtime writes the same steps, read from the strategy and never from the
 checker, into `VerificationDigest.pending_checks`. A pending check is neither
 a pass nor an objection: `VerificationDigest.passed` is `success` with no

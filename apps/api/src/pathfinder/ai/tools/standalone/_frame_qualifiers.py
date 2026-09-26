@@ -67,13 +67,13 @@ class QualifierCheck:
 class _Reading:
     """The criterion's qualifiers, split by what the bound search does with them.
 
-    ``spoken`` holds the words only a parameter of the bound search states, and
-    ``held`` the stems whose one naming search is a search the pass read.
+    ``spoken`` holds the words only a parameter of the bound search states that
+    the pass read the owner of, and ``owners`` the owning search of each stem.
     """
 
     spoken: list[Qualifier]
     unspoken: list[Qualifier]
-    held: frozenset[str]
+    owners: dict[str, str]
     unread: list[str]
 
 
@@ -127,7 +127,7 @@ async def _read(
     stated: Criterion,
 ) -> _Reading:
     """The qualifiers of the text: the words exactly one search of the record
-    type names a parameter by.
+    type names a parameter by, in the compound that parameter name puts them in.
 
     A qualifier is held to a search only when the pass read the search that
     names it. A transform's text names the genes it maps, so a word the search
@@ -151,15 +151,20 @@ async def _read(
         *drafted,
         *_sibling_names(ctx, record_type, definition.url_segment),
     }
-    qualifiers = [q for q in qualifiers_of(stated.text) if q.stem in naming]
-    held = frozenset(q.stem for q in qualifiers if naming[q.stem] in read)
+    qualifiers = [
+        q
+        for q in qualifiers_of(stated.text)
+        if q.stem in naming and naming[q.stem].names(q)
+    ]
+    owners = {q.stem: naming[q.stem].search for q in qualifiers}
+    held = frozenset(q.stem for q in qualifiers if owners[q.stem] in read)
     spoken = spoken_stems(definition)
     # A word the search's own name states asks for the search itself.
     by_parameter = spoken - named_stems(definition)
     return _Reading(
         spoken=[q for q in qualifiers if q.stem in held & by_parameter],
         unspoken=[q for q in qualifiers if q.stem not in spoken | claimed],
-        held=held,
+        owners=owners,
         unread=others.unread,
     )
 
@@ -171,8 +176,8 @@ async def _refuse_a_search_another_one_outstates(
     criterion_id: str,
     reading: _Reading,
 ) -> tuple[list[Qualifier], list[str]]:
-    """Refuse when a search this pass read states a held qualifier the bound
-    one cannot.
+    """Refuse when the search that owns a qualifier, read by this pass, states
+    it and the bound one cannot.
 
     Returns the unspoken qualifiers no search of this pass states, and the
     searches the site could not answer.
@@ -188,13 +193,14 @@ async def _refuse_a_search_another_one_outstates(
             (
                 _Carried(qualifier, search, through)
                 for search in siblings.read
-                if (through := statements(search, qualifier.stem, besides=own))
+                if search.url_segment == reading.owners[qualifier.stem]
+                and (through := statements(search, qualifier.stem, besides=own))
             ),
             None,
         )
         if found is None:
             left.append(qualifier)
-        elif qualifier.stem in reading.held:
+        else:
             carried.append(found)
     if carried:
         raise ModelRetry(

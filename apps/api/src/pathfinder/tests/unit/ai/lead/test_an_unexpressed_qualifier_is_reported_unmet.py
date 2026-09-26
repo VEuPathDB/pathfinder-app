@@ -14,7 +14,9 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.ledger_render import render_constraints_full
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.verify_dispatch import _digest_the_build_supports
+from pathfinder.ai.lead.verify_dispatch import _findings, _held
+from pathfinder.domain.caveats import WordGap
+from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import ConstraintStatus
 from pathfinder.domain.strategy.operational_spec import (
@@ -74,19 +76,26 @@ def test_the_ledger_blocks_on_the_word_no_search_states() -> None:
 
 
 def test_verification_cannot_pass_over_it() -> None:
-    held = _digest_the_build_supports(
-        _deps(["pseudogenes"]),
+    deps = _deps(["pseudogenes"])
+    findings = _findings(deps, VerificationReview())
+    held = _held(
         VerificationDigest(
             disposition=PhaseDisposition.DONE,
             prose="5720 genes of Plasmodium falciparum 3D7.",
             reason="The count is plausible.",
             success=True,
         ),
+        findings,
     )
 
-    assert held.digest.success is False
-    assert held.refused_because is not None
-    assert "pseudogenes" in held.refused_because
+    assert findings.gaps == [WordGap(word="pseudogenes")]
+    assert (held.success, held.prose.splitlines()[0]) == (
+        False,
+        (
+            "Verification cannot be reported: 'pseudogenes': no search the "
+            "strategy runs states it. The checker's own account of the run follows."
+        ),
+    )
 
 
 def test_a_reply_that_omits_it_is_refused() -> None:
@@ -95,7 +104,7 @@ def test_a_reply_that_omits_it_is_refused() -> None:
         reply("The strategy holds 5720 Plasmodium falciparum 3D7 genes.", changed=True),
     )
 
-    assert "unstated_qualifier" in found
+    assert "unstated_gap" in found
 
 
 def test_a_reply_that_names_it_passes() -> None:
@@ -104,7 +113,7 @@ def test_a_reply_that_names_it_passes() -> None:
         "read this turn could state pseudogenes, so that part is unmet."
     )
 
-    assert "unstated_qualifier" not in kinds(
+    assert "unstated_gap" not in kinds(
         _deps(["pseudogenes"]), reply(prose, changed=True)
     )
 
@@ -114,6 +123,6 @@ def test_a_criterion_every_word_of_which_a_search_states_asks_nothing() -> None:
     ledger = derive_ledger(deps.state, None)
 
     assert ledger.constraints.blocking is False
-    assert "unstated_qualifier" not in kinds(
+    assert "unstated_gap" not in kinds(
         deps, reply("The strategy holds 5720 genes.", changed=True)
     )

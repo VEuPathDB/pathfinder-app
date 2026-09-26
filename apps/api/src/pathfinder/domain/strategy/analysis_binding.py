@@ -28,12 +28,15 @@ class AnalysisBinding(CamelModel):
     """The genes one exported analysis selects, and the document that selects them.
 
     ``step_parameters`` is the step's own document, carried as an opaque value
-    like a saved strategy's subtree.
+    like a saved strategy's subtree. ``value_entity_id`` and ``value_variable``
+    name the variable the compute measured; a variable id is scoped to its entity.
     """
 
     dataset_id: str
     comparison: EdaComparison | None = None
     method: str | None = None
+    value_entity_id: str | None = None
+    value_variable: str | None = None
     effect_direction: EdaEffectDirection | None = None
     effect_size_threshold: float | None = None
     significance_threshold: float | None = None

@@ -24,12 +24,18 @@ workflow artifact, never as a registry tag. `e2e-shard-check` fails when the
 tests `playwright test --list --shard i/N` names over every shard differ from
 the unsharded list, test for test. Each of the `E2E_SHARDS` shard jobs loads
 the images, starts `api web worker` from `docker-compose.yml` and
-`docker-compose.e2e.yml` with `--no-build --wait`, and runs its slice at two
+`docker-compose.e2e.yml` with `--no-build` (the shard polls the api's readiness,
+the web root and the worker's heartbeat itself, because the runner's compose
+refuses `--wait` on a dependency without a healthcheck), and runs its slice at two
 Playwright workers against one worker container at `WORKER_CONCURRENCY` 8: the
 only shape [the capacity measurement](../decisions/the-e2e-stack-serves-the-production-build.md)
 ran with no failure and no flake. `e2e-merge-report` merges the shards' blob
 reports into one HTML report and fails when a shard failed. CI sets
 `E2E_SITES=plasmodb,vectorbase`, so every turn-driving test runs once per site.
+The suite signs in as the registered account named by `WDK_TEST_EMAIL` and
+`WDK_TEST_PASSWORD` (the CI secrets); a local run maps the dev credentials onto
+those names in its own shell (`WDK_TEST_EMAIL=$WDK_DEV_EMAIL`, and the same for
+the password) or the account-bound specs skip.
 
 A retried test's trace records every request header and every typed value, so
 it holds the registered account's VEuPathDB token and, where a spec signs in,

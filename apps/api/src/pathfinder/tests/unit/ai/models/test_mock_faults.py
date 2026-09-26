@@ -22,6 +22,7 @@ from pathfinder.ai.models.mock.faults import FAULTS, made_by_a_fault
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.step_rationale import MAX_REASON_CHARS
+from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
     LIVE_ROOT_COUNT,
@@ -75,8 +76,11 @@ def test_the_registry_names_every_fault_a_spec_injects() -> None:
         "all-unclear",
         "long-reason",
         "misnamed-deletion",
+        "misstated-control-list",
         "misstated-count",
         "off-vocabulary",
+        "open-value-in-prose",
+        "organism-split",
         "repeat-control-test",
         "short-card-reply",
         "sweep-without-controls",
@@ -84,6 +88,8 @@ def test_the_registry_names_every_fault_a_spec_injects() -> None:
         "transcript-count",
         "unbacked-controls",
         "unlisted-search",
+        "unstated-caveat",
+        "unstated-gap",
         "value-as-term",
     ]
 
@@ -243,7 +249,11 @@ def test_a_sweep_names_no_controls_once_then_the_saved_set() -> None:
 
 
 def test_a_card_with_a_short_reply_is_sent_once_then_the_arcs() -> None:
-    calls = _lead("consult", "short-card-reply", "consult_user")
+    scene = Scene(
+        faulted={"consult_user": _REFUSED},
+        answers={"frame_problem": asking_frame(_SITE)},
+    )
+    calls = play("lead", _SITE, _token("consult", "short-card-reply"), scene=scene)
     replies = [str(a["reply"]) for a in args_of(calls, "consult_user")]
 
     assert replies[0] == fault_calls.SHORT_REPLY

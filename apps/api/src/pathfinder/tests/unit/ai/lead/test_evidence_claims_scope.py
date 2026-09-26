@@ -25,7 +25,6 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
-    EvidenceVerdict,
 )
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.control_sets import ControlSetResponse
@@ -91,7 +90,6 @@ def _checked(prompt: str, *, judged: StrategyAst, now: StrategyAst) -> LeadDeps:
             )
         ],
         citations=[],
-        verdict=EvidenceVerdict(supported=True),
     )
     return deps
 

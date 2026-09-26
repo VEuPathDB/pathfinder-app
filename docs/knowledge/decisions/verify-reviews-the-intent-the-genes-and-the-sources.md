@@ -61,9 +61,9 @@ digest before the verdict is recorded:
 - A sampled gene stands only when a `read_gene_record` of this turn read its
   record page, and a source only when a read of this turn returned every
   identifier it carries (`TurnMarkers.retrieved_as`).
-- An `unmet` row refuses a success (`_digest_the_build_supports`), and the genes
-  judged "no" are one caveat with the count ("2 of 8 sampled genes do not fit:
-  ...").
+- An `unmet` or `unexpressed` row is a typed gap and refuses a success
+  (`verify_dispatch._held`), and the genes judged "unclear" or "no" are one
+  typed caveat with the counts ("2 of 8 sampled genes unclear", `domain/caveats.py`).
 
 Before that, the verification agent's output validator refuses once per check a
 digest that states a sampled-gene count its sample does not hold, lists a gene
@@ -72,10 +72,24 @@ request lacks.
 
 ## What the reply must say
 
-The turn contract's `unreported_requirement` rule refuses once a reply of a turn
-that checked the strategy and does not name each unmet or unexpressed row, and
+The turn contract's `unstated_gap` rule refuses once a reply of a turn
+that checked the strategy and does not name each gap with what is missing,
+`unstated_caveat` one that does not state each caveat with its numbers, and
 `unbacked_evidence` refuses a sampled-gene count the card's sample does not hold
 ("all 8 sampled genes fit" when 2 do not).
+
+A requirement gap is named when the reply holds its row whole, or three
+consecutive words of it of which two are not filler
+(`domain/strategy/words.py::names_a_run_of`). A word or a structure gap is
+named when the reply holds it whole. The build caveat checks its own numbers
+(`domain/caveats.py`). The controls and the sample caveats are checked in
+`ai/lead/verdict_claims.py::caveat_stated`, because the readers of a control
+count and a sampled-gene count in prose (`ai/lead/evidence_claims.py`) belong
+to `ai/`, and the domain imports no other layer. The Lead is told to state
+each caveat in the ledger's own sentence; the rule accepts the numbers in any
+form. A caveat is a measurement the runtime reads from the records: a value
+the checker writes, such as a `constraint_report` entry, is never one, and an
+unmet constraint is reported through its requirement row.
 
 ## What a check never claims
 

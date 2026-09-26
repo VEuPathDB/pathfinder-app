@@ -16,7 +16,6 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
-    EvidenceVerdict,
 )
 from pathfinder.evals.extract import (
     EvalExtract,
@@ -57,7 +56,6 @@ def _card(check_id: str, *, url: str = _URL, site_count: int = 212) -> EvidenceC
             )
         ],
         citations=[],
-        verdict=EvidenceVerdict(supported=True),
     )
 
 

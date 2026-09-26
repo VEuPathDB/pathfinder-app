@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -12,6 +13,10 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     read_combination,
+)
+from pathfinder.domain.strategy.organism_phrases import (
+    organism_split_refusal,
+    stated_organisms,
 )
 
 
@@ -141,6 +146,14 @@ def unstated_operator_refusal(intent: UserIntent, message: str) -> str | None:
             "alternative within it, not a top-level OR."
         )
     return None
+
+
+def organism_refusal(
+    intent: UserIntent, message: str, vocabulary: Sequence[str]
+) -> str | None:
+    """Why this intent splits an organism entry of the site the message states whole."""
+    stated = stated_organisms(message, vocabulary)
+    return organism_split_refusal(intent.explicit_constraints, message, stated)
 
 
 def already_classified_message(classification: IntentClassification) -> str:

@@ -28,11 +28,8 @@ from pathfinder.ai.lead.contract_messages import (
     unfinished_work_message,
     unnamed_record_organism_message,
     unrecorded_offer_message,
-    unrecorded_question_message,
     unreported_change_message,
-    unreported_requirement_message,
     unretrieved_source_message,
-    unstated_qualifier_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.count_claims import misstated_count_message, misstated_counts
@@ -57,10 +54,15 @@ from pathfinder.ai.lead.reply_claims import (
 from pathfinder.ai.lead.search_reasons import unnamed_search
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
+from pathfinder.ai.lead.verdict_claims import (
+    misstated_control_list,
+    open_value_in_prose,
+    unstated_caveat,
+    unstated_gap,
+)
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.evidence import SourceReference
 from pathfinder.domain.strategy.constraints import OpenQuestion
-from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -126,6 +128,7 @@ MismatchKind = Literal[
     "unwritten_gene_set",
     "unbuilt_eda_criterion",
     "blamed_the_site",
+    "open_value_in_prose",
     "unrecorded_question",
     "unfinished_work",
     "machine_words",
@@ -133,9 +136,10 @@ MismatchKind = Literal[
     "unretrieved_source",
     "unnamed_search",
     "unnamed_record_organism",
-    "unstated_qualifier",
-    "unreported_requirement",
+    "unstated_gap",
+    "unstated_caveat",
     "unbacked_evidence",
+    "misstated_control_list",
     "misnamed_deletion",
     "counted_in_the_wrong_unit",
     "misstated_count",
@@ -212,18 +216,25 @@ def _blamed_the_site(report: LeadResponse, record: TurnRecord) -> str | None:
     return blamed_the_site_message(blame, record.last_phase_stop)
 
 
+def _open_value_in_prose(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A value the frame leaves open is asked on the question card."""
+    del report
+    return open_value_in_prose(record)
+
+
 def _unrecorded_question(report: LeadResponse, record: TurnRecord) -> str | None:
     """The next turn binds what the reply recorded, not what its prose asks.
 
     A reply that ends on a question is an offer whatever the turn did, so it
     stands only beside a recorded question or a card the researcher answered.
+    A value the frame leaves open is the question card's rule.
     """
     if report.asked_questions or record.answered_a_card or record.ends_on_a_card:
         return None
+    if record.frame_open_questions:
+        return None
     if ends_with_a_question(report.prose):
         return unrecorded_offer_message()
-    if record.framed and report.next_state == "await_user" and "?" in report.prose:
-        return unrecorded_question_message()
     return None
 
 
@@ -304,29 +315,14 @@ def _unnamed_record_organism(report: LeadResponse, record: TurnRecord) -> str | 
     return unnamed_record_organism_message(change)
 
 
-def _unstated_qualifier(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A turn that framed or wrote a requirement no search states says so."""
-    if not (record.framed or record.changed_strategy):
-        return None
-    silent = [
-        word
-        for word in record.unexpressed_qualifiers
-        if not names_the_phrase(report.prose, word)
-    ]
-    return unstated_qualifier_message(silent) if silent else None
+def _unstated_gap(report: LeadResponse, record: TurnRecord) -> str | None:
+    """Every gap of the turn is named with what is missing."""
+    return unstated_gap(report.prose, record)
 
 
-def _unreported_requirement(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A turn that checked the strategy names each requirement the check found
-    unmet or unexpressed. A word the qualifier rule already asks for is its own."""
-    qualifier_rule = record.framed or record.changed_strategy
-    silent = [
-        row
-        for row in record.requirements_to_report
-        if not names_the_phrase(report.prose, row.text)
-        and not (qualifier_rule and row.text in record.unexpressed_qualifiers)
-    ]
-    return unreported_requirement_message(silent) if silent else None
+def _unstated_caveat(report: LeadResponse, record: TurnRecord) -> str | None:
+    """Every caveat of the turn's check is stated with its numbers."""
+    return unstated_caveat(report.prose, record)
 
 
 def _unbacked_evidence(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -337,6 +333,11 @@ def _unbacked_evidence(report: LeadResponse, record: TurnRecord) -> str | None:
         *unbacked_sample_claims(sample_claims(report.prose), record.sampled_genes),
     ]
     return unbacked_evidence_message(found) if found else None
+
+
+def _misstated_control_list(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A control list size the reply states is one the turn holds."""
+    return misstated_control_list(report.prose, record)
 
 
 def _misnamed_deletion(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -389,6 +390,7 @@ _RULES: tuple[
     ("unwritten_gene_set", _unwritten_gene_set),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("blamed_the_site", _blamed_the_site),
+    ("open_value_in_prose", _open_value_in_prose),
     ("unrecorded_question", _unrecorded_question),
     ("unfinished_work", _unfinished_work),
     ("machine_words", _machine_words),
@@ -396,9 +398,10 @@ _RULES: tuple[
     ("unretrieved_source", _unretrieved_source),
     ("unnamed_search", _unnamed_search),
     ("unnamed_record_organism", _unnamed_record_organism),
-    ("unstated_qualifier", _unstated_qualifier),
-    ("unreported_requirement", _unreported_requirement),
+    ("unstated_gap", _unstated_gap),
+    ("unstated_caveat", _unstated_caveat),
     ("unbacked_evidence", _unbacked_evidence),
+    ("misstated_control_list", _misstated_control_list),
     ("misnamed_deletion", _misnamed_deletion),
     ("counted_in_the_wrong_unit", _counted_in_the_wrong_unit),
     ("misstated_count", _misstated_count),

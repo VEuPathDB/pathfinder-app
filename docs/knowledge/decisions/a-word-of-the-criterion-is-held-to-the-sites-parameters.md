@@ -55,7 +55,7 @@ runs on both `set_criterion` calls:
   parameter by, is recorded on `Criterion.unexpressed_qualifiers`. The ledger
   grounds it as a user-explicit hard constraint that is `ungroundable`, VERIFY's
   success is held while it stands (`ai/lead/verify_dispatch.py`), and the turn
-  contract's `unstated_qualifier` refuses once a reply that does not name it.
+  contract's `unstated_gap` refuses once a reply that does not name it.
 
 The second measured case is "pseudogenes": Gene Type states it through "Include
 Pseudogenes", and its neighbour Organism cannot. Across the unit suite 139

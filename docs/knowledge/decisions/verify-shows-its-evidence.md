@@ -26,7 +26,7 @@ durable call emits nothing; the resumed check emits the card once. The payload i
 | `steps[*].siteCount`, `siteRead` | one `GET /users/{id}/strategies/{id}` (`services/strategies/site_counts.py`); `siteRead` is `read`, `not_answered` or `not_read` (no strategy on the site), and a missing count is `None`, never 0 |
 | `strategyUrl` | `SiteInfo.strategy_url(strategy, root step)`, the step page whose Analyze results tab runs GO, pathway and word enrichment |
 | `citations` | `Criterion.rationale.sources`, the references FRAME cited when it bound the criterion; a DOI links to doi.org, a PMID to PubMed, anything else that is no web address is text |
-| `verdict` | the digest's success and pending checks after `_digest_the_build_supports`, and the ledger's own sentence when it refused a success |
+| `pendingChecks` | the study steps the site did not describe, read from the strategy (`unread_analyses`); the card carries no verdict, and the Lead states each gap and caveat in the reply |
 | `review` | the checker's requirement rows, sampled genes and sources, held to the turn's reads and to the structure ([VERIFY reviews the intent, the genes and the sources](verify-reviews-the-intent-the-genes-and-the-sources.md)) |
 
 The card of the last check is kept on `StrategyDomainState.last_evidence_card`, so a later
@@ -45,7 +45,7 @@ says the target returned it or not. A count names controls ("positive controls",
 name either. A claim is backed when a control result of this message holds it (a control test,
 a scored comparison variant, a sweep setting) or the last check's card does, while the
 strategy is the one that check judged. The Lead's reply is held by the `unbacked_evidence` rule of the turn contract; VERIFY's
-digest (prose, key findings, caveats) by an output validator on the verification agent, once
+digest (prose, key findings) by an output validator on the verification agent, once
 per check (`TurnMarkers.refused_digests`, keyed by the dispatch). Each is refused once, with the recorded values in the correction, like an unrecorded question.
 
 ## The workbench

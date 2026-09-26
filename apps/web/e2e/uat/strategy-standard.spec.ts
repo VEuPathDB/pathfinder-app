@@ -19,6 +19,7 @@ import {
 import {
   expectBuild,
   expectEvidence,
+  expectEveryRequirementAnswered,
   openTrace,
   sampledGeneIds,
   traceRows,
@@ -65,7 +66,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     const id = await buildOn(chatPage, siteId, prompt("single", S1_TEXT(organism)));
 
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-    await expectEvidence(page, "Supported", counts.root);
+    await expectEvidence(page, counts.root);
     await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
 
     const leaf = nodeBySearch(await readNodes(apiClient, id), SIGNAL_PEPTIDE);
@@ -102,10 +103,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
     for (const input of inputs) expect(input).toBeGreaterThanOrEqual(counts.root);
 
-    const card = await expectEvidence(page, "Supported", counts.root);
-    const statuses = card.getByTestId("evidence-requirement-status");
-    await expect(statuses).not.toHaveCount(0);
-    for (const status of await statuses.allTextContents()) expect(status).toBe("Met");
+    await expectEveryRequirementAnswered(await expectEvidence(page, counts.root));
     await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
   });
 
@@ -205,7 +203,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       siteOrganism(siteId),
     );
 
-    const card = await expectEvidence(page, /Supported|Not supported/, counts.root);
+    const card = await expectEvidence(page, counts.root);
     const genes = await sampledGeneIds(card);
     expect(genes.length).toBeGreaterThan(0);
     for (const gene of genes)

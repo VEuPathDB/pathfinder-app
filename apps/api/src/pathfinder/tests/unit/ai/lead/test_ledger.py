@@ -16,6 +16,7 @@ from pathfinder.ai.lead.ledger_sections import (
     FrameSection,
     VerificationSection,
 )
+from pathfinder.domain.caveats import BuildCaveat, StructureGap
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
 from pathfinder.domain.strategy.constraints import (
@@ -163,20 +164,13 @@ class TestTheSiteBlameMatcher:
         assert _blame(text, build=BuildSection()) == ""
 
 
-def _build_contradiction(section: BuildSection, built_step_count: int) -> str:
-    """Why a success verdict cannot stand, empty when it can."""
-    return build_contradiction(section, built_step_count=built_step_count) or ""
-
-
 class TestTheBuildRule:
     def test_a_turn_that_pushed_nothing_contradicts_success(self) -> None:
         contradiction = build_contradiction(BuildSection(), built_step_count=0)
-        assert contradiction == (
-            "this turn built nothing and no step of the strategy is in VEuPathDB"
-        )
+        assert contradiction == BuildCaveat(pushed=0, failed=0, skipped=0, empty=0)
 
     def test_a_strategy_built_on_an_earlier_turn_does_not_contradict(self) -> None:
-        assert _build_contradiction(BuildSection(), built_step_count=3) == ""
+        assert [build_contradiction(BuildSection(), built_step_count=3)] == [None]
 
     def test_a_partial_build_contradicts_success(self) -> None:
         section = BuildSection(
@@ -191,8 +185,8 @@ class TestTheBuildRule:
             pushed_count=1,
             failed_count=1,
         )
-        assert build_contradiction(section, built_step_count=1) == (
-            "the build pushed 1 step, failed 1, skipped 0 and left 0 empty"
+        assert build_contradiction(section, built_step_count=1) == BuildCaveat(
+            pushed=1, failed=1, skipped=0, empty=0
         )
 
     def test_a_clean_build_does_not_contradict(self) -> None:
@@ -200,7 +194,7 @@ class TestTheBuildRule:
             outcome=BuildOutcome(pushed_step_ids=["s1", "s2"], root_count=16),
             pushed_count=2,
         )
-        assert _build_contradiction(section, built_step_count=2) == ""
+        assert [build_contradiction(section, built_step_count=2)] == [None]
 
 
 def _combination_requirement() -> Constraint:
@@ -240,37 +234,28 @@ def _combined_spec(operator: CombineOp) -> OperationalSpec:
     )
 
 
-def _structure_contradiction(
-    requirements: list[Constraint], spec: OperationalSpec | None
-) -> str:
-    """Why a success verdict cannot stand, empty when it can."""
-    return structure_contradiction(requirements, spec) or ""
-
-
 class TestTheStructureRule:
     def test_an_intersected_or_contradicts_success(self) -> None:
         contradiction = structure_contradiction(
             [_combination_requirement()], _combined_spec(CombineOp.INTERSECT)
         )
 
-        assert contradiction is not None
-        assert _COMBINATION in contradiction
-        assert "UNION" in contradiction
-        assert "INTERSECT" in contradiction
+        assert contradiction == StructureGap(expression=_COMBINATION, built="INTERSECT")
 
     def test_a_unioned_or_does_not_contradict(self) -> None:
-        assert (
-            _structure_contradiction(
+        assert [
+            structure_contradiction(
                 [_combination_requirement()], _combined_spec(CombineOp.UNION)
             )
-            == ""
-        )
+        ] == [None]
 
     def test_a_thread_with_no_spec_does_not_contradict(self) -> None:
-        assert _structure_contradiction([_combination_requirement()], None) == ""
+        assert [structure_contradiction([_combination_requirement()], None)] == [None]
 
     def test_a_thread_that_stated_no_combination_does_not_contradict(self) -> None:
-        assert _structure_contradiction([], _combined_spec(CombineOp.INTERSECT)) == ""
+        assert [structure_contradiction([], _combined_spec(CombineOp.INTERSECT))] == [
+            None
+        ]
 
 
 class TestTheSummaryCarriesEveryDropReason:

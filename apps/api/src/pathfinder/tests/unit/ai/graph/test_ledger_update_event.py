@@ -12,7 +12,7 @@ from pathfinder.ai.lead.ledger_sections import (
     FrameSection,
     VerificationSection,
 )
-from pathfinder.domain.evidence import EvidenceCard, EvidenceVerdict
+from pathfinder.domain.evidence import EvidenceCard
 
 
 def _required_keys(model: type[InvestigationLedger]) -> frozenset[str]:
@@ -98,7 +98,6 @@ def test_evidence_card_chunk_matches_its_payload_model() -> None:
         steps=[],
         controls=[],
         citations=[],
-        verdict=EvidenceVerdict(supported=True),
     )
 
     chunk = evidence_card_event(card)
