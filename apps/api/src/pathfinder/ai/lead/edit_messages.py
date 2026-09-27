@@ -11,7 +11,7 @@ from collections.abc import Collection, Mapping, Sequence
 from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
-from pathfinder.ai.graph.turn_records import AnsweredQuestions
+from pathfinder.ai.graph.turn_records import AnsweredQuestions, NamedStep
 from pathfinder.ai.lead.dispatch_messages import (
     answered_lines,
     refusal_lines,
@@ -34,6 +34,7 @@ __all__ = [
     "edit_work_order",
     "no_strategy_to_edit_message",
     "pending_changes_no_pass_accounted_for_message",
+    "removal_is_the_cards_message",
     "unsupported_edit_message",
     "wdk_refused_the_written_step_message",
 ]
@@ -344,4 +345,32 @@ def changed_revision_message(base_revision: str, current: str) -> str:
         f"{base_revision!r} and is now {current!r}). Nothing was applied. Call "
         f"get_live_strategy_state to read it as it is now, then decide whether "
         f"the edit still applies."
+    )
+
+
+def removal_is_the_cards_message(removed: Mapping[str, NamedStep]) -> str:
+    """Why an edit whose only change removes built steps is sent to the card.
+
+    The researcher approves every removal on the delete card, so an edit pass
+    never takes a step off the strategy on its own.
+    """
+    named = ", ".join(f"[{sid}] {step.described()}" for sid, step in removed.items())
+    held = (
+        "Nothing was applied: the strategy still holds every step and every "
+        "value it held before this edit."
+    )
+    rule = "Do not dispatch edit_strategy to remove a step."
+    if len(removed) == 1:
+        (step_id,) = removed
+        return (
+            f"This edit only removes {named}, and a removal is the researcher's "
+            f'to approve. {held} Call delete_step with step_id "{step_id}"; its '
+            f"card names the step and the researcher approves it. {rule}"
+        )
+    ids = ", ".join(f'"{sid}"' for sid in removed)
+    return (
+        f"This edit only removes each of {named}, and a removal is the "
+        f"researcher's to approve. {held} Call delete_step once for each of "
+        f"step_id {ids}, one card at a time; each card names its step and the "
+        f"researcher approves it. {rule}"
     )

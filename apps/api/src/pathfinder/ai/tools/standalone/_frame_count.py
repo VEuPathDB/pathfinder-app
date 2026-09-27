@@ -124,7 +124,7 @@ async def record_and_count_criterion(
         ctx, resolved, record_type, criterion.search_name, definition
     )
     alternatives = empty_binding_alternatives(count, infos, resolved)
-    state.frame_record_alternatives(criterion.id, alternatives)
+    state.frame_record_count(criterion.id, count, alternatives)
     return count, alternatives
 
 

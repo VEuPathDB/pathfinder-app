@@ -141,6 +141,8 @@ describe("StepResults", () => {
         basis: "nearest",
         term: "GPI anchor",
         reason: "no search states a GPI anchor; Exported Protein scored nearest",
+        sentence:
+          "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
         toolCallId: "call_gpi",
         short: "nearest to GPI anchor",
       },

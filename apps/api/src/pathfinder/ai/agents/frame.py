@@ -46,6 +46,8 @@ Procedure:
    filters tends to return zero genes, so keep the set tight. A choice INSIDE one search - a
    dataset, an experiment, a sample set, a cutoff, any entry on its parameter sheet - is not a
    property: it is a VALUE in that criterion's `params`, never a criterion of its own.
+   The organism the request names is a value of each search's organism parameter, never a
+   criterion of its own.
 1a. Name each NEW property after what it asks, like `c_secreted`. A property the workspace
    ALREADY states keeps the id it has there, whatever its shape.
 1b. When the request STARTS FROM, or refers to, a strategy the user already saved
@@ -81,8 +83,8 @@ Procedure:
       copy it and replace each null with a value or leave null; do not rename keys.
    d. `set_criterion(criterion_id, text, search_name, role, params, why)` again, with that
       object -- a value or null for EVERY parameter on that sheet -- and `why`: the basis,
-      the term that decides it, and one line of reason of at most <MAX_REASON_CHARS> characters holding
-      the term. The tool checks
+      the term that decides it, and one line of reason of at most <MAX_REASON_CHARS> characters on
+      what decided it (the term is shown before it). The tool checks
       the basis against the catalog answer and the values, and records what it was chosen over:
       - copy vocabulary values EXACTLY from the sheet (a tree parent like "Plasmodium"
         selects all its children); lists for multi-pick; a filter parameter takes

@@ -105,6 +105,7 @@ describe("FrameDetail search reasons", () => {
               basis: "parameter",
               term: "GO Term",
               reason: "sets GO Term to protein kinase activity",
+              sentence: "GO Term: sets GO Term to protein kinase activity",
               toolCallId: "call_1",
               short: "sets GO Term",
             },
@@ -113,7 +114,11 @@ describe("FrameDetail search reasons", () => {
       />,
     );
 
-    expect(screen.getByTestId("criterion-why").textContent).toBe("why: sets GO Term");
+    const why = screen.getByTestId("criterion-why");
+    expect([why.textContent, why.getAttribute("title")]).toEqual([
+      "why: sets GO Term",
+      "GO Term: sets GO Term to protein kinase activity",
+    ]);
   });
 
   it("says a measured criterion was chosen by the controls it separated", () => {

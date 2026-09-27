@@ -1,17 +1,19 @@
 """The scripted assistant and the control-test wire two durable calls run on.
 
-One model step makes three calls: two durable control tests and a sibling that
-settles in place. Only the model and the WDK read are doubles.
+One model step makes three calls: two durable control tests of one saved set and
+a sibling that settles in place. Only the model and the WDK read are doubles.
 """
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from typing import Any
+from uuid import UUID
 
 from assistant_core.graph.single_agent import single_agent_graph
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.models.scripted import tool_return_parts
+from assistant_core.platform.db import async_session_factory
 from assistant_core.spec import AssistantSpec
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
@@ -26,15 +28,16 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 
-from pathfinder.ai.graph.runtime import AgentDeps, Context
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.graph.runtime import AgentDeps, Context, VerificationScope
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.assistants.pathfinder_spec import build_turn_context
 from pathfinder.assistants.site_help.spec import (
     build_initial_state,
     charge_usage,
 )
+from pathfinder.domain.evidence import NamedControlSet
+from pathfinder.persistence.models import ControlSet
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 
 TOOL = "run_control_tests_on_step"
@@ -44,6 +47,24 @@ CALL_A = "call_controls_a"
 CALL_B = "call_controls_b"
 CALL_PEEK = "call_peek"
 POSITIVES = ["PF3D7_0102600"]
+CONTROL_SET_ID = UUID("7c0a51e2-0000-4000-8000-0000000c0de5")
+
+
+async def save_the_controls(user_id: UUID) -> None:
+    """The saved set both control tests of the script name."""
+    async with async_session_factory() as session:
+        session.add(
+            ControlSet(
+                id=CONTROL_SET_ID,
+                user_id=user_id,
+                name="Kinase controls",
+                site_id="plasmodb",
+                record_type="transcript",
+                positive_ids=POSITIVES,
+                negative_ids=[],
+            )
+        )
+        await session.commit()
 
 
 class _Resumed(BaseModel):
@@ -75,12 +96,12 @@ def _script(messages: list[ModelMessage]) -> list[TextPart | ToolCallPart]:
     return [
         ToolCallPart(
             tool_name=TOOL,
-            args={"wdk_step_id": STEP_A, "positive_controls": POSITIVES},
+            args={"wdk_step_id": STEP_A, "control_set_id": str(CONTROL_SET_ID)},
             tool_call_id=CALL_A,
         ),
         ToolCallPart(
             tool_name=TOOL,
-            args={"wdk_step_id": STEP_B, "positive_controls": POSITIVES},
+            args={"wdk_step_id": STEP_B, "control_set_id": str(CONTROL_SET_ID)},
             tool_call_id=CALL_B,
         ),
         ToolCallPart(
@@ -127,11 +148,11 @@ async def peek_records(ctx: RunContext[AgentDeps], wdk_step_id: int) -> str:
     return f"10 sample records from step {wdk_step_id}"
 
 
-def _build_agent() -> Agent[LeadDeps, str]:
+def _build_agent() -> Agent[AgentDeps, str]:
     return Agent(
         _build_mock(),
         output_type=str,
-        deps_type=LeadDeps,
+        deps_type=AgentDeps,
         instructions="Run the control tests the researcher asks for.",
         tools=[
             Tool(run_control_tests_on_step, sequential=True),
@@ -142,20 +163,20 @@ def _build_agent() -> Agent[LeadDeps, str]:
     )
 
 
-def _build_deps(state: TurnState, context: Context) -> LeadDeps:
-    pipeline = PipelineState(
+def _build_deps(state: TurnState, context: Context) -> AgentDeps:
+    return AgentDeps(
+        site_id=context.site_id,
+        user_id=context.user_id,
         conversation_id=state.conversation_id,
-        user_id=state.user_id,
-        site_id=state.site_id,
-        mode=state.mode,
-        user_prompt=state.user_prompt,
-        domain=StrategyDomainState(),
-    )
-    return LeadDeps(
-        state=pipeline,
-        intent=None,
-        runtime=context,
-        retrieved_memories=[],
+        db_session_factory=context.db_session_factory,
+        cancel_event=context.cancel_event,
+        strategy_session=context.strategy_session,
+        turn_markers=TurnMarkers(),
+        verification_scope=VerificationScope(
+            control_sets=[
+                NamedControlSet(id=str(CONTROL_SET_ID), name="Kinase controls")
+            ]
+        ),
     )
 
 

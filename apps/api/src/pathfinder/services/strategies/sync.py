@@ -1,5 +1,6 @@
 """Pushes local graph state to WDK: step tree, strategy, counts, decorations."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
@@ -28,6 +29,7 @@ from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step
 from pathfinder.services.strategies.naming import name_for_the_push
+from pathfinder.services.strategies.organism_params import tree_organism_parameters
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -280,7 +282,10 @@ async def sync_strategy_for_site(
         pushable_id, graph.steps, fallback=graph.record_type or "transcript"
     )
 
-    _validate_graph(root_step, graph.record_type)
+    sync_state.organism_params = await tree_organism_parameters(
+        site_id, graph.record_type, root_step
+    )
+    _validate_graph(root_step, graph.record_type, sync_state.organism_params)
 
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
@@ -330,11 +335,15 @@ def _detached(all_steps: list[StrategyStepNode], state: _StrategyState) -> list[
     return sorted(step.id for step in all_steps if step.id not in state.counts)
 
 
-def _validate_graph(root_step: StrategyStepNode, record_type: str | None) -> None:
+def _validate_graph(
+    root_step: StrategyStepNode,
+    record_type: str | None,
+    organism_params: Mapping[str, str],
+) -> None:
     """Validate the strategy structure when a record type is known."""
     if not record_type:
         return
-    validation_result = validate_strategy(root_step, record_type)
+    validation_result = validate_strategy(root_step, record_type, organism_params)
     if not validation_result.valid:
         errors = [
             {"path": e.path, "message": e.message} for e in validation_result.errors

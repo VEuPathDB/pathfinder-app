@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from uuid import uuid4
 
+from assistant_core.capabilities.repetition_guard import RepetitionBlock
 from assistant_core.platform.types import JSONObject
 from pydantic import TypeAdapter
 
@@ -423,6 +424,27 @@ def test_a_lead_call_that_failed_reads_as_failed(tmp_path: Path) -> None:
     summary = json.loads((tmp_path / "summary.json").read_text())
     assert summary["failures"] == 1
     assert summary["status"] == "ok"
+
+
+def test_the_refused_tools_are_every_retry_and_guard_refusal_in_order(
+    tmp_path: Path,
+) -> None:
+    guard = RepetitionBlock(
+        tool_name="read_gene_record",
+        count=3,
+        escalated=False,
+        rule="identical_arguments",
+    ).message
+    cap = _new(tmp_path)
+    _write(cap, _lead_input("classify_user_intent", "c1", {}))
+    _write(cap, _lead_error("c1", "Validation failed: goal is required"))
+    _write(cap, _call("verification", "verification", "p1", "started"))
+    _write(cap, _step("read_gene_record", "c2", "p1", "started"))
+    _write(cap, _step("read_gene_record", "c2", "p1", "completed", result="ok"))
+    _write(cap, _step("read_gene_record", "c3", "p1", "started"))
+    _write(cap, _step("read_gene_record", "c3", "p1", "completed", result=guard))
+
+    assert cap.refused_tools() == ["classify_user_intent", "read_gene_record"]
 
 
 def test_a_parked_call_stays_open_in_the_transcript(tmp_path: Path) -> None:

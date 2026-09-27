@@ -83,6 +83,11 @@ def _guard_refused(call: CapturedToolCall) -> bool:
     return REPETITION_MARKER in call.result or CALL_CAP_MARKER in call.result
 
 
+def refused(call: CapturedToolCall) -> bool:
+    """The call came back as a retry prompt, or as the repetition guard's text."""
+    return call.status == "failed" or _guard_refused(call)
+
+
 def _loops(calls: list[CapturedToolCall]) -> list[Anomaly]:
     failed_by_tool: dict[str, list[CapturedToolCall]] = defaultdict(list)
     refused_by_tool: dict[str, list[CapturedToolCall]] = defaultdict(list)
@@ -94,16 +99,16 @@ def _loops(calls: list[CapturedToolCall]) -> list[Anomaly]:
     out: list[Anomaly] = []
     for tool in sorted(set(failed_by_tool) | set(refused_by_tool)):
         failed = failed_by_tool[tool]
-        refused = refused_by_tool[tool]
-        if len(failed) < LOOP_THRESHOLD and not refused:
+        guarded = refused_by_tool[tool]
+        if len(failed) < LOOP_THRESHOLD and not guarded:
             continue
         signatures = {(e.kind, e.param) for c in failed for e in c.errors}
         refusal_note = (
-            f" The repetition guard refused {len(refused)} identical call(s)."
-            if refused
+            f" The repetition guard refused {len(guarded)} identical call(s)."
+            if guarded
             else ""
         )
-        seen = {c.seq: c for c in failed + refused}
+        seen = {c.seq: c for c in failed + guarded}
         out.append(
             Anomaly(
                 kind="loop",
@@ -117,7 +122,7 @@ def _loops(calls: list[CapturedToolCall]) -> list[Anomaly]:
                 details={
                     "tool": tool,
                     "failures": len(failed),
-                    "guard_refusals": len(refused),
+                    "guard_refusals": len(guarded),
                 },
             )
         )

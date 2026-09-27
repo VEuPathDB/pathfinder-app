@@ -15,10 +15,10 @@ LITERATURE = "research_literature_search"
 
 
 def _stopped_by(guard: ToolRepetitionGuard, calls: list[dict[str, str]]) -> str:
-    """Drive the guard through the calls and return the refusal that stops the run."""
+    """Drive the guard one call per request and return the refusal that stops the run."""
     message = ""
     for i, args in enumerate(calls):
-        block = guard.check(LITERATURE, args, tool_call_id=f"c{i}")
+        block = guard.check(LITERATURE, args, tool_call_id=f"c{i}", run_step=i + 1)
         if block is not None and block.escalated:
             message = block.message
     assert guard.stopped_call_id != ""
@@ -63,3 +63,26 @@ def test_a_run_stopped_on_a_repeated_call_says_so() -> None:
         "I stopped this turn: I was repeating the same lookup and making "
         "no progress. Tell me what to try instead and I will carry on."
     )
+
+
+def test_the_rule_is_read_from_the_guard_and_not_from_the_refusal_text() -> None:
+    guard = ToolRepetitionGuard(
+        read_only_tools=frozenset({LITERATURE}), call_caps={LITERATURE: 2}
+    )
+    _stopped_by(guard, [{"query": f"distinct query {i}"} for i in range(4)])
+
+    assert _reply_after(guard, "The run stops here.").startswith(
+        "I stopped this turn: I read research_literature_search past its budget"
+    )
+
+
+def test_a_result_the_guard_did_not_stop_on_leaves_the_run_going() -> None:
+    guard = ToolRepetitionGuard(read_only_tools=frozenset({LITERATURE}))
+    deps = lead_deps(pipeline_state(user_prompt="What is known about the mitosome?"))
+    capture = _LeadRunCapture()
+    event = FunctionToolResultEvent(
+        part=ToolReturnPart(tool_name=LITERATURE, content="ok", tool_call_id="c0"),
+    )
+
+    assert _stream_ends_after(event, guard, capture, RunUsage(), deps) is False
+    assert capture.guard_stop is None

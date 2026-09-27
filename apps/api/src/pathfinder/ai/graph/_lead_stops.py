@@ -5,11 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from assistant_core.capabilities.repetition_guard import (
-    CALL_CAP_MARKER,
-    BlockRule,
-    ToolRepetitionGuard,
-)
+from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
 from pydantic_ai.run import AgentRunResultEvent
@@ -24,22 +20,19 @@ from pathfinder.domain.provider_keys import PROVIDER_NAMES
 from pathfinder.platform.model_keys import turn_refusals
 
 
-def guard_stopped_on(
+def guard_stop_of(
     event: AgentStreamEvent | AgentRunResultEvent[Any],
     guard: ToolRepetitionGuard,
-) -> bool:
-    """True for the result of the call whose refusal ends the run."""
-    return (
-        isinstance(event, FunctionToolResultEvent)
-        and event.tool_call_id == guard.stopped_call_id
-    )
-
-
-def guard_stop_of(event: FunctionToolResultEvent) -> GuardStop:
-    """The rule the refusal names: the runtime marks a budget stop in its text."""
-    text = str(event.part.content)
-    rule: BlockRule = "call_cap" if CALL_CAP_MARKER in text else "identical_arguments"
-    return GuardStop(tool_name=event.part.tool_name or "", rule=rule)
+) -> GuardStop | None:
+    """The stop when this event is the result of the call that ends the run."""
+    rule = guard.stopped_rule
+    match event:
+        case FunctionToolResultEvent() if (
+            rule is not None and event.tool_call_id == guard.stopped_call_id
+        ):
+            return GuardStop(tool_name=event.part.tool_name or "", rule=rule)
+        case _:
+            return None
 
 
 def loop_stop_prose(stop: GuardStop | None) -> str:

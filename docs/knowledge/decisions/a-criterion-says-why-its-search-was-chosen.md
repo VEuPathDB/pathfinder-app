@@ -4,7 +4,7 @@ title: A criterion says why its search was chosen
 description: FRAME passes a typed why (basis, term, one line of reason) on the binding call; set_criterion checks it against the catalog read it recorded and writes the searches that read answered beside the bound one, with their similarity and the call id. The record rides StepWords to the canvas, the step editor, the rail, the ledger and addedSearches, and unnamed_search refuses once a reply that names a search without its term beside it. Prompting for verbosity, a free-text rationale with no alternatives, and a reason rendered in the reply only were rejected.
 tags: [frame, turn-contract, catalog, strategy-graph, naming]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-27T00:00:00Z }
 status: stable
 ---
 
@@ -18,7 +18,7 @@ the listing it names. The enum guard reads the same store.
 
 **The binding carries a checked reason.** `set_criterion(why=...)` takes a
 `SearchChoice`: a basis (`parameter`, `organism`, `record_type`, `only_match`,
-`nearest`), the term that decides it, one line of reason holding the term, and
+`nearest`), the term that decides it, one line of reason, and
 the references a research read of this turn returned that the choice rests on.
 The tool writes `Criterion.rationale` (`SearchRationale`,
 `domain/strategy/step_rationale.py`) from the newest read of the pass that
@@ -27,10 +27,22 @@ read with theirs, how many searches the read answered, the query and the call
 id. It refuses, and records nothing, when no read of the pass answered the
 search, when a new binding carries no `why`, when the reason names a site search
 the read did not answer (a search name, or a display name of two or more words),
-when the data the call holds does not back the basis, when the reason does not
-hold the term, and when a cited reference is not one this turn retrieved. A
+when the data the call holds does not back the basis, when the reason is longer
+than one line, and when a cited reference is not one this turn retrieved. A
 value edit on the search the criterion already runs keeps its reason; a
 re-binding replaces it.
+
+**The term is composed, not required in the reason.** The record holds the term
+beside the reason, so `SearchRationale.sentence` (`"{term}: {reason}"`) is the
+one text every reader shows in place of the reason, and a reply that repeats it
+says what decided. A term the call holds under another name is corrected, not
+refused: with basis `parameter`, a term equal to a value the call sets on exactly
+one parameter becomes that parameter's display name, and a term equal to the
+search's own name, on a call that sets nothing but the organism, becomes
+`only_match` on the search's display name when no other hit names it. The return
+and its summary name each correction (`why.term corrected to <name>`, or
+`why corrected to only_match on <name>`). A term that is nothing the
+call holds is still refused, because only the model can name a real basis.
 
 **No check reads a threshold.** `nearest` compares the bound hit with the other
 hits of the same read: an order, not a cut. It refuses a claim, never a binding,

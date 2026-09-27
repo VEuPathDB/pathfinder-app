@@ -149,6 +149,18 @@ machinery is not the obstacle.
   Nothing outside the client's `wdk` subpackage constructs these from raw JSON.
 - **`veupathdb-py: src/veupathdb/wdk/wdk_parameters.py`** - the ten-member
   `WDKParameter` union, discriminated on `type`.
+- **A search's organism parameter** - the one WDK marks with
+  `properties.organismProperties` (WDK-PARAM-013,
+  `veupathdb-py: docs/knowledge/wdk/rules/parameters-and-vocabularies.md`), which
+  the tool server carries as `ParameterInfo.organism_param` and PathFinder records
+  as `Criterion.organism_param` at bind; no parameter is recognized by its name.
+- **A transform's input record class** - `allowedPrimaryInputRecordClassNames`
+  on the search (`WDKSearch.allowed_primary_input_record_class_names`), which
+  WDK enforces only when the step runs
+  ([`AnswerParam.validateValue`](https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Model/src/main/java/org/gusdb/wdk/model/query/param/AnswerParam.java#L140-L145),
+  WDK-STEP-008, `veupathdb-py: docs/knowledge/wdk/rules/strategies-and-steps.md`);
+  `set_structure` refuses a transform whose input subtree returns another class
+  before anything is written (`domain/strategy/validate.py:transform_input_refusal`).
 - **`veupathdb-py: src/veupathdb/domain/parameters/values.py`** - the eleven
   `*Value` models and `ParamKind`. Pure, no I/O, and the only parameter
   representation that crosses layers.

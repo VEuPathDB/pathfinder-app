@@ -33,9 +33,12 @@ Lead asks in prose.
   `lead_next_state` and open questions stay as they stood. The denial's reason is the note.
 - **A run is its own card.** A sweep, a separation or a control test is never offered on a
   `propose_changes` card, whose yes runs an edit. The Lead calls that tool, whose own approval is
-  the card, with the controls the conversation holds: a saved control set by its
-  `control_set_id`, which the worker reads whole, or the ids the researcher typed. A sweep that
-  names no control, both kinds, or a parameter by its label is refused before the card.
+  the card, with the controls the conversation holds. A sweep or a control test takes a control
+  set attached to the conversation by its `control_set_id`, which the worker reads whole, and a
+  separation takes the ids the researcher gave. Ids typed for a sweep or a test are saved first
+  with `build_control_set`, which attaches the set it saves; `use_control_set` attaches a saved
+  set the researcher names; a set of another conversation is refused. A sweep that names no
+  control set or a parameter by its label is refused before the card.
 - **Typed answers.** Every Lead card follows one rule, `ai/graph/_lead_offers.py::answer_to_the_offer`:
   a typed approval phrase (`is_pure_approval`) accepts the card as a click on yes would, except a
   `consult_user` card, which only its answers answer. Any other typed message declines the card

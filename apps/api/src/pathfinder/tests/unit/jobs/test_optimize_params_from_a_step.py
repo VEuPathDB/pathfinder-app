@@ -15,9 +15,15 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import optimize_params_impl
+from pathfinder.services.evidence.control_sets import UnknownControlSetError
 from pathfinder.services.parameter_optimization import tunable
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 
 STEP_ID = 440299573
 SEARCH = "GenesByExonCount"
@@ -93,6 +99,9 @@ def swept_variants(monkeypatch: pytest.MonkeyPatch) -> list[SweepVariantSpec]:
     monkeypatch.setattr(optimize_params_impl, "run_single_trial", trial)
     monkeypatch.setattr(optimize_params_impl, "attach_sweep_download", no_export)
     monkeypatch.setattr(TaskProgressEmitter, "update", no_update)
+    serve_saved_controls(
+        monkeypatch, optimize_params_impl, saved_set(["PF3D7_1133400"])
+    )
     return tried
 
 
@@ -113,7 +122,7 @@ async def _run(**kwargs: Any) -> dict[str, Any]:
         progress=_emitter(),
         memory_store=None,
         wdk_step_id=STEP_ID,
-        positive_controls=["PF3D7_1133400"],
+        control_set_id=SAVED_SET_ID,
         **kwargs,
     )
 
@@ -185,19 +194,65 @@ async def test_the_budget_caps_the_trials(
     assert len(swept_variants) <= 6
 
 
-async def test_a_sweep_with_no_controls_is_refused(
+async def test_typed_control_ids_without_a_set_start_no_sweep() -> None:
+    payload: dict[str, Any] = {
+        "context": _context(),
+        "task_id": uuid4(),
+        "progress": _emitter(),
+        "memory_store": None,
+        "wdk_step_id": STEP_ID,
+        "positive_controls": ["PF3D7_1133400"],
+    }
+
+    with pytest.raises(TypeError, match="control_set_id"):
+        await optimize_params_impl.optimize_search_parameters_impl(**payload)
+
+
+async def test_a_set_that_holds_no_controls_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_saved_controls(monkeypatch, optimize_params_impl, saved_set([]))
+
+    with pytest.raises(ValueError, match="Saved controls holds no controls"):
+        await _run()
+
+
+def _saved_set_sweep(control_set_id: str) -> Any:
+    return optimize_params_impl.optimize_search_parameters_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=control_set_id,
+    )
+
+
+async def test_a_sweep_on_a_saved_set_names_the_set_it_scored(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _catalog(
         monkeypatch,
         [_param("scope", "single-pick-vocabulary", options=["gene", "transcript"])],
     )
+    serve_saved_controls(
+        monkeypatch,
+        optimize_params_impl,
+        saved_set(["PF3D7_1133400"], ["PF3D7_0102600"]),
+    )
 
-    with pytest.raises(ValueError, match="positive_controls"):
-        await optimize_params_impl.optimize_search_parameters_impl(
-            context=_context(),
-            task_id=uuid4(),
-            progress=_emitter(),
-            memory_store=None,
-            wdk_step_id=STEP_ID,
-        )
+    result = await _saved_set_sweep(SAVED_SET_ID)
+
+    assert result["controlSet"] == {"id": SAVED_SET_ID, "name": "Saved controls"}
+    assert len(result["variants"]) == 2
+
+
+async def test_a_sweep_on_a_set_the_site_does_not_hold_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_saved_controls(
+        monkeypatch, optimize_params_impl, saved_set(["PF3D7_1133400"])
+    )
+
+    with pytest.raises(UnknownControlSetError, match="names no control set"):
+        await _saved_set_sweep("5f1c6a2e-0000-4000-8000-0000000000aa")

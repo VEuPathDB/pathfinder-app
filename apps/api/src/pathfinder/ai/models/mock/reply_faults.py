@@ -1,4 +1,4 @@
-"""The wrong calls of the faults the turn contract and the intent gate refuse:
+"""The wrong calls of the faults the turn contract and the intent gate answer:
 a reply silent about a gap or a caveat, a card that misstates a list size, an
 open value asked in prose, and a classification that splits the organism."""
 

@@ -347,6 +347,23 @@ def drafted_search_lines(messages: list[ModelMessage]) -> str:
     return "\n".join(_SEARCH_LINE.findall(drafts[-1].prose)) if drafts else ""
 
 
+class _Dropped(ToolAnswer):
+    criterion_id: str
+
+
+class _Structured(ToolAnswer):
+    dropped: list[_Dropped] = Field(default_factory=list)
+
+
+def structure_dropped(messages: list[ModelMessage]) -> frozenset[str]:
+    """The criteria a ``set_structure`` answer of the run reports dropped."""
+    return frozenset(
+        drop.criterion_id
+        for answer in returns_of(messages, "set_structure", _Structured)
+        for drop in answer.dropped
+    )
+
+
 class _Summary(ToolAnswer):
     summary: str = ""
     disposition: str = ""

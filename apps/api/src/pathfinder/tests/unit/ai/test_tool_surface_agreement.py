@@ -149,7 +149,7 @@ def _all_registered_names() -> set[str]:
 
 
 def test_verify_toolset_contains_instructed_gene_chain() -> None:
-    """VERIFY resolves control gene IDs through a chain its toolset registers."""
+    """VERIFY resolves a gene name to its ID through a chain its toolset registers."""
     names = toolset_tool_names(build_toolset())
     for tool in ("lookup_gene_records", "resolve_gene_ids_to_records"):
         assert tool in names, f"{tool} is instructed by VERIFY but not registered"

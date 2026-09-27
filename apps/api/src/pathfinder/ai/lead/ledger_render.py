@@ -12,7 +12,8 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
     render_structure,
 )
-from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.caveats import Caveat, ControlsCaveat
+from pathfinder.domain.evidence import NamedControlSet, VerificationReview
 from pathfinder.domain.strategy.operational_spec import Criterion, OpenSlot
 
 # The choices of one open slot the ledger prints.
@@ -161,9 +162,18 @@ def render_verification_full(section: VerificationSection) -> str:
         parts.extend(f"- {gap.sentence}" for gap in d.gaps)
     if d.caveats:
         parts.append("\n### Caveats")
-        parts.extend(f"- {caveat.sentence}" for caveat in d.caveats)
+        parts.extend(_caveat_line(caveat) for caveat in d.caveats)
     parts.extend(_review_lines(d.review))
     return "\n".join(parts)
+
+
+def _caveat_line(caveat: Caveat) -> str:
+    """The caveat sentence, and the saved set a control test ran when it names one."""
+    match caveat:
+        case ControlsCaveat(control_set=NamedControlSet() as held):
+            return f"- {caveat.sentence} (control set {held.name}, id {held.id})"
+        case _:
+            return f"- {caveat.sentence}"
 
 
 def _review_lines(review: VerificationReview) -> list[str]:

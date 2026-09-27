@@ -40,6 +40,7 @@ export const TOOL_LABELS: Record<string, string> = {
   build_control_set: "Build control set",
   list_control_sets: "List control sets",
   read_control_set: "Read control set",
+  use_control_set: "Use control set",
   read_gene_ids_from_gene_set: "Gene ids from gene set",
   read_gene_ids_from_strategy: "Gene ids from strategy",
   separate_controls: "Separate the controls",

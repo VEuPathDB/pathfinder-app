@@ -65,17 +65,22 @@ def _names_a_strain(value: str) -> bool:
 
 
 def alt_organism(
-    instructions: str, criterion_id: str, organism: str, *, same_genus: bool
+    instructions: str,
+    criterion_id: str,
+    param_name: str,
+    organism: str,
+    *,
+    same_genus: bool,
 ) -> str:
-    """The first strain of the criterion's sheet in the genus of ``organism``,
-    or outside it when not ``same_genus``, else its first other strain, else
-    its first other entry."""
+    """The first strain ``param_name`` lists on the criterion's sheet in the
+    genus of ``organism``, or outside it when not ``same_genus``, else its
+    first other strain, else its first other entry."""
     entry = next(
-        (e for e in sheet_entries(instructions, criterion_id) if e.name == "organism"),
+        (e for e in sheet_entries(instructions, criterion_id) if e.name == param_name),
         None,
     )
     if entry is None:
-        msg = f"No organism sheet is pinned for {criterion_id}"
+        msg = f"No {param_name} sheet is pinned for {criterion_id}"
         raise LookupError(msg)
     others = [option.value for option in entry.vocabulary if option.value != organism]
     strains = [value for value in others if _names_a_strain(value)]

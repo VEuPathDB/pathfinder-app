@@ -102,6 +102,7 @@ def export_pred_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
             "multi-pick-vocabulary",
             display_name="Organism",
             vocab_leaves=ORGANISMS,
+            organism_param=True,
         ),
         param_info(
             "min_exportpred_score",

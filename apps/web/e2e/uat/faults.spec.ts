@@ -223,7 +223,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
   });
 
-  test("A value passed as a parameter term is refused", async ({
+  test("A value passed as a parameter term is corrected", async ({
     chatPage,
     apiClient,
     page,
@@ -237,11 +237,18 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Choose a search");
-    await expect(refused).toHaveCount(1);
-    await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      new RegExp(`: ${organism} is a value this call sets on `),
+    const corrected = page
+      .getByTestId("trace-row")
+      .filter({ hasText: "why.term corrected to Version" });
+    await expect(corrected).toHaveCount(1);
+    await expect(corrected.getByTestId("trace-row-summary")).toHaveText(
+      /, sets Version; why\.term corrected to Version/,
     );
+    await expect(corrected.getByTestId("trace-row-status")).not.toHaveAttribute(
+      "data-status",
+      "error",
+    );
+    await expect(errorRows(page, "Choose a search")).toHaveCount(0);
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
   });
 
@@ -283,7 +290,10 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const refused = errorRows(page, "Choose a search");
     await expect(refused).toHaveCount(3);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      Array.from({ length: 3 }, () => /^tm_domains: the reason must hold the term /),
+      Array.from(
+        { length: 3 },
+        () => /^tm_domains: the reason holds \d+ characters\. /,
+      ),
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
   });
@@ -438,7 +448,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
   });
 
-  test("FND-8 - a sweep that names no controls is refused before its card", async ({
+  test("FND-8 - a sweep that names no control set is refused before its card", async ({
     chatPage,
     apiClient,
     page,
@@ -468,7 +478,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const refused = errorRows(page, "Optimize parameters");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      /^A sweep scores each setting against the controls, and this call names none\./,
+      /^1 validation error:[\s\S]*"missing"[\s\S]*"control_set_id"/,
     );
 
     await approval.getByTestId("tool-approval-deny").click();
@@ -766,14 +776,13 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     ).toHaveCount(0);
   });
 
-  test("FND-24 - a classification that splits the organism is refused", async ({
+  test("FND-32 - a classification that splits the organism is recorded whole", async ({
     chatPage,
     apiClient,
     page,
     siteId,
   }) => {
     const organism = siteOrganism(siteId);
-    const strain = organism.split(" ").slice(2).join(" ");
     const id = await sendOn(
       chatPage,
       siteId,
@@ -781,14 +790,13 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Read the request");
-    await expect(refused).toHaveCount(1);
-    await expect(refused.getByTestId("trace-row-summary")).toHaveText(
-      new RegExp(`^The message names the organism "${escaped(organism)}"`),
-    );
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      `The message names the organism "${organism}", one entry of this site's organism list. Record it whole as the organism constraint; "${strain}" is part of its name, not a requirement of its own.`,
-    );
+    await expect(errorRows(page, "Read the request")).toHaveCount(0);
+    const classified = page
+      .getByTestId("trace-row")
+      .filter({ hasText: "Read the request" });
+    await expect(classified.getByTestId("trace-row-summary")).toHaveText([
+      `Intent: new_strategy; organism recorded as "${organism}"`,
+    ]);
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
   });
 

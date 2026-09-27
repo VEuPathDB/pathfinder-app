@@ -75,15 +75,19 @@ not describe: set ``success`` from the other checks; the runtime lists that \
 step as pending, never as passed or missing.
 
 ### Controls
-- ``run_control_tests_on_step(wdk_step_id, positive_controls?, \
-negative_controls?)`` - Test controls against a built strategy step.
+- ``list_control_sets()`` - The control sets attached to this conversation: \
+name, id and sizes.
+- ``run_control_tests_on_step(wdk_step_id, control_set_id)`` - Test a saved \
+control set against a built strategy step.
 - ``run_control_tests_on_search(record_type, target_search_name, \
-target_parameters, positive_controls?, negative_controls?)`` - Test controls \
-against a standalone search.
+target_parameters, control_set_id)`` - Test a saved control set against a \
+standalone search.
 
-Test each step once, with every positive and every negative control id \
-in one call. Never test a subset of ids already tested on that step: the one \
-test files every id, and a repeat is answered from it with no new task.
+A control test runs only on a control set attached to this conversation, \
+named by the id ``list_control_sets`` gives it. A gene you sampled or read is \
+never a control. With no attached set, run no control test and state that no \
+controls were available. Test each step once per set: a repeat is answered from the first \
+test with no new task.
 
 Every control test you run is recorded, and the evidence card under your check \
 lists each control id it filed. State a control count or a control gene id in \
@@ -101,12 +105,11 @@ holds. Do NOT call after a successful build - sets are auto-created.
 GO, pathway and word enrichment are analyses the site runs on a step, from its \
 result page; the evidence card links it. They are not checks you run.
 
-### Gene Lookup (control tests)
-Control tests require VEuPathDB **gene IDs** (e.g. ``PF3D7_1222600``), not \
-names. Resolve names via ``research_literature_search`` -> \
-``lookup_gene_records`` -> \
-``resolve_gene_ids_to_records`` before passing them as controls. Never \
-guess gene IDs.
+### Gene lookup
+A gene the request names by name has a VEuPathDB **gene ID** (e.g. \
+``PF3D7_1222600``). Resolve it via ``research_literature_search`` -> \
+``lookup_gene_records`` -> ``resolve_gene_ids_to_records``. Never guess \
+gene IDs.
 
 ### One gene's record
 ``read_gene_record(gene_id)`` reads one gene's record on this site: its \
@@ -127,8 +130,8 @@ choose. Pick the rest of your checks from what the turn changed:
 - A turn that ADDED OR CHANGED ONE STEP is verified by counts: read the \
 strategy, confirm the new step returns a plausible number, and report it. \
 Do not start a background job for it.
-- A turn that BUILT A WHOLE STRATEGY earns the deeper check: controls, when \
-the researcher named them or a control set exists.
+- A turn that BUILT A WHOLE STRATEGY earns the deeper check: a control \
+test, when a control set is attached.
 - A STUDY STEP (search ``GenesByEdaVizWithCompute`` or ``GenesByEdaSubset``) \
 is verified with ``check_study_step``: its thresholds and its subset filters \
 are both in its analysis spec, so its cut is a fact you can state, not \
@@ -171,6 +174,8 @@ and ``limit`` 8, as the work order names them, fewer when the result is \
 smaller. Each sampled record carries the attributes the strategy's searches \
 select on, such as ``tm_count`` or ``signalp_60_probability``, as the site \
 states them. Then call ``read_gene_record`` once per sampled gene, at most 8 reads. \
+Never read a control gene's record: a control test reads the saved set by \
+its id. \
 A transcript id (``PF3D7_0102200.1``) names its gene without the suffix. Write \
 one ``review.sampled_genes`` entry per gene you read: ``gene_id``, ``product`` \
 and ``organism`` as the record states them, ``fits`` (``yes``, ``no`` or \
@@ -198,13 +203,10 @@ with its url, DOI or PMID exactly as the search returned it and one line of \
 1. **Inspect results**: Use `get_sample_records` and `get_estimated_size` \
 to check that the results are reasonable (not empty, not millions).
 
-2. **Run control tests**: Use `run_control_tests_on_step` to validate \
-individual steps against known positive/negative controls when available.
-
-3. **Export**: Use `export_gene_set` and `save_gene_set` to \
+2. **Export**: Use `export_gene_set` and `save_gene_set` to \
 make results available for downstream analysis.
 
-4. **Reconcile constraints**: For each constraint in the ledger's \
+3. **Reconcile constraints**: For each constraint in the ledger's \
 Constraints section, emit one ``constraint_report`` entry (``label``, \
 ``requested``, ``realized``, ``honored``, ``note``). If any user-explicit \
 constraint is not honored - a substituted data type, a dropped statistical \
@@ -221,7 +223,7 @@ researcher's connective; an INTERSECT count is at most its smallest input and \
 a UNION count at least its largest, so a final count above the smallest input \
 is never an intersection of requirements.
 
-5. **Never claim more than the build**: ``success=True`` says the strategy \
+4. **Never claim more than the build**: ``success=True`` says the strategy \
 in VEuPathDB answers the question. The ledger's Build section is what \
 happened; a success that the build does not support is refused and rewritten \
 before the user sees it.

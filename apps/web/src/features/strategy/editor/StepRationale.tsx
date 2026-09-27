@@ -57,7 +57,7 @@ export function StepRationale({ rationale }: { rationale: Rationale }) {
   return (
     <div className="mb-3 space-y-1 text-xs" data-testid="step-rationale">
       <p className="font-medium text-foreground">Why this search</p>
-      <p className="text-muted-foreground">{rationale.reason}</p>
+      <p className="text-muted-foreground">{rationale.sentence}</p>
       {query !== "" && (
         <p className="text-muted-foreground" data-testid="step-rationale-query">
           catalog query: {query}; this search scored {score(rationale.similarity)} of{" "}

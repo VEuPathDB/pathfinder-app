@@ -23,6 +23,7 @@ from pathfinder.ai.lead.lead_adoption import (
 from pathfinder.ai.lead.proposal import ADOPT_TOOL
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.session import StrategySession
@@ -187,6 +188,7 @@ async def test_the_controls_are_saved_and_attached(writes: _Writes) -> None:
     assert [c.id for c in deps.state.turn_markers.created_control_sets] == [
         _CONTROL_SET_ID
     ]
+    assert [c.id for c in deps.state.domain.control_sets] == [_CONTROL_SET_ID]
 
 
 async def test_an_offer_the_build_refuses_leaves_the_strategy_standing(
@@ -214,6 +216,28 @@ async def test_an_offer_the_build_refuses_leaves_the_strategy_standing(
         deps.state.turn_markers.accepted_proposal,
         sorted(graph.steps),
     ) == (None, False, ["step_a"])
+
+
+async def test_a_replaced_strategy_keeps_the_sets_the_thread_attached(
+    writes: _Writes,
+) -> None:
+    earlier = NamedControlSet(
+        id="96eaafb0-659c-4041-8bf3-5c66e5a9f95c", name="Kinase controls"
+    )
+    deps = _deps(session_with_one_step(), recorded_offer())
+    deps.state.domain.attach_control_set(earlier)
+
+    await adopt_separating_strategy(
+        run_context_for(deps, "call_adopt"),
+        str(TASK_ID),
+        reply="I will make this change and report what it takes with it.",
+    )
+
+    assert writes.order == ["cleared", "built"]
+    assert [c.id for c in deps.state.domain.control_sets] == [
+        earlier.id,
+        _CONTROL_SET_ID,
+    ]
 
 
 def test_the_adoption_is_a_card_a_typed_yes_reaches() -> None:

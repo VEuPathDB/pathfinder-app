@@ -270,10 +270,8 @@ async def test_a_yes_builds_the_measured_spec_and_attaches_its_controls(
         for job in in_memory_jobs.jobs.values()
         if job["task_name"] == "durable:run_control_tests_on_step"
     ]
-    assert (tested["positive_controls"], tested["negative_controls"]) == (
-        attached.positives,
-        attached.negatives,
-    )
+    assert sorted(tested) == ["control_set_id", "wdk_step_id"]
+    assert tested["control_set_id"] == attached.control_set_id
 
 
 async def test_a_no_keeps_the_offer_and_builds_nothing(

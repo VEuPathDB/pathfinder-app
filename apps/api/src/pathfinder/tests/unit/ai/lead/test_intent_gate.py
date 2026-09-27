@@ -38,7 +38,10 @@ UNLOCKED_ON_A_FRESH_THREAD = BUILDING_TOOLS - {
 
 
 def _deps(prompt: str) -> LeadDeps:
-    return lead_deps(pipeline_state("tritrypdb", user_prompt=prompt))
+    """A thread with one question open, so an answer classification answers it."""
+    state = pipeline_state("tritrypdb", user_prompt=prompt)
+    state.turn_markers.questions_at_arrival = ["Which organism?"]
+    return lead_deps(state)
 
 
 def _classify_args(classification: IntentClassification) -> dict[str, Any]:

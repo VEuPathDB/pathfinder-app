@@ -327,10 +327,19 @@ async def set_criterion(
             record_type,
             definition,
         )
-    rationale = await rationale_for(ctx, call, record_type, infos, resolved.params, why)
     # A half switched off holds a value the request never stated, so it is
     # disclosed like a default.
     defaulted = sorted(set(resolved.defaulted()) | radio.keys())
+    chosen = await rationale_for(
+        ctx,
+        call,
+        record_type,
+        infos,
+        resolved.params,
+        why,
+        defaulted=defaulted,
+        transform=bool(definition.allowed_primary_input_record_class_names),
+    )
     canonical = resolved
     # Only a binding with no open slot is validated: an unresolved required
     # param reads as missing, while a bad value returns a did-you-mean retry.
@@ -357,6 +366,7 @@ async def set_criterion(
             search_name=search_name,
             search_display_name=search_display_name(definition),
             role=role,
+            organism_param=next((i.name for i in infos if i.organism_param), None),
             resolved_params=resolved.params,
             defaulted_params=defaulted,
             open_params=open_params,
@@ -364,7 +374,7 @@ async def set_criterion(
                 AssumedValue(param_name=e.param_name, value=e.value, reason=e.reason)
                 for e in assumed or []
             ],
-            rationale=rationale,
+            rationale=chosen.rationale,
             unexpressed_qualifiers=qualifiers.unexpressed,
         ),
         record_type=record_type,
@@ -384,7 +394,8 @@ async def set_criterion(
             open_slots=open_params,
             result_count=count,
             alternatives=alternatives,
-            rationale=rationale,
+            rationale=chosen.rationale,
+            corrections=list(chosen.corrections),
             unread_searches=qualifiers.unread,
         ),
         record_type,

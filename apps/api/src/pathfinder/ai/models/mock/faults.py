@@ -26,12 +26,15 @@ from pathfinder.ai.models.mock.arc import Role
 class Fault:
     """The role a fault plays in, the wrong call it makes there, and how many
     times the turn makes it before the arc goes on. ``setup`` is the wrong call
-    of another role that gives this one something to be wrong about."""
+    of another role that gives this one something to be wrong about. A wrong
+    call that ``stands`` is one the tool corrects and accepts, so the arc reads
+    it as its own call and does not make the call it replaced."""
 
     applies_to: Role
     wrong_call: fault_calls.WrongCall
     times: int = 1
     setup: Fault | None = None
+    stands: bool = False
 
     def playing(self, role: Role) -> Fault | None:
         """The part of the fault this role plays, or None."""
@@ -47,14 +50,17 @@ _UNTIL_THE_PASS_STOPS = 4
 
 FAULTS: dict[str, Fault] = {
     "syntenic-left-off": Fault("frame", fault_calls.syntenic_left_off),
-    "repeat-control-test": Fault("verification", fault_calls.repeat_control_test),
+    # The arc's own test is the first of the two identical calls.
+    "repeat-control-test": Fault(
+        "verification", fault_calls.repeat_control_test, times=2
+    ),
     "transcript-count": Fault("lead", fault_calls.transcript_count),
     "all-unclear": Fault("verification", fault_calls.all_unclear),
     "sweep-without-controls": Fault("lead", fault_calls.sweep_without_controls),
     "long-reason": Fault("frame", fault_calls.long_reason, _UNTIL_THE_PASS_STOPS),
     "short-card-reply": Fault("lead", fault_calls.short_card_reply),
     "unlisted-search": Fault("frame", fault_calls.unlisted_search),
-    "value-as-term": Fault("frame", fault_calls.value_as_term),
+    "value-as-term": Fault("frame", fault_calls.value_as_term, stands=True),
     "off-vocabulary": Fault("frame", fault_calls.off_vocabulary),
     "unbacked-controls": Fault("lead", fault_calls.unbacked_controls),
     "misstated-count": Fault("lead", fault_calls.misstated_count),
@@ -66,7 +72,7 @@ FAULTS: dict[str, Fault] = {
         setup=Fault("verification", reply_faults.unmet_requirement),
     ),
     "misstated-control-list": Fault("lead", reply_faults.misstated_control_list),
-    "organism-split": Fault("lead", reply_faults.organism_split),
+    "organism-split": Fault("lead", reply_faults.organism_split, stands=True),
     "open-value-in-prose": Fault("lead", reply_faults.open_value_in_prose),
 }
 
@@ -119,6 +125,8 @@ def fault_call(
     wrong = fault.wrong_call(messages)(intended)
     if wrong is None or _answered(messages, wrong, fault.times):
         return None
+    if fault.stands:
+        return wrong
     return replace(wrong, tool_call_id=f"{_FAULT_CALL}{wrong.tool_call_id}")
 
 

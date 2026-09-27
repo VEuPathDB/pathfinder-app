@@ -18,15 +18,14 @@ def test_the_scope_carries_the_attached_controls() -> None:
     )
 
 
-def test_the_work_order_names_every_attached_control() -> None:
+def test_the_work_order_names_the_saved_set_the_strategy_was_measured_on() -> None:
     assert work_order("check the adopted strategy", ATTACHED_CONTROLS, None) == (
         "Verification work order: check the adopted strategy\n"
         "Inspect the built strategy. Return a VerificationDelta.\n"
         "The strategy was adopted from a separation run. Run "
-        "run_control_tests_on_step on its root step with exactly these controls, "
-        "saved as control set 5f1c6a2e-0000-4000-8000-00000000c0de:\n"
-        "positive_controls: PF3D7_0100600, PF3D7_0100800\n"
-        "negative_controls: PF3D7_0508800"
+        "run_control_tests_on_step on its root step with control_set_id "
+        "5f1c6a2e-0000-4000-8000-00000000c0de, the saved set it was measured on: "
+        "2 positive and 1 negative controls."
     )
 
 

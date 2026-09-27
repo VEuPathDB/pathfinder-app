@@ -20,6 +20,12 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.tools.standalone import experiment
 from pathfinder.services.experiment.published_names import PublishedNames
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET,
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 
@@ -73,15 +79,21 @@ def _measured_service(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(experiment, "run_positive_negative_controls", run)
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
+    serve_saved_controls(
+        monkeypatch,
+        experiment,
+        saved_set(
+            ["PF3D7_1222600", "PF3D7_1031000", "PF3D7_0000001"], ["TGME49_205250"]
+        ),
+    )
 
 
 async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None:
     returned = await experiment.run_control_tests_on_search(
-        agent_run_context(),
+        agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
         {"organism": StringValue(value="Plasmodium falciparum 3D7")},
-        positive_controls=["PF3D7_1222600", "PF3D7_1031000", "PF3D7_0000001"],
-        negative_controls=["TGME49_205250"],
+        control_set_id=SAVED_SET_ID,
     )
 
     outcome = returned.return_value
@@ -98,10 +110,10 @@ async def test_the_tool_returns_the_measured_counts_not_empty_defaults() -> None
 
 async def test_the_summary_names_the_positives_the_search_recovered() -> None:
     returned = await experiment.run_control_tests_on_search(
-        agent_run_context(),
+        agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
         {},
-        positive_controls=["PF3D7_1222600"],
+        control_set_id=SAVED_SET_ID,
     )
 
     assert summary_of(returned).data["summary"] == (
@@ -249,10 +261,10 @@ def test_a_long_parameter_value_is_cut_to_a_readable_length() -> None:
 
 async def test_a_search_level_test_leaves_the_same_exhibit() -> None:
     returned = await experiment.run_control_tests_on_search(
-        agent_run_context(),
+        agent_run_context(control_sets=[SAVED_SET]),
         "GenesByMolecularWeight",
         {"organism": StringValue(value="Plasmodium falciparum 3D7")},
-        positive_controls=["PF3D7_1222600"],
+        control_set_id=SAVED_SET_ID,
     )
 
     exhibits = [

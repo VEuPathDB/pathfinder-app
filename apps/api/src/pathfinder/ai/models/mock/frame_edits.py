@@ -12,7 +12,6 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pathfinder.ai.models.mock.edit_frame import (
     grown_call,
     param_edit_call,
-    removed_step_call,
     replaced_step_call,
     workspace_criteria,
 )
@@ -94,15 +93,10 @@ def _replaced(messages: list[ModelMessage], work_order: str) -> ToolCallPart:
     )
 
 
-def _removed(messages: list[ModelMessage], work_order: str) -> ToolCallPart:
-    return removed_step_call(work_order, TM_DOMAINS, acted_tool_names(messages))
-
-
 edit_param_frame = on_edit_order(_param_edit({"min_tm": EDITED_MIN_TM}))
 relax_frame = on_edit_order(_param_edit({"min_tm": RELAXED_MIN_TM}), zero_spec)
 add_step_frame = on_edit_order(_added)
 replace_frame = on_edit_order(_replaced)
-delete_frame = on_edit_order(_removed)
 orthologs_frame = on_edit_order(
     _grown(partial(orthologs_growth, syntenic="no")), orthologs_spec
 )

@@ -302,8 +302,10 @@ def _records_organism(
 ) -> OrganismChange | None:
     """The organism change of the tree recovery left, which may differ from the build's."""
     root_id = strategy_root_id(graph, sync_state)
-    return (
-        None if root_id is None else organism_change(rebuild_tree(root_id, graph.steps))
+    if root_id is None:
+        return None
+    return organism_change(
+        rebuild_tree(root_id, graph.steps), sync_state.organism_params
     )
 
 

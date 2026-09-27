@@ -184,6 +184,26 @@ def control_set_not_written_message(saved: Sequence[CreatedGeneSet]) -> str:
     )
 
 
+def unclassified_turn_message(refusal: str) -> str:
+    """Why a reply on a turn that holds no accepted classification is refused."""
+    return (
+        "This turn's message holds no accepted classification: "
+        f"classify_user_intent refused it with this sentence. {refusal} Call "
+        "classify_user_intent again with what the sentence names, or ask the "
+        "researcher the question it states through consult_user."
+    )
+
+
+def unsaved_controls_message(positives: int, negatives: int) -> str:
+    """Why a reply on a turn whose message names controls it never saved is refused."""
+    return (
+        f"The message names {positives} positive and {negatives} negative "
+        "controls, and this turn saved no control set. Save them with "
+        "build_control_set; with positives only, save them and ask for the "
+        "negatives."
+    )
+
+
 def gene_set_not_saved_message(saved: Sequence[CreatedControlSet]) -> str:
     """Why a reply that reports a gene set this turn never saved is refused."""
     return _mislabelled_save_message(
@@ -308,6 +328,16 @@ def unfinished_work_message(refused: Sequence[str], stop: PhaseStop | None) -> s
         f"that unblocks that pass and record it in ``asked_questions`` with the "
         f"value you recommend, or stop there. Never name a pass as the next "
         f"thing you will do - this reply ends the turn."
+    )
+
+
+def unstated_stop_message(stop: PhaseStop) -> str:
+    """Why a reply that does not say the turn's check stopped is refused."""
+    return (
+        f"The check of this turn did not finish: {stop.render()}. It recorded no "
+        f"verdict, so the strategy is not verified. Say that the verification "
+        f"stopped before it finished, with no tool name, and ask whether to run "
+        f"it again."
     )
 
 

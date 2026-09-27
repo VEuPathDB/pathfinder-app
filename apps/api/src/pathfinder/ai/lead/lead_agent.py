@@ -68,6 +68,7 @@ from pathfinder.ai.tools.standalone.control_sets import (
     read_control_set,
     read_gene_ids_from_gene_set,
     read_gene_ids_from_strategy,
+    use_control_set,
 )
 from pathfinder.ai.tools.standalone.gene_record import read_gene_record
 from pathfinder.ai.tools.standalone.optimization import (
@@ -157,6 +158,7 @@ def build_lead_agent() -> LeadAgent:
             Tool(build_control_set),
             Tool(list_control_sets),
             Tool(read_control_set),
+            Tool(use_control_set),
             Tool(read_gene_ids_from_gene_set),
             Tool(read_gene_ids_from_strategy),
             Tool(compare_variants_scored),

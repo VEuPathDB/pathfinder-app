@@ -25,11 +25,13 @@ from pathfinder.ai.lead.contract_messages import (
     misnamed_deletion_message,
     off_topic_essay_message,
     unbacked_evidence_message,
+    unclassified_turn_message,
     unfinished_work_message,
     unnamed_record_organism_message,
     unrecorded_offer_message,
     unreported_change_message,
     unretrieved_source_message,
+    unsaved_controls_message,
     unverified_build_message,
 )
 from pathfinder.ai.lead.count_claims import misstated_count_message, misstated_counts
@@ -46,7 +48,7 @@ from pathfinder.ai.lead.reply_claims import (
     SAVED_A_CONTROL_SET,
     SAVED_A_GENE_SET,
     claims,
-    counts_named_as,
+    counts_in_the_wrong_unit,
     ends_with_a_question,
     machine_words,
     names_an_organism,
@@ -59,6 +61,7 @@ from pathfinder.ai.lead.verdict_claims import (
     open_value_in_prose,
     unstated_caveat,
     unstated_gap,
+    unstated_stop,
 )
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.evidence import SourceReference
@@ -131,6 +134,7 @@ MismatchKind = Literal[
     "open_value_in_prose",
     "unrecorded_question",
     "unfinished_work",
+    "stopped_check",
     "machine_words",
     "off_topic_essay",
     "unretrieved_source",
@@ -143,6 +147,8 @@ MismatchKind = Literal[
     "misnamed_deletion",
     "counted_in_the_wrong_unit",
     "misstated_count",
+    "unclassified_turn",
+    "unsaved_controls",
 ]
 
 
@@ -252,6 +258,36 @@ def _unfinished_work(report: LeadResponse, record: TurnRecord) -> str | None:
     return unfinished_work_message(record.refused_dispatches, record.last_phase_stop)
 
 
+def _stopped_check(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A check that stopped recorded no verdict, so the reply says it stopped."""
+    return unstated_stop(report.prose, record)
+
+
+def _unclassified_turn(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A message is answered after its classification is accepted.
+
+    A card answer, a typed acceptance and a turn that re-enters a parked call
+    answer something the conversation holds, not the message's own request.
+    """
+    del report
+    refused = record.refused_classification
+    if refused is None or record.answered_a_card or record.ends_on_a_card:
+        return None
+    if record.resumes_parked_call:
+        return None
+    return unclassified_turn_message(refused.sentence)
+
+
+def _unsaved_controls(report: LeadResponse, record: TurnRecord) -> str | None:
+    """Controls the message names are saved as a control set, or asked about."""
+    named = record.named_controls
+    if named is None or record.created_control_sets:
+        return None
+    if report.asked_questions or record.ends_on_a_card:
+        return None
+    return unsaved_controls_message(len(named.positive_ids), len(named.negative_ids))
+
+
 def _machine_words(report: LeadResponse, record: TurnRecord) -> str | None:
     """A reply about work that did not run says so in the user's own words.
 
@@ -354,14 +390,12 @@ def _misnamed_deletion(report: LeadResponse, record: TurnRecord) -> str | None:
 
 def _counted_in_the_wrong_unit(report: LeadResponse, record: TurnRecord) -> str | None:
     """A step count is named in the noun the site counts the strategy in."""
-    noun = counted_noun(record.record_type)
-    if not record.record_type or noun == record.record_type:
-        return None
-    held = set(record.step_counts)
-    named = counts_named_as(report.prose, record.record_type, instead_of=noun)
-    wrong = [count for count in dict.fromkeys(named) if count in held]
+    wrong = counts_in_the_wrong_unit(
+        report.prose, record.record_type, record.step_counts
+    )
     if not wrong:
         return None
+    noun = counted_noun(record.record_type)
     return counted_in_the_wrong_unit_message(record.record_type, noun, wrong)
 
 
@@ -393,6 +427,9 @@ _RULES: tuple[
     ("open_value_in_prose", _open_value_in_prose),
     ("unrecorded_question", _unrecorded_question),
     ("unfinished_work", _unfinished_work),
+    ("stopped_check", _stopped_check),
+    ("unclassified_turn", _unclassified_turn),
+    ("unsaved_controls", _unsaved_controls),
     ("machine_words", _machine_words),
     ("off_topic_essay", _off_topic_essay),
     ("unretrieved_source", _unretrieved_source),

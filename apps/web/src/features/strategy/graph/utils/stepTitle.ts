@@ -52,6 +52,6 @@ export function reasonDetail(rationale: StepRationale): string {
       : `${search.displayName} ${search.similarity.toFixed(2)}`,
   );
   return over.length === 0
-    ? rationale.reason
-    : `${rationale.reason} (over ${over.join(", ")})`;
+    ? rationale.sentence
+    : `${rationale.sentence} (over ${over.join(", ")})`;
 }

@@ -57,10 +57,13 @@ def test_a_study_step_the_site_could_not_read_is_a_pending_check() -> None:
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
 
 
-def test_each_step_is_tested_once_with_the_whole_control_set() -> None:
+def test_a_control_test_runs_only_on_a_set_attached_to_the_conversation() -> None:
     instructions = _normalized(_VERIFICATION_INSTRUCTIONS)
 
     assert (
-        "Test each step once, with every positive and every negative control id "
-        "in one call. Never test a subset of ids already tested on that step"
+        "A control test runs only on a control set attached to this conversation, "
+        "named by the id ``list_control_sets`` gives it. A gene you sampled or "
+        "read is never a control. With no attached set, run no control test and "
+        "state that no controls were available."
     ) in instructions
+    assert "when available" not in instructions

@@ -20,9 +20,9 @@
   twice on the real model; three were the record's, five the product's, all
   fixed (FND-24 to FND-30 in `docs/knowledge/uat/findings.md`). An organism
   phrase the message states whole is one requirement: the intent gate reads the
-  site's organism list and refuses a classification that splits "Anopheles
-  gambiae PEST" into an organism and a "PEST genes" constraint, or borrows a
-  word of it into a combination term (`domain/strategy/organism_phrases.py`).
+  site's organism list and records "Anopheles gambiae PEST" whole when the
+  classification stops at "Anopheles gambiae" (`domain/strategy/organism_phrases.py`;
+  the refusal this began as is gone, see the next entry).
   A word is a qualifier only when the text puts it in the same compound as the
   parameter name that owns it ("host cell" is not `singleCellDataset`'s "single
   cell"; 58 of plasmodb's 137 qualifier stems can now be set aside by their
@@ -37,6 +37,64 @@
   control-list size must be one the turn holds. A free text part of the Lead
   model never reaches the thread; only the validated reply or a card's reply
   does, so a reasoning block streamed before the call is not shown.
+
+* **What the a18 pre-release report found, fixed before the tag.** Fifty-two
+  of the 58 flows passed on the real model; the six failures and the debugger
+  runs that reproduced them left seven findings (FND-31 to FND-37 in
+  `docs/knowledge/uat/findings.md`), all fixed here. Every fix is an invariant
+  over site data, the spec, the diff or the run, never a list of words, and a
+  correction the code can compute is applied rather than asked for. A search's
+  organism parameter is the one WDK marks with `organismProperties`, read by
+  the client (`veupathdb-py` v0.1.0a19, WDK-PARAM-013, which retires a name
+  list that missed two of the three names the sites use) and carried by the tool
+  server (`veupathdb-mcp` v0.2.0a31, `ParameterInfo.organism_param`,
+  `catalog.organism_parameter`). The intent gate completes a truncated organism
+  to the whole entry instead of refusing, the borrowed-word rule is deleted, a
+  call that repeats a refused one fails without a retry, and a reply on a turn
+  with no accepted classification is refused. `set_structure` drops an
+  INTERSECT input that names only the organism a sibling runs on, or whose
+  binding sets only that organism and matches every gene of it (its count
+  equals the site's `GenesByTaxon` count on those organisms), and records the
+  requirement's fate on the spec's own drop record (met by the organism, or
+  unexpressed until a criterion states it, which VERIFY reports as a gap); the
+  mock reads each seed site's organism parameters from a recording that
+  `python -m pathfinder.devtools.seeds marks` regenerates;
+  live on vectorbase S1 the 13,845-gene organism leaf leaves the tree and one
+  search remains (2,928), and on the portal a signal peptide search bound on
+  its organism alone (479 of 5,720 Pf3D7 genes) stays beside the TM search.
+  `set_structure` refuses a transform whose input returns a record class the
+  transform's `allowedPrimaryInputRecordClassNames` does not name, so the
+  compounds transform "Transform to Genes" is never wired over genes and built
+  without a count (FND-39). It also drops an INTERSECT input that repeats a
+  sibling input's searches and values, recorded as met by the sibling, so a
+  strategy is never INTERSECTed with a second copy of itself (FND-40). An edit pass whose only change removes built steps is
+  refused and sent to the delete card. Controls reach a test only through a
+  saved control set: `run_control_tests_on_step` and `optimize_search_parameters`
+  take `control_set_id` and no typed ids (both durable payloads changed, so the
+  install drains the queue first), VERIFY lists
+  sets and never saves one, and the card, the ledger and the sweep name the set.
+  The intent records the controls a message names, each id held to the message
+  text, and the turn contract refuses a turn that names controls and saves
+  nothing. A control test, a sweep or a scored comparison runs only on a
+  control set attached to this conversation, by `build_control_set`,
+  `use_control_set` or an adopted separation, so a set saved for another
+  question is never graded against a later strategy; an adoption that replaces
+  a built strategy keeps the sets attached before it, and the researcher's clear
+  empties them (FND-38, found when the
+  report re-run tested N1 against C12's two controls). A search rationale's
+  sentence is composed by the product as the term and the reason, so the
+  reason no longer has to repeat the parameter's name, and a value passed as
+  the term is corrected to its parameter with a note the trace shows; the
+  first report run had refused 78 binds on those two shapes. The repetition guard escalates only in a model step later than the
+  warning (`assistant-core` v0.3.0a20), a stopped check records no verdict and
+  the `stopped_check` rule makes the Lead say so. The report prints
+  `refusals=N (tool, ...)` per case, so a rule that fires on a passing case is
+  visible. The api image keeps an idle connection open for 75 seconds, longer
+  than the web proxy in front of it reuses one, so a request on a kept socket
+  never meets the reset that answered as a 500 through the proxy once in the
+  e2e run. A case pins the unit of its counts (`countsInGenes`) with the
+  contract's own count reader, no longer the bare word "transcripts", which a
+  quoted search name can carry.
 
 * **A wrong model is played for each new rule.** Five more fault arcs prove the
   new guards from the browser: a reply that omits a caveat or a gap, a card

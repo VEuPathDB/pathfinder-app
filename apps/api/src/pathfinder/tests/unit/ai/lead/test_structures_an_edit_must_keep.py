@@ -199,28 +199,28 @@ def _dropping_the_saved() -> Draft:
     return _draft
 
 
-async def test_a_saved_strategy_criterion_takes_its_whole_subtree_when_it_is_dropped(
+async def test_a_dropped_saved_strategy_criterion_goes_to_the_card_whole(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """One criterion addresses the subtree root, and the drop accounts for all of it."""
+    """The edit refuses the drop; the card's delete takes the whole subtree."""
     thread = _thread_with_a_saved_strategy(monkeypatch)
     await thread.next_turn()
+    held = sorted(thread.graph.steps)
     thread.frames(
         _dropping_the_saved(),
         declared=[*kept(SURFACE, STAGE), *declared("dropped", _SAVED)],
     )
 
-    delta = await thread.edit()
+    refusal = await thread.edit()
 
-    assert isinstance(delta, EditDelta)
-    assert [(op.kind, op.step_id) for op in committed_facts(thread.committed)] == [
-        ("deleteStep", _SAVED)
-    ]
+    assert isinstance(refusal, str)
+    assert refusal.startswith(f"This edit only removes [{_SAVED}] ")
+    assert f'Call delete_step with step_id "{_SAVED}"' in refusal
+    assert thread.committed == []
+    assert sorted(thread.graph.steps) == held
+    await thread.delete(_SAVED)
     assert sorted(thread.graph.steps) == sorted([SURFACE, STAGE, ROOT])
     assert thread.criteria == [SURFACE, STAGE]
-    assert sorted(delta.dropped_step_ids) == sorted(
-        [_SAVED, _SAVED_A, _SAVED_B, _WITH_SAVED]
-    )
 
 
 async def test_a_saved_strategy_criterion_is_untouched_while_a_sibling_is_edited(

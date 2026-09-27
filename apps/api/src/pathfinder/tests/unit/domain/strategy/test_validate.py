@@ -52,6 +52,12 @@ def _taxon(step_id: str, organism: str) -> StrategyStepNode:
     )
 
 
+# The parameter each search of these trees marks as its organism.
+_MARKED = {
+    "GenesByTaxon": "organism",
+    "GenesByOrthologs": "organism",
+    "GenesByNgsSnps": "organismSinglePick",
+}
 _PF = "Plasmodium falciparum 3D7"
 _TG = "Toxoplasma gondii ME49"
 _GENUS = "Plasmodium"
@@ -59,16 +65,19 @@ _GENUS = "Plasmodium"
 
 class TestTheStructuralChecks:
     def test_valid_leaf_passes(self) -> None:
-        assert _verdict(validate_strategy(_text_leaf(), "transcript")) == (True, [])
+        assert _verdict(validate_strategy(_text_leaf(), "transcript", _MARKED)) == (
+            True,
+            [],
+        )
 
     def test_empty_search_name_is_missing_search_name(self) -> None:
-        result = validate_strategy(_text_leaf(search_name=""), "transcript")
+        result = validate_strategy(_text_leaf(search_name=""), "transcript", _MARKED)
 
         assert _verdict(result) == (False, ["MISSING_SEARCH_NAME"])
         assert result.errors[0].path == "root.searchName"
 
     def test_empty_record_type_is_missing_record_type(self) -> None:
-        result = validate_strategy(_text_leaf(), "")
+        result = validate_strategy(_text_leaf(), "", _MARKED)
 
         assert _verdict(result) == (False, ["MISSING_RECORD_TYPE"])
         assert result.errors[0].path == "recordType"
@@ -77,6 +86,7 @@ class TestTheStructuralChecks:
 class TestTheSearchCatalog:
     def test_unknown_search_when_catalog_provided(self) -> None:
         validator = StrategyValidator(
+            _MARKED,
             available_searches={"transcript": ["GenesByText", "GenesByGoTerm"]},
         )
 
@@ -90,13 +100,14 @@ class TestTheSearchCatalog:
 
     def test_known_search_in_catalog_passes(self) -> None:
         validator = StrategyValidator(
-            available_searches={"transcript": ["GenesByText"]}
+            _MARKED, available_searches={"transcript": ["GenesByText"]}
         )
 
         assert _verdict(validator.validate(_text_leaf(), "transcript")) == (True, [])
 
     def test_search_valid_for_other_record_type_is_unknown_here(self) -> None:
         validator = StrategyValidator(
+            _MARKED,
             available_searches={
                 "gene": ["GenesByText"],
                 "transcript": ["GenesByGoTerm"],
@@ -111,7 +122,7 @@ class TestTheSearchCatalog:
 class TestIdenticalContrastSamples:
     def test_a_group_contrasted_against_itself_is_rejected(self) -> None:
         result = validate_strategy(
-            _differential("gametocyte", "gametocyte"), "transcript"
+            _differential("gametocyte", "gametocyte"), "transcript", _MARKED
         )
 
         assert _verdict(result) == (False, ["IDENTICAL_CONTRAST_SAMPLES"])
@@ -119,7 +130,7 @@ class TestIdenticalContrastSamples:
 
     def test_the_message_names_the_problem_in_biological_terms(self) -> None:
         result = validate_strategy(
-            _differential("gametocyte", "gametocyte"), "transcript"
+            _differential("gametocyte", "gametocyte"), "transcript", _MARKED
         )
 
         joined = " ".join(issue.message for issue in result.errors)
@@ -127,7 +138,9 @@ class TestIdenticalContrastSamples:
         assert "comparison" in joined.lower()
 
     def test_a_genuine_contrast_passes(self) -> None:
-        result = validate_strategy(_differential("gametocyte", "ring"), "transcript")
+        result = validate_strategy(
+            _differential("gametocyte", "ring"), "transcript", _MARKED
+        )
 
         assert _verdict(result) == (True, [])
 
@@ -142,7 +155,7 @@ class TestIdenticalContrastSamples:
             },
         )
 
-        assert _verdict(validate_strategy(step, "transcript")) == (
+        assert _verdict(validate_strategy(step, "transcript", _MARKED)) == (
             False,
             ["IDENTICAL_CONTRAST_SAMPLES"],
         )
@@ -154,14 +167,14 @@ class TestIdenticalContrastSamples:
             parameters={"samples_de_ref_generic_deseq": StringValue(value="ring")},
         )
 
-        assert _verdict(validate_strategy(step, "transcript")) == (True, [])
+        assert _verdict(validate_strategy(step, "transcript", _MARKED)) == (True, [])
 
 
 class TestCrossOrganismIntersect:
     def test_intersecting_two_species_is_rejected(self) -> None:
         step = combine("c", _taxon("a", _PF), _taxon("b", _TG))
 
-        result = validate_strategy(step, "transcript")
+        result = validate_strategy(step, "transcript", _MARKED)
 
         assert _verdict(result) == (False, ["CROSS_ORGANISM_INTERSECT"])
         assert result.errors[0].path == "root.operator"
@@ -170,7 +183,8 @@ class TestCrossOrganismIntersect:
         step = combine("c", _taxon("a", _PF), _taxon("b", _TG))
 
         joined = " ".join(
-            issue.message for issue in validate_strategy(step, "transcript").errors
+            issue.message
+            for issue in validate_strategy(step, "transcript", _MARKED).errors
         )
 
         assert "organism" in joined.lower()
@@ -178,7 +192,7 @@ class TestCrossOrganismIntersect:
     def test_the_same_organism_on_both_sides_passes(self) -> None:
         step = combine("c", _taxon("a", _PF), _taxon("b", _PF))
 
-        assert _verdict(validate_strategy(step, "transcript")) == (True, [])
+        assert _verdict(validate_strategy(step, "transcript", _MARKED)) == (True, [])
 
     def test_an_unknown_organism_scope_is_not_guessed_at(self) -> None:
         """The guard fires only when both sides are known and disjoint."""
@@ -186,13 +200,26 @@ class TestCrossOrganismIntersect:
             "c", _taxon("a", _PF), StrategyStepNode(id="b", search_name="GenesByText")
         )
 
-        assert _verdict(validate_strategy(step, "transcript")) == (True, [])
+        assert _verdict(validate_strategy(step, "transcript", _MARKED)) == (True, [])
+
+    def test_a_marked_parameter_of_any_name_scopes_the_step(self) -> None:
+        snps = StrategyStepNode(
+            id="b",
+            search_name="GenesByNgsSnps",
+            parameters={"organismSinglePick": MultiPickValue(values=[_TG])},
+        )
+        step = combine("c", _taxon("a", _PF), snps)
+
+        assert _verdict(validate_strategy(step, "transcript", _MARKED)) == (
+            False,
+            ["CROSS_ORGANISM_INTERSECT"],
+        )
 
     def test_a_union_across_organisms_is_allowed(self) -> None:
         """UNION across species is meaningful; only INTERSECT is always zero."""
         step = combine("c", _taxon("a", _PF), _taxon("b", _TG), CombineOp.UNION)
 
-        assert _verdict(validate_strategy(step, "transcript")) == (True, [])
+        assert _verdict(validate_strategy(step, "transcript", _MARKED)) == (True, [])
 
 
 def _orthologs(
@@ -229,7 +256,7 @@ class TestTheCrossOrganismRemedy:
         below = combine("c", _genus_seeds(), _taxon("f", _PF))
         root = _orthologs("t", _PF, below)
 
-        assert cross_organism_refusal(below, root) == _refusal(
+        assert cross_organism_refusal(below, root, _MARKED) == _refusal(
             _GENUS,
             _PF,
             f"Move the {_PF} criteria above the GenesByOrthologs transform.",
@@ -238,7 +265,7 @@ class TestTheCrossOrganismRemedy:
     def test_without_a_transform_the_seeds_are_scoped(self) -> None:
         root = combine("c", _taxon("a", _GENUS), _taxon("b", _PF))
 
-        assert cross_organism_refusal(root, root) == _refusal(
+        assert cross_organism_refusal(root, root, _MARKED) == _refusal(
             _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
         )
 
@@ -246,15 +273,15 @@ class TestTheCrossOrganismRemedy:
         """Widening one side to the other's genus does not make them meet."""
         swapped = combine("c", _taxon("a", _PF), _taxon("b", _GENUS))
 
-        assert cross_organism_refusal(swapped, swapped) == _refusal(
+        assert cross_organism_refusal(swapped, swapped, _MARKED) == _refusal(
             _PF, _GENUS, f"Scope every seed to one organism: {_PF} or {_GENUS}."
         )
 
     def test_a_shared_scope_has_no_refusal(self) -> None:
         root = combine("c", _taxon("a", _PF), _taxon("b", _PF))
 
-        assert cross_organism_refusal(root, root) is None
-        assert _verdict(validate_strategy(root, "transcript")) == (True, [])
+        assert cross_organism_refusal(root, root, _MARKED) is None
+        assert _verdict(validate_strategy(root, "transcript", _MARKED)) == (True, [])
 
     def test_a_transform_that_keeps_the_scope_is_not_the_remedy(self) -> None:
         """Only a transform that changes the organism can hold the criteria."""
@@ -263,7 +290,7 @@ class TestTheCrossOrganismRemedy:
             id="t", search_name="GenesByWeight", primary_input=below
         )
 
-        assert cross_organism_refusal(below, root) == _refusal(
+        assert cross_organism_refusal(below, root, _MARKED) == _refusal(
             _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
         )
 
@@ -272,7 +299,7 @@ class TestTheCrossOrganismRemedy:
         beside = _orthologs("t", _PF, _taxon("b", _TG))
         root = combine("c", _taxon("a", _GENUS), beside)
 
-        assert cross_organism_refusal(root, root) == _refusal(
+        assert cross_organism_refusal(root, root, _MARKED) == _refusal(
             _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
         )
 
@@ -280,7 +307,7 @@ class TestTheCrossOrganismRemedy:
         below = combine("c", _genus_seeds(), _taxon("f", _PF))
         root = _orthologs("t", _PF, below)
 
-        result = validate_strategy(root, "transcript")
+        result = validate_strategy(root, "transcript", _MARKED)
 
         assert _verdict(result) == (False, ["CROSS_ORGANISM_INTERSECT"])
         assert result.errors[0].message == _refusal(

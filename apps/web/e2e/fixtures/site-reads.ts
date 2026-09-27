@@ -80,7 +80,11 @@ export async function siteCounts(
   await expect
     .poll(
       async () => {
-        const ast = await readAst(api, conversationId);
+        const astResp = await api.get(`/api/v1/conversations/${conversationId}/ast`);
+        if (!astResp.ok()) {
+          return `ast ${astResp.status()}`;
+        }
+        const ast = (await astResp.json()) as StrategyAst;
         rootId = ast.root.id ?? "";
         const resp = await api.post("/api/v1/conversations/step-counts", {
           data: { siteId, strategyAst: { recordType: ast.recordType, root: ast.root } },

@@ -67,10 +67,11 @@ async def compare_search_variants(
     the differences.
 
     If a winner matters, prefer ``compare_variants_scored``: given a control
-    set (see ``build_control_set`` / ``list_control_sets``) it runs the same
-    variants, scores each against known positives and negatives, and ranks
-    them by MCC. Use this unscored tool when no control set exists or the
-    user only wants to see how the results differ.
+    set attached to this conversation (``build_control_set`` /
+    ``use_control_set``) it runs the same variants, scores each against known
+    positives and negatives, and ranks them by MCC. Use this unscored tool
+    when no control set is attached or the user only wants to see how the
+    results differ.
     """
     if len(variants) < _MIN_VARIANTS:
         msg = (

@@ -18,6 +18,7 @@ from veupathdb.errors import ParamMessages, ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
+from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
@@ -36,6 +37,7 @@ from pathfinder.ai.lead.edit_messages import (
     edit_work_order,
     no_strategy_to_edit_message,
     pending_changes_no_pass_accounted_for_message,
+    removal_is_the_cards_message,
     unsupported_edit_message,
     wdk_refused_the_written_step_message,
 )
@@ -60,6 +62,7 @@ from pathfinder.domain.strategy.spec_diff import (
     CriterionDisposition,
     SpecDiff,
     diff_specs,
+    steps_only_removed,
 )
 from pathfinder.domain.strategy.spec_fold import (
     fold_option_criteria,
@@ -157,6 +160,7 @@ async def run_edit(
     _refuse_a_pending_change_this_turn_did_not_account_for(
         deps, pending, frame.changes, drafted
     )
+    _refuse_a_removal_the_card_owns(deps, diff, graph)
     return await _push_the_edit(
         deps=deps,
         after=after,
@@ -240,6 +244,19 @@ async def _push_the_edit(
         dropped_step_ids=list(commit.dropped_step_ids),
         failed_step_ids=list(commit.failed_step_ids),
     )
+
+
+def _refuse_a_removal_the_card_owns(
+    deps: LeadDeps, diff: SpecDiff, graph: StrategyGraph
+) -> None:
+    removed = steps_only_removed(diff, graph.steps)
+    if removed:
+        refuse_and_restore(
+            deps,
+            removal_is_the_cards_message(
+                {sid: named_step(graph.steps[sid]) for sid in removed}
+            ),
+        )
 
 
 def _refuse_a_pending_change_this_turn_did_not_account_for(

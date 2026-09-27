@@ -67,7 +67,12 @@ def _criterion(organism: str | None) -> CriterionSpec:
     crit = signal_peptide(_site())
     held = {name: v for name, v in crit.values.items() if name != OPEN_PARAM}
     values = held if organism is None else {**held, OPEN_PARAM: [organism]}
-    return replace(crit, text="genes with a predicted signal peptide", values=values)
+    return replace(
+        crit,
+        text="genes with a predicted signal peptide",
+        values=values,
+        site_organism="",
+    )
 
 
 def _spec(crit: CriterionSpec) -> SpecPlan:

@@ -141,6 +141,7 @@ describe("EditorContent", () => {
             basis: "parameter",
             term: "Organism",
             reason,
+            sentence: `Organism: ${reason}`,
             toolCallId: "call_1",
             short: "sets Organism",
           },
@@ -154,9 +155,10 @@ describe("EditorContent", () => {
       { wrapper: queryWrapper },
     );
 
-    expect(within(screen.getByTestId("step-results")).getByText(reason).tagName).toBe(
-      "P",
-    );
+    expect(
+      within(screen.getByTestId("step-results")).getByText(`Organism: ${reason}`)
+        .tagName,
+    ).toBe("P");
   });
 
   it("lists the genes a pushed step returns", async () => {

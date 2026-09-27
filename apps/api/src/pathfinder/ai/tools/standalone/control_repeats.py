@@ -6,7 +6,11 @@ from assistant_core.platform.pydantic_base import CamelModel
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    NamedControlSet,
+)
 
 
 def _merged_set(sets: Iterable[ControlSetEvidence | None]) -> ControlSetEvidence | None:
@@ -28,20 +32,23 @@ def _merged_set(sets: Iterable[ControlSetEvidence | None]) -> ControlSetEvidence
 def merged_control_tests(
     tests: Iterable[ControlTestEvidence],
 ) -> list[ControlTestEvidence]:
-    """One test per tested target, holding every control id it was tested with."""
-    by_target: dict[tuple[int | None, str], list[ControlTestEvidence]] = {}
+    """One test per tested target and saved set, holding every control id it
+    was tested with."""
+    by_target: dict[
+        tuple[int | None, str, NamedControlSet | None], list[ControlTestEvidence]
+    ] = {}
     for tested in tests:
-        by_target.setdefault((tested.wdk_step_id, tested.tested_label), []).append(
-            tested
-        )
+        target = (tested.wdk_step_id, tested.tested_label, tested.control_set)
+        by_target.setdefault(target, []).append(tested)
     return [
         ControlTestEvidence(
             tested_label=label,
             wdk_step_id=step,
+            control_set=control_set,
             positive=_merged_set(tested.positive for tested in held),
             negative=_merged_set(tested.negative for tested in held),
         )
-        for (step, label), held in by_target.items()
+        for (step, label, control_set), held in by_target.items()
     ]
 
 

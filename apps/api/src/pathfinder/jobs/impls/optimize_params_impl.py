@@ -13,7 +13,8 @@ from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.controls import CONTROLS_PARAM, CONTROLS_SEARCH
 
 from pathfinder.ai.graph.runtime import Context
-from pathfinder.services.evidence.control_sets import get_control_set
+from pathfinder.domain.evidence import NamedControlSet
+from pathfinder.services.evidence.control_sets import saved_control_set
 from pathfinder.services.evidence.optimization import (
     enumerate_variants,
     run_trial,
@@ -68,15 +69,6 @@ async def run_single_trial(
     return result.model_dump(by_alias=True, mode="json")
 
 
-async def _saved_controls(
-    context: Context, control_set_id: str
-) -> tuple[list[str], list[str]]:
-    """The positive and negative ids of a control set the user may read."""
-    async with context.db_session_factory() as session:
-        held = await get_control_set(session, UUID(control_set_id), context.user_id)
-    return held.positive_ids, held.negative_ids
-
-
 async def optimize_search_parameters_impl(
     *,
     context: Context,
@@ -84,9 +76,7 @@ async def optimize_search_parameters_impl(
     progress: TaskProgressEmitter,
     memory_store: MemoryStore | None,
     wdk_step_id: int,
-    control_set_id: str | None = None,
-    positive_controls: list[str] | None = None,
-    negative_controls: list[str] | None = None,
+    control_set_id: str,
     parameters: list[str] | None = None,
     budget: int = SWEEP_BUDGET,
     **_extra: Any,
@@ -100,12 +90,14 @@ async def optimize_search_parameters_impl(
     """
     del task_id, memory_store
 
-    if control_set_id is not None:
-        positive_controls, negative_controls = await _saved_controls(
-            context, control_set_id
-        )
-    if not positive_controls and not negative_controls:
-        msg = "At least one of positive_controls or negative_controls must be provided."
+    saved = await saved_control_set(
+        context.db_session_factory,
+        control_set_id,
+        site_id=context.site_id,
+        user_id=context.user_id,
+    )
+    if not saved.positive_ids and not saved.negative_ids:
+        msg = f"{saved.name} holds no controls, so no setting can be scored."
         raise ValueError(msg)
 
     progress.batch_size = 8
@@ -132,8 +124,8 @@ async def optimize_search_parameters_impl(
         controls_param_name=CONTROLS_PARAM,
         controls_value_format="newline",
         controls_extra_parameters={},
-        positive_controls=positive_controls or None,
-        negative_controls=negative_controls or None,
+        positive_controls=saved.positive_ids or None,
+        negative_controls=saved.negative_ids or None,
         id_field="primary_key",
     )
     score_cfg = OptimizationConfig()
@@ -194,6 +186,7 @@ async def optimize_search_parameters_impl(
             "best": None,
             "searchName": step.search_name,
             "objective": score_cfg.objective,
+            "controlSet": NamedControlSet(id=saved.control_set_id, name=saved.name),
         }
     )
     result_json: JSONObject = sweep.model_dump(by_alias=True, mode="json")

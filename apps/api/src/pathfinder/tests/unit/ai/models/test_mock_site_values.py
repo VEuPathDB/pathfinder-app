@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from veupathdb.domain.strategy.tree import leaves
 
-from pathfinder.ai.models.mock.site_values import SiteValues
-from pathfinder.services.experiment.seed.catalog import get_seeds_for_site
+from pathfinder.ai.models.mock.site_values import SiteValues, recorded_marks
+from pathfinder.services.experiment.seed.catalog import (
+    SEED_DATABASES,
+    get_seeds_for_site,
+)
 
 
 @pytest.mark.parametrize(
@@ -53,15 +57,35 @@ def test_a_text_organism_is_bound_as_a_list() -> None:
 
 
 def test_the_searches_are_the_ones_the_seeds_run_on_the_site_organism() -> None:
-    leaves = SiteValues.for_site("vectorbase").leaves
+    held = SiteValues.for_site("vectorbase").leaves
 
-    assert [leaf.search_name for leaf in leaves] == [
+    assert [leaf.search_name for leaf in held] == [
         "GenesByText",
         "GenesByTransmembraneDomains",
         "GenesWithSignalPeptide",
         "GenesByMolecularWeight",
         "GenesByExonCount",
+        "GenesByLocation",
     ]
+
+
+def test_a_marked_parameter_of_any_name_holds_the_site_organism() -> None:
+    leaf = SiteValues.for_site("vectorbase").leaf("GenesByLocation")
+
+    assert leaf is not None
+    assert leaf.values["organismSinglePick"] == ["Anopheles gambiae PEST"]
+
+
+@pytest.mark.parametrize("site_id", SEED_DATABASES)
+def test_the_recorded_marks_cover_every_search_the_seeds_run(site_id: str) -> None:
+    run = {
+        leaf.search_name
+        for seed in get_seeds_for_site(site_id)
+        for leaf in leaves(seed.step_node())
+    }
+    marks = recorded_marks(site_id)
+
+    assert run - set(marks) == set()
 
 
 def test_the_portal_organisms_are_the_portal_seeds_most_run_first() -> None:

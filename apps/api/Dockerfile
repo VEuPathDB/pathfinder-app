@@ -54,4 +54,6 @@ EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD [".venv/bin/uvicorn", "pathfinder.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# The api keeps an idle connection open longer than any proxy in front of it
+# reuses one, so a request on a kept socket never meets a reset.
+CMD [".venv/bin/uvicorn", "pathfinder.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "75"]

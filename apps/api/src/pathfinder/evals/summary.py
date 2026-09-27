@@ -22,6 +22,7 @@ class CaseResult(CamelModel):
     moved, not only from whether it crossed the line. ``observed_count`` is the
     root count the run produced, and ``count_drift`` names it and the build it
     was read on beside the recorded count, whenever the two differ.
+    ``refused_tools`` names the tool of each refused call, on a pass too.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -34,6 +35,7 @@ class CaseResult(CamelModel):
     count_drift: CaseDifference | None = None
     error: str = ""
     duration_seconds: float = 0.0
+    refused_tools: list[str] = Field(default_factory=list)
 
     @computed
     def passed(self) -> bool:
@@ -70,6 +72,10 @@ class EvalRunSummary(CamelModel):
     @computed
     def errored(self) -> int:
         return sum(1 for case in self.cases if case.error)
+
+    @computed
+    def refusals(self) -> int:
+        return sum(len(case.refused_tools) for case in self.cases)
 
     @computed
     def pass_rate(self) -> float:

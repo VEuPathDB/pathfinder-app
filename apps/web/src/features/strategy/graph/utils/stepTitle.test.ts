@@ -84,6 +84,8 @@ describe("stepReason", () => {
       basis: "nearest",
       term: "GPI anchor",
       reason: "no search states a GPI anchor; Exported Protein scored nearest",
+      sentence:
+        "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
       similarity: 0.44,
       compared: [
         { name: "GenesByText", displayName: "Gene Text Search", similarity: 0.41 },
@@ -98,9 +100,9 @@ describe("stepReason", () => {
     expect(stepReason(chosen, "search")).toBe("nearest to GPI anchor");
   });
 
-  test("the detail is the reason and what the search was chosen over", () => {
+  test("the detail is the term, the reason and what the search was chosen over", () => {
     expect(chosen.rationale != null && reasonDetail(chosen.rationale)).toBe(
-      "no search states a GPI anchor; Exported Protein scored nearest " +
+      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest " +
         "(over Gene Text Search 0.41, Predicted Signal Peptide)",
     );
   });

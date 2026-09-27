@@ -185,7 +185,7 @@ async def test_stop_mid_build_puts_the_previous_strategy_back(
         assert strategy.record_type == "transcript"
         assert strategy.wdk_strategy_id == 330423363
     # The card's 422: the editor posts the plan and the validator refuses it.
-    validate_plan_or_raise(dict(strategy.strategy_ast))
+    await validate_plan_or_raise(dict(strategy.strategy_ast), site_id="plasmodb")
 
     types = await _chunk_types(conversation_id)
     assert "data-turn-stopped" in types

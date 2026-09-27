@@ -62,7 +62,9 @@ def test_the_serialized_summary_carries_the_counts_and_the_differences() -> None
 
     assert payload["passRate"] == 0.0
     assert payload["caseCount"] == 1
+    assert payload["refusals"] == 0
     assert payload["cases"][0]["differences"][0]["field"] == "structure"
+    assert payload["cases"][0]["refusedTools"] == []
 
 
 def test_a_re_measure_counts_as_neither_passed_nor_failed() -> None:
@@ -86,3 +88,24 @@ def test_the_serialized_case_carries_its_verdict_and_its_count() -> None:
     assert {
         key: payload["cases"][0][key] for key in ("verdict", "observedCount", "passed")
     } == {"verdict": "re-measure", "observedCount": 140, "passed": False}
+
+
+def test_the_refused_tools_round_trip_and_sum_into_the_run() -> None:
+    summary = _summary(
+        CaseResult(
+            name="a",
+            verdict="pass",
+            refused_tools=["classify_user_intent", "read_gene_record"],
+        ),
+        CaseResult(name="b", verdict="fail", refused_tools=["get_strategy"]),
+    )
+
+    payload = summary.model_dump(by_alias=True, mode="json")
+    restored = EvalRunSummary.model_validate(payload)
+
+    assert payload["refusals"] == 3
+    assert payload["cases"][0]["refusedTools"] == [
+        "classify_user_intent",
+        "read_gene_record",
+    ]
+    assert restored.cases == summary.cases

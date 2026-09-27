@@ -8,8 +8,11 @@ strategy is deleted, and the run confirms the account holds none it left.
 Usage::
 
     python -m pathfinder.devtools.seeds measure --site plasmodb
+    python -m pathfinder.devtools.seeds marks
 
-The run signs in as the dev account the environment names.
+``measure`` signs in as the dev account the environment names. ``marks``
+records the parameter each search the seeds run marks as its organism, which
+the mock arcs read.
 """
 
 from __future__ import annotations
@@ -22,7 +25,11 @@ import os
 import sys
 from pathlib import Path
 
-from veupathdb.domain.strategy import DEFAULT_COMBINE_OPERATOR, StrategyStepNode
+from veupathdb.domain.strategy import (
+    DEFAULT_COMBINE_OPERATOR,
+    StrategyStepNode,
+    leaves,
+)
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
     CombinedStepSpec,
@@ -34,10 +41,16 @@ from veupathdb.wdk import (
     get_strategy_api,
     password_login,
 )
+from veupathdb_mcp.catalog import organism_parameter, resolve_search_record_type
 from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 
+from pathfinder.ai.models.mock.site_values import MARKS_FILE
 from pathfinder.jobs.auth_context import attach_wdk_auth
-from pathfinder.services.experiment.seed.catalog import SEEDS_DIR, get_seeds_for_site
+from pathfinder.services.experiment.seed.catalog import (
+    SEED_DATABASES,
+    SEEDS_DIR,
+    get_seeds_for_site,
+)
 from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
 from pathfinder.services.wdk_build import site_build
 
@@ -182,11 +195,45 @@ async def measure(site_id: str) -> None:
         sys.stdout.write(_line(seed))
 
 
+async def seed_organism_marks() -> dict[str, dict[str, str | None]]:
+    """Each seed site, and the organism parameter each search its seeds run marks."""
+    recorded: dict[str, dict[str, str | None]] = {}
+    for site_id in SEED_DATABASES:
+        searches = {
+            (leaf.search_name, seed.record_type)
+            for seed in get_seeds_for_site(site_id)
+            for leaf in leaves(seed.step_node())
+        }
+        recorded[site_id] = {
+            name: await organism_parameter(
+                site_id,
+                await resolve_search_record_type(site_id, name, record_type),
+                name,
+            )
+            for name, record_type in sorted(searches)
+        }
+    return recorded
+
+
+def marks_json(recorded: dict[str, dict[str, str | None]]) -> str:
+    """The marks file's text, in the layout it keeps."""
+    return json.dumps(recorded, indent=2, sort_keys=True) + "\n"
+
+
+async def record_marks() -> None:
+    MARKS_FILE.write_text(marks_json(await seed_organism_marks()))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m pathfinder.devtools.seeds")
-    parser.add_argument("command", choices=["measure"])
-    parser.add_argument("--site", required=True)
+    parser.add_argument("command", choices=["measure", "marks"])
+    parser.add_argument("--site")
     args = parser.parse_args()
+    if args.command == "marks":
+        asyncio.run(record_marks())
+        return
+    if args.site is None:
+        parser.error("measure needs --site")
     asyncio.run(measure(args.site))
 
 

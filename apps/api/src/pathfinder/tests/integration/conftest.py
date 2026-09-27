@@ -28,6 +28,8 @@ from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.tests._support.network_guard import refuse_veupathdb
+from pathfinder.tests._support.organism_reads import serve_catalog_marks
+from pathfinder.tests._support.record_classes import serve_record_classes
 
 
 @pytest.fixture(autouse=True)
@@ -51,10 +53,13 @@ def no_veupathdb(
     """Refuse every VEuPathDB site to a test that is not ``live_wdk``.
 
     CI runs this tier with no VEuPathDB credential, so a live read here passes
-    only on a machine that holds one.
+    only on a machine that holds one. Such a test reads each search's organism
+    parameter and record classes from the recorded catalog answers.
     """
     if request.node.get_closest_marker("live_wdk") is None:
         refuse_veupathdb(monkeypatch, request.node.nodeid)
+        serve_catalog_marks(monkeypatch)
+        serve_record_classes(monkeypatch)
 
 
 @pytest.fixture(scope="session", autouse=True)

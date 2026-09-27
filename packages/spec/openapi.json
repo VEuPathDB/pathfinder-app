@@ -10457,6 +10457,12 @@
             "type": "string",
             "title": "Short",
             "default": ""
+          },
+          "sentence": {
+            "type": "string",
+            "title": "Sentence",
+            "description": "The reason as every surface shows it, led by the term that decides it.",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -10465,7 +10471,8 @@
           "basis",
           "term",
           "reason",
-          "toolCallId"
+          "toolCallId",
+          "sentence"
         ],
         "title": "SearchRationale",
         "description": "Why a criterion runs its search, against what the catalog answered.\n\nThe tool writes every field but ``basis``, ``term`` and ``reason`` from the\ncatalog read it recorded, so the comparison is what FRAME saw."
@@ -14584,6 +14591,16 @@
             ],
             "title": "Wdkstepid"
           },
+          "controlSet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NamedControlSet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "positive": {
             "anyOf": [
               {
@@ -14718,6 +14735,16 @@
             "title": "Negativestotal",
             "type": "integer"
           },
+          "controlSet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NamedControlSet"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sentence": {
             "description": "The shortfall of each set, with its counts.",
             "readOnly": true,
@@ -14791,6 +14818,17 @@
             ],
             "title": "Role",
             "type": "string"
+          },
+          "organismParam": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organismparam"
           },
           "resolvedParams": {
             "additionalProperties": {
@@ -14881,6 +14919,17 @@
             },
             "title": "Alternatives",
             "type": "array"
+          },
+          "resultCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultcount"
           },
           "analysis": {
             "anyOf": [
@@ -15074,6 +15123,11 @@
               }
             ],
             "title": "Edadatasetid"
+          },
+          "unexpressed": {
+            "default": false,
+            "title": "Unexpressed",
+            "type": "boolean"
           }
         },
         "required": [
@@ -16078,6 +16132,46 @@
           "summary"
         ],
         "title": "MemoryEntryDraft",
+        "type": "object"
+      },
+      "NamedControlSet": {
+        "description": "The saved control set a control test ran.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "NamedControlSet",
+        "type": "object"
+      },
+      "NamedControls": {
+        "description": "The gene ids a message names as the researcher's positive and negative controls.",
+        "properties": {
+          "positiveIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Positiveids",
+            "type": "array"
+          },
+          "negativeIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Negativeids",
+            "type": "array"
+          }
+        },
+        "title": "NamedControls",
         "type": "object"
       },
       "NodeResult": {
@@ -17809,6 +17903,17 @@
             },
             "title": "Explicitconstraints",
             "type": "array"
+          },
+          "namedControls": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NamedControls"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The gene ids this message names as positive or negative controls, typed or in an attached gene-ID list, each spelled as the message spells it. None when the message names no control."
           }
         },
         "required": [

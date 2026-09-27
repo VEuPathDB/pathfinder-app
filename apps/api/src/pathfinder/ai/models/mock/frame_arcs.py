@@ -29,6 +29,7 @@ from pathfinder.ai.models.mock.reads import (
     last_answer,
     last_return,
     refusal_of,
+    structure_dropped,
 )
 from pathfinder.ai.models.mock.sheets import workspace_search
 from pathfinder.ai.models.mock.site_values import SiteValues
@@ -40,6 +41,7 @@ from pathfinder.ai.models.mock.specs import (
     criterion_replies,
     frame_call,
     leaf,
+    without_dropped,
 )
 from pathfinder.ai.models.mock.strategy_specs import cross_organism_spec, single_spec
 
@@ -58,11 +60,11 @@ def _unbound(summary: str) -> ToolCallPart:
 
 
 def spec_frame(spec: Callable[[SiteValues], SpecPlan]) -> Script:
-    """Bind ``spec`` on the site's values."""
+    """Bind ``spec`` on the site's values, less what ``set_structure`` dropped."""
 
     def script(messages: list[ModelMessage]) -> ToolCallPart:
         return frame_call(
-            spec(_site()),
+            without_dropped(spec(_site()), structure_dropped(messages)),
             acted_tool_names(messages),
             criterion_replies(messages),
             instructions_of(messages),

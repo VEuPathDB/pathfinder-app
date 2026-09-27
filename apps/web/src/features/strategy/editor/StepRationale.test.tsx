@@ -12,6 +12,8 @@ const CHOSEN: Rationale = {
   basis: "nearest",
   term: "GPI anchor",
   reason: "no search states a GPI anchor; Exported Protein scored nearest",
+  sentence:
+    "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
   similarity: 0.44,
   compared: [
     { name: "GenesByText", displayName: "Gene Text Search", similarity: 0.41 },
@@ -52,12 +54,16 @@ const MEASURED: Rationale = {
 describe("StepRationale", () => {
   afterEach(() => cleanup());
 
-  it("gives the reason, the query it answered and what it was chosen over", () => {
+  it("gives the term and reason, the query it answered and what it was chosen over", () => {
     render(<StepRationale rationale={CHOSEN} />);
 
     const block = screen.getByTestId("step-rationale");
     expect(within(block).getByText("Why this search").tagName).toBe("P");
-    expect(within(block).getByText(CHOSEN.reason).tagName).toBe("P");
+    expect(
+      within(block).getByText(
+        "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
+      ).tagName,
+    ).toBe("P");
     expect(within(block).getByTestId("step-rationale-query")).toHaveTextContent(
       "catalog query: GPI anchor attachment signal; this search scored 0.44 of 20 answered",
     );

@@ -282,6 +282,7 @@ def criterion_analysing(
             "open_params": [],
             "assumptions": [],
             "alternatives": [],
+            "result_count": None,
             "rationale": None,
         }
     )

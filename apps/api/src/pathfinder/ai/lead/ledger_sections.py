@@ -283,7 +283,7 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
 
 
 def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstraint]:
-    """The words a criterion states that no search its pass read can state.
+    """The texts the spec states that no search its pass read can state.
 
     Each is the researcher's own word, so it stands unmet and blocks until a
     search states it.
@@ -294,27 +294,23 @@ def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstr
         GroundedConstraint(
             constraint=Constraint(
                 kind=ConstraintKind.OTHER,
-                requested_value=word,
-                label=criterion.text[:_UNEXPRESSED_LABEL],
+                requested_value=text.word,
+                label=text.stated_in[:_UNEXPRESSED_LABEL],
                 source=ConstraintSource.USER_EXPLICIT,
                 hard=True,
             ),
             status=ConstraintStatus.UNGROUNDABLE,
-            note=(
-                f"{criterion.title} cannot state '{word}', and no search the "
-                f"framing pass read has a parameter that does"
-            ),
+            note=text.why,
         )
-        for criterion in spec.criteria
-        for word in criterion.unexpressed_qualifiers
+        for text in spec.unexpressed()
     ]
 
 
 def unexpressed_words(spec: OperationalSpec | None) -> list[str]:
-    """Every word a criterion of the spec states and no search it read can state."""
+    """Every word the spec states and no search it read can state."""
     if spec is None:
         return []
-    return [word for c in spec.criteria for word in c.unexpressed_qualifiers]
+    return [text.word for text in spec.unexpressed()]
 
 
 _UNEXPRESSED_LABEL = 120

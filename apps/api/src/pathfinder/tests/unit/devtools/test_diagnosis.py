@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from assistant_core.capabilities.repetition_guard import RepetitionBlock
 from assistant_core.platform.types import JSONObject
 
-from pathfinder.devtools.diagnosis import diagnose
+from pathfinder.devtools.diagnosis import diagnose, refused
 from pathfinder.devtools.models import (
     CapturedToolCall,
     DecodedError,
@@ -107,6 +108,27 @@ def test_the_loop_says_when_the_repetition_guard_refused_the_call() -> None:
     assert "repetition guard refused 1 identical call" in loops[0].message
     assert loops[0].details["guard_refusals"] == 1
     assert loops[0].evidence == ["tools/02-get_strategy.json"]
+
+
+def test_a_retry_and_a_guard_refusal_are_refused_and_an_answer_is_not() -> None:
+    repeat = RepetitionBlock(
+        tool_name="read_gene_record",
+        count=3,
+        escalated=False,
+        rule="identical_arguments",
+    )
+    cap = RepetitionBlock(
+        tool_name="read_gene_record", count=9, escalated=False, rule="call_cap"
+    )
+    calls = [
+        _failed(1, "classify_user_intent", []),
+        _call(2, "read_gene_record", "completed", result=repeat.message),
+        _call(3, "read_gene_record", "completed", result=cap.message),
+        _call(4, "read_gene_record", "completed", result="PF3D7_0100100"),
+        _call(5, "read_gene_record", "started"),
+    ]
+
+    assert [refused(call) for call in calls] == [True, True, True, False, False]
 
 
 def test_detects_silent_zero_from_ledger() -> None:

@@ -98,6 +98,7 @@ describe("SearchNode", () => {
         basis: "parameter",
         term: "Organism",
         reason: "sets Organism to Plasmodium",
+        sentence: "Organism: sets Organism to Plasmodium",
         toolCallId: "call_1",
         short: "sets Organism",
       },

@@ -1,6 +1,7 @@
 """The deterministic VERIFY: read the strategy, sample the root, read each
-sampled gene's record, test the root against controls when the arc or the work
-order names them, and review what the reads returned."""
+sampled gene's record, test the root against a saved control set when the work
+order names one or the arc tests the listed sets, and review what the reads
+returned."""
 
 from __future__ import annotations
 
@@ -11,19 +12,19 @@ from assistant_core.models.scripted import (
     scripted_call,
     terminal_call,
 )
-from pydantic import Field, JsonValue
+from pydantic import Field, JsonValue, TypeAdapter
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import Script
 from pathfinder.ai.models.mock.graph_pin import pinned_root_organism
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
 from pathfinder.ai.models.mock.lead_flow import FEEDBACK_PROSE, SUCCESS_PROSE
-from pathfinder.ai.models.mock.message_words import turn_controls
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
     controls_sentence,
     gene_records,
     instructions_of,
+    last_answer,
     returns_of,
     root_wdk_step_id,
 )
@@ -37,6 +38,7 @@ from pathfinder.domain.strategy.constraints import (
 
 READ = "get_strategy"
 TEST = "run_control_tests_on_step"
+LIST = "list_control_sets"
 _SAMPLE = "get_sample_records"
 _RECORD = "read_gene_record"
 # The mock reads two records, enough to fill both columns of the card.
@@ -46,12 +48,19 @@ _ROOT = re.compile(
     r"get_sample_records\(wdk_step_id=\d+, limit=(?P<limit>\d+)\)"
 )
 _EMPTY_ROOT = "It holds no gene to sample."
-_CONTROLS_LINE = re.compile(r"^(positive|negative)_controls: (.*)$", re.MULTILINE)
+_ORDERED_SET = re.compile(r"\bcontrol_set_id (?P<id>[^\s,]+)")
 _TRANSCRIPT_SUFFIX = re.compile(r"\.\d+$")
 
 
 class _Record(ToolAnswer):
     id: str
+
+
+class _Listed(ToolAnswer):
+    control_set_id: str
+
+
+_LISTING = TypeAdapter(list[_Listed])
 
 
 class _Sample(ToolAnswer):
@@ -113,14 +122,19 @@ def review(messages: list[ModelMessage], organism: str) -> dict[str, JsonValue]:
     ).model_dump(by_alias=True, mode="json")
 
 
-def _controls(
-    messages: list[ModelMessage], *, site_controls: bool
-) -> tuple[list[str], list[str]] | None:
-    """The controls the work order names, else the turn's when the arc tests them."""
-    named = dict(_CONTROLS_LINE.findall(head_work_order(messages)))
-    if named:
-        return named["positive"].split(", "), named["negative"].split(", ")
-    return turn_controls() if site_controls else None
+def _ordered_set(messages: list[ModelMessage]) -> str | None:
+    """The saved control set the work order names, or None."""
+    ordered = _ORDERED_SET.search(head_work_order(messages))
+    return None if ordered is None else ordered["id"]
+
+
+def _listed_set(messages: list[ModelMessage]) -> str | None:
+    """The newest saved control set the listing names, or None."""
+    listed = last_answer(messages, LIST)
+    if listed is None:
+        return None
+    sets = _LISTING.validate_python(listed)
+    return sets[0].control_set_id if sets else None
 
 
 def verification_delta(
@@ -156,7 +170,8 @@ def _tested_root(messages: list[ModelMessage]) -> int | None:
 
 
 def verification(*, site_controls: bool) -> Script:
-    """The VERIFY script, testing the site's controls when ``site_controls``.
+    """The VERIFY script, testing a control set saved on the site when
+    ``site_controls``, or the set the work order names.
 
     The control test runs last, so its answer is still whole when the digest
     states its counts."""
@@ -168,16 +183,14 @@ def verification(*, site_controls: bool) -> Script:
         reading = review_call(messages)
         if reading is not None:
             return reading
-        controls = _controls(messages, site_controls=site_controls)
-        if controls is not None and TEST not in called:
-            positives, negatives = controls
+        ordered = _ordered_set(messages)
+        if ordered is None and site_controls and LIST not in called:
+            return scripted_call(LIST, {})
+        control_set = ordered or _listed_set(messages)
+        if control_set is not None and TEST not in called:
             return scripted_call(
                 TEST,
-                {
-                    "wdk_step_id": _tested_root(messages),
-                    "positive_controls": positives,
-                    "negative_controls": negatives,
-                },
+                {"wdk_step_id": _tested_root(messages), "control_set_id": control_set},
             )
         success = _EMPTY_ROOT not in head_work_order(messages)
         organism = _root_organism(messages)

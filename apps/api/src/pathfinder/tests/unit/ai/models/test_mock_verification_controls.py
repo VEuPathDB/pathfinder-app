@@ -1,5 +1,6 @@
-"""The mock VERIFY, picked by its tools, tests the root against the site's controls
-when the message names the controls-test arc, and samples a root first."""
+"""The mock VERIFY, picked by its tools, tests the root against the saved set the
+listing names when the message names the controls-test arc, and samples a root
+first."""
 
 from __future__ import annotations
 
@@ -20,10 +21,14 @@ from pydantic_ai.tools import ToolDefinition
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.verify_dispatch import work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
-from pathfinder.ai.models.mock.site_values import SiteValues
-from pathfinder.tests.unit.ai.models._mock_turns import verify_order
+from pathfinder.tests.unit.ai.models._mock_turns import CONTROL_SET_ID, verify_order
 
-_VERIFY_TOOLS = ("run_control_tests_on_step", "get_strategy", "get_sample_records")
+_VERIFY_TOOLS = (
+    "run_control_tests_on_step",
+    "list_control_sets",
+    "get_strategy",
+    "get_sample_records",
+)
 _STRATEGY = {"steps": [{"id": "step_root", "wdkStepId": 555}]}
 
 
@@ -50,34 +55,44 @@ def _next(text: str, messages: list[ModelMessage]) -> str | dict[str, object]:
     return contextvars.copy_context().run(run)
 
 
-def _read_strategy(order: str) -> list[ModelMessage]:
-    call = ToolCallPart(tool_name="get_strategy", args={}, tool_call_id="read")
+def _answered(
+    tool_name: str, content: object, messages: list[ModelMessage]
+) -> list[ModelMessage]:
+    call = ToolCallPart(tool_name=tool_name, args={}, tool_call_id=tool_name)
     return [
-        ModelRequest(parts=[UserPromptPart(content=order)]),
+        *messages,
         ModelResponse(parts=[call]),
         ModelRequest(
             parts=[
                 ToolReturnPart(
-                    tool_name="get_strategy", content=_STRATEGY, tool_call_id="read"
+                    tool_name=tool_name, content=content, tool_call_id=tool_name
                 )
             ]
         ),
     ]
 
 
+def _read_strategy(order: str) -> list[ModelMessage]:
+    return _answered(
+        "get_strategy", _STRATEGY, [ModelRequest(parts=[UserPromptPart(content=order)])]
+    )
+
+
 def test_a_root_the_order_does_not_name_is_tested_as_the_strategy_read_names_it() -> (
     None
 ):
-    controls = SiteValues.for_site("vectorbase").controls
     order = work_order("mock verification", None, None)
+    listed = _answered(
+        "list_control_sets",
+        [{"controlSetId": CONTROL_SET_ID, "name": "Controls from this message"}],
+        _read_strategy(order),
+    )
 
-    args = _next("Test it [[arc:controls-test]]", _read_strategy(order))
+    first = _next("Test it [[arc:controls-test]]", _read_strategy(order))
+    args = _next("Test it [[arc:controls-test]]", listed)
 
-    assert args == {
-        "wdk_step_id": 555,
-        "positive_controls": controls.positive_ids,
-        "negative_controls": controls.negative_ids,
-    }
+    assert first == {}
+    assert args == {"wdk_step_id": 555, "control_set_id": CONTROL_SET_ID}
 
 
 def test_an_arc_without_controls_samples_the_root() -> None:

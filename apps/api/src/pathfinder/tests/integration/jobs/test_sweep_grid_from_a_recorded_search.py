@@ -28,6 +28,11 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import optimize_params_impl
 from pathfinder.services.parameter_optimization import sweep, tunable
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 
 STEP_ID = 440299573
 SEARCH = "GenesByExonCount"
@@ -96,6 +101,7 @@ def recorded_search(monkeypatch: pytest.MonkeyPatch) -> list[IntersectionConfig]
     monkeypatch.setattr(optimize_params_impl, "get_strategy_api", lambda _s: _Api())
     monkeypatch.setattr(optimize_params_impl, "attach_sweep_download", no_export)
     monkeypatch.setattr(TaskProgressEmitter, "update", no_update)
+    serve_saved_controls(monkeypatch, optimize_params_impl, saved_set(POSITIVES))
     return called
 
 
@@ -118,7 +124,7 @@ async def test_the_recorded_search_yields_a_scored_grid(
         ),
         memory_store=None,
         wdk_step_id=STEP_ID,
-        positive_controls=POSITIVES,
+        control_set_id=SAVED_SET_ID,
         parameters=["scope"],
         budget=4,
     )
@@ -154,7 +160,7 @@ async def test_the_budget_thins_the_organism_vocabulary(
         ),
         memory_store=None,
         wdk_step_id=STEP_ID,
-        positive_controls=POSITIVES,
+        control_set_id=SAVED_SET_ID,
         parameters=["organism"],
         budget=6,
     )

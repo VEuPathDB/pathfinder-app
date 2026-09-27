@@ -120,7 +120,6 @@ def test_the_registry_holds_every_named_arc() -> None:
             "combined",
             "edit-param",
             "add-step",
-            "delete-step",
             "delete-step-card",
             "replace-subtree",
             "clear",
@@ -155,6 +154,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "impact",
             "assent",
             "echo",
+            "organism-universe",
         ]
     )
 

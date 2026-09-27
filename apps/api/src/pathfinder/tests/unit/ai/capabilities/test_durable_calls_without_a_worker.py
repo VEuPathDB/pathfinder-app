@@ -9,6 +9,8 @@ from assistant_core.tasks.declaration import declared_durable_tools
 from pydantic_ai.messages import ModelMessage, ToolReturnPart
 
 from pathfinder.ai.agents.verification import build_verification_agent
+from pathfinder.ai.graph.runtime import VerificationScope
+from pathfinder.ai.tools.standalone import experiment
 from pathfinder.devtools.capture import RESULT_CLIP
 from pathfinder.platform.durable_worker import (
     deferring_tool_names,
@@ -16,6 +18,12 @@ from pathfinder.platform.durable_worker import (
     no_durable_worker,
 )
 from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET,
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 from pathfinder.tests.unit.ai.capabilities.test_agent_failure_seams import (
     _VERIFY_OUTPUT,
     _agent_deps,
@@ -23,10 +31,7 @@ from pathfinder.tests.unit.ai.capabilities.test_agent_failure_seams import (
 )
 
 _CONTROL_TESTS = "run_control_tests_on_step"
-_ARGS: dict[str, Any] = {
-    "wdk_step_id": 132,
-    "positive_controls": ["TGME49_201780"],
-}
+_ARGS: dict[str, Any] = {"wdk_step_id": 132, "control_set_id": SAVED_SET_ID}
 
 
 def _tool_returns(messages: list[ModelMessage], tool_name: str) -> list[ToolReturnPart]:
@@ -60,11 +65,15 @@ async def test_a_durable_call_still_reaches_the_worker_by_default(
 ) -> None:
     """The refusal is the debugger's, so a served turn defers as it always did."""
     dispatch = capture_durable_dispatch(monkeypatch)
+    serve_saved_controls(monkeypatch, experiment, saved_set(["TGME49_201780"]))
     agent = build_verification_agent()
     model = _calls_then_answers(_CONTROL_TESTS, _ARGS, _VERIFY_OUTPUT)
 
+    deps = _agent_deps()
+    deps.verification_scope = VerificationScope(control_sets=[SAVED_SET])
+
     with agent.override(model=model):
-        await agent.run("verify it", deps=_agent_deps())
+        await agent.run("verify it", deps=deps)
 
     assert [row["tool_name"] for row in dispatch.created] == [_CONTROL_TESTS]
     assert len(dispatch.deferred) == 1

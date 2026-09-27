@@ -139,7 +139,7 @@ class TestABoundCriterionIsReported:
             tool_calls=5,
             criteria_bound=1,
             tool_name="set_criterion",
-            refusal="c_tm: the reason must hold the term.",
+            refusal="c_tm: the reason holds 173 characters.",
         )
 
         result = frame_result_from_draft(_draft("c_sp"), stop)

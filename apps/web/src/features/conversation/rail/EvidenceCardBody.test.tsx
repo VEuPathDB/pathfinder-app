@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import type { ControlTestEvidence } from "@pathfinder/shared";
 
 import { EVIDENCE_CARD } from "../content/parts/evidenceCardFixture";
 import { EvidenceCardBody } from "./EvidenceCardBody";
@@ -61,6 +62,53 @@ describe("EvidenceCardBody step counts", () => {
       "Step",
       "Recorded at the build",
       "On the site at the check",
+    ]);
+  });
+});
+
+describe("EvidenceCardBody control tests", () => {
+  const tested: ControlTestEvidence = {
+    testedLabel: "Genes by Molecular Weight",
+    wdkStepId: 440299573,
+    positive: {
+      returned: ["PF3D7_0102600"],
+      notReturned: [],
+      controlsCount: 1,
+      returnedCount: 1,
+      rate: 1,
+    },
+  };
+
+  function captions(controls: ControlTestEvidence[]): string[] {
+    render(<EvidenceCardBody card={{ ...EVIDENCE_CARD, controls }} />);
+    return screen
+      .getAllByTestId("evidence-controls")
+      .map((table) => table.querySelector("p")?.textContent ?? "");
+  }
+
+  it("names the saved set a control test ran", () => {
+    expect(
+      captions([
+        { ...tested, controlSet: { id: "cs-1", name: "Signal peptide controls" } },
+      ]),
+    ).toEqual(["Control test of Signal peptide controls on Genes by Molecular Weight"]);
+  });
+
+  it("names only the step when the ids were no saved set", () => {
+    expect(captions([{ ...tested, controlSet: null }])).toEqual([
+      "Control test on Genes by Molecular Weight",
+    ]);
+  });
+
+  it("keeps two sets tested on one step as two tables", () => {
+    expect(
+      captions([
+        { ...tested, controlSet: { id: "cs-1", name: "Signal peptide controls" } },
+        { ...tested, controlSet: { id: "cs-2", name: "Apicoplast controls" } },
+      ]),
+    ).toEqual([
+      "Control test of Signal peptide controls on Genes by Molecular Weight",
+      "Control test of Apicoplast controls on Genes by Molecular Weight",
     ]);
   });
 });

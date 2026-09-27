@@ -36,6 +36,7 @@ from pathfinder.domain.strategy.spec_edit_guard import (
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.organism_params import tree_organism_parameters
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
@@ -219,7 +220,8 @@ async def build_strategy_from_spec(
         sync_result=None,
     )
 
-    outcome = BuildOutcome(organism_change=organism_change(root))
+    marks = await tree_organism_parameters(deps.site_id, graph.record_type, root)
+    outcome = BuildOutcome(organism_change=organism_change(root, marks))
     await _push_tree_to_wdk(
         nodes=nodes,
         graph_record_type=graph.record_type or "transcript",

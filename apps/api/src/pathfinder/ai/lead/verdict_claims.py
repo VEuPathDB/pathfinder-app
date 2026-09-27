@@ -1,6 +1,6 @@
 """The contract rules that hold a reply's control list sizes to the lists the
 turn holds, its open values to the question card, and its account of the check
-to every gap and caveat the check found."""
+to every gap and caveat the check found, and to a check that stopped."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from typing import assert_never
 from pathfinder.ai.lead.contract_messages import (
     unstated_caveat_message,
     unstated_gap_message,
+    unstated_stop_message,
 )
 from pathfinder.ai.lead.evidence_claims import (
     ControlList,
@@ -124,10 +125,19 @@ def unstated_caveat(prose: str, record: TurnRecord) -> str | None:
     return unstated_caveat_message(silent) if silent else None
 
 
+def unstated_stop(prose: str, record: TurnRecord) -> str | None:
+    """A check of the turn that stopped is stated as unfinished, built or not."""
+    stop = record.last_phase_stop
+    if stop is None or stop.role != "verification" or stop.stated_by(prose):
+        return None
+    return unstated_stop_message(stop)
+
+
 __all__ = [
     "caveat_stated",
     "misstated_control_list",
     "open_value_in_prose",
     "unstated_caveat",
     "unstated_gap",
+    "unstated_stop",
 ]

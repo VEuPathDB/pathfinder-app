@@ -12,6 +12,7 @@ from pydantic import ConfigDict, Discriminator
 
 from pathfinder.domain.evidence import (
     ControlTestEvidence,
+    NamedControlSet,
     SampledGene,
     VerificationReview,
 )
@@ -39,6 +40,8 @@ class ControlsCaveat(CamelModel):
     positives_total: int = 0
     negatives_returned: int = 0
     negatives_total: int = 0
+    # None when the tested ids were not a saved set.
+    control_set: NamedControlSet | None = None
 
     def missed_positives(self) -> bool:
         return self.positives_returned < self.positives_total
@@ -64,6 +67,15 @@ class ControlsCaveat(CamelModel):
             ),
         ]
         return "; ".join(clauses)
+
+    def texts(self) -> list[str]:
+        return [] if self.control_set is None else [self.control_set.name]
+
+    def redacted(self, redact: Callable[[str], str]) -> ControlsCaveat:
+        held = self.control_set
+        return self.model_copy(
+            update={"control_set": None if held is None else held.redacted(redact)}
+        )
 
 
 class SampleCaveat(CamelModel):
@@ -93,6 +105,12 @@ class SampleCaveat(CamelModel):
         ]
         return "; ".join(clauses)
 
+    def texts(self) -> list[str]:
+        return []
+
+    def redacted(self, redact: Callable[[str], str]) -> SampleCaveat:
+        return self
+
 
 class BuildCaveat(CamelModel):
     """A build that did not put every step on the site with genes in it."""
@@ -119,6 +137,12 @@ class BuildCaveat(CamelModel):
         shortfall = [n for n in (self.failed, self.skipped, self.empty) if n]
         return all(_names_the_number(prose, str(n)) for n in shortfall or [self.pushed])
 
+    def texts(self) -> list[str]:
+        return []
+
+    def redacted(self, redact: Callable[[str], str]) -> BuildCaveat:
+        return self
+
 
 Caveat = Annotated[
     ControlsCaveat | SampleCaveat | BuildCaveat,
@@ -135,6 +159,7 @@ def controls_caveat(test: ControlTestEvidence) -> ControlsCaveat | None:
         positives_total=0 if positive is None else positive.controls_count,
         negatives_returned=0 if negative is None else negative.returned_count,
         negatives_total=0 if negative is None else negative.controls_count,
+        control_set=test.control_set,
     )
     if caveat.missed_positives() or caveat.returned_negatives():
         return caveat

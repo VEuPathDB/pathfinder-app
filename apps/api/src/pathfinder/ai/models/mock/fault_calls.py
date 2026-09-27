@@ -10,7 +10,7 @@ from assistant_core.models.scripted import (
     scripted_call,
     tool_return_parts,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import history_free
@@ -91,7 +91,8 @@ def _unlisted_search(intended: ToolCallPart) -> ToolCallPart | None:
 
 
 def _value_as_term(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's binding with the value it sets passed as the parameter term."""
+    """The arc's binding with the value it sets passed as the parameter term,
+    which ``set_criterion`` corrects to the parameter and accepts."""
     binding = _binding(intended)
     if binding is None or binding.why is None or binding.params is None:
         return None
@@ -149,12 +150,12 @@ class _Tested(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     wdk_step_id: int
-    positive_controls: list[str] = Field(min_length=1)
+    control_set_id: str
 
 
 def repeat_control_test(messages: list[ModelMessage]) -> CallFault:
     """Once the arc's control test answered and the arc moved on, the same step
-    again on half its positives."""
+    again on the same saved set."""
     answered = any(
         part.tool_name == CONTROL_TEST for part in tool_return_parts(messages)
     )
@@ -170,10 +171,7 @@ def repeat_control_test(messages: list[ModelMessage]) -> CallFault:
     def fault(intended: ToolCallPart) -> ToolCallPart | None:
         if not answered or tested is None or intended.tool_name == CONTROL_TEST:
             return None
-        half = tested.positive_controls[: max(1, len(tested.positive_controls) // 2)]
-        return scripted_call(
-            CONTROL_TEST, {"wdk_step_id": tested.wdk_step_id, "positive_controls": half}
-        )
+        return scripted_call(CONTROL_TEST, tested.model_dump())
 
     return fault
 
@@ -275,12 +273,13 @@ def _unbacked_controls(intended: ToolCallPart) -> ToolCallPart | None:
 
 
 def _sweep_without_controls(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's sweep with no control set and no control ids."""
+    """The arc's sweep with no control set."""
     if intended.tool_name != SWEEP:
         return None
-    unnamed = {"control_set_id", "positive_controls", "negative_controls"}
-    args = {k: v for k, v in intended.args_as_dict().items() if k not in unnamed}
-    return scripted_call(SWEEP, args)
+    args = intended.args_as_dict()
+    return scripted_call(
+        SWEEP, {k: v for k, v in args.items() if k != "control_set_id"}
+    )
 
 
 def _short_card_reply(intended: ToolCallPart) -> ToolCallPart | None:

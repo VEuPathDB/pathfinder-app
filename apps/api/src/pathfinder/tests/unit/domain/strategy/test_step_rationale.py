@@ -58,14 +58,34 @@ def test_the_line_names_what_the_search_was_chosen_over() -> None:
     chosen = _chosen("nearest", "GPI anchor", compared=_OVER)
 
     assert chosen.line() == (
-        "no search states it; GPI anchor is the closest "
+        "GPI anchor: no search states it; GPI anchor is the closest "
         "(over Gene Text Search 0.41, Signal Peptide)"
     )
 
 
-def test_a_line_with_nothing_compared_is_the_reason() -> None:
+def test_a_line_with_nothing_compared_is_the_sentence() -> None:
     assert _chosen("parameter", "Organism").line() == (
-        "no search states it; Organism is the closest"
+        "Organism: no search states it; Organism is the closest"
+    )
+
+
+def test_the_sentence_leads_with_the_term_and_is_served() -> None:
+    chosen = SearchRationale.model_validate(
+        {
+            "search_name": "GenesWithSignalPeptide",
+            "basis": "parameter",
+            "term": "Organism",
+            "reason": "the request names the 3D7 genome",
+            "tool_call_id": "call_1",
+        }
+    )
+
+    assert (
+        chosen.sentence,
+        chosen.model_dump(by_alias=True, mode="json")["sentence"],
+    ) == (
+        "Organism: the request names the 3D7 genome",
+        "Organism: the request names the 3D7 genome",
     )
 
 

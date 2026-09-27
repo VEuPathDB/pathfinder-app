@@ -65,7 +65,6 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
     "edit-param": EDIT,
     "add-step": EDIT,
     "replace-subtree": EDIT,
-    "delete-step": EDIT,
     "delete-step-card": [
         "classify_user_intent",
         "get_live_strategy_state",
@@ -174,18 +173,6 @@ def test_a_value_the_frame_leaves_open_is_asked_on_the_card(site_id: str) -> Non
     ]
 
 
-@pytest.mark.parametrize("site_id", SITES)
-def test_an_attached_list_with_no_token_saves_a_control_set(site_id: str) -> None:
-    calls = play("lead", site_id, _attached(site_id))
-
-    assert names(calls) == ["classify_user_intent", "build_control_set", "final_result"]
-    (saved,) = args_of(calls, "build_control_set")
-    assert saved == {
-        "name": "Controls from controls.csv",
-        "positive_ids": SiteValues.for_site(site_id).controls.positive_ids[:2],
-    }
-
-
 def test_the_relax_turn_edits_the_strategy_the_first_turn_built() -> None:
     calls = play(
         "lead",
@@ -252,9 +239,7 @@ def test_the_sweep_on_a_built_thread_tunes_the_root_the_live_read_names() -> Non
     assert not calls[-1].args_as_dict()["strategyChanged"]
 
 
-@pytest.mark.parametrize(
-    "arc", ["orthologs", "syntenic-orthologs", "round-trip", "delete-step"]
-)
+@pytest.mark.parametrize("arc", ["orthologs", "syntenic-orthologs", "round-trip"])
 def test_an_arc_on_a_framed_thread_edits_the_strategy(arc: str) -> None:
     calls = play(
         "lead", "plasmodb", f"[[arc:{arc}]]", scene=Scene(instructions=framed_pins())

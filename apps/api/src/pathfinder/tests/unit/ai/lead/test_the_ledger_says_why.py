@@ -41,7 +41,8 @@ def test_a_chosen_search_prints_its_reason_and_what_it_was_chosen_over() -> None
 
     assert _why_lines(gpi) == [
         (
-            "    WHY no search states a GPI anchor; Exported Protein scored nearest "
+            "    WHY GPI anchor: no search states a GPI anchor; Exported Protein "
+            "scored nearest "
             "(over Gene Text Search 0.41)"
         )
     ]

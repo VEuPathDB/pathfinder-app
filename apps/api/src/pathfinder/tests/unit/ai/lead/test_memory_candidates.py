@@ -84,7 +84,8 @@ def test_an_unclassified_turn_still_writes_its_strategy_memory() -> None:
 
 
 def _digest_state(*, digest: VerificationDigest | None) -> PipelineState:
-    return PipelineState(
+    """A turn whose own check returned ``digest``."""
+    state = PipelineState(
         conversation_id=uuid4(),
         user_id=uuid4(),
         site_id="plasmodb",
@@ -92,6 +93,8 @@ def _digest_state(*, digest: VerificationDigest | None) -> PipelineState:
         user_prompt="find Plasmodium kinases",
         domain=StrategyDomainState(verification_digest=digest),
     )
+    state.turn_markers.verification_dispatched = True
+    return state
 
 
 def _digest(remember: list[MemoryEntryDraft]) -> VerificationDigest:

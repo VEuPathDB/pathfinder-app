@@ -27,7 +27,7 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.devtools import chat
 from pathfinder.devtools.chat import route_framework_logs_to_stderr
-from pathfinder.devtools.eval_runner import run_corpus
+from pathfinder.devtools.eval_runner import refusals_label, run_corpus
 from pathfinder.evals.case import ExpectedOutcome
 from pathfinder.evals.store import CORPUS_DIR, load_corpus
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
@@ -165,7 +165,8 @@ def _run(args: argparse.Namespace) -> int:
     for case in summary.cases:
         mark = "ERROR" if case.error else _MARKS[case.verdict]
         count = "" if case.observed_count is None else f"  count {case.observed_count}"
-        print(f"{mark}  {case.name}  {case.duration_seconds}s{count}")
+        refusals = refusals_label(case.refused_tools)
+        print(f"{mark}  {case.name}  {case.duration_seconds}s{count}  {refusals}")
         if case.distance is not None:
             print(
                 f"      distance: topology {case.distance.topology}, "
@@ -184,7 +185,7 @@ def _run(args: argparse.Namespace) -> int:
     print(
         f"--- {summary.passed}/{summary.case_count} passed "
         f"(re-measure {summary.re_measure}, failed {summary.failed}, "
-        f"errored {summary.errored}) "
+        f"errored {summary.errored}) refusals={summary.refusals} "
         f"harness={summary.harness} provider={summary.provider}",
     )
     if args.out:

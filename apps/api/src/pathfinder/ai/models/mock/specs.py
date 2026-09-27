@@ -8,7 +8,7 @@ parameters the sheet listed, so a name a site does not publish is never sent.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 from assistant_core.models.scripted import scripted_call
@@ -51,6 +51,8 @@ class CriterionSpec:
     # A parameter valued with another organism than ``site_organism``, read
     # from this criterion's own sheet when it is proposed.
     alt_param: str | None = None
+    # The site's organism, proposed on the parameter the pinned sheet marks as
+    # the organism when ``values`` leaves that parameter unvalued.
     site_organism: str = ""
     # Whether that other organism shares the genus of ``site_organism``.
     alt_same_genus: bool = True
@@ -123,14 +125,17 @@ def proposal_args(
     crit: CriterionSpec, sheet: dict[str, str | None], instructions: str
 ) -> dict[str, Any]:
     """The binding call: one entry per sheet parameter, valued or null, and why
-    the search runs it: the first parameter it values, in sheet order. Each
-    side of a contrast takes a group of its own."""
+    the search runs it: the first parameter it values, in sheet order, and the
+    organism parameter the pinned sheet marks only when it values nothing else.
+    That marked parameter holds the site organism unless a value is stated.
+    Each side of a contrast takes a group of its own."""
     values = {**contrast_values(instructions, crit.criterion_id), **crit.values}
     if crit.alt_param is not None:
         values[crit.alt_param] = [
             alt_organism(
                 instructions,
                 crit.criterion_id,
+                crit.alt_param,
                 crit.site_organism,
                 same_genus=crit.alt_same_genus,
             )
@@ -148,15 +153,29 @@ def proposal_args(
                 crit.outside_choices,
             )
         ]
-    return _binding_args(crit, {name: values.get(name) for name in sheet})
+    marked = {
+        entry.name
+        for entry in sheet_entries(instructions, crit.criterion_id)
+        if entry.organism_param
+    }
+    if crit.site_organism:
+        for name in marked - {n for n, v in values.items() if v is not None}:
+            values[name] = [crit.site_organism]
+    params = {name: values.get(name) for name in sheet}
+    return _binding_args(crit, params, marked)
 
 
-def _binding_args(crit: CriterionSpec, params: dict[str, Any]) -> dict[str, Any]:
+def _binding_args(
+    crit: CriterionSpec, params: dict[str, Any], organism: set[str]
+) -> dict[str, Any]:
     """A binding call with ``params``, and why: the criterion's own reason, else
-    the first parameter it values."""
+    the first parameter it values, the organism parameter last."""
     args = sheet_call_args(crit)
     args["params"] = params
-    stated = next((name for name, value in params.items() if value is not None), None)
+    valued = [name for name, value in params.items() if value is not None]
+    stated = next(
+        (name for name in valued if name not in organism), next(iter(valued), None)
+    )
     if crit.why is not None:
         args["why"] = asdict(crit.why)
     elif stated is not None:
@@ -197,6 +216,15 @@ def _slots_answered(
     resolved = {n: v for n, v in bound.resolved_params.items() if n in sheet}
     params = {**dict.fromkeys(sheet), **resolved, **answered}
     return scripted_call("set_criterion", {**sheet_call_args(crit), "params": params})
+
+
+def without_dropped(spec: SpecPlan, dropped: frozenset[str]) -> SpecPlan:
+    """The plan without the criteria ``set_structure`` reported dropped.
+
+    A drop is final: the tree already set holds none of them.
+    """
+    kept = tuple(c for c in spec.criteria if c.criterion_id not in dropped)
+    return replace(spec, criteria=kept)
 
 
 def set_structure_args(spec: SpecPlan) -> dict[str, Any]:

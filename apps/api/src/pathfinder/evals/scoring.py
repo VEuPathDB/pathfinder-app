@@ -129,6 +129,8 @@ class ObservedOutcome(CamelModel):
     # The title and the recorded term of each step that says why it runs.
     step_reasons: list[tuple[str, str]] = Field(default_factory=list)
     reply_text: str = ""
+    # None when no strategy was built, so no step holds a count.
+    counts_in_genes: bool | None = None
     root_operator: str | None = None
     final_count_below_every_input: bool | None = None
     # The requirement rows of the check on the strategy, or None when no check
@@ -137,6 +139,8 @@ class ObservedOutcome(CamelModel):
     root_count: int | None = None
     # None when the last turn stopped on a gate no card shows, such as a task.
     ends_on: GateEnd | None = None
+    # The tool of each refused call over every turn of the case, in order.
+    refused_tools: list[str] = Field(default_factory=list)
 
 
 class CaseDifference(CamelModel):
@@ -195,6 +199,7 @@ def _value_differences(
             expected.final_count_below_every_input,
             observed.final_count_below_every_input,
         ),
+        ("countsInGenes", expected.counts_in_genes, observed.counts_in_genes),
         ("endsOn", expected.ends_on, observed.ends_on),
     )
     return [

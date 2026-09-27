@@ -11,10 +11,16 @@ from veupathdb_mcp.controls import (
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
-from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.runtime import AgentDeps, VerificationScope
 from pathfinder.ai.tools.standalone import experiment
 from pathfinder.ai.tools.standalone.experiment import _ControlCounts, controls_summary
 from pathfinder.services.experiment.published_names import PublishedNames
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET,
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 
 
 def test_the_summary_carries_recall_precision_mcc_and_the_knobs() -> None:
@@ -109,12 +115,17 @@ async def test_a_standalone_search_test_names_the_searchs_knobs(
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
     monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)
+    serve_saved_controls(
+        monkeypatch, experiment, saved_set(["PF3D7_1133400", "PF3D7_0102600"])
+    )
+
+    agent_ctx.deps.verification_scope = VerificationScope(control_sets=[SAVED_SET])
 
     answered = await experiment.run_control_tests_on_search(
         agent_ctx,
         target_search_name="GenesByMolecularWeight",
         target_parameters={},
-        positive_controls=["PF3D7_1133400", "PF3D7_0102600"],
+        control_set_id=SAVED_SET_ID,
     )
 
     assert "tunable parameters: organism" in str(answered.metadata)

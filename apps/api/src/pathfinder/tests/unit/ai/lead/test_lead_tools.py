@@ -91,6 +91,7 @@ def test_the_classifier_takes_no_message_text_from_the_model() -> None:
         "explicit_constraints",
         "inferred_goal",
         "is_differential",
+        "named_controls",
         "referenced_step_ids",
         "referenced_strategy_ids",
     ]

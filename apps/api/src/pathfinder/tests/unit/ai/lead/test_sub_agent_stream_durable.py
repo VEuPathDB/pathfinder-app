@@ -33,8 +33,15 @@ from pathfinder.ai.lead.lead_agent import LEAD_MODEL, LeadAgent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
+from pathfinder.ai.tools.standalone import experiment
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET,
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -123,12 +130,12 @@ def _two_controls_and_a_peek() -> FunctionModel:
         return [
             ToolCallPart(
                 tool_name="run_control_tests_on_step",
-                args={"wdk_step_id": 440230693},
+                args={"wdk_step_id": 440230693, "control_set_id": SAVED_SET_ID},
                 tool_call_id=_CALL_A,
             ),
             ToolCallPart(
                 tool_name="run_control_tests_on_step",
-                args={"wdk_step_id": 440230653},
+                args={"wdk_step_id": 440230653, "control_set_id": SAVED_SET_ID},
                 tool_call_id=_CALL_B,
             ),
             ToolCallPart(
@@ -169,6 +176,7 @@ def _state() -> PipelineState:
         failed_steps=[],
         root_count=132,
     )
+    state.domain.attach_control_set(SAVED_SET)
     return state
 
 
@@ -240,6 +248,9 @@ async def _drive(
 def scripted(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(_lead_model, "get_mock_model", _lead_calls_verify)
     monkeypatch.setattr(sub_agent_tools, "get_mock_model", _two_controls_and_a_peek)
+    serve_saved_controls(
+        monkeypatch, experiment, saved_set(["PF3D7_0100100", "PF3D7_0200100"])
+    )
 
 
 async def _park(

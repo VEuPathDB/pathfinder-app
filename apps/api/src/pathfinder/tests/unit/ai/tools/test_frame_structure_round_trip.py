@@ -13,9 +13,12 @@ from pathfinder.ai.tools.standalone.frame_structure import (
     set_structure,
 )
 from pathfinder.domain.strategy.operational_spec import StructureNode
+from pathfinder.tests._support.organism_reads import serve_organism_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 from pathfinder.tests.unit.domain.strategy._orthology import (
+    SOURCE,
+    TARGET,
     kept_by_intersect,
     round_trip_spec,
     seed_node,
@@ -32,7 +35,10 @@ def _drafted() -> AgentToolState:
 
 
 @pytest.mark.asyncio
-async def test_the_kept_round_trip_is_set_with_its_copy() -> None:
+async def test_the_kept_round_trip_is_set_with_its_copy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_organism_reads(monkeypatch, [SOURCE, TARGET])
     state = _drafted()
     root = kept_by_intersect(seed_node())
 

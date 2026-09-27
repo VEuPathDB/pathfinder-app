@@ -179,13 +179,28 @@ def run_impl(
 
         monkeypatch.setattr(tunable, "search_parameter_metadata", read)
 
+        async with async_session_factory() as session:
+            saved = await create_control_set(
+                session,
+                new_control_set(
+                    name="Kinase controls",
+                    site_id="plasmodb",
+                    record_type="transcript",
+                    positive_ids=["PF3D7_1133400"],
+                    negative_ids=[],
+                    source="paste",
+                ),
+                user_id=user_id,
+            )
+            await session.commit()
+
         result = await optimize_params_impl.optimize_search_parameters_impl(
-            context=job_context(),
+            context=job_context(user_id=user_id),
             task_id=task_id,
             progress=progress,
             memory_store=None,
             wdk_step_id=STEP_ID,
-            positive_controls=["PF3D7_1133400"],
+            control_set_id=str(saved.id),
             budget=variants_count,
         )
         await progress.aclose()

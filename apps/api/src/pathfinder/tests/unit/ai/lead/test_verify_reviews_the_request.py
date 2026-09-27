@@ -258,10 +258,14 @@ async def test_the_check_reads_at_most_eight_gene_records(
     assert dispatch.agent_deps is not None
     guard: ToolRepetitionGuard = dispatch.agent_deps.tool_repetition_guard
     allowed = [
-        guard.check("read_gene_record", {"gene_id": f"PF3D7_{i:07d}"})
+        guard.check("read_gene_record", {"gene_id": f"PF3D7_{i:07d}"}, run_step=i + 1)
         for i in range(SAMPLED_GENE_LIMIT)
     ]
-    refused = guard.check("read_gene_record", {"gene_id": "PF3D7_0000009"})
+    refused = guard.check(
+        "read_gene_record",
+        {"gene_id": "PF3D7_0000009"},
+        run_step=SAMPLED_GENE_LIMIT + 1,
+    )
 
     assert allowed == [None] * SAMPLED_GENE_LIMIT
     assert refused is not None

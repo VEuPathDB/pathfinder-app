@@ -64,6 +64,7 @@ LEAD_TOOL_NAMES = frozenset(
         "remember",
         "rename_strategy",
         "save_gene_set",
+        "use_control_set",
         "verify_strategy",
         "search_eda_studies",
         "describe_eda_study",

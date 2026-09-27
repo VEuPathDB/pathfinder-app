@@ -1,0 +1,103 @@
+{
+  "amoebadb": {
+    "GenesByEcNumber": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "cryptodb": {
+    "GenesByEcNumber": "organism",
+    "GenesByGoTerm": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "fungidb": {
+    "GenesByGoTerm": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "giardiadb": {
+    "GenesByEcNumber": "organism",
+    "GenesByGeneType": "organism",
+    "GenesByGoTerm": "organism",
+    "GenesByMolecularWeight": "organism",
+    "GenesByParalogCount": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "hostdb": {
+    "GenesByGeneType": "organism",
+    "GenesByGoTerm": "organism",
+    "GenesByMolecularWeight": "organism",
+    "GenesByRNASeqhsapREF_Bruno_Immune_Response_ebi_rnaSeq_RSRC": null,
+    "GenesByRNASeqhsapREF_Lee_Gambian_ebi_rnaSeq_RSRC": null,
+    "GenesByRNASeqhsapREF_Li_Transcriptome_Remodeling_ebi_rnaSeq_RSRC": null,
+    "GenesByRNASeqhsapREF_hsapREF_RNASeq_Greally_RSRC_ebi_rnaSeq_RSRC": null,
+    "GenesByRNASeqhsapREF_hsap_hemazoin_shah_RNASeq_ebi_rnaSeq_RSRC": null,
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "microsporidiadb": {
+    "GenesByEcNumber": "organism",
+    "GenesByGoTerm": "organism",
+    "GenesByMolecularWeight": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "orthomcl": {
+    "GroupsByEcNumber": null,
+    "GroupsByGenomeCount": null,
+    "GroupsByPFamIdOrKeyword": null,
+    "GroupsByPhyleticPattern": null
+  },
+  "piroplasmadb": {
+    "GenesByGoTerm": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "plasmodb": {
+    "GenesByEcNumber": "organism",
+    "GenesByExportPrediction": "organism",
+    "GenesByGoTerm": "organism",
+    "GenesByMetabolicPathway": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "toxodb": {
+    "GenesByEcNumber": "organism",
+    "GenesByGoTerm": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "trichdb": {
+    "GenesByGoTerm": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "tritrypdb": {
+    "GenesByGoTerm": "organism",
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "vectorbase": {
+    "GenesByExonCount": "organism",
+    "GenesByLocation": "organismSinglePick",
+    "GenesByMolecularWeight": "organism",
+    "GenesByRNASeqagamPEST_SRP013741_ebi_rnaSeq_RSRC": null,
+    "GenesByRNASeqagamPEST_SRP014191_ebi_rnaSeq_RSRC": null,
+    "GenesByText": "text_search_organism",
+    "GenesByTransmembraneDomains": "organism",
+    "GenesWithSignalPeptide": "organism"
+  },
+  "veupathdb": {
+    "GenesByText": "text_search_organism"
+  }
+}

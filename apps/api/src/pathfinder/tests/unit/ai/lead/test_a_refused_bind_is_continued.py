@@ -40,8 +40,9 @@ _PROMPT = (
     "99 transmembrane domains."
 )
 _REFUSAL = (
-    "c_tm: the reason does not hold the term Minimum Number of Transmembrane "
-    "Domains. Nothing was recorded."
+    "c_tm: the reason holds 173 characters. Write one line of at most 160 "
+    "characters; the term Minimum Number of Transmembrane Domains is shown before "
+    "it. Nothing was recorded."
 )
 # The toolset's retries, and the refusals that pass them.
 _RETRIES = 3

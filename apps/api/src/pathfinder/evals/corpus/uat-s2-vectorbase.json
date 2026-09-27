@@ -15,9 +15,8 @@
     "stepIdsUnchanged": null,
     "parameters": {},
     "replyMentions": [],
-    "replyOmits": [
-      "transcripts"
-    ],
+    "replyOmits": [],
+    "countsInGenes": true,
     "replyNamesItsSearches": true,
     "replyGivesItsReasons": false,
     "stepTitlesOmit": [],

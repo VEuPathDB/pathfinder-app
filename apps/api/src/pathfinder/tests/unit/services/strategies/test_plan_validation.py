@@ -18,50 +18,52 @@ def _codes(exc: ValidationError) -> list[str]:
     return out
 
 
-def test_valid_leaf_plan_parses() -> None:
+async def test_valid_leaf_plan_parses() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {"id": "a", "searchName": "GenesByText"},
     }
-    ast = validate_plan_or_raise(plan)
+    ast = await validate_plan_or_raise(plan, site_id="plasmodb")
     assert ast.record_type == "transcript"
     assert ast.root.search_name == "GenesByText"
 
 
-def test_empty_dict_is_invalid_strategy() -> None:
+async def test_empty_dict_is_invalid_strategy() -> None:
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise({})
+        await validate_plan_or_raise({}, site_id="plasmodb")
     assert exc.value.title == "Invalid strategy"
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 
-def test_root_not_an_object_is_invalid_strategy() -> None:
+async def test_root_not_an_object_is_invalid_strategy() -> None:
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise({"recordType": "transcript", "root": "nope"})
+        await validate_plan_or_raise(
+            {"recordType": "transcript", "root": "nope"}, site_id="plasmodb"
+        )
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 
-def test_empty_search_name_leaf_reports_missing_search_name() -> None:
+async def test_empty_search_name_leaf_reports_missing_search_name() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {"id": "a", "searchName": ""},
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert "MISSING_SEARCH_NAME" in _codes(exc.value)
 
 
-def test_empty_record_type_reports_missing_record_type() -> None:
+async def test_empty_record_type_reports_missing_record_type() -> None:
     plan: JSONObject = {
         "recordType": "",
         "root": {"id": "a", "searchName": "GenesByText"},
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert "MISSING_RECORD_TYPE" in _codes(exc.value)
 
 
-def test_combine_without_operator_is_rejected_by_model() -> None:
+async def test_combine_without_operator_is_rejected_by_model() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {
@@ -71,11 +73,11 @@ def test_combine_without_operator_is_rejected_by_model() -> None:
         },
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 
-def test_invalid_operator_value_is_rejected_by_model() -> None:
+async def test_invalid_operator_value_is_rejected_by_model() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {
@@ -86,11 +88,11 @@ def test_invalid_operator_value_is_rejected_by_model() -> None:
         },
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 
-def test_combine_with_same_step_on_both_inputs_is_rejected() -> None:
+async def test_combine_with_same_step_on_both_inputs_is_rejected() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {
@@ -101,11 +103,11 @@ def test_combine_with_same_step_on_both_inputs_is_rejected() -> None:
         },
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 
-def test_duplicate_step_ids_across_tree_are_rejected() -> None:
+async def test_duplicate_step_ids_across_tree_are_rejected() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {
@@ -116,11 +118,11 @@ def test_duplicate_step_ids_across_tree_are_rejected() -> None:
         },
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert _codes(exc.value) == ["INVALID_STRATEGY"]
 
 
-def test_colocate_without_colocation_params_is_rejected() -> None:
+async def test_colocate_without_colocation_params_is_rejected() -> None:
     plan: JSONObject = {
         "recordType": "transcript",
         "root": {
@@ -131,5 +133,5 @@ def test_colocate_without_colocation_params_is_rejected() -> None:
         },
     }
     with pytest.raises(ValidationError) as exc:
-        validate_plan_or_raise(plan)
+        await validate_plan_or_raise(plan, site_id="plasmodb")
     assert _codes(exc.value) == ["INVALID_STRATEGY"]

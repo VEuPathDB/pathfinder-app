@@ -16,6 +16,12 @@ from pathfinder.domain.strategy.operational_spec import (
 SOURCE = "Plasmodium falciparum 3D7"
 TARGET = "Plasmodium vivax P01"
 ORTHOLOGS = "GenesByOrthologs"
+# The parameter plasmodb marks as the organism of each search the trip runs.
+ORGANISM_PARAMS = {
+    "GenesWithSignalPeptide": "organism",
+    "GenesByTransmembraneDomains": "organism",
+    ORTHOLOGS: "organism",
+}
 
 
 def seed_criteria(signal_id: str = "c_signal", tm_id: str = "c_tm") -> list[Criterion]:
@@ -27,6 +33,7 @@ def seed_criteria(signal_id: str = "c_signal", tm_id: str = "c_tm") -> list[Crit
             search_name="GenesWithSignalPeptide",
             search_display_name="Predicted Signal Peptide",
             role="seed",
+            organism_param="organism",
             resolved_params={
                 "organism": organism,
                 "signalp_version": SinglePickValue(value="SignalP-6.0"),
@@ -37,6 +44,7 @@ def seed_criteria(signal_id: str = "c_signal", tm_id: str = "c_tm") -> list[Crit
             text="2 to 99 transmembrane domains",
             search_name="GenesByTransmembraneDomains",
             search_display_name="Transmembrane Domain Count",
+            organism_param="organism",
             resolved_params={
                 "organism": organism,
                 "min_tm": StringValue(value="2"),
@@ -53,6 +61,7 @@ def leg(criterion_id: str, organism: str, syntenic: str) -> Criterion:
         search_name=ORTHOLOGS,
         search_display_name="Transform by Orthology",
         role="transform",
+        organism_param="organism",
         resolved_params={
             "organism": MultiPickValue(values=[organism]),
             "isSyntenic": SinglePickValue(value=syntenic),

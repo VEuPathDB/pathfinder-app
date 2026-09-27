@@ -19,6 +19,7 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     GeneFit,
+    NamedControlSet,
     SampledGene,
 )
 
@@ -28,7 +29,9 @@ def _ids(prefix: str, count: int) -> list[str]:
 
 
 def _test(
-    positives: tuple[int, int], negatives: tuple[int, int]
+    positives: tuple[int, int],
+    negatives: tuple[int, int],
+    control_set: NamedControlSet | None = None,
 ) -> ControlTestEvidence:
     """A control test that returned ``found`` of ``total`` of each kind."""
     pos_found, pos_total = positives
@@ -36,6 +39,7 @@ def _test(
     pos, neg = _ids("PF3D7_01", pos_total), _ids("PF3D7_14", neg_total)
     return ControlTestEvidence(
         tested_label="Predicted Signal Peptide",
+        control_set=control_set,
         positive=ControlSetEvidence(
             returned=pos[:pos_found], not_returned=pos[pos_found:]
         ),
@@ -69,6 +73,17 @@ def test_the_v2_control_test_is_a_caveat_with_both_counts() -> None:
     assert V2_CONTROLS.sentence == (
         "52 of 80 positive controls returned; 2 of 40 negative controls returned"
     )
+
+
+def test_the_caveat_names_the_saved_set_and_keeps_its_sentence() -> None:
+    kinases = NamedControlSet(id="0b6c1f4e-set", name="Kinases from Treeck")
+
+    caveat = controls_caveat(_test((52, 80), (2, 40), kinases))
+
+    assert caveat == V2_CONTROLS.model_copy(update={"control_set": kinases})
+    assert caveat is not None
+    assert caveat.sentence == V2_CONTROLS.sentence
+    assert caveat.texts() == ["Kinases from Treeck"]
 
 
 def test_every_positive_returned_and_no_negative_is_no_caveat() -> None:

@@ -265,6 +265,7 @@ A case can name how it runs, each field compared or applied only when set:
 | `newConversationBefore` | the turns that open a new conversation for the same researcher, so a memory is read across threads |
 | `attachments` | turn index to file names under `evals/corpus/files/`, sent as the composer attaches them |
 | `expected.rootCount` | `{count, build, measuredOn}`: the root count a flow recorded, the site build it held on, and the date it was read |
+| `expected.countsInGenes` | `true`: the reply states every count of the strategy's steps in genes, the unit the site counts them in, never as `N transcripts`; read by the same reader as the turn contract's `counted_in_the_wrong_unit` rule |
 | `expected.endsOn` | `none`, `consult`, `approval` or `proposal` (an offer card): the gate the last turn stopped on |
 
 **A verdict is `pass`, `re-measure` or `fail`.** The run reads each site's

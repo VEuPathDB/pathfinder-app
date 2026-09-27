@@ -99,12 +99,17 @@ class SearchRationale(CamelModel):
             return given
         return _SHORT[info.data["basis"]].format(term=info.data["term"])
 
+    @computed
+    def sentence(self) -> str:
+        """The reason as every surface shows it, led by the term that decides it."""
+        return f"{self.term}: {self.reason}"
+
     def line(self) -> str:
-        """The reason, and the searches it was chosen over."""
+        """The sentence, and the searches it was chosen over."""
         if not self.compared:
-            return self.reason
+            return self.sentence
         over = ", ".join(search.label() for search in self.compared)
-        return f"{self.reason} (over {over})"
+        return f"{self.sentence} (over {over})"
 
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""

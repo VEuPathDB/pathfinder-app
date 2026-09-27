@@ -1,5 +1,7 @@
-"""The fold: a criterion the structure leaves out states its values on the
-criterion that runs the same search."""
+"""The folds: a criterion the structure leaves out states its values on the
+criterion that runs the same search, and an INTERSECT input that states only
+the organism its sibling runs on, or matches every gene of it, leaves the
+structure."""
 
 from __future__ import annotations
 
@@ -7,14 +9,24 @@ from collections.abc import Collection, Mapping
 
 from pydantic import ConfigDict
 from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.strategy import CombineOp, extract_output_organisms
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.operational_spec import (
     AssumedValue,
     Criterion,
     OperationalSpec,
+    SpecStructure,
+    StructureNode,
     structure_criteria,
 )
+from pathfinder.domain.strategy.organism_phrases import stated_organisms
+from pathfinder.domain.strategy.organism_scope import (
+    organism_params_of,
+    universe_key,
+)
+from pathfinder.domain.strategy.orthology import projected_steps
+from pathfinder.domain.strategy.words import words_of
 
 
 class FoldedSpec(CamelModel):
@@ -118,6 +130,8 @@ def _carry_the_option(
         stated[name] = value
     carrier.resolved_params.update(stated)
     carrier.defaulted_params = sorted(set(carrier.defaulted_params) - set(stated))
+    if stated:
+        carrier.result_count = None
     # The option replaces the assumption it overrides, so one value has one
     # reason on the ledger.
     carrier.assumptions = [
@@ -133,3 +147,192 @@ def _carry_the_option(
         ),
     ]
     return True
+
+
+class OrganismDrop(CamelModel):
+    """An INTERSECT input the organism fold removed, and what became of its text.
+
+    ``met`` is true when the text names only the organism, which the carrier's
+    organism value meets; otherwise the binding matched all ``records`` genes
+    of the organism and the drop record holds the text unexpressed.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    criterion_id: str
+    text: str
+    organisms: tuple[str, ...]
+    met: bool
+    carrier_id: str
+    records: int | None = None
+
+    @property
+    def fate(self) -> str:
+        """The drop and the requirement's fate, in one sentence each."""
+        named = ", ".join(self.organisms)
+        head = f"{self.criterion_id} ('{self.text}') is dropped:"
+        if self.met:
+            return (
+                f"{head} it names only the organism {named}, which "
+                f"{self.carrier_id} already runs on, so that organism value meets it."
+            )
+        return (
+            f"{head} it matches all {self.records:,} genes of {named}, which "
+            f"{self.carrier_id} already runs on, so it narrows nothing. "
+            f"'{self.text}' is recorded unexpressed: bind a search whose values "
+            f"state it, or end with it as a gap."
+        )
+
+
+class FoldedStructure(CamelModel):
+    """The structure the organism fold left, and the inputs it dropped."""
+
+    model_config = ConfigDict(frozen=True)
+
+    structure: SpecStructure
+    dropped: tuple[OrganismDrop, ...] = ()
+
+
+class _Redundant(CamelModel):
+    """The organisms a redundant leaf holds; ``records`` is its count when the
+    count identity, not its text, makes it redundant."""
+
+    model_config = ConfigDict(frozen=True)
+
+    organisms: frozenset[str]
+    records: int | None
+
+
+class _OrganismReading:
+    """What the organism fold reads each INTERSECT input against."""
+
+    def __init__(
+        self,
+        spec: OperationalSpec,
+        organisms: Collection[str],
+        record_words: Collection[str],
+        universe_counts: Mapping[str, int],
+        live_step_ids: Collection[str],
+    ) -> None:
+        self.by_id = {c.id: c for c in spec.criteria}
+        self.marked = organism_params_of(spec.criteria)
+        self.organisms = list(organisms)
+        self.record_words = {word.casefold() for word in record_words}
+        self.universe_counts = universe_counts
+        self.live = frozenset(live_step_ids)
+        self.dropped: list[OrganismDrop] = []
+
+    def output_of(self, node: StructureNode) -> frozenset[str]:
+        steps = projected_steps(node, self.by_id)
+        return frozenset(extract_output_organisms(steps, self.marked) or ())
+
+    def carrier_of(self, node: StructureNode) -> str:
+        """The criterion whose organism the subtree's output carries.
+
+        A combine's output is its primary input's; a transform's is its own.
+        """
+        step = projected_steps(node, self.by_id)
+        while step.primary_input is not None and step.secondary_input is not None:
+            step = step.primary_input
+        return step.id
+
+    def redundancy(self, node: StructureNode) -> _Redundant | None:
+        """The organisms a droppable leaf holds, and why it is redundant."""
+        criterion = self.by_id.get(node.criterion_id or "")
+        if node.kind != "leaf" or criterion is None or criterion.id in self.live:
+            return None
+        named = self._named_organism(criterion.text)
+        if named is not None:
+            return _Redundant(organisms=frozenset({named}), records=None)
+        key = universe_key(criterion, self.organisms)
+        if (
+            key is None
+            or self.universe_counts.get(criterion.id) != criterion.result_count
+        ):
+            return None
+        return _Redundant(organisms=frozenset(key), records=criterion.result_count)
+
+    def _named_organism(self, text: str) -> str | None:
+        """The one organism entry the text names, when its other words are all
+        words of the record type's display names."""
+        stated = stated_organisms(text, self.organisms)
+        if len(stated) != 1:
+            return None
+        words = words_of(text)
+        rest = words[: stated[0].start] + words[stated[0].end :]
+        return stated[0].entry if set(rest) <= self.record_words else None
+
+
+def intersected_leaves(node: StructureNode) -> frozenset[str]:
+    """The criteria the tree states as leaf inputs of an INTERSECT."""
+    own = frozenset[str]()
+    if node.kind == "combine" and node.operator is CombineOp.INTERSECT:
+        own = frozenset(
+            child.criterion_id
+            for child in node.inputs
+            if child.kind == "leaf" and child.criterion_id
+        )
+    return own.union(*(intersected_leaves(child) for child in node.inputs))
+
+
+def fold_organism_universe(
+    spec: OperationalSpec,
+    tree: SpecStructure,
+    organisms: Collection[str],
+    record_words: Collection[str],
+    universe_counts: Mapping[str, int],
+    *,
+    live_step_ids: Collection[str],
+) -> FoldedStructure:
+    """Drop each INTERSECT input that states only the organism a sibling runs on.
+
+    Such an input is a leaf whose text names one organism entry and words of the
+    record type alone, or whose ``organism_only`` binding counts exactly the
+    genes ``universe_counts`` holds for it (keyed by criterion id, one count
+    per leaf on its own record type). A leaf of unknown count stays. The tree's only leaf, a
+    MINUS input, a transform input and a live step are never dropped.
+    """
+    reading = _OrganismReading(
+        spec, organisms, record_words, universe_counts, live_step_ids
+    )
+    root = _organism_folded(tree.root, reading)
+    if not reading.dropped:
+        return FoldedStructure(structure=tree)
+    return FoldedStructure(
+        structure=SpecStructure(root=root), dropped=tuple(reading.dropped)
+    )
+
+
+def _organism_folded(node: StructureNode, reading: _OrganismReading) -> StructureNode:
+    inputs = [_organism_folded(child, reading) for child in node.inputs]
+    if node.kind != "combine" or node.operator is not CombineOp.INTERSECT:
+        return node.model_copy(update={"inputs": inputs})
+    kept = list(inputs)
+    for candidate in inputs:
+        found = reading.redundancy(candidate)
+        if found is None:
+            continue
+        carrier = next(
+            (
+                s
+                for s in kept
+                if s is not candidate and reading.output_of(s) == found.organisms
+            ),
+            None,
+        )
+        if carrier is None:
+            continue
+        kept = [s for s in kept if s is not candidate]
+        reading.dropped.append(
+            OrganismDrop(
+                criterion_id=candidate.criterion_id or "",
+                text=reading.by_id[candidate.criterion_id or ""].text,
+                organisms=tuple(sorted(found.organisms)),
+                met=found.records is None,
+                carrier_id=reading.carrier_of(carrier),
+                records=found.records,
+            )
+        )
+    if len(kept) == 1:
+        return kept[0]
+    return node.model_copy(update={"inputs": kept})

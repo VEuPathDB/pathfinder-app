@@ -4,6 +4,7 @@ the references of each criterion, and the review VERIFY wrote."""
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 from datetime import datetime
 from typing import Literal, Self
 
@@ -80,6 +81,18 @@ class ControlEnrichment(CamelModel):
     p_value: float = Field(ge=0.0, le=1.0)
 
 
+class NamedControlSet(CamelModel):
+    """The saved control set a control test ran."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    name: str
+
+    def redacted(self, redact: Callable[[str], str]) -> NamedControlSet:
+        return self.model_copy(update={"name": redact(self.name)})
+
+
 class ControlTestEvidence(CamelModel):
     """One control test: the target it read and the sets it was given."""
 
@@ -88,6 +101,8 @@ class ControlTestEvidence(CamelModel):
     tested_label: str
     # The step the test read; None for a test that ran a search on its own.
     wdk_step_id: int | None = None
+    # The saved set the test ran; None when its ids were not a saved set.
+    control_set: NamedControlSet | None = None
     positive: ControlSetEvidence | None = None
     negative: ControlSetEvidence | None = None
     enrichment: ControlEnrichment | None = None
@@ -322,6 +337,7 @@ class EvidenceCard(CamelModel):
             *self.pending_checks,
             *(step.title for step in self.steps),
             *(test.tested_label for test in self.controls),
+            *(test.control_set.name for test in self.controls if test.control_set),
             *(
                 text
                 for cited in self.citations
@@ -342,6 +358,7 @@ __all__ = [
     "CriterionCitations",
     "EvidenceCard",
     "GeneFit",
+    "NamedControlSet",
     "RequirementCheck",
     "RequirementHow",
     "RequirementStatus",

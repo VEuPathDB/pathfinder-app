@@ -6,8 +6,10 @@ from __future__ import annotations
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.ledger_render import render_verification_full
 from pathfinder.ai.lead.ledger_sections import VerificationSection
+from pathfinder.domain.caveats import ControlsCaveat, SampleCaveat
 from pathfinder.domain.evidence import (
     Citation,
+    NamedControlSet,
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -73,4 +75,36 @@ def test_the_full_section_lists_the_review() -> None:
     )
     assert rendered.split("\n### Sources\n")[1] == (
         "- Exportome (10.1038/nature12970): lists exported proteins"
+    )
+
+
+def test_two_sets_on_one_step_are_two_caveat_lines_that_name_their_set() -> None:
+    digest = VerificationDigest(
+        disposition=PhaseDisposition.DONE,
+        prose="Checked.",
+        reason="controls missed",
+        success=True,
+        caveats=[
+            ControlsCaveat(
+                positives_returned=3,
+                positives_total=5,
+                control_set=NamedControlSet(id="set-a", name="Kinases"),
+            ),
+            ControlsCaveat(
+                positives_returned=3,
+                positives_total=5,
+                control_set=NamedControlSet(id="set-b", name="Exported"),
+            ),
+            ControlsCaveat(positives_returned=1, positives_total=2),
+            SampleCaveat(unclear=2, misfit=0, total=8),
+        ],
+    )
+
+    rendered = render_verification_full(VerificationSection(digest=digest))
+
+    assert rendered.split("\n### Caveats\n")[1].split("\n\n")[0] == (
+        "- 3 of 5 positive controls returned (control set Kinases, id set-a)\n"
+        "- 3 of 5 positive controls returned (control set Exported, id set-b)\n"
+        "- 1 of 2 positive controls returned\n"
+        "- 2 of 8 sampled genes unclear"
     )

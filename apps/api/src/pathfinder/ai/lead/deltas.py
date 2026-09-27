@@ -6,6 +6,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, model_validator
 
 from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, OpenQuestion
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
@@ -121,3 +122,11 @@ class VerificationDelta(CamelModel):
     """Verification sub-agent output."""
 
     digest: VerificationDigest
+
+
+class VerificationStopped(CamelModel):
+    """A check that ended before it returned a digest. It records no verdict
+    and no evidence card, so the strategy stays unverified."""
+
+    stop: PhaseStop | None
+    summary: str

@@ -10,21 +10,26 @@ import pytest
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.tools.standalone import control_sets
+from pathfinder.ai.tools.standalone import control_sets, saved_control_sets
 from pathfinder.ai.tools.standalone.control_sets import (
     BuiltControlSet,
     ControlSetIds,
-    ControlSetSummary,
     build_control_set,
     list_control_sets,
     read_control_set,
     read_gene_ids_from_gene_set,
     read_gene_ids_from_strategy,
 )
+from pathfinder.ai.tools.standalone.saved_control_sets import ControlSetSummary
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.services.control_sets import ControlSetResponse, NewControlSet
+from pathfinder.services.evidence.control_sets import SavedControls
 from pathfinder.services.experiment.control_sourcing import ResolvedControls
 from pathfinder.tests._support.tool_returns import returned
-from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
+from pathfinder.tests.unit.ai.tools.conftest import (
+    agent_run_context,
+    detached_lead_context,
+)
 
 _WDK_STRATEGY_ID = "330531493"
 _SAVES_NOTHING = "This saves nothing. Call build_control_set to save a control set."
@@ -178,30 +183,62 @@ async def test_build_control_set_refuses_when_no_positive_resolves(
     assert persisted == []
 
 
-async def test_list_control_sets_summarizes(monkeypatch: pytest.MonkeyPatch) -> None:
-    stored = _stored(
+_SAVED_SETS = [
+    SavedControls(
         control_set_id="cs_1",
-        name="set",
+        name="Signal peptide controls",
         positive_ids=["g1", "g2"],
         negative_ids=["n1"],
     )
+]
 
-    async def _list(
-        _session: AsyncSession, *, site_id: str, user_id: UUID
-    ) -> list[ControlSetResponse]:
-        del site_id, user_id
-        return [stored]
 
-    monkeypatch.setattr(control_sets, "list_control_sets_for_site", _list)
+def _serve_saved_sets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[tuple[str, UUID | None]]:
+    asked: list[tuple[str, UUID | None]] = []
+
+    async def _saved(
+        db_session_factory: object, *, site_id: str, user_id: UUID | None
+    ) -> list[SavedControls]:
+        del db_session_factory
+        asked.append((site_id, user_id))
+        return _SAVED_SETS
+
+    monkeypatch.setattr(control_sets, "saved_control_sets", _saved)
+    monkeypatch.setattr(saved_control_sets, "saved_control_sets", _saved)
+    return asked
+
+
+async def test_list_control_sets_summarizes(monkeypatch: pytest.MonkeyPatch) -> None:
+    _serve_saved_sets(monkeypatch)
 
     out = returned(
         await list_control_sets(detached_lead_context()), list[ControlSetSummary]
     )
 
-    assert len(out) == 1
-    assert out[0].control_set_id == "cs_1"
-    assert out[0].positive_count == 2
-    assert out[0].negative_count == 1
+    assert [
+        (s.control_set_id, s.name, s.positive_count, s.negative_count) for s in out
+    ] == [("cs_1", "Signal peptide controls", 2, 1)]
+
+
+async def test_the_check_lists_the_attached_sets_the_user_saved_on_the_site(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked = _serve_saved_sets(monkeypatch)
+    ctx = agent_run_context(
+        site_id="toxodb",
+        control_sets=[NamedControlSet(id="cs_1", name="Signal peptide controls")],
+    )
+
+    out = returned(
+        await saved_control_sets.list_control_sets(ctx), list[ControlSetSummary]
+    )
+
+    assert [
+        (s.control_set_id, s.name, s.positive_count, s.negative_count) for s in out
+    ] == [("cs_1", "Signal peptide controls", 2, 1)]
+    assert asked == [("toxodb", ctx.deps.user_id)]
 
 
 class TestAWdkStrategyIdIsARetry:

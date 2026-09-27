@@ -1,15 +1,16 @@
 """Validates a strategy tree and reports the issues it finds."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 
-from pydantic import JsonValue
+from pydantic import ConfigDict, JsonValue
 from veupathdb.domain.parameters import to_decoded_map
 from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStepNode,
     extract_output_organisms,
 )
+from veupathdb.model import CamelModel
 
 
 def _scope_text(scope: set[str]) -> str:
@@ -28,7 +29,7 @@ def _path_to(node: StrategyStepNode, step_id: str) -> list[StrategyStepNode] | N
 
 
 def _transforms_above(
-    root: StrategyStepNode, combine: StrategyStepNode
+    root: StrategyStepNode, combine: StrategyStepNode, marked: Mapping[str, str]
 ) -> list[tuple[str, set[str]]]:
     """The transforms the combine sits under that change the organism, nearest
     first. A transform beside the combine cannot hold the combine's criteria."""
@@ -37,8 +38,8 @@ def _transforms_above(
         source = node.primary_input
         if node.infer_kind() != "transform" or source is None:
             continue
-        output = extract_output_organisms(node)
-        if output is not None and output != extract_output_organisms(source):
+        output = extract_output_organisms(node, marked)
+        if output is not None and output != extract_output_organisms(source, marked):
             found.append((node.search_name, output))
     return found
 
@@ -48,9 +49,10 @@ def _remedy(
     combine: StrategyStepNode,
     primary: set[str],
     secondary: set[str],
+    marked: Mapping[str, str],
 ) -> str:
     """The edit that makes the two scopes meet."""
-    for search_name, output in _transforms_above(root, combine):
+    for search_name, output in _transforms_above(root, combine, marked):
         for side in (primary, secondary):
             if output == side:
                 return (
@@ -64,33 +66,38 @@ def _remedy(
 
 
 def cross_organism_refusal(
-    combine: StrategyStepNode, root: StrategyStepNode
+    combine: StrategyStepNode,
+    root: StrategyStepNode,
+    organism_params: Mapping[str, str],
 ) -> str | None:
     """Why the combine returns nothing, or None when its inputs can meet.
 
     Gene ids from different species never match, so an INTERSECT of two known
-    and disjoint scopes is always empty.
+    and disjoint scopes is always empty. ``organism_params`` names the
+    parameter each search marks as its organism.
     """
     if combine.operator is not CombineOp.INTERSECT:
         return None
     if combine.primary_input is None or combine.secondary_input is None:
         return None
-    primary = extract_output_organisms(combine.primary_input)
-    secondary = extract_output_organisms(combine.secondary_input)
+    primary = extract_output_organisms(combine.primary_input, organism_params)
+    secondary = extract_output_organisms(combine.secondary_input, organism_params)
     if primary is None or secondary is None or not primary.isdisjoint(secondary):
         return None
     return (
         f"Cannot INTERSECT steps with different organism scopes "
         f"({_scope_text(primary)} vs {_scope_text(secondary)}). Gene IDs from "
         f"different species never match, so this always returns 0 results. "
-        f"{_remedy(root, combine, primary, secondary)}"
+        f"{_remedy(root, combine, primary, secondary, organism_params)}"
     )
 
 
-def first_cross_organism_refusal(root: StrategyStepNode) -> str | None:
+def first_cross_organism_refusal(
+    root: StrategyStepNode, organism_params: Mapping[str, str]
+) -> str | None:
     """Why the first INTERSECT of the tree that can never meet is refused, or None."""
     for node in _nodes(root):
-        refusal = cross_organism_refusal(node, root)
+        refusal = cross_organism_refusal(node, root, organism_params)
         if refusal is not None:
             return refusal
     return None
@@ -100,6 +107,65 @@ def _nodes(node: StrategyStepNode) -> Iterator[StrategyStepNode]:
     yield node
     for child in node.inputs():
         yield from _nodes(child)
+
+
+class SearchRecordClasses(CamelModel):
+    """The record class a search returns and the classes its input step may
+    hold, as WDK declares them; ``takes`` is empty for a search with no input."""
+
+    model_config = ConfigDict(frozen=True)
+
+    display_name: str
+    returns: str
+    takes: tuple[str, ...] = ()
+
+
+def _returned_classes(
+    node: StrategyStepNode, classes: Mapping[str, SearchRecordClasses]
+) -> set[str]:
+    """The known record classes a subtree returns. A combine returns the
+    classes of its inputs, and one of unknown class adds none."""
+    if node.infer_kind() == "combine":
+        return {c for child in node.inputs() for c in _returned_classes(child, classes)}
+    own = classes.get(node.search_name)
+    return set() if own is None else {own.returns}
+
+
+def transform_input_refusal(
+    root: StrategyStepNode,
+    classes: Mapping[str, SearchRecordClasses],
+    record_names: Mapping[str, str],
+) -> str | None:
+    """Why the first transform whose input returns a record class it does not
+    take is refused, or None. A search or an input of unknown class abstains."""
+    for node in _nodes(root):
+        own = classes.get(node.search_name)
+        source = node.primary_input
+        if node.infer_kind() != "transform" or source is None or own is None:
+            continue
+        given = sorted(_returned_classes(source, classes))
+        if not own.takes or not given or set(given) <= set(own.takes):
+            continue
+        takes = " or ".join(record_names.get(c, c) for c in own.takes)
+        if len(given) > 1:
+            joined = " and ".join(record_names.get(c, c) for c in given)
+            return (
+                f"The subtree under {node.id} joins {joined} in one combine. WDK "
+                f"combines only steps of one record class, so this tree cannot "
+                f"run. Bind every input under {node.id} to a search on {takes}, "
+                f"or ask the researcher."
+            )
+        returns = record_names.get(own.returns, own.returns)
+        subtree = record_names.get(given[0], given[0])
+        return (
+            f"{node.id} runs {own.display_name} ({node.search_name}), which takes "
+            f"{takes} as its input step, and the subtree under it returns "
+            f"{subtree}. WDK runs a transform only on the record classes it "
+            f"declares, so this tree cannot run. {own.display_name} maps {takes} "
+            f"to {returns}; it is not a filter on {subtree}. Drop {node.id}, bind "
+            f"it to a search on {subtree} that states it, or ask the researcher."
+        )
+    return None
 
 
 @dataclass
@@ -134,10 +200,12 @@ class StrategyValidator:
 
     def __init__(
         self,
+        organism_params: Mapping[str, str],
         available_searches: dict[str, list[str]] | None = None,
         available_transforms: list[str] | None = None,
     ) -> None:
         """Builds a validator. Searches are keyed by record type."""
+        self.organism_params = organism_params
         self.available_searches = available_searches or {}
         self.available_transforms = available_transforms or []
 
@@ -210,7 +278,7 @@ class StrategyValidator:
         errors: list[StepValidationIssue],
     ) -> None:
         """Rejects an INTERSECT between disjoint organism scopes."""
-        message = cross_organism_refusal(node, root)
+        message = cross_organism_refusal(node, root, self.organism_params)
         if message is None:
             return
         errors.append(
@@ -314,6 +382,8 @@ class StrategyValidator:
             )
 
 
-def validate_strategy(root: StrategyStepNode, record_type: str) -> ValidationResult:
+def validate_strategy(
+    root: StrategyStepNode, record_type: str, organism_params: Mapping[str, str]
+) -> ValidationResult:
     """Validates a strategy tree with the default validator."""
-    return StrategyValidator().validate(root, record_type)
+    return StrategyValidator(organism_params).validate(root, record_type)

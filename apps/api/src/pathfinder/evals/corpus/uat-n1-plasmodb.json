@@ -5,7 +5,7 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Three undefined terms end the turn on a question card; its recommended answers build three criteria under INTERSECT: blood-stage expression, the variant characteristic with the chosen cutoff, and no human ortholog.",
+  "rationale": "Three undefined terms end the turn on a question card; its recommended answers build three criteria under INTERSECT: blood-stage expression, a variation cutoff on the SNP search the site offers, and no human ortholog.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,
@@ -14,9 +14,6 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {
-      "GenesByVariantCharacteristics": {
-        "organism_select_none": "Plasmodium falciparum 3D7"
-      },
       "GenesByOrthologPattern": {
         "excluded_species": "hsap"
       }

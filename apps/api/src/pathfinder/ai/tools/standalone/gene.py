@@ -27,9 +27,7 @@ async def lookup_gene_records(
     """Look up gene records by name, symbol, or description using VEuPathDB site-search.
 
     Use this to resolve human-readable gene names (from literature or user input)
-    to VEuPathDB gene IDs.  The returned IDs can then be used as positive/negative
-    controls in `run_control_tests_on_step`, `run_control_tests_on_search` or
-    `optimize_search_parameters`.
+    to VEuPathDB gene IDs.
 
     Args:
         ctx: Agent run context.

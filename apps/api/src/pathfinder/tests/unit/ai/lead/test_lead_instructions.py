@@ -316,8 +316,14 @@ def test_a_sweep_is_offered_on_its_own_card_with_the_controls() -> None:
     )
     assert "never offer a sweep on a ``propose_changes`` card" in instructions
     assert (
-        "the control set the conversation saved as ``control_set_id``" in instructions
+        "the control set attached to the conversation as ``control_set_id``"
+        in instructions
     )
+    assert (
+        "Ids the researcher typed are saved first with ``build_control_set``, "
+        "which attaches the set." in instructions
+    )
+    assert "or the ids the researcher typed" not in instructions
 
 
 def test_the_proposal_card_sends_a_run_to_its_own_tool() -> None:
@@ -351,4 +357,18 @@ def test_the_instructions_state_each_caveat_in_the_ledgers_own_sentence() -> Non
     assert (
         "State each ``caveat`` the Verification section lists in its own sentence, "
         "word for word"
+    ) in _flat(LEAD_INSTRUCTIONS)
+
+
+def test_pasted_controls_are_saved_before_verify_tests_them() -> None:
+    assert (
+        "VERIFY tests only a saved control set, so control ids the researcher pastes "
+        "are saved with ``build_control_set`` before ``verify_strategy``."
+    ) in _flat(LEAD_INSTRUCTIONS)
+
+
+def test_a_saved_set_the_researcher_names_is_attached() -> None:
+    assert (
+        "A saved set the researcher names is attached with ``use_control_set``: a "
+        "test runs only on a set attached to this conversation."
     ) in _flat(LEAD_INSTRUCTIONS)

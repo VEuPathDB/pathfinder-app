@@ -189,7 +189,12 @@ go. Whether that replacement should be gated like the other two is an open
 decision, not settled here. The graph canvas still sends an edge delete,
 through the HTTP route, and the commit path still replaces a strategy to
 restore one; both read the wider union. The
-third path, a spec edit, still resolves its own delete through
+third path, a spec edit, removes a built step only as part of a change: a pass
+whose only change drops built criteria is refused before any write
+(`spec_diff.py::steps_only_removed`), nothing is applied, and the refusal names
+each step and sends the Lead to `delete_step`, whose card the researcher
+approves. A drop that comes with an added or changed criterion, a replacement
+or a rewire with a change, still resolves its own delete through
 `operations/resolutions.py::compute_delete_choices`, and it answers two
 reachable shapes differently from `delete_step`: a transform `delete_step`
 refuses for want of an heir, which is the strategy's root or one under another

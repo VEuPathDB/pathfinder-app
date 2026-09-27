@@ -29,12 +29,22 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import experiment
-from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    NamedControlSet,
+)
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.experiment.published_names import PublishedNames
 from pathfinder.services.parameter_optimization.config import (
     SweepResult,
     SweepVariantResult,
+)
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET,
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
 )
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -89,7 +99,7 @@ def _deps() -> LeadDeps:
 
 
 def _worker_answer() -> dict[str, Any]:
-    """The dict the control-test worker answers with."""
+    """The dict the control-test worker answers with, naming the set it ran."""
     outcome = ControlOutcome(
         step_id=_STEP_ID,
         search_name="GenesByMolecularWeight",
@@ -101,6 +111,7 @@ def _worker_answer() -> dict[str, Any]:
     )
     answer = outcome.model_dump(by_alias=True, exclude_none=True, mode="json")
     answer["targetLabel"] = "Genes by Molecular Weight"
+    answer["controlSet"] = {"id": SAVED_SET_ID, "name": "Saved controls"}
     return answer
 
 
@@ -123,7 +134,9 @@ async def test_a_durable_control_test_is_recorded_as_the_worker_filed_it() -> No
 
     runs = deps.state.turn_markers.control_tests
     assert [run.tool_call_id for run in runs] == ["call_controls"]
-    assert runs[0].evidence == _expected(_STEP_ID)
+    assert runs[0].evidence == _expected(_STEP_ID).model_copy(
+        update={"control_set": NamedControlSet(id=SAVED_SET_ID, name="Saved controls")}
+    )
 
 
 async def test_a_sweep_records_each_setting_it_scored() -> None:
@@ -132,13 +145,13 @@ async def test_a_sweep_records_each_setting_it_scored() -> None:
         phase="lead",
         tool_call_id="call_sweep",
         tool_name="optimize_search_parameters",
-        tool_args={"wdk_step_id": _STEP_ID},
+        tool_args={"wdk_step_id": _STEP_ID, "control_set_id": SAVED_SET_ID},
         prior_messages_json=_HISTORY,
         durable_calls=[
             DurableCall(
                 tool_call_id="call_sweep",
                 tool_name="optimize_search_parameters",
-                args={"wdk_step_id": _STEP_ID},
+                args={"wdk_step_id": _STEP_ID, "control_set_id": SAVED_SET_ID},
                 task_id=_TASK_ID,
                 durable_tool_name="optimize_search_parameters",
             ),
@@ -158,6 +171,7 @@ async def test_a_sweep_records_each_setting_it_scored() -> None:
         best=None,
         search_name="GenesWithSignalPeptide",
         objective="f1",
+        control_set=SAVED_SET,
     )
     deps.state.durable_result = DurableTaskResult(
         task_id=_TASK_ID,
@@ -174,6 +188,55 @@ async def test_a_sweep_records_each_setting_it_scored() -> None:
     assert runs[0].evidence.positive == ControlSetEvidence(
         returned=_RECOVERED, not_returned=_MISSED
     )
+    assert runs[0].evidence.control_set == SAVED_SET
+
+
+async def test_a_sweep_on_a_saved_set_names_the_set_on_each_setting() -> None:
+    deps = _deps()
+    deps.state.pending_durable_call = PendingDurableCall(
+        phase="lead",
+        tool_call_id="call_sweep",
+        tool_name="optimize_search_parameters",
+        tool_args={"wdk_step_id": _STEP_ID, "control_set_id": SAVED_SET_ID},
+        prior_messages_json=_HISTORY,
+        durable_calls=[
+            DurableCall(
+                tool_call_id="call_sweep",
+                tool_name="optimize_search_parameters",
+                args={"wdk_step_id": _STEP_ID, "control_set_id": SAVED_SET_ID},
+                task_id=_TASK_ID,
+                durable_tool_name="optimize_search_parameters",
+            ),
+        ],
+    )
+    sweep = SweepResult(
+        variants=[
+            SweepVariantResult(
+                variant_id=variant,
+                status="success",
+                score=0.6,
+                positive=PositiveControls(recovered_ids=_RECOVERED, missed_ids=_MISSED),
+            )
+            for variant in ("v0", "v1")
+        ],
+        best=None,
+        search_name="GenesWithSignalPeptide",
+        objective="f1",
+        control_set=NamedControlSet(id=SAVED_SET_ID, name="Saved controls"),
+    )
+    deps.state.durable_result = DurableTaskResult(
+        task_id=_TASK_ID,
+        status="success",
+        result=sweep.model_dump(by_alias=True, mode="json"),
+    )
+
+    await resolve_turn_resumption(state=deps.state, deps=deps)
+
+    runs = deps.state.turn_markers.control_tests
+    assert [run.tool_call_id for run in runs] == ["call_sweep:v0", "call_sweep:v1"]
+    assert [run.evidence.control_set for run in runs] == 2 * [
+        NamedControlSet(id=SAVED_SET_ID, name="Saved controls")
+    ]
 
 
 async def test_a_failed_control_test_records_nothing() -> None:
@@ -216,16 +279,21 @@ async def test_a_search_level_test_is_recorded_on_the_turn(
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
     monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)
-    ctx = agent_run_context(tool_call_id="call_search_controls")
+    saved = saved_set([*_RECOVERED, *_MISSED], _EXCLUDED)
+    serve_saved_controls(monkeypatch, experiment, saved)
+    ctx = agent_run_context(
+        tool_call_id="call_search_controls", control_sets=[SAVED_SET]
+    )
 
     await experiment.run_control_tests_on_search(
         ctx,
         "GenesByMolecularWeight",
         {"organism": StringValue(value="Plasmodium falciparum 3D7")},
-        positive_controls=[*_RECOVERED, *_MISSED],
-        negative_controls=_EXCLUDED,
+        control_set_id=SAVED_SET_ID,
     )
 
     runs = ctx.deps.turn_markers.control_tests
     assert [run.tool_call_id for run in runs] == ["call_search_controls"]
-    assert runs[0].evidence == _expected(None)
+    assert runs[0].evidence == _expected(None).model_copy(
+        update={"control_set": NamedControlSet(id=SAVED_SET_ID, name=saved.name)}
+    )

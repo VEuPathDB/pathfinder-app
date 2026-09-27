@@ -57,6 +57,10 @@ class SetCriterionResult(CamelModel):
     redecide: list[str] = Field(default_factory=list)
     # Why the criterion runs this search, against what the catalog answered.
     rationale: SearchRationale | None = None
+    # How the tool rewrote the why's basis or term to the one the data names.
+    corrections: list[str] = Field(
+        default_factory=list, exclude_if=lambda notes: not notes
+    )
     # Searches of this pass the site could not answer, so no word of the
     # criterion was compared against them. Absent when every one was read.
     unread_searches: list[str] = Field(
@@ -116,4 +120,4 @@ def _summary_line(
     )
     if result.rationale is not None:
         line = f"{line}, {result.rationale.short}"
-    return line, status
+    return "; ".join([line, *result.corrections]), status

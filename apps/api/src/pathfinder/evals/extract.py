@@ -110,6 +110,7 @@ class EvalExtract(CamelModel):
                 *verification.key_findings,
                 *verification.pending_checks,
                 *(text for gap in verification.gaps for text in gap.texts()),
+                *(text for caveat in verification.caveats for text in caveat.texts()),
             ]:
                 assert_redacted(line)
             for row in self.verification.requirements:

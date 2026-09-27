@@ -104,7 +104,9 @@ class ConversationService:
         name: str,
         strategy_ast: StrategyAst,
     ) -> ConversationResponse:
-        payload = validate_plan_or_raise(strategy_ast.model_dump(exclude_none=True))
+        payload = await validate_plan_or_raise(
+            strategy_ast.model_dump(exclude_none=True), site_id=site_id
+        )
         conversation = await self._repo.create(
             user_id=user_id,
             site_id=site_id,
@@ -156,7 +158,7 @@ class ConversationService:
         user_id: UUID,
         patch: ConversationUpdateInput,
     ) -> ConversationResponse:
-        await get_owned_conversation(self._repo, conversation_id, user_id)
+        owned = await get_owned_conversation(self._repo, conversation_id, user_id)
         if patch.name is not None:
             await rename_strategy_everywhere(
                 conversation_id, patch.name, session_factory=async_session_factory
@@ -165,8 +167,9 @@ class ConversationService:
 
         plan: StrategyAst | None = None
         if patch.strategy_ast:
-            plan = validate_plan_or_raise(
+            plan = await validate_plan_or_raise(
                 patch.strategy_ast.model_dump(exclude_none=True),
+                site_id=owned.site_id,
             )
         await self._repo.update_conversation(
             conversation_id,

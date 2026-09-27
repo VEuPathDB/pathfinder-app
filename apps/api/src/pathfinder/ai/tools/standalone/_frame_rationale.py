@@ -7,21 +7,24 @@ reads a similarity threshold; ``nearest`` compares hits of one read.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.ai.agents.state import CatalogHit, CatalogRead
+from pathfinder.ai.agents.state import CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    ParamProposals,
+)
+from pathfinder.ai.tools.standalone._frame_rationale_terms import (
+    Binding,
+    checked_term,
 )
 from pathfinder.domain.strategy.step_rationale import (
     MAX_REASON_CHARS,
@@ -55,8 +58,9 @@ class SearchChoice(CamelModel):
     )
     reason: str = Field(
         description=(
-            f"One line of at most {MAX_REASON_CHARS} characters, holding the term. "
-            "Name another search only if the catalog answered it."
+            f"One line of at most {MAX_REASON_CHARS} characters on what decided it; "
+            "the term is shown before it. Name another search only if the catalog "
+            "answered it."
         ),
     )
     sources: list[str] = Field(
@@ -70,17 +74,11 @@ class SearchChoice(CamelModel):
 
 
 @dataclass(frozen=True)
-class _Binding:
-    """What one binding call holds for the checks: the read and the values."""
+class ChosenWhy:
+    """The recorded reason, and the rewrites the tool applied to reach it."""
 
-    criterion_id: str
-    search_name: str
-    record_type: str
-    read: CatalogRead
-    bound: CatalogHit
-    infos: Sequence[ParameterInfo]
-    params: ParamProposals
-    values: Mapping[str, ParamValue]
+    rationale: SearchRationale | None
+    corrections: tuple[str, ...] = ()
 
 
 async def rationale_for(
@@ -90,7 +88,10 @@ async def rationale_for(
     infos: Sequence[ParameterInfo],
     values: Mapping[str, ParamValue],
     why: SearchChoice | None,
-) -> SearchRationale | None:
+    *,
+    defaulted: Collection[str],
+    transform: bool,
+) -> ChosenWhy:
     """The recorded reason for this binding, or a retry naming what is wrong.
 
     A value edit on the search the criterion already runs keeps its reason.
@@ -106,7 +107,7 @@ async def rationale_for(
     if why is None and held is not None and held.search_name == search_name:
         kept = held.rationale
         if kept is None or kept.kind == "search":
-            return kept
+            return ChosenWhy(kept)
     read = state.last_read_answering(search_name)
     bound = None if read is None else read.hit(search_name)
     if read is None or bound is None:
@@ -118,7 +119,7 @@ async def rationale_for(
     unseen = _unseen_mentions(why.reason, read, listed)
     if unseen:
         raise ModelRetry(_unseen(criterion_id, unseen, read))
-    binding = _Binding(
+    binding = Binding(
         criterion_id=criterion_id,
         search_name=search_name,
         record_type=record_type,
@@ -127,14 +128,16 @@ async def rationale_for(
         infos=infos,
         params=call.params,
         values=values,
+        defaulted=defaulted,
+        transform=transform,
     )
-    term = _checked_term(why, binding)
-    _refuse_a_reason_that_breaks_its_rules(criterion_id, why, term)
+    chosen = checked_term(why.basis, why.term, binding)
+    _refuse_a_long_reason(criterion_id, why, chosen.term)
     others = [h for h in read.hits if h.name != search_name] if read.ranked else []
-    return SearchRationale(
+    rationale = SearchRationale(
         search_name=search_name,
-        basis=why.basis,
-        term=term,
+        basis=chosen.basis,
+        term=chosen.term,
         reason=why.reason,
         similarity=bound.similarity,
         compared=[
@@ -148,139 +151,8 @@ async def rationale_for(
         tool_call_id=read.tool_call_id,
         sources=sources_retrieved(ctx, criterion_id, why.sources),
     )
-
-
-def _checked_term(why: SearchChoice, at: _Binding) -> str:
-    """The term as the researcher reads it, once the data backs the basis."""
-    cid, term = at.criterion_id, why.term
-    match why.basis:
-        case "parameter":
-            return _set_parameter(cid, term, at)
-        case "organism":
-            if not any(
-                term.casefold() in to_wire(v).casefold() for v in at.values.values()
-            ):
-                msg = (
-                    f"{cid}: no value this binding sends holds {term}, so the "
-                    f"organism does not decide the choice."
-                )
-                raise ModelRetry(msg)
-        case "record_type":
-            _refuse_a_record_type_that_decides_nothing(cid, term, at)
-        case "only_match":
-            _refuse_a_shared_term(cid, term, at)
-        case "nearest":
-            _refuse_a_nearer_hit(cid, term, at)
-    return term
-
-
-def _set_parameter(cid: str, term: str, at: _Binding) -> str:
-    """The display name of the parameter this call set, which the term names."""
-    wanted = term.casefold()
-    info = next(
-        (
-            i
-            for i in at.infos
-            if wanted in {i.name.casefold(), i.display_name.casefold()}
-        ),
-        None,
-    )
-    if info is None:
-        raise ModelRetry(_not_a_parameter(cid, term, at))
-    if at.params.get(info.name) is None:
-        msg = (
-            f"{cid}: this call leaves {term} null, so it decides nothing. Name the "
-            f"parameter whose value decides the choice."
-        )
-        raise ModelRetry(msg)
-    return info.display_name
-
-
-def _not_a_parameter(cid: str, term: str, at: _Binding) -> str:
-    """Why the term names no parameter: the parameter a value is set on, or the
-    display names the term may take."""
-    set_here = [i for i in at.infos if at.params.get(i.name) is not None]
-    holding = next(
-        (
-            i.display_name
-            for i in set_here
-            if i.name in at.values
-            and term.casefold() in to_wire(at.values[i.name]).casefold()
-        ),
-        None,
-    )
-    if holding is not None:
-        return (
-            f"{cid}: {term} is a value this call sets on {holding}, not a "
-            f"parameter. Pass the term '{holding}' with basis parameter, and keep "
-            f"{term} in the reason."
-        )
-    names = ", ".join(i.display_name for i in set_here) or "none"
-    return (
-        f"{cid}: {term} is not a parameter of {at.search_name}. With basis "
-        f"parameter the term is the display name of a parameter this call sets: "
-        f"{names}. A value goes in the reason, never in the term."
-    )
-
-
-def _refuse_a_record_type_that_decides_nothing(
-    cid: str, term: str, at: _Binding
-) -> None:
-    if term.casefold() != at.record_type.casefold():
-        msg = f"{cid}: {at.search_name} returns {at.record_type}, not {term}."
-        raise ModelRetry(msg)
-    if all(h.record_type == at.record_type for h in at.read.hits):
-        msg = (
-            f"{cid}: every search the catalog answered returns {term}, so the "
-            f"record type decides nothing. Give the basis that does."
-        )
-        raise ModelRetry(msg)
-
-
-def _refuse_a_shared_term(cid: str, term: str, at: _Binding) -> None:
-    if not _names(at.bound, term):
-        msg = (
-            f"{cid}: the name and the description of {at.search_name} do not "
-            f"hold {term}."
-        )
-        raise ModelRetry(msg)
-    also = [
-        h.display_name
-        for h in at.read.hits
-        if h.name != at.search_name and _names(h, term)
-    ]
-    if also:
-        msg = f"{cid}: {', '.join(also)} also name {term}, so it is not the only match."
-        raise ModelRetry(msg)
-
-
-def _refuse_a_nearer_hit(cid: str, term: str, at: _Binding) -> None:
-    """Nearest is an order inside one ranked read, never a threshold."""
-    if not at.read.ranked or at.bound.similarity is None:
-        msg = (
-            f"{cid}: the read that answered {at.search_name} scored nothing, so it "
-            f"cannot be the nearest to {term}. Rank it with search_for_searches, "
-            f"or give another basis."
-        )
-        raise ModelRetry(msg)
-    score = at.bound.similarity
-    higher = [
-        h.display_name
-        for h in at.read.hits
-        if h.similarity is not None and h.similarity > score
-    ]
-    if higher:
-        msg = (
-            f"{cid}: {', '.join(higher)} scored higher than {at.bound.display_name} "
-            f"for '{at.read.query}', so it is not the nearest to {term}."
-        )
-        raise ModelRetry(msg)
-
-
-def _names(hit: CatalogHit, term: str) -> bool:
-    return names_the_phrase(hit.display_name, term) or names_the_phrase(
-        hit.description, term
-    )
+    corrections = () if chosen.correction is None else (chosen.correction,)
+    return ChosenWhy(rationale, corrections)
 
 
 def _unseen_mentions(
@@ -343,7 +215,7 @@ def _no_why(criterion_id: str, search_name: str, read: CatalogRead) -> str:
         f"{criterion_id} binds {search_name} with no why. Pass why with a basis "
         f"(parameter, organism, record_type, only_match or nearest), the term "
         f"that decides it, and one line of reason of at most {MAX_REASON_CHARS} "
-        f"characters holding the term. The catalog "
+        f"characters. The catalog "
         f"answered {len(read.hits)} searches for it, first {_top(read)}. "
         f"Nothing was recorded."
     )
@@ -358,21 +230,13 @@ def _unseen(criterion_id: str, unseen: Sequence[str], read: CatalogRead) -> str:
     )
 
 
-def _refuse_a_reason_that_breaks_its_rules(
-    criterion_id: str, why: SearchChoice, term: str
-) -> None:
-    """A reason holds the term and fits its cap; a refusal names both rules."""
-    problems = []
-    if len(why.reason) > MAX_REASON_CHARS:
-        problems.append(f"holds {len(why.reason)} characters")
-    if not any(names_the_phrase(why.reason, t) for t in (why.term, term)):
-        problems.append("does not hold the term")
-    if not problems:
+def _refuse_a_long_reason(criterion_id: str, why: SearchChoice, term: str) -> None:
+    """A reason fits one line; the term is shown before it, so it need not repeat it."""
+    if len(why.reason) <= MAX_REASON_CHARS:
         return
     msg = (
-        f"{criterion_id}: the reason must hold the term {term} and fit in "
-        f"{MAX_REASON_CHARS} characters; this one {' and '.join(problems)}. Write "
-        f"one line of at most {MAX_REASON_CHARS} characters around {term}, so a "
-        f"reply that repeats it says what decided. Nothing was recorded."
+        f"{criterion_id}: the reason holds {len(why.reason)} characters. Write one "
+        f"line of at most {MAX_REASON_CHARS} characters; the term {term} is shown "
+        f"before it. Nothing was recorded."
     )
     raise ModelRetry(msg)

@@ -128,6 +128,8 @@ def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
         ),
     )
 
+    state.turn_markers.verification_dispatched = True
+
     candidates = collect_memory_candidates(state)
 
     assert [(value.kind, key) for value, key in candidates] == [

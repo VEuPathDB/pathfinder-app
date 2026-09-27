@@ -59,9 +59,11 @@ A yes clears a strategy the thread holds through the path `clear_strategy` runs,
 so a revert restores it, then builds the offer's spec through `build_the_minted`,
 the body `build_strategy` runs. The spec is minted and checked before the clear, so
 an offer the build refuses leaves the strategy standing. It saves the controls as a control set with source
-`separation`, and attaches them: VERIFY's work order names every attached control
-and runs `run_control_tests_on_step` on the root with exactly those ids, so the
-evidence card holds the site's own read of the adopted strategy. A no ends the
+`separation` and attaches the set to the conversation beside any set attached
+before, which the clear keeps (the researcher's own clear empties them): VERIFY's work order names
+that set by its `control_set_id` and runs `run_control_tests_on_step` on the root
+with it, so the evidence card holds the site's own read of the adopted strategy. A
+control test runs only on a set attached to the conversation it runs in. A no ends the
 turn with no model call, records the card as declined, and keeps the offer.
 
 **The ablation.** Each criterion's contribution is read by dropping its leaf and

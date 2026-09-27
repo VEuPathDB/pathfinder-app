@@ -168,7 +168,16 @@ def _redacted(card: EvidenceCard) -> EvidenceCard:
                 for step in card.steps
             ],
             "controls": [
-                test.model_copy(update={"tested_label": redact_text(test.tested_label)})
+                test.model_copy(
+                    update={
+                        "tested_label": redact_text(test.tested_label),
+                        "control_set": (
+                            None
+                            if test.control_set is None
+                            else test.control_set.redacted(redact_text)
+                        ),
+                    }
+                )
                 for test in card.controls
             ],
             "citations": [
@@ -212,7 +221,7 @@ def read_verification(rows: Sequence[LoggedChunk]) -> ExtractedVerification | No
         success=latest.success,
         reason=redact_text(latest.reason),
         key_findings=[redact_text(line) for line in latest.key_findings],
-        caveats=latest.caveats,
+        caveats=[caveat.redacted(redact_text) for caveat in latest.caveats],
         gaps=[gap.redacted(redact_text) for gap in latest.gaps],
         pending_checks=[redact_text(step) for step in latest.pending_checks],
         requirements=[_redacted_row(row) for row in latest.review.requirements],

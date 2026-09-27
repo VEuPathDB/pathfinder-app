@@ -606,6 +606,7 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
     await expect(reply).toHaveCount(1);
     await openTrace(reply);
     await expect(traceRows(reply, "Build control set")).toHaveCount(1);
+    await expect(reply).toContainText("negative controls?");
   });
 });
 

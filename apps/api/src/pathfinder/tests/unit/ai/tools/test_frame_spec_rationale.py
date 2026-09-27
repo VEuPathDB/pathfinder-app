@@ -204,14 +204,15 @@ async def test_a_new_binding_without_a_why_is_refused(
 
 
 @pytest.mark.asyncio
-async def test_a_reason_without_its_term_is_refused(
+async def test_a_reason_without_its_term_is_recorded_under_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state = AgentToolState()
     await read(monkeypatch, state, EXPORTED, SIGNAL)
 
-    refusal = await refused(
+    result = await choose(
         state, choice("nearest", "GPI anchor", "it scored the highest of them")
     )
 
-    assert "GPI anchor" in refusal
+    assert result.rationale is not None
+    assert result.rationale.sentence == "GPI anchor: it scored the highest of them"

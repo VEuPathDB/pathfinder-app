@@ -8,9 +8,11 @@ turn; nothing here knows what the turn did.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 # An artifact the reply reports as saved. An offer to save one is an
@@ -118,3 +120,16 @@ def counts_named_as(prose: str, noun: str, *, instead_of: str) -> list[int]:
         rf"\b(\d[\d,]*)\**\s+{between}\**{re.escape(noun)}s?\b", re.IGNORECASE
     )
     return [int(match.group(1).replace(",", "")) for match in named.finditer(prose)]
+
+
+def counts_in_the_wrong_unit(
+    prose: str, record_type: str, held: Iterable[int]
+) -> list[int]:
+    """Each count of ``held`` the prose names in ``record_type``, once, when the
+    site counts that record type in another noun."""
+    noun = counted_noun(record_type)
+    if not record_type or noun == record_type:
+        return []
+    holds = set(held)
+    named = counts_named_as(prose, record_type, instead_of=noun)
+    return [count for count in dict.fromkeys(named) if count in holds]

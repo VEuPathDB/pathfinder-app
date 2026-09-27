@@ -230,40 +230,6 @@ def grown_call(
     return _final("Grew the strategy; the rest are unchanged.", _changes(criteria))
 
 
-def _without(node: StructureNode, removed: str) -> StructureNode:
-    """The tree with one leaf gone: a combine over it keeps its other input."""
-    kept = [
-        _without(child, removed)
-        for child in node.inputs
-        if not (child.kind == "leaf" and child.criterion_id == removed)
-    ]
-    if node.kind == "combine" and len(kept) == 1:
-        return kept[0]
-    return node.model_copy(update={"inputs": kept})
-
-
-def removed_step_call(
-    work_order: str, search_name: str, called: frozenset[str]
-) -> ToolCallPart:
-    """Drop the criterion that runs ``search_name`` and close the tree over it."""
-    criteria = workspace_criteria(work_order)
-    target = _target(criteria, search_name)
-    shape = workspace_shape(work_order)
-    if target is None or shape is None:
-        return _final("Nothing in the workspace runs that search.", _changes(criteria))
-    if "drop_criterion" not in called:
-        return scripted_call(
-            "drop_criterion",
-            {"criterion_id": target.criterion_id, "reason": "the request removes it"},
-        )
-    if "set_structure" not in called:
-        return _structure(_without(shape, target.criterion_id))
-    return _final(
-        f"Dropped {target.criterion_id}.",
-        _changes(criteria, dropped=target.criterion_id),
-    )
-
-
 def replaced_step_call(
     work_order: str,
     search_name: str,

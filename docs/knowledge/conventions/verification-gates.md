@@ -163,6 +163,12 @@ outside its tolerance) is re-measured and the case's `root_count` rewritten
 with the new build. The summary of the run that preceded a release is kept
 beside the run directory; nothing in `publish-images.yml` reads it.
 
+Every case line carries a refusal column, `refusals=N (tool, tool)`, and the
+summary JSON carries it as `refusedTools` per case and `refusals` for the run.
+It counts each Lead or sub-agent call that came back as a retry prompt or as
+the repetition guard's text. The column is read on a `pass` too: a rule that
+fires on a passing case shows only there.
+
 ## The science verifies in two lanes
 
 The WDK rules answer to two suites, and which lane a rule lands in follows from what can falsify it.

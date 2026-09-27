@@ -21,9 +21,10 @@ from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import search_inspection
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.graph.runtime import AgentDeps, VerificationScope
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import detached_session
 from pathfinder.tests._support.run_context import (
@@ -45,6 +46,7 @@ def agent_run_context(
     strategy_session: StrategySession | None = None,
     db_session_factory: DBSessionFactory | None = None,
     tool_call_id: str | None = "call_1",
+    control_sets: Sequence[NamedControlSet] = (),
 ) -> RunContext[AgentDeps]:
     runtime = turn_runtime(site_id=site_id, strategy_session=strategy_session)
     deps = AgentDeps(
@@ -55,6 +57,7 @@ def agent_run_context(
         db_session_factory=db_session_factory,
         agent_state=agent_state if agent_state is not None else AgentToolState(),
         turn_markers=TurnMarkers(),
+        verification_scope=VerificationScope(control_sets=list(control_sets)),
     )
     return run_context_for(deps, tool_call_id)
 

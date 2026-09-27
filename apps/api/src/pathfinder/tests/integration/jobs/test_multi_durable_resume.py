@@ -50,6 +50,7 @@ from pathfinder.tests.integration.jobs._controls_wire import (
     STEP_B,
     TOOL,
     build_spec,
+    save_the_controls,
 )
 
 _PROMPT = "run control tests on both steps and show me a few records"
@@ -160,6 +161,7 @@ async def _make_user() -> UUID:
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.commit()
+    await save_the_controls(user_id)
     return user_id
 
 

@@ -45,6 +45,7 @@ from pathfinder.services.conversations.thread_activity import (
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
+from pathfinder.services.strategies.organism_params import organism_parameters
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 from pathfinder.services.strategies.site_changes import read_the_site_into_the_thread
 
@@ -293,11 +294,17 @@ async def hydrate_spec_from_the_strategy(
     if ast is None:
         return
     hydrated = spec_from_ast(ast, goal=state.user_prompt, analyses=analyses_of(ast))
+    search_names = [c.search_name for c in hydrated.criteria if c.search_name]
     sheets = await sheet_params_for_searches(
         site_id=context.site_id,
         record_type=ast.record_type,
-        search_names=[c.search_name for c in hydrated.criteria if c.search_name],
+        search_names=search_names,
     )
+    marks = await organism_parameters(context.site_id, ast.record_type, search_names)
+    hydrated.criteria = [
+        c.model_copy(update={"organism_param": marks.get(c.search_name)})
+        for c in hydrated.criteria
+    ]
     stated = hidden_params_dropped(hydrated, sheet_params=sheets)
     state.domain.operational_spec = stated
     the_strategy_now_answers_to(state, stated, graph)

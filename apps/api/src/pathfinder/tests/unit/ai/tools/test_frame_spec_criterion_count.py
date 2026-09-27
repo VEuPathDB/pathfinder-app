@@ -77,6 +77,19 @@ async def test_a_completed_binding_carries_its_own_count(
 
 
 @pytest.mark.asyncio
+async def test_the_criterion_records_the_count_its_binding_matched(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, genes_by_text)
+    _serve_count(monkeypatch, 627)
+    state = AgentToolState()
+
+    await bind(state, "GenesByText", _GIARDIA)
+
+    assert [c.result_count for c in state.operational_spec_draft.criteria] == [627]
+
+
+@pytest.mark.asyncio
 async def test_the_count_reads_the_configuration_the_criterion_stores(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

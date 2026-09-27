@@ -129,7 +129,9 @@ function ControlTest({ test }: { test: ControlTestEvidence }): ReactElement {
   return (
     <div data-testid="evidence-controls">
       <p className="mb-1.5 text-[11px] text-muted-foreground">
-        {`Control test on ${test.testedLabel}`}
+        {test.controlSet == null
+          ? `Control test on ${test.testedLabel}`
+          : `Control test of ${test.controlSet.name} on ${test.testedLabel}`}
       </p>
       <ExhibitTable
         columns={CONTROL_COLUMNS}
@@ -244,7 +246,7 @@ export function EvidenceCardBody({
       ) : null}
       {card.controls.map((test) => (
         <ControlTest
-          key={`${test.wdkStepId ?? "search"}-${test.testedLabel}`}
+          key={`${test.wdkStepId ?? "search"}-${test.testedLabel}-${test.controlSet?.id ?? ""}`}
           test={test}
         />
       ))}

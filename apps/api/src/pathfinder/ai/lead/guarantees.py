@@ -66,6 +66,7 @@ TOOL_REVERSIBILITY: Mapping[str, Reversibility] = {
     "search_eda_studies": Reversibility.READ,
     "separate_controls": Reversibility.DURABLE,
     "set_eda_filters": Reversibility.UNREVISIONED_WRITE,
+    "use_control_set": Reversibility.IN_STATE,
     "verify_strategy": Reversibility.IN_STATE,
 }
 

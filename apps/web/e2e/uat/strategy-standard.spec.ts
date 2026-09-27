@@ -439,12 +439,18 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.minus);
 
-    await chatPage.sendAndSettle(
-      prompt("delete-step", "Remove the transmembrane-domain step."),
+    await chatPage.send(
+      prompt("delete-step-card", "Remove the transmembrane-domain step."),
     );
-    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-    await expect(page.getByTestId("approval-card")).toHaveCount(0);
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    const approval = page.getByTestId("approval-card");
+    await expect(approval.getByTestId("approval-card-title")).toHaveText(
+      new RegExp(`^Delete step '.+' \\(${TRANSMEMBRANE}, .+\\)\\?$`),
+      { timeout: 240_000 },
+    );
+    await approval.getByTestId("tool-approval-approve").click();
+    await expect(page.getByTestId("tool-approval-decision")).toContainText("Approved");
+    await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
+    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
 
     const canvasId = await buildOn(
       chatPage,

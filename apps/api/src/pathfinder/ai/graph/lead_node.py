@@ -38,11 +38,7 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 from pydantic_ai import AgentRunResultEvent
 from pydantic_ai.exceptions import UsageLimitExceeded
-from pydantic_ai.messages import (
-    AgentStreamEvent,
-    FunctionToolResultEvent,
-    UserContent,
-)
+from pydantic_ai.messages import AgentStreamEvent, UserContent
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, ErrorChunk
 from pydantic_ai.usage import RunUsage
@@ -70,7 +66,6 @@ from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
     final_reply,
     guard_stop_of,
-    guard_stopped_on,
     stop_response,
 )
 from pathfinder.ai.graph._lead_turn import (
@@ -213,8 +208,9 @@ def _stream_ends_after(
     deps: LeadDeps,
 ) -> bool:
     """Whether this event is the last one the turn takes from the run."""
-    if guard_stopped_on(event, guard) and isinstance(event, FunctionToolResultEvent):
-        capture.guard_stop = guard_stop_of(event)
+    stop = guard_stop_of(event, guard)
+    if stop is not None:
+        capture.guard_stop = stop
         return True
     return _off_topic_budget_ends_the_turn(capture, usage, deps)
 

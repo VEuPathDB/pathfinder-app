@@ -17,6 +17,11 @@ from pathfinder.ai.models.mock.reads import (
     control_set_id,
     controls_sentence,
     gene_set_id,
+    structure_dropped,
+)
+from pathfinder.ai.tools.standalone.frame_structure import (
+    SetStructureResult,
+    StructureDrop,
 )
 
 
@@ -33,6 +38,16 @@ def test_an_answer_that_parses_is_read() -> None:
     answered = _answered("build_control_set", {"controlSetId": "cs-9"})
 
     assert control_set_id(answered) == "cs-9"
+
+
+def test_the_structure_tool_result_names_the_criteria_it_dropped() -> None:
+    result = SetStructureResult(
+        criteria_combined=1,
+        dropped=[StructureDrop(criterion_id="organism_genes", met=True, fate="x")],
+    )
+
+    assert structure_dropped(_answered("set_structure", result)) == {"organism_genes"}
+    assert structure_dropped(_answered("set_structure", "ok")) == frozenset()
 
 
 def test_an_answer_of_another_shape_fails() -> None:

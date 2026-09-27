@@ -33,6 +33,8 @@ const CHOSEN: Step = {
     basis: "nearest",
     term: "GPI anchor",
     reason: "no search states a GPI anchor; Exported Protein scored nearest",
+    sentence:
+      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest",
     similarity: 0.44,
     compared: [
       { name: "GenesByText", displayName: "Gene Text Search", similarity: 0.41 },
@@ -65,7 +67,7 @@ describe("NodeShell rationale", () => {
     expect(line).toHaveTextContent("why: nearest to GPI anchor");
     expect(line).toHaveAttribute(
       "title",
-      "no search states a GPI anchor; Exported Protein scored nearest " +
+      "GPI anchor: no search states a GPI anchor; Exported Protein scored nearest " +
         "(over Gene Text Search 0.41)",
     );
   });

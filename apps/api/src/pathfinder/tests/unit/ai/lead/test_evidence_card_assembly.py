@@ -12,7 +12,7 @@ from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead import evidence_card, verify_dispatch
-from pathfinder.ai.lead.deltas import VerificationDelta
+from pathfinder.ai.lead.deltas import VerificationDelta, VerificationStopped
 from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -247,7 +247,7 @@ async def _dispatch(
     monkeypatch: pytest.MonkeyPatch,
     deps: LeadDeps,
     outcome: VerificationDelta | SubAgentApprovalWait,
-) -> VerificationDelta | SubAgentApprovalWait:
+) -> VerificationDelta | VerificationStopped | SubAgentApprovalWait:
     async def streamed(**_kwargs: object) -> VerificationDelta | SubAgentApprovalWait:
         return outcome
 

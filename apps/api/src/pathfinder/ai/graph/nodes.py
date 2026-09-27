@@ -87,10 +87,7 @@ async def _compact_the_notes(
 async def finalize_turn_node(
     state: PipelineState, runtime: Runtime[Context]
 ) -> Command[Literal["__end__"]]:
-    # A verdict stands while the strategy is the one it judged, so only the
-    # turn that ran the check treats it as this turn's finding.
-    checked = state.turn_markers.verification_dispatched
-    verdict = state.turn_verdict if checked else None
+    verdict = state.checked_verdict
     update: dict[str, object] = {}
     if runtime.context is not None and verdict is not None:
         compacted = await _compact_the_notes(

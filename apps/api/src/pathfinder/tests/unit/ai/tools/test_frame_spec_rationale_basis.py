@@ -4,6 +4,7 @@ holds, and a cited reference must be one this turn retrieved."""
 from __future__ import annotations
 
 import pytest
+from veupathdb_mcp.catalog import SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
@@ -22,6 +23,7 @@ from pathfinder.tests.unit.ai.tools._rationale_catalog import (
     WORDS,
     choice,
     choose,
+    match,
     read,
     refused,
     serve_site,
@@ -237,7 +239,7 @@ async def test_a_source_this_turn_never_retrieved_is_refused(
     assert "PMID:18267088" in refusal
 
 
-# The reason's two rules are named together, so one retry can meet both.
+# A reason past its cap is refused with its length; the term is not required in it.
 
 _LONG_TAIL = (
     ", which the request names as the genome to search, and the catalog "
@@ -247,18 +249,14 @@ _LONG_TAIL = (
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("reason", "problem"),
+    ("reason", "length"),
     [
-        ("sets the genome searched", "does not hold the term"),
-        (f"sets Organism to P. falciparum 3D7{_LONG_TAIL}", "holds 173 characters"),
-        (
-            f"sets the genome searched to P. falciparum 3D7{_LONG_TAIL}",
-            "holds 184 characters and does not hold the term",
-        ),
+        (f"sets Organism to P. falciparum 3D7{_LONG_TAIL}", 173),
+        (f"sets the genome searched to P. falciparum 3D7{_LONG_TAIL}", 184),
     ],
 )
-async def test_a_reason_is_refused_with_every_rule_it_must_meet(
-    monkeypatch: pytest.MonkeyPatch, reason: str, problem: str
+async def test_a_reason_past_its_cap_is_refused_with_its_length(
+    monkeypatch: pytest.MonkeyPatch, reason: str, length: int
 ) -> None:
     state = AgentToolState()
     await read(monkeypatch, state, EXPORTED, SIGNAL)
@@ -266,8 +264,120 @@ async def test_a_reason_is_refused_with_every_rule_it_must_meet(
     refusal = await refused(state, choice("parameter", "Organism", reason))
 
     assert refusal == (
-        f"c_gpi: the reason must hold the term Organism and fit in 160 "
-        f"characters; this one {problem}. Write one line of at most 160 "
-        f"characters around Organism, so a reply that repeats it says what "
-        f"decided. Nothing was recorded."
+        f"c_gpi: the reason holds {length} characters. Write one line of at most "
+        f"160 characters; the term Organism is shown before it. Nothing was "
+        f"recorded."
+    )
+
+
+# A term the call holds under another name is recorded under that name.
+
+
+@pytest.mark.asyncio
+async def test_the_organism_value_passed_as_the_term_is_corrected_to_organism(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, SIGNAL)
+
+    result = await choose(
+        state,
+        choice(
+            "parameter", "plasmodium falciparum 3D7", "the request names the genome"
+        ),
+    )
+
+    assert result.rationale is not None
+    assert (result.rationale.term, result.rationale.sentence, result.corrections) == (
+        "Organism",
+        "Organism: the request names the genome",
+        ["why.term corrected to Organism: plasmodium falciparum 3D7 is its value"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_the_corrected_organism_term_is_refused_beside_a_set_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, SIGNAL)
+
+    refusal = await refused(
+        state,
+        choice("parameter", "Plasmodium falciparum 3D7", "the request names it"),
+        params={**PARAMS, "min_exportpred_score": "20"},
+    )
+
+    assert refusal == (
+        "c_gpi: Organism is the organism the search runs on, and this call also "
+        "sets Minimum ExportPred Score, which is what decides the choice. Pass "
+        "the term 'Minimum ExportPred Score' with basis parameter, and keep the "
+        "organism in the reason."
+    )
+
+
+@pytest.mark.asyncio
+async def test_the_search_name_passed_as_the_term_is_its_only_match(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, SIGNAL)
+
+    result = await choose(
+        state,
+        choice("parameter", "exported protein", "the request asks for exported ones"),
+    )
+
+    assert result.rationale is not None
+    assert (result.rationale.basis, result.rationale.term, result.corrections) == (
+        "only_match",
+        "Exported Protein",
+        [
+            (
+                "why corrected to only_match on Exported Protein: exported "
+                "protein names the search, not a parameter"
+            )
+        ],
+    )
+
+
+_EXPORTOME = match(
+    "GenesByExportome",
+    "Exportome",
+    "Find genes whose exported protein a proteome study detected.",
+    0.3,
+)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("hits", "params", "set_here"),
+    [
+        ((EXPORTED, _EXPORTOME), PARAMS, "Organism"),
+        (
+            (EXPORTED, SIGNAL),
+            {**PARAMS, "min_exportpred_score": "20"},
+            "Organism, Minimum ExportPred Score",
+        ),
+    ],
+)
+async def test_the_search_name_as_the_term_is_refused_when_it_is_no_only_match(
+    monkeypatch: pytest.MonkeyPatch,
+    hits: tuple[SearchMatch, ...],
+    params: dict[str, str | list[str] | None],
+    set_here: str,
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, *hits)
+
+    refusal = await refused(
+        state,
+        choice("parameter", "Exported Protein", "the request asks for them"),
+        params=params,
+    )
+
+    assert refusal == (
+        f"c_gpi: Exported Protein is not a parameter of GenesByExportPrediction. "
+        f"With basis parameter the term is the display name of a parameter this "
+        f"call sets: {set_here}. A value goes in the reason, never in the term."
     )

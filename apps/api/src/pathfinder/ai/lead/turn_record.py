@@ -7,7 +7,6 @@ from pydantic import ConfigDict
 from pydantic_ai import RunContext
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
 from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.derive import derive_ledger
@@ -16,9 +15,11 @@ from pathfinder.ai.lead.evidence_claims import (
     backing_results,
     control_lists,
 )
+from pathfinder.ai.lead.intent import NamedControls, RefusedClassification
 from pathfinder.ai.lead.intent_gate import (
     tools_the_turn_offers,
     turn_builds,
+    turn_is_classified,
     turn_is_off_topic,
 )
 from pathfinder.ai.lead.ledger_sections import (
@@ -94,6 +95,12 @@ class TurnRecord(CamelModel):
     record_type: str = ""
     step_counts: tuple[int, ...] = ()
     counts_at_arrival: tuple[int, ...] = ()
+    # The refusal that stands while the message holds no accepted classification.
+    refused_classification: RefusedClassification | None = None
+    # The turn re-enters a call the thread parked, and answers no new message.
+    resumes_parked_call: bool = False
+    # The controls the accepted classification says the message names.
+    named_controls: NamedControls | None = None
 
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
@@ -127,18 +134,11 @@ def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
     return tuple(sorted(name for name in ctx.retries if name in offered))
 
 
-def _checked(deps: LeadDeps) -> VerificationDigest | None:
-    """The digest of a check this turn ran on the strategy as it stands, or None."""
-    if not deps.state.turn_markers.verification_dispatched:
-        return None
-    return deps.state.turn_verdict
-
-
 def _gaps(deps: LeadDeps) -> tuple[Gap, ...]:
     """The gaps of this turn's check, and on a turn that framed or changed the
     strategy, every word its spec states and no search can state."""
     markers = deps.state.turn_markers
-    checked = _checked(deps)
+    checked = deps.state.checked_verdict
     words = (
         unexpressed_words(deps.state.domain.operational_spec)
         if markers.framed or markers.changed_strategy
@@ -156,7 +156,7 @@ def _gaps(deps: LeadDeps) -> tuple[Gap, ...]:
 
 def _caveats(deps: LeadDeps) -> tuple[Caveat, ...]:
     """What this turn's check measured short of the request."""
-    checked = _checked(deps)
+    checked = deps.state.checked_verdict
     return () if checked is None else tuple(checked.caveats)
 
 
@@ -202,6 +202,7 @@ def turn_record(
     """
     deps = ctx.deps
     markers = deps.state.turn_markers
+    classified = turn_is_classified(deps)
     ledger = derive_ledger(deps.state, deps.intent)
     card = deps.state.domain.card_of_the_strategy()
     graph = deps.runtime.strategy_session.get_graph(None)
@@ -241,6 +242,11 @@ def turn_record(
         record_type="" if graph is None else graph.record_type or "",
         step_counts=_step_counts(deps),
         counts_at_arrival=tuple(markers.counts_at_arrival),
+        refused_classification=None if classified else deps.refused_classification,
+        resumes_parked_call=deps.state.resumes_parked_call,
+        named_controls=deps.intent.named_controls
+        if classified and deps.intent is not None
+        else None,
     )
 
 

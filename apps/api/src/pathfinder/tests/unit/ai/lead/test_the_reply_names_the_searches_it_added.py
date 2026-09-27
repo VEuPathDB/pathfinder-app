@@ -112,8 +112,8 @@ def test_a_reply_that_names_the_search_without_its_reason_is_refused() -> None:
 
     assert len(unnamed) == 1
     assert (
-        "Exported Protein (for: genes with a predicted GPI anchor) - no search "
-        "states a GPI anchor; Exported Protein scored nearest "
+        "Exported Protein (for: genes with a predicted GPI anchor) - GPI anchor: "
+        "no search states a GPI anchor; Exported Protein scored nearest "
         "(over Gene Text Search 0.41)"
     ) in unnamed[0]
 

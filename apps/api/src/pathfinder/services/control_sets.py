@@ -95,14 +95,23 @@ class ControlSetService:
         )
         return [_serialize(r) for r in rows]
 
-    async def get(self, control_set_id: UUID, user_id: UUID) -> ControlSetResponse:
+    async def find(
+        self, control_set_id: UUID, user_id: UUID
+    ) -> ControlSetResponse | None:
+        """The control set, or None when the user may not read it."""
         cs = await self._repo.get_by_id(control_set_id)
         if cs is None or not _visible_to(cs, user_id):
+            return None
+        return _serialize(cs)
+
+    async def get(self, control_set_id: UUID, user_id: UUID) -> ControlSetResponse:
+        held = await self.find(control_set_id, user_id)
+        if held is None:
             raise NotFoundError(
                 title="Control set not found",
                 detail=f"Control set not found: {control_set_id}",
             )
-        return _serialize(cs)
+        return held
 
     async def create(
         self,

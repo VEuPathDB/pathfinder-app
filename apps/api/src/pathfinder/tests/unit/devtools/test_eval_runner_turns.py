@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import NamedTuple
@@ -50,11 +51,15 @@ def _case(*turns: str, **fields: object) -> EvalCase:
 
 
 class _Capture:
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, refused: tuple[str, ...] = ()) -> None:
         self._text = text
+        self._refused = list(refused)
 
     def assistant_text(self) -> str:
         return self._text
+
+    def refused_tools(self) -> list[str]:
+        return self._refused
 
 
 class _Installed(NamedTuple):
@@ -90,6 +95,7 @@ def _install(
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
+        refused_tools: list[str],
     ) -> ObservedOutcome:
         del conversation_id
         return ObservedOutcome(
@@ -97,6 +103,7 @@ def _install(
             reply_text=reply_text,
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
+            refused_tools=refused_tools,
         )
 
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
@@ -443,6 +450,37 @@ async def test_explicit_answers_answer_the_gates_in_order(
     assert (observed.ends_on, observed.reply_text) == ("none", "answered 2")
 
 
+async def test_the_refused_tools_are_read_from_every_run_and_every_answer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    installed = _install(monkeypatch, [set(), set()])
+    raised = [Gate(kind="none"), _RUN_CARD]
+    refused_by_turn = [("classify_user_intent",), ("read_gene_record",)]
+
+    async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
+        await installed.drive(args)
+        return _Capture("ran", refused_by_turn.pop(0)), raised.pop(0)
+
+    async def _respond(args: RespondArgs) -> tuple[_Capture, Gate] | None:
+        del args
+        return _Capture("answered", ("get_strategy", "get_strategy")), Gate(kind="none")
+
+    monkeypatch.setattr(eval_runner, "drive_run", _drive)
+    monkeypatch.setattr(eval_runner, "drive_respond", _respond)
+
+    observed = await eval_runner.run_one_case(
+        _case("separate these", "yes, run it", gates=[GateAnswer(accept=True)]),
+        run_root=tmp_path,
+    )
+
+    assert observed.refused_tools == [
+        "classify_user_intent",
+        "read_gene_record",
+        "get_strategy",
+        "get_strategy",
+    ]
+
+
 async def test_a_gate_past_the_last_answer_is_left_unanswered(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -555,6 +593,7 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
+        refused_tools: list[str],
     ) -> ObservedOutcome:
         observed_on.append(conversation_id)
         return ObservedOutcome(
@@ -562,6 +601,7 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
             reply_text=reply_text,
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
+            refused_tools=refused_tools,
         )
 
     monkeypatch.setattr(eval_runner, "observe", _observe)
@@ -620,16 +660,72 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
     assert (printed_before_each_case[0], first[:2], first[3:]) == (
         "",
         ["pass", "uat-s1-plasmodb"],
-        ["count=479", "-"],
+        ["count=479", "refusals=0", "-"],
     )
     assert (second.split()[:2], second.split()[3:], difference) == (
         ["fail", "uat-s2-plasmodb"],
-        ["count=140"],
+        ["count=140", "refusals=0"],
         "rootCount: expected '116 (build 71)', got '140 (build 71)'",
     )
-    assert (after[1].split()[:2], after[-1].split()[:2]) == (
+    assert (after[1].split()[:2], after[-1].split()[:6]) == (
         ["PASS", "uat-s1-plasmodb"],
-        ["---", "1/2"],
+        ["---", "1/2", "passed", "(re-measure", "0,", "failed"],
+    )
+    assert "errored 0) refusals=0 harness=" in after[-1]
+
+
+def test_a_passing_case_prints_its_refusals_on_every_line(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A retry refusal and a guard refusal both show on a case that passes."""
+    cases = [_counted("uat-s1-plasmodb", "plasmodb", 479)]
+    out = tmp_path / "summary.json"
+
+    async def _site_build(site_id: str) -> str:
+        del site_id
+        return "71"
+
+    async def _run_one_case(
+        case: EvalCase,
+        *,
+        run_root: Path,
+        effort: str | None,
+        via_worker: bool,
+    ) -> ObservedOutcome:
+        del case, run_root, effort, via_worker
+        return ObservedOutcome(
+            built_strategy=True,
+            root_count=479,
+            refused_tools=["classify_user_intent", "read_gene_record"],
+        )
+
+    monkeypatch.setattr(eval_runner, "load_corpus", lambda: cases)
+    monkeypatch.setattr(eval_runner, "site_build", _site_build)
+    monkeypatch.setattr(eval_runner, "run_one_case", _run_one_case)
+    monkeypatch.setattr(evals, "RUN_ROOT", tmp_path)
+    monkeypatch.setattr(evals, "route_framework_logs_to_stderr", lambda: None)
+
+    assert evals.main(["run", "--out", str(out)]) == 0
+
+    lines = capsys.readouterr().out.splitlines()
+    progress, _, first = lines[0].partition("  ")
+    listed = lines[1].split("  ")
+    assert (progress.split()[3:], first) == (
+        ["count=479", "refusals=2", "(classify_user_intent,", "read_gene_record)"],
+        "-",
+    )
+    assert (listed[0], listed[1], listed[3:]) == (
+        "PASS",
+        "uat-s1-plasmodb",
+        ["count 479", "refusals=2 (classify_user_intent, read_gene_record)"],
+    )
+    assert "errored 0) refusals=2 harness=" in lines[-2]
+    payload = json.loads(out.read_text())
+    assert (payload["refusals"], payload["cases"][0]["refusedTools"]) == (
+        2,
+        ["classify_user_intent", "read_gene_record"],
     )
 
 

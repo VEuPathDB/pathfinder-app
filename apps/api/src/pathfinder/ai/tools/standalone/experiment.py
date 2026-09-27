@@ -11,10 +11,10 @@ from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict, Field, JsonValue
 from pydantic_ai import RunContext
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
-from veupathdb_mcp import ToolErrorPayload, tool_error
 from veupathdb_mcp.controls import (
     CONTROLS_PARAM,
     CONTROLS_SEARCH,
@@ -39,10 +39,19 @@ from pathfinder.ai.tools.standalone.control_repeats import (
     RepeatedControlTest,
     repeated_control_test,
 )
-from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.ai.tools.standalone.saved_control_sets import unattached_set
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    NamedControlSet,
+)
 from pathfinder.platform.durable_worker import durable_agent_tool
-from pathfinder.platform.errors import ErrorCode
 from pathfinder.platform.identity import CONTROL_TEST_STRATEGY_NAME
+from pathfinder.services.evidence.control_sets import (
+    SavedControls,
+    UnknownControlSetError,
+    saved_control_set,
+)
 from pathfinder.services.evidence.optimization import tunable_parameters_of_search
 from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.published_names import published_names
@@ -73,6 +82,7 @@ class _ControlCounts(ControlOutcome):
     target_label: str = ""
     parameter_labels: dict[str, str] = Field(default_factory=dict)
     tunable_parameters: list[str] = Field(default_factory=list)
+    control_set: NamedControlSet | None = None
 
     def positive_controls(self) -> PositiveControls | None:
         """The positive set, or None when the test was given no positives."""
@@ -137,6 +147,7 @@ class _ControlCounts(ControlOutcome):
         return ControlTestEvidence(
             tested_label=self.reader_label(),
             wdk_step_id=wdk_step_id,
+            control_set=self.control_set,
             positive=None
             if positive is None
             else ControlSetEvidence(
@@ -239,6 +250,46 @@ def _control_test_chunks_from_result(
     return [exhibit, *summary_chunks(tool_call_id, controls_summary(counts))]
 
 
+_NONE_ATTACHED = (
+    "No control set is attached to this conversation; the check states that no "
+    "controls were available."
+)
+_ATTACHED_ONLY = (
+    "A control test runs only on a control set attached to this conversation."
+)
+_SAVED_SETS_ONLY = (
+    "A control test runs only against a saved control set; list_control_sets "
+    "names them. With none, state that no controls were available."
+)
+
+
+async def _saved_controls(
+    ctx: RunContext[AgentDeps], control_set_id: str
+) -> SavedControls:
+    """The attached set a test names, read under the turn's user and site."""
+    deps = ctx.deps
+    attached = deps.verification_scope.control_sets
+    refused = unattached_set(control_set_id, attached)
+    if refused is not None:
+        raise ModelRetry(
+            _NONE_ATTACHED if not attached else f"{refused} {_ATTACHED_ONLY}"
+        )
+    try:
+        saved = await saved_control_set(
+            deps.db_session_factory,
+            control_set_id,
+            site_id=deps.site_id,
+            user_id=deps.user_id,
+        )
+    except UnknownControlSetError as exc:
+        msg = f"{exc.detail} {_SAVED_SETS_ONLY}"
+        raise ModelRetry(msg) from None
+    if not saved.positive_ids and not saved.negative_ids:
+        msg = f"Control set {saved.control_set_id} ({saved.name}) holds no gene id."
+        raise ModelRetry(msg)
+    return saved
+
+
 _REPEAT_NOTE = (
     "These ids were already tested on this step under this message. This is "
     "that result; no new task started. Test the whole control set once per "
@@ -255,18 +306,18 @@ def _answered_from_this_message(
     async def tool(
         ctx: RunContext[AgentDeps],
         wdk_step_id: int,
-        positive_controls: list[str] | None = None,
-        negative_controls: list[str] | None = None,
+        control_set_id: str,
     ) -> ToolReturn[RepeatedControlTest]:
+        saved = await _saved_controls(ctx, control_set_id)
         held = repeated_control_test(
-            ctx.deps.turn_markers, wdk_step_id, positive_controls, negative_controls
+            ctx.deps.turn_markers,
+            wdk_step_id,
+            saved.positive_ids,
+            saved.negative_ids,
         )
         if held is None:
             return await deferred(
-                ctx,
-                wdk_step_id=wdk_step_id,
-                positive_controls=positive_controls,
-                negative_controls=negative_controls,
+                ctx, wdk_step_id=wdk_step_id, control_set_id=saved.control_set_id
             )
         counts = _ControlCounts.model_validate(held.model_dump())
         return with_summary(
@@ -290,21 +341,17 @@ CONTROL_TESTS = declare_durable_tool(
 async def run_control_tests_on_step(
     ctx: RunContext[AgentDeps],
     wdk_step_id: int,
-    positive_controls: list[str] | None = None,
-    negative_controls: list[str] | None = None,
+    control_set_id: str,
 ) -> NoReturn:
-    """Run control tests against an already-built WDK strategy step.
+    """Test a built WDK strategy step against a saved control set.
 
-    Durable: this tool defers work to the verification worker and the turn
-    ends while it runs. You are called again with a dict matching
-    :class:`ControlOutcome`'s serialised shape. Ids this message already
-    tested on the step are answered from that test, with no new task.
+    A test runs on a control set attached to this conversation and on no
+    other; ``list_control_sets`` names them. Durable: the worker runs the test
+    and the turn ends while it runs. You are called again with a dict
+    matching :class:`ControlOutcome`'s serialised shape. A set this message
+    already tested on the step is answered from that test, with no new task.
 
-    Tests directly against the strategy's actual results using Python set
-    operations -- no temporary WDK strategy needed.  Use this after a
-    multi-step strategy is built with ``build_strategy``.
-
-    For testing a standalone (not-yet-built) search, use
+    For a standalone (not-yet-built) search, use
     ``run_control_tests_on_search`` instead.
 
     Args:
@@ -312,10 +359,10 @@ async def run_control_tests_on_step(
         wdk_step_id: WDK step ID from a built strategy to test against.
             Read it from get_strategy(summary_only=false): the root step
             carries the WDK step id.
-        positive_controls: Known-positive IDs that should be returned.
-        negative_controls: Known-negative IDs that should NOT be returned.
+        control_set_id: An attached control set, by the id
+            ``list_control_sets`` gives it.
     """
-    del ctx, wdk_step_id, positive_controls, negative_controls
+    del ctx, wdk_step_id, control_set_id
     msg = "run_control_tests_on_step runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)
 
@@ -324,17 +371,16 @@ async def run_control_tests_on_search(
     ctx: RunContext[AgentDeps],
     target_search_name: str,
     target_parameters: dict[str, ParamValue],
-    positive_controls: list[str] | None = None,
-    negative_controls: list[str] | None = None,
+    control_set_id: str,
     record_type: str = "transcript",
-) -> ToolReturn[ControlOutcome | ToolErrorPayload]:
-    """Run control tests against a standalone WDK search (not a built strategy).
+) -> ToolReturn[ControlOutcome]:
+    """Test a standalone WDK search (not a built strategy) against a saved
+    control set.
 
-    Creates a temporary WDK strategy to intersect the search results with
-    control gene IDs.  Use ``run_control_tests_on_step`` instead when you
-    already have a built multi-step strategy.
-
-    Controls are matched via ``GeneByLocusTag`` (parameter ``ds_gene_ids``).
+    A test runs on a control set attached to this conversation and on no
+    other; ``list_control_sets`` names them. A temporary WDK strategy intersects
+    the search results with the set's gene ids. Use
+    ``run_control_tests_on_step`` instead for a built strategy step.
 
     Args:
         ctx: Agent run context.
@@ -342,21 +388,11 @@ async def run_control_tests_on_search(
         target_parameters: Target search parameter mapping. Each value MUST be
             wrapped in its typed shape - see the ``valueFormat`` field from
             ``get_search_overview`` for the per-param template.
-        positive_controls: Known-positive IDs that should be returned.
-        negative_controls: Known-negative IDs that should NOT be returned.
+        control_set_id: An attached control set, by the id
+            ``list_control_sets`` gives it.
         record_type: Record type. Defaults to 'transcript'.
     """
-    if not positive_controls and not negative_controls:
-        return with_summary(
-            tool_error(
-                ErrorCode.VALIDATION_ERROR,
-                "At least one of positive_controls or negative_controls "
-                "must be provided.",
-            ),
-            "No control ids given to test against",
-            ctx=ctx,
-            status="warn",
-        )
+    saved = await _saved_controls(ctx, control_set_id)
     measured = await run_positive_negative_controls(
         IntersectionConfig(
             site_id=ctx.deps.site_id,
@@ -368,8 +404,8 @@ async def run_control_tests_on_search(
             controls_value_format="newline",
             internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
         ),
-        positive_controls=positive_controls,
-        negative_controls=negative_controls,
+        positive_controls=saved.positive_ids or None,
+        negative_controls=saved.negative_ids or None,
     )
     outcome = await attach_control_downloads(
         ControlOutcome.model_validate(measured),
@@ -384,6 +420,7 @@ async def run_control_tests_on_search(
             "tunable_parameters": await tunable_parameters_of_search(
                 ctx.deps.site_id, record_type, target_search_name
             ),
+            "control_set": NamedControlSet(id=saved.control_set_id, name=saved.name),
         }
     )
     tool_call_id = ctx.tool_call_id or ""

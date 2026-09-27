@@ -6,7 +6,7 @@ from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
 from veupathdb_mcp.gene_lookup import list_organisms
@@ -14,16 +14,18 @@ from veupathdb_mcp.gene_lookup import list_organisms
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.card_reply import CardReply
+from pathfinder.ai.lead.classification_gate import classification_refusal
 from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import (
     ANSWERING_INTENTS,
+    ClassifiedIntent,
     IntentClassification,
+    RefusedClassification,
     UserIntent,
     already_classified_message,
-    organism_refusal,
-    unstated_operator_refusal,
+    repeated_refusal_message,
 )
 from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -41,6 +43,7 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetListResponse,
 )
 from pathfinder.domain.memory import MemoryKind
+from pathfinder.domain.strategy.organism_phrases import complete_organisms
 
 LedgerSectionName = Literal["frame", "build", "verification"]
 
@@ -48,7 +51,7 @@ LedgerSectionName = Literal["frame", "build", "verification"]
 async def classify_user_intent(
     ctx: RunContext[LeadDeps],
     intent: UserIntent,
-) -> ToolReturn[UserIntent]:
+) -> ToolReturn[ClassifiedIntent]:
     """Classify the user's intent for this turn. Call this exactly once,
     before any other sub-agent call. A second call on the same turn is
     only to change the classification; one that repeats it is refused.
@@ -104,7 +107,9 @@ async def classify_user_intent(
     the request it answers is the one the conversation is on. ``new_strategy``
     is for a message that ABANDONS that request and states a different
     one. On a conversation whose strategy holds no step it sets aside the old
-    request, its draft, its requirements and its open questions.
+    request, its draft, its requirements and its open questions. A message on
+    a conversation with no open question and no waiting card answers none, so
+    ``clarification_response`` is refused there.
 
     Any other imperative asks for a build. "Run it", "rerun the compute",
     "build the strategy", "add those genes as a step", "create the step" -
@@ -160,12 +165,23 @@ async def classify_user_intent(
         and held.classification is intent.classification
     ):
         raise ModelRetry(already_classified_message(held.classification))
-    refusal = unstated_operator_refusal(intent, state.user_prompt)
-    if refusal is None and intent.explicit_constraints:
-        vocabulary = await list_organisms(ctx.deps.runtime.site_id)
-        refusal = organism_refusal(intent, state.user_prompt, vocabulary)
-    if refusal is not None:
+    refused = ctx.deps.refused_classification
+    if refused is not None and refused.intent == intent:
+        raise ToolFailed(repeated_refusal_message(refused.sentence))
+    if (refusal := classification_refusal(state, intent)) is not None:
+        ctx.deps.refused_classification = RefusedClassification(
+            intent=intent, sentence=refusal
+        )
         raise ModelRetry(refusal)
+    corrections: list[str] = []
+    if intent.explicit_constraints:
+        vocabulary = await list_organisms(ctx.deps.runtime.site_id)
+        constraints, corrections = complete_organisms(
+            intent.explicit_constraints, state.user_prompt, vocabulary
+        )
+        if corrections:
+            intent = intent.model_copy(update={"explicit_constraints": constraints})
+    ctx.deps.refused_classification = None
     ctx.deps.intent = intent
     state.turn_markers.intent_classified = True
     markers = state.turn_markers
@@ -178,8 +194,8 @@ async def classify_user_intent(
     if intent.classification in ANSWERING_INTENTS:
         state.domain.answer_the_questions_at_arrival(state.user_prompt)
     return with_summary(
-        intent,
-        f"Intent: {intent.classification.value}",
+        ClassifiedIntent(intent=intent, corrections=corrections),
+        "; ".join([f"Intent: {intent.classification.value}", *corrections]),
         ctx=ctx,
     )
 
@@ -221,12 +237,12 @@ async def save_gene_set(
     step_id: str | None = None,
     gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
-    """Save a gene set the user can export, publish and test controls against.
+    """Save a gene set the user can export and publish.
 
     This is the save the user asks for when they say "save these genes as a
     gene set". The set appears in the conversation, and its id is what the export
-    and control tools take. ``remember`` stores a note about a set; it creates
-    none.
+    tools take. ``remember`` stores a note about a set; it creates none.
+    Controls are saved with ``build_control_set``, never as a gene set.
 
     Args:
         name: The name the user gave the set.
@@ -322,16 +338,15 @@ async def get_live_strategy_state(
 
 
 async def clear_the_strategy(
-    ctx: RunContext[LeadDeps],
+    ctx: RunContext[LeadDeps], *, keep_control_sets: bool
 ) -> ToolReturn[ClearStrategyResult]:
-    """Clear every step and set the cleared strategy's request aside."""
+    """Clear every step and set its request aside, and the control sets unless kept."""
     inner = inner_context(ctx)
     cleared = await conversation.clear_strategy(inner, confirm=True)
     state = ctx.deps.state
     state.turn_markers.edited = True
-    # The cleared strategy's request goes with it. This message's own request
-    # is what the next pass frames.
-    state.domain.set_the_request_aside()
+    # This message's own request is what the next pass frames.
+    state.domain.set_the_cleared_strategy_aside(keep_control_sets=keep_control_sets)
     intent = ctx.deps.intent
     if intent is not None and state.turn_markers.intent_classified:
         state.domain.record_intent(intent, request_text=state.user_prompt)
@@ -363,7 +378,7 @@ async def clear_strategy(
     del reply
     if not confirm:
         return await conversation.clear_strategy(inner_context(ctx), confirm=False)
-    return await clear_the_strategy(ctx)
+    return await clear_the_strategy(ctx, keep_control_sets=False)
 
 
 async def delete_step(

@@ -18,6 +18,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import budget_stop_report
 from pathfinder.ai.lead.verify_dispatch import verification_scope
 from pathfinder.ai.tools.standalone import conversation
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
@@ -44,6 +45,9 @@ _NEW = "Scrap it. Find transporters in P. berghei ANKA."
 _OLD_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", "P. falciparum 3D7")
 _NEW_ORGANISM = requirement(ConstraintKind.ORGANISM, "organism", "P. berghei ANKA")
 _REBUILT = "step_transporters"
+_OLD_CONTROLS = NamedControlSet(
+    id="5f1c6a2e-0000-4000-8000-00000000c0de", name="P. falciparum kinases"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -76,6 +80,7 @@ async def _cleared() -> LeadDeps:
             original_request=_OLD,
             last_build_outcome=built_outcome(),
             stale_build=StaleBuild(changed_nodes=[("old_step", 70, 12)]),
+            control_sets=[_OLD_CONTROLS],
         ),
     )
     state.user_message_id = uuid4()
@@ -104,6 +109,7 @@ async def test_the_clear_keeps_only_the_request_of_this_message() -> None:
     assert domain.recommendations == []
     assert domain.last_build_outcome is None
     assert domain.stale_build is None
+    assert domain.control_sets == []
     assert domain.original_request == _NEW
     assert [c.requested_value for c in domain.requirements] == ["P. berghei ANKA"]
 

@@ -18,11 +18,10 @@ the search has no tunable parameters. Report the winning setting and its score f
 never from the card. The reverse, controls and no strategy yet, is ``separate_controls``. \
 A request to optimize or tune a built step's settings against the researcher's controls is a \
 sweep too: make that call yourself. Its own approval is the card, so \
-never offer a sweep on a ``propose_changes`` card, whose yes runs an edit of the strategy. Pass \
-the controls every time: the control set the conversation saved as ``control_set_id`` \
-(``list_control_sets`` names it), which the worker reads whole, or the ids the researcher typed \
-in this conversation. Never copy a saved set's ids into the call. A call with no control is \
-refused before the card.
+never offer a sweep on a ``propose_changes`` card, whose yes runs an edit of the strategy. Its \
+controls are the control set attached to the conversation as ``control_set_id``, which the \
+worker reads whole. Ids the researcher typed are saved first with ``build_control_set``, which \
+attaches the set. A call on a set not attached to this conversation is refused before the card.
 - **Known positives and negatives with no strategy yet are a separation run.** When the \
 researcher gives genes that should come back and genes that should not - pasted, in a saved \
 gene set, or from a paper - and asks for the strategy that tells them apart, call \
@@ -34,6 +33,12 @@ each paper's search words with the reference you read. When the report carries a
 call ``adopt_separating_strategy`` with the report's task id and a ``reply`` written from its \
 counts. When the offer does not separate the sets, say so first, then offer \
 the closest strategy the same way. Never state a count the report does not hold.
+- **Controls the researcher names are a control set.** Gene ids the researcher names as \
+positive or negative controls, typed or in an attached gene-ID list, with no strategy asked \
+for, are saved with ``build_control_set``, and ``classify_user_intent`` records them in \
+``named_controls``. With positives only, save them and ask for the negatives in the reply. An \
+attached list is never a search input unless the message asks for a strategy over those genes, \
+and never a gene set or a memory.
 """
 
 
@@ -205,7 +210,10 @@ listing every mismatch, so fill all three from what this turn did.
   they answer, call ``frame_problem`` again (FRAME fills the slot in ``params``) and then \
   ``build_strategy``. You are never blocked on a UI.
 - After a successful build/verify you may run control tests / variant comparison tools if the \
-  user's question calls for them.
+  user's question calls for them. VERIFY tests only a saved control set, so control ids the \
+  researcher pastes are saved with ``build_control_set`` before ``verify_strategy``. A saved \
+  set the researcher names is attached with ``use_control_set``: a test runs only on a set \
+  attached to this conversation.
 """
 
 _CLOSING = """\

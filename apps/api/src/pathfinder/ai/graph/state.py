@@ -27,7 +27,11 @@ from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
     OpenEdaAnalysis,
 )
-from pathfinder.domain.evidence import EvidenceCard, VerificationReview
+from pathfinder.domain.evidence import (
+    EvidenceCard,
+    NamedControlSet,
+    VerificationReview,
+)
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
@@ -227,6 +231,14 @@ class StrategyDomainState(BaseModel):
     # The controls an adopted separation was measured against. VERIFY tests
     # the built strategy with exactly these.
     attached_controls: AttachedControls | None = None
+    # The saved control sets attached to this conversation. A control test,
+    # a sweep or a scored comparison runs on no other set.
+    control_sets: list[NamedControlSet] = Field(default_factory=list)
+
+    def attach_control_set(self, attached: NamedControlSet) -> None:
+        """Attach a saved control set; a set attached before is held once."""
+        if all(held.id != attached.id for held in self.control_sets):
+            self.control_sets.append(attached)
 
     def set_the_request_aside(self) -> None:
         """Forget the request the thread answered and everything stated for it."""
@@ -240,6 +252,12 @@ class StrategyDomainState(BaseModel):
         self.stale_build = None
         self.separation_offers = {}
         self.attached_controls = None
+
+    def set_the_cleared_strategy_aside(self, *, keep_control_sets: bool) -> None:
+        """Forget a cleared strategy's request, and its control sets unless kept."""
+        self.set_the_request_aside()
+        if not keep_control_sets:
+            self.control_sets = []
 
     def take_a_new_request(self, *, strategy_has_steps: bool) -> None:
         """Drop the questions asked about the request a new one sets aside.
@@ -448,6 +466,18 @@ class PipelineState(TurnState):
     def turn_verdict(self) -> VerificationDigest | None:
         """The verdict on the strategy as it stands, or None."""
         return self.domain.verdict_of_the_strategy()
+
+    @property
+    def checked_verdict(self) -> VerificationDigest | None:
+        """The verdict of a check this turn ran to its end, or None.
+
+        A verdict stands while the strategy is the one it judged, so a turn
+        that ran no check, or whose check stopped, holds no finding of its own.
+        """
+        markers = self.turn_markers
+        if not markers.verification_dispatched or markers.verification_stopped:
+            return None
+        return self.turn_verdict
 
     @property
     def request_the_thread_answers(self) -> str:

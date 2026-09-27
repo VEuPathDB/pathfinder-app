@@ -15,13 +15,14 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.ai.lead.answered_strategy import live_tree
-from pathfinder.ai.lead.deltas import VerificationDelta
+from pathfinder.ai.lead.deltas import VerificationDelta, VerificationStopped
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
 )
+from pathfinder.ai.lead.dispatch_messages import stop_phrase
 from pathfinder.ai.lead.evidence_card import (
     judged_control_tests,
     publish_evidence_card,
@@ -32,6 +33,7 @@ from pathfinder.ai.lead.ledger import (
     structure_contradiction,
 )
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
+from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -86,14 +88,14 @@ def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
         messages=messages,
         stated=[line.removeprefix("- ") for line in ledger.constraints.render_stated()],
         unexpressed=[
-            f"'{word}' in [{criterion.id}] {criterion.text}"
-            for criterion in (spec.criteria if spec is not None else [])
-            for word in criterion.unexpressed_qualifiers
+            f"'{text.word}' in [{text.criterion_id or 'dropped'}] {text.stated_in}"
+            for text in (spec.unexpressed() if spec is not None else [])
         ],
         breaches=[row.note for row in breached_rows(review_record(deps, messages))],
         check_id=check_id,
         last_card=deps.state.domain.card_of_the_strategy(),
         controls=deps.state.domain.attached_controls,
+        control_sets=list(deps.state.domain.control_sets),
     )
 
 
@@ -143,8 +145,8 @@ def _sample_line(root: RootSample) -> str:
 def work_order(
     reason: str, controls: AttachedControls | None, root: RootSample | None
 ) -> str:
-    """VERIFY's work order: the root it samples, and each control an adopted
-    strategy was measured on."""
+    """VERIFY's work order: the root it samples, and the saved control set an
+    adopted strategy was measured on."""
     lines = [
         f"Verification work order: {reason}",
         "Inspect the built strategy. Return a VerificationDelta.",
@@ -152,15 +154,13 @@ def work_order(
     if root is not None:
         lines.append(_sample_line(root))
     if controls is not None:
-        lines += [
-            (
-                "The strategy was adopted from a separation run. Run "
-                "run_control_tests_on_step on its root step with exactly these "
-                f"controls, saved as control set {controls.control_set_id}:"
-            ),
-            f"positive_controls: {', '.join(controls.positives)}",
-            f"negative_controls: {', '.join(controls.negatives)}",
-        ]
+        lines.append(
+            "The strategy was adopted from a separation run. Run "
+            "run_control_tests_on_step on its root step with control_set_id "
+            f"{controls.control_set_id}, the saved set it was measured on: "
+            f"{len(controls.positives)} positive and {len(controls.negatives)} "
+            "negative controls."
+        )
     return "\n".join(lines)
 
 
@@ -170,9 +170,11 @@ async def run_verification(
     parent_tool_call_id: str,
     reason: str,
     resume: SubAgentResume | None = None,
-) -> VerificationDelta | SubAgentApprovalWait:
+) -> VerificationDelta | VerificationStopped | SubAgentApprovalWait:
     """Run verification and record its digest, on a fresh or a resumed dispatch."""
-    deps.state.turn_markers.verification_dispatched = True
+    markers = deps.state.turn_markers
+    markers.verification_dispatched = True
+    markers.verification_stopped = False
     agent_deps = agent_deps_for(deps)
     scope = verification_scope(deps, check_id=parent_tool_call_id)
     agent_deps.verification_scope = scope
@@ -191,8 +193,8 @@ async def run_verification(
         return delta
     apply_agent_state(deps, agent_deps)
     if delta is None:
-        msg = "Verification sub-agent did not return a VerificationDelta."
-        raise TypeError(msg)
+        markers.verification_stopped = True
+        return verification_stopped(deps.last_phase_stop)
     graph = deps.runtime.strategy_session.get_graph(None)
     # The pending checks are the strategy's to state, never the checker's.
     pending = [] if graph is None else unread_analyses(graph)
@@ -222,6 +224,19 @@ async def run_verification(
         review=digest.review,
     )
     return VerificationDelta(digest=digest)
+
+
+def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:
+    """Report a check that ended before it returned a digest."""
+    why = "stopped before it finished" if stop is None else stop_phrase(stop)
+    return VerificationStopped(
+        stop=stop,
+        summary=(
+            f"VERIFY {why}, so it recorded no verdict and the strategy is not "
+            "verified. Tell the user the check did not finish and why, and ask "
+            "whether to run it again."
+        ),
+    )
 
 
 @dataclass(frozen=True)
@@ -291,7 +306,7 @@ def _held(digest: VerificationDigest, findings: _Findings) -> VerificationDigest
 async def verify_strategy(
     ctx: RunContext[LeadDeps],
     reason: str,
-) -> VerificationDelta:
+) -> VerificationDelta | VerificationStopped:
     """Run the verification sub-agent on the built strategy.
 
     This sub-agent owns every post-build check, so route a user's request for

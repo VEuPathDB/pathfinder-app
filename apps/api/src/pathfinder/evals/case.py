@@ -112,8 +112,10 @@ class ExpectedOutcome(CamelModel):
     ``final_count_below_every_input`` holds the root's count strictly below
     every search step's count. ``met_requirements`` and ``unmet_requirements``
     are the rows the check on the strategy reported with that status.
-    ``root_count`` is judged for drift against the site's build, and
-    ``ends_on`` is the gate the last turn stopped on.
+    ``counts_in_genes`` holds the reply to stating every count of the
+    strategy's steps in genes, the unit the site counts it in, never as
+    ``N transcripts``. ``root_count`` is judged for drift against the site's
+    build, and ``ends_on`` is the gate the last turn stopped on.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -127,6 +129,7 @@ class ExpectedOutcome(CamelModel):
     parameters: dict[str, dict[str, str]] = Field(default_factory=dict)
     reply_mentions: list[str] = Field(default_factory=list)
     reply_omits: list[str] = Field(default_factory=list)
+    counts_in_genes: bool | None = None
     reply_names_its_searches: bool = False
     reply_gives_its_reasons: bool = False
     step_titles_omit: list[str] = Field(default_factory=list)

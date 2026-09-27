@@ -134,11 +134,12 @@ async def save_gene_set(
     step_id: str | None = None,
     gene_ids: list[str] | None = None,
 ) -> ToolReturn[GeneSetCreatedResponse]:
-    """Save a gene set the user can export, publish and test controls against.
+    """Save a gene set the user can export and publish.
 
     This is the save the user asks for when they say "save these genes as a
     gene set": the set appears in the conversation, and it returns the id the export
-    and control tools take. ``remember`` stores a note and creates nothing.
+    tools take. ``remember`` stores a note and creates nothing. Controls are
+    saved with ``build_control_set``, never as a gene set.
 
     Args:
         name: Human-readable name for the gene set (e.g. 'Upregulated in gametocytes').

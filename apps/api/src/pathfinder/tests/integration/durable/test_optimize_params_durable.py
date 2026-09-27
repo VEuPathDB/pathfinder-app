@@ -20,7 +20,7 @@ from pathfinder.jobs.impls import optimize_params_impl, register_all_tools
 from pathfinder.jobs.impls.optimize_params_impl import (
     optimize_search_parameters_impl,
 )
-from pathfinder.persistence.models import User
+from pathfinder.persistence.models import ControlSet, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.parameter_optimization import tunable
 from pathfinder.services.parameter_optimization.config import SweepVariantSpec
@@ -91,10 +91,24 @@ async def _fake_run_single_trial(
     }
 
 
+_CONTROL_SET_ID = UUID("7c0a51e2-0000-4000-8000-00000005beef")
+
+
 async def _seed_user_chat(user_id: UUID, conversation_id: UUID) -> None:
     async with async_session_factory() as session:
         session.add(User(id=user_id))
         await session.flush()
+        session.add(
+            ControlSet(
+                id=_CONTROL_SET_ID,
+                user_id=user_id,
+                name="Expression controls",
+                site_id="plasmodb",
+                record_type="transcript",
+                positive_ids=["PF3D7_1133400", "PF3D7_0102600"],
+                negative_ids=[],
+            )
+        )
         session.add(
             Conversation(
                 assistant_id=PATHFINDER_ASSISTANT_ID,
@@ -112,7 +126,7 @@ def target_kwargs() -> dict[str, Any]:
     """Inputs sized to produce two variants in the Cartesian sweep."""
     return {
         "wdk_step_id": 440299573,
-        "positive_controls": ["PF3D7_1133400", "PF3D7_0102600"],
+        "control_set_id": str(_CONTROL_SET_ID),
         "budget": 2,
     }
 
@@ -178,3 +192,7 @@ async def test_run_durable_task_wiring_optimize(
     assert {v["variantId"] for v in variants} == {"v0", "v1"}
     assert all(v["status"] == "success" for v in variants)
     assert task.result["best"]["score"] == 0.9
+    assert task.result["controlSet"] == {
+        "id": str(_CONTROL_SET_ID),
+        "name": "Expression controls",
+    }

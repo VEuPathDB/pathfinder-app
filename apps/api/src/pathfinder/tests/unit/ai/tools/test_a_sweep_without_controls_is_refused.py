@@ -22,10 +22,12 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.tools.standalone import optimization
 from pathfinder.ai.tools.standalone.optimization import sweep_can_run
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import session_with
 
+_SAVED_SET_ID = "96eaafb0-659c-4041-8bf3-5c66e5a9f95c"
 _NO_CONTROLS: dict[str, Any] = {
     "reply": "I will sweep the SignalP version against your controls.",
     "wdk_step_id": 440606243,
@@ -84,9 +86,8 @@ async def test_a_sweep_with_no_controls_never_reaches_a_card() -> None:
 
     assert isinstance(result.output, LeadResponse)
     assert len(told) == 1
-    assert told[0].startswith(
-        "A sweep scores each setting against the controls, and this call names none."
-    )
+    assert "control_set_id" in told[0]
+    assert "Field required" in told[0]
 
 
 async def test_a_parameter_named_by_its_label_is_refused_before_the_card(
@@ -106,13 +107,15 @@ async def test_a_parameter_named_by_its_label_is_refused_before_the_card(
         {"step_sp": 440649693},
     )
     ctx = lead_run_context(strategy_session=session)
+    ctx.deps.state.domain.attach_control_set(
+        NamedControlSet(id=_SAVED_SET_ID, name="Signal peptide controls")
+    )
 
     with pytest.raises(ModelRetry) as raised:
         await sweep_can_run(
             ctx,
             wdk_step_id=440649693,
-            positive_controls=["PF3D7_0100600"],
-            negative_controls=["PF3D7_0111300"],
+            control_set_id=_SAVED_SET_ID,
             parameters=["SignalP version"],
             reply="I will make this change and report what it takes with it.",
         )
@@ -127,7 +130,7 @@ async def test_a_parameter_named_by_its_label_is_refused_before_the_card(
 async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
     call = ToolCallPart(
         tool_name="optimize_search_parameters",
-        args={**_NO_CONTROLS, "control_set_id": "96eaafb0-659c-4041-8bf3-5c66e5a9f95c"},
+        args={**_NO_CONTROLS, "control_set_id": _SAVED_SET_ID},
         tool_call_id="call_sweep",
     )
 
@@ -143,6 +146,9 @@ async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
         defer_model_check=True,
     )
     deps = lead_deps(pipeline_state(user_prompt="Sweep it on my saved controls."))
+    deps.state.domain.attach_control_set(
+        NamedControlSet(id=_SAVED_SET_ID, name="Signal peptide controls")
+    )
 
     result = await agent.run(
         "Sweep it on my saved controls.", deps=deps, model=FunctionModel(_model)
@@ -152,18 +158,45 @@ async def test_a_saved_control_set_is_controls_enough_for_the_card() -> None:
     assert [c.tool_call_id for c in result.output.approvals] == ["call_sweep"]
 
 
-async def test_a_saved_control_set_beside_typed_ids_is_refused() -> None:
-    with pytest.raises(ModelRetry) as raised:
-        await sweep_can_run(
-            lead_run_context(),
-            wdk_step_id=440649693,
-            control_set_id="96eaafb0-659c-4041-8bf3-5c66e5a9f95c",
-            positive_controls=["PF3D7_0100600"],
-            reply="I will sweep the SignalP version against your saved controls.",
+async def test_typed_control_ids_are_no_control_set() -> None:
+    told: list[str] = []
+    typed = {
+        **_NO_CONTROLS,
+        "positive_controls": ["PF3D7_0100600"],
+        "negative_controls": ["PF3D7_0111300"],
+    }
+
+    def _model(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del info
+        told[:] = _refusals(messages)
+        if told:
+            return ModelResponse(
+                parts=[ToolCallPart(tool_name="final_result", args=_ANSWER)]
+            )
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name="optimize_search_parameters",
+                    args=typed,
+                    tool_call_id="call_sweep",
+                )
+            ]
         )
 
-    assert str(raised.value) == (
-        "Pass the saved control set as control_set_id or the ids the researcher "
-        "typed as positive_controls and negative_controls, not both. Nothing was "
-        "started and no card was shown."
+    agent: Agent[LeadDeps, LeadResponse | DeferredToolRequests] = Agent(
+        LEAD_MODEL,
+        output_type=[LeadResponse, DeferredToolRequests],
+        deps_type=LeadDeps,
+        toolsets=[build_sweep_toolset()],
+        defer_model_check=True,
     )
+    deps = lead_deps(pipeline_state(user_prompt="Optimize the SignalP version."))
+
+    result = await agent.run(
+        "Optimize the SignalP version.", deps=deps, model=FunctionModel(_model)
+    )
+
+    assert isinstance(result.output, LeadResponse)
+    assert len(told) == 1
+    assert "control_set_id" in told[0]
+    assert "positive_controls" in told[0]

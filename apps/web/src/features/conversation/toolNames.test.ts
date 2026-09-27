@@ -92,6 +92,7 @@ const REGISTERED = [
   "update_leaf_params",
   "update_note",
   "update_step_metadata",
+  "use_control_set",
   "verify_strategy",
   "research_literature_search",
   "research_web_search",

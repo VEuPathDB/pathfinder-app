@@ -7,7 +7,9 @@ import pytest
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.tests.unit.ai.models._mock_turns import (
+    CONTROL_SET_ID,
     STRATEGY_ROOT_WDK_ID,
+    Scene,
     args_of,
     names,
     play,
@@ -36,33 +38,28 @@ def test_the_check_reads_the_strategy_then_reviews_two_records(
 
 
 @pytest.mark.parametrize("site_id", SITES)
-def test_the_controls_test_runs_last_on_the_root_the_order_samples(
+def test_the_controls_test_runs_last_on_the_saved_set_the_listing_names(
     site_id: str,
 ) -> None:
-    controls = SiteValues.for_site(site_id).controls
-
     calls = play(
         "verification", site_id, "[[arc:controls-test]]", work_order=verify_order(12)
     )
 
     assert names(calls) == [
         *_REVIEW[:-1],
+        "list_control_sets",
         "run_control_tests_on_step",
         "final_result",
     ]
     assert args_of(calls, "run_control_tests_on_step") == [
-        {
-            "wdk_step_id": STRATEGY_ROOT_WDK_ID,
-            "positive_controls": controls.positive_ids,
-            "negative_controls": controls.negative_ids,
-        }
+        {"wdk_step_id": STRATEGY_ROOT_WDK_ID, "control_set_id": CONTROL_SET_ID}
     ]
 
 
-def test_an_adopted_strategy_is_tested_with_the_controls_it_was_measured_on() -> None:
+def test_an_adopted_strategy_is_tested_with_the_set_it_was_measured_on() -> None:
     attached = AttachedControls(
         task_id="task-1",
-        control_set_id="cs-1",
+        control_set_id="cs-adopted",
         positives=["AGAP000046", "AGAP000128"],
         negatives=["AGAP000427"],
     )
@@ -74,9 +71,10 @@ def test_an_adopted_strategy_is_tested_with_the_controls_it_was_measured_on() ->
         work_order=verify_order(12, attached),
     )
 
-    (test,) = args_of(calls, "run_control_tests_on_step")
-    assert test["positive_controls"] == ["AGAP000046", "AGAP000128"]
-    assert test["negative_controls"] == ["AGAP000427"]
+    assert "list_control_sets" not in names(calls)
+    assert args_of(calls, "run_control_tests_on_step") == [
+        {"wdk_step_id": STRATEGY_ROOT_WDK_ID, "control_set_id": "cs-adopted"}
+    ]
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -101,19 +99,19 @@ def test_the_review_names_the_organism_the_root_returns() -> None:
     assert [g["fits"] for g in review["sampledGenes"]] == ["yes", "yes"]
 
 
-def test_the_controls_test_runs_on_the_controls_the_message_pastes() -> None:
+def test_a_check_with_no_saved_set_runs_no_control_test() -> None:
     text = (
         "Test this strategy against my controls. [[arc:controls-test]]\n"
         "Positive controls: AGAP000046 AGAP000128\n"
         "Negative controls: AGAP000427"
     )
 
-    calls = play("verification", "vectorbase", text, work_order=verify_order(12))
+    calls = play(
+        "verification",
+        "vectorbase",
+        text,
+        work_order=verify_order(12),
+        scene=Scene(answers={"list_control_sets": []}),
+    )
 
-    assert args_of(calls, "run_control_tests_on_step") == [
-        {
-            "wdk_step_id": STRATEGY_ROOT_WDK_ID,
-            "positive_controls": ["AGAP000046", "AGAP000128"],
-            "negative_controls": ["AGAP000427"],
-        }
-    ]
+    assert names(calls) == [*_REVIEW[:-1], "list_control_sets", "final_result"]

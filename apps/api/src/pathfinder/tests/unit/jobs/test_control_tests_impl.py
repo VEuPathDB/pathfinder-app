@@ -1,4 +1,5 @@
-"""The control-test worker reports WDK's own names for what it tested."""
+"""The control-test worker reports WDK's own names for what it tested, and the
+saved set it ran."""
 
 from __future__ import annotations
 
@@ -23,6 +24,11 @@ from pathfinder.jobs.impls import control_tests_impl
 from pathfinder.jobs.impls.control_tests_impl import run_control_tests_on_step_impl
 from pathfinder.services.experiment.published_names import PublishedNames
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 
 STEP_ID = 440299573
 SEARCH = "GenesByMolecularWeight"
@@ -115,10 +121,15 @@ def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(TaskProgressEmitter, "update", no_update)
 
 
+def _serve(monkeypatch: pytest.MonkeyPatch, positive_ids: list[str]) -> None:
+    serve_saved_controls(monkeypatch, control_tests_impl, saved_set(positive_ids))
+
+
 async def test_the_result_names_the_search_the_step_runs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(control_tests_impl, "get_strategy_api", lambda _site: _Api())
+    _serve(monkeypatch, ["PF3D7_1227900", "PF3D7_0102600", "PF3D7_0213400"])
 
     result = await run_control_tests_on_step_impl(
         context=_context(),
@@ -126,7 +137,7 @@ async def test_the_result_names_the_search_the_step_runs(
         progress=_emitter(),
         memory_store=None,
         wdk_step_id=STEP_ID,
-        positive_controls=["PF3D7_1227900", "PF3D7_0102600", "PF3D7_0213400"],
+        control_set_id=SAVED_SET_ID,
     )
 
     assert result["searchName"] == SEARCH
@@ -137,6 +148,7 @@ async def test_the_result_names_the_search_the_step_runs(
     assert result["targetLabel"] == LABEL
     assert result["parameterLabels"] == {"organism": "Organism"}
     assert result["tunableParameters"] == ["organism", "scope"]
+    assert result["controlSet"] == {"id": SAVED_SET_ID, "name": "Saved controls"}
 
 
 async def test_a_refused_step_lookup_leaves_the_name_empty(
@@ -147,6 +159,7 @@ async def test_a_refused_step_lookup_leaves_the_name_empty(
         "get_strategy_api",
         lambda _site: _Api(error=_refused()),
     )
+    _serve(monkeypatch, ["PF3D7_1227900"])
 
     result = await run_control_tests_on_step_impl(
         context=_context(),
@@ -154,7 +167,7 @@ async def test_a_refused_step_lookup_leaves_the_name_empty(
         progress=_emitter(),
         memory_store=None,
         wdk_step_id=STEP_ID,
-        positive_controls=["PF3D7_1227900"],
+        control_set_id=SAVED_SET_ID,
     )
 
     assert result["searchName"] == ""
@@ -177,6 +190,7 @@ async def test_a_step_wdk_does_not_name_falls_back_to_its_search(
         control_tests_impl, "get_strategy_api", lambda _site: _Api(unnamed=True)
     )
     monkeypatch.setattr(control_tests_impl, "published_names", published)
+    _serve(monkeypatch, ["PF3D7_1227900"])
 
     result = await run_control_tests_on_step_impl(
         context=_context(),
@@ -184,7 +198,7 @@ async def test_a_step_wdk_does_not_name_falls_back_to_its_search(
         progress=_emitter(),
         memory_store=None,
         wdk_step_id=STEP_ID,
-        positive_controls=["PF3D7_1227900"],
+        control_set_id=SAVED_SET_ID,
     )
 
     assert result["targetLabel"] == "Combine Gene results"

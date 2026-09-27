@@ -106,6 +106,7 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "get_estimated_size",
     "get_sample_records",
     "get_strategy",
+    "list_control_sets",
     "list_gene_sets",
     "lookup_gene_records",
     "read_gene_record",

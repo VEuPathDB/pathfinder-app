@@ -14,6 +14,7 @@ from pathfinder.ai.lead.ledger_sections import BuildSection
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.orthology import OrganismChange
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies import spec_build
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
@@ -25,6 +26,8 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
 
 _SOURCE = "Plasmodium falciparum 3D7"
 _TARGET = "Plasmodium vivax P01"
+# The parameter plasmodb marks as the organism of each search of the carry.
+_MARKS = {"GenesWithSignalPeptide": "organism", "GenesByOrthologs": "organism"}
 
 
 def _graph(*organisms: str) -> StrategyGraph:
@@ -54,7 +57,7 @@ def _graph(*organisms: str) -> StrategyGraph:
 def _outcome(graph: StrategyGraph) -> OrganismChange | None:
     return outcome_for_graph(
         graph=graph,
-        sync_state=WDKSyncState(),
+        sync_state=WDKSyncState(organism_params=_MARKS),
         counts={},
         failed_step_ids=[],
         wdk_url=None,
@@ -75,7 +78,7 @@ def test_the_ledger_prints_whose_records_they_are() -> None:
     graph = _graph(_TARGET)
     outcome = outcome_for_graph(
         graph=graph,
-        sync_state=WDKSyncState(),
+        sync_state=WDKSyncState(organism_params=_MARKS),
         counts={},
         failed_step_ids=[],
         wdk_url=None,
@@ -92,6 +95,11 @@ async def test_a_build_of_a_carry_records_the_organism_of_the_records(
 ) -> None:
     install_stub_api(monkeypatch)
     serve_the_catalog(monkeypatch)
+
+    async def _marks(*_args: object) -> dict[str, str]:
+        return _MARKS
+
+    monkeypatch.setattr(spec_build, "tree_organism_parameters", _marks)
     session = StrategySession(site_id="plasmodb")
     session.graph = StrategyGraph("g1", "Orthologs", "plasmodb")
     session.graph.record_type = "transcript"
@@ -109,7 +117,8 @@ async def test_a_build_of_a_carry_records_the_organism_of_the_records(
 async def test_a_resync_after_recovery_reads_the_organism_of_the_tree_it_left(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def _sync(**_kwargs: object) -> SyncResult:
+    async def _sync(*, sync_state: WDKSyncState, **_kwargs: object) -> SyncResult:
+        sync_state.organism_params = dict(_MARKS)
         return SyncResult(
             wdk_strategy_id=330679883,
             wdk_url=None,

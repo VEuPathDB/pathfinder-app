@@ -53,7 +53,7 @@ function CriterionCard({ crit }: { crit: Criterion }) {
           title={
             crit.rationale.kind === "controls"
               ? crit.rationale.basis
-              : crit.rationale.reason
+              : crit.rationale.sentence
           }
           data-testid="criterion-why"
         >

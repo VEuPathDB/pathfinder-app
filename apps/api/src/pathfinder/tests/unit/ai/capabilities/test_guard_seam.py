@@ -115,30 +115,30 @@ def test_the_resilience_module_names_no_product_tool() -> None:
 
 def test_a_guard_with_no_vocabulary_watches_nothing() -> None:
     guard = ToolRepetitionGuard()
-    for _ in range(DEFAULT_REPETITION_THRESHOLD + 1):
-        assert guard.check("get_strategy", {}) is None
+    for step in range(1, DEFAULT_REPETITION_THRESHOLD + 2):
+        assert guard.check("get_strategy", {}, run_step=step) is None
     assert guard.total_blocked == 0
 
 
 def test_a_guard_blocks_the_read_only_tools_it_was_given() -> None:
     guard = ToolRepetitionGuard(read_only_tools=frozenset({"peek"}))
-    for _ in range(DEFAULT_REPETITION_THRESHOLD - 1):
-        assert guard.check("peek", {}) is None
-    assert guard.check("peek", {}) is not None
+    for step in range(1, DEFAULT_REPETITION_THRESHOLD):
+        assert guard.check("peek", {}, run_step=step) is None
+    assert guard.check("peek", {}, run_step=DEFAULT_REPETITION_THRESHOLD) is not None
 
 
 def test_a_guard_honors_the_threshold_it_was_given() -> None:
     guard = ToolRepetitionGuard(read_only_tools=frozenset({"peek"}), threshold=2)
-    assert guard.check("peek", {}) is None
-    assert guard.check("peek", {}) is not None
+    assert guard.check("peek", {}, run_step=1) is None
+    assert guard.check("peek", {}, run_step=2) is not None
 
 
 def test_a_tool_outside_the_vocabulary_clears_the_streak() -> None:
     guard = ToolRepetitionGuard(read_only_tools=frozenset({"peek"}))
-    for _ in range(DEFAULT_REPETITION_THRESHOLD - 1):
-        guard.check("peek", {})
-    assert guard.check("poke", {}) is None
-    assert guard.check("peek", {}) is None
+    for step in range(1, DEFAULT_REPETITION_THRESHOLD):
+        guard.check("peek", {}, run_step=step)
+    assert guard.check("poke", {}, run_step=DEFAULT_REPETITION_THRESHOLD) is None
+    assert guard.check("peek", {}, run_step=DEFAULT_REPETITION_THRESHOLD + 1) is None
 
 
 def test_the_product_guard_carries_the_pathfinder_vocabulary() -> None:
@@ -210,13 +210,13 @@ def test_the_lead_deps_carry_the_product_guard() -> None:
 def test_each_turn_gets_its_own_guard_state() -> None:
     """Two dispatches never share a streak, so one turn cannot stop the next."""
     first = agent_deps_for(_lead_deps()).tool_repetition_guard
-    for _ in range(DEFAULT_REPETITION_THRESHOLD + 1):
-        first.check("get_strategy", {})
+    for step in range(1, DEFAULT_REPETITION_THRESHOLD + 2):
+        first.check("get_strategy", {}, tool_call_id=f"c{step}", run_step=step)
     second = agent_deps_for(_lead_deps()).tool_repetition_guard
 
-    assert first.stopped_call_id != second.stopped_call_id or first.total_blocked > 0
+    assert first.stopped_call_id == f"c{DEFAULT_REPETITION_THRESHOLD + 1}"
     assert second.total_blocked == 0
-    assert second.check("get_strategy", {}) is None
+    assert second.check("get_strategy", {}, run_step=1) is None
 
 
 def test_resilience_takes_its_search_lookup_tools_as_an_argument() -> None:

@@ -16,6 +16,8 @@ from veupathdb_mcp.controls import run_step_control_tests
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import Context
+from pathfinder.domain.evidence import NamedControlSet
+from pathfinder.services.evidence.control_sets import saved_control_set
 from pathfinder.services.evidence.optimization import tunable_parameters_of_search
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
@@ -61,17 +63,26 @@ async def run_control_tests_on_step_impl(
     progress: TaskProgressEmitter,
     memory_store: MemoryStore | None,
     wdk_step_id: int,
-    positive_controls: list[str] | None = None,
-    negative_controls: list[str] | None = None,
+    control_set_id: str,
     **_extra: Any,
 ) -> dict[str, Any]:
-    """Run control tests against a built WDK step and return the result dict."""
+    """Test a built WDK step against a saved control set and return the result dict.
+
+    The set is read under the job's user and site, so a set the user may not
+    read on that site fails the task.
+    """
     del task_id, memory_store
 
-    has_positives = bool(positive_controls)
-    has_negatives = bool(negative_controls)
+    saved = await saved_control_set(
+        context.db_session_factory,
+        control_set_id,
+        site_id=context.site_id,
+        user_id=context.user_id,
+    )
+    has_positives = bool(saved.positive_ids)
+    has_negatives = bool(saved.negative_ids)
     if not has_positives and not has_negatives:
-        msg = "At least one of positive_controls or negative_controls must be provided."
+        msg = f"Control set {saved.control_set_id} holds no gene id."
         raise ValueError(msg)
 
     total_sets = int(has_positives) + int(has_negatives)
@@ -85,8 +96,8 @@ async def run_control_tests_on_step_impl(
     result = await run_step_control_tests(
         site_id=context.site_id,
         wdk_step_id=wdk_step_id,
-        positive_controls=positive_controls,
-        negative_controls=negative_controls,
+        positive_controls=saved.positive_ids or None,
+        negative_controls=saved.negative_ids or None,
     )
 
     tested = await _tested_step(context.site_id, wdk_step_id)
@@ -124,6 +135,9 @@ async def run_control_tests_on_step_impl(
     reported = exported.model_dump(by_alias=True, exclude_none=True, mode="json")
     reported["targetLabel"] = tested.label
     reported["parameterLabels"] = tested.parameter_labels
+    reported["controlSet"] = NamedControlSet(
+        id=saved.control_set_id, name=saved.name
+    ).model_dump(mode="json")
     reported["tunableParameters"] = (
         await tunable_parameters_of_search(
             context.site_id, tested.record_type, tested.search_name

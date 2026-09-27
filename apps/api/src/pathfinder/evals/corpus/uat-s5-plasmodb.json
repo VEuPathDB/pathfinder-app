@@ -20,9 +20,8 @@
       }
     },
     "replyMentions": [],
-    "replyOmits": [
-      "transcripts"
-    ],
+    "replyOmits": [],
+    "countsInGenes": true,
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,
     "stepTitlesOmit": [],

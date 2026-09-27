@@ -32,7 +32,7 @@ from pathfinder.ai.agents.verification import (
 from pathfinder.ai.graph.runtime import AgentDeps, Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.ai.lead.intent import UserIntent
+from pathfinder.ai.lead.intent import RefusedClassification, UserIntent
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.domain.strategy.constraints import (
@@ -331,6 +331,8 @@ class LeadDeps:
     # The workbench gene sets this turn created. Every agent of the turn writes
     # into this one list, and the Lead's node folds it into the domain.
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
+    # The last classification the gate refused, cleared when one is accepted.
+    refused_classification: RefusedClassification | None = None
 
     @property
     def conversation_id(self) -> UUID | None:

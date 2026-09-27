@@ -47,6 +47,7 @@ def criterion_restated(
             "open_params": [s for s in criterion.open_params if s.param_name != name],
             "assumptions": [a for a in criterion.assumptions if a.param_name != name],
             "alternatives": [a for a in criterion.alternatives if a.param_name != name],
+            "result_count": None,
         }
     )
 
@@ -71,6 +72,7 @@ def criterion_rebound(
             "open_params": [],
             "assumptions": [],
             "alternatives": [],
+            "result_count": None,
             "rationale": None,
         }
     )

@@ -40,6 +40,7 @@ from pathfinder.ai.lead.dispatch_resume import SubAgentOutcome
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.saved_controls import SAVED_SET
 
 _TASK_ID = UUID("0c6100d2-0000-4000-8000-000000000001")
 _HISTORY = ModelMessagesTypeAdapter.dump_json(
@@ -224,7 +225,12 @@ def _both_reported() -> list[DurableTaskResult]:
         DurableTaskResult(
             task_id=_OWN_TASK_ID,
             status="success",
-            result={"variants": [], "objective": "f1", "searchName": "GenesByTaxon"},
+            result={
+                "variants": [],
+                "objective": "f1",
+                "searchName": "GenesByTaxon",
+                "controlSet": SAVED_SET.model_dump(),
+            },
         ),
     ]
 
@@ -301,7 +307,12 @@ async def test_each_parked_call_is_answered_once_on_the_completion_turn(
     assert isinstance(own, ToolReturn)
     assert own.return_value == {
         "status": "success",
-        "result": {"variants": [], "objective": "f1", "searchName": "GenesByTaxon"},
+        "result": {
+            "variants": [],
+            "objective": "f1",
+            "searchName": "GenesByTaxon",
+            "controlSet": SAVED_SET.model_dump(),
+        },
     }
 
 

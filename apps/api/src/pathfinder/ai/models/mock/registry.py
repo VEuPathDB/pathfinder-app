@@ -25,7 +25,6 @@ from pathfinder.ai.models.mock.frame_arcs import spec_frame
 from pathfinder.ai.models.mock.lead_flow import (
     build_journey,
     build_when_framed,
-    check_or_build,
     edit_journey,
     extend_or_build,
     framed_only,
@@ -130,13 +129,12 @@ ARCS: dict[str, Arc] = {
     "second-build": _built(default_frame),
     "assent": _built(default_frame, _assent),
     "controls-test": _arc(
-        lead(check_or_build), verify=verification(site_controls=True)
+        lead(kept_arcs.controls_test), verify=verification(site_controls=True)
     ),
     "zero-then-relax": _built(frame_edits.relax_frame, extend_or_build),
     "edit-param": _built(frame_edits.edit_param_frame, edit_journey),
     "add-step": _built(frame_edits.add_step_frame, edit_journey),
     "replace-subtree": _built(frame_edits.replace_frame, edit_journey),
-    "delete-step": _built(frame_edits.delete_frame, edit_journey),
     "delete-step-card": _arc(lead(edit_arcs.delete_card)),
     "clear": _arc(lead(edit_arcs.clear)),
     "proposal": _arc(lead(edit_arcs.proposal), frame=frame_edits.add_step_frame),
@@ -167,6 +165,7 @@ ARCS: dict[str, Arc] = {
     "context": _arc(lead(history_free(prose_arcs.context))),
     "rename": _arc(lead(edit_arcs.rename)),
     "echo": _arc(lead(prose_arcs.echo)),
+    "organism-universe": _built(spec_frame(strategy_specs.organism_universe_spec)),
 }
 
 

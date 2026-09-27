@@ -36,3 +36,11 @@ def test_verification_offers_no_analysis_the_site_runs_on_the_step() -> None:
     assert sorted(name for name in names if "enrich" in name) == []
     assert "save_gene_set" in names
     assert "list_gene_sets" in names
+
+
+def test_verification_lists_the_saved_control_sets_and_saves_none() -> None:
+    """A check tests only a saved set; saving one is the Lead's."""
+    names = _tools_by_name().keys()
+
+    assert "list_control_sets" in names
+    assert "build_control_set" not in names

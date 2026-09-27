@@ -271,7 +271,7 @@ async def test_the_budget_retry_over_a_draft_with_no_step_is_no_edit(
         goal=_OLD, criteria=[Criterion(id="c_surface", text="on the surface")]
     )
     deps = draft_deps(_NEW, domain=StrategyDomainState(operational_spec=unbound))
-    await classify(deps)
+    await classify(deps, IntentClassification.EXTEND_STRATEGY)
 
     await run_frame(
         deps=deps,

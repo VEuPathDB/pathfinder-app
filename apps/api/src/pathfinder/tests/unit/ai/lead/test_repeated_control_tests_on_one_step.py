@@ -1,7 +1,8 @@
-"""One message tests one step's controls once, and its card holds every id tested.
+"""One message tests one saved set on one step once, and its card holds every
+id tested.
 
-The fixture is the call sequence a VERIFY pass made on the signal peptide step:
-the whole 80 and 40 control set first, then 51 calls on subsets of it.
+The fixture is a sequence of control results on the signal peptide step: the
+whole 80 and 40 control set first, then 51 results on subsets of it.
 """
 
 from __future__ import annotations
@@ -21,12 +22,19 @@ from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
+from pathfinder.ai.tools.standalone import experiment
 from pathfinder.ai.tools.standalone.control_repeats import RepeatedControlTest
 from pathfinder.ai.tools.standalone.experiment import (
     control_test_run,
     run_control_tests_on_step,
 )
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.tests._support.saved_controls import (
+    SAVED_SET,
+    SAVED_SET_ID,
+    saved_set,
+    serve_saved_controls,
+)
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.lead.conftest import ChunkCollector
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
@@ -150,78 +158,62 @@ def tasks(monkeypatch: pytest.MonkeyPatch) -> _Tasks:
     return recorder
 
 
-async def test_the_sequence_starts_one_task_and_answers_the_rest(
-    tasks: _Tasks,
+async def test_a_set_tested_twice_on_one_step_starts_one_task(
+    tasks: _Tasks, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    ctx = agent_run_context()
+    whole = _SEQUENCE.calls[0]
+    serve_saved_controls(
+        monkeypatch, experiment, saved_set(whole.positive or [], whole.negative)
+    )
+    ctx = agent_run_context(control_sets=[SAVED_SET])
     ctx.deps.conversation_id = uuid4()
-    markers = ctx.deps.turn_markers
     answered: list[ToolReturn[Any]] = []
 
-    for index, call in enumerate(_SEQUENCE.calls):
+    for index in range(2):
         ctx.tool_call_id = f"call_{index}"
         try:
             answered.append(
                 await run_control_tests_on_step(
-                    ctx,
-                    wdk_step_id=_SEQUENCE.wdk_step_id,
-                    positive_controls=call.positive,
-                    negative_controls=call.negative,
+                    ctx, wdk_step_id=_SEQUENCE.wdk_step_id, control_set_id=SAVED_SET_ID
                 )
             )
         except CallDeferred:
-            run = control_test_run(_worker_result(call), tool_call_id=f"call_{index}")
+            run = control_test_run(_worker_result(whole), tool_call_id=f"call_{index}")
             assert run is not None
-            markers.record_control_tests([run])
+            ctx.deps.turn_markers.record_control_tests([run])
 
     assert len(tasks.created) == 1
-    assert len(answered) == 51
-    assert _card(markers.control_tests) == [
+    (repeat,) = answered
+    body = returned(repeat, RepeatedControlTest).model_dump(by_alias=True, mode="json")
+    assert len(body["outcome"]["positiveRecoveredIds"]) == 52
+    assert len(body["outcome"]["negativeAdmittedIds"]) == 2
+    assert (
+        summary_of(repeat)
+        .model_dump(by_alias=True)["data"]["summary"]
+        .startswith("Already tested on this step: 52 of 80 positive controls recovered")
+    )
+    assert _card(ctx.deps.turn_markers.control_tests) == [
         ("Positive", 80, 52, 28, 0.65),
         ("Negative", 40, 2, 38, 0.05),
     ]
 
 
-async def test_a_repeat_answers_the_ids_it_asked_about(tasks: _Tasks) -> None:
-    ctx = agent_run_context()
-    ctx.deps.conversation_id = uuid4()
-    first = _SEQUENCE.calls[0]
-    run = control_test_run(_worker_result(first), tool_call_id="call_0")
-    assert run is not None
-    ctx.deps.turn_markers.record_control_tests([run])
-    negatives = ["PF3D7_1111100", "PF3D7_1215900", "PF3D7_1429900"]
-
-    ctx.tool_call_id = "call_1"
-    answer = await run_control_tests_on_step(
-        ctx, wdk_step_id=_SEQUENCE.wdk_step_id, negative_controls=negatives
+async def test_a_set_holding_an_id_not_yet_tested_starts_a_task(
+    tasks: _Tasks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    serve_saved_controls(
+        monkeypatch, experiment, saved_set(["PF3D7_0100600", "PF3D7_1133400"])
     )
-
-    assert tasks.created == []
-    body = returned(answer, RepeatedControlTest).model_dump(by_alias=True, mode="json")
-    assert body["outcome"]["negativeAdmittedIds"] == ["PF3D7_1215900"]
-    assert body["outcome"]["negativeExcludedIds"] == [
-        "PF3D7_1111100",
-        "PF3D7_1429900",
-    ]
-    assert body["outcome"]["positiveRecoveredIds"] is None
-    assert summary_of(answer).model_dump(by_alias=True)["data"]["summary"] == (
-        "Already tested on this step: 3 negative controls: 1 returned"
-    )
-
-
-async def test_an_id_not_yet_tested_starts_a_task(tasks: _Tasks) -> None:
-    ctx = agent_run_context()
+    ctx = agent_run_context(control_sets=[SAVED_SET])
     ctx.deps.conversation_id = uuid4()
-    run = control_test_run(_worker_result(_SEQUENCE.calls[0]), tool_call_id="call_0")
+    run = control_test_run(_worker_result(_SEQUENCE.calls[1]), tool_call_id="call_0")
     assert run is not None
     ctx.deps.turn_markers.record_control_tests([run])
 
     ctx.tool_call_id = "call_1"
     with pytest.raises(CallDeferred):
         await run_control_tests_on_step(
-            ctx,
-            wdk_step_id=_SEQUENCE.wdk_step_id,
-            positive_controls=["PF3D7_0100600", "PF3D7_1133400"],
+            ctx, wdk_step_id=_SEQUENCE.wdk_step_id, control_set_id=SAVED_SET_ID
         )
 
     assert len(tasks.created) == 1

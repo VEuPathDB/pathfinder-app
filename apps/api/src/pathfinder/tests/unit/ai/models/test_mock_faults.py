@@ -1,5 +1,5 @@
-"""Each fault makes its wrong call in place of the arc's, the arc makes the
-right call once the refusal is back, and the wrong call comes once a turn."""
+"""Each fault makes its wrong call in place of the arc's, once a turn. The arc
+makes the right call once the refusal is back, or keeps a corrected call as its own."""
 
 from __future__ import annotations
 
@@ -106,12 +106,17 @@ def test_an_unlisted_search_is_read_once_then_the_listed_one() -> None:
     assert names(calls)[-2:] == ["set_structure", "final_result"]
 
 
-def test_a_value_passed_as_the_term_is_sent_once_then_the_parameter() -> None:
-    calls = _frame("single", "value-as-term")
+def test_a_value_passed_as_the_term_binds_the_criterion_once() -> None:
+    calls = play(
+        "frame", _SITE, _token("single", "value-as-term"), work_order=_FRAME_ORDER
+    )
     terms = [a["why"]["term"] for a in args_of(calls, "set_criterion") if "why" in a]
+    seed = SiteValues.for_site("plasmodb").leaf("GenesWithSignalPeptide")
+    assert seed is not None
 
-    assert terms == [_ORGANISM, "organism"]
-    assert len(_faulted(calls)) == 1
+    assert terms == [seed.values["signalp_version"]]
+    assert _faulted(calls) == []
+    assert names(calls)[-2:] == ["set_structure", "final_result"]
 
 
 def test_an_organism_no_vocabulary_lists_is_sent_once_then_the_sheets() -> None:
@@ -173,7 +178,7 @@ def test_the_pass_that_continues_a_stopped_pass_binds_as_the_arc_does() -> None:
     assert names(calls)[-1] == "final_result"
 
 
-def test_a_repeated_control_test_sends_half_the_positives_once() -> None:
+def test_a_repeated_control_test_sends_the_same_set_once_more() -> None:
     calls = play(
         "verification",
         _SITE,
@@ -181,13 +186,11 @@ def test_a_repeated_control_test_sends_half_the_positives_once() -> None:
         work_order=verify_order(200),
     )
     tested = args_of(calls, "run_control_tests_on_step")
-    positives = SiteValues.for_site(_SITE).controls.positive_ids
 
-    assert [t["positive_controls"] for t in tested] == [
-        positives,
-        positives[: max(1, len(positives) // 2)],
-    ]
-    assert {t["wdk_step_id"] for t in tested} == {STRATEGY_ROOT_WDK_ID}
+    assert (
+        tested
+        == [{"wdk_step_id": STRATEGY_ROOT_WDK_ID, "control_set_id": CONTROL_SET_ID}] * 2
+    )
     assert len(_faulted(calls)) == 1
     assert names(calls)[-1] == "final_result"
 
@@ -238,13 +241,12 @@ def test_a_control_count_no_test_holds_is_claimed_once() -> None:
     assert len(_faulted(calls)) == 1
 
 
-def test_a_sweep_names_no_controls_once_then_the_saved_set() -> None:
+def test_a_sweep_names_no_control_set_once_then_the_attached_set() -> None:
     calls = _lead("sweep", "sweep-without-controls", "optimize_search_parameters")
     sweeps = args_of(calls, "optimize_search_parameters")
 
     assert ["control_set_id" in s for s in sweeps] == [False, True]
     assert sweeps[1]["control_set_id"] == CONTROL_SET_ID
-    assert "positive_controls" not in sweeps[0]
     assert len(_faulted(calls)) == 1
 
 

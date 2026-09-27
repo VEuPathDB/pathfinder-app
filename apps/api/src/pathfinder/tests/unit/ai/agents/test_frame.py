@@ -195,3 +195,10 @@ def test_frame_offers_the_orthologs_when_two_organisms_cannot_intersect() -> Non
         'to its orthologs in the other organism, with dimension "organism" and '
         "that transform as the recommended value."
     ) in _normalized(_FRAME_INSTRUCTIONS)
+
+
+def test_frame_instructions_keep_the_organism_a_value() -> None:
+    assert (
+        "The organism the request names is a value of each search's organism "
+        "parameter, never a criterion of its own."
+    ) in _normalized(_FRAME_INSTRUCTIONS)

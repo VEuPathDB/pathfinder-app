@@ -221,22 +221,28 @@ class AgentToolState:
         spec.criteria.append(criterion)
         self.open_sheets.pop(criterion.id, None)
 
-    def frame_record_alternatives(
-        self, criterion_id: str, alternatives: list[ParameterAlternatives]
+    def frame_record_count(
+        self,
+        criterion_id: str,
+        result_count: int | None,
+        alternatives: list[ParameterAlternatives],
     ) -> None:
-        """Record the choices inside a criterion, after it counts its records.
+        """Record a criterion's count and the choices inside it, after it counts.
 
         The count follows the binding, so the binding holds whatever the count
         says. A criterion that matches records records no choice.
         """
         for criterion in self.operational_spec_draft.criteria:
             if criterion.id == criterion_id:
+                criterion.result_count = result_count
                 criterion.alternatives = alternatives
 
     def frame_set_structure(self, structure: SpecStructure) -> None:
         self.operational_spec_draft.structure = structure
 
-    def frame_drop_criterion(self, criterion_id: str, reason: str) -> bool:
+    def frame_drop_criterion(
+        self, criterion_id: str, reason: str, *, unexpressed: bool = False
+    ) -> bool:
         """Remove a criterion from the draft (keyed by id, like
         ``frame_set_criterion``) and record it in ``dropped``. Returns False if
         no criterion has that id - so a dropped criterion's open params can no
@@ -246,7 +252,9 @@ class AgentToolState:
         if match is None:
             return False
         spec.criteria = [c for c in spec.criteria if c.id != criterion_id]
-        spec.dropped.append(DroppedCriterion(text=match.text, reason=reason))
+        spec.dropped.append(
+            DroppedCriterion(text=match.text, reason=reason, unexpressed=unexpressed)
+        )
         self.open_sheets.pop(criterion_id, None)
         return True
 

@@ -13,6 +13,7 @@ from pathfinder.ai.models.mock.specs import CriterionSpec, SpecPlan, combine, le
 
 TAXON = "GenesByTaxon"
 SIGNAL_PEPTIDE = "GenesWithSignalPeptide"
+GENE_MODEL = "GenesByGeneModelChars"
 TM_DOMAINS = "GenesByTransmembraneDomains"
 ORTHOLOGS = "GenesByOrthologs"
 GO_TERM = "GenesByGoTerm"
@@ -36,13 +37,14 @@ def seed_criterion(
     """A criterion on the values a seed ran ``search_name`` with, or on the
     site organism alone when no seed runs it."""
     seed = values.leaf(search_name)
-    held = {"organism": [values.organism]} if seed is None else seed.values
+    held = {} if seed is None else seed.values
     return CriterionSpec(
         criterion_id=criterion_id,
         text=text,
         search_name=search_name,
         role=role,
         values={**held, **(overrides or {})},
+        site_organism=values.organism,
     )
 
 
@@ -155,25 +157,19 @@ def count_spec(values: SiteValues) -> SpecPlan:
 
 
 def combined_spec(values: SiteValues) -> SpecPlan:
-    """Five nodes over three search types: (text UNION go) INTERSECT taxon."""
+    """Five nodes over three search types: (text UNION go) INTERSECT signal peptide."""
     text = seed_criterion(
         values, "GenesByText", "text_genes", f"{values.organism} genes by product text"
     )
     go = _go(values)
-    taxon = CriterionSpec(
-        criterion_id="taxon_genes",
-        text=f"{values.organism} genes",
-        search_name=TAXON,
-        role="seed",
-        values={"organism": [values.organism]},
-    )
+    peptide = signal_peptide(values)
     return SpecPlan(
         title=f"{values.organism} comprehensive strategy (mock)",
-        criteria=(text, go, taxon),
+        criteria=(text, go, peptide),
         structure=combine(
             CombineOp.INTERSECT,
             combine(CombineOp.UNION, leaf(text), leaf(go)),
-            leaf(taxon),
+            leaf(peptide),
         ),
     )
 
@@ -195,4 +191,21 @@ def cross_organism_spec(values: SiteValues) -> SpecPlan:
         CombineOp.INTERSECT,
         here,
         there,
+    )
+
+
+def organism_universe_spec(values: SiteValues) -> SpecPlan:
+    """The site organism bound alone as a criterion, INTERSECT the signal
+    peptide criterion; the structure fold drops the first."""
+    universe = CriterionSpec(
+        criterion_id="organism_genes",
+        text=f"{values.organism} genes",
+        search_name=GENE_MODEL,
+        values={"organism_select_none": [values.organism]},
+    )
+    return _two(
+        f"{values.organism} signal peptide genes (mock)",
+        CombineOp.INTERSECT,
+        universe,
+        signal_peptide(values),
     )

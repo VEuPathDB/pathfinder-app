@@ -16,7 +16,6 @@ export const ARC_NAMES = [
   "combined",
   "edit-param",
   "add-step",
-  "delete-step",
   "delete-step-card",
   "replace-subtree",
   "clear",
@@ -51,6 +50,7 @@ export const ARC_NAMES = [
   "impact",
   "assent",
   "echo",
+  "organism-universe",
 ] as const;
 
 export type ArcName = (typeof ARC_NAMES)[number];

@@ -83,6 +83,14 @@ strategy holds: a transcript strategy is counted in genes (`graph_helpers.py::co
 a reply that writes one of those counts as "145 transcripts" is corrected to "145 genes". A
 transcript count the strategy does not hold is left alone.
 
+`unclassified_turn` reads the classification gate: a reply on a turn whose message holds no
+accepted classification, while the gate's last refusal stands, is refused with that refusal's
+sentence. A card answer, a typed acceptance and a turn that re-enters a parked call are exempt.
+`unsaved_controls` reads `UserIntent.named_controls`: a turn whose message names controls either
+saved a control set, recorded a question, or ended on a card. `stopped_check` reads the phase
+stop: when the verification pass stopped, the reply states that the check did not finish, whether
+or not the turn built; a stopped check records no verdict, so nothing else on the turn claims one.
+
 # Why
 
 Each validator grew out of one live failure, and each carried its own latch, its own message

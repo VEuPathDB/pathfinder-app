@@ -74,6 +74,7 @@ DOMAIN_FIELDS = {
     "declined_proposal",
     "separation_offers",
     "attached_controls",
+    "control_sets",
 }
 
 STRATEGY_RESOURCES = {

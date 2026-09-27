@@ -17,6 +17,7 @@ from pathfinder.ai.lead.deltas import ExecuteDelta
 from pathfinder.ai.lead.lead_tools import clear_the_strategy
 from pathfinder.ai.lead.sub_agent_dispatch import build_the_minted, minted_spec
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.services.evidence.control_sets import (
     create_control_set,
@@ -61,6 +62,9 @@ async def _attach_the_controls(
     deps.state.turn_markers.record_control_set(
         CreatedControlSet(id=created.id, name=created.name),
     )
+    deps.state.domain.attach_control_set(
+        NamedControlSet(id=created.id, name=created.name)
+    )
     return AttachedControls(
         task_id=offer.task_id,
         control_set_id=created.id,
@@ -79,7 +83,8 @@ async def adopt_separating_strategy(
     counts and streams above the card: the card's question and every number
     on it are read from the run, never from you. A yes builds the measured strategy,
     replacing any strategy the conversation holds with a revision a revert undoes,
-    saves the controls as a control set, and returns the ``ExecuteDelta``:
+    saves the controls as a control set attached beside any set attached
+    before, and returns the ``ExecuteDelta``:
     report it as after any build, then call ``verify_strategy``, which tests
     the strategy with exactly those controls. A no ends the turn with your
     text as it stands.
@@ -96,7 +101,7 @@ async def adopt_separating_strategy(
     deps.state.turn_markers.accepted_proposal = True
     deps.state.domain.declined_proposal = None
     if deps.step_count:
-        await clear_the_strategy(ctx)
+        await clear_the_strategy(ctx, keep_control_sets=True)
     deps.state.domain.operational_spec = offer.spec
     delta = await build_the_minted(deps, minted)
     deps.state.domain.attached_controls = await _attach_the_controls(deps, offer)

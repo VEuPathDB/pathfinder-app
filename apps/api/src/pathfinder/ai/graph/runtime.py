@@ -14,7 +14,7 @@ from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.domain.evidence import EvidenceCard
+from pathfinder.domain.evidence import EvidenceCard, NamedControlSet
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
@@ -95,6 +95,9 @@ class VerificationScope(CamelModel):
     # The controls an adopted separation was measured against, which the check
     # tests the strategy with.
     controls: AttachedControls | None = None
+    # The saved control sets attached to the conversation. A control test
+    # runs on no other set.
+    control_sets: list[NamedControlSet] = Field(default_factory=list)
 
 
 class AgentDeps(AssistantDeps):

@@ -28,11 +28,13 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.organism_scope import organism_params_of
 
 __all__ = [
     "OrganismChange",
     "copy_refusal",
     "organism_change",
+    "projected_steps",
     "restate_copies",
     "round_trip_refusal",
     "stated_steps",
@@ -57,16 +59,19 @@ class OrganismChange(CamelModel):
         return f"{', '.join(self.records)} (the seed searched {', '.join(self.seed)})"
 
 
-def organism_change(root: StrategyStepNode) -> OrganismChange | None:
+def organism_change(
+    root: StrategyStepNode, organism_params: Mapping[str, str]
+) -> OrganismChange | None:
     """How the root's organisms differ from the seed's, or None when they agree.
 
     The seed is the deepest primary leaf. Either side unknown is no change.
+    ``organism_params`` names the parameter each search marks as its organism.
     """
     seed = root
     while seed.primary_input is not None:
         seed = seed.primary_input
-    searched = extract_output_organisms(seed)
-    answered = extract_output_organisms(root)
+    searched = extract_output_organisms(seed, organism_params)
+    answered = extract_output_organisms(root, organism_params)
     if not searched or not answered or searched == answered:
         return None
     return OrganismChange(seed=sorted(searched), records=sorted(answered))
@@ -183,19 +188,20 @@ def round_trip_refusal(
     """Why a round trip of the spec's tree is refused, or None.
 
     ``touched`` limits the reading to the round trips whose legs it names; None
-    reads every one.
+    reads every one. Each leg's organism is the parameter its criterion marks.
     """
     tree = stated_steps(spec)
     if tree is None:
         return None
     by_id = {c.id: c for c in spec.criteria}
+    marked = organism_params_of(spec.criteria)
     for back, parent in _with_parents(tree, None):
         there = back.primary_input
         if not _is_transform(back) or there is None or not _is_transform(there):
             continue
         if touched is not None and not {back.id, there.id} & set(touched):
             continue
-        refusal = _refused_trip(back, there, parent, by_id)
+        refusal = _refused_trip(back, there, parent, by_id, marked)
         if refusal is not None:
             return refusal
     return None
@@ -206,13 +212,14 @@ def _refused_trip(
     there: StrategyStepNode,
     parent: StrategyStepNode | None,
     by_id: Mapping[str, Criterion],
+    marked: Mapping[str, str],
 ) -> str | None:
     source = there.primary_input
     if source is None:
         return None
-    organisms = extract_output_organisms(source)
-    mapped = extract_output_organisms(there)
-    if not organisms or organisms != extract_output_organisms(back):
+    organisms = extract_output_organisms(source, marked)
+    mapped = extract_output_organisms(there, marked)
+    if not organisms or organisms != extract_output_organisms(back, marked):
         return None
     if mapped == organisms:
         return None
@@ -312,13 +319,15 @@ def stated_steps(spec: OperationalSpec) -> StrategyStepNode | None:
     """The spec's stated tree as steps keyed on their criteria, bound or not."""
     if spec.structure is None:
         return None
-    return _projected(spec.structure.root, {c.id: c for c in spec.criteria})
+    return projected_steps(spec.structure.root, {c.id: c for c in spec.criteria})
 
 
-def _projected(node: StructureNode, by_id: Mapping[str, Criterion]) -> StrategyStepNode:
-    """The stated tree as steps, each keyed on its criterion, bound or not."""
+def projected_steps(
+    node: StructureNode, by_id: Mapping[str, Criterion]
+) -> StrategyStepNode:
+    """The stated subtree as steps, each keyed on its criterion, bound or not."""
     if node.kind == "combine" and len(node.inputs) != 1:
-        steps = [_projected(child, by_id) for child in node.inputs]
+        steps = [projected_steps(child, by_id) for child in node.inputs]
         joined = steps[0] if steps else StrategyStepNode(search_name="")
         for step in steps[1:]:
             joined = StrategyStepNode(
@@ -330,7 +339,7 @@ def _projected(node: StructureNode, by_id: Mapping[str, Criterion]) -> StrategyS
         return joined
     if node.kind in ("combine", "copy"):
         return (
-            _projected(node.inputs[0], by_id)
+            projected_steps(node.inputs[0], by_id)
             if node.inputs
             else StrategyStepNode(search_name="")
         )
@@ -340,7 +349,7 @@ def _projected(node: StructureNode, by_id: Mapping[str, Criterion]) -> StrategyS
         search_name=criterion.search_name if criterion is not None else "",
         parameters=dict(criterion.resolved_params) if criterion is not None else {},
         primary_input=(
-            _projected(node.inputs[0], by_id)
+            projected_steps(node.inputs[0], by_id)
             if node.kind == "transform" and node.inputs
             else None
         ),

@@ -2,7 +2,8 @@
 
 The whole PathFinder assistant over the real chat route, the real turn graph
 and the real registration. Only the model is a double: it classifies the
-request to tune a step and calls the sweep on it.
+request to tune a step, attaches the researcher's saved controls and calls the
+sweep on them.
 Whether the Lead calls the sweep after a weak control test is the model's
 judgment; the rule it reads is held by the instruction test.
 """
@@ -14,12 +15,14 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.platform.db import async_session_factory
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
 from pathfinder.ai.graph import _lead_model
+from pathfinder.persistence.models import ControlSet
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -41,10 +44,11 @@ SWEEP_STEP_ID = 440230693
 _CLASSIFY = {
     "intent": {"classification": "follow_up_question", "inferredGoal": "tune it"},
 }
+_CONTROL_SET_ID = UUID("7c0a51e2-0000-4000-8000-0000005bee75")
 _SWEEP = {
     "reply": CARD_REPLY,
     "wdk_step_id": SWEEP_STEP_ID,
-    "positive_controls": ["PF3D7_0102600"],
+    "control_set_id": str(_CONTROL_SET_ID),
     "budget": 6,
 }
 _DURABLE_JOB = f"durable:{SWEEP_TOOL}"
@@ -52,12 +56,15 @@ _TIMEOUT_SECONDS = 120.0
 
 
 def _sweeping_lead() -> FunctionModel:
-    """Classify, call the sweep, then answer."""
+    """Classify, attach the saved controls, call the sweep, then answer."""
 
     def _part(messages: list[ModelMessage]) -> ToolCallPart:
         called = {c.tool_name for c in tool_calls(messages)}
         if "classify_user_intent" not in called:
             return ToolCallPart("classify_user_intent", _CLASSIFY, "call_classify")
+        if "use_control_set" not in called:
+            attach = {"control_set_id": str(_CONTROL_SET_ID)}
+            return ToolCallPart("use_control_set", attach, "call_attach")
         if SWEEP_TOOL not in called:
             return ToolCallPart(SWEEP_TOOL, _SWEEP, "call_sweep")
         return ToolCallPart("final_result", LEAD_FINAL, f"call_final_{uuid4().hex[:8]}")
@@ -68,6 +75,24 @@ def _sweeping_lead() -> FunctionModel:
 @pytest.fixture(autouse=True)
 def sweeping_lead(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(_lead_model, "get_mock_model", _sweeping_lead)
+
+
+@pytest.fixture(autouse=True)
+async def saved_controls(authed_user_id: UUID) -> None:
+    """The researcher's saved set the scripted Lead attaches before the sweep."""
+    async with async_session_factory() as session:
+        session.add(
+            ControlSet(
+                id=_CONTROL_SET_ID,
+                user_id=authed_user_id,
+                name="Kinase controls",
+                site_id="plasmodb",
+                record_type="transcript",
+                positive_ids=["PF3D7_0102600"],
+                negative_ids=[],
+            )
+        )
+        await session.commit()
 
 
 async def _turn(

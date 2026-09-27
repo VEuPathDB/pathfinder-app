@@ -648,6 +648,10 @@
    }
   ],
   "objective": "f1",
-  "searchName": "GenesWithSignalPeptide"
+  "searchName": "GenesWithSignalPeptide",
+  "controlSet": {
+   "id": "5f1c6a2e-0000-4000-8000-00000000c0de",
+   "name": "Signal peptide controls"
+  }
  }
 }

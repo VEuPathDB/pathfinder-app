@@ -30,7 +30,8 @@ def outcome_for_graph(
     """The build the graph now holds, with the counts the caller measured.
 
     A count the caller does not carry is unknown, so the step reports no
-    number rather than one from an earlier build.
+    number rather than one from an earlier build. The organisms are read on
+    the parameters the last sync found marked.
     """
     steps = list(graph.steps.values()) if graph is not None else []
     root_id = strategy_root_id(graph, sync_state) if graph is not None else None
@@ -55,7 +56,9 @@ def outcome_for_graph(
         ),
         zero_step_ids=[sid for sid, count in counts.items() if count == 0],
         organism_change=(
-            organism_change(rebuild_tree(root_id, graph.steps))
+            organism_change(
+                rebuild_tree(root_id, graph.steps), sync_state.organism_params
+            )
             if graph is not None and root_id is not None
             else None
         ),

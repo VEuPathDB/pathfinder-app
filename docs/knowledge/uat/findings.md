@@ -481,7 +481,7 @@ Fixed in a17: a recalled-memory part whose data does not match the current wire 
 
 ## FND-24 - The organism phrase is split
 
-Fixed in a18: the intent gate holds an organism phrase the message states whole to the site's organism vocabulary and refuses a split of it.
+Fixed in a18: the intent gate records an organism value that holds only the start of an entry the message states whole as that entry (FND-32); a requirement made of the strain's words is left as stated and FND-31 covers the leaf it would bind.
 
 **What I did.** vectorbase, turn 1 of S5 and X6: `Find Anopheles gambiae PEST genes with a predicted signal peptide and 2 to 99 transmembrane domains.` Two runs each.
 
@@ -609,7 +609,9 @@ Fixed in a18: the card hold drops every free text part of the Lead model's own s
 
 ## FND-31 - The organism alone binds a criterion
 
-Found by the a18 model report (2026-09-27, build 71, `evals run --via-worker`, Luna medium). Open.
+Fixed in a18: a criterion records the parameter WDK marks as its search's organism, and `set_structure` drops an INTERSECT input that names only the organism a sibling runs on (its requirement met by that organism) or whose binding sets only that organism and matches every gene of it, its count equal to the site's `GenesByTaxon` count on those organisms (its text recorded unexpressed); a recorded reason never decides a drop, and a binding whose count is unknown stays. The rationale takes the organism as the deciding term only when nothing else is set, and the FRAME instruction states the rule. Measured live on vectorbase S1: the organism leaf (13,845, equal to the `GenesByTaxon` count) leaves the tree and one search remains (2,928); on the portal a signal peptide search bound on Pf3D7 alone (479 of 5,720 genes) stays in the INTERSECT with the TM search (840).
+
+Found by the a18 model report (2026-09-27, build 71, `evals run --via-worker`, Luna medium).
 
 **What I did.** vectorbase S1 `Find Anopheles gambiae PEST genes whose proteins have a predicted signal peptide.`, S2 the same with `and 2 to 99 transmembrane domains`; plasmodb N1 `Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent.` with the card's recommended option taken.
 
@@ -627,7 +629,9 @@ Found by the a18 model report (2026-09-27, build 71, `evals run --via-worker`, L
 
 ## FND-32 - A refused classification ends the turn with nothing built
 
-Found by the a18 model report; reproduced with the chat debugger on 2026-09-27. Open.
+Fixed in a18: the intent gate completes a truncated organism to the whole entry the message states and says so in its return, a call that repeats the one just refused fails without a retry, and the turn contract refuses a reply on a turn that holds no accepted classification.
+
+Found by the a18 model report; reproduced with the chat debugger on 2026-09-27.
 
 **What I did.** vectorbase S1 `Find Anopheles gambiae PEST genes whose proteins have a predicted signal peptide.`, the report's re-run and two debugger runs (`--via-worker`, Luna medium).
 
@@ -644,7 +648,7 @@ Found by the a18 model report; reproduced with the chat debugger on 2026-09-27. 
 
 ## FND-33 - A step is removed without the delete card
 
-Found by the a18 model report. Open.
+Fixed in a18: an edit pass whose only change removes built steps is refused, nothing is applied, and the refusal sends the Lead to `delete_step`, whose card names the step (`spec_diff.py::steps_only_removed`); the mock arc that removed a step through the edit pass is gone, and S11 approves the card.
 
 **What I did.** plasmodb S11: turn 1 `(GenesWithSignalPeptide MINUS GenesByTransmembraneDomains)`, 363 genes; turn 2 `Remove the transmembrane-domain step.` Three runs (a17 report, a18 report, a18 re-run).
 
@@ -664,7 +668,9 @@ Reproduced deterministically with the chat debugger on 2026-09-27 (`--mock`, vec
 
 ## FND-34 - Attached positive controls become a strategy, not a control set
 
-Found by the a18 model report. Open.
+Fixed in a18: the intent records the controls a message names in `named_controls`, each id held to the message text; the Lead saves them with `build_control_set` and asks for negatives when it has positives only; the turn contract refuses a turn that names controls and neither saves a control set nor asks; `clarification_response` is refused on a conversation with no open question and no waiting card.
+
+Found by the a18 model report.
 
 **What I did.** plasmodb C12, a fresh conversation: `Use these genes as my positive controls.` with the composer's marker `Attached gene-ID list from controls.csv: PF3D7_0709000, PF3D7_1133400`. Two runs.
 
@@ -684,7 +690,9 @@ Reproduced with the chat debugger on 2026-09-27: `classify_user_intent` -> `clar
 
 ## FND-35 - The repetition guard stops VERIFY inside one parallel batch and the turn fails
 
-Found by the a18 model report. Open.
+Fixed in a18: the guard escalates a blocked call only in a model step later than the one that received the warning, for both of its rules (`assistant-core` v0.3.0a20), a stopped check ends as `VerificationStopped` with no verdict and no card, the ledger and the `stopped_check` contract rule make the Lead say the check did not finish, and a call-budget stop names its tool.
+
+Found by the a18 model report.
 
 **What I did.** fungidb S5: turn 1 Af293 signal peptide + 2 to 99 TM (64 genes); turn 2 `Carry these to their orthologs in Aspergillus nidulans FGSC A4.`
 
@@ -699,13 +707,15 @@ Found by the a18 model report. Open.
 **What you'd get.** Turn 2 ends `verified: true` on 257, or at worst on an unverified strategy and a sentence saying the check stopped.
 
 
-Reproduced on 2026-09-27 on a second site and case: plasmodb S11 turn 1 (`--via-worker`, Luna medium). VERIFY sampled 8 genes of the root step and resolved 2 control ids, then issued all 10 `read_gene_record` calls in one batch; calls 9 and 10 returned `past the call budget ... Report what read_gene_record has returned so far, and stop` and `You were already asked to stop calling it and called it again. The run stops here.`; the turn ended `status=error`, `Verification sub-agent did not return a VerificationDelta`, 264,661 tokens. The cap is `SAMPLED_GENE_LIMIT` (8) while the instruction asks for the sampled genes and the control genes. The guard alone reproduces without a model: ten `check` calls on a cap of 8 with no model turn between them give `escalated=False` on the ninth and `escalated=True` on the tenth (`assistant_core/capabilities/repetition_guard.py`).
+Reproduced on 2026-09-27 on a second site and case: plasmodb S11 turn 1 (`--via-worker`, Luna medium). VERIFY sampled 8 genes of the root step and resolved 2 control ids, then issued all 10 `read_gene_record` calls in one batch; calls 9 and 10 returned `past the call budget ... Report what read_gene_record has returned so far, and stop` and `You were already asked to stop calling it and called it again. The run stops here.`; the turn ended `status=error`, `Verification sub-agent did not return a VerificationDelta`, 264,661 tokens. The cap is `SAMPLED_GENE_LIMIT` (8); the instruction asks for one read per sampled gene and the model chose to read the two control genes as well. The guard alone reproduces without a model: ten `check` calls on a cap of 8 with no model turn between them give `escalated=False` on the ninth and `escalated=True` on the tenth (`assistant_core/capabilities/repetition_guard.py`).
 
 ---
 
 ## FND-36 - VERIFY tests the strategy against its own sample and reports recall 1.00
 
-Found with the chat debugger on 2026-09-27 (fungidb S5 turn 1, `--via-worker`, Luna medium). Open.
+Fixed in a18: a control test takes a saved control set by its `control_set_id` and no bare id, VERIFY lists the saved sets with `list_control_sets` and never saves one, the worker reads the set under the user on the site, and a check with no saved set states that no controls were available. The evidence card names the set each control test, sweep setting and scored variant ran. The durable payload of `run_control_tests_on_step` is `{wdk_step_id, control_set_id}`, so the release drains the queue first.
+
+Found with the chat debugger on 2026-09-27 (fungidb S5 turn 1, `--via-worker`, Luna medium).
 
 **What I did.** `Find Aspergillus fumigatus Af293 genes with a predicted signal peptide and 2 to 99 transmembrane domains.` No control was named and no control set exists on fungidb.
 
@@ -715,7 +725,7 @@ Found with the chat debugger on 2026-09-27 (fungidb S5 turn 1, `--via-worker`, L
 
 **Why it happens.** `ai/agents/verification.py` offers the control tests to every whole-strategy check "when the researcher named them or a control set exists", and nothing in `run_control_tests_on_step` (`ai/tools/standalone/`) refuses an id the same run sampled from the step under test or from its inputs.
 
-**Fix.** A control id is the researcher's: typed in the message, in a saved control set, or in a memory the researcher wrote. The control tools refuse a positive or negative id the turn sampled from the strategy, with the sentence that says why, and the check states that no controls were available.
+**Fix.** A control test runs only against a saved control set: `run_control_tests_on_step` and `run_control_tests_on_search` take `control_set_id` and no id list, refuse an id that names no set the user saved on the site with the sets that exist, and VERIFY, which can list the sets but not save one, states that no controls were available when there is none. A sampled gene cannot become a control because no control test accepts a bare id.
 
 **What you'd get.** S5 fungidb ends verified on its 8 sampled records with no control line, or with the researcher's controls when they exist.
 
@@ -723,7 +733,9 @@ Found with the chat debugger on 2026-09-27 (fungidb S5 turn 1, `--via-worker`, L
 
 ## FND-37 - The organism rule refuses a phrase that borrows the genus word
 
-Found in the a18 model report on 2026-09-27 (plasmodb S5 turn 2). Open.
+Fixed in a18: the borrowed-word rule is deleted; the gate completes an organism value and leaves every other constraint as stated.
+
+Found in the a18 model report on 2026-09-27 (plasmodb S5 turn 2).
 
 **What I did.** After turn 1 built the Af293-style plasmodb strategy (signal peptide + 2 to 99 TM on P. falciparum 3D7), turn 2: `Carry these to their orthologs in Plasmodium vivax P01.`
 
@@ -737,3 +749,58 @@ Found in the a18 model report on 2026-09-27 (plasmodb S5 turn 2). Open.
 
 **What you'd get.** One accepted classification: organism `Plasmodium vivax P01`, the orthology constraint kept.
 
+
+## FND-38 - VERIFY grades a strategy against a control set of another conversation
+
+Fixed in a18: a control set is attached to the conversation it is saved or named in (`control_sets` on the checkpointed domain state); `build_control_set` and an adopted separation attach the set they save, the Lead's `use_control_set` attaches a saved set the researcher names, VERIFY's `list_control_sets` lists only the attached sets, and both control tests, the sweep and the scored comparison refuse any other set before a task starts. A clear of the strategy empties the attachment; a new request does not.
+
+Found in the a18 pre-release report re-run of 2026-09-27 (plasmodb N1 turn 1).
+
+**What I did.** A fresh conversation on plasmodb, no controls named: `Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent.`
+
+**What I got.** VERIFY called `list_control_sets` -> `8 control sets` (every set the dev account saved on plasmodb, including the two-gene set case C12 had just saved in an unrelated conversation), then `run_control_tests_on_step(wdk_step_id 440968803, control_set_id a11b531c-d63d-4807-93bb-e9de247e832e)` -> `0 of 2 positive controls recovered; recall 0.00, no negative controls tested`. The reply: `Verification also found two important gaps: 0 of 2 positive controls returned`.
+
+**Why that's wrong.** The researcher named no controls. The two genes belong to another question, so the reply reports a recall of 0.00 that measures nothing about this strategy, and the evidence card files it as a control test of this strategy.
+
+**Why it happens.** `ai/tools/standalone/saved_control_sets.py::list_control_sets` listed every set the user saved on the site, and `ai/tools/standalone/experiment.py::_saved_controls` accepted any of them: nothing tied a saved set to the conversation that saved it.
+
+**Fix.** `StrategyDomainState.control_sets` holds the sets attached to the conversation. The tools that save or name a set attach it; VERIFY lists only the attached sets, and every tool that takes `control_set_id` refuses a set that is not attached, naming the attached ones or stating that none is attached.
+
+**What you'd get.** On N1, VERIFY's `list_control_sets` returns no set, no control test runs, and the check states that no controls were available. A `control_set_id` of another conversation is refused with `No control set is attached to this conversation; the check states that no controls were available.`
+
+## FND-39 - A compounds transform is wired over genes and built
+
+Fixed in a18: `set_structure` refuses a transform whose input returns a record class outside the transform's `allowedPrimaryInputRecordClassNames`, naming the transform, the class it takes and the class the input returns, before anything is recorded or written (`domain/strategy/validate.py::transform_input_refusal`, the classes read from the site catalog by `services/strategies/record_classes.py`).
+
+Found in the a18 final model report on 2026-09-27 (plasmodb N1 turn 1).
+
+**What I did.** A fresh conversation on plasmodb: `Find drug targets that are expressed in the blood stage, do not vary much between isolates, and have no human equivalent.` After the question card, an `extend_strategy` pass bound `c_drug_target` to `GenesByCompoundsTransform` (plasmodb: `displayName` "Transform to Genes", hidden parameter `compound_result`, `outputRecordClassName` `transcript`, `allowedPrimaryInputRecordClassNames` `["compound"]`) and called `set_structure` with the existing three-leaf INTERSECT (2,165, 38 and 2,812 genes) INTERSECT `transform(c_drug_target over a copy of the three-leaf subtree)`.
+
+**What I got.** `set_structure` answered `Structure set: 4 searches`. The build wrote 12 steps to VEuPathDB; its outcome counts read `c_drug_target: null` and the root `step_d6cb707a: null`. The reply: the root "could not be independently counted because VEuPathDB reported that its root step was not part of the strategy". The case expected 5 steps.
+
+**Why that's wrong.** The strategy the researcher receives has no count and a step that can never run, and the reply presents it as encoding all four requirements. "Transform to Genes" maps compound results to genes; it is not a filter on genes, so the drug-target requirement was never expressed.
+
+**Why it happens.** `ai/tools/standalone/frame_structure.py::set_structure` checked only that a transform node's criterion binds a search that takes an input step (`_refuse_a_node_the_role_contradicts`), never which record class that input step may hold; WDK enforces the class only when the step runs (`AnswerParam.validateValue`, WDK-STEP-008).
+
+**Fix.** Each transform node's input subtree returns one record class (a leaf's search declares it, a combine returns the class of its inputs, and a combine of two known different classes is refused, since WDK cannot run it). `set_structure` refuses the tree when that class is not in the transform's `allowedPrimaryInputRecordClassNames`, and the refusal says the transform is not a filter on that class, so FRAME drops the criterion, binds a search on genes, or asks.
+
+**What you'd get.** `The structure is refused: c_drug_target runs Transform to Genes (GenesByCompoundsTransform), which takes Compounds as its input step, and the subtree under it returns Genes. WDK runs a transform only on the record classes it declares, so this tree cannot run. Transform to Genes maps Compounds to Genes; it is not a filter on Genes. Drop c_drug_target, bind it to a search on Genes that states it, or ask the researcher. Nothing was recorded.` Nothing is written to VEuPathDB.
+
+
+## FND-40 - The tree INTERSECTs the strategy with a second copy of itself
+
+Fixed in a18: `set_structure` drops an INTERSECT input identical to a sibling input of its chain (same shape, operators, searches and resolved values, never ids; `domain/strategy/spec_duplicates.py::fold_duplicate_inputs`), records each dropped criterion on the spec's drop record as met by its sibling, and names it in `dropped`.
+
+Found in the a18 final model report on 2026-09-27 (plasmodb N1 turn 1, the same run as FND-39).
+
+**What I did.** After the FND-39 build, the next FRAME pass restated the tree from the strategy's steps and called `set_structure` with (existing three leaves INTERSECT `c_drug_target`) INTERSECT (a second INTERSECT of the same three searches).
+
+**What I got.** `Structure set: 7 searches`. The second branch was `step_e83414b3`, `step_7764f323`, `step_9f2e2b90`: the same searches and values as `step_9ba9dec1`, `step_3a4dba81`, `step_0ae0f092`, with counts 2,165, 38 and 2,812 twice.
+
+**Why that's wrong.** X INTERSECT X is X: the three extra steps narrow nothing, yet each is written to VEuPathDB, counted and listed to the researcher as a step of the strategy, and a later edit must address six steps for three requirements.
+
+**Why it happens.** `fold_organism_universe` was the only structure fold `set_structure` ran, and it drops an organism-only leaf; nothing compared an INTERSECT input with its siblings.
+
+**Fix.** Before the organism fold, `set_structure` reads every INTERSECT chain as its inputs, however its combines nest, and drops each input whose subtree repeats a sibling's. The input kept is the first whose criteria are all live steps, else the first; a MINUS input and a copy under a transform are never siblings, so an orthology round trip keeps its copy.
+
+**What you'd get.** `Structure set: 4 searches; dropped step_e83414b3; dropped step_7764f323; dropped step_9f2e2b90`, each drop reading, for example, `step_9f2e2b90 ('P. falciparum 3D7 genes with no human equivalent') is dropped: it runs GenesByOrthologPattern with the values step_0ae0f092 runs beside it under INTERSECT, so step_0ae0f092 meets it.`

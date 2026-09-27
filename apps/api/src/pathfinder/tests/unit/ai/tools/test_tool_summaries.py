@@ -35,6 +35,7 @@ from pathfinder.ai.tools.standalone import (
 )
 from pathfinder.assistants.site_help.agent import build_site_help_agent
 from pathfinder.services.separation.offer import separation_report
+from pathfinder.tests._support.saved_controls import SAVED_SET_ID
 from pathfinder.tests._support.separation import (
     SIGNAL_PEPTIDE,
     TASK_ID,
@@ -329,6 +330,7 @@ _RESUMED: dict[str, dict[str, Any]] = {
         "best": {"score": 0.5},
         "objective": "mcc",
         "searchName": "GenesWithSignalPeptide",
+        "controlSet": {"id": SAVED_SET_ID, "name": "Saved controls"},
     },
     "separate_controls": separation_report(
         recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID

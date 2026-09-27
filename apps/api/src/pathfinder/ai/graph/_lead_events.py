@@ -11,7 +11,7 @@ from assistant_core.conversation.stream_parts.agent_topology import (
 )
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.tool_summary import count_noun
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from pydantic_ai.messages import (
     AgentStreamEvent,
     FunctionToolCallEvent,
@@ -39,6 +39,7 @@ from pathfinder.ai.lead.deltas import (
     FrameResult,
     RecoveryDelta,
     VerificationDelta,
+    VerificationStopped,
 )
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import (
@@ -155,6 +156,21 @@ def _verified(delta: VerificationDelta) -> str:
     return f"Passed, {count_noun(len(digest.pending_checks), 'check')} pending"
 
 
+_VERIFY_OUTCOME: TypeAdapter[VerificationDelta | VerificationStopped] = TypeAdapter(
+    VerificationDelta | VerificationStopped
+)
+
+
+def _verify_outcome(content: object) -> str:
+    """The line of a finished check, or of one that stopped before its digest."""
+    match _VERIFY_OUTCOME.validate_python(content):
+        case VerificationDelta() as delta:
+            return _verified(delta)
+        case VerificationStopped(stop=stop):
+            phrase = "stopped before it finished" if stop is None else stop.phrase()
+            return phrase[:1].upper() + phrase[1:]
+
+
 type Summary = Callable[[object], str]
 
 
@@ -167,7 +183,7 @@ _SUMMARY_BY_TOOL: dict[str, Summary] = {
     "frame_problem": _read_as(FrameResult, _framed),
     "edit_strategy": _read_as(EditDelta, _framed),
     "recover_failed_steps": _read_as(RecoveryDelta, _recovered),
-    "verify_strategy": _read_as(VerificationDelta, _verified),
+    "verify_strategy": _verify_outcome,
     "build_strategy": _read_as(ExecuteDelta, _built),
 }
 

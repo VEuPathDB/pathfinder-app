@@ -102,35 +102,30 @@ def _with_the_unexpressed(
     rows: list[RequirementCheck], record: ReviewRecord
 ) -> list[RequirementCheck]:
     """The rows, with every word no search states reported as unexpressed."""
-    criteria = record.spec.criteria if record.spec is not None else []
+    unexpressed = record.spec.unexpressed() if record.spec is not None else []
     held = list(rows)
-    for criterion in criteria:
-        for word in criterion.unexpressed_qualifiers:
-            naming = [
-                i for i, row in enumerate(held) if names_the_phrase(row.text, word)
-            ]
-            for index in naming:
-                if held[index].status == "met":
-                    held[index] = held[index].model_copy(
-                        update={
-                            "status": "unexpressed",
-                            "note": _unexpressed_note(word),
-                        }
-                    )
-            if naming:
-                continue
-            held.append(
-                RequirementCheck(
-                    text=word,
-                    turn=_turn_where(
-                        record.messages, partial(names_the_phrase, phrase=word)
-                    ),
-                    answered_by=[criterion.id],
-                    how="search",
-                    status="unexpressed",
-                    note=_unexpressed_note(word),
+    for text in unexpressed:
+        word = text.word
+        naming = [i for i, row in enumerate(held) if names_the_phrase(row.text, word)]
+        for index in naming:
+            if held[index].status == "met":
+                held[index] = held[index].model_copy(
+                    update={"status": "unexpressed", "note": _unexpressed_note(word)}
                 )
+        if naming:
+            continue
+        held.append(
+            RequirementCheck(
+                text=word,
+                turn=_turn_where(
+                    record.messages, partial(names_the_phrase, phrase=word)
+                ),
+                answered_by=[text.criterion_id] if text.criterion_id else [],
+                how="search",
+                status="unexpressed",
+                note=_unexpressed_note(word),
             )
+        )
     return held
 
 

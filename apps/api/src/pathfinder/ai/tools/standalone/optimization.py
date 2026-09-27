@@ -19,7 +19,15 @@ from veupathdb_mcp.controls import ControlTargetData, ControlTestResult
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.ai.tools.standalone.saved_control_sets import (
+    ATTACH_A_SET,
+    unattached_set,
+)
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    NamedControlSet,
+)
 from pathfinder.platform.durable_worker import durable_agent_tool
 from pathfinder.services.evidence.optimization import tunable_parameters_of_search
 from pathfinder.services.experiment.metrics import metrics_from_control_result
@@ -69,6 +77,7 @@ class _SweepTrials(CamelModel):
     model_config = ConfigDict(extra="ignore")
 
     variants: list[SweepVariantResult] = Field(default_factory=list)
+    control_set: NamedControlSet
 
 
 def sweep_control_runs(
@@ -76,7 +85,8 @@ def sweep_control_runs(
 ) -> list[ControlTestRun]:
     """One control result per setting the sweep scored."""
     runs: list[ControlTestRun] = []
-    for trial in _SweepTrials.model_validate(result).variants:
+    trials = _SweepTrials.model_validate(result)
+    for trial in trials.variants:
         positive, negative = trial.positive, trial.negative
         if positive is None and negative is None:
             continue
@@ -86,6 +96,7 @@ def sweep_control_runs(
                 origin="sweep",
                 evidence=ControlTestEvidence(
                     tested_label=f"setting {trial.variant_id}",
+                    control_set=trials.control_set,
                     positive=None
                     if positive is None
                     else ControlSetEvidence(
@@ -201,20 +212,6 @@ PARAMETER_SWEEP = declare_durable_tool(
 )
 
 
-_NO_CONTROLS = (
-    "A sweep scores each setting against the controls, and this call names none. "
-    "Pass the control set the conversation saved as control_set_id "
-    "(list_control_sets names it), or the ids the researcher typed as "
-    "positive_controls and negative_controls. Nothing was started and no card "
-    "was shown."
-)
-_TWO_SOURCES = (
-    "Pass the saved control set as control_set_id or the ids the researcher "
-    "typed as positive_controls and negative_controls, not both. Nothing was "
-    "started and no card was shown."
-)
-
-
 def _swept_search(
     ctx: RunContext[LeadDeps], wdk_step_id: int
 ) -> tuple[str, str] | None:
@@ -241,19 +238,16 @@ async def sweep_can_run(
     *,
     reply: str,
     wdk_step_id: int,
-    control_set_id: str | None = None,
-    positive_controls: list[str] | None = None,
-    negative_controls: list[str] | None = None,
+    control_set_id: str,
     parameters: list[str] | None = None,
     budget: int = SWEEP_BUDGET,
 ) -> None:
     """Refuse a sweep call the worker would refuse, before its card is drawn."""
     del reply, budget
-    typed = bool(positive_controls or negative_controls)
-    if control_set_id is not None and typed:
-        raise ModelRetry(_TWO_SOURCES)
-    if control_set_id is None and not typed:
-        raise ModelRetry(_NO_CONTROLS)
+    refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
+    if refused is not None:
+        msg = f"{refused} {ATTACH_A_SET} Nothing was started and no card was shown."
+        raise ModelRetry(msg)
     swept = None if not parameters else _swept_search(ctx, wdk_step_id)
     if parameters is None or swept is None:
         return
@@ -277,9 +271,7 @@ async def optimize_search_parameters(
     *,
     reply: CardReply,
     wdk_step_id: int,
-    control_set_id: str | None = None,
-    positive_controls: list[str] | None = None,
-    negative_controls: list[str] | None = None,
+    control_set_id: str,
     parameters: list[str] | None = None,
     budget: Annotated[
         int, Field(ge=SWEEP_BUDGET_MIN, le=SWEEP_BUDGET_MAX)
@@ -300,9 +292,9 @@ async def optimize_search_parameters(
     the card and names the parameters, the budget and that the sweep takes
     about fifteen minutes.
 
-    Pass the controls once: the control set the conversation saved as
-    ``control_set_id``, which the worker reads whole, or the ids the
-    researcher typed in this conversation. A call with neither is refused.
+    The controls are the control set attached to this conversation, named
+    by ``control_set_id`` and read whole on the worker. Ids the researcher
+    types are saved first with ``build_control_set``, which attaches the set.
 
     Durable: the trials run on the worker, the turn ends while they run, and
     you are called again with the result (``variants``, ``best``,
@@ -312,10 +304,8 @@ async def optimize_search_parameters(
         reply: Your reply, which the researcher reads above the card.
         wdk_step_id: The built step to tune, by its WDK step id. Read it from
             ``get_live_strategy_state``.
-        control_set_id: A saved control set, by the id ``list_control_sets``
-            names. Its ids are read on the worker, so none is copied here.
-        positive_controls: Known-positive gene ids the step should return.
-        negative_controls: Known-negative gene ids it should not return.
+        control_set_id: A control set attached to this conversation, by its
+            id. Its ids are read on the worker, so none is copied here.
         parameters: The parameters to vary, by the name the search gives
             them (``signalp_version``, never its label). Leave it out to vary
             every tunable parameter of that step's search. The control-test
@@ -323,7 +313,6 @@ async def optimize_search_parameters(
         budget: The most trials to run. Each trial is one WDK call, so a
             larger budget costs proportionally more time.
     """
-    del ctx, reply, wdk_step_id, control_set_id, positive_controls
-    del negative_controls, parameters, budget
+    del ctx, reply, wdk_step_id, control_set_id, parameters, budget
     msg = "optimize_search_parameters runs on the worker via @durable_agent_tool"
     raise NotImplementedError(msg)

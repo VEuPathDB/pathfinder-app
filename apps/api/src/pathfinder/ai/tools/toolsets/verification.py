@@ -26,6 +26,7 @@ from pathfinder.ai.tools.standalone.results import (
     get_download_url,
     get_sample_records,
 )
+from pathfinder.ai.tools.standalone.saved_control_sets import list_control_sets
 from pathfinder.ai.tools.standalone.strategy_graph import (
     check_study_step,
     get_strategy,
@@ -77,6 +78,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_estimated_size,
             get_sample_records,
             get_download_url,
+            list_control_sets,
             Tool(run_control_tests_on_step, sequential=True, max_retries=3),
             run_control_tests_on_search,
             lookup_gene_records,

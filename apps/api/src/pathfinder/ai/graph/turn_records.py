@@ -120,6 +120,8 @@ class TurnMarkers(CamelModel):
     edited: bool = False
     verified: bool = False
     verification_dispatched: bool = False
+    # The last check of this turn ended before it returned a digest.
+    verification_stopped: bool = False
     # A reply that did not match the turn's record is corrected once.
     contract_refused: bool = False
     # The EDA datasets this turn opened an analysis on.

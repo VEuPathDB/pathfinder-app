@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from pathfinder.devtools.diagnosis import diagnose
+from pathfinder.devtools.diagnosis import diagnose, refused
 from pathfinder.devtools.models import (
     Anomaly,
     CapturedToolCall,
@@ -455,6 +455,10 @@ class RunCapture:
             call.tool_call_id for call in self.tool_calls() if call.status != "started"
         }
         return self._announced_calls | settled
+
+    def refused_tools(self) -> list[str]:
+        """The tool of every refused call, one entry per call, in call order."""
+        return [call.tool for call in self.tool_calls() if refused(call)]
 
     def summary(self) -> RunSummary:
         calls = self.tool_calls()

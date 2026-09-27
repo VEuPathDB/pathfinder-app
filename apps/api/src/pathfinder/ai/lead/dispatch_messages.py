@@ -65,8 +65,8 @@ def stop_phrase(stop: PhaseStop) -> str:
             return "ran out of its tool budget"
         case PhaseStopReason.TOOL_RETRIES:
             return f"stopped when {stop.tool_name} refused every attempt"
-        case PhaseStopReason.REPEATED_CALL:
-            return "stopped after repeating one call"
+        case PhaseStopReason.REPEATED_CALL | PhaseStopReason.CALL_CAP:
+            return stop.phrase()
 
 
 def stop_heading(stop: PhaseStop) -> str:

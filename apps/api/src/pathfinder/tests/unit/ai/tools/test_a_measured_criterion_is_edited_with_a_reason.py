@@ -64,9 +64,9 @@ async def test_the_counts_do_not_outlive_the_values_they_measured(
     assert str(refused.value) == (
         "c_gpi binds GenesByExportPrediction with no why. Pass why with a basis "
         "(parameter, organism, record_type, only_match or nearest), the term that "
-        "decides it, and one line of reason of at most 160 characters holding the "
-        "term. The catalog answered 2 searches for it, first Exported Protein 0.44, "
-        "Gene Text Search. Nothing was recorded."
+        "decides it, and one line of reason of at most 160 characters. The catalog "
+        "answered 2 searches for it, first Exported Protein 0.44, Gene Text Search. "
+        "Nothing was recorded."
     )
 
     assert state.operational_spec_draft.criteria[0].rationale == _MEASURED

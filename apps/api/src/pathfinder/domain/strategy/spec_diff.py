@@ -6,6 +6,7 @@ the two specs, so no prose can claim a criterion was preserved that was not.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
@@ -16,7 +17,13 @@ from veupathdb.model import CamelModel
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 
-__all__ = ["CriterionChange", "CriterionDisposition", "SpecDiff", "diff_specs"]
+__all__ = [
+    "CriterionChange",
+    "CriterionDisposition",
+    "SpecDiff",
+    "diff_specs",
+    "steps_only_removed",
+]
 
 CriterionDisposition = Literal["kept", "changed", "added", "dropped"]
 
@@ -100,6 +107,21 @@ def diff_specs(before: OperationalSpec, after: OperationalSpec) -> SpecDiff:
         changes=changes,
         structure_changed=before.structure != after.structure,
     )
+
+
+def steps_only_removed(diff: SpecDiff, built: Collection[str]) -> list[str]:
+    """The built steps a diff drops, when dropping them is all the diff does.
+
+    A diff that adds or changes a criterion names none, and a dropped
+    criterion no step was built for is not a step.
+    """
+    if any(c.disposition in ("added", "changed") for c in diff.changes):
+        return []
+    return [
+        c.criterion_id
+        for c in diff.changes
+        if c.disposition == "dropped" and c.criterion_id in built
+    ]
 
 
 def _change_for(before: Criterion, after: Criterion | None) -> CriterionChange:

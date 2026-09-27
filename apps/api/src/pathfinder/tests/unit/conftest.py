@@ -12,6 +12,8 @@ from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.tests._support.network_guard import refuse_every_connection
+from pathfinder.tests._support.organism_reads import serve_catalog_marks
+from pathfinder.tests._support.record_classes import serve_record_classes
 
 # Input screening.
 
@@ -47,6 +49,14 @@ def _no_network(
     """
     if request.node.get_closest_marker("allow_network") is None:
         refuse_every_connection(monkeypatch, request.node.nodeid)
+
+
+@pytest.fixture(autouse=True)
+def _catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answers each search's organism parameter and record classes from
+    recorded catalog answers."""
+    serve_catalog_marks(monkeypatch)
+    serve_record_classes(monkeypatch)
 
 
 @pytest.fixture

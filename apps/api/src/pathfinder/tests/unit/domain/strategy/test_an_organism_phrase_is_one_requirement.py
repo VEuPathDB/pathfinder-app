@@ -10,7 +10,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.organism_phrases import (
-    organism_split_refusal,
+    complete_organisms,
     stated_organisms,
 )
 from pathfinder.tests._support.site_organisms import recorded_organisms
@@ -32,14 +32,6 @@ S2 = {
 S2_TAIL = " with a predicted signal peptide and 2 to 99 transmembrane domains."
 
 
-def _sentence(entry: str, words: str) -> str:
-    return (
-        f'The message names the organism "{entry}", one entry of this site\'s '
-        "organism list. Record it whole as the organism constraint; "
-        f'"{words}" is part of its name, not a requirement of its own.'
-    )
-
-
 def _stated(kind: ConstraintKind, value: str) -> Constraint:
     return Constraint(
         kind=kind,
@@ -57,9 +49,17 @@ def _other(value: str) -> Constraint:
     return _stated(ConstraintKind.OTHER, value)
 
 
-def _refusal(site: str, message: str, *constraints: Constraint) -> str | None:
-    stated = stated_organisms(message, recorded_organisms(site))
-    return organism_split_refusal(list(constraints), message, stated)
+def _completed(
+    site: str, message: str, *constraints: Constraint
+) -> tuple[list[tuple[str, str]], list[str]]:
+    completed, notes = complete_organisms(
+        list(constraints), message, recorded_organisms(site)
+    )
+    return [(c.kind.value, c.requested_value) for c in completed], notes
+
+
+def _recorded(entry: str) -> str:
+    return f'organism recorded as "{entry}"'
 
 
 def test_the_strain_is_part_of_the_entry_the_message_states() -> None:
@@ -91,8 +91,8 @@ def test_a_species_without_its_strain_states_no_entry() -> None:
     assert stated_organisms(message, recorded_organisms("plasmodb")) == []
 
 
-def test_a_requirement_built_from_the_strain_is_refused() -> None:
-    refusal = _refusal(
+def test_the_split_organism_is_completed_and_the_strain_constraint_kept() -> None:
+    completed, notes = _completed(
         "vectorbase",
         PEST,
         _organism("Anopheles gambiae"),
@@ -104,61 +104,73 @@ def test_a_requirement_built_from_the_strain_is_refused() -> None:
         _other("predicted signal peptide"),
     )
 
-    assert refusal == _sentence("Anopheles gambiae PEST", "PEST")
+    assert completed == [
+        ("organism", "Anopheles gambiae PEST"),
+        ("combination", "PEST genes AND genes with a predicted signal peptide"),
+        ("other", "PEST genes"),
+        ("other", "predicted signal peptide"),
+    ]
+    assert notes == [_recorded("Anopheles gambiae PEST")]
 
 
-def test_the_species_recorded_without_its_strain_is_refused() -> None:
-    refusal = _refusal("toxodb", NEOSPORA, _organism("Neospora caninum"))
+def test_the_species_recorded_without_its_strain_is_completed() -> None:
+    completed, notes = _completed("toxodb", NEOSPORA, _organism("Neospora caninum"))
 
-    assert refusal == _sentence("Neospora caninum Liverpool", "Liverpool")
+    assert completed == [("organism", "Neospora caninum Liverpool")]
+    assert notes == [_recorded("Neospora caninum Liverpool")]
 
 
-def test_the_strain_recorded_as_a_requirement_of_its_own_is_refused() -> None:
-    refusal = _refusal(
+def test_the_strain_recorded_as_a_requirement_of_its_own_is_left_as_stated() -> None:
+    completed, notes = _completed(
         "toxodb", NEOSPORA, _organism("Neospora caninum"), _other("Liverpool strain")
     )
 
-    assert refusal == _sentence("Neospora caninum Liverpool", "Liverpool")
+    assert completed == [
+        ("organism", "Neospora caninum Liverpool"),
+        ("other", "Liverpool strain"),
+    ]
+    assert notes == [_recorded("Neospora caninum Liverpool")]
 
 
 @pytest.mark.parametrize(
-    ("constraints", "words"),
+    ("constraints", "recorded"),
     [
-        ([_organism("Cryptosporidium parvum")], "Iowa II"),
-        ([_organism("C. parvum Iowa")], "II"),
-        ([_organism("Cryptosporidium parvum Iowa II"), _other("Iowa isolate")], "Iowa"),
-        ([_organism("Cryptosporidium parvum Iowa II"), _other("II")], "II"),
+        ([_organism("Cryptosporidium parvum")], ["Cryptosporidium parvum Iowa II"]),
+        ([_organism("C. parvum Iowa")], ["Cryptosporidium parvum Iowa II"]),
+        ([_organism("Cryptosporidium parvum Iowa II"), _other("Iowa isolate")], []),
+        ([_organism("Cryptosporidium parvum Iowa II"), _other("II")], []),
     ],
 )
-def test_every_part_of_a_two_word_strain_is_held_to_the_entry(
-    constraints: list[Constraint], words: str
+def test_every_prefix_of_a_two_word_strain_completes_to_the_entry(
+    constraints: list[Constraint], recorded: list[str]
 ) -> None:
-    refusal = _refusal("cryptodb", IOWA, *constraints)
+    completed, notes = _completed("cryptodb", IOWA, *constraints)
 
-    assert refusal == _sentence("Cryptosporidium parvum Iowa II", words)
+    assert completed[0] == ("organism", "Cryptosporidium parvum Iowa II")
+    assert completed[1:] == [(c.kind.value, c.requested_value) for c in constraints[1:]]
+    assert notes == [_recorded(entry) for entry in recorded]
 
 
 def test_the_whole_entry_and_the_other_requirements_pass() -> None:
-    stated = stated_organisms(IOWA, recorded_organisms("cryptodb"))
-    constraints = [
+    completed, notes = _completed(
+        "cryptodb",
+        IOWA,
         _organism("Cryptosporidium parvum Iowa II"),
         _other("signal peptide"),
+    )
+
+    assert completed == [
+        ("organism", "Cryptosporidium parvum Iowa II"),
+        ("other", "signal peptide"),
     ]
-
-    refusal = organism_split_refusal(constraints, IOWA, stated)
-
-    assert [s.entry for s in stated] == ["Cryptosporidium parvum Iowa II"]
-    assert refusal is None
+    assert notes == []
 
 
 @pytest.mark.parametrize("site", sorted(S2))
 def test_the_standard_prompts_pass_untouched(site: str) -> None:
     entry, head = S2[site]
     message = head + S2_TAIL
-
-    refusal = _refusal(
-        site,
-        message,
+    stated = [
         _organism(entry),
         _stated(
             ConstraintKind.COMBINATION,
@@ -167,29 +179,32 @@ def test_the_standard_prompts_pass_untouched(site: str) -> None:
         _other("predicted signal peptide"),
         _other("2 to 99 transmembrane domains"),
         _stated(ConstraintKind.RECORD_TYPE, "genes"),
-    )
+    ]
+
+    completed, notes = complete_organisms(stated, message, recorded_organisms(site))
 
     assert [s.entry for s in stated_organisms(message, recorded_organisms(site))] == [
         entry
     ]
-    assert refusal is None
+    assert completed == stated
+    assert notes == []
 
 
-def test_a_word_the_message_also_holds_outside_the_entry_is_a_requirement() -> None:
-    message = "Find Anopheles gambiae PEST genes that other PEST strains lack"
+def test_the_orthology_constraint_that_names_the_source_organism_is_untouched() -> None:
+    message = "Carry these to their orthologs in Plasmodium vivax P01."
+    orthology = _stated(
+        ConstraintKind.OTHER,
+        "orthologs of the current Plasmodium falciparum 3D7 signal-peptide and "
+        "2 to 99 transmembrane-domain genes",
+    )
+    stated = [_organism("Plasmodium vivax P01"), orthology]
 
-    stated = stated_organisms(message, recorded_organisms("vectorbase"))
-    constraints = [
-        _organism("Anopheles gambiae PEST"),
-        _other("absent from other PEST strains"),
-    ]
+    completed, notes = complete_organisms(
+        stated, message, recorded_organisms("plasmodb")
+    )
 
-    refusal = organism_split_refusal(constraints, message, stated)
-
-    assert [(s.entry, s.start, s.end) for s in stated] == [
-        ("Anopheles gambiae PEST", 1, 4)
-    ]
-    assert refusal is None
+    assert completed == stated
+    assert notes == []
 
 
 def test_a_comparator_that_names_two_whole_entries_passes() -> None:
@@ -197,41 +212,51 @@ def test_a_comparator_that_names_two_whole_entries_passes() -> None:
         "Find genes that differ between Plasmodium falciparum 3D7 and "
         "Plasmodium falciparum HB3"
     )
-    stated = stated_organisms(message, recorded_organisms("plasmodb"))
-    constraints = [
+    stated = [
         _organism("Plasmodium falciparum 3D7"),
         _organism("Plasmodium falciparum HB3"),
         _stated(ConstraintKind.COMPARATOR, "P. falciparum 3D7 vs P. falciparum HB3"),
     ]
 
-    refusal = organism_split_refusal(constraints, message, stated)
+    completed, notes = complete_organisms(
+        stated, message, recorded_organisms("plasmodb")
+    )
 
-    assert [s.entry for s in stated] == [
+    assert [
+        s.entry for s in stated_organisms(message, recorded_organisms("plasmodb"))
+    ] == [
         "Plasmodium falciparum 3D7",
         "Plasmodium falciparum HB3",
     ]
-    assert refusal is None
+    assert completed == stated
+    assert notes == []
 
 
-def test_a_requirement_that_names_the_whole_entry_passes() -> None:
-    stated = stated_organisms(NEOSPORA, recorded_organisms("toxodb"))
-    constraints = [_other("orthologs in Neospora caninum Liverpool")]
+def test_an_organism_the_message_does_not_state_whole_is_left_as_recorded() -> None:
+    message = "Find Plasmodium falciparum genes with a signal peptide"
 
-    refusal = organism_split_refusal(constraints, NEOSPORA, stated)
+    completed, notes = _completed(
+        "plasmodb", message, _organism("Plasmodium falciparum")
+    )
 
-    assert [s.entry for s in stated] == ["Neospora caninum Liverpool"]
-    assert refusal is None
+    assert completed == [("organism", "Plasmodium falciparum")]
+    assert notes == []
 
 
-def test_the_strain_as_a_term_of_the_combination_is_refused() -> None:
-    refusal = _refusal(
+def test_the_strain_as_a_term_of_the_combination_is_left_as_stated() -> None:
+    combination = (
+        "PEST genes AND predicted signal peptide AND 2 to 99 transmembrane domains"
+    )
+
+    completed, notes = _completed(
         "vectorbase",
         PEST,
         _organism("Anopheles gambiae PEST"),
-        _stated(
-            ConstraintKind.COMBINATION,
-            "PEST genes AND predicted signal peptide AND 2 to 99 transmembrane domains",
-        ),
+        _stated(ConstraintKind.COMBINATION, combination),
     )
 
-    assert refusal == _sentence("Anopheles gambiae PEST", "PEST")
+    assert completed == [
+        ("organism", "Anopheles gambiae PEST"),
+        ("combination", combination),
+    ]
+    assert notes == []

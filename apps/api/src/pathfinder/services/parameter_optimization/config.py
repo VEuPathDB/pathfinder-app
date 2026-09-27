@@ -12,6 +12,7 @@ from veupathdb_mcp.controls import (
     PositiveControls,
 )
 
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.services.experiment.types import (
     OptimizationObjective,
     ParameterType,
@@ -123,6 +124,8 @@ class SweepResult(CamelModel):
     # The search every setting ran, and the metric ``score`` holds.
     search_name: str
     objective: OptimizationObjective
+    # The saved set every setting was scored on.
+    control_set: NamedControlSet
 
     @model_validator(mode="after")
     def _select_best(self) -> Self:

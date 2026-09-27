@@ -26,6 +26,7 @@ from pathfinder.domain.strategy.spec_reconciliation import (
 from pathfinder.domain.strategy.spec_replay import spec_replaying
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.export import exported_analysis
+from pathfinder.services.strategies.organism_params import organism_parameters
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 __all__ = [
@@ -98,10 +99,7 @@ async def the_changes_written_outside(
     domain = state.domain
     live = live_tree(graph)
     changes = outside_changes(domain.answered_graph, live)
-    reading = _Reading(
-        sheets=await _sheets_the_replay_reads(site_id, domain, changes, live),
-        analyses=analyses_of(live),
-    )
+    reading = await _the_replay_reading(site_id, domain, changes, live)
     # A step the answer states and the plan does not is a drop the plan
     # carries, so the plan keeps it out.
     dropped = _the_plan_leaves_out(domain)
@@ -158,10 +156,7 @@ async def the_thread_wrote_the_strategy(
     domain = state.domain
     live = live_tree(graph)
     changes = outside_changes(before, live)
-    reading = _Reading(
-        sheets=await _sheets_the_replay_reads(site_id, domain, changes, live),
-        analyses=analyses_of(live),
-    )
+    reading = await _the_replay_reading(site_id, domain, changes, live)
     dropped = _the_plan_leaves_out(domain)
     domain.operational_spec = _replayed(
         domain.operational_spec, changes, live, reading, may_leave_out=dropped
@@ -171,10 +166,33 @@ async def the_thread_wrote_the_strategy(
 
 
 class _Reading(NamedTuple):
-    """How the replay reads the live steps: their sheets, and their analyses."""
+    """How the replay reads the live steps: their sheets, their analyses, and
+    the organism parameter each search it read marks."""
 
     sheets: Sheets
     analyses: Analyses
+    searches: frozenset[str]
+    marks: Mapping[str, str]
+
+
+async def _the_replay_reading(
+    site_id: str,
+    domain: StrategyDomainState,
+    changes: OutsideChanges,
+    live: StrategyAst | None,
+) -> _Reading:
+    searches = _searches_the_replay_reads(domain, changes, live)
+    record_type = None if live is None else live.record_type
+    if not searches:
+        return _Reading({}, analyses_of(live), searches, {})
+    return _Reading(
+        sheets=await sheet_params_for_searches(
+            site_id=site_id, record_type=record_type, search_names=sorted(searches)
+        ),
+        analyses=analyses_of(live),
+        searches=searches,
+        marks=await organism_parameters(site_id, record_type, searches),
+    )
 
 
 def _replayed(
@@ -187,7 +205,7 @@ def _replayed(
 ) -> OperationalSpec | None:
     if spec is None:
         return None
-    return spec_replaying(
+    replayed = spec_replaying(
         spec,
         changes,
         live,
@@ -195,6 +213,15 @@ def _replayed(
         analyses=reading.analyses,
         may_leave_out=may_leave_out,
     )
+    if not reading.searches:
+        return replayed
+    marked = [
+        c.model_copy(update={"organism_param": reading.marks.get(c.search_name)})
+        if c.search_name in reading.searches
+        else c
+        for c in replayed.criteria
+    ]
+    return replayed.model_copy(update={"criteria": marked})
 
 
 def _every_spec(domain: StrategyDomainState) -> list[OperationalSpec]:
@@ -208,19 +235,18 @@ def _every_spec(domain: StrategyDomainState) -> list[OperationalSpec]:
     return [spec for spec in held if spec is not None]
 
 
-async def _sheets_the_replay_reads(
-    site_id: str,
+def _searches_the_replay_reads(
     domain: StrategyDomainState,
     changes: OutsideChanges,
     live: StrategyAst | None,
-) -> Sheets:
-    """The parameter sheets of the searches this replay states or restates.
+) -> frozenset[str]:
+    """The searches this replay states or restates.
 
     A turn whose strategy did not move and whose specs state every live step
     reads none of them.
     """
     if live is None:
-        return {}
+        return frozenset()
     nodes = nodes_of(live)
     stated = {
         criterion.id for spec in _every_spec(domain) for criterion in spec.criteria
@@ -230,11 +256,6 @@ async def _sheets_the_replay_reads(
         for node in nodes.values()
         if node.id not in stated and node.infer_kind() != "combine"
     }
-    searches = {nodes[step_id].search_name for step_id in touched if step_id in nodes}
-    if not searches:
-        return {}
-    return await sheet_params_for_searches(
-        site_id=site_id,
-        record_type=live.record_type,
-        search_names=sorted(searches),
+    return frozenset(
+        nodes[step_id].search_name for step_id in touched if step_id in nodes
     )

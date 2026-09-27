@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.parameters import ParamValue, UnboundParameter
 from veupathdb.domain.strategy import (
     CombineOp,
@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.step_rationale import (
     ChosenRationale,
     StepRationale,
 )
+from pathfinder.domain.strategy.words import names_a_run_of
 
 CriterionRole = Literal["seed", "filter", "transform", "exclude"]
 MIN_COMBINE_INPUTS = 2
@@ -65,6 +66,23 @@ class DroppedCriterion(CamelModel):
     # The EDA dataset a drop recorded before a criterion could wait for its
     # analysis. The turn entry restates it as such a criterion.
     eda_dataset_id: str | None = None
+    # True when the text is a requirement no search states. It is a gap while
+    # no criterion of the spec states the text.
+    unexpressed: bool = False
+
+
+class UnexpressedText(CamelModel):
+    """A text the request states that no search of the spec states.
+
+    ``criterion_id`` is the criterion that holds it, None once a drop holds it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    word: str
+    criterion_id: str | None
+    stated_in: str
+    why: str
 
 
 class StructureNode(CamelModel):
@@ -129,6 +147,8 @@ class Criterion(CamelModel):
     # Set instead of ``search_name`` when the criterion reuses a saved strategy.
     saved_strategy_ref: SavedStrategyRef | None = None
     role: CriterionRole = "filter"
+    # The parameter WDK marks as the search's organism, None when it marks none.
+    organism_param: str | None = None
     resolved_params: dict[str, ParamValue] = Field(default_factory=dict)
     # Params holding the search default rather than a value the request states.
     # Reported to the user, because a default is a safe choice and a silent one.
@@ -138,6 +158,9 @@ class Criterion(CamelModel):
     assumptions: list[AssumedValue] = Field(default_factory=list)
     # The choices inside a criterion that matches no record. Empty otherwise.
     alternatives: list[ParameterAlternatives] = Field(default_factory=list)
+    # The records the binding matched when it was bound. None when no count
+    # arrived, and whenever a value changes after the count.
+    result_count: int | None = None
     # The exported analysis this criterion is, once the EDA tools bound it.
     analysis: AnalysisBinding | None = None
     # The dataset whose analysis workflow realizes this criterion, while it waits.
@@ -199,6 +222,32 @@ class OperationalSpec(CamelModel):
             msg = f"the spec names criteria {repeated} more than once"
             raise ValueError(msg)
         return self
+
+    def unexpressed(self) -> list[UnexpressedText]:
+        """Every text no search states: each criterion's own words, then each
+        dropped text no criterion of the spec states."""
+        held = [
+            UnexpressedText(
+                word=word,
+                criterion_id=c.id,
+                stated_in=c.text,
+                why=(
+                    f"{c.title} cannot state '{word}', and no search the "
+                    f"framing pass read has a parameter that does"
+                ),
+            )
+            for c in self.criteria
+            for word in c.unexpressed_qualifiers
+        ]
+        dropped = [
+            UnexpressedText(
+                word=d.text, criterion_id=None, stated_in=d.text, why=d.reason
+            )
+            for d in self.dropped
+            if d.unexpressed
+            and not any(names_a_run_of(c.text, d.text) for c in self.criteria)
+        ]
+        return [*held, *dropped]
 
     @property
     def ready_to_build(self) -> bool:

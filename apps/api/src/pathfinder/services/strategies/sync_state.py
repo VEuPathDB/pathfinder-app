@@ -29,6 +29,8 @@ class WDKSyncState:
     # diff planner compare new state against the actually-pushed state instead
     # of always treating every step as new.
     last_pushed_ast: StrategyAst | None = None
+    # The parameter each search of the last synced tree marks as its organism.
+    organism_params: dict[str, str] = field(default_factory=dict)
 
     @property
     def wdk_root_step_id(self) -> int | None:

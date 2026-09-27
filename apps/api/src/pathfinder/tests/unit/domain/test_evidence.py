@@ -13,6 +13,7 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
+    NamedControlSet,
 )
 
 _RECOVERED = [f"PF3D7_{index:07d}" for index in range(7)]
@@ -135,7 +136,11 @@ def test_the_card_lists_every_text_a_reader_can_see() -> None:
             )
         ],
         controls=[
-            ControlTestEvidence(tested_label="the tested step", positive=_positive())
+            ControlTestEvidence(
+                tested_label="the tested step",
+                control_set=NamedControlSet(id="cs-1", name="Signal peptide controls"),
+                positive=_positive(),
+            )
         ],
         citations=[],
         pending_checks=["Febrile vs normal"],
@@ -146,4 +151,5 @@ def test_the_card_lists_every_text_a_reader_can_see() -> None:
         "Febrile vs normal",
         "Genes by Molecular Weight",
         "the tested step",
+        "Signal peptide controls",
     ]

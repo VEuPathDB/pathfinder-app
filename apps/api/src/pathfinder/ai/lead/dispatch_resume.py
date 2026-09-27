@@ -14,6 +14,7 @@ from pathfinder.ai.lead.deltas import (
     FrameResult,
     RecoveryDelta,
     VerificationDelta,
+    VerificationStopped,
 )
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
@@ -40,7 +41,12 @@ class _FrameArgs(_ReasonArgs):
 
 
 type SubAgentOutcome = (
-    FrameResult | RecoveryDelta | VerificationDelta | EditDelta | SubAgentApprovalWait
+    FrameResult
+    | RecoveryDelta
+    | VerificationDelta
+    | VerificationStopped
+    | EditDelta
+    | SubAgentApprovalWait
 )
 
 

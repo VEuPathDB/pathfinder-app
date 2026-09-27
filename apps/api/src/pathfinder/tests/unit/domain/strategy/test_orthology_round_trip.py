@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.orthology import (
 from pathfinder.domain.strategy.spec_tree import build_step_tree
 
 from ._orthology import (
+    ORGANISM_PARAMS,
     ORTHOLOGS,
     SOURCE,
     TARGET,
@@ -67,11 +68,11 @@ def test_the_round_trip_builds_the_seed_intersect_its_two_transforms() -> None:
 def test_the_double_transform_keeps_the_source_organism() -> None:
     built = build_step_tree(restate_copies(round_trip_spec())).root
 
-    assert extract_output_organisms(built) == {SOURCE}
+    assert extract_output_organisms(built, ORGANISM_PARAMS) == {SOURCE}
     assert built.secondary_input is not None
     there = built.secondary_input.primary_input
     assert there is not None
-    assert extract_output_organisms(there) == {TARGET}
+    assert extract_output_organisms(there, ORGANISM_PARAMS) == {TARGET}
 
 
 def test_a_restated_copy_is_criteria_of_its_own_and_no_copy_node() -> None:
@@ -226,7 +227,7 @@ def _carried(organism: str) -> StrategyStepNode:
 
 
 def test_a_carry_changes_the_organism_of_the_records() -> None:
-    assert organism_change(_carried(TARGET)) == OrganismChange(
+    assert organism_change(_carried(TARGET), ORGANISM_PARAMS) == OrganismChange(
         seed=[SOURCE], records=[TARGET]
     )
 
@@ -235,10 +236,26 @@ def test_a_round_trip_and_a_search_change_no_organism() -> None:
     built = build_step_tree(restate_copies(round_trip_spec())).root
 
     assert (
-        organism_change(built),
-        organism_change(_carried(SOURCE)),
-        organism_change(StrategyStepNode(search_name="GenesByText")),
+        organism_change(built, ORGANISM_PARAMS),
+        organism_change(_carried(SOURCE), ORGANISM_PARAMS),
+        organism_change(StrategyStepNode(search_name="GenesByText"), ORGANISM_PARAMS),
     ) == (None, None, None)
+
+
+def test_a_search_the_map_does_not_name_changes_no_organism() -> None:
+    marked = {"GenesWithSignalPeptide": "organism"}
+
+    assert (
+        organism_change(_carried(TARGET), marked),
+        organism_change(_carried(TARGET), {**marked, ORTHOLOGS: "organism"}),
+    ) == (None, OrganismChange(seed=[SOURCE], records=[TARGET]))
+
+
+def test_a_round_trip_reads_the_organism_each_criterion_marks() -> None:
+    unmarked = [c.model_copy(update={"organism_param": None}) for c in seed_criteria()]
+
+    assert round_trip_refusal(round_trip_spec(trip(seed_node()), seed=unmarked)) is None
+    assert round_trip_refusal(round_trip_spec(trip(seed_node()))) == _KEEP_THE_SOURCE
 
 
 def test_the_change_reads_as_the_records_and_the_seed() -> None:

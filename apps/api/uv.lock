@@ -137,8 +137,8 @@ wheels = [
 
 [[package]]
 name = "assistant-core"
-version = "0.3.0a19"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a19#8ad0d5a8bc7e07eb8392c5eefed9ffc2861838af" }
+version = "0.3.0a20"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a20#e692ee3edb7612914774f5f1012e969d18fa70e6" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -2555,7 +2555,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a19" },
+    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a20" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "cryptography", specifier = ">=50.0.0" },
@@ -2587,8 +2587,8 @@ requires-dist = [
     { name = "structlog", specifier = ">=25.0.0" },
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a30" },
-    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a18" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a31" },
+    { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a19" },
 ]
 
 [package.metadata.requires-dev]
@@ -2607,7 +2607,7 @@ dev = [
     { name = "ruff", specifier = ">=0.16.6" },
     { name = "schemathesis", specifier = ">=4.16.1" },
     { name = "testcontainers", specifier = ">=4.14.0" },
-    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a19" },
+    { name = "veupathdb-mcp-conformance", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a20" },
     { name = "vulture", specifier = ">=2.16" },
 ]
 docs = [
@@ -4112,8 +4112,8 @@ wheels = [
 
 [[package]]
 name = "veupathdb-mcp"
-version = "0.2.0a30"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a30#529a46f96a8f6958305bd36e593fcce2f1666ffd" }
+version = "0.2.0a31"
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a31#715876ad33d3fca6f8ff80c3e87850f2241f7695" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -4137,7 +4137,7 @@ dependencies = [
 [[package]]
 name = "veupathdb-mcp-conformance"
 version = "0.1.3"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a19#8ad0d5a8bc7e07eb8392c5eefed9ffc2861838af" }
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fmcp-conformance&tag=v0.3.0a20#e692ee3edb7612914774f5f1012e969d18fa70e6" }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },
@@ -4147,8 +4147,8 @@ dependencies = [
 
 [[package]]
 name = "veupathdb-py"
-version = "0.1.0a18"
-source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a18#5439fbf9a88364947e47b82596e518be5fd9e2a3" }
+version = "0.1.0a19"
+source = { git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a19#ea2df027d083f58fbb10eeb9d575deb0a3542978" }
 dependencies = [
     { name = "httpx" },
     { name = "json5" },

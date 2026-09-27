@@ -29,6 +29,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.tests._support.organism_reads import serve_organism_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -375,6 +376,7 @@ def _signal_peptide(criterion_id: str, organism: str) -> Criterion:
         text=f"{organism} genes that have a predicted signal peptide",
         search_name="GenesWithSignalPeptide",
         role="seed",
+        organism_param="organism",
         resolved_params={"organism": MultiPickValue(values=[organism])},
     )
 
@@ -418,7 +420,10 @@ class TestAnIntersectOfTwoOrganismsIsRefusedBeforeTheBuild:
         assert _drafted_root(st).operator == CombineOp.UNION
 
     @pytest.mark.asyncio
-    async def test_an_intersect_above_the_orthology_transform_is_written(self) -> None:
+    async def test_an_intersect_above_the_orthology_transform_is_written(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        serve_organism_reads(monkeypatch, ["Plasmodium vivax P01"])
         st = AgentToolState()
         st.frame_set_criterion(_signal_peptide("c_pf", "Plasmodium falciparum 3D7"))
         st.frame_set_criterion(_signal_peptide("c_pv", "Plasmodium vivax P01"))
@@ -428,6 +433,7 @@ class TestAnIntersectOfTwoOrganismsIsRefusedBeforeTheBuild:
                 text="their orthologs in Plasmodium vivax P01",
                 search_name="GenesByOrthologs",
                 role="transform",
+                organism_param="organism",
                 resolved_params={
                     "organism": MultiPickValue(values=["Plasmodium vivax P01"])
                 },

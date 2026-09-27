@@ -14,7 +14,15 @@ from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
-from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
+from pathfinder.ai.tools.standalone.saved_control_sets import (
+    ATTACH_A_SET,
+    unattached_set,
+)
+from pathfinder.domain.evidence import (
+    ControlSetEvidence,
+    ControlTestEvidence,
+    NamedControlSet,
+)
 from pathfinder.services.evidence.comparisons import run_scored_comparison
 from pathfinder.services.evidence.control_sets import get_control_set
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
@@ -39,6 +47,7 @@ def _scored_runs(
     *,
     positives: list[str],
     negatives: list[str],
+    control_set: NamedControlSet,
     tool_call_id: str,
 ) -> list[ControlTestRun]:
     """One control result per variant the comparison scored."""
@@ -53,7 +62,10 @@ def _scored_runs(
                 tool_call_id=f"{tool_call_id}:{variant.label}",
                 origin="scored_comparison",
                 evidence=ControlTestEvidence(
-                    tested_label=variant.label, positive=positive, negative=negative
+                    tested_label=variant.label,
+                    control_set=control_set,
+                    positive=positive,
+                    negative=negative,
                 ),
             )
         )
@@ -103,8 +115,8 @@ async def compare_variants_scored(
 ) -> ToolReturn[ScoredComparison]:
     """Run each variant as a full scored run against a saved control
     set and rank them by ``objective`` (mcc | balanced_accuracy | f1 |
-    precision | sensitivity). Use after the user has chosen/built a control
-    set (see build_control_set / list_control_sets). Returns per-variant
+    precision | sensitivity). The set is one attached to this conversation
+    (``build_control_set`` or ``use_control_set``). Returns per-variant
     metrics + the winning variant as a card. A variant that carries an error
     scored nothing: report that its scoring failed and quote the one line,
     never a different reason. Every variant also carries the control ids its
@@ -115,6 +127,10 @@ async def compare_variants_scored(
         msg = "compare_variants_scored needs at least 2 variants."
         raise ModelRetry(msg)
     reject_combine_variants(variants)
+    refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
+    if refused is not None:
+        msg = f"{refused} {ATTACH_A_SET}"
+        raise ModelRetry(msg)
 
     parsed = parse_id_argument(
         control_set_id, argument="control_set_id", names="control set"
@@ -135,6 +151,7 @@ async def compare_variants_scored(
             result,
             positives=control_set.positive_ids,
             negatives=control_set.negative_ids,
+            control_set=NamedControlSet(id=control_set.id, name=control_set.name),
             tool_call_id=ctx.tool_call_id or "",
         )
     )

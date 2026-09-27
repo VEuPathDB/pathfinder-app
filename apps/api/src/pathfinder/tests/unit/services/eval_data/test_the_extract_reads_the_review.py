@@ -15,7 +15,10 @@ from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.domain.caveats import ControlsCaveat, WordGap
 from pathfinder.domain.evidence import (
     Citation,
+    ControlSetEvidence,
+    ControlTestEvidence,
     EvidenceCard,
+    NamedControlSet,
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -53,6 +56,8 @@ _REVIEW = VerificationReview(
     ],
 )
 
+_SET = NamedControlSet(id="set-a", name="kinases ada@example.org saved")
+
 
 def _chunks() -> list[LoggedChunk]:
     digest = VerificationDigest(
@@ -67,6 +72,7 @@ def _chunks() -> list[LoggedChunk]:
                 positives_total=80,
                 negatives_returned=2,
                 negatives_total=40,
+                control_set=_SET,
             ),
         ],
         gaps=[WordGap(word="ada@example.org")],
@@ -82,7 +88,15 @@ def _chunks() -> list[LoggedChunk]:
             checked_at=datetime(2026, 9, 24, 9, 30, tzinfo=UTC),
             site_read="not_read",
             steps=[],
-            controls=[],
+            controls=[
+                ControlTestEvidence(
+                    tested_label="Predicted Signal Peptide",
+                    control_set=_SET,
+                    positive=ControlSetEvidence(
+                        returned=["PF3D7_0102200"], not_returned=[]
+                    ),
+                )
+            ],
             citations=[],
             review=_REVIEW,
         )
@@ -126,6 +140,21 @@ def test_the_typed_caveats_and_gaps_are_read_redacted() -> None:
     assert [gap.sentence for gap in verdict.gaps] == [
         "'[redacted-email]': no search the strategy runs states it"
     ]
+
+
+def test_the_control_set_name_is_redacted_on_the_caveat_and_the_card() -> None:
+    verdict = read_verification(_chunks())
+
+    assert verdict is not None
+    assert verdict.evidence is not None
+    assert [caveat.texts() for caveat in verdict.caveats] == [
+        ["kinases [redacted-email] saved"]
+    ]
+    assert [
+        test.control_set.name
+        for test in verdict.evidence.controls
+        if test.control_set is not None
+    ] == ["kinases [redacted-email] saved"]
 
 
 def test_a_log_written_before_caveats_were_typed_is_refused() -> None:

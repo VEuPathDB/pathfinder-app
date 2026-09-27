@@ -19,9 +19,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from veupathdb.domain.parameters import (
-    VocabOption,
-)
+from veupathdb.domain.parameters import VocabOption
 from veupathdb_mcp.catalog import SheetEntry
 
 from pathfinder.ai.agents.state import AgentToolState
@@ -39,12 +37,11 @@ from pathfinder.ai.models.mock.faults import made_by_a_fault
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry
 from pathfinder.domain.separation import AttachedControls
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-)
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.tests._support.organism_reads import MARKS
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
@@ -117,13 +114,14 @@ NOT_HERE = "This study is on another site; its genes are not genes of this site.
 Refusals = Mapping[str, str]
 
 
-def _entry(name: str, vocabulary: list[str]) -> SheetEntry:
+def _entry(name: str, vocabulary: list[str], *, organism: bool) -> SheetEntry:
     return SheetEntry(
         name=name,
         display_name=name,
         type="multi-pick-vocabulary",
         required=True,
         vocabulary=[VocabOption(value=v, display=v) for v in vocabulary],
+        organism_param=organism,
     )
 
 
@@ -137,7 +135,11 @@ def _sheet(site_id: str, search_name: str) -> list[SheetEntry]:
         "go_typeahead": SHEET_GO_TERMS,
     }
     names = SHEET_PARAMS.get(search_name, ["organism"])
-    return [_entry(name, vocabularies.get(name, [])) for name in names]
+    marked = MARKS.get(search_name)
+    return [
+        _entry(name, vocabularies.get(name, []), organism=name == marked)
+        for name in names
+    ]
 
 
 class _Tools:
@@ -264,6 +266,14 @@ class _Tools:
             "clear_strategy": {"graphId": "g1", "message": "cleared"},
             "propose_changes": {"diff": {}},
             "build_control_set": {"controlSetId": CONTROL_SET_ID},
+            "list_control_sets": [
+                {
+                    "controlSetId": CONTROL_SET_ID,
+                    "name": "Controls from this message",
+                    "positiveCount": len(positives),
+                    "negativeCount": len(self.values.controls.negative_ids),
+                }
+            ],
             "save_gene_set": {
                 "geneSetCreated": {"id": "gs-1", "geneCount": SAVED_GENE_COUNT}
             },

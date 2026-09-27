@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from functools import cache
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 from veupathdb.domain.strategy import StrategyStepNode
@@ -15,10 +16,14 @@ from pathfinder.services.experiment.seed.catalog import get_seeds_for_site
 
 ParamValues = dict[str, str | list[str] | None]
 
-# The parameters a gene search names its organism in.
-ORGANISM_PARAMS = ("organism", "text_search_organism")
-
 _DECODED: TypeAdapter[str | list[str]] = TypeAdapter(str | list[str])
+# Each search the seeds run, and the parameter WDK marks as its organism, as
+# the site's catalog answered it; null where the search marks none. It is
+# written by ``python -m pathfinder.devtools.seeds marks``.
+MARKS_FILE = Path(__file__).with_name("organism_params.json")
+_MARKS: TypeAdapter[dict[str, dict[str, str | None]]] = TypeAdapter(
+    dict[str, dict[str, str | None]]
+)
 
 
 class SeedLeaf(BaseModel):
@@ -60,6 +65,25 @@ class SiteValues(BaseModel):
         return next((s for s in self.leaves if s.search_name == search_name), None)
 
 
+@cache
+def recorded_marks_by_site() -> dict[str, dict[str, str | None]]:
+    """Each seed site, and the marks of the searches its seeds run."""
+    return _MARKS.validate_json(MARKS_FILE.read_bytes())
+
+
+def recorded_marks(site_id: str) -> dict[str, str | None]:
+    """Each search the site's seeds run, and its marked organism parameter."""
+    return recorded_marks_by_site()[site_id]
+
+
+def _marked(site_id: str) -> dict[str, str]:
+    return {
+        search: param
+        for search, param in recorded_marks(site_id).items()
+        if param is not None
+    }
+
+
 def _nodes(site_id: str) -> list[StrategyStepNode]:
     return [
         leaf
@@ -70,10 +94,11 @@ def _nodes(site_id: str) -> list[StrategyStepNode]:
 
 def _organisms_ranked(site_id: str) -> list[str]:
     """The organisms the site's seed searches run on, the most run first."""
+    marks = _marked(site_id)
     counted = Counter(
         organism
         for node in _nodes(site_id)
-        for organism in sorted(extract_output_organisms(node) or ())
+        for organism in sorted(extract_output_organisms(node, marks) or ())
     )
     return [organism for organism, _ in counted.most_common()]
 
@@ -83,10 +108,10 @@ def _organism_of(site_id: str) -> str | None:
     return next(iter(_organisms_ranked(site_id)), None)
 
 
-def _decoded(node: StrategyStepNode, organism: str) -> ParamValues:
+def _decoded(node: StrategyStepNode, organism: str, organism_param: str) -> ParamValues:
     values: ParamValues = {}
     for name, value in node.parameters.items():
-        if name in ORGANISM_PARAMS:
+        if name == organism_param:
             values[name] = [organism]
             continue
         try:
@@ -98,14 +123,16 @@ def _decoded(node: StrategyStepNode, organism: str) -> ParamValues:
 
 def _seed_leaves(site_id: str, organism: str) -> tuple[SeedLeaf, ...]:
     """The first seed leaf of each search that runs on the site organism."""
+    marks = _marked(site_id)
     found: dict[str, SeedLeaf] = {}
     for node in _nodes(site_id):
         if node.search_name in found:
             continue
-        if extract_output_organisms(node) != {organism}:
+        if extract_output_organisms(node, marks) != {organism}:
             continue
         found[node.search_name] = SeedLeaf(
-            search_name=node.search_name, values=_decoded(node, organism)
+            search_name=node.search_name,
+            values=_decoded(node, organism, marks[node.search_name]),
         )
     return tuple(found.values())
 

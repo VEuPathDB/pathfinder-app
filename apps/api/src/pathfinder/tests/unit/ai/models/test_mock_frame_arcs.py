@@ -128,7 +128,6 @@ EDIT_SEQUENCES: dict[str, list[str]] = {
         "set_structure",
         "final_result",
     ],
-    "delete-step": ["drop_criterion", "set_structure", "final_result"],
     "orthologs": [
         "list_searches",
         "search_for_searches",
@@ -332,32 +331,6 @@ def test_the_frame_loop_asks_for_one_listing_again_and_again() -> None:
     calls = play("frame", "plasmodb", "[[arc:frame-loop]]", work_order=_ORDER, limit=3)
 
     assert names(calls) == ["list_searches"] * 3
-
-
-def test_the_delete_closes_the_tree_over_the_step_it_drops() -> None:
-    calls = play(
-        "frame",
-        "vectorbase",
-        "[[arc:delete-step]]",
-        work_order=edit_order("vectorbase"),
-    )
-
-    assert args_of(calls, "drop_criterion")[0]["criterion_id"] == "tm_domains"
-    (structure,) = args_of(calls, "set_structure")
-    assert structure["root"] == {
-        "kind": "leaf",
-        "criterionId": "signal_peptide",
-        "operator": None,
-        "inputs": [],
-    }
-    assert calls[-1].args_as_dict()["changes"] == [
-        {"criterionId": "signal_peptide", "disposition": "kept"},
-        {
-            "criterionId": "tm_domains",
-            "disposition": "dropped",
-            "reason": "the request removes it",
-        },
-    ]
 
 
 def test_the_orthologs_edit_transforms_the_whole_strategy() -> None:

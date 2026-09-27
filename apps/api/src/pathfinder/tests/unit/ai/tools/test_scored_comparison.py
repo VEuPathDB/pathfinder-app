@@ -7,14 +7,17 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import scored_comparison
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
+from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.services.control_sets import ControlSetResponse
 from pathfinder.services.experiment.scored_comparison import (
     ScoredComparison,
@@ -39,7 +42,7 @@ def _pin_control_set(
     *,
     positive_ids: list[str],
     negative_ids: list[str],
-) -> None:
+) -> ControlSetResponse:
     control_set = ControlSetResponse(
         id=str(uuid4()),
         name="controls",
@@ -59,6 +62,16 @@ def _pin_control_set(
         return control_set
 
     monkeypatch.setattr(scored_comparison, "get_control_set", _get)
+    return control_set
+
+
+def _attached_to(held: ControlSetResponse) -> RunContext[LeadDeps]:
+    """A Lead context whose conversation holds ``held`` attached."""
+    ctx = detached_lead_context()
+    ctx.deps.state.domain.attach_control_set(
+        NamedControlSet(id=held.id, name=held.name)
+    )
+    return ctx
 
 
 def _pin_comparison(
@@ -80,7 +93,7 @@ def _pin_comparison(
 async def test_it_emits_the_scored_card_and_the_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=["n1"])
+    held = _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=["n1"])
     captured = _pin_comparison(
         monkeypatch,
         ScoredComparison(
@@ -98,10 +111,7 @@ async def test_it_emits_the_scored_card_and_the_summary(
     )
 
     result = await compare_variants_scored(
-        detached_lead_context(),
-        _variants(),
-        control_set_id=str(uuid4()),
-        objective="mcc",
+        _attached_to(held), _variants(), control_set_id=held.id, objective="mcc"
     )
 
     assert returned(result, ScoredComparison).winner_label == "b"
@@ -109,6 +119,34 @@ async def test_it_emits_the_scored_card_and_the_summary(
     assert captured["objective"] == "mcc"
     assert result.metadata[0].type == "data-scored-comparison"
     assert "Winner: b" in summary_text(result)
+
+
+async def test_each_scored_variant_names_the_saved_set_it_ran(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    held = _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=[])
+    _pin_comparison(
+        monkeypatch,
+        ScoredComparison(
+            variants=[
+                ScoredVariant(
+                    label="a", search_name="SA", mcc=0.6, control_hits=["g1"]
+                ),
+                ScoredVariant(label="b", search_name="SB", mcc=0.9, control_hits=[]),
+            ],
+            winner_label="b",
+            objective="mcc",
+        ),
+    )
+    ctx = _attached_to(held)
+
+    await compare_variants_scored(ctx, _variants(), control_set_id=held.id)
+
+    runs = ctx.deps.state.turn_markers.control_tests
+    assert [run.evidence.tested_label for run in runs] == ["a", "b"]
+    assert [run.evidence.control_set for run in runs] == 2 * [
+        NamedControlSet(id=held.id, name="controls")
+    ]
 
 
 async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -170,10 +208,10 @@ class TestAFailedScoringIsReportedAsOne:
     )
 
     async def _content(self, monkeypatch: pytest.MonkeyPatch) -> str:
-        _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=[])
+        held = _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=[])
         _pin_comparison(monkeypatch, self._COMPARISON)
         result = await compare_variants_scored(
-            detached_lead_context(), _variants(), control_set_id=str(uuid4())
+            _attached_to(held), _variants(), control_set_id=held.id
         )
         return summary_text(result)
 

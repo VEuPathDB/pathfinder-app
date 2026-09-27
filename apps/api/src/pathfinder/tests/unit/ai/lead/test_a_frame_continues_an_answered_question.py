@@ -171,7 +171,7 @@ async def test_a_bound_draft_with_no_question_is_continued_from_the_message() ->
     deps = draft_deps(
         "continue", domain=StrategyDomainState(operational_spec=framed(None))
     )
-    await classify(deps)
+    await classify(deps, IntentClassification.EXTEND_STRATEGY)
 
     order = frame_work_order("continue the frame", deps)
 

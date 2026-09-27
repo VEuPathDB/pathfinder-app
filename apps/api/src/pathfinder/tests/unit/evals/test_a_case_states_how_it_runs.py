@@ -53,6 +53,7 @@ def test_the_fields_read_from_the_corpus_json() -> None:
         attachments={"0": ["controls.csv"]},
         expected={
             "buildsStrategy": True,
+            "countsInGenes": True,
             "endsOn": "approval",
             "rootCount": {
                 "count": 116,
@@ -69,10 +70,31 @@ def test_the_fields_read_from_the_corpus_json() -> None:
         "stop",
         {0: ["controls.csv"]},
     )
-    assert (case.expected.ends_on, case.expected.root_count) == (
+    assert (
+        case.expected.counts_in_genes,
+        case.expected.ends_on,
+        case.expected.root_count,
+    ) == (
+        True,
         "approval",
         RecordedCount(count=116, build="71", measured_on=datetime.date(2026, 9, 24)),
     )
+
+
+@pytest.mark.parametrize("name", ["uat-s1-fungidb", "uat-s1-toxodb"])
+def test_a_shipped_case_holds_the_count_unit_and_forbids_no_bare_word(
+    name: str,
+) -> None:
+    expected = load_case(name).expected
+
+    assert (expected.counts_in_genes, expected.reply_omits) == (True, [])
+
+
+def test_the_shipped_cases_that_hold_the_count_unit() -> None:
+    held = [c.name for c in load_corpus() if c.expected.counts_in_genes is True]
+
+    assert len(held) == 24
+    assert [name for name in held if not name.startswith("uat-")] == []
 
 
 def test_an_attachment_on_a_turn_the_case_does_not_have_is_refused() -> None:
@@ -391,11 +413,6 @@ def test_the_n1_case_answers_the_card_and_builds_the_three_criteria() -> None:
         True,
         "INTERSECT",
         5,
-        {
-            "GenesByVariantCharacteristics": {
-                "organism_select_none": "Plasmodium falciparum 3D7"
-            },
-            "GenesByOrthologPattern": {"excluded_species": "hsap"},
-        },
+        {"GenesByOrthologPattern": {"excluded_species": "hsap"}},
         None,
     )

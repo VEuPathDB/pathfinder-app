@@ -25,7 +25,9 @@ def _pinned(fixture: str, search_name: str, criterion_id: str) -> str:
 def test_the_second_organism_is_a_strain_of_the_same_genus() -> None:
     pinned = _pinned("search_genes_by_orthologs_vectorbase", "GenesByOrthologs", "c1")
 
-    alt = alt_organism(pinned, "c1", "Anopheles gambiae PEST", same_genus=True)
+    alt = alt_organism(
+        pinned, "c1", "organism", "Anopheles gambiae PEST", same_genus=True
+    )
 
     assert alt == "Anopheles albimanus STECLA"
 
@@ -33,7 +35,9 @@ def test_the_second_organism_is_a_strain_of_the_same_genus() -> None:
 def test_the_second_organism_can_be_a_strain_of_another_genus() -> None:
     pinned = _pinned("search_genes_by_orthologs_vectorbase", "GenesByOrthologs", "c1")
 
-    alt = alt_organism(pinned, "c1", "Anopheles gambiae PEST", same_genus=False)
+    alt = alt_organism(
+        pinned, "c1", "organism", "Anopheles gambiae PEST", same_genus=False
+    )
 
     assert alt == "Amblyomma americanum F_SG_1"
 
@@ -42,7 +46,7 @@ def test_the_taxon_sheet_gives_a_plasmodium_strain() -> None:
     pinned = _pinned("search_genes_by_taxon", "GenesByTaxon", "seed")
 
     assert alt_organism(
-        pinned, "seed", "Plasmodium falciparum 3D7", same_genus=True
+        pinned, "seed", "organism", "Plasmodium falciparum 3D7", same_genus=True
     ) == ("Plasmodium adleri G01")
 
 
@@ -50,4 +54,6 @@ def test_a_criterion_with_no_pinned_sheet_fails_loudly() -> None:
     pinned = _pinned("search_genes_by_taxon", "GenesByTaxon", "seed")
 
     with pytest.raises(LookupError, match="other"):
-        alt_organism(pinned, "other", "Plasmodium falciparum 3D7", same_genus=True)
+        alt_organism(
+            pinned, "other", "organism", "Plasmodium falciparum 3D7", same_genus=True
+        )

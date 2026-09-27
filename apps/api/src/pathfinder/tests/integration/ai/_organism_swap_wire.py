@@ -103,6 +103,22 @@ class RecordingAPI:
             search_config=WDKSearchConfig(parameters={}),
         )
 
+    async def update_strategy(
+        self,
+        strategy_id: int,
+        step_tree: WDKStepTree | None = None,
+        name: str | None = None,
+        user_id: str | None = None,
+    ) -> WDKStrategyDetails:
+        del user_id
+        self.calls.append(
+            Call(
+                "update_strategy",
+                {"strategy_id": strategy_id, "step_tree": step_tree, "name": name},
+            )
+        )
+        return await self.get_strategy(strategy_id)
+
     async def get_strategy(
         self, strategy_id: int, user_id: str | None = None
     ) -> WDKStrategyDetails:
@@ -133,6 +149,7 @@ def _organism_info() -> ParameterInfo:
         is_visible=True,
         help="",
         value_format="",
+        organism_param=True,
         vocab_leaves=[
             VocabOption(value=PF, display="P. falciparum 3D7"),
             VocabOption(value=PV, display="P. vivax P01"),

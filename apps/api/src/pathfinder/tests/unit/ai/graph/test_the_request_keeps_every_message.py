@@ -13,6 +13,7 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
 from pathfinder.domain.evidence import (
+    NamedControlSet,
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -57,6 +58,31 @@ def test_a_request_set_aside_takes_its_messages_and_offers_with_it() -> None:
         domain.separation_offers,
         domain.attached_controls,
     ) == ([], {}, None)
+
+
+def test_a_request_set_aside_keeps_the_control_sets_of_the_conversation() -> None:
+    attached = NamedControlSet(
+        id="5f1c6a2e-0000-4000-8000-00000000c0de", name="Kinase controls"
+    )
+    domain = StrategyDomainState()
+    domain.attach_control_set(attached)
+
+    domain.take_a_new_request(strategy_has_steps=False)
+
+    assert domain.control_sets == [attached]
+
+
+def test_the_attached_control_sets_survive_the_checkpoint() -> None:
+    serde = build_checkpoint_serde(PATHFINDER_CHECKPOINT_TYPES)
+    domain = StrategyDomainState()
+    domain.attach_control_set(
+        NamedControlSet(id="5f1c6a2e-0000-4000-8000-00000000c0de", name="Kinases")
+    )
+
+    restored = serde.loads_typed(serde.dumps_typed(domain))
+
+    assert restored == domain
+    assert restored.control_sets == domain.control_sets
 
 
 def test_a_digest_carries_its_review_through_the_checkpoint() -> None:

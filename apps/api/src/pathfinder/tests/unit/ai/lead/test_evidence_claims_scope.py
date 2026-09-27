@@ -25,6 +25,7 @@ from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
+    NamedControlSet,
 )
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.control_sets import ControlSetResponse
@@ -170,6 +171,9 @@ async def test_a_scored_comparison_backs_the_counts_it_scored(
     monkeypatch.setattr(scored_comparison, "run_scored_comparison", _run)
     ctx = detached_lead_context()
     ctx.deps.state.turn_markers.intent_classified = True
+    ctx.deps.state.domain.attach_control_set(
+        NamedControlSet(id=control_set.id, name=control_set.name)
+    )
 
     await compare_variants_scored(
         ctx,

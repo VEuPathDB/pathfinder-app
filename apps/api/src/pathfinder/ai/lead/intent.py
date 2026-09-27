@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -14,10 +13,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     read_combination,
 )
-from pathfinder.domain.strategy.organism_phrases import (
-    organism_split_refusal,
-    stated_organisms,
-)
+from pathfinder.domain.strategy.words import words_of
 
 
 class IntentClassification(StrEnum):
@@ -76,6 +72,24 @@ a strategy with no step the old request goes too; over steps it stays.
 """
 
 
+# The classifications that answer something the conversation asked or offered.
+_ANSWERS: frozenset[IntentClassification] = frozenset(
+    {
+        IntentClassification.CLARIFICATION_RESPONSE,
+        IntentClassification.SLOT_ANSWER,
+        IntentClassification.APPROVAL,
+        IntentClassification.DENIAL,
+    }
+)
+
+
+class NamedControls(CamelModel):
+    """The gene ids a message names as the researcher's positive and negative controls."""
+
+    positive_ids: list[str] = Field(default_factory=list)
+    negative_ids: list[str] = Field(default_factory=list)
+
+
 class UserIntent(CamelModel):
     """The Lead's typed parsing of the latest user message.
 
@@ -111,6 +125,28 @@ class UserIntent(CamelModel):
             "scoping's provisional assumptions for the same dimension."
         ),
     )
+    named_controls: NamedControls | None = Field(
+        default=None,
+        description=(
+            "The gene ids this message names as positive or negative controls, "
+            "typed or in an attached gene-ID list, each spelled as the message "
+            "spells it. None when the message names no control."
+        ),
+    )
+
+
+class ClassifiedIntent(CamelModel):
+    """The classification the gate recorded, and one note per correction it made."""
+
+    intent: UserIntent
+    corrections: list[str] = Field(default_factory=list)
+
+
+class RefusedClassification(CamelModel):
+    """The last classification the gate refused on this turn, and why."""
+
+    intent: UserIntent
+    sentence: str
 
 
 def _departure_words(request: CombinationRequest, reading: CombinationReading) -> str:
@@ -148,12 +184,48 @@ def unstated_operator_refusal(intent: UserIntent, message: str) -> str | None:
     return None
 
 
-def organism_refusal(
-    intent: UserIntent, message: str, vocabulary: Sequence[str]
-) -> str | None:
-    """Why this intent splits an organism entry of the site the message states whole."""
-    stated = stated_organisms(message, vocabulary)
-    return organism_split_refusal(intent.explicit_constraints, message, stated)
+def _occurs_in(gene_id: str, message: str) -> bool:
+    """Whether the id's words stand in the message as one consecutive run."""
+    wanted = words_of(gene_id)
+    held = words_of(message)
+    size = len(wanted)
+    return size > 0 and any(
+        held[k : k + size] == wanted for k in range(len(held) - size + 1)
+    )
+
+
+def unstated_control_ids(named: NamedControls, message: str) -> list[str]:
+    """The control ids the intent names that the message does not hold."""
+    ids = [*named.positive_ids, *named.negative_ids]
+    return [gene_id for gene_id in ids if not _occurs_in(gene_id, message)]
+
+
+def unstated_controls_message(ids: list[str]) -> str:
+    """The refusal of named controls the researcher's message does not hold."""
+    return (
+        f"The researcher's message does not hold {', '.join(ids)}. Name as "
+        "controls only the ids the message types or attaches, spelled as it "
+        "spells them."
+    )
+
+
+def nothing_to_answer_message() -> str:
+    """The refusal of an answer on a conversation that asked nothing."""
+    applies = ", ".join(c.value for c in IntentClassification if c not in _ANSWERS)
+    return (
+        "No question of yours is open on this conversation and no card waits, "
+        "so this message answers none. Classify it as what it asks for: one "
+        f"of {applies}."
+    )
+
+
+def repeated_refusal_message(refusal: str) -> str:
+    """The failure of a classification that repeats the call just refused."""
+    return (
+        f"{refusal}\n\nThis call repeats the one just refused, so it fails "
+        "without a retry. Ask the researcher the question this refusal states, "
+        "through consult_user."
+    )
 
 
 def already_classified_message(classification: IntentClassification) -> str:

@@ -12,7 +12,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any
 
-from assistant_core.capabilities.repetition_guard import RepetitionGuard
+from assistant_core.capabilities.repetition_guard import BlockRule, RepetitionGuard
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.graph.turn_state import (
@@ -71,6 +71,11 @@ _PHASE_STATUS_LABELS: dict[PhaseRole, str] = {
     "frame": "Framing the strategy...",
     "execution": "Recovering failed steps...",
     "verification": "Verifying the strategy...",
+}
+
+_GUARD_STOP_REASON: dict[BlockRule, PhaseStopReason] = {
+    "identical_arguments": PhaseStopReason.REPEATED_CALL,
+    "call_cap": PhaseStopReason.CALL_CAP,
 }
 
 
@@ -360,19 +365,25 @@ async def stream_sub_agent[OutputT: BaseModel](
                             context_meter,
                             baseline=baseline,
                         )
-                        if event.tool_call_id == guard.stopped_call_id:
-                            # The guard refused the same call twice. The draft
-                            # holds whatever the pass bound, as with a budget.
+                        stopped_by = guard.stopped_rule
+                        if (
+                            stopped_by is not None
+                            and event.tool_call_id == guard.stopped_call_id
+                        ):
+                            # The guard ended the run. The draft holds whatever
+                            # the pass bound, as with a budget.
                             logger.warning(
-                                "sub-agent repeated one call; keeping partial progress",
+                                "sub-agent stopped by the guard; keeping partial progress",
                                 role=role,
+                                rule=stopped_by,
                                 blocked=guard.total_blocked,
                             )
                             deps.last_phase_stop = _phase_stop(
-                                PhaseStopReason.REPEATED_CALL,
+                                _GUARD_STOP_REASON[stopped_by],
                                 run=run,
                                 agent_deps=agent_deps,
                                 usage=usage,
+                                tool_name=event.part.tool_name or "",
                             )
                             break
         except UsageLimitExceeded as exc:
@@ -425,6 +436,7 @@ def _phase_stop(
     agent_deps: AgentDeps,
     usage: RunUsage,
     refusal: _ToolRefusal | None = None,
+    tool_name: str = "",
 ) -> PhaseStop:
     """The stop this run reports, sized by what it spent and what it bound."""
     draft = agent_deps.agent_state.operational_spec_draft
@@ -434,6 +446,6 @@ def _phase_stop(
         tool_calls=usage.tool_calls,
         criteria_bound=sum(1 for c in draft.criteria if c.bound),
         criteria_declared=run.declared_criteria,
-        tool_name="" if refusal is None else refusal.tool_name,
+        tool_name=tool_name if refusal is None else refusal.tool_name,
         refusal="" if refusal is None else refusal.text,
     )

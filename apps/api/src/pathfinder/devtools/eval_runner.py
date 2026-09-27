@@ -35,6 +35,7 @@ from veupathdb.domain.strategy import StrategyAst
 from pathfinder.ai.conversation.gene_list_marker import gene_list_marker
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
+from pathfinder.ai.lead.reply_claims import counts_in_the_wrong_unit
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools.capture import RunCapture
 from pathfinder.devtools.chat import (
@@ -124,12 +125,20 @@ def gate_end(gate: Gate) -> GateEnd | None:
             return None
 
 
+def counts_in_genes(reply_text: str, ast: StrategyAst) -> bool:
+    """Whether the reply names no count of the strategy's steps in the record
+    type, where the site counts that record type in another noun."""
+    held = (ast.step_counts or {}).values()
+    return not counts_in_the_wrong_unit(reply_text, ast.record_type, held)
+
+
 async def observe(
     conversation_id: UUID,
     reply_text: str,
     *,
     step_ids_unchanged: bool | None = None,
     ends_on: GateEnd | None = None,
+    refused_tools: list[str],
 ) -> ObservedOutcome:
     """What the finished turn left behind, as the scorer reads it."""
     async with async_session_factory() as session:
@@ -149,12 +158,14 @@ async def observe(
         step_titles=step_titles(ast) if ast is not None else [],
         step_reasons=step_reasons(ast) if ast is not None else [],
         reply_text=reply_text,
+        counts_in_genes=counts_in_genes(reply_text, ast) if ast is not None else None,
         root_operator=root_operator(ast) if ast is not None else None,
         final_count_below_every_input=(
             final_count_below_every_input(ast) if ast is not None else None
         ),
         root_count=root_count(ast) if ast is not None else None,
         ends_on=ends_on,
+        refused_tools=refused_tools,
     )
 
 
@@ -260,6 +271,7 @@ async def run_one_case(
     before: set[int] = set()
     reply = ""
     ended = Gate(kind="none")
+    refused: list[str] = []
     answers = case.gate_answers()
     for index in range(len(case.turns)):
         prompt, inline = _turn_message(case, index)
@@ -280,12 +292,14 @@ async def run_one_case(
             attachments=inline,
         )
         capture, ended = await drive_run(args)
+        refused.extend(capture.refused_tools())
         while answers and _answers_the_gate(answers[0], ended):
             answered = await _answer(args, answers.pop(0), ended)
             if answered is None:
                 ended = Gate(kind="none")
                 break
             capture, ended = answered
+            refused.extend(capture.refused_tools())
         reply = capture.assistant_text()
     after = await persisted_wdk_step_ids(conversation_id)
     return await observe(
@@ -293,6 +307,7 @@ async def run_one_case(
         reply,
         step_ids_unchanged=(before == after) if before else None,
         ends_on=gate_end(ended),
+        refused_tools=refused,
     )
 
 
@@ -316,12 +331,18 @@ class CaseVerdict(Evaluator[EvalCase, ObservedOutcome, None]):
         return verdict
 
 
+def refusals_label(refused_tools: list[str]) -> str:
+    """The refusal count, and the refused tools in order when there are any."""
+    named = f" ({', '.join(refused_tools)})" if refused_tools else ""
+    return f"refusals={len(refused_tools)}{named}"
+
+
 def _progress_line(
     ctx: EvaluatorContext[EvalCase, ObservedOutcome, None],
     verdict: DriftVerdict,
     build: str,
 ) -> str:
-    """One case's verdict, its time, its root count and its first difference."""
+    """One case's verdict, time, root count, refusals and first difference."""
     drift = count_difference(ctx.inputs, ctx.output, build)
     named = [
         *score_case(ctx.inputs, ctx.output).differences,
@@ -333,8 +354,10 @@ def _progress_line(
         if not named
         else f"{named[0].field}: expected {named[0].expected!r}, got {named[0].actual!r}"
     )
+    refusals = refusals_label(ctx.output.refused_tools)
     return (
-        f"{verdict} {ctx.inputs.name} {round(ctx.duration, 3)}s count={count}  {first}"
+        f"{verdict} {ctx.inputs.name} {round(ctx.duration, 3)}s "
+        f"count={count} {refusals}  {first}"
     )
 
 
@@ -392,6 +415,7 @@ async def run_corpus(
                     case, reported.output, builds[case.site_id]
                 ),
                 duration_seconds=round(reported.task_duration, 3),
+                refused_tools=reported.output.refused_tools,
             ),
         )
     results.extend(
@@ -410,9 +434,11 @@ async def run_corpus(
 __all__ = [
     "HARNESS",
     "build_dataset",
+    "counts_in_genes",
     "gate_end",
     "observe",
     "persisted_wdk_step_ids",
+    "refusals_label",
     "run_corpus",
     "run_one_case",
 ]
