@@ -627,20 +627,19 @@ Found by the a18 model report (2026-09-27, build 71, `evals run --via-worker`, L
 
 ## FND-32 - A refused classification ends the turn with nothing built
 
-Found by the a18 model report. Open.
+Found by the a18 model report; reproduced with the chat debugger on 2026-09-27. Open.
 
-**What I did.** vectorbase S1, the once-only re-run of the same message.
+**What I did.** vectorbase S1 `Find Anopheles gambiae PEST genes whose proteins have a predicted signal peptide.`, the report's re-run and two debugger runs (`--via-worker`, Luna medium).
 
-**What I got.** Call 1 `classify_user_intent` (organism `"Anopheles gambiae"`, other `"PEST genes"`) is refused with `The message names the organism "Anopheles gambiae PEST", one entry of this site's organism list. Record it whole as the organism constraint`. Call 2 is `read_ledger_section(frame)` -> `## Frame (no spec yet)`. The reply: `I could not build the search for Anopheles gambiae PEST genes whose proteins have a predicted signal peptide, so the strategy is unchanged.` No second classification, no frame pass, no strategy. The first run of the same message classified on the third call and built.
+**What I got.** Re-run: call 1 `classify_user_intent` (organism `"Anopheles gambiae"`, other `"PEST genes"`) is refused with `The message names the organism "Anopheles gambiae PEST", one entry of this site's organism list. Record it whole as the organism constraint`; call 2 is `read_ledger_section(frame)` -> `## Frame (no spec yet)`; the reply: `I could not build the search for Anopheles gambiae PEST genes whose proteins have a predicted signal peptide, so the strategy is unchanged.` Debugger run a: the same refusal four times in a row, each call resubmitting the identical constraints (`organism "Anopheles gambiae"`, `other "PEST genes"`, `other "predicted signal peptide"`) with only the goal reworded; the fourth is `Tool execution was interrupted by an error` and the turn ends `I stopped this turn on an error I could not recover from: Tool 'classify_user_intent' exceeded max retries count of 3 ... Send the message again`. Debugger run b: two refusals, then the whole organism, built 2,928. Across the a18 report the refusal fired on every vectorbase PEST turn (7 turns, 12 refusals; X6 needed 3, the retry cap).
 
-**Why that's wrong.** The researcher reads that the site could not build a one-search request that it builds every other time, and nothing tells them what to change.
+**Why that's wrong.** A one-search request that a17 built twice out of twice now ends with nothing, or with an error, in 2 of 4 runs, and nothing tells the researcher what to change.
 
-**Why it happens.** A retry refusal on `classify_user_intent` (`ai/lead/lead_tools.py`) is a `ModelRetry` the model may answer by not calling again; the turn contract (`ai/lead/turn_contract.py`) refuses a reply that names an unbuilt strategy on a turn whose classification was accepted, and has no rule for a turn whose classification was never accepted.
+**Why it happens.** `ai/lead/intent.py::organism_refusal` knows the whole entry and the split constraint, and still hands the correction to the model as a `ModelRetry` (`ai/lead/lead_tools.py`); the model answers by not calling again, or by resubmitting the same split until pydantic-ai's retry cap (3) fails the turn. The turn contract (`ai/lead/turn_contract.py`) has no rule for a turn whose classification was never accepted.
 
-**Fix.** A reply on a turn that holds no accepted classification is refused by the contract with the refusal's own sentence, so the model classifies again or asks the researcher the question the refusal states.
+**Fix.** A correction the gate can compute is applied, not asked for: the organism is recorded as the whole entry and the constraint made of its words is dropped, with no retry. A reply on a turn that holds no accepted classification is refused by the contract with the refusal's own sentence.
 
-**What you'd get.** The re-run classifies whole on its second call and builds `GenesWithSignalPeptide`, 2,928.
-
+**What you'd get.** One accepted classification per turn on every PEST prompt, `GenesWithSignalPeptide`, 2,928.
 ---
 
 ## FND-33 - A step is removed without the delete card
@@ -659,6 +658,8 @@ Found by the a18 model report. Open.
 
 **What you'd get.** Card `Delete step 'Plasmodium falciparum 3D7 genes with 2 to 99 transmembrane domains' (GenesByTransmembraneDomains, 840 genes)?`, and after Approve `GenesWithSignalPeptide`, 1 step, 479, on every run.
 
+
+Reproduced deterministically with the chat debugger on 2026-09-27 (`--mock`, vectorbase): turn 1 `[[arc:intersect]]` builds `(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)`; turn 2 `Remove the transmembrane-domain step. [[arc:delete-step]]` with `--approve prompt` runs `drop_criterion(step_d73d8c6e, "the request removes it")` -> `Dropped step_d73d8c6e` and `set_structure(leaf step_5a4ed038)` -> `Structure set: 1 search`, ends on no gate with 2,928 genes, and the reply reads `Edited the strategy. The criterion you named changed; every other criterion is unchanged`, which misreports a removal as a change. On the real model the card path ran in the a18 report and in the debugger run of 2026-09-27; the a17 report and the a18 re-run took the edit pass.
 ---
 
 ## FND-34 - Attached positive controls become a strategy, not a control set
@@ -677,6 +678,8 @@ Found by the a18 model report. Open.
 
 **What you'd get.** `build_control_set(positive_ids=[PF3D7_0709000, PF3D7_1133400])`, a `Build control set` trace row, and a reply that asks for negative controls (flow C12's expectation).
 
+
+Reproduced with the chat debugger on 2026-09-27: `classify_user_intent` -> `clarification_response`, `remember` -> `Updated positive-control genes as preference under positive-control-genes`, reply `Stored PF3D7_0709000 and PF3D7_1133400 as your positive-control genes for future analyses. Nothing was built.`; `control_sets` gained no row. Twenty minutes later, VERIFY on an unrelated plasmodb strategy (S11 turn 1, signal peptide MINUS transmembrane) resolved the two ids from that memory and ran `run_control_tests_on_step(positive_controls ["PF3D7_1133400"], negative_controls ["PF3D7_0709000"])`: one of the researcher's two positives was tested as a negative.
 ---
 
 ## FND-35 - The repetition guard stops VERIFY inside one parallel batch and the turn fails
@@ -694,3 +697,43 @@ Found by the a18 model report. Open.
 **Fix.** Runtime: the stop escalates only on a call the model issues after it has read the warning (a later request, not a sibling in the same batch). PathFinder: a stopped check records no verdict, and the Lead states that the check did not finish; nothing raises.
 
 **What you'd get.** Turn 2 ends `verified: true` on 257, or at worst on an unverified strategy and a sentence saying the check stopped.
+
+
+Reproduced on 2026-09-27 on a second site and case: plasmodb S11 turn 1 (`--via-worker`, Luna medium). VERIFY sampled 8 genes of the root step and resolved 2 control ids, then issued all 10 `read_gene_record` calls in one batch; calls 9 and 10 returned `past the call budget ... Report what read_gene_record has returned so far, and stop` and `You were already asked to stop calling it and called it again. The run stops here.`; the turn ended `status=error`, `Verification sub-agent did not return a VerificationDelta`, 264,661 tokens. The cap is `SAMPLED_GENE_LIMIT` (8) while the instruction asks for the sampled genes and the control genes. The guard alone reproduces without a model: ten `check` calls on a cap of 8 with no model turn between them give `escalated=False` on the ninth and `escalated=True` on the tenth (`assistant_core/capabilities/repetition_guard.py`).
+
+---
+
+## FND-36 - VERIFY tests the strategy against its own sample and reports recall 1.00
+
+Found with the chat debugger on 2026-09-27 (fungidb S5 turn 1, `--via-worker`, Luna medium). Open.
+
+**What I did.** `Find Aspergillus fumigatus Af293 genes with a predicted signal peptide and 2 to 99 transmembrane domains.` No control was named and no control set exists on fungidb.
+
+**What I got.** VERIFY: `get_sample_records(limit 8, step 440912333)` returned Afu1g01760, Afu1g05730, Afu1g06200, Afu1g06930, Afu1g12080, Afu1g13620, Afu1g13760, Afu1g13980; `get_sample_records(limit 1)` on the two input steps returned Afu1g00310 and Afu1g00100; then `run_control_tests_on_step(wdk_step_id 440912333, positive_controls [the eight sampled ids], negative_controls [Afu1g00310, Afu1g00100])` -> `8 of 8 positive controls recovered; recall 1.00, precision 1.00, MCC 1.00`. The reply: `Verification recovered 8 of 8 positive controls and admitted 0 of 2 negative controls.`
+
+**Why that's wrong.** A set tested against its own members recovers them every time; the researcher reads recall 1.00 and an MCC of 1.00 as evidence that the strategy finds the right genes, and it is evidence of nothing.
+
+**Why it happens.** `ai/agents/verification.py` offers the control tests to every whole-strategy check "when the researcher named them or a control set exists", and nothing in `run_control_tests_on_step` (`ai/tools/standalone/`) refuses an id the same run sampled from the step under test or from its inputs.
+
+**Fix.** A control id is the researcher's: typed in the message, in a saved control set, or in a memory the researcher wrote. The control tools refuse a positive or negative id the turn sampled from the strategy, with the sentence that says why, and the check states that no controls were available.
+
+**What you'd get.** S5 fungidb ends verified on its 8 sampled records with no control line, or with the researcher's controls when they exist.
+
+---
+
+## FND-37 - The organism rule refuses a phrase that borrows the genus word
+
+Found in the a18 model report on 2026-09-27 (plasmodb S5 turn 2). Open.
+
+**What I did.** After turn 1 built the Af293-style plasmodb strategy (signal peptide + 2 to 99 TM on P. falciparum 3D7), turn 2: `Carry these to their orthologs in Plasmodium vivax P01.`
+
+**What I got.** `classify_user_intent` call 1: organism `"Plasmodium vivax P01"` (whole) and other `"orthology transformation": "orthologs of the current Plasmodium falciparum 3D7 signal-peptide and 2 to 99 transmembrane-domain genes"`; refused with `The message names the organism "Plasmodium vivax P01", one entry of this site's organism list. Record it whole as the organism constraint; "Plasmodium" is part of its name, not a requirement of its own.` Call 2 dropped the constraint and passed.
+
+**Why that's wrong.** The classification was right: the organism was whole, and the constraint described the transform, which names the source organism because the message does. The refusal cost a retry and told the model a sentence that is false ("Plasmodium" was not recorded as a requirement).
+
+**Why it happens.** `domain/strategy/organism_phrases.py` refuses a constraint that "borrows a word" of the organism entry, and a genus word is shared by every organism of the site and by any phrase that names a second organism.
+
+**Fix.** The borrowed-word rule holds only a constraint made of the entry's words alone (the "PEST genes" case), never a phrase that merely contains one of them. With FND-32's rewrite the case disappears: the gate records the whole entry and drops a constraint that is nothing but its words.
+
+**What you'd get.** One accepted classification: organism `Plasmodium vivax P01`, the orthology constraint kept.
+
