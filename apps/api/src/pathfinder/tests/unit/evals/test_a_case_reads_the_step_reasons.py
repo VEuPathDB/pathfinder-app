@@ -7,7 +7,7 @@ from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.domain.strategy.step_words import StepWords
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.scoring import ObservedOutcome, score_case, step_reasons
 from pathfinder.evals.store import load_case
 
@@ -30,6 +30,7 @@ def _case(expected: ExpectedOutcome) -> EvalCase:
         assistant_id="pathfinder",
         rationale="pins the reason beside the search",
         expected=expected,
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",

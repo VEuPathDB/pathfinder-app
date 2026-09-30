@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.tests._support.bound_values import bound
 
 
 def _spec() -> OperationalSpec:
@@ -28,7 +29,9 @@ def _spec() -> OperationalSpec:
                 text="protease text",
                 search_name="GenesByText",
                 role="seed",
-                resolved_params={"organism": MultiPickValue(values=["Plasmodium"])},
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Plasmodium"])}
+                ),
             ),
             Criterion(id="step_go", text="proteolysis GO", search_name="GenesByGoTerm"),
             Criterion(

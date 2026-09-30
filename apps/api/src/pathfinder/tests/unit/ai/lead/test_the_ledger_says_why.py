@@ -56,3 +56,13 @@ def test_a_criterion_with_no_reason_prints_none() -> None:
     bare = Criterion(id="c_text", text="kinases", search_name="GenesByText")
 
     assert _why_lines(bare) == []
+
+
+def test_the_record_type_prints_as_the_noun_the_site_counts() -> None:
+    """The class name ``transcript`` is not the researcher's word for genes."""
+    rendered = render_frame_full(
+        FrameSection(spec=OperationalSpec(goal="g", record_type="transcript"))
+    )
+
+    assert "- records: genes" in rendered.splitlines()
+    assert "transcript" not in rendered

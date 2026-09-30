@@ -138,10 +138,6 @@ def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
         lines.append(f"- differential sides: {intent.differential_sides}")
     if intent.referenced_step_ids:
         lines.append(f"- referenced steps: {intent.referenced_step_ids}")
-    if intent.referenced_strategy_ids:
-        lines.append(
-            f"- referenced strategies: {intent.referenced_strategy_ids}",
-        )
     return "\n".join(lines)
 
 

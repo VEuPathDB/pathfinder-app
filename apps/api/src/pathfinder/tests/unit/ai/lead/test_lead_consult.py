@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import pytest
 from assistant_core.graph.turn_state import (
-    ConsultQuestion,
     PendingApproval,
     UserQuestionAnswer,
 )
@@ -18,11 +17,12 @@ from pydantic_ai import RunContext, Tool
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.lead_consult import consult_user
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintSource
 from pathfinder.tests._support.run_context import run_context_for
-from pathfinder.tests._support.tool_returns import returned, summary_text
+from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -43,13 +43,13 @@ def _answers(result: ToolReturn[list[UserQuestionAnswer]]) -> list[UserQuestionA
 
 
 _QUESTIONS = [
-    ConsultQuestion(id="q1", prompt="Fold-change threshold?"),
-    ConsultQuestion(id="q2", prompt="Include microarray arm?"),
+    CardQuestion(id="q1", prompt="Fold-change threshold?"),
+    CardQuestion(id="q2", prompt="Include microarray arm?"),
 ]
 
 
 @pytest.mark.asyncio
-async def test_returns_user_answers_and_instructs_replan() -> None:
+async def test_returns_user_answers_as_data_and_no_instruction() -> None:
     state = _state()
     state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_1", tool_name="consult_user"
@@ -76,15 +76,12 @@ async def test_returns_user_answers_and_instructs_replan() -> None:
     )
 
     assert [a.question_id for a in _answers(result)] == ["q1", "q2"]
-    assert summary_text(result) == (
-        'The user answered your questions: "Fold-change threshold?" -> 2-fold; '
-        '"Include microarray arm?" -> No - note: RNA-seq is enough. '
-        "Now run frame_problem honoring these as hard constraints."
-    )
+    assert _answers(result)[1].note == "RNA-seq is enough"
+    assert result.content is None
 
 
 @pytest.mark.asyncio
-async def test_no_answers_yet_reports_awaiting() -> None:
+async def test_no_answers_yet_returns_no_answer() -> None:
     state = _state()
     state.pending_approval = PendingApproval(
         phase="lead", tool_call_id="call_1", tool_name="consult_user"
@@ -95,9 +92,7 @@ async def test_no_answers_yet_reports_awaiting() -> None:
         reply="I will make this change and report what it takes with it.",
     )
     assert _answers(result) == []
-    assert summary_text(result) == (
-        "Presented 2 question(s); awaiting the user's answers."
-    )
+    assert result.content is None
 
 
 def _answered(state: PipelineState, *answers: UserQuestionAnswer) -> None:
@@ -282,7 +277,8 @@ async def test_answers_over_a_strategy_with_steps_route_to_the_edit() -> None:
         reply="I will make this change and report what it takes with it.",
     )
 
-    assert summary_text(result) == (
-        'The user answered your questions: "Fold-change threshold?" -> 2-fold. '
-        "Now run edit_strategy honoring these as hard constraints."
+    assert [a.chosen_labels for a in _answers(result)] == [["2-fold"]]
+    assert ctx.deps.state.turn_markers.consulted
+    assert "``edit_strategy`` over a strategy that holds a step" in " ".join(
+        (consult_user.__doc__ or "").split()
     )

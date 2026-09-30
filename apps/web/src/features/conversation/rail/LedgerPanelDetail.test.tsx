@@ -1,13 +1,19 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import type { Criterion } from "@pathfinder/shared/generated/types/Criterion";
 
-import { FrameDetail } from "./LedgerPanelDetail";
+import { BuildDetail, FrameDetail } from "./LedgerPanelDetail";
+
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/toxodb/conversation/conv-5",
+}));
 
 function frameWith(
   resolvedParams: NonNullable<Criterion["resolvedParams"]>,
@@ -45,7 +51,9 @@ describe("FrameDetail resolved parameters", () => {
   it("shows a text value as the text, not as its wire wrapper", () => {
     render(
       <FrameDetail
-        frame={frameWith({ stage: { type: "string", value: "gametocyte" } })}
+        frame={frameWith({
+          stage: { value: { type: "string", value: "gametocyte" }, source: "stated" },
+        })}
       />,
     );
     expect(screen.getByText("gametocyte")).toBeInTheDocument();
@@ -55,7 +63,9 @@ describe("FrameDetail resolved parameters", () => {
   it("shows a number range as a readable range", () => {
     render(
       <FrameDetail
-        frame={frameWith({ fold: { type: "number-range", min: 2, max: 8 } })}
+        frame={frameWith({
+          fold: { value: { type: "number-range", min: 2, max: 8 }, source: "stated" },
+        })}
       />,
     );
     expect(screen.getByText("2 to 8")).toBeInTheDocument();
@@ -161,5 +171,17 @@ describe("FrameDetail search reasons", () => {
       screen.getByText("kinases").tagName,
       screen.queryByTestId("criterion-why"),
     ]).toEqual(["P", null]);
+  });
+});
+
+describe("BuildDetail", () => {
+  it("shows no build rows and no link for a build with no step result", () => {
+    const { container } = render(
+      <BuildDetail
+        build={{ succeeded: true, nodeResults: [], wdkStrategyId: 330528343 }}
+      />,
+    );
+
+    expect(container.innerHTML).toBe("");
   });
 });

@@ -24,7 +24,8 @@ from pathfinder.ai.lead.deltas import (
     VerificationDelta,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 
 
@@ -72,9 +73,9 @@ def _card(tool_name: str, delta: BaseModel) -> str:
     )
 
 
-def _questions(count: int) -> list[OpenQuestion]:
+def _questions(count: int) -> list[SlotQuestion]:
     return [
-        OpenQuestion(
+        SlotQuestion(
             question=f"Which threshold for criterion {n}?",
             dimension=ConstraintKind.STATISTICAL_THRESHOLD,
             recommended_value="0.05",
@@ -105,7 +106,9 @@ def test_summarize_frame_result_spec_ready_uses_summary() -> None:
 
 def test_summarize_an_edit_that_needs_the_user_counts_questions() -> None:
     delta = EditDelta(
-        diff=SpecDiff(), disposition="needs_user", open_questions=_questions(1)
+        diff=SpecDiff(),
+        disposition="needs_user",
+        open_questions=[q.typed() for q in _questions(1)],
     )
     assert _card("edit_strategy", delta) == "1 open question"
 

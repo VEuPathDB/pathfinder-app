@@ -44,7 +44,11 @@ from pathfinder.services.strategies import spec_build, step_wdk_push
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.wdk_write_stubs import RecordedPushes, landed_pushes
+
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = pytest.mark.usefixtures("open_job_queue")
 
 _SEARCH = "GenesByRNASeqEvidence"
 _DEFAULT_DATASET = "all_rnaseq"
@@ -160,17 +164,19 @@ def _spec() -> OperationalSpec:
                 text="upregulated in gametocytes",
                 search_name=_SEARCH,
                 role="seed",
-                resolved_params={
-                    "organism": MultiPickValue(values=["Pf3D7"]),
-                    "dataset": StringValue(value=_DEFAULT_DATASET),
-                },
-                defaulted_params=["dataset"],
+                resolved_params=bound(
+                    {
+                        "organism": MultiPickValue(values=["Pf3D7"]),
+                        "dataset": StringValue(value=_DEFAULT_DATASET),
+                    },
+                    defaulted=["dataset"],
+                ),
             ),
             Criterion(
                 id="gametocyte_timecourse_option",
                 text="use the gametocyte timecourse dataset",
                 search_name=_SEARCH,
-                resolved_params={"dataset": StringValue(value=_TIMECOURSE)},
+                resolved_params=bound({"dataset": StringValue(value=_TIMECOURSE)}),
             ),
         ],
         structure=SpecStructure(

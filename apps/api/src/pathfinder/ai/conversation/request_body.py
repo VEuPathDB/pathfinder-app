@@ -13,7 +13,7 @@ from pydantic_ai.ui.vercel_ai.request_types import (
     UIMessage,
 )
 
-from pathfinder.ai.models.catalog import get_model_entry
+from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.tiers import KNOWN_ROLES
 
 _TURN_FACTS = frozenset({"errors", "aborted", "finishReason"})

@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests._support.bound_values import bound
 
 from ._strategy_edit_stubs import combine, leaf, seed
 
@@ -114,17 +115,21 @@ def _criteria() -> list[Criterion]:
         Criterion(
             id=PROFILE,
             text="Ortholog present in Apicomplexa and absent from Mammalia",
-            resolved_params={"profile_pattern": StringValue(value=_PATTERN)},
+            resolved_params=bound({"profile_pattern": StringValue(value=_PATTERN)}),
         ),
         Criterion(
             id=MIC2,
             text="Cell-cycle expression profile similar to MIC2 (TGME49_201780)",
-            resolved_params={"ProfileGeneId": StringValue(value="TGME49_201780")},
+            resolved_params=bound(
+                {"ProfileGeneId": StringValue(value="TGME49_201780")}
+            ),
         ),
         Criterion(
             id=RON2,
             text="Cell-cycle expression profile similar to RON2 (TGME49_300100)",
-            resolved_params={"ProfileGeneId": StringValue(value="TGME49_300100")},
+            resolved_params=bound(
+                {"ProfileGeneId": StringValue(value="TGME49_300100")}
+            ),
         ),
     ]
 

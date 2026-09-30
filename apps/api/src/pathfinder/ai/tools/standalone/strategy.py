@@ -35,23 +35,33 @@ from pathfinder.ai.tools.standalone.stream_parts import (
     graph_snapshot_chunk,
     strategy_link_chunk,
 )
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+    BuiltCounts,
+    built_counts,
+)
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.services.strategies.commit import apply_operations_and_commit
+from pathfinder.services.strategies.commit import (
+    apply_operations_and_commit,
+    live_strategy_url,
+)
 from pathfinder.services.strategies.spec_build import build_strategy_from_spec
 
 logger = get_logger(__name__)
 
 
-def _build_outcome_payload(outcome: BuildOutcome, graph: StrategyGraph) -> JSONObject:
-    """Serializes a build outcome into the tool response payload."""
+def _build_outcome_payload(
+    outcome: BuildOutcome, graph: StrategyGraph, url: str | None, counts: BuiltCounts
+) -> JSONObject:
+    """Serializes a build outcome into the tool response payload, with the link
+    and the counts of the strategy the session holds now."""
     payload: JSONObject = {
         "ok": outcome.fully_succeeded,
         "wdkStrategyId": outcome.wdk_strategy_id,
-        "wdkUrl": outcome.wdk_url,
-        "rootCount": outcome.root_count,
+        "wdkUrl": url,
+        "rootCount": counts.root_count,
         "stepCount": len(graph.steps),
         "pushedStepIds": cast("JSONArray", outcome.pushed_step_ids),
         "failedSteps": cast(
@@ -67,7 +77,7 @@ def _build_outcome_payload(outcome: BuildOutcome, graph: StrategyGraph) -> JSONO
         ),
         "skippedStepIds": cast("JSONArray", outcome.skipped_step_ids),
         "zeroStepIds": cast("JSONArray", outcome.zero_step_ids),
-        "counts": cast("JSONObject", dict(outcome.counts)),
+        "counts": cast("JSONObject", dict(counts.by_step)),
     }
     if outcome.failed_steps:
         payload["hint"] = (
@@ -147,18 +157,16 @@ async def build_strategy(
         )
     except ApplyError as exc:
         raise ModelRetry(build_departs_from_the_plan_message(str(exc))) from exc
-    payload = _build_outcome_payload(outcome, graph)
+    url = live_strategy_url(session.site_id, session.sync_state)
+    counts = built_counts(graph, session.sync_state)
+    payload = _build_outcome_payload(outcome, graph, url, counts)
     metadata = [graph_snapshot_chunk(session, graph)]
-    if outcome.wdk_url is not None:
+    if url is not None:
         metadata.append(
-            strategy_link_chunk(
-                strategy_id=graph.id,
-                url=outcome.wdk_url,
-                title=graph.name,
-            ),
+            strategy_link_chunk(strategy_id=graph.id, url=url, title=graph.name),
         )
     summary, status = count_summary(
-        len(graph.steps), outcome.root_count, graph.record_type
+        len(graph.steps), counts.root_count, graph.record_type
     )
     return with_summary(payload, summary, ctx=ctx, status=status, extra=metadata)
 

@@ -31,10 +31,18 @@ def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         return ["primary_key"]
 
     async def sample(
-        site_id: str, step_id: int, *, limit: int, attributes: list[str]
-    ) -> SampleRecordsResult:
-        del site_id, limit, attributes
-        return SampleRecordsResult(step_id=step_id, total_count=0)
+        site_id: str,
+        step_id: int,
+        *,
+        limit: int,
+        attributes: list[str],
+        record_type: str,
+        seed: str,
+    ) -> results.SampledRecords:
+        del site_id, limit, attributes, record_type, seed
+        return results.SampledRecords(
+            SampleRecordsResult(step_id=step_id, total_count=0), []
+        )
 
     async def selected(
         site_id: str, record_type: str, graph: StrategyGraph | None
@@ -45,7 +53,7 @@ def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     monkeypatch.setattr(results, "gene_sample_attributes", attributes)
     monkeypatch.setattr(results, "sample_attributes", selected)
-    monkeypatch.setattr(results, "step_sample_records", sample)
+    monkeypatch.setattr(results, "sample_page", sample)
     return seen
 
 

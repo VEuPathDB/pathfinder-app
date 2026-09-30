@@ -20,6 +20,13 @@ const COLUMNS = [
   { head: "Unique to it", numeric: true },
 ] as const;
 
+/** The strategy's result with each variant in place, where the tool counted it. */
+const RESULT_COLUMN = { head: "In the result", numeric: true } as const;
+
+function countedInTheResult(data: VariantComparison): boolean {
+  return data.variants.some((variant) => variant.resultCount != null);
+}
+
 function largestGeneCount(data: VariantComparison): number {
   return data.variants.reduce((best, variant) => Math.max(best, variant.geneCount), 0);
 }
@@ -29,6 +36,7 @@ function hasFailed(variant: VariantResult): boolean {
 }
 
 function rows(data: VariantComparison): ExhibitRow[] {
+  const counted = countedInTheResult(data);
   return data.variants.map((variant) => ({
     key: variant.label,
     cells: [
@@ -37,6 +45,7 @@ function rows(data: VariantComparison): ExhibitRow[] {
       </span>,
       hasFailed(variant) ? "-" : variant.geneCount.toLocaleString(),
       hasFailed(variant) ? "-" : variant.uniqueCount.toLocaleString(),
+      ...(counted ? [variant.resultCount?.toLocaleString() ?? "-"] : []),
     ],
   }));
 }
@@ -86,7 +95,11 @@ export function DataVariantComparison({ data }: { data: VariantComparison }) {
       caption={`${data.variants.length.toLocaleString()} variants, ${largestGeneCount(data).toLocaleString()} genes in the largest`}
       exhibit={{ kind: "table", number: tableNumberFor(chat.messages, data) }}
     >
-      <ExhibitTable columns={COLUMNS} rows={rows(data)} notes={notes(data)} />
+      <ExhibitTable
+        columns={countedInTheResult(data) ? [...COLUMNS, RESULT_COLUMN] : COLUMNS}
+        rows={rows(data)}
+        notes={notes(data)}
+      />
     </Figure>
   );
 }

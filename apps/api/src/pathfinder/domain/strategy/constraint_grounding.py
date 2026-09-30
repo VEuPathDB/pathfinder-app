@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import math
 import re
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from types import MappingProxyType
+from typing import NamedTuple
 
 from pydantic import Field
 from veupathdb.domain.parameters import to_wire
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.constraint_check import agrees
+from pathfinder.domain.log2_scale import Scale, scale_of, stated_numbers
 from pathfinder.domain.strategy.combination_check import (
     TermMatch,
     combination_violation,
@@ -37,28 +42,42 @@ _SIGNIFICANCE_RE = re.compile(
 )
 _MICROARRAY_RE = re.compile(r"microarray", re.IGNORECASE)
 _RNASEQ_REQUEST_RE = re.compile(r"rna[\s_-]?seq", re.IGNORECASE)
-_EXPRESSION_SEARCH_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
+_EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
 
 
-class _RealizedSpec(CamelModel):
+class RealizedSpec(CamelModel):
     """The bound facts a constraint is grounded against: the criteria's WDK
     search names, the union of their parameter names, the values bound to them,
-    and the tree the criteria are combined in."""
+    the tree the criteria are combined in, and the type of the upload each
+    criterion runs on, by criterion id."""
 
     search_names: list[str] = Field(default_factory=list)
     param_names: frozenset[str] = Field(default_factory=frozenset)
     param_values: dict[str, str] = Field(default_factory=dict)
     structure: SpecStructure | None = None
     criteria: list[Criterion] = Field(default_factory=list)
+    upload_types: dict[str, str] = Field(default_factory=dict)
 
 
-def _ground_data_type(c: Constraint, realized: _RealizedSpec) -> GroundedConstraint:
-    expr = [s for s in realized.search_names if _EXPRESSION_SEARCH_RE.search(s)]
+def _data_run_on(realized: RealizedSpec) -> list[str]:
+    """The data each step runs on: the type of the upload it reads, else the
+    curated search it runs."""
+    on_uploads = {
+        k.search_name for k in realized.criteria if k.id in realized.upload_types
+    }
+    return [
+        *realized.upload_types.values(),
+        *(s for s in realized.search_names if s not in on_uploads),
+    ]
+
+
+def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    expr = [d for d in _data_run_on(realized) if _EXPRESSION_DATA_RE.search(d)]
     if not expr:
         return GroundedConstraint(
             constraint=c,
             status=ConstraintStatus.UNGROUNDABLE,
-            note="no expression search in the strategy",
+            note="no step runs on expression data",
         )
     wants_rnaseq = bool(_RNASEQ_REQUEST_RE.search(c.requested_value))
     all_microarray = all(_MICROARRAY_RE.search(s) for s in expr)
@@ -76,8 +95,11 @@ def _ground_data_type(c: Constraint, realized: _RealizedSpec) -> GroundedConstra
     )
 
 
-def _ground_threshold(c: Constraint, realized: _RealizedSpec) -> GroundedConstraint:
-    if any(_SIGNIFICANCE_RE.search(name) for name in realized.param_names):
+def _ground_threshold(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    if any(_SIGNIFICANCE_RE.search(name) for name in realized.param_names) or any(
+        k.analysis is not None and k.analysis.significance_threshold is not None
+        for k in realized.criteria
+    ):
         return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
     return GroundedConstraint(
         constraint=c,
@@ -86,13 +108,104 @@ def _ground_threshold(c: Constraint, realized: _RealizedSpec) -> GroundedConstra
     )
 
 
-def _ground_fold_change(c: Constraint, realized: _RealizedSpec) -> GroundedConstraint:
-    if any("fold_change" in name for name in realized.param_names):
-        return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
+_FOLD_PARAM = "fold_change"
+_BARE_NUMBER = re.compile(r"\d+(?:\.\d+)?")
+
+
+class _FoldReading(NamedTuple):
+    """A fold-change threshold the strategy holds, on the scale it declares."""
+
+    param: str
+    value: float
+    scale: Scale
+
+
+def _requested_fold(c: Constraint) -> tuple[float, Scale] | None:
+    """The one number the requirement states, on the scale it names; a bare
+    number of a fold-change requirement is a fold."""
+    stated = stated_numbers(c.requested_value)
+    if len(stated) == 1:
+        return stated[0].number, stated[0].scale
+    bare = _BARE_NUMBER.findall(c.requested_value)
+    if not stated and len(bare) == 1:
+        return float(bare[0]), "fold"
+    return None
+
+
+def _fold_readings(realized: RealizedSpec) -> list[_FoldReading]:
+    """Each analysis cut, on the scale its compute names and log2 when it names
+    none, and each fold-change parameter, on the scale its display name names
+    and fold when it names none."""
+    shown = {
+        name: k.display_name_of(name)
+        for k in realized.criteria
+        for name in k.resolved_params
+    }
+    readings = [
+        _FoldReading(
+            "effect_size_threshold",
+            k.analysis.effect_size_threshold,
+            scale_of(k.analysis.effect_size_label) or "log2",
+        )
+        for k in realized.criteria
+        if k.analysis is not None and k.analysis.effect_size_threshold is not None
+    ]
+    for name, raw in realized.param_values.items():
+        if _FOLD_PARAM in name and _BARE_NUMBER.fullmatch(raw):
+            display = shown.get(name, name)
+            readings.append(_FoldReading(name, float(raw), scale_of(display) or "fold"))
+    return readings
+
+
+def _convert(source: Scale, target: Scale) -> Callable[[float], float]:
+    if source == target:
+        return float
+    return math.log2 if target == "log2" else lambda value: 2**value
+
+
+def _meets(requested: tuple[float, Scale], reading: _FoldReading) -> bool:
+    number, scale = requested
+    return agrees(
+        number,
+        reading.value,
+        to_bound=_convert(scale, reading.scale),
+        to_requested=_convert(reading.scale, scale),
+    )
+
+
+def _built(reading: _FoldReading) -> str:
+    fold = _convert(reading.scale, "fold")(reading.value)
+    on_log2 = f" (log2 {reading.value:g})" if reading.scale == "log2" else ""
+    return f"{fold:g}-fold{on_log2}"
+
+
+def _ground_fold_change(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
+    """The requirement against each fold-change threshold, compared in the
+    threshold's own scale at the decimals each value is written with."""
+    readings = _fold_readings(realized)
+    requested = _requested_fold(c)
+    if not readings or requested is None:
+        held = readings or any(_FOLD_PARAM in name for name in realized.param_names)
+        return GroundedConstraint(
+            constraint=c,
+            status=ConstraintStatus.GROUNDED if held else ConstraintStatus.UNGROUNDABLE,
+            note="" if held else "no fold_change parameter in the strategy",
+        )
+    reading = next((r for r in readings if _meets(requested, r)), None)
+    if reading is not None:
+        return GroundedConstraint(
+            constraint=c,
+            status=ConstraintStatus.GROUNDED,
+            realized_value=f"{reading.value:g}",
+            realized_param=reading.param,
+        )
+    first = readings[0]
     return GroundedConstraint(
         constraint=c,
-        status=ConstraintStatus.UNGROUNDABLE,
-        note="no fold_change parameter in the strategy",
+        status=ConstraintStatus.SUBSTITUTED,
+        realized_value=f"{first.value:g}",
+        realized_param=first.param,
+        note=f"built {_built(first)} where {c.requested_value} was asked",
     )
 
 
@@ -102,12 +215,23 @@ _PERCENTILE_PARAM_RE = re.compile(r"percentile", re.IGNORECASE)
 _BOUND_WORD: dict[str, str] = {"top": "min", "bottom": "max"}
 
 
+def dimension_of_parameter(name: str, display_name: str) -> ConstraintKind:
+    """The dimension a value of this parameter states, read from its names."""
+    if _PERCENTILE_PARAM_RE.search(name) or _PERCENTILE_PARAM_RE.search(display_name):
+        return ConstraintKind.PERCENTILE
+    if _SIGNIFICANCE_RE.search(name):
+        return ConstraintKind.STATISTICAL_THRESHOLD
+    if _FOLD_PARAM in name or scale_of(display_name) is not None:
+        return ConstraintKind.FOLD_CHANGE
+    return ConstraintKind.OTHER
+
+
 def _plain(number: float) -> str:
     return str(int(number)) if number.is_integer() else str(number)
 
 
 def _percentile_bound(
-    request: PercentileRequest, realized: _RealizedSpec
+    request: PercentileRequest, realized: RealizedSpec
 ) -> tuple[str, str] | None:
     named = {
         name: value
@@ -124,7 +248,7 @@ def _percentile_bound(
     return next(iter(chosen.items()))
 
 
-def _ground_percentile(c: Constraint, realized: _RealizedSpec) -> GroundedConstraint:
+def _ground_percentile(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     request = PercentileRequest.parse(f"{c.requested_value} {c.label}")
     if request is None:
         return GroundedConstraint(
@@ -203,7 +327,7 @@ def _why_it_says_nothing(matched: TermMatch, structure: SpecStructure) -> str | 
     return None
 
 
-def _ground_combination(c: Constraint, realized: _RealizedSpec) -> GroundedConstraint:
+def _ground_combination(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     request = CombinationRequest.parse(c.requested_value)
     if request is None:
         return _abstained(c, "the requirement states no single operator")
@@ -229,6 +353,8 @@ def _ground_combination(c: Constraint, realized: _RealizedSpec) -> GroundedConst
     )
 
 
+_NO_UPLOADS: Mapping[str, str] = MappingProxyType({})
+
 _HANDLERS = {
     ConstraintKind.DATA_TYPE: _ground_data_type,
     ConstraintKind.STATISTICAL_THRESHOLD: _ground_threshold,
@@ -239,24 +365,9 @@ _HANDLERS = {
 
 
 def ground_constraints(
-    constraints: list[Constraint],
-    *,
-    search_names: Collection[str],
-    param_names: Collection[str],
-    param_values: Mapping[str, str],
-    structure: SpecStructure | None = None,
-    criteria: Sequence[Criterion] = (),
+    constraints: list[Constraint], realized: RealizedSpec
 ) -> list[GroundedConstraint]:
-    """Ground each constraint against the realized strategy facts (the criteria's
-    bound WDK search names, the union of their parameter names, the values
-    bound to them, and the tree they are combined in)."""
-    realized = _RealizedSpec(
-        search_names=list(search_names),
-        param_names=frozenset(param_names),
-        param_values=dict(param_values),
-        structure=structure,
-        criteria=list(criteria),
-    )
+    """Ground each constraint against the realized strategy facts."""
     out: list[GroundedConstraint] = []
     for c in constraints:
         handler = _HANDLERS.get(c.kind)
@@ -276,18 +387,25 @@ def _param_names(spec: OperationalSpec) -> set[str]:
 
 
 def ground_against_spec(
-    constraints: Sequence[Constraint], spec: OperationalSpec
+    constraints: Sequence[Constraint],
+    spec: OperationalSpec,
+    *,
+    upload_types: Mapping[str, str] = _NO_UPLOADS,
 ) -> list[GroundedConstraint]:
-    """Ground each constraint against the facts this spec realizes."""
+    """Ground each constraint against the facts this spec realizes and the type
+    of the upload each criterion runs on."""
     return ground_constraints(
         list(constraints),
-        search_names=[c.search_name for c in spec.criteria if c.search_name],
-        param_names=_param_names(spec),
-        param_values={
-            name: to_wire(value)
-            for c in spec.criteria
-            for name, value in c.resolved_params.items()
-        },
-        structure=spec.structure,
-        criteria=spec.criteria,
+        RealizedSpec(
+            search_names=[c.search_name for c in spec.criteria if c.search_name],
+            param_names=frozenset(_param_names(spec)),
+            param_values={
+                name: to_wire(value)
+                for c in spec.criteria
+                for name, value in c.param_values.items()
+            },
+            structure=spec.structure,
+            criteria=spec.criteria,
+            upload_types=dict(upload_types),
+        ),
     )

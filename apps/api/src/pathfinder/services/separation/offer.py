@@ -34,6 +34,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
+    bind_values,
 )
 from pathfinder.domain.strategy.step_rationale import ControlsRationale, ControlsSource
 from pathfinder.services.evidence.control_enrichment import control_enrichment
@@ -90,7 +91,7 @@ def _criterion(
         search_name=candidate.search_name,
         search_display_name=candidate.display_name,
         role=role,
-        resolved_params=dict(candidate.parameters),
+        resolved_params=bind_values(candidate.parameters, "card", str(task_id)),
         confidence=1.0,
         rationale=_rationale(measured, task_id),
     )

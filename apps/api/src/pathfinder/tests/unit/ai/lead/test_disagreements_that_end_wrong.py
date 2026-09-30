@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     proteome,
@@ -129,7 +130,7 @@ def _two_new(second: float | None) -> Draft:
                 id=_FIRST,
                 text="first",
                 search_name="GenesByFirst",
-                resolved_params={"threshold_first": NumberValue(value=1)},
+                resolved_params=bound({"threshold_first": NumberValue(value=1)}),
             )
         )
         found.criteria.append(
@@ -137,9 +138,11 @@ def _two_new(second: float | None) -> Draft:
                 id=_SECOND,
                 text="second",
                 search_name="GenesBySecond",
-                resolved_params={}
-                if second is None
-                else {"threshold_second": NumberValue(value=second)},
+                resolved_params=bound(
+                    {}
+                    if second is None
+                    else {"threshold_second": NumberValue(value=second)}
+                ),
                 open_params=[]
                 if second is not None
                 else [OpenSlot(criterion_id=_SECOND, param_name="threshold_second")],

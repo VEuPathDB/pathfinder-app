@@ -1,7 +1,8 @@
 """A thread whose strategy holds DESeq2 exports of the 24 h time point.
 
 The export runs the production ``create_eda_step`` over the thread's own
-state; the analysis read and the commit are stand-ins, and the commit applies
+state; the analysis read, the study and statistics it reads beside the
+analysis, and the commit are stand-ins, and the commit applies
 the operations to the thread's graph as the real one does.
 """
 
@@ -32,6 +33,7 @@ from pathfinder.tests._support.eda_step_doubles import (
     DE_DATASET,
     binding_of,
     de_analysis,
+    wire_export_reads,
 )
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.tool_returns import returned
@@ -110,6 +112,7 @@ async def export(
     patch(eda_step, "bound_analysis", _bound)
     patch(eda_step, "read_analysis", _read)
     patch(eda_step, "apply_operations_and_commit", _commit)
+    wire_export_reads(thread.monkeypatch)
     answer = await eda_step.create_eda_step(
         run_context_for(thread.deps, f"t_export_{reference}"),
         criterion_id=criterion_id,

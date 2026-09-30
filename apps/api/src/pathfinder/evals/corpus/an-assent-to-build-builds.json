@@ -2,24 +2,23 @@
   "name": "an-assent-to-build-builds",
   "turns": [
     "I'm investigating stage-specific expression in Plasmodium falciparum.",
-    "Yes, rerun the differential expression and then create the strategy step from the genes that pass."
+    "Yes, go ahead and build it."
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Assent to the assistant's own offer is a request to build. The cataloged run classified two such imperatives as questions, hid the building tools and answered that the controls were unavailable, so two turns produced nothing. This is the counterpart of question-turns-do-not-build: a turn that accepts an offer and names a step must persist a strategy AST.",
+  "rationale": "Assent to the assistant's own offer is a request to build. The cataloged run classified such an assent as a question, hid the building tools and answered that the step was unavailable, so the turn produced nothing. This is the counterpart of question-turns-do-not-build: the first turn's offer is left open, and the next message that says yes must persist a strategy AST.",
   "expected": {
     "buildsStrategy": true,
-    "structure": "GenesByTaxon",
+    "structure": null,
     "recordType": null,
-    "stepCount": 1,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
-    "replyMentions": [
-      "Verified end-to-end"
-    ],
+    "replyMentions": [],
     "replyOmits": [
       "not available in this turn"
-    ]
+    ],
+    "endsOn": "none"
   },
   "provenance": {
     "site": "plasmodb",
@@ -28,6 +27,9 @@
     "addedAt": "2026-08-31",
     "stagingId": "",
     "reference": "log.md#2026-08-31",
-    "curatorNote": "The second turn is the measured phrasing, unchanged."
+    "curatorNote": "The first turn's offer is left unanswered; the second turn's words decide the build."
+  },
+  "gates": {
+    "policy": "leave"
   }
 }

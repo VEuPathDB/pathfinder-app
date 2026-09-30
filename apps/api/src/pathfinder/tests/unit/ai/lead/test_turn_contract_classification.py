@@ -17,7 +17,7 @@ from pathfinder.ai.lead.intent import (
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import reconcile
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import reply
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -63,7 +63,7 @@ def _naming_controls() -> LeadDeps:
 def _mismatches(
     deps: LeadDeps,
     prose: str,
-    questions: list[OpenQuestion] | None = None,
+    questions: list[AskedQuestion] | None = None,
     *,
     card: bool = False,
 ) -> list[tuple[str, str]]:
@@ -143,7 +143,7 @@ def test_named_controls_saved_as_a_control_set_pass() -> None:
 
 def test_named_controls_with_a_recorded_question_pass() -> None:
     deps = _naming_controls()
-    asked = [OpenQuestion(question=ASKS_FOR_NEGATIVES)]
+    asked = [AskedQuestion(question=ASKS_FOR_NEGATIVES)]
 
     assert _mismatches(deps, ASKS_FOR_NEGATIVES, questions=asked) == []
 
@@ -163,3 +163,14 @@ def test_named_controls_neither_saved_nor_asked_about_are_refused() -> None:
             ),
         )
     ]
+
+
+def test_empty_control_lists_name_no_controls() -> None:
+    """A classification with both control lists empty names no control to save."""
+    deps = _naming_controls()
+    assert deps.intent is not None
+    deps.intent = deps.intent.model_copy(
+        update={"named_controls": NamedControls(positive_ids=[], negative_ids=[])}
+    )
+
+    assert _mismatches(deps, "The two counts differ by the Union step.") == []

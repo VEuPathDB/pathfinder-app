@@ -16,7 +16,11 @@ from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+    BuiltCounts,
+    NodeResult,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -28,6 +32,7 @@ from pathfinder.domain.strategy.step_rationale import (
     ControlsRationale,
     SearchRationale,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 from pathfinder.tests.unit.domain.strategy._analysis import WORDS, analysed
 
@@ -50,7 +55,7 @@ def _spec() -> OperationalSpec:
                 text="kinase domain",
                 search_name="GenesByGoTerm",
                 role="seed",
-                resolved_params={"go_term": StringValue(value="GO:0004672")},
+                resolved_params=bound({"go_term": StringValue(value="GO:0004672")}),
             ),
         ],
         structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="s1")),
@@ -61,17 +66,22 @@ def _outcome(count: int) -> BuildOutcome:
     return BuildOutcome(
         pushed_step_ids=["s1"],
         wdk_strategy_id=330423363,
-        counts={"s1": count},
-        root_count=count,
         node_results=[
             NodeResult(
                 node_id="s1",
                 search_name="GenesByGoTerm",
-                count=count,
                 status="ok" if count else "zero",
             ),
         ],
     )
+
+
+def _counts(count: int, step_id: str = "s1") -> BuiltCounts:
+    """The counts the session holds for a one-step strategy rooted at ``step_id``."""
+    return BuiltCounts(by_step={step_id: count}, root_id=step_id)
+
+
+_EXPORTED = _counts(1543, "step_1")
 
 
 def _state(
@@ -99,7 +109,9 @@ def _state(
 
 
 def test_a_verified_build_leaves_one_outcome_case() -> None:
-    candidates = collect_case_candidates(_state(outcome=_outcome(142)))
+    candidates = collect_case_candidates(
+        _state(outcome=_outcome(142)), counts=_counts(142)
+    )
 
     assert len(candidates) == 1
     value, key = candidates[0]
@@ -122,21 +134,21 @@ def test_a_verified_build_leaves_one_outcome_case() -> None:
 
 
 def test_two_turns_on_the_same_goal_write_one_key() -> None:
-    first = collect_case_candidates(_state(outcome=_outcome(142)))
-    second = collect_case_candidates(_state(outcome=_outcome(142)))
+    first = collect_case_candidates(_state(outcome=_outcome(142)), counts=_counts(142))
+    second = collect_case_candidates(_state(outcome=_outcome(142)), counts=_counts(142))
 
     assert first[0][1] == second[0][1]
 
 
 def test_a_different_count_is_a_different_case() -> None:
-    first = collect_case_candidates(_state(outcome=_outcome(142)))
-    second = collect_case_candidates(_state(outcome=_outcome(97)))
+    first = collect_case_candidates(_state(outcome=_outcome(142)), counts=_counts(142))
+    second = collect_case_candidates(_state(outcome=_outcome(97)), counts=_counts(97))
 
     assert first[0][1] != second[0][1]
 
 
 def test_a_turn_with_no_build_leaves_no_case() -> None:
-    assert collect_case_candidates(_state(outcome=None)) == []
+    assert collect_case_candidates(_state(outcome=None), counts=BuiltCounts()) == []
 
 
 def test_the_case_records_the_spec_the_strategy_answers_to() -> None:
@@ -148,7 +160,7 @@ def test_the_case_records_the_spec_the_strategy_answers_to() -> None:
     )
     state.domain.operational_spec = planned
 
-    candidates = collect_case_candidates(state)
+    candidates = collect_case_candidates(state, counts=_counts(142))
 
     assert len(candidates) == 1
     rows = _criteria_rows(candidates[0][0].content)
@@ -162,7 +174,9 @@ def test_an_analysis_criterion_is_recorded_by_its_words() -> None:
     answered.criteria.append(analysed())
     state.domain.answered_spec = answered
 
-    rows = _criteria_rows(collect_case_candidates(state)[0][0].content)
+    rows = _criteria_rows(
+        collect_case_candidates(state, counts=_counts(142))[0][0].content
+    )
 
     assert rows[1] == {
         "text": WORDS,
@@ -195,9 +209,9 @@ def _reasoned(reason: str) -> PipelineState:
 
 def test_a_case_records_why_each_search_was_chosen_without_its_words() -> None:
     rows = _criteria_rows(
-        collect_case_candidates(_reasoned("sets GO Term to kinase activity"))[0][
-            0
-        ].content
+        collect_case_candidates(
+            _reasoned("sets GO Term to kinase activity"), counts=_counts(142)
+        )[0][0].content
     )
 
     assert (rows[0]["because"], rows[0]["chosen_over"]) == (
@@ -223,7 +237,9 @@ def test_a_case_records_the_count_a_measured_search_was_chosen_on() -> None:
     )
     state.domain.answered_spec = answered
 
-    rows = _criteria_rows(collect_case_candidates(state)[0][0].content)
+    rows = _criteria_rows(
+        collect_case_candidates(state, counts=_counts(142))[0][0].content
+    )
 
     assert (rows[0]["because"], rows[0]["chosen_over"]) == (
         "GO:0004672 protein kinase activity: 42 of 80 positives",
@@ -232,8 +248,12 @@ def test_a_case_records_the_count_a_measured_search_was_chosen_on() -> None:
 
 
 def test_two_wordings_of_one_reason_write_one_case() -> None:
-    first = collect_case_candidates(_reasoned("sets GO Term to kinase activity"))
-    second = collect_case_candidates(_reasoned("its GO Term holds protein kinase"))
+    first = collect_case_candidates(
+        _reasoned("sets GO Term to kinase activity"), counts=_counts(142)
+    )
+    second = collect_case_candidates(
+        _reasoned("its GO Term holds protein kinase"), counts=_counts(142)
+    )
 
     assert first[0][1] == second[0][1]
 
@@ -244,6 +264,7 @@ def test_a_recovered_zero_step_leaves_a_recovery_case() -> None:
     ]
     candidates = collect_case_candidates(
         _state(outcome=_outcome(142), history=history),
+        counts=_counts(142),
     )
 
     kinds = [value.content["case"] for value, _key in candidates]
@@ -265,6 +286,7 @@ def test_the_recovery_case_names_the_criterion_that_emptied() -> None:
     ]
     candidates = collect_case_candidates(
         _state(outcome=_outcome(142), history=history),
+        counts=_counts(142),
     )
 
     recovery = candidates[1][0]
@@ -278,6 +300,7 @@ def test_a_step_that_is_still_empty_leaves_no_recovery_case() -> None:
     ]
     candidates = collect_case_candidates(
         _state(outcome=_outcome(0), history=history),
+        counts=_counts(0),
     )
 
     assert [value.content["case"] for value, _key in candidates] == ["outcome"]
@@ -304,7 +327,9 @@ def test_the_history_records_each_search_once() -> None:
 
 
 def test_the_turn_candidates_carry_the_case() -> None:
-    candidates = collect_memory_candidates(_state(outcome=_outcome(142)))
+    candidates = collect_memory_candidates(
+        _state(outcome=_outcome(142)), counts=_counts(142)
+    )
 
     assert "case" in [value.kind for value, _key in candidates]
 
@@ -345,13 +370,10 @@ def _eda_outcome(count: int) -> BuildOutcome:
     return BuildOutcome(
         pushed_step_ids=["step_1"],
         wdk_strategy_id=330423363,
-        counts={"step_1": count},
-        root_count=count,
         node_results=[
             NodeResult(
                 node_id="step_1",
                 search_name="GenesByEdaVizWithCompute",
-                count=count,
                 status="ok" if count else "zero",
             ),
         ],
@@ -379,7 +401,7 @@ def _eda_state(export: EdaExport | None) -> PipelineState:
 
 def test_an_eda_export_leaves_a_case_without_a_spec() -> None:
     """The EDA arc never frames criteria, and its turn still leaves a case."""
-    candidates = collect_case_candidates(_eda_state(_eda_export()))
+    candidates = collect_case_candidates(_eda_state(_eda_export()), counts=_EXPORTED)
 
     assert len(candidates) == 1
     value, key = candidates[0]
@@ -402,11 +424,11 @@ def test_an_eda_export_leaves_a_case_without_a_spec() -> None:
 
 
 def test_a_turn_that_exported_nothing_leaves_no_eda_case() -> None:
-    assert collect_case_candidates(_eda_state(None)) == []
+    assert collect_case_candidates(_eda_state(None), counts=_EXPORTED) == []
 
 
 def test_the_eda_case_travels_with_the_turn_candidates() -> None:
-    candidates = collect_memory_candidates(_eda_state(_eda_export()))
+    candidates = collect_memory_candidates(_eda_state(_eda_export()), counts=_EXPORTED)
 
     assert [value.content["case"] for value, _key in candidates] == ["eda-export"]
 
@@ -422,7 +444,7 @@ def test_a_subset_export_records_no_thresholds() -> None:
             "search_name": "GenesByEdaSubset",
         },
     )
-    (value, _key) = collect_case_candidates(_eda_state(export))[0]
+    (value, _key) = collect_case_candidates(_eda_state(export), counts=_EXPORTED)[0]
 
     assert value.content["effect_size_threshold"] is None
     assert value.content["significance_threshold"] is None
@@ -432,18 +454,15 @@ def test_a_subset_export_records_no_thresholds() -> None:
 def test_an_export_with_no_measured_count_leaves_no_case() -> None:
     """A step VEuPathDB never sized has no number to remember."""
     state = _eda_state(_eda_export())
-    outcome = state.domain.last_build_outcome
-    assert outcome is not None
-    outcome.counts = {}
 
-    assert collect_case_candidates(state) == []
+    assert collect_case_candidates(state, counts=BuiltCounts()) == []
 
 
 def test_an_eda_exported_turn_leaves_only_the_export_case() -> None:
     """A spec the turn framed but never built may not claim the export's count."""
     state = _eda_state(_eda_export())
     state.domain.operational_spec = _spec()
-    candidates = collect_case_candidates(state)
+    candidates = collect_case_candidates(state, counts=_EXPORTED)
     assert len(candidates) == 1
     value, _key = candidates[0]
     assert value.content["case"] == "eda-export"

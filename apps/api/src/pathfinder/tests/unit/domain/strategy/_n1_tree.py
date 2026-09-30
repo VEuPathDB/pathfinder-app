@@ -7,6 +7,7 @@ from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringV
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.tests._support.bound_values import bound
 
 PF = "Plasmodium falciparum 3D7"
 RNASEQ = "GenesByRNASeqpfal3D7_Newbold_ebi_rnaSeq_RSRCPercentile"
@@ -18,14 +19,16 @@ def blood_stage(criterion_id: str, *, minimum: str = "80") -> Criterion:
         id=criterion_id,
         text="P. falciparum 3D7 genes expressed in the blood stage",
         search_name=RNASEQ,
-        resolved_params={
-            "profileset_generic": SinglePickValue(
-                value="P. falciparum Newbold mRNA Seq dataunstranded"
-            ),
-            "samples_percentile_generic": MultiPickValue(values=HOURS),
-            "min_expression_percentile": StringValue(value=minimum),
-            "max_expression_percentile": StringValue(value="100"),
-        },
+        resolved_params=bound(
+            {
+                "profileset_generic": SinglePickValue(
+                    value="P. falciparum Newbold mRNA Seq dataunstranded"
+                ),
+                "samples_percentile_generic": MultiPickValue(values=HOURS),
+                "min_expression_percentile": StringValue(value=minimum),
+                "max_expression_percentile": StringValue(value="100"),
+            }
+        ),
         result_count=2_165,
     )
 
@@ -36,11 +39,13 @@ def low_variation(criterion_id: str) -> Criterion:
         text="P. falciparum 3D7 genes with variants per kb (CDS) <= 1 across isolates",
         search_name="GenesByNgsSnps",
         organism_param="organismSinglePick",
-        resolved_params={
-            "organismSinglePick": MultiPickValue(values=[PF]),
-            "snp_density_lower": StringValue(value="0"),
-            "snp_density_upper": StringValue(value="1"),
-        },
+        resolved_params=bound(
+            {
+                "organismSinglePick": MultiPickValue(values=[PF]),
+                "snp_density_lower": StringValue(value="0"),
+                "snp_density_upper": StringValue(value="1"),
+            }
+        ),
         result_count=38,
     )
 
@@ -50,12 +55,14 @@ def no_human(criterion_id: str) -> Criterion:
         id=criterion_id,
         text="P. falciparum 3D7 genes with no human equivalent",
         search_name="GenesByOrthologPattern",
-        resolved_params={
-            "organism": MultiPickValue(values=[PF]),
-            "profile_pattern": StringValue(value="%hsap:N%"),
-            "excluded_species": StringValue(value="hsap"),
-            "included_species": StringValue(value="n/a"),
-        },
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=[PF]),
+                "profile_pattern": StringValue(value="%hsap:N%"),
+                "excluded_species": StringValue(value="hsap"),
+                "included_species": StringValue(value="n/a"),
+            }
+        ),
         result_count=2_812,
     )
 
@@ -68,7 +75,7 @@ def drug_target() -> Criterion:
         search_display_name="Transform to Genes",
         role="transform",
         organism_param="organism",
-        resolved_params={"organism": MultiPickValue(values=[PF])},
+        resolved_params=bound({"organism": MultiPickValue(values=[PF])}),
     )
 
 

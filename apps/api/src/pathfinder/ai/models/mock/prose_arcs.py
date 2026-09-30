@@ -6,7 +6,7 @@ from __future__ import annotations
 from assistant_core.models.scripted import last_user_text
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.models.mock.calls import classify, lead_final, spoken
 from pathfinder.ai.models.mock.directive import without_tokens
 
 # Two sentences, no code, under the cap the off-topic validator holds.
@@ -54,5 +54,7 @@ def context() -> list[ToolCallPart]:
 def echo(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """A message that names no arc is answered with its own text."""
     return [
-        lead_final(f"[mock] {without_tokens(last_user_text(messages))}", "await_user")
+        lead_final(
+            spoken(f"[mock] {without_tokens(last_user_text(messages))}"), "await_user"
+        )
     ]

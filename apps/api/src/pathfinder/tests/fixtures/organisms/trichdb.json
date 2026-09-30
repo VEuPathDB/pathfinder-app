@@ -1,0 +1,13 @@
+{
+  "site": "trichdb",
+  "recordedOn": "2026-09-29",
+  "source": "veupathdb_mcp.gene_lookup.list_organisms",
+  "organisms": [
+    "Histomonas meleagridis 2922-C6/04-10x",
+    "Histomonas meleagridis 2922-C6/04-290x",
+    "Trichomonas tenax strain NIH4 ATCC 30207",
+    "Trichomonas vaginalis G3",
+    "Trichomonas vaginalis G3 2022",
+    "Tritrichomonas foetus strain K"
+  ]
+}

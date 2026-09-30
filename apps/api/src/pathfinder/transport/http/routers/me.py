@@ -6,10 +6,10 @@ from assistant_core import quota
 from assistant_core.platform.types import PaidBy
 from fastapi import APIRouter, Depends, Request, Response, status
 
-from pathfinder.ai.models.catalog import get_smallest_model
 from pathfinder.domain.provider_keys import KeyableProvider
 from pathfinder.platform.errors import ForbiddenError, ProviderKeysDisabledError
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
+from pathfinder.platform.model_catalog import get_smallest_model
 from pathfinder.platform.model_keys import KeyProbe, probe_key
 from pathfinder.platform.principal import Principal
 from pathfinder.platform.security import limiter

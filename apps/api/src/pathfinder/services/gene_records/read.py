@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from assistant_core.graph.tool_summary import count_noun
-from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import (
     AfterValidator,
     BaseModel,
@@ -24,11 +24,12 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.wdk import get_gene_expression_summary, order_primary_key
 
+from pathfinder.domain.strategy.constraints import message_states
 from pathfinder.platform.errors import NotFoundError
 
 GENE_RECORD_TYPE = "gene"
 ORTHOLOGS_TABLE = "Orthologs"
-# An answer names the orthologs it can read; the total says how many there are.
+# A read names this many orthologs, and says how many rows it left out.
 MAX_ORTHOLOG_ROWS = 20
 _NOT_FOUND_STATUS = 404
 
@@ -120,7 +121,28 @@ class GeneRecordSummary(CamelModel):
     transcript_count: int | None = None
     orthologs: list[OrthologRow] = Field(default_factory=list)
     ortholog_count: int = 0
+    # The organism whose every row ``orthologs`` holds, None for the first rows.
+    ortholog_organism: str | None = None
     expression: ExpressionSummary | None = None
+
+    @computed
+    def orthologs_shown(self) -> str:
+        """Which rows of the whole table ``orthologs`` holds, empty when all."""
+        total, shown = self.ortholog_count, len(self.orthologs)
+        if self.ortholog_organism is not None:
+            if not shown:
+                return f"None of the {total} rows names {self.ortholog_organism}."
+            return (
+                f"Every row of the {total} whose organism is "
+                f"{self.ortholog_organism}: {shown}."
+            )
+        if shown == total:
+            return ""
+        return (
+            f"The first {shown} of {total} ortholog rows. A gene absent from them "
+            f"may be among the other {total - shown}; read the record with "
+            f"ortholog_organism to see every row of one organism."
+        )
 
     def summary_line(self) -> str:
         """The one line the thread shows for this read."""
@@ -130,7 +152,10 @@ class GeneRecordSummary(CamelModel):
         if self.chromosome:
             stated.append(f"chromosome {self.chromosome}")
         if self.ortholog_count:
-            stated.append(count_noun(self.ortholog_count, "ortholog"))
+            orthologs = count_noun(self.ortholog_count, "ortholog")
+            if len(self.orthologs) < self.ortholog_count:
+                orthologs = f"{orthologs} ({len(self.orthologs)} shown)"
+            stated.append(orthologs)
         return f"{self.gene_id}: {', '.join(stated)}"
 
 
@@ -227,17 +252,44 @@ def _attribute_texts(record: WDKRecordInstance) -> dict[str, str]:
     return {name: text for name, text in read_texts if text is not None}
 
 
-async def read_gene_record(site_id: str, gene_id: str) -> GeneRecordSummary:
+async def read_gene_record(
+    site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+) -> GeneRecordSummary:
     """The record ``site_id`` holds for ``gene_id``, under the caller's token."""
-    return await read_the_gene_record(get_strategy_api(site_id), site_id, gene_id)
+    return await read_the_gene_record(
+        get_strategy_api(site_id),
+        site_id,
+        gene_id,
+        ortholog_organism=ortholog_organism,
+    )
+
+
+def _shown_orthologs(
+    rows: list[_OrthologTableRow], organism: str | None
+) -> list[OrthologRow]:
+    """Every row whose organism carries the asked one's words, else the first rows."""
+    kept = (
+        rows[:MAX_ORTHOLOG_ROWS]
+        if organism is None
+        else [row for row in rows if message_states(row.organism, organism)]
+    )
+    return [
+        OrthologRow(organism=r.organism, gene_id=r.ortho_gene_source_id) for r in kept
+    ]
 
 
 async def read_the_gene_record(
     api: StrategyAPI,
     site_id: str,
     gene_id: str,
+    *,
+    ortholog_organism: str | None = None,
 ) -> GeneRecordSummary:
-    """The gene record one site's API answers, as a summary."""
+    """The gene record one site's API answers, as a summary.
+
+    ``ortholog_organism`` reads every ortholog row of that organism from the
+    whole table in place of its first rows.
+    """
     site = get_site(site_id)
     declared = await gene_record_type(api, site_id)
     try:
@@ -269,10 +321,8 @@ async def read_the_gene_record(
         chromosome=stated.chromosome,
         exon_count=stated.exon_count,
         transcript_count=stated.transcript_count,
-        orthologs=[
-            OrthologRow(organism=row.organism, gene_id=row.ortho_gene_source_id)
-            for row in rows[:MAX_ORTHOLOG_ROWS]
-        ],
+        orthologs=_shown_orthologs(rows, ortholog_organism),
         ortholog_count=len(rows),
+        ortholog_organism=ortholog_organism,
         expression=await _expression_of(site_id, gene_id),
     )

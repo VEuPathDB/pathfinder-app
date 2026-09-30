@@ -40,12 +40,12 @@ def test_the_clear_command_the_product_writes_names_the_clear_arc() -> None:
     assert directive_of(text) == ArcDirective(arc="clear")
 
 
-def test_a_sentence_with_no_token_is_echoed_word_for_word() -> None:
-    calls = play("lead", "plasmodb", "Find 3D7 trophozoite genes that vary much")
+def test_a_sentence_with_no_token_is_echoed_without_its_numbers() -> None:
+    calls = play("lead", "plasmodb", "Find 2 trophozoite genes that vary much")
 
     assert names(calls) == ["final_result"]
     assert calls[0].args_as_dict()["prose"] == (
-        "[mock] Find 3D7 trophozoite genes that vary much"
+        "[mock] Find trophozoite genes that vary much"
     )
 
 
@@ -129,6 +129,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "no-search-states-it",
             "cross-organism",
             "zero-then-relax",
+            "withdraw",
             "proposal",
             "portal-only",
             "other-site-experiment",
@@ -144,6 +145,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "eda-compare",
             "eda-compare-no-step",
             "eda-other-site",
+            "user-dataset-deseq",
             "save-gene-set",
             "export",
             "rename",
@@ -155,6 +157,17 @@ def test_the_registry_holds_every_named_arc() -> None:
             "assent",
             "echo",
             "organism-universe",
+            "radio-off-domain",
+            "text-beside-organism",
+            "reclassified",
+            "read-again",
+            "count-comparison",
+            "union-refused",
+            "comparison-sides",
+            "widen-card",
+            "list-ids",
+            "derived-count",
+            "odorant-lookup",
         ]
     )
 

@@ -62,6 +62,10 @@ class GeneSet:
     step_count: int = 1
     vdi_id: str | None = None
     """The VEuPathDB user dataset this set was published to, when it was."""
+    conversation_id: UUID | None = None
+    """The thread the set was saved in, or None for a set saved outside one."""
+    answer_revision: str | None = None
+    """The answer revision of the strategy root the genes were read from."""
 
     def take_wdk_context(self, ctx: GeneSetWdkContext, *, step_count: int) -> None:
         """Adopt a resolved WDK context whole.

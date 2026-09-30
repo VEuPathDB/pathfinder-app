@@ -1,0 +1,54 @@
+{
+  "name": "uat-ud3-plasmodb",
+  "turns": [
+    "Take the gene list I uploaded, 'pathfinder-uat-genelist', and keep the genes whose proteins have a predicted signal peptide."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A gene list the researcher uploaded is a step on the site's user-dataset gene-list search, combined like any other search.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByUserDatasetGeneList INTERSECT GenesWithSignalPeptide)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByUserDatasetGeneList": {
+        "geneListUserDataset": "p0Z51wRgo404A"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": true,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 5,
+      "build": "71",
+      "measuredOn": "2026-09-29"
+    },
+    "endsOn": null,
+    "assumedStated": 0
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-29",
+    "stagingId": "",
+    "reference": "uat/flows-user-datasets.md#ud3",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "auto"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

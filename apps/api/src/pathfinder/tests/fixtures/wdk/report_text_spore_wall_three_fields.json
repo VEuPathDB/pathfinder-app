@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "microsporidiadb",
+  "method": "POST",
+  "url": "https://microsporidiadb.org/micro/service/record-types/transcript/searches/GenesByText/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-29",
+  "reads": "site default: GenesByText text_expression=\"spore wall\", text_fields=[product, Products, Notes], text_search_organism=[Encephalitozoon cuniculi GB-M1]"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 2,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 2,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 2,
+   "displayTotalCount": 2
+  }
+ }
+}

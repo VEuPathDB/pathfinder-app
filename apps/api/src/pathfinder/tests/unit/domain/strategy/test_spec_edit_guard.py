@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.spec_edit_guard import (
     spec_stated_values,
     stated_values,
 )
+from pathfinder.tests._support.bound_values import bound
 
 from ._builders import combine, graph_of, leaf, spec_joined, spec_leaf
 
@@ -63,8 +64,7 @@ def _similarity(criterion_id: str, gene_id: str, label: str) -> Criterion:
         id=criterion_id,
         text=f"Cell-cycle microarray expression profile similar to {label} ({gene_id})",
         search_name="GenesByToxoProfileSimilarity",
-        resolved_params=params,
-        defaulted_params=list(_DEFAULTED),
+        resolved_params=bound(params, defaulted=list(_DEFAULTED)),
     )
 
 
@@ -87,11 +87,13 @@ def _spec() -> OperationalSpec:
                 id=_PROFILE,
                 text="Ortholog present in Apicomplexa and absent from Mammalia",
                 search_name="GenesByOrthologPattern",
-                resolved_params={
-                    "profile_pattern": StringValue(value=_PROFILE_PATTERN),
-                    "included_species": StringValue(value="APIC"),
-                    "excluded_species": StringValue(value="MAMM"),
-                },
+                resolved_params=bound(
+                    {
+                        "profile_pattern": StringValue(value=_PROFILE_PATTERN),
+                        "included_species": StringValue(value="APIC"),
+                        "excluded_species": StringValue(value="MAMM"),
+                    }
+                ),
             ),
             _similarity(_MIC2, "TGME49_201780", "MIC2"),
             _similarity(_RON2, "TGME49_300100", "RON2"),
@@ -207,7 +209,7 @@ def _with_percentile_criterion(spec: OperationalSpec, **params: ParamValue) -> N
             id=_EXPR,
             text="Expressed in the schizont stage",
             search_name="GenesByRNASeqEvidence",
-            resolved_params=dict(params),
+            resolved_params=bound(dict(params)),
         ),
     )
     spec.constraints = [

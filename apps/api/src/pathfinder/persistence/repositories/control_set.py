@@ -25,6 +25,7 @@ class ControlSetCreate:
     provenance_notes: str | None = None
     is_public: bool = False
     user_id: UUID | None = None
+    conversation_id: UUID | None = None
 
 
 class ControlSetRepository:
@@ -86,6 +87,7 @@ class ControlSetRepository:
             provenance_notes=data.provenance_notes,
             is_public=data.is_public,
             user_id=data.user_id,
+            conversation_id=data.conversation_id,
         )
         self.session.add(cs)
         await self.session.flush()

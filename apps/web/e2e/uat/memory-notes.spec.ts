@@ -18,12 +18,7 @@ import {
   openTrace,
   traceRows,
 } from "../fixtures/build-checks";
-import {
-  countPattern,
-  printed,
-  readConversation,
-  siteOrganism,
-} from "../fixtures/site-reads";
+import { printed, readConversation, siteOrganism } from "../fixtures/site-reads";
 import { wdkTestToken } from "../fixtures/wdk-account";
 import { ChatPage } from "../pages/chat.page";
 import type { SettingsPage } from "../pages/settings.page";
@@ -196,7 +191,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expectEvidence(page, counts.root);
     const written = await writtenBy(apiClient, "cases", first);
 
-    const reply = chatPage.assistantReply(countPattern(counts.root));
+    const reply = chatPage.replyCounting(counts.root);
     await expect(reply).toHaveCount(1);
     await expect(
       chatPage.userMessages.getByRole("button", { name: "Good response" }),
@@ -235,7 +230,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
 
     await page.goto(`/${siteId}/conversation/${first}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
-    const liked = chatPage.assistantReply(countPattern(counts.root));
+    const liked = chatPage.replyCounting(counts.root);
     await expect(liked.getByRole("button", { name: "Good response" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -265,7 +260,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expectEvidence(page, counts.root);
     const written = await writtenBy(apiClient, "cases", first);
 
-    const reply = chatPage.assistantReply(countPattern(counts.root));
+    const reply = chatPage.replyCounting(counts.root);
     await expect(reply).toHaveCount(1);
     await rate(page, reply, "Bad response");
     await expect(reply.getByRole("button", { name: "Bad response" })).toHaveAttribute(
@@ -377,7 +372,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
       prompt("intersect", S2_TEXT(siteOrganism(siteId))),
     );
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
-    const reply = chatPage.assistantReply(countPattern(counts.root));
+    const reply = chatPage.replyCounting(counts.root);
     await openTrace(reply);
     await expect(traceRows(reply, "Save note")).not.toHaveCount(0);
     await expect(traceRows(reply, "Pin note")).not.toHaveCount(0);

@@ -43,7 +43,10 @@ class _RecordingService:
     fetched: list[tuple[UUID, UUID]] = field(default_factory=list)
     held: ControlSetResponse | None = None
 
-    async def create(self, spec: NewControlSet, *, user_id: UUID) -> ControlSetResponse:
+    async def create(
+        self, spec: NewControlSet, *, user_id: UUID, conversation_id: UUID | None
+    ) -> ControlSetResponse:
+        del conversation_id
         self.created.append((spec, user_id))
         return _response(spec.name, spec.positive_ids)
 
@@ -89,6 +92,7 @@ async def test_creating_a_control_set_passes_every_field_to_the_service(
             source="chat",
         ),
         user_id=user_id,
+        conversation_id=None,
     )
 
     assert created.name == "kinase controls"

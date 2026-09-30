@@ -16,29 +16,35 @@ from pathfinder.ai.lead.ledger_sections import FrameSection
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
 )
+from pathfinder.domain.strategy.questions import (
+    OpenQuestion,
+    SlotQuestion,
+)
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 # The question FRAME asked on N1, with the facets it read on the sheet.
-_CUTOFF = OpenQuestion(
+_CUTOFF = SlotQuestion(
     question="Which cutoff should define low variation between isolates?",
     dimension=ConstraintKind.STATISTICAL_THRESHOLD,
     recommended_value="maximum minor-allele frequency <= 1%",
+    criterion_id="c_var",
+    param_name="max_minor_allele_frequency",
     options=[
         "maximum minor-allele frequency <= 1%",
         "maximum minor-allele frequency <= 5%",
         "maximum variants per kb",
     ],
-)
+).typed()
 _N1_PROSE = (
     "I can build this strategy, but one value is open. Which cutoff should I "
-    "use? I recommend a maximum minor-allele frequency of 1%."
+    "use? I recommend the strictest minor-allele frequency the card offers."
 )
 _OPEN_SENTENCE = (
     'The spec leaves "Which cutoff should define low variation between '
@@ -91,7 +97,7 @@ def test_a_question_asked_by_pass_one_and_closed_by_pass_two_stands() -> None:
 
     deps.state.domain.operational_spec = _spec(open_params=[])
 
-    assert _kinds(deps, "I built it with a maximum minor-allele frequency of 1%.") == []
+    assert _kinds(deps, "I built it with the strictest minor-allele frequency.") == []
 
 
 def test_a_spec_ready_pass_with_a_question_asks_nothing_of_the_card() -> None:
@@ -162,13 +168,13 @@ def test_a_framed_turn_with_nothing_open_asks_nothing_of_the_card() -> None:
     deps = _framed(asked=[], at_arrival=[])
     deps.state.domain.operational_spec = _spec(open_params=[])
 
-    assert _kinds(deps, "Is the 3D7 study right? The spec is ready to build.") == []
+    assert _kinds(deps, "Is the asexual study right? The spec is ready to build.") == []
 
 
 def test_an_open_question_holds_at_most_eight_options() -> None:
     assert OpenQuestion(question="Which?").options == []
     with pytest.raises(ValidationError):
-        OpenQuestion(question="Which?", options=[str(n) for n in range(9)])
+        SlotQuestion(question="Which?", options=[str(n) for n in range(9)])
 
 
 def test_the_ledger_prints_each_open_slot_s_choices() -> None:
@@ -204,9 +210,9 @@ def test_the_lead_asks_an_open_value_on_the_card() -> None:
 
     assert (
         '``disposition = "needs_user"`` -> the spec has an open param slot (a value '
-        "only the user can choose) or a dropped criterion. Call ``consult_user``, one "
-        "question per open question or slot, its options from the ledger, the "
-        "recommended one marked; a value the options do not hold is the answer's note."
+        "only the user can choose) or a dropped criterion. Call ``consult_user`` with "
+        "the result's ``cardQuestions`` as its questions, verbatim: each option binds "
+        "the value it names; a value the options do not hold is the answer's note."
     ) in instructions
     assert "single parameter value" not in instructions
     assert "ask it in prose" not in instructions

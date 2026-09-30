@@ -31,13 +31,14 @@ from veupathdb.eda import (
     EdaVisualization,
     EdaVolcanoConfiguration,
     EdaVolcanoDescriptor,
+    VolcanoStatsResponse,
 )
 from veupathdb.testing.eda_fixtures import recorded_distribution
 
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services.eda import gene_subset
+from pathfinder.services.eda import compute, export, gene_subset
 from pathfinder.services.eda.gene_subset import GeneCount
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.sync import SyncResult
@@ -215,7 +216,8 @@ async def read_detail(_site: str, *, analysis_id: str) -> EdaAnalysisDetail:
 def wire_analysis(
     monkeypatch: pytest.MonkeyPatch, module: ModuleType, detail: EdaAnalysisDetail
 ) -> None:
-    """Bind ``detail`` to the thread on its own dataset, and read it back."""
+    """Bind ``detail`` to the thread on its own dataset, read it back, and serve
+    what its export reads beside it."""
 
     async def bound_to(_ctx: object) -> ConversationAnalysisView:
         return binding_of(detail)
@@ -226,6 +228,7 @@ def wire_analysis(
 
     monkeypatch.setattr(module, "bound_analysis", bound_to)
     monkeypatch.setattr(module, "read_analysis", read)
+    wire_export_reads(monkeypatch)
 
 
 # The account's permission on the RNA-Seq study, as ``/permissions`` sends it.
@@ -314,6 +317,7 @@ def pushing_commit(
         step_id = ops[0].step.id
         sync_state = ensure_sync_state(session)
         sync_state.wdk_step_ids[step_id] = wdk_step_id
+        sync_state.step_counts[step_id] = count
         sync_state.wdk_strategy_id = WDK_STRATEGY_ID
         return CommitResult(
             description="added a step",
@@ -349,7 +353,8 @@ def wire_gene_count(
     study: StudyReader = phenotype_study,
     genes: GeneCount = PHENOTYPE_GENES,
 ) -> list[CountedSubset]:
-    """The study the export checks, its gene count, and what each count read."""
+    """The study the export checks and names its variables by, its gene count,
+    the statistics of its compute, and what each count read."""
     counted: list[CountedSubset] = []
 
     async def _count(
@@ -366,4 +371,17 @@ def wire_gene_count(
 
     monkeypatch.setattr(gene_subset, "get_study_detail_for_dataset", study)
     monkeypatch.setattr(gene_subset, "gene_count", _count)
+    wire_export_reads(monkeypatch, study=study)
     return counted
+
+
+def wire_export_reads(
+    monkeypatch: pytest.MonkeyPatch, *, study: StudyReader = phenotype_study
+) -> None:
+    """The study an export names its variables by, and its compute's statistics."""
+
+    async def _statistics(*_args: object, **_kwargs: object) -> VolcanoStatsResponse:
+        return VolcanoStatsResponse.model_validate(fixture("volcano_statistics"))
+
+    monkeypatch.setattr(export, "get_study_detail_for_dataset", study)
+    monkeypatch.setattr(compute, "read_statistics", _statistics)

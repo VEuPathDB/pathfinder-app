@@ -1,0 +1,62 @@
+{
+  "name": "uat-dry-d-vectorbase",
+  "turns": [
+    "Aedes aegypti LVP_AGWG odorant receptors that are expressed in female antennae.",
+    "Which expression dataset did you use for the female antennae, and is there a better one on VectorBase for this question?",
+    "Keep SRP171130 then. Can you exclude anything that is also expressed in male antennae in that same study, if the site lets you do that?",
+    "I already told you to keep SRP171130, so that question is settled. What is the count of the final step, and give me a one-line reason for each search in the strategy."
+  ],
+  "siteId": "vectorbase",
+  "assistantId": "pathfinder",
+  "rationale": "A question the researcher settled is never a gap: the check leaves no row that no search states, and the odorant receptors expressed in female antennae minus those in male antennae give 12.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "((GenesByInterproDomain INTERSECT GenesByRNASeqaaegLVP_AGWG_SRP171130_ebi_rnaSeq_RSRCPercentile) MINUS GenesByRNASeqaaegLVP_AGWG_SRP171130_ebi_rnaSeq_RSRCPercentile)",
+    "recordType": "transcript",
+    "stepCount": 5,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByInterproDomain": {
+        "domain_typeahead": "PF02949"
+      }
+    },
+    "replyMentions": [
+      "12"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "MINUS",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": 0,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 12,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "vectorbase",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u8",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

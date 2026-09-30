@@ -14,7 +14,10 @@ from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.strategy.combination_check import first_combination_violation
+from pathfinder.domain.strategy.combination_check import (
+    first_combination_violation,
+    unstated_union,
+)
 from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
@@ -86,6 +89,32 @@ def _refuse_a_tree_that_breaks_a_stated_combination(
         f"The structure is refused: {breach.message}. Restate the tree so "
         f"those criteria sit under one {breach.required.value} branch, and "
         f"combine that branch with the rest."
+    )
+    raise ModelRetry(msg)
+
+
+def _refuse_a_union_no_one_stated(
+    state: AgentToolState, proposed: SpecStructure, held: frozenset[str]
+) -> None:
+    """A UNION that adds an arm to the strategy's own steps changes the
+    researcher's answer, so it stands only on a stated OR over its arms."""
+    found = unstated_union(
+        proposed,
+        held,
+        state.combination_requirements,
+        state.operational_spec_draft.criteria,
+    )
+    if found is None:
+        return
+    msg = (
+        f"The structure is refused: a UNION joins {', '.join(found.held)}, which "
+        f"the strategy holds, to {', '.join(found.added)}, which this turn adds, "
+        f"and the researcher stated no alternative that joins them. A UNION "
+        f"changes the researcher's result. A question that compares two counts "
+        f"is answered by the Lead's compare_search_variants and adds no step. "
+        f"Join the new criteria as the request says, or leave them out of the "
+        f"tree; when the request is ambiguous, end needs_user with a Drop/Keep "
+        f"question on the new criteria."
     )
     raise ModelRetry(msg)
 
@@ -221,29 +250,33 @@ async def set_structure(
     question. WDK step trees carry a primary and a secondary input, so a
     branch on either side is representable. A combination the user stated is
     checked here: a tree that joins those criteria with another operator is
-    refused. An INTERSECT input that states only the organism another input
-    already runs on, matches every gene of it, or repeats another input's
-    searches and values, is dropped, and ``dropped`` says what became of its
-    text.
+    refused. A UNION that joins a step the strategy holds to a criterion this
+    turn adds is refused unless the researcher stated that OR. An INTERSECT
+    input that states only the organism another input already runs on,
+    matches every gene of it, or repeats another input's searches and values,
+    is dropped, and ``dropped`` says what became of its text.
     """
     state = ctx.deps.agent_state
     proposed = SpecStructure(root=root)
+    graph = ctx.deps.strategy_session.get_graph(None)
+    live = frozenset(graph.steps) if graph is not None else frozenset[str]()
     _refuse_a_tree_that_breaks_a_stated_combination(state, proposed)
+    _refuse_a_union_no_one_stated(state, proposed, live)
     _refuse_a_node_the_role_contradicts(state, proposed)
     _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)
     _refuse_a_tree_the_site_cannot_run(state, proposed)
     await _refuse_a_transform_over_another_record_class(ctx, proposed)
-    graph = ctx.deps.strategy_session.get_graph(None)
-    live = frozenset(graph.steps) if graph is not None else frozenset[str]()
     deduped = fold_duplicate_inputs(
         state.operational_spec_draft, proposed, live_step_ids=live
     )
-    folded = await _organism_folded(ctx, deduped.structure, live)
+    folded = (await _organism_folded(ctx, deduped.structure, live)).holding_open(
+        state.stated_requirements, state.request_messages
+    )
     dropped: list[OrganismDrop | DuplicateDrop] = [*deduped.dropped, *folded.dropped]
     state.frame_set_structure(folded.structure)
     for drop in dropped:
         state.frame_drop_criterion(
-            drop.criterion_id, drop.fate, unexpressed=not drop.met
+            drop.criterion_id, drop.fate, requirement=drop.requirement
         )
     combined = len(structure_criteria(folded.structure))
     summary = f"Structure set: {combined} {'search' if combined == 1 else 'searches'}"

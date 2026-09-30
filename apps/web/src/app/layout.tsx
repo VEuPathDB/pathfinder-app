@@ -3,7 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "@/styles/globals.css";
 import "streamdown/styles.css";
-import { TelemetryErrorBoundary } from "@/lib/telemetry/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Providers } from "./components/Providers";
 
 // Every page requires auth + API data - nothing should be statically prerendered.
@@ -25,11 +25,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body className="h-full overflow-hidden bg-background text-foreground font-sans antialiased">
-        <TelemetryErrorBoundary>
+        <ErrorBoundary>
           <Providers>
             <main className="h-full">{children}</main>
           </Providers>
-        </TelemetryErrorBoundary>
+        </ErrorBoundary>
       </body>
     </html>
   );

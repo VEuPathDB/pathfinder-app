@@ -23,6 +23,7 @@ from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.catalog_builders import serve_search_details
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
@@ -229,6 +230,27 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
         assert "needing the analysis workflow" in str(excinfo.value)
         assert [c.bound for c in state.operational_spec_draft.criteria] == [False]
 
+    async def test_the_named_upload_wins_over_the_sheets_default(self) -> None:
+        """The dataset default is the site's first choice, not the researcher's."""
+        state = AgentToolState()
+        upload = "EDAUD_lhZ5ptRgo014J"
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await bind(
+                state,
+                _MUTAGENESIS_SEARCH,
+                {EDA_DATASET_ID_PARAM: upload},
+                criterion_id="c_up",
+                text="up in treated",
+            )
+
+        assert f"needing the analysis workflow on dataset {upload}" in str(
+            excinfo.value
+        )
+        assert state.operational_spec_draft.criteria == [
+            _waiting_on("c_up", "up in treated", upload)
+        ]
+
 
 class TestASearchThatNamesNoDataset:
     @pytest.fixture(autouse=True)
@@ -317,3 +339,37 @@ class TestAWaitingCriterionKeepsItsDataset:
         assert state.operational_spec_draft.criteria == [
             _waiting_on("c_36", "24 h over 36 h", self._ELSEWHERE)
         ]
+
+
+class TestABoundCriterionKeepsItsSearch:
+    _HELD = "step_154b4942"
+    _PERCENTILE = "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRCPercentile"
+
+    @pytest.fixture(autouse=True)
+    def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _serve_the_eda_search(monkeypatch, default=_DATASET_ID)
+
+    def _held(self) -> Criterion:
+        return Criterion(
+            id=self._HELD,
+            text="top 20 percent expressed in Ring",
+            search_name=self._PERCENTILE,
+            resolved_params=bound({"samples": StringValue(value="Ring")}),
+            result_count=1102,
+        )
+
+    async def test_an_eda_backed_search_on_a_bound_id_is_refused_and_keeps_it(
+        self,
+    ) -> None:
+        state = AgentToolState()
+        state.frame_set_criterion(self._held())
+
+        with pytest.raises(ModelRetry) as excinfo:
+            await _sheet(
+                state, criterion_id=self._HELD, text="DESeq2 ring vs trophozoite"
+            )
+
+        message = str(excinfo.value)
+        assert f"{self._HELD} is bound to {self._PERCENTILE}" in message
+        assert "Name a new criterion id" in message
+        assert state.operational_spec_draft.criteria == [self._held()]

@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "tritrypdb",
+  "method": "POST",
+  "url": "https://tritrypdb.org/tritrypdb/service/record-types/transcript/searches/GenesByMicroarrayDirectWithConfidencelmajFriedlin_microarrayExpression_E-MEXP-1864_Beverley_Steve_LifeStages_RSRC/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-29",
+  "reads": "other option: GenesByMicroarrayDirectWithConfidencelmajFriedlin_microarrayExpression_E-MEXP-1864_Beverley_Steve_LifeStages_RSRC, profileset_generic=pnaVsPromastigote, samples_fc_direct_generic_page=pnaVsPromastigote (microarray), confidence=0.7, fold_change=2, regulated_dir=up-regulated, protein_coding_only=yes"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 142,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 145,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 145,
+   "displayTotalCount": 142
+  }
+ }
+}

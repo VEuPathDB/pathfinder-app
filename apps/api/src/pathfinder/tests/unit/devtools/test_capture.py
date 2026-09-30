@@ -11,12 +11,12 @@ from assistant_core.platform.types import JSONObject
 from pydantic import TypeAdapter
 
 from pathfinder.devtools.capture import (
-    LOOP_THRESHOLD,
     OUTPUT_TOOL,
     RunCapture,
     capture_tracebacks,
     reset_run_dir,
 )
+from pathfinder.devtools.diagnosis import LOOP_THRESHOLD
 from pathfinder.platform.durable_worker import durable_call_refusal
 
 

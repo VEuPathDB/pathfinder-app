@@ -14,6 +14,7 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 
@@ -71,7 +72,9 @@ async def test_preferences_autowrite_only_after_three_successes(
             store=mem_store,
             tombstones=tombstones,
             user_id=state.user_id,
-            candidates=await collect_turn_memory_candidates(state),
+            candidates=await collect_turn_memory_candidates(
+                state, counts=BuiltCounts()
+            ),
         )
         prefs = await mem_store.list_all(user_id=user_id, kind="preference")
         assert any(p.value.content.get("preferred_site") == "plasmodb" for p in prefs)
@@ -130,7 +133,9 @@ async def test_preferences_not_written_with_fewer_than_three_successes(
             store=mem_store,
             tombstones=tombstones,
             user_id=state.user_id,
-            candidates=await collect_turn_memory_candidates(state),
+            candidates=await collect_turn_memory_candidates(
+                state, counts=BuiltCounts()
+            ),
         )
         prefs = await mem_store.list_all(user_id=user_id, kind="preference")
         assert prefs == []

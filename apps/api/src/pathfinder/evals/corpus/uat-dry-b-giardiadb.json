@@ -1,0 +1,53 @@
+{
+  "name": "uat-dry-b-giardiadb",
+  "turns": [
+    "Find Giardia Assemblage A isolate WB genes annotated as variant-specific surface proteins.",
+    "How many of those have a signal peptide?",
+    "Thanks. Can you explain in one paragraph what each step does, for a colleague who does not use VEuPathDB?",
+    "Wait, only 20 VSPs? The WB genome is supposed to have well over a hundred VSP genes. Are we missing some?",
+    "Yes, please broaden the first step so it also catches genes whose product is just VSP, keep the signal peptide filter, and tell me both counts."
+  ],
+  "siteId": "giardiadb",
+  "assistantId": "pathfinder",
+  "rationale": "A family phrase broadened to catch a shorter product name stays a text step intersected with the signal peptide search; the counts depend on which text fields the first turn searches, so they are not pinned.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByText INTERSECT GenesWithSignalPeptide)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": null,
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "giardiadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u5",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

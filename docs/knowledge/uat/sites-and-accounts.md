@@ -63,6 +63,22 @@ The default of `isSyntenic` on every site is `no`. A request that does not say "
 
 The engineering dev account is named in the gitignored `.env.dev` as `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD`; the service token there is `VEUPATHDB_AUTH_TOKEN`, and it resolves to the same VEuPathDB user as the dev email, so it cannot serve as account B. Never paste a credential, a token or an account id into a bug report or into this folder.
 
+## User datasets of the dev account
+
+The UD flows and `tests/integration/strategies/test_wdk_user_dataset_searches.py` read three uploads the dev account holds on each of two sites. They were uploaded on 2026-09-29 through VDI and installed on build 71. Keep them: H1 does not delete them. A VDI id is the dataset's id on the site, not a credential.
+
+| Site | Name | VDI type | VDI id | Contents |
+|---|---|---|---|---|
+| plasmodb | `pathfinder-uat-genelist` | `genelist` | `p0Z51wRgo404A` | 20 P. falciparum 3D7 gene ids, `PF3D7_0100100` onwards |
+| plasmodb | `pathfinder-uat-deseq` | `rnaseqrc` | `lhZ5ptRgo014J` | One unstranded counts table, 200 genes, samples `ctrl_1` to `ctrl_3` (`control`) and `treat_1` to `treat_3` (`treated`); 40 genes raised in `treated`, none lowered |
+| plasmodb | `pathfinder-uat-phenotype` | `phenotype` | `c1Z5oVRJpY04s` | `geneID`, `fitness_score` for the same 200 genes; 30 of them from -6 to -3 |
+| vectorbase | `pathfinder-uat-genelist` | `genelist` | `54Z5sURsoM04A` | 20 A. gambiae PEST gene ids, `AGAP000002` onwards |
+| vectorbase | `pathfinder-uat-deseq` | `rnaseqrc` | `9kZ5ohRotJ04g` | As on plasmodb, over 200 A. gambiae PEST genes |
+| vectorbase | `pathfinder-uat-phenotype` | `phenotype` | `wEZ5YwRptR040` | As on plasmodb, over the same 200 genes |
+
+The EDA study of an installed `rnaseqrc` or `phenotype` upload is `EDAUD_<VDI id>`.
+
+
 ## Data hygiene: each flow deletes what it created
 
 The last step of every flow deletes what the flow created, with the click below. The sweep `H1` in the [runner checklist](runner-checklist.md) then proves the account is empty.

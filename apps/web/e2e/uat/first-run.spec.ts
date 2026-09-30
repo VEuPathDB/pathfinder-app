@@ -47,7 +47,6 @@ import {
 } from "../fixtures/build-checks";
 import { entrySiteId } from "../fixtures/entry-site";
 import {
-  countPattern,
   printed,
   readConversation,
   readNodes,
@@ -816,8 +815,10 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       hasNot: page.getByTestId("data-graph-snapshot"),
     });
     await expect(recap).toHaveCount(1);
-    await expect(recap).toContainText(countPattern(first.root));
-    await expect(recap).not.toContainText(countPattern(edited.root));
+    await expect(recap.getByTestId("facts-root-count")).toHaveAttribute(
+      "data-count",
+      String(first.root),
+    );
     await expect(recap.getByTestId("data-sub-agent-call")).toHaveCount(0);
 
     await page.goto(`/${siteId}/conversation/${parentId}`);
@@ -900,7 +901,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       siteId,
       LAYOUTS.intersect,
     );
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await expect(chatPage.replyCounting(counts.root)).not.toHaveCount(0);
     await expect(page.getByText(/reconnecting/i)).toHaveCount(0);
 
     await chatPage.newChat(siteId);
@@ -1139,12 +1140,9 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     await page.reload();
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(
-      0,
-      {
-        timeout: 240_000,
-      },
-    );
+    await expect(chatPage.replyCounting(counts.root)).not.toHaveCount(0, {
+      timeout: 240_000,
+    });
     await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
 
     const reply = chatPage.assistantMessages.filter({

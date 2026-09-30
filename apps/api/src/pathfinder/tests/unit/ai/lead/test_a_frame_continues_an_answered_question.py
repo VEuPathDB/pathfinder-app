@@ -17,10 +17,11 @@ from pathfinder.ai.lead.dispatch_messages import stopped_pass_work_order
 from pathfinder.ai.lead.frame_dispatch import frame_work_order
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
-from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests.unit.ai.lead._answered_draft import (
     ANSWER,
+    ASKED,
     BOUND,
     OPEN,
     OPEN_PARAM,
@@ -49,7 +50,9 @@ _BUDGET_STOP = PhaseStop(
     role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60, criteria_bound=1
 )
 
-_ASKED_THIS_TURN = OpenQuestion(question="Which life-cycle stage decides c_stage?")
+_ASKED_THIS_TURN = SlotQuestion(
+    question="Which life-cycle stage decides c_stage?"
+).typed()
 _FRESH = "Operationalize into criteria"
 
 
@@ -135,7 +138,7 @@ async def test_a_draft_framed_after_a_clear_is_continued(
         lambda _found: framed(None),
         declared=[],
         disposition="needs_user",
-        asks=[QUESTION],
+        asks=[ASKED],
     )
     asked = await thread.frame()
     assert isinstance(asked, FrameResult)
@@ -210,7 +213,7 @@ async def test_the_answering_turn_binds_only_the_open_criterion(
         lambda _found: framed(None),
         declared=[],
         disposition="needs_user",
-        asks=[QUESTION],
+        asks=[ASKED],
     )
     asked = await thread.frame()
     assert isinstance(asked, FrameResult)

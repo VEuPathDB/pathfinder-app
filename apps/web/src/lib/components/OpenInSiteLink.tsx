@@ -6,13 +6,25 @@ import { siteShortName } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
+interface OpenInSiteLinkProps {
+  href: string;
+  siteId: string;
+  onOpen?: () => void;
+}
+
 /** A link to a page on the site itself. */
-export function OpenInSiteLink({ href, siteId }: { href: string; siteId: string }) {
+export function OpenInSiteLink({ href, siteId, onOpen }: OpenInSiteLinkProps) {
   const target = useSiteLinkTarget();
   const label = `Open in ${siteShortName(siteId)}`;
   return (
     <Button asChild variant="ghost" size="sm" className="h-7 gap-1.5 px-2">
-      <a href={href} target={target} rel="noreferrer" aria-label={label}>
+      <a
+        href={href}
+        target={target}
+        rel="noreferrer"
+        aria-label={label}
+        onClick={onOpen}
+      >
         <span className="text-xs">{label}</span>
         <ExternalLink className="size-3.5" aria-hidden />
       </a>

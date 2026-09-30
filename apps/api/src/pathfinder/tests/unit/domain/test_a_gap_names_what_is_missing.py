@@ -10,6 +10,12 @@ from pathfinder.domain.caveats import (
     check_gaps,
 )
 from pathfinder.domain.evidence import RequirementCheck, VerificationReview
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    provisional_constraints,
+)
 
 _STRUCTURE = StructureGap(expression="kinases OR phosphatases", built="INTERSECT")
 
@@ -38,7 +44,26 @@ def test_each_gap_is_listed_once_with_its_sentence() -> None:
         ]
     )
 
-    gaps = check_gaps(structure=_STRUCTURE, words=["exported"], review=review)
+    gaps = check_gaps(
+        structure=_STRUCTURE,
+        words=["exported"],
+        review=review,
+        requirements=provisional_constraints(
+            [
+                Constraint(
+                    kind=ConstraintKind.OTHER,
+                    requested_value=value,
+                    label=value,
+                    source=ConstraintSource.USER_EXPLICIT,
+                )
+                for value in (
+                    "exported",
+                    "at least 2 transmembrane domains",
+                    "in the host cell",
+                )
+            ]
+        ),
+    )
 
     assert [gap.sentence for gap in gaps] == [
         "'kinases OR phosphatases': the strategy joins it with INTERSECT",
@@ -51,8 +76,3 @@ def test_each_gap_is_listed_once_with_its_sentence() -> None:
         RequirementGap(text="at least 2 transmembrane domains", status="unmet"),
         RequirementGap(text="in the host cell", status="unexpressed"),
     ]
-
-
-def test_a_reply_names_a_gap_by_its_words_in_any_case() -> None:
-    assert _STRUCTURE.named_by("It joins Kinases OR Phosphatases at an intersect.")
-    assert not WordGap(word="exported").named_by("It reads every exporter.")

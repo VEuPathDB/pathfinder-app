@@ -19,6 +19,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -33,6 +34,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.sheets import visible_sheet
 
 _SEARCH = "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC"
 _DATASET_URL = "https://PlasmoDB.org/a/app/record/dataset/DS_66f9e70b8a"
@@ -80,8 +82,8 @@ def _state() -> PipelineState:
 
 @pytest.fixture
 def sheet(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _sheets(**_kwargs: Any) -> dict[str, frozenset[str]]:
-        return {_SEARCH: frozenset({"profileset_generic"})}
+    async def _sheets(**_kwargs: Any) -> dict[str, list[ParameterInfo]]:
+        return {_SEARCH: visible_sheet(["profileset_generic"])}
 
     monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
@@ -95,7 +97,7 @@ async def test_a_hidden_parameter_is_not_stated_by_the_derived_criterion() -> No
     assert spec is not None
     criterion = spec.criteria[0]
     assert "dataset_url" not in criterion.resolved_params
-    assert criterion.resolved_params["profileset_generic"] == StringValue(
+    assert criterion.param_values["profileset_generic"] == StringValue(
         value="Pfal3D7 Su seven stages"
     )
 
@@ -203,9 +205,7 @@ async def test_the_stated_step_carries_the_sheet_parameters_only() -> None:
     assert spec is not None
     export = next(c for c in spec.criteria if c.id == "step_export")
     assert export.text == "berghei subset"
-    assert export.resolved_params == {
-        "profileset_generic": StringValue(value="Pfal3D7")
-    }
+    assert export.param_values == {"profileset_generic": StringValue(value="Pfal3D7")}
 
 
 def _planned(criterion_id: str) -> Criterion:

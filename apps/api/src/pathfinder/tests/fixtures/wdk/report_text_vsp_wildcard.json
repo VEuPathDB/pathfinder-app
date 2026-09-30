@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "giardiadb",
+  "method": "POST",
+  "url": "https://giardiadb.org/giardiadb/service/record-types/transcript/searches/GenesByText/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-28",
+  "reads": "wildcard phrase: GenesByText text_expression=VSP*, text_fields=[product], text_search_organism=[Giardia Assemblage A isolate WB]"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 207,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 207,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 207,
+   "displayTotalCount": 207
+  }
+ }
+}

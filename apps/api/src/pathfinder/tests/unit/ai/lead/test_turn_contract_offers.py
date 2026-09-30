@@ -9,7 +9,8 @@ import pytest
 from pathfinder.ai.lead.reply_claims import ends_with_a_question
 from pathfinder.ai.lead.turn_contract import reconcile
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     building_deps,
@@ -19,15 +20,15 @@ from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
 )
 
 THE_OFFER = (
-    "The strategy returns 4 genes. Verification found two limitations: the "
+    "The strategy is built. Verification found two limitations: the "
     "expression search does not exclude high expression at other time points, "
-    "and the orthology profile does not encode 1:1:1 copy number.\n\n"
-    "Would you like me to refine the strategy to enforce strict 3-hour "
-    "specificity and independently verify 1:1:1 syntenic orthology?"
+    "and the orthology profile does not encode single-copy orthologs.\n\n"
+    "Would you like me to refine the strategy to enforce strict early "
+    "specificity and independently verify single-copy syntenic orthology?"
 )
 A_QUESTION_THEN_A_STATEMENT = (
-    "Why did the count drop to 4? The orthology profile removed every gene "
-    "without a copy in all three species.\n\nThe strategy holds 4 genes."
+    "Why did the count drop? The orthology profile removed every gene "
+    "without a copy in every species you named.\n\nThe count is shown beside this reply."
 )
 
 
@@ -61,7 +62,7 @@ class TestAReplyThatEndsOnAQuestion:
             changed=True,
             next_state="complete",
             questions=[
-                OpenQuestion(
+                AskedQuestion(
                     question="Enforce strict 3-hour specificity?",
                     dimension=ConstraintKind.OTHER,
                     recommended_value="yes",

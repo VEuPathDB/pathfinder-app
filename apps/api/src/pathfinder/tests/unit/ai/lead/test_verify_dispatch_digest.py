@@ -161,7 +161,6 @@ async def test_success_over_a_real_build_stands(
     deps.state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1"],
         wdk_strategy_id=330558093,
-        root_count=61,
     )
 
     delta = await _verify(monkeypatch, deps, _BUILD_DIGEST)
@@ -184,7 +183,7 @@ async def test_the_verdict_stands_for_the_revision_it_judged(
     )
     deps = _kinase_deps(session)
     deps.state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1"], wdk_strategy_id=330558093, root_count=61
+        pushed_step_ids=["s1"], wdk_strategy_id=330558093
     )
     judged = live_tree(session.get_graph(None))
     deps.state.domain.answered_graph = judged
@@ -239,7 +238,6 @@ def _combination_deps(operator: CombineOp) -> LeadDeps:
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1"],
         wdk_strategy_id=330423363,
-        root_count=12,
     )
     return lead_deps(
         state,

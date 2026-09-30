@@ -1,10 +1,10 @@
 ---
 type: Decision
-title: A memory-store call is bounded by the turn, and the two calls fail differently
-description: Retrieval at Lead entry and the auto-write in finalize_turn run under memory_store_timeout_seconds (default 30); exhaustion raises MemoryStoreTimeoutError, which retrieval logs and degrades to no memories while the auto-write re-raises into the turn's error path. An unbounded await was measured parking a test run for the full 600 s ceiling. The store's batch task is also ended with the store, so a closed store leaves nothing pending.
+title: A memory-store call is bounded by the turn, and neither call fails the turn
+description: Retrieval at Lead entry and the auto-write in finalize_turn run under memory_store_timeout_seconds (default 30); exhaustion raises MemoryStoreTimeoutError, which retrieval logs and degrades to no memories. The auto-write runs after the reply is on the wire, so any failure of it is logged and dropped and the turn ends with its reply; re-raising it was measured replacing a finished reply with a stop message. An unbounded await was measured parking a test run for the full 600 s ceiling. The store's batch task is also ended with the store, so a closed store leaves nothing pending.
 tags: [memory, langgraph, jobs, worker, reliability, chat]
 generated: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-09-29T00:00:00Z }
 status: stable
 ---
 
@@ -16,17 +16,30 @@ at Lead entry and `auto_write_memories` in `finalize_turn`. Both now run inside
 whose window is `memory_store_timeout_seconds` (default 30). Exhaustion raises
 `MemoryStoreTimeoutError`, which carries the operation and the window.
 
-The two calls answer it differently, because they are worth different things.
 **Retrieval degrades**: it logs a warning naming the thread and returns `[]`,
-and the turn runs on the user's prompt alone. **The auto-write fails loudly**:
-it logs and re-raises, so `run_turn` writes `error`, `data-turn-failed`,
-`finish` and `done`, and the user sees a turn that ended. A memory the user
-believes was saved and was not is worse than a turn that says it broke.
+and the turn runs on the user's prompt alone. **The auto-write is dropped**:
+`ai/graph/nodes.py::_write_the_notes` logs any exception it raises, the
+timeout included, and `finalize_turn` ends the turn as it would with no
+notes. The saved gene sets stay on the state, so the next verified turn
+offers their notes again.
 
-`MemoryStoreTimeoutError` is caught before the `(RuntimeError, ValueError,
-OSError, SQLAlchemyError)` handler that already swallowed auto-write failures;
-it subclasses `TimeoutError`, which is an `OSError`, so the order is what keeps
-it loud.
+The invariant: once the reply part is written, no later step of the turn's
+finalisation changes what the researcher sees. The auto-write is a write the
+researcher never asked for and never sees confirmed, so its failure has no
+sentence to put on screen.
+
+# The evidence that reversed the first rule
+
+The first version of this decision let the auto-write fail loudly: it
+re-raised `MemoryStoreTimeoutError`, so `run_turn` wrote `error`,
+`data-turn-failed`, `finish` and `done`. On a trichdb build turn the event log
+held the facts part and the whole reply, then an `error` part with "This turn
+stopped before it could answer. Ask again." and `finish: error`. The worker
+logged the auto-write timing out at 30 s in `store.aput`, one minute after a
+DNS failure had refused a connection. The researcher was told to ask again
+under a complete answer, and asking again rebuilds a strategy that exists.
+The reason the first rule gave, a memory the user believes was saved, does not
+hold for a write the user did not request.
 
 # Why the store was the call that could hang
 
@@ -68,7 +81,9 @@ turn that is unlucky.
 policy that differs per call site: retrieval degrades and the auto-write does
 not. The deadline sits where the decision about the failure is made.
 
-**Letting the auto-write degrade like retrieval.** The turn would report
-success while silently keeping no memory of it, and the next turn would
-re-derive the same candidate and fail the same way, with nothing on screen
-either time.
+**Failing the turn on an auto-write timeout.** Measured above: it replaces
+a finished reply with a stop message. A lost note costs one retrieval later;
+a lost reply costs a rebuilt strategy.
+
+**Catching only the timeout and the builtin I/O errors.** An embedding client
+error is none of them, and it reaches the same place after the same reply.

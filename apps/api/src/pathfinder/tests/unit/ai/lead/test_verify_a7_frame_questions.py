@@ -14,12 +14,15 @@ from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta, FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
+    DroppedCriterion,
     OperationalSpec,
     SpecStructure,
 )
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.spec_diff import CriterionChange
+from pathfinder.tests._support.bound_values import stated
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import with_the_proteome
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     ROOT,
@@ -35,13 +38,14 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     recorded,
     session_holding,
 )
+from pathfinder.tests.unit.ai.lead.conftest import requirement
 
-FORK = OpenQuestion(
+FORK = SlotQuestion(
     question="Two searches fit surface proteins: signal peptide or GPI anchor?",
     dimension=ConstraintKind.DATA_TYPE,
     recommended_value="GenesBySignalPeptide",
 )
-THRESHOLD = OpenQuestion(
+THRESHOLD = SlotQuestion(
     question="How many distinct peptides must a gene be detected by?",
     dimension=ConstraintKind.STATISTICAL_THRESHOLD,
     recommended_value="2",
@@ -89,8 +93,8 @@ async def test_1a_a_fresh_frame_that_bound_everything_and_asks_a_fork(
 ) -> None:
     """Case (a): a design fork with every value bound is refused once.
 
-    The refusal asks for a null parameter, and restores the empty spec, so
-    the bound work is thrown away with it.
+    The refusal asks for a null parameter and keeps the criteria the pass
+    bound, so the retry does not bind them again.
     """
     thread = _fresh_thread(monkeypatch)
     thread.frames(_binds_everything, declared=[], disposition="needs_user", asks=[FORK])
@@ -100,8 +104,11 @@ async def test_1a_a_fresh_frame_that_bound_everything_and_asks_a_fork(
     assert isinstance(result, str), result
     assert "no criterion of the spec holds an open slot" in result
     assert "null for every parameter" in result
-    assert thread.deps.state.domain.operational_spec is not None
-    assert thread.deps.state.domain.operational_spec.criteria == []
+    spec = thread.deps.state.domain.operational_spec
+    assert spec is not None
+    assert [c.id for c in spec.criteria] == [
+        c.id for c in _binds_everything(OperationalSpec()).criteria
+    ]
 
 
 async def test_1a_second_pass_with_the_same_fork_is_accepted(
@@ -142,14 +149,17 @@ async def test_1b_a_budget_stop_that_asks_nothing_passes(
 
 def _moves_a_built_value(found: OperationalSpec) -> OperationalSpec:
     stage = next(c for c in found.criteria if c.id == STAGE)
-    stage.resolved_params[STAGE_PERCENTILE] = NumberValue(value=90)
+    stage.resolved_params[STAGE_PERCENTILE] = stated(NumberValue(value=90))
     return found
 
 
 async def test_1c_an_edit_that_moves_a_value_and_asks_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Case (c): no open slot anywhere, the value moved, one question asked."""
+    """Case (c): no open slot anywhere, the value moved, one question asked.
+
+    The undeclared move is refused first, and the spec goes back as found.
+    """
     thread = _built_thread(monkeypatch)
     await thread.next_turn()
     thread.frames(
@@ -162,9 +172,9 @@ async def test_1c_an_edit_that_moves_a_value_and_asks_is_refused(
     result = await thread.edit()
 
     assert isinstance(result, str), result
-    assert "no criterion of the spec holds an open slot" in result
+    assert "the account of it does not match what happened" in result
     stage = next(c for c in thread.spec.criteria if c.id == STAGE)
-    assert stage.resolved_params[STAGE_PERCENTILE] == NumberValue(value=80)
+    assert stage.param_values[STAGE_PERCENTILE] == NumberValue(value=80)
 
 
 async def test_1d_the_latched_second_pass_records_questions_over_nothing(
@@ -227,3 +237,56 @@ async def test_1e_a_drop_beside_an_open_slot_passes(
     assert result.disposition == "needs_user"
     assert [q.question for q in result.open_questions] == [THRESHOLD.question]
     assert thread.criteria == [SURFACE, "c_proteome"]
+
+
+_STAGE_FLOOR = requirement(
+    ConstraintKind.PERCENTILE, "expression", "top 10 percent in gametocytes"
+)
+
+
+def _drops_the_floor_the_researcher_stated(found: OperationalSpec) -> OperationalSpec:
+    spec = _drops_stage_and_binds_proteome_open(found)
+    spec.dropped.append(
+        DroppedCriterion(
+            text="top 10 percent in gametocytes",
+            reason="no search ranks gametocyte expression",
+            requirement=_STAGE_FLOOR,
+        )
+    )
+    return spec
+
+
+async def test_1f_an_edit_that_asks_offers_to_withdraw_what_no_search_states(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    thread = _built_thread(monkeypatch)
+    thread.deps.state.domain.requirements = [_STAGE_FLOOR]
+    await thread.next_turn()
+    thread.frames(
+        _drops_the_floor_the_researcher_stated,
+        declared=[*kept(SURFACE), *_dropped(STAGE)],
+        disposition="needs_user",
+        asks=[THRESHOLD],
+    )
+
+    result = await thread.edit()
+
+    assert isinstance(result, EditDelta), result
+    assert [
+        (q.question, [o.label for o in q.options]) for q in result.open_questions
+    ] == [
+        (THRESHOLD.question, []),
+        (
+            (
+                "No search on this site states 'top 10 percent in gametocytes'. "
+                "Drop it from the request?"
+            ),
+            [
+                "Drop top 10 percent in gametocytes",
+                "Keep top 10 percent in gametocytes",
+            ],
+        ),
+    ]
+    assert [q.prompt for q in result.card_questions] == [
+        q.question for q in result.open_questions
+    ]

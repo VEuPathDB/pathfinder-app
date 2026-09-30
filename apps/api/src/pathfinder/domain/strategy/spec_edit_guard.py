@@ -147,7 +147,7 @@ def stated_values(spec: OperationalSpec, criterion: Criterion) -> dict[str, str]
         if g.realized_param and g.realized_value
     }
     found: dict[str, str] = {}
-    for name, value in criterion.resolved_params.items():
+    for name, value in criterion.param_values.items():
         wire = to_wire(value)
         if (name, wire) in grounded or states_the_wire_form(criterion.text, wire):
             found[name] = wire
@@ -173,7 +173,7 @@ def spec_stated_values(spec: OperationalSpec) -> dict[str, StatedCriterion]:
         if names:
             found[criterion.id] = StatedCriterion(
                 text=criterion.text,
-                values={name: criterion.resolved_params[name] for name in names},
+                values={name: criterion.resolved_params[name].value for name in names},
             )
     return found
 

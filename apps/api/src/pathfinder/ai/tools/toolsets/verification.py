@@ -4,6 +4,7 @@ from pydantic_ai.tools import RunContext, Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
+from pathfinder.ai.agents.tool_vocabulary import CHECK_READS
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.escape_hatch import (
     request_search_inspection,
@@ -19,24 +20,26 @@ from pathfinder.ai.tools.standalone.gene import (
     lookup_gene_records,
     resolve_gene_ids_to_records,
 )
-from pathfinder.ai.tools.standalone.gene_record import read_gene_record
+from pathfinder.ai.tools.standalone.gene_record import read_sampled_gene_record
 from pathfinder.ai.tools.standalone.gene_sets import list_gene_sets, save_gene_set
 from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
 from pathfinder.ai.tools.standalone.results import (
-    get_download_url,
     get_sample_records,
+    read_step_columns,
 )
 from pathfinder.ai.tools.standalone.saved_control_sets import list_control_sets
-from pathfinder.ai.tools.standalone.strategy_graph import (
-    check_study_step,
-    get_strategy,
-)
+from pathfinder.ai.tools.standalone.step_download import get_download_url
+from pathfinder.ai.tools.standalone.step_ids import read_step_ids
+from pathfinder.ai.tools.standalone.strategy_graph import get_strategy
+from pathfinder.ai.tools.standalone.study_step import check_study_step
 from pathfinder.ai.tools.standalone.think import think
 from pathfinder.ai.tools.toolsets._dynamic import (
     DynamicEnumToolset,
     EnumOverrides,
     live_wdk_step_ids,
 )
+from pathfinder.ai.tools.toolsets._read_once import ReadOnceToolset
+from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 
 
 def _verification_enum_overrides(
@@ -53,9 +56,11 @@ def _verification_enum_overrides(
     if wdk_ids:
         for tool in (
             "get_estimated_size",
+            "read_step_columns",
             "get_sample_records",
             "get_download_url",
             "run_control_tests_on_step",
+            "read_step_ids",
         ):
             overrides[(tool, "wdk_step_id")] = list(wdk_ids)
     return overrides
@@ -76,13 +81,15 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
         max_retries=3,
         tools=[
             get_estimated_size,
+            read_step_columns,
             get_sample_records,
+            read_step_ids,
             get_download_url,
             list_control_sets,
             Tool(run_control_tests_on_step, sequential=True, max_retries=3),
             run_control_tests_on_search,
             lookup_gene_records,
-            read_gene_record,
+            Tool(read_sampled_gene_record, name="read_gene_record"),
             get_ai_expression_summary,
             resolve_gene_ids_to_records,
             save_gene_set,
@@ -96,7 +103,12 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             remember,
         ],
     )
-    return DynamicEnumToolset(
-        wrapped=base,
-        build_overrides=_verification_enum_overrides,
+    return ReadOnceToolset(
+        wrapped=RefusalMemoryToolset(
+            wrapped=DynamicEnumToolset(
+                wrapped=base,
+                build_overrides=_verification_enum_overrides,
+            )
+        ),
+        reads=CHECK_READS,
     )

@@ -20,6 +20,7 @@ from pathfinder.platform.model_keys import (
     one_generation,
     turn_refusals,
 )
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
     allow_requests_to_the_wire,
@@ -60,7 +61,7 @@ async def test_the_unguarded_provider_error_carries_the_key_tail() -> None:
     """The control: without the guard, the provider's body is the message."""
     wire = ProviderWire(refuse=True)
     model = infer_model(
-        "openai:gpt-5.6-luna",
+        DEFAULT_MODEL,
         provider_factory=lambda _: wire.build("openai", SecretStr(_SENTINEL)),
     )
 
@@ -75,7 +76,7 @@ async def test_a_refused_key_raises_the_sentence_and_records_the_refusal() -> No
     keyring = ProviderKeyring(active={"openai": SecretStr(_SENTINEL)})
 
     with attach_keyring(keyring, build=wire.build):
-        model = keyed_model("openai:gpt-5.6-luna")
+        model = keyed_model(DEFAULT_MODEL)
         assert isinstance(model, Model)
         with pytest.raises(ProviderKeyRefusedError) as caught:
             await one_generation(model)
@@ -97,7 +98,7 @@ async def test_a_streamed_refusal_raises_the_same_sentence() -> None:
     keyring = ProviderKeyring(active={"openai": SecretStr(_SENTINEL)})
 
     with attach_keyring(keyring, build=wire.build):
-        model = keyed_model("openai:gpt-5.6-luna")
+        model = keyed_model(DEFAULT_MODEL)
         assert isinstance(model, Model)
         with pytest.raises(ProviderKeyRefusedError) as caught:
             await _stream_once(model)
@@ -109,7 +110,7 @@ async def test_the_deployment_keys_refusal_carries_its_status_and_no_body() -> N
     wire = ProviderWire(refuse=True)
 
     with attach_keyring(ProviderKeyring(), build=wire.build):
-        model = keyed_model("openai:gpt-5.6-luna")
+        model = keyed_model(DEFAULT_MODEL)
         assert isinstance(model, Model)
         with pytest.raises(ModelHTTPError) as caught:
             await one_generation(model)
@@ -127,7 +128,7 @@ async def test_a_model_the_deployment_always_pays_for_is_guarded_too() -> None:
     keyring = ProviderKeyring(active={"openai": SecretStr("sk-researcher-key")})
 
     with attach_keyring(keyring, build=wire.build):
-        judge = deployment_model("openai:gpt-5.6-luna")
+        judge = deployment_model(DEFAULT_MODEL)
 
     with pytest.raises(ModelHTTPError) as caught:
         await one_generation(judge)

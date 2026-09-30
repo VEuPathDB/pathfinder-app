@@ -10,6 +10,7 @@ export interface ExhibitRow {
   key: string;
   /** One cell per column, in the columns' order. */
   cells: readonly ReactNode[];
+  testId?: string;
 }
 
 export interface ExhibitNote {
@@ -63,7 +64,7 @@ export function ExhibitTable({
           </thead>
           <tbody className="divide-y divide-border/50">
             {rows.map((row) => (
-              <tr key={row.key}>
+              <tr key={row.key} data-testid={row.testId}>
                 {columns.map((column, index) => (
                   <td key={column.head} className={`${CELL} ${align(column)}`}>
                     {row.cells[index]}

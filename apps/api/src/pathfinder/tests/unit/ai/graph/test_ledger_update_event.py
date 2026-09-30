@@ -64,9 +64,13 @@ def test_ledger_chunk_carries_the_nullable_section_fields() -> None:
             "succeeded": False,
             "nodeResults": [],
             "wdkStrategyId": None,
-            "wdkUrl": None,
         },
-        "verification": {"digest": None, "complete": False, "successful": False},
+        "verification": {
+            "digest": None,
+            "caveats": [],
+            "complete": False,
+            "successful": False,
+        },
         "constraints": {"grounded": [], "unmetCount": 0, "blocking": False},
         "declinedProposal": None,
     }

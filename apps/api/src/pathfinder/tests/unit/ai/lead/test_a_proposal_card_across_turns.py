@@ -20,13 +20,19 @@ from pathfinder.ai.graph._lead_turn import (
 from pathfinder.ai.lead import lead_proposal
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.lead_proposal import propose_changes
-from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, CardProposal, DeclinedProposal
+from pathfinder.ai.lead.proposal import (
+    PROPOSAL_TOOL,
+    AddCriterionChange,
+    CardProposal,
+    DeclinedProposal,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     structure_criteria,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
@@ -53,8 +59,14 @@ SPECIFIC = "c_specific_at_3h"
 THE_CARD = CardProposal(
     question="Refine the strategy with the two checks verification asked for?",
     proposed_changes=[
-        "Require detection in the merozoite proteome",
-        "Exclude genes highly expressed at the other time points",
+        AddCriterionChange(
+            sentence="Require detection in the merozoite proteome",
+            search_name="GenesByMassSpec",
+        ),
+        AddCriterionChange(
+            sentence="Exclude genes highly expressed at the other time points",
+            search_name="GenesByRNASeqPercentile",
+        ),
     ],
     reply="The check found two limits, and both are refinements a yes applies.",
 )
@@ -88,7 +100,7 @@ def _with_both_refinements() -> Draft:
                 id=SPECIFIC,
                 text="not highly expressed at the other time points",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={"max_percentile": NumberValue(value=20)},
+                resolved_params=bound({"max_percentile": NumberValue(value=20)}),
             )
         )
         assert found.structure is not None

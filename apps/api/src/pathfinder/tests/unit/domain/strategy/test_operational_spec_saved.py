@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
 )
+from pathfinder.tests._support.bound_values import bound
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
@@ -63,7 +64,7 @@ def _filter_criterion() -> Criterion:
         id="c_sp",
         text="has a predicted signal peptide",
         search_name="GenesWithSignalPeptide",
-        resolved_params={"organism": _PF},
+        resolved_params=bound({"organism": _PF}),
     )
 
 

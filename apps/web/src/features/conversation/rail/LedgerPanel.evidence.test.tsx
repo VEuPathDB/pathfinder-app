@@ -39,7 +39,6 @@ const LEDGER = {
     succeeded: true,
     nodeResults: [],
     wdkStrategyId: 300125410,
-    wdkUrl: null,
   },
   verification: { complete: true, successful: true },
   constraints: { grounded: [], unmetCount: 0, blocking: false },

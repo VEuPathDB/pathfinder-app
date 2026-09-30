@@ -41,7 +41,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     ToolCharge,
 )
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.ai.models.catalog import context_window_for
+from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
 
 logger = get_logger(__name__)
@@ -117,6 +117,8 @@ class _LeadRunCapture:
     parked_call_answered: bool = False
     # The researcher declined an offer card, so the turn writes no reply.
     offer_declined: bool = False
+    # The facts part is written once, before the first reply of the turn.
+    facts_shown: bool = False
 
     def note_model_output(
         self,

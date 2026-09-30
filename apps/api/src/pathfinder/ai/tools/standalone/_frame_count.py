@@ -7,8 +7,9 @@ from collections.abc import Sequence
 from assistant_core.graph.stream_events import ToolSummaryStatus
 from assistant_core.graph.tool_summary import count_noun
 from pydantic import JsonValue, RootModel, model_validator
-from pydantic_ai import RunContext
+from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import ParamKind, ParamValue
+from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, ResolvedParams
 
@@ -18,6 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     ParameterAlternatives,
 )
+from pathfinder.services.strategies.obsolete_terms import obsolete_picks
 from pathfinder.services.strategies.wdk_counts import count_bound_criterion
 
 # A vocabulary of this size is a choice a reader holds in mind; a larger one is
@@ -48,13 +50,23 @@ async def bound_count(
     """The records the completed binding matches.
 
     A search that runs on another step answers nothing until that step exists,
-    and an open slot leaves a parameter unbound.
+    and an open slot leaves a parameter unbound. None is a count that did not
+    arrive in time. A count the site refuses with an error status refuses the
+    binding, because the site cannot run the search at these values.
     """
     if resolved.open_slots or definition.allowed_primary_input_record_class_names:
         return None
-    return await count_bound_criterion(
-        ctx.deps.site_id, record_type, search_name, resolved.params
-    )
+    try:
+        return await count_bound_criterion(
+            ctx.deps.site_id, record_type, search_name, resolved.params
+        )
+    except WDKError as refused:
+        msg = (
+            f"The site refused to run {search_name} at these values "
+            f"(HTTP {refused.status}: {refused.detail}). The criterion is not "
+            f"bound. Bind another search for this requirement, or other values."
+        )
+        raise ModelRetry(msg) from refused
 
 
 def _offered_by(info: ParameterInfo, value: ParamValue) -> ParameterAlternatives | None:
@@ -104,6 +116,26 @@ def empty_binding_alternatives(
     return [entry for entry in offered if entry is not None]
 
 
+def _refuse_an_empty_obsolete_pick(
+    criterion: Criterion, infos: Sequence[ParameterInfo], record_type: str
+) -> None:
+    """Refuse a binding that counts nothing and holds a pick the site labels
+    obsolete, unless the site set that pick."""
+    shown = {info.name: info.display_name for info in infos}
+    for pick in obsolete_picks(criterion.measurements, infos):
+        held = criterion.resolved_params[pick.param]
+        if held.source == "default":
+            continue
+        raise ModelRetry(
+            pick.refusal(
+                criterion.search_name,
+                shown[pick.param],
+                counted=counted_records(0, record_type),
+                researchers=held.source in {"stated", "card"},
+            )
+        )
+
+
 async def record_and_count_criterion(
     ctx: RunContext[AgentDeps],
     criterion: Criterion,
@@ -113,16 +145,19 @@ async def record_and_count_criterion(
     resolved: ResolvedParams,
     infos: Sequence[ParameterInfo],
 ) -> tuple[int | None, list[ParameterAlternatives]]:
-    """Record the criterion, then measure the binding it holds.
+    """Count the binding, then record the criterion with that count.
 
-    The count follows the record, so the criterion stays bound whatever the
-    count says and whether or not the site answers one.
+    A count the site refuses records nothing, and so does a count of zero on
+    a pick the site labels obsolete. A count that did not arrive records the
+    criterion with no count.
     """
-    state = ctx.deps.agent_state
-    state.frame_set_criterion(criterion)
     count = await bound_count(
         ctx, resolved, record_type, criterion.search_name, definition
     )
+    if count == 0:
+        _refuse_an_empty_obsolete_pick(criterion, infos, record_type)
+    state = ctx.deps.agent_state
+    state.frame_set_criterion(criterion)
     alternatives = empty_binding_alternatives(count, infos, resolved)
     state.frame_record_count(criterion.id, count, alternatives)
     return count, alternatives

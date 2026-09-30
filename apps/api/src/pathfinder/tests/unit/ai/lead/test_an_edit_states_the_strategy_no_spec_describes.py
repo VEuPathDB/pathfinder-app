@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from pydantic_ai import ModelRetry
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import edit_dispatch, pre_turn
@@ -25,7 +26,7 @@ def work_orders(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """FRAME records its order and asks the user, so nothing is pushed."""
     orders: list[str] = []
 
-    async def _sheets(**_kwargs: Any) -> dict[str, frozenset[str]]:
+    async def _sheets(**_kwargs: Any) -> dict[str, list[ParameterInfo]]:
         return {}
 
     async def _asks(**kwargs: Any) -> FrameResult:

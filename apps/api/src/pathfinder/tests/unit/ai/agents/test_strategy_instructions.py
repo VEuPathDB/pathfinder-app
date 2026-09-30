@@ -29,6 +29,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.eda_step_doubles import DE_DATASET
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 from pathfinder.tests.unit.ai.lead._analysis_thread import document
@@ -49,11 +50,13 @@ def _bound_spec() -> OperationalSpec:
                 id="c_expr",
                 text="genes in the top decile of expression",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={
-                    "min_expression_percentile": NumberValue(value=90),
-                    "any_or_all": SinglePickValue(value="any"),
-                    "organism": MultiPickValue(values=["Plasmodium"]),
-                },
+                resolved_params=bound(
+                    {
+                        "min_expression_percentile": NumberValue(value=90),
+                        "any_or_all": SinglePickValue(value="any"),
+                        "organism": MultiPickValue(values=["Plasmodium"]),
+                    }
+                ),
             )
         ],
     )

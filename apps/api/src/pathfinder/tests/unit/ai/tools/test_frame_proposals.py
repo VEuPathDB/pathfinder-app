@@ -386,6 +386,8 @@ async def test_the_retry_does_not_quote_a_default_the_search_refuses(
     assert "go_typeahead cannot be left empty" in message
     assert "default" not in message
     assert _GO_TERM in message
+    assert "query=[<every phrasing of the concept>]" in message
+    assert "list the entries a phrase matched" in message
 
 
 @pytest.mark.asyncio

@@ -190,9 +190,10 @@ def test_a_failed_run_is_named_to_the_user_and_asked_to_be_sent_again(
     _drive(monkeypatch, RuntimeError("peer closed connection"), capture, Collector())
 
     assert capture.run_error == "peer closed connection"
-    assert fallback_prose(capture, None) == (
-        "I stopped this turn on an error I could not recover from: peer closed "
-        "connection. Send the message again and I will start over from it."
+    assert fallback_prose(capture, None, changed=False) == (
+        "I stopped this turn on an error I could not recover from; what it "
+        "answered is shown beside this reply. Send the message again and I will "
+        "start over from it."
     )
 
 
@@ -207,15 +208,16 @@ def test_a_provider_failure_reaches_the_reply_without_its_response_body(
     _drive(monkeypatch, failure, capture, Collector())
 
     assert capture.run_error == str(failure)
-    assert fallback_prose(capture, None) == (
-        "I stopped this turn on an error I could not recover from: the model "
-        "provider answered 429. Send the message again and I will start over "
-        "from it."
+    assert fallback_prose(capture, None, changed=False) == (
+        "I stopped this turn on an error I could not recover from; what it "
+        "answered is shown beside this reply. Send the message again and I will "
+        "start over from it."
     )
+    assert "org-abc123" not in fallback_prose(capture, None, changed=False)
 
 
 def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(_LeadRunCapture(), None) == (
+    assert fallback_prose(_LeadRunCapture(), None, changed=False) == (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
     )

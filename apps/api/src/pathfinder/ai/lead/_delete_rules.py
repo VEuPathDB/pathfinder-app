@@ -6,13 +6,16 @@ way.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from enum import StrEnum
 
 from assistant_core.graph.tool_summary import count_noun
-from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from veupathdb.domain.strategy import StepKind, subtree_ids
 
-from pathfinder.domain.strategy.operations.types import DeleteResolution
+from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.domain.strategy.operations.apply import ApplyError, apply_operation
+from pathfinder.domain.strategy.operations.types import DeleteResolution, DeleteStepOp
 from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
 from pathfinder.domain.strategy.types import SyncStateProtocol
 
@@ -141,3 +144,46 @@ def _stands_its_input_in_its_place(graph: StrategyGraph, step_id: str) -> bool:
         and parent is not None
         and parent[0].kind is StepKind.TRANSFORM
     )
+
+
+def delete_cascade(
+    graph: StrategyGraph, sync_state: SyncStateProtocol | None, step_id: str
+) -> list[str]:
+    """Every step the delete of ``step_id`` removes, read on a copy of the graph.
+
+    A delete the graph refuses removes nothing.
+    """
+    op = DeleteStepOp(
+        step_id=step_id, resolution=delete_resolution(graph, sync_state, step_id)
+    )
+    try:
+        dropped = apply_operation(deepcopy(graph), op).dropped_step_ids
+    except ApplyError:
+        return []
+    return sorted(set(dropped))
+
+
+def refuse_a_delete_the_card_did_not_list(
+    markers: TurnMarkers,
+    tool_call_id: str | None,
+    graph: StrategyGraph,
+    sync_state: SyncStateProtocol | None,
+    step_id: str,
+) -> None:
+    """Refuse a delete that would remove other steps than its card listed.
+
+    The strategy can change while the card waits, so the steps are computed
+    again; a call no card listed is not held to one.
+    """
+    listed = markers.delete_cards.get(tool_call_id or "")
+    if listed is None:
+        return
+    now = delete_cascade(graph, sync_state, step_id)
+    if now != listed:
+        msg = (
+            f"The strategy changed while the card waited: deleting {step_id} now "
+            f"removes {', '.join(now) or 'nothing'}, and the card listed "
+            f"{', '.join(listed) or 'nothing'}. Nothing was removed. Call "
+            f"delete_step again so its card lists what goes now."
+        )
+        raise ToolFailed(msg)

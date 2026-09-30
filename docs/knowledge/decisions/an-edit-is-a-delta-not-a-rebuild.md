@@ -128,12 +128,12 @@ described to the model as a value to fold and drop.
 values on that step: the build folds the spec before it mints the tree, and the
 edit folds both sides before it measures the difference, because WDK holds an
 option as a value in the search's own parameters. A value the carrier's own text
-states holds; a value it defaulted or FRAME assumed is overridden, because an
-assumption is the value the model chose and the option is the one the user
-states. Each value the option moves is recorded as an assumed value whose reason
-is the option's text and whose `carried_from` names the option, replacing any
-assumption the carrier held for that name, so the step keeps its own name and
-the constraints carry the user's choice rather than the model's guess. An option
+states holds; a value it holds at the site default or that FRAME chose is
+overridden, because a chosen value is the model's and the option is what the
+request says. Each value the option moves keeps the source and basis the option
+bound it with and carries `carried_from` naming the option, replacing the
+carrier's value for that name, so the step keeps its own name and the value
+says who set it. An option
 that no single criterion in the structure carries is placed nowhere, and so is
 one that restates a parameter an earlier fold already carried with a different
 value, because two options stating one parameter of one step two ways is a

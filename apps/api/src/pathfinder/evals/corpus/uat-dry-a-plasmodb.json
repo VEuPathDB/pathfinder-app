@@ -1,0 +1,59 @@
+{
+  "name": "uat-dry-a-plasmodb",
+  "turns": [
+    "Plasmodium knowlesi strain H genes with a Plasmodium-specific domain that have no ortholog in Homo sapiens."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A domain step whose free-text half holds the radio-off value binds no text query, so neither the organism nor the domain row is a records gap on sampled records judged unclear; the exclusion the researcher named as Homo sapiens binds hsap and stands met. Counts 144, 2,795 and 142.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByInterproDomain INTERSECT GenesByOrthologPattern)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologPattern": {
+        "excluded_species": "hsap"
+      }
+    },
+    "replyMentions": [
+      "142"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": 0,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 142,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ua-plasmodb",
+    "curatorNote": "Round-3 dry UAT, tester A, investigation 1, conversation 7da4f9a7-48a4-495a-a971-82e2f1ae5d01."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

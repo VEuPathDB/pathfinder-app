@@ -15,6 +15,7 @@ def test_the_sweep_rule_names_the_reverse_direction() -> None:
 def test_the_separation_rule_offers_the_result_on_its_card() -> None:
     assert (
         "call ``adopt_separating_strategy`` with the report's task id and a "
-        "``reply`` written from its counts" in " ".join(LEAD_INSTRUCTIONS.split())
+        "``reply`` that explains what the offer separates"
+        in " ".join(LEAD_INSTRUCTIONS.split())
     )
-    assert "Never state a count the report does not hold." in LEAD_INSTRUCTIONS
+    assert "The report shows every count; restate none." in LEAD_INSTRUCTIONS

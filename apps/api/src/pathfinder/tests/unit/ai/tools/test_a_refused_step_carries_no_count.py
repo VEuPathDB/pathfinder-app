@@ -5,6 +5,7 @@ from __future__ import annotations
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.tools.standalone import strategy_graph
+from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
 from pathfinder.services.strategies.sync_state import WDKSyncState
@@ -45,17 +46,14 @@ async def test_the_strategy_summary_says_the_count_is_not_available() -> None:
     assert chunk.data["status"] == "warn"
 
 
-def test_the_build_outcome_reports_no_root_count() -> None:
+def test_the_build_reports_no_root_count() -> None:
     session = _session()
+    sync = _sync_state()
 
     outcome = outcome_for_graph(
-        graph=session.graph,
-        sync_state=_sync_state(),
-        counts={_STEP: 1282},
-        failed_step_ids=[_STEP],
-        wdk_url=None,
+        graph=session.graph, sync_state=sync, failed_step_ids=[_STEP]
     )
+    counts = built_counts(session.graph, sync)
 
-    assert outcome.root_count is None
-    assert [node.count for node in outcome.node_results] == [None]
+    assert (counts.root_count, counts.of(_STEP)) == (None, None)
     assert [node.status for node in outcome.node_results] == ["failed"]

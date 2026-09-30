@@ -42,11 +42,16 @@
     "curatorNote": ""
   },
   "effort": "medium",
-  "gates": [
-    {
-      "accept": true
-    }
-  ],
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "delete_step",
+        "turn": 1,
+        "accept": true
+      }
+    ]
+  },
   "attachments": {},
   "newConversationBefore": []
 }

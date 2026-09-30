@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { ContextSection } from "./ContextSection";
+import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 type Part = UIMessage["parts"][number];
 
@@ -23,7 +24,7 @@ function dispatch(
       subAgent: phase,
       phase,
       state,
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       contextTokens,
       contextWindow,
     },
@@ -34,7 +35,7 @@ function leadUsage(contextTokens: number, contextWindow: number): Part {
   return {
     type: "data-lead-usage",
     data: {
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: 5000,
       costUsd: "0.01",
       contextTokens,

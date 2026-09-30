@@ -17,11 +17,11 @@ from pathfinder.ai.agents.strategy_instructions import pinned_frame_workspace
 from pathfinder.ai.lead.dispatch_messages import stopped_pass_work_order
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.models.mock import fault_calls
-from pathfinder.ai.models.mock.edit_arcs import DELETED_PROSE
 from pathfinder.ai.models.mock.faults import FAULTS, made_by_a_fault
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.step_rationale import MAX_REASON_CHARS
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
@@ -74,10 +74,8 @@ def _prose(call: ToolCallPart) -> str:
 def test_the_registry_names_every_fault_a_spec_injects() -> None:
     assert sorted(FAULTS) == [
         "all-unclear",
+        "display-name-term",
         "long-reason",
-        "misnamed-deletion",
-        "misstated-control-list",
-        "misstated-count",
         "off-vocabulary",
         "open-value-in-prose",
         "organism-split",
@@ -85,11 +83,8 @@ def test_the_registry_names_every_fault_a_spec_injects() -> None:
         "short-card-reply",
         "sweep-without-controls",
         "syntenic-left-off",
-        "transcript-count",
-        "unbacked-controls",
         "unlisted-search",
-        "unstated-caveat",
-        "unstated-gap",
+        "unshown-count",
         "value-as-term",
     ]
 
@@ -115,6 +110,18 @@ def test_a_value_passed_as_the_term_binds_the_criterion_once() -> None:
     assert seed is not None
 
     assert terms == [seed.values["signalp_version"]]
+    assert _faulted(calls) == []
+    assert names(calls)[-2:] == ["set_structure", "final_result"]
+
+
+def test_a_display_name_in_other_punctuation_binds_the_criterion_once() -> None:
+    calls = play(
+        "frame", _SITE, _token("single", "display-name-term"), work_order=_FRAME_ORDER
+    )
+    terms = [a["why"]["term"] for a in args_of(calls, "set_criterion") if "why" in a]
+
+    assert len(terms) == 1
+    assert terms[0].endswith(":")
     assert _faulted(calls) == []
     assert names(calls)[-2:] == ["set_structure", "final_result"]
 
@@ -152,9 +159,9 @@ def test_a_long_reason_is_refused_until_the_pass_stops() -> None:
     ]
 
     assert len(fault_calls.LONG_REASON) > MAX_REASON_CHARS
-    assert reasons[:4] == [fault_calls.LONG_REASON] * 4
-    assert fault_calls.LONG_REASON not in reasons[4:]
-    assert len(_faulted(calls)) == 4
+    assert reasons[:5] == [fault_calls.LONG_REASON] * 5
+    assert fault_calls.LONG_REASON not in reasons[5:]
+    assert len(_faulted(calls)) == 5
 
 
 def test_the_pass_that_continues_a_stopped_pass_binds_as_the_arc_does() -> None:
@@ -208,36 +215,12 @@ def test_every_sampled_gene_is_judged_unclear() -> None:
     assert made_by_a_fault(calls[-1]) is True
 
 
-def test_a_gene_count_named_in_transcripts_is_restated_in_genes() -> None:
-    calls = _lead("single", "transcript-count")
+def test_an_unshown_count_is_sent_once_then_the_arcs_reply() -> None:
+    calls = _lead("single", "unshown-count")
     finals = [_prose(c) for c in calls if c.tool_name == "final_result"]
 
-    assert [
-        f.endswith(f"returns {LIVE_ROOT_COUNT:,} transcripts.") for f in finals
-    ] == [
-        True,
-        False,
-    ]
-    assert finals[1].endswith(f"returns {LIVE_ROOT_COUNT:,} genes.")
-    assert len(_faulted(calls)) == 1
-
-
-def test_a_count_no_step_holds_is_restated_as_the_root() -> None:
-    calls = _lead("single", "misstated-count")
-    finals = [_prose(c) for c in calls if c.tool_name == "final_result"]
-
-    assert finals[0].endswith(f"returns {2 * LIVE_ROOT_COUNT + 1:,} genes.")
-    assert finals[1].endswith(f"returns {LIVE_ROOT_COUNT:,} genes.")
-    assert len(_faulted(calls)) == 1
-
-
-def test_a_control_count_no_test_holds_is_claimed_once() -> None:
-    calls = _lead("controls-test", "unbacked-controls")
-    finals = [_prose(c) for c in calls if c.tool_name == "final_result"]
-    total = len(SiteValues.for_site(_SITE).controls.positive_ids) + 1
-
-    assert finals[0].endswith(f"It returned {total} of {total} positive controls.")
-    assert "positive controls" not in finals[1]
+    assert finals[0].endswith(f"The strategy returns {LIVE_ROOT_COUNT + 1:,} genes.")
+    assert str(LIVE_ROOT_COUNT + 1) not in finals[1]
     assert len(_faulted(calls)) == 1
 
 
@@ -263,32 +246,6 @@ def test_a_card_with_a_short_reply_is_sent_once_then_the_arcs() -> None:
     assert len(_faulted(calls)) == 1
 
 
-def test_a_reply_naming_the_standing_step_is_sent_once_after_the_card() -> None:
-    thread = Scene(
-        faulted={"final_result": _REFUSED},
-        answers={
-            "get_live_strategy_state": {
-                "steps": [
-                    {"stepId": "step_tm", "searchName": "GenesByTransmembraneDomains"}
-                ]
-            }
-        },
-    )
-
-    calls = play(
-        "lead", _SITE, _token("delete-step-card", "misnamed-deletion"), scene=thread
-    )
-    finals = [_prose(c) for c in calls if c.tool_name == "final_result"]
-
-    assert names(calls)[:3] == [
-        "classify_user_intent",
-        "get_live_strategy_state",
-        "delete_step",
-    ]
-    assert finals == [fault_calls.MISNAMED_DELETION, DELETED_PROSE]
-    assert len(_faulted(calls)) == 1
-
-
 def test_the_arc_does_not_read_the_refusal_of_a_faults_call_as_its_own() -> None:
     calls = _frame("portal-only", "unlisted-search")
     searched = [
@@ -310,7 +267,7 @@ def test_a_long_reason_reads_the_bound_criterion_from_the_pinned_workspace() -> 
             id="signal_peptide",
             text="signal peptide genes",
             search_name="GenesWithSignalPeptide",
-            resolved_params={"organism": MultiPickValue(values=[_ORGANISM])},
+            resolved_params=bound({"organism": MultiPickValue(values=[_ORGANISM])}),
         )
     )
     workspace = pinned_frame_workspace(agent_run_context(agent_state=state)) or ""

@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from itertools import combinations
+
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from pydantic_ai import RunContext
 
-from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
-from pathfinder.ai.lead.deleted_steps import named_step
+from pathfinder.ai.graph.turn_records import CreatedControlSet
+from pathfinder.ai.lead.contract_messages import (
+    altered_record_text_message,
+    fact_outside_the_block_message,
+    misattributed_source_message,
+)
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.evidence_claims import (
-    ControlList,
-    backing_results,
-    control_lists,
+from pathfinder.ai.lead.facts_in_prose import (
+    altered_record_text,
+    misattributed_source,
+    outside_the_facts,
 )
 from pathfinder.ai.lead.intent import NamedControls, RefusedClassification
 from pathfinder.ai.lead.intent_gate import (
@@ -26,18 +32,15 @@ from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
     FrameSection,
     VerificationSection,
-    unexpressed_words,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE, LeadDeps
-from pathfinder.domain.caveats import Caveat, Gap, WordGap
-from pathfinder.domain.evidence import ControlTestEvidence, SampledGene
-from pathfinder.domain.separation import offers_evidence
+from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
 from pathfinder.domain.strategy.spec_diff import SpecDiff
-from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.domain.turn_facts import TurnFacts
 
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
 # sub-agent, and an accepted offer runs an edit or a build; each is refused the
@@ -46,6 +49,10 @@ DISPATCH_TOOLS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
     "build_strategy",
     *OFFER_TOOLS,
 }
+
+
+# The line of the held facts that holds the turn's counts and their differences.
+_HELD_COUNTS = "Counts of this turn and their differences: "
 
 
 class TurnRecord(CamelModel):
@@ -65,42 +72,61 @@ class TurnRecord(CamelModel):
     build_section: BuildSection
     verification_section: VerificationSection
     frame_diff: SpecDiff | None
-    retrieved_sources: tuple[str, ...]
     created_control_sets: tuple[CreatedControlSet, ...]
-    created_gene_sets: tuple[CreatedGeneSet, ...]
-    added_searches: tuple[AddedSearch, ...] = ()
-    # What the strategy does not answer: the gaps of this turn's check, and the
-    # words no search states on a turn that framed or changed the strategy.
-    gaps: tuple[Gap, ...] = ()
-    # What this turn's check measured short of the request.
-    caveats: tuple[Caveat, ...] = ()
-    # The control results a reply may cite: this turn's, the last check's and
-    # the separation offers'.
-    control_results: tuple[ControlTestEvidence, ...] = ()
-    # The size of every list of controls the card's call carries or a control
-    # result was measured on.
-    control_lists: tuple[ControlList, ...] = ()
+    # What the turn shows beside its reply, and the names the product uses and
+    # never shows: the search url segments and the step and criterion ids.
+    facts: TurnFacts = TurnFacts()
+    machine_names: frozenset[str] = frozenset()
+    # Every line the thread's facts parts held, the researcher's own messages,
+    # and the labels a comparison of this turn returned. The reply may restate
+    # any of them.
+    facts_shown: tuple[str, ...] = ()
+    said: tuple[str, ...] = ()
+    compared: tuple[str, ...] = ()
+    # The counts this turn's facts show and its comparisons returned.
+    counts: frozenset[int] = frozenset()
     # The values a frame pass of this turn left for the user to choose.
     frame_open_questions: tuple[str, ...] = ()
-    # The genes the last check of this strategy sampled, as its card shows them.
-    sampled_genes: tuple[SampledGene, ...] = ()
     answered_a_card: bool = False
     # The reply is the one a card call carries, and the card asks its question.
     ends_on_a_card: bool = False
-    # The steps this turn deleted, and the steps the strategy holds now.
-    deleted_steps: tuple[NamedStep, ...] = ()
-    standing_steps: tuple[NamedStep, ...] = ()
-    # The strategy's record type, the count of each step it holds, and the
-    # counts its steps held when the message arrived.
-    record_type: str = ""
-    step_counts: tuple[int, ...] = ()
-    counts_at_arrival: tuple[int, ...] = ()
     # The refusal that stands while the message holds no accepted classification.
     refused_classification: RefusedClassification | None = None
     # The turn re-enters a call the thread parked, and answers no new message.
     resumes_parked_call: bool = False
     # The controls the accepted classification says the message names.
     named_controls: NamedControls | None = None
+
+    def prose_refusal(self, prose: str, offered: Sequence[str]) -> str | None:
+        """Why the prose holds a fact the facts do not, or None. ``offered``
+        holds the options the reply's questions offer."""
+        held = "\n".join([self.held_facts(), *offered])
+        found = outside_the_facts(prose, held, self.machine_names)
+        if found:
+            return fact_outside_the_block_message(found)
+        source = misattributed_source(prose, self.facts)
+        if source is not None:
+            return misattributed_source_message(source)
+        altered = altered_record_text(prose, self.facts)
+        return altered_record_text_message(altered) if altered else None
+
+    def held_counts(self) -> frozenset[int]:
+        """The turn's counts and the difference of every two of them."""
+        return self.counts | {abs(a - b) for a, b in combinations(self.counts, 2)}
+
+    def held_facts(self) -> str:
+        """Every fact the reply may hold: what the thread's facts parts and this
+        turn's show, what the researcher wrote, and the turn's held counts."""
+        counts = ", ".join(str(n) for n in sorted(self.held_counts()))
+        return "\n".join(
+            [
+                *self.facts_shown,
+                *self.facts.held_lines(),
+                *self.said,
+                *self.compared,
+                f"{_HELD_COUNTS}{counts}",
+            ]
+        )
 
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
@@ -134,42 +160,6 @@ def _refused_dispatches(ctx: RunContext[LeadDeps]) -> tuple[str, ...]:
     return tuple(sorted(name for name in ctx.retries if name in offered))
 
 
-def _gaps(deps: LeadDeps) -> tuple[Gap, ...]:
-    """The gaps of this turn's check, and on a turn that framed or changed the
-    strategy, every word its spec states and no search can state."""
-    markers = deps.state.turn_markers
-    checked = deps.state.checked_verdict
-    words = (
-        unexpressed_words(deps.state.domain.operational_spec)
-        if markers.framed or markers.changed_strategy
-        else []
-    )
-    return tuple(
-        dict.fromkeys(
-            [
-                *([] if checked is None else checked.gaps),
-                *(WordGap(word=word) for word in words),
-            ]
-        )
-    )
-
-
-def _caveats(deps: LeadDeps) -> tuple[Caveat, ...]:
-    """What this turn's check measured short of the request."""
-    checked = deps.state.checked_verdict
-    return () if checked is None else tuple(checked.caveats)
-
-
-def _cited_offers(deps: LeadDeps, card_offer: str | None) -> list[ControlTestEvidence]:
-    """The reads of the offer on the turn's card and of the offer the thread adopted."""
-    domain = deps.state.domain
-    adopted = domain.attached_controls
-    return offers_evidence(
-        domain.separation_offers,
-        [card_offer, None if adopted is None else adopted.task_id],
-    )
-
-
 def _frame_open_questions(deps: LeadDeps, frame: FrameSection) -> tuple[str, ...]:
     """The questions a frame pass of this turn recorded, or else the open slots
     of the spec a frame pass of this turn wrote. A spec with no open slot asks
@@ -188,29 +178,32 @@ def _frame_open_questions(deps: LeadDeps, frame: FrameSection) -> tuple[str, ...
     return tuple(slot.question or slot.param_name for slot in frame.open_slots())
 
 
-def turn_record(
-    ctx: RunContext[LeadDeps],
-    *,
-    card_offer: str | None = None,
-    card_lists: tuple[ControlList, ...] = (),
-) -> TurnRecord:
-    """Everything the contract reads about the turn this reply answers.
+def _machine_names(deps: LeadDeps) -> frozenset[str]:
+    """The search url segments and the step and criterion ids of the strategy
+    and its spec, which the product uses and never shows."""
+    spec = deps.state.domain.operational_spec
+    graph = deps.runtime.strategy_session.get_graph(None)
+    criteria = [] if spec is None else spec.criteria
+    steps = [] if graph is None else list(graph.steps.values())
+    return frozenset(
+        name
+        for name in (
+            *(c.id for c in criteria),
+            *(c.search_name for c in criteria),
+            *(step.id for step in steps),
+            *(step.search_name or "" for step in steps),
+        )
+        if name
+    )
 
-    ``card_offer`` is the task id of the separation offer the turn's card
-    carries, or None. ``card_lists`` are the control lists the card's call
-    carries.
-    """
+
+def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
+    """Everything the contract reads about the turn this reply answers."""
     deps = ctx.deps
     markers = deps.state.turn_markers
     classified = turn_is_classified(deps)
     ledger = derive_ledger(deps.state, deps.intent)
-    card = deps.state.domain.card_of_the_strategy()
-    graph = deps.runtime.strategy_session.get_graph(None)
-    results = backing_results(
-        (run.evidence for run in markers.control_tests),
-        card,
-        _cited_offers(deps, card_offer),
-    )
+    facts = turn_facts(deps, refusal=markers.unbound_edit)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=markers.build_unverified,
@@ -224,35 +217,18 @@ def turn_record(
         build_section=ledger.build,
         verification_section=ledger.verification,
         frame_diff=ledger.frame.spec_diff(),
-        retrieved_sources=tuple(markers.retrieved_sources),
         created_control_sets=tuple(markers.created_control_sets),
-        created_gene_sets=tuple(markers.created_gene_sets),
-        added_searches=tuple(markers.added_searches),
-        gaps=_gaps(deps),
-        caveats=_caveats(deps),
-        control_results=results,
-        control_lists=tuple(dict.fromkeys((*card_lists, *control_lists(results)))),
+        facts=facts,
+        machine_names=_machine_names(deps),
+        facts_shown=tuple(deps.state.domain.facts_shown),
+        said=tuple(deps.state.researcher_messages()),
+        compared=tuple(markers.compared_labels),
+        counts=facts.counts() | frozenset(markers.compared_counts),
         frame_open_questions=_frame_open_questions(deps, ledger.frame),
-        sampled_genes=() if card is None else tuple(card.review.sampled_genes),
         answered_a_card=markers.consulted or markers.accepted_proposal,
-        deleted_steps=tuple(markers.deleted_steps),
-        standing_steps=()
-        if graph is None
-        else tuple(named_step(node) for node in graph.steps.values()),
-        record_type="" if graph is None else graph.record_type or "",
-        step_counts=_step_counts(deps),
-        counts_at_arrival=tuple(markers.counts_at_arrival),
         refused_classification=None if classified else deps.refused_classification,
         resumes_parked_call=deps.state.resumes_parked_call,
         named_controls=deps.intent.named_controls
         if classified and deps.intent is not None
         else None,
     )
-
-
-def _step_counts(deps: LeadDeps) -> tuple[int, ...]:
-    """The count of each step the strategy holds, as the site answered it."""
-    sync = deps.runtime.strategy_session.sync_state
-    if sync is None:
-        return ()
-    return tuple(count for count in sync.step_counts.values() if count is not None)

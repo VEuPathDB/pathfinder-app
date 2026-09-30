@@ -53,6 +53,9 @@ from pathfinder.tests.integration.ai._organism_swap_wire import (
     wdk,
 )
 
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = pytest.mark.usefixtures("open_job_queue")
+
 __all__ = ["wdk"]
 
 
@@ -252,8 +255,8 @@ async def test_the_swap_re_resolves_the_dependent_and_keeps_the_rest(
     after = deps.state.domain.operational_spec
     assert after is not None
     swapped = next(c for c in after.criteria if c.id == "step_expr")
-    assert swapped.resolved_params["organism"] == MultiPickValue(values=[PV])
-    assert swapped.resolved_params["profileset"] == SinglePickValue(value=ZHU)
+    assert swapped.param_values["organism"] == MultiPickValue(values=[PV])
+    assert swapped.param_values["profileset"] == SinglePickValue(value=ZHU)
     # Every criterion the request never named is byte for byte what it was.
     for criterion_id in ("step_text", "step_go"):
         was = next(c for c in before.criteria if c.id == criterion_id)

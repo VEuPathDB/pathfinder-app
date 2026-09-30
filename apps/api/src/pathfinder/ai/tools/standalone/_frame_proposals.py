@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Annotated
 
-from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import (
     BaseModel,
     BeforeValidator,
@@ -32,7 +31,6 @@ from veupathdb_mcp.catalog import (
     RadioPairIssue,
     check_radio_pairs,
     derive_phyletic_overrides,
-    has_contrast_sibling,
     is_phyletic_sheet,
     radio_pairs,
 )
@@ -45,14 +43,12 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     tree_tops,
 )
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
-
-
-class DeclaredAssumption(CamelModel):
-    """A value the model chose that the criterion text does not state."""
-
-    param_name: str
-    value: str
-    reason: str
+from pathfinder.services.strategies.parameter_rules import site_fixed
+from pathfinder.services.strategies.user_dataset_searches import (
+    dataset_parameter,
+    user_dataset_offers,
+    user_dataset_types,
+)
 
 
 class _Proposal(BaseModel):
@@ -120,60 +116,54 @@ class CriterionCall:
     params: ParamProposals
 
 
-def refuse_bad_assumptions(
-    call: CriterionCall,
-    assumed: list[DeclaredAssumption],
-    infos: list[ParameterInfo],
-) -> None:
-    """An assumption names a parameter this call gave a value to.
+def _bindable(infos: list[ParameterInfo]) -> list[str]:
+    return sorted(i.name for i in infos if not site_fixed(i))
 
-    A half of a reference and comparison pair has no defensible assumption:
-    both halves guessed is a degenerate all-against-all contrast.
+
+def left_to_the_site(
+    call: CriterionCall, infos: list[ParameterInfo]
+) -> tuple[CriterionCall, list[str]]:
+    """The call without the parameters only the site sets that it proposes at
+    the site's value, and one correction for each.
+
+    A proposal of another value is refused with the value the site holds.
     """
-    by_name = {info.name: info for info in infos if info.is_visible}
-    for entry in assumed:
-        info = by_name.get(entry.param_name)
-        if info is None:
+    fixed = {i.name: i for i in infos if site_fixed(i) and i.name in call.params}
+    corrections: list[str] = []
+    for name, info in fixed.items():
+        held = info.default_value or ""
+        if call.params[name] not in (None, _proposed(name, held)):
             msg = (
-                f"No such parameter on {call.search_name}: {entry.param_name}. "
-                f"Declare an assumption only for a parameter of this search. "
-                f"Valid names: {sorted(by_name)}."
+                f"{name} on {call.search_name} is set by the site to {held!r} and "
+                f"takes no other value; leave it out of params. The names params "
+                f"takes: {_bindable(infos)}."
             )
             raise ModelRetry(msg)
-        if has_contrast_sibling(info, infos):
-            msg = (
-                f"{entry.param_name} is one half of a contrast pair, so no value "
-                f"for it can be assumed. State the group the request names, or "
-                f"leave it null and ask the user."
-            )
-            raise ModelRetry(msg)
-        if call.params.get(entry.param_name) is None:
-            msg = (
-                f"{entry.param_name} carries no value in this call, so there is "
-                f"nothing to assume. Pass the value in `params`, or drop the "
-                f"assumption."
-            )
-            raise ModelRetry(msg)
+        corrections.append(
+            f"{name} is set by the site to {held!r}, so the proposal was left out"
+        )
+    params = {n: v for n, v in call.params.items() if n not in fixed}
+    return replace(call, params=params), corrections
 
 
 def refuse_unknown_names(call: CriterionCall, infos: list[ParameterInfo]) -> None:
-    """A proposal names a visible parameter of the search.
+    """A proposal names a parameter of the search the call may set.
 
     A null proposal is dropped before the DAG's own name check, so a misspelt
     name paired with a null would otherwise set nothing and say nothing.
     """
-    visible = sorted(i.name for i in infos if i.is_visible)
-    unknown = sorted(set(call.params) - set(visible))
+    bindable = _bindable(infos)
+    unknown = sorted(set(call.params) - set(bindable))
     if unknown:
         nearest = nearest_entries(
-            [VocabOption(value=name, display="") for name in visible],
+            [VocabOption(value=name, display="") for name in bindable],
             unknown[0],
             MAX_NEAREST_ENTRIES,
         )
         msg = (
             f"No such parameter(s) on {call.search_name}: {unknown}. Nearest: "
             f"{nearest}. The valid names are listed above; "
-            f"do not request the sheet again. Valid names: {visible}."
+            f"do not request the sheet again. Valid names: {bindable}."
         )
         raise ModelRetry(msg)
 
@@ -241,12 +231,15 @@ async def refuse_unmatched_values(
     the bound parents produce. A filter parameter takes a facet expression, not
     a vocabulary entry. A ``derived`` parameter holds a canonical value the
     derivation already resolved, which names no single entry. A refusal that
-    sends the request to the portal is recorded on the pass.
+    sends the request to the portal is recorded on the pass. A user-dataset
+    parameter is checked against the researcher's own uploads instead.
     """
+    owned = await _refuse_an_upload_the_researcher_lacks(site_id, definition, call)
     for info in infos:
         options = info.vocabulary()
         skip = (
             info.name in derived
+            or info.name == owned
             or info.vocab_depends_on
             or info.param_kind == "filter"
             or not options
@@ -264,6 +257,40 @@ async def refuse_unmatched_values(
                     f"it, and write this in the summary word for word, link "
                     f"included: {state.portal_route}"
                 )
+            raise ModelRetry(msg)
+
+
+async def _refuse_an_upload_the_researcher_lacks(
+    site_id: str, definition: WDKSearch, call: CriterionCall
+) -> str | None:
+    """The dataset parameter of a user-dataset search, once its value is an upload
+    the researcher owns; None for every other search.
+
+    Its vocabulary is per account, so the cached sheet cannot check it.
+    """
+    parameter = dataset_parameter(definition)
+    if parameter is None:
+        return None
+    offers = await user_dataset_offers(site_id, call.search_name)
+    if not offers:
+        types = ", ".join(sorted(user_dataset_types(definition)))
+        msg = (
+            f"{call.search_name} reads the researcher's own {types} uploads, and "
+            f"this account has none installed on {site_id}, so it cannot run. Bind "
+            f"nothing for this criterion, and say that the researcher uploads one "
+            f"in My Data Sets on the site; nothing was recorded."
+        )
+        raise ModelRetry(msg)
+    match call.params.get(parameter.name):
+        case str() as value if value in {offer.value for offer in offers}:
+            return parameter.name
+        case _:
+            uploads = ", ".join(f"{o.upload_name!r} ({o.value})" for o in offers)
+            msg = (
+                f"{parameter.name} on {call.search_name} picks one of the "
+                f"researcher's own uploads: {uploads}. Pass the value of the upload "
+                f"the request refers to; nothing was recorded."
+            )
             raise ModelRetry(msg)
 
 
@@ -388,6 +415,7 @@ def _radio_retry(
         f"switched off ({holds}). Put the criterion in {pair.vocabulary} (nearest "
         f"entries for {issue.free_value!r}: {issue.nearest}; for a wildcard use "
         f"get_parameter_options({call.search_name}, '{pair.vocabulary}', "
-        f"query='...') and list every entry it should cover) and pass {RADIO_OFF} "
+        f"query=[<every phrasing of the concept>]) and list the entries a phrase "
+        f"matched) and pass {RADIO_OFF} "
         f"for {pair.free_text}."
     )

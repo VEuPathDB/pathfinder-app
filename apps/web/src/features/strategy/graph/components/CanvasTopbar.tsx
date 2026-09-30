@@ -27,6 +27,7 @@ import {
   useDeleteStrategyMutation,
   useUpdateStrategyMetaMutation,
 } from "@/features/strategy/mutations";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
 import { provisionalName } from "@/lib/conversations/provisionalName";
 import { chatUrl, strategyCanvasUrl } from "@/lib/routes";
@@ -154,7 +155,18 @@ export function CanvasTopbar({
       </div>
       <div className="ml-auto flex items-center gap-1">
         {strategy.wdkUrl != null && strategy.wdkUrl !== "" && (
-          <OpenInSiteLink href={strategy.wdkUrl} siteId={strategy.siteId} />
+          <OpenInSiteLink
+            href={strategy.wdkUrl}
+            siteId={strategy.siteId}
+            onOpen={() =>
+              recordProductEvent({
+                event: "strategy_opened",
+                siteId: strategy.siteId,
+                wdkStrategyId: strategy.wdkStrategyId ?? null,
+                conversationId,
+              })
+            }
+          />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

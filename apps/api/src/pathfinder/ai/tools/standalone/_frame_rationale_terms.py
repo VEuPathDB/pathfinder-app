@@ -3,6 +3,7 @@ sets and the catalog read it was chosen from."""
 
 from __future__ import annotations
 
+import re
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 
@@ -13,6 +14,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
 from pathfinder.domain.strategy.step_rationale import RationaleBasis, names_the_phrase
+from pathfinder.domain.strategy.value_source import is_unset
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,14 @@ def _set_parameter(cid: str, term: str, at: Binding) -> ChosenTerm:
     )
     if info is not None:
         return ChosenTerm("parameter", _checked_parameter(cid, term, at, info))
+    headed = _headed_by(term, at.infos)
+    if headed is not None:
+        shown = headed.display_name
+        return ChosenTerm(
+            "parameter",
+            _checked_parameter(cid, shown, at, headed),
+            f"why.term corrected to {shown}: {term} names the parameter {headed.name}",
+        )
     holding = _set_with_value(term, at)
     if holding is not None:
         shown = holding.display_name
@@ -113,6 +123,23 @@ def _set_parameter(cid: str, term: str, at: Binding) -> ChosenTerm:
             f"not a parameter",
         )
     raise ModelRetry(_not_a_parameter(cid, term, at))
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", text.casefold())
+
+
+def _headed_by(term: str, infos: Sequence[ParameterInfo]) -> ParameterInfo | None:
+    """The one parameter whose display name, before its parenthetical, is the
+    term in other case or punctuation."""
+    wanted = _words(term)
+    headed = [
+        i
+        for i in infos
+        if wanted
+        and wanted in (_words(i.display_name), _words(i.display_name.split("(")[0]))
+    ]
+    return headed[0] if len(headed) == 1 else None
 
 
 def _set_with_value(term: str, at: Binding) -> ParameterInfo | None:
@@ -169,7 +196,7 @@ def _refuse_the_organism_beside_a_set_value(
         and i.name not in organism
         and i.name in at.values
         and i.name not in at.defaulted
-        and to_wire(at.values[i.name]) != i.default_value
+        and not is_unset(at.values[i.name], i.default_value, i)
     ]
     if not set_away:
         return
@@ -228,7 +255,9 @@ def _shared_term(cid: str, term: str, at: Binding) -> str | None:
     if not _names(at.bound, term):
         return (
             f"{cid}: the name and the description of {at.search_name} do not "
-            f"hold {term}."
+            f"hold {term}. They read: {at.bound.display_name}; "
+            f"{at.bound.description.rstrip('.')}. Pass as the term a phrase of the request "
+            f"these words hold, or give another basis."
         )
     also = [
         h.display_name

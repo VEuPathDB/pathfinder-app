@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import re
-
 from assistant_core.models.scripted import (
-    called_tool_parts,
     current_turn,
     retry_prompt_parts,
     tool_return_parts,
@@ -144,12 +141,6 @@ class _Verified(ToolAnswer):
     digest: _Digest = Field(default_factory=_Digest)
 
 
-def verification_prose(messages: list[ModelMessage]) -> str:
-    """What the newest verification said it found, or nothing before one."""
-    read = last_return(messages, "verify_strategy", _Verified)
-    return "" if read is None else read.digest.prose
-
-
 def verified(messages: list[ModelMessage]) -> bool:
     """Whether the newest verification of the run reported success."""
     read = last_return(messages, "verify_strategy", _Verified)
@@ -162,20 +153,6 @@ class _Created(ToolAnswer):
 
 class _SavedSet(ToolAnswer):
     gene_set_created: _Created
-
-
-class _Counted(ToolAnswer):
-    gene_count: int
-
-
-class _SavedCount(ToolAnswer):
-    gene_set_created: _Counted
-
-
-def saved_gene_count(messages: list[ModelMessage]) -> int | None:
-    """How many genes the set this run saved holds."""
-    saved = last_return(messages, "save_gene_set", _SavedCount)
-    return None if saved is None else saved.gene_set_created.gene_count
 
 
 class _Listed(ToolAnswer):
@@ -234,27 +211,11 @@ def _count_sentence(count: int | None) -> str:
     return f"The strategy returns {count:,} genes."
 
 
-def live_count_sentence(messages: list[ModelMessage]) -> str:
-    """The root count the site answers now, as a reply states it."""
+def unshown_count_sentence(messages: list[ModelMessage]) -> str:
+    """A count the facts part does not show: one past the root count the site answers."""
     read = last_return(messages, "get_live_strategy_state", _Live)
-    return _count_sentence(None if read is None else read.root_count)
-
-
-def built_count_sentence(messages: list[ModelMessage]) -> str:
-    """The root count the newest build answered, as a reply states it."""
-    built = last_return(messages, "build_strategy", _Built)
-    return _count_sentence(None if built is None else built.outcome.root_count)
-
-
-def empty_steps_sentence(messages: list[ModelMessage]) -> str:
-    """Each step the newest live read counts 0 genes for, by its displayed name."""
-    read = last_return(messages, "get_live_strategy_state", _Live)
-    steps = [] if read is None else read.steps
-    return " ".join(
-        f"The step '{s.display_name}' returns 0 genes."
-        for s in steps
-        if s.estimated_size == 0
-    )
+    count = None if read is None else read.root_count
+    return _count_sentence(None if count is None else count + 1)
 
 
 class _Controls(ToolAnswer):
@@ -294,59 +255,6 @@ def controls_sentence(messages: list[ModelMessage]) -> str | None:
     return f"{'; '.join(parts)}." if parts else None
 
 
-class _Reason(ToolAnswer):
-    term: str = ""
-
-
-class AddedSearchRead(ToolAnswer):
-    """A step a write added: the search it runs and why it was chosen."""
-
-    search_display_name: str
-    rationale: _Reason | None = None
-
-
-class _Wrote(ToolAnswer):
-    added_searches: list[AddedSearchRead] = Field(default_factory=list)
-
-
-def added_searches(messages: list[ModelMessage], tool: str) -> list[AddedSearchRead]:
-    """The searches the newest answer of ``tool`` says it added."""
-    wrote = last_return(messages, tool, _Wrote)
-    return [] if wrote is None else wrote.added_searches
-
-
-def added_search_lines(messages: list[ModelMessage]) -> str:
-    """One list item per search this turn's build or edit added, its reason
-    beside its name."""
-    added = [
-        *added_searches(messages, "build_strategy"),
-        *added_searches(messages, "edit_strategy"),
-    ]
-    return "\n".join(
-        f"- {a.search_display_name}"
-        + ("" if a.rationale is None else f", chosen for {a.rationale.term}")
-        for a in added
-    )
-
-
-_SEARCH_LINE = re.compile(r"^- .+, chosen for .+$", re.MULTILINE)
-
-
-class _Draft(ToolAnswer):
-    prose: str = ""
-
-
-def drafted_search_lines(messages: list[ModelMessage]) -> str:
-    """The added-search lines of the newest reply this turn drafted, which the
-    model still holds once the history compacts the write's answer."""
-    drafts = [
-        _Draft.model_validate(part.args_as_dict())
-        for part in called_tool_parts(current_turn(messages))
-        if part.tool_name == "final_result"
-    ]
-    return "\n".join(_SEARCH_LINE.findall(drafts[-1].prose)) if drafts else ""
-
-
 class _Dropped(ToolAnswer):
     criterion_id: str
 
@@ -383,15 +291,6 @@ def frame_summary(messages: list[ModelMessage]) -> str:
         if (read := last_return(messages, tool, _Summary)) is not None
     ]
     return reads[-1].summary if reads else ""
-
-
-class _Exported(ToolAnswer):
-    download_url: str = ""
-
-
-def exported_link(messages: list[ModelMessage]) -> str:
-    read = last_return(messages, "export_gene_set", _Exported)
-    return "" if read is None else read.download_url
 
 
 class GeneRecord(ToolAnswer):

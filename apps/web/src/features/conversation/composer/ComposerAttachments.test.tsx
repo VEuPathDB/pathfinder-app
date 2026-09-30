@@ -18,6 +18,7 @@ function model(name: string, reads: boolean): ModelCatalogEntry {
     id: `openai:${name}`,
     name,
     modelName: name,
+    rank: "standard",
     provider: "openai",
     enabled: true,
     supportsImages: reads,

@@ -202,7 +202,6 @@ def lead_state() -> PipelineState:
                 error="422 min_fold_change: Invalid value",
             ),
         ],
-        root_count=0,
     )
     return state
 

@@ -9,8 +9,9 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.ai.lead.deltas import EditDelta
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     PROTEOME_PARAM,
@@ -35,7 +36,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     session_holding,
 )
 
-THRESHOLD = OpenQuestion(
+THRESHOLD = SlotQuestion(
     question="How many distinct peptides must a gene be detected by?",
     dimension=ConstraintKind.STATISTICAL_THRESHOLD,
     recommended_value="2",
@@ -116,7 +117,10 @@ async def test_a_pass_that_binds_before_it_asks_stands(
 async def test_a_pass_that_binds_and_asks_about_nothing_open_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A draft with every value decided holds no slot the answer lands in."""
+    """A draft with every value decided holds no slot the answer lands in.
+
+    The refusal keeps the criterion the pass bound for the retry.
+    """
     thread = _thread(monkeypatch)
     await thread.next_turn()
     thread.frames(
@@ -130,7 +134,7 @@ async def test_a_pass_that_binds_and_asks_about_nothing_open_is_refused(
 
     assert isinstance(refusal, str), refusal
     assert "open slot" in refusal
-    assert thread.criteria == [SURFACE, STAGE]
+    assert thread.criteria == [SURFACE, STAGE, PROTEOME]
 
 
 async def test_the_pass_is_refused_once_a_turn(

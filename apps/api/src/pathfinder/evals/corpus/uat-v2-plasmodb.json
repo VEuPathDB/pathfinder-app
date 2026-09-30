@@ -15,7 +15,10 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
-    "replyMentions": ["52 of 80", "2 of 40"],
+    "replyMentions": [
+      "52 of 80",
+      "2 of 40"
+    ],
     "replyOmits": [],
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,
@@ -41,7 +44,9 @@
     "curatorNote": "Needs --via-worker: the control test is a durable task."
   },
   "effort": "medium",
-  "gates": "auto",
+  "gates": {
+    "policy": "auto"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

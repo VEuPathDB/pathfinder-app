@@ -14,11 +14,15 @@ from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
+)
+from pathfinder.domain.strategy.questions import (
+    SetValues,
+    SlotQuestion,
 )
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -96,11 +100,11 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
             disposition="needs_user",
             summary="which dataset?",
             open_questions=[
-                OpenQuestion(
+                SlotQuestion(
                     question="Which gametocyte RNA-seq study?",
                     dimension=ConstraintKind.DATA_TYPE,
                 ),
-                OpenQuestion(
+                SlotQuestion(
                     question="What counts as a SNP?",
                     recommended_value="non-synonymous only",
                 ),
@@ -120,6 +124,46 @@ async def test_the_questions_frame_cannot_answer_are_recorded(
     assert [(q.question, q.dimension) for q in deps.state.domain.open_questions] == [
         ("Which gametocyte RNA-seq study?", ConstraintKind.DATA_TYPE),
         ("What counts as a SNP?", ConstraintKind.OTHER),
+    ]
+
+
+async def test_a_slot_question_is_recorded_with_options_that_set_the_slot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Each value FRAME offers for an open slot binds that slot when chosen."""
+    studies = [
+        "pfal3D7_Gametocyte_Timecourse_rnaSeq",
+        "pfal3D7_Lopez-Barragan_Gametocyte_rnaSeq",
+    ]
+    _stub_stream(
+        monkeypatch,
+        FrameResult(
+            disposition="needs_user",
+            summary="which dataset?",
+            open_questions=[
+                SlotQuestion(
+                    question="Which gametocyte RNA-seq study?",
+                    dimension=ConstraintKind.DATA_TYPE,
+                    criterion_id="c1",
+                    param_name="dataset",
+                    options=studies,
+                ),
+            ],
+        ),
+        binds=True,
+        open_param="dataset",
+    )
+    deps = _deps()
+
+    await run_frame(
+        deps=deps,
+        parent_tool_call_id="t1",
+        work_order=frame_work_order("frame it", deps),
+    )
+
+    [asked] = deps.state.domain.open_questions
+    assert [option.binding for option in asked.options] == [
+        SetValues(criterion_id="c1", params={"dataset": study}) for study in studies
     ]
 
 
@@ -189,7 +233,7 @@ async def test_a_pass_that_asks_about_nothing_it_bound_is_a_retry(
             disposition="needs_user",
             summary="which threshold?",
             open_questions=[
-                OpenQuestion(question="Which percentile?", recommended_value="10"),
+                SlotQuestion(question="Which percentile?", recommended_value="10"),
             ],
         ),
         binds=True,

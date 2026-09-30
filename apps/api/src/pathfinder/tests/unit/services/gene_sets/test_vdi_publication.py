@@ -7,7 +7,6 @@ records is a pointer to a durable artifact that lives on the site.
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -25,6 +24,7 @@ from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets import vdi
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
 _OWNER = uuid4()
 _VDI_ID = "soV5JEQEcF00p"
@@ -45,11 +45,9 @@ def _set(**over: Any) -> GeneSet:
 
 
 def _service(gs: GeneSet | None) -> GeneSetService:
-    store = AsyncMock()
-    store.aget = AsyncMock(return_value=gs)
-    store.save = lambda value: None
-    store._persist = AsyncMock()
-    store.get = lambda entity_id: gs
+    store = InMemoryGeneSetStore()
+    if gs is not None:
+        store.rows[gs.id] = gs
     return GeneSetService(store)
 
 

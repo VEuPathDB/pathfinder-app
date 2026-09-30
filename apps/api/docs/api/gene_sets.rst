@@ -25,18 +25,19 @@ gene set for control tests, export and publication.
 
 - **Capture and import** - A build saves the root step's genes; the ``/import``
   slash command saves a pasted list
-- **Write-through persistence** - In-memory store backed by PostgreSQL for
-  fast reads with durable writes
+- **Database reads and writes** - Every store call reads or writes the
+  ``gene_sets`` table
 
 Design Decisions
 ~~~~~~~~~~~~~~~~
 
-.. dropdown:: Why in-memory + DB?
+.. dropdown:: Why no in-memory copy?
    :class-title: sd-font-weight-bold
 
-   The agent reads gene sets during a turn. The write-through store keeps a
-   dict in memory for O(1) lookups while persisting mutations to PostgreSQL
-   for durability.
+   The api and the worker both write gene sets: the worker refreshes the set a
+   strategy import made, and the api renames it. A copy held in one process
+   would serve genes the other process has replaced, so every read goes to
+   PostgreSQL. A rename and a VDI publication write only their own column.
 
 .. dropdown:: Source tracking
    :class-title: sd-font-weight-bold
@@ -48,8 +49,8 @@ Design Decisions
 Gene Set Store
 --------------
 
-**Purpose:** Write-through gene set store. In-memory dict for fast reads,
-PostgreSQL persistence for durability. Thread-safe via asyncio.
+**Purpose:** The gene set store. Every call reads or writes PostgreSQL
+through :py:mod:`pathfinder.persistence.repositories.gene_set`.
 
 .. automodule:: pathfinder.services.gene_sets.store
    :members:

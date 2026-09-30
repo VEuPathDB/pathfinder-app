@@ -9,7 +9,6 @@ import { siteShortName } from "@pathfinder/shared";
 
 import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
-import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
 import { LAYOUTS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
 import {
   controlsCaveat,
@@ -20,7 +19,6 @@ import {
 } from "../fixtures/build-checks";
 import {
   type SiteCounts,
-  countPattern,
   printed,
   readConversation,
   readNodes,
@@ -106,13 +104,21 @@ async function openChecking(page: Page): Promise<Locator> {
   return panel;
 }
 
-/** Every assistant reply of the conversation as the event log holds it, joined. */
-async function replyText(api: ApiClient, conversationId: string): Promise<string> {
-  const messages = await fetchConversationMessages(api, conversationId);
-  return messages
-    .filter((message) => message.role === "assistant")
-    .map((message) => message.content)
-    .join("\n");
+/** The facts line of one control test: its label, then each set's returned count. */
+function controlResult(
+  recovered: number,
+  positives: number,
+  admitted: number,
+  negatives: number,
+): RegExp {
+  return new RegExp(
+    `^.+: ${recovered} of ${positives} positive controls returned; ${admitted} of ${negatives} negative controls returned$`,
+  );
+}
+
+/** The controls caveats the facts parts of the thread show. */
+function controlsCaveats(page: Page): Locator {
+  return page.locator('[data-testid="facts-caveat"][data-kind="controls"]');
 }
 
 /** The step table rows equal the site: each row's two counts agree with each other and with a step. */
@@ -146,12 +152,9 @@ async function runSeparation(chatPage: ChatPage, page: Page, siteId: string) {
     "Run the separation? It measures candidate searches against your controls on the site and takes about five minutes.",
     { timeout: 60_000 },
   );
-  const pasted = pastedControls(siteId);
   await expect(
     chatPage.assistantReply(
-      new RegExp(
-        `your ${pasted.positive_ids.length} positive and ${pasted.negative_ids.length} negative controls`,
-      ),
+      /I will measure your positive and negative controls against the site's searches\./,
     ),
   ).toHaveCount(1);
   await approval.getByTestId("tool-approval-approve").click();
@@ -318,17 +321,14 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
     const figureRows = await bodyCells(figure);
     expect(rowOf(figureRows, "Positive")[2]).toBe(positive[2]);
     expect(rowOf(figureRows, "Negative")[2]).toBe(negative[2]);
-    const reply = await replyText(apiClient, id);
-    expect(reply).toMatch(countPattern(numberOf(positive[2] ?? "")));
-    expect(reply).toMatch(countPattern(numberOf(negative[2] ?? "")));
-    const caveat = controlsCaveat(
-      numberOf(positive[2] ?? ""),
-      positives,
-      numberOf(negative[2] ?? ""),
-      negatives,
+    const recovered = numberOf(positive[2] ?? "");
+    const admitted = numberOf(negative[2] ?? "");
+    await expect(page.getByTestId("facts-control-result")).toHaveText(
+      controlResult(recovered, positives, admitted, negatives),
     );
-    // A set the strategy separates whole measures no caveat, and the reply states none.
-    expect(reply.includes(`The check measured: ${caveat}`)).toBe(caveat !== "");
+    const caveat = controlsCaveat(recovered, positives, admitted, negatives);
+    // A set the strategy separates whole measures no caveat, and the facts show none.
+    await expect(controlsCaveats(page)).toHaveText(caveat === "" ? [] : [caveat]);
 
     const tasks = await openRail(page, "Tasks");
     await expect(
@@ -467,9 +467,11 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       `${admitted} of ${negatives} negative controls returned`,
     );
     await expectStepTable(evidence, counts);
-    expect(await replyText(apiClient, id)).toContain(
-      controlsCaveat(recovered, positives, admitted, negatives),
+    await expect(page.getByTestId("facts-control-result")).toHaveText(
+      controlResult(recovered, positives, admitted, negatives),
     );
+    const caveat = controlsCaveat(recovered, positives, admitted, negatives);
+    await expect(controlsCaveats(page)).toHaveText(caveat === "" ? [] : [caveat]);
   });
 
   test("V5 - A no with a comment", async ({

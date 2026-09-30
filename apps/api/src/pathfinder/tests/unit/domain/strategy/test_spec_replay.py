@@ -6,13 +6,11 @@ and everything it said about that name retires with it.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
+    BoundValue,
     Criterion,
     OpenSlot,
     OperationalSpec,
@@ -22,16 +20,19 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.outside_changes import outside_changes
+from pathfinder.domain.strategy.spec_hydration import Sheets
 from pathfinder.domain.strategy.spec_replay import spec_replaying
+from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.sheets import visible_sheet
 
 from ._builders import combine, leaf
 
 _PERCENTILE = "min_expression_percentile"
 _HIDDEN = "wdk_weight_bucket"
-_SHEETS: Mapping[str, Collection[str]] = {
-    "GenesByRNASeqEvidence": frozenset({_PERCENTILE, "timepoint"}),
-    "GenesByText": frozenset({"text_expression"}),
-    "GenesByGoTerm": frozenset({"go_term"}),
+_SHEETS: Sheets = {
+    "GenesByRNASeqEvidence": visible_sheet([_PERCENTILE, "timepoint"]),
+    "GenesByText": visible_sheet(["text_expression"]),
+    "GenesByGoTerm": visible_sheet(["go_term"]),
 }
 
 
@@ -72,7 +73,7 @@ def _spec() -> OperationalSpec:
                 id="expr",
                 text="expressed in rings",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={_PERCENTILE: NumberValue(value=80)},
+                resolved_params=bound({_PERCENTILE: NumberValue(value=80)}),
             ),
         ],
         structure=SpecStructure(
@@ -103,8 +104,8 @@ def _criterion(spec: OperationalSpec, criterion_id: str) -> Criterion:
 def test_a_value_set_outside_reaches_the_criterion() -> None:
     replayed = _replayed(_spec(), _built(80), _built(48))
 
-    assert _criterion(replayed, "expr").resolved_params[_PERCENTILE] == NumberValue(
-        value=48
+    assert _criterion(replayed, "expr").resolved_params[_PERCENTILE] == BoundValue(
+        value=NumberValue(value=48), source="held"
     )
 
 
@@ -112,7 +113,7 @@ def test_a_value_the_sheet_does_not_show_is_left_to_the_strategy() -> None:
     """A hidden parameter is WDK's, and a criterion states none of them."""
     replayed = _replayed(_spec(), _built(80), _built(80, hidden=3))
 
-    assert _criterion(replayed, "expr").resolved_params == {
+    assert _criterion(replayed, "expr").param_values == {
         _PERCENTILE: NumberValue(value=80)
     }
 
@@ -147,31 +148,41 @@ def test_a_replayed_value_closes_the_open_slot_that_asked_for_it() -> None:
 
 def test_a_replayed_value_is_no_longer_a_default() -> None:
     spec = _spec()
-    _criterion(spec, "expr").defaulted_params = [_PERCENTILE, "timepoint"]
+    _criterion(spec, "expr").resolved_params = bound(
+        {_PERCENTILE: NumberValue(value=80), "timepoint": NumberValue(value=40)},
+        defaulted=[_PERCENTILE, "timepoint"],
+    )
 
     replayed = _replayed(spec, _built(80), _built(48))
 
-    assert _criterion(replayed, "expr").defaulted_params == ["timepoint"]
+    assert _criterion(replayed, "expr").defaulted() == ["timepoint"]
 
 
-def test_a_replayed_value_retires_the_assumption_a_fold_carried() -> None:
-    """The carried wire value is the old one, so it may not outlive it."""
+def test_a_replayed_value_retires_the_reason_a_fold_carried() -> None:
+    """The carried value is the old one, so its source may not outlive it."""
     spec = _spec()
-    _criterion(spec, "expr").assumptions = [
-        AssumedValue(
-            param_name=_PERCENTILE,
-            value="80",
-            reason="ring stage",
+    _criterion(spec, "expr").resolved_params = {
+        _PERCENTILE: BoundValue(
+            value=NumberValue(value=80),
+            source="chosen",
+            basis="ring stage",
             carried_from="c_stage",
         ),
-        AssumedValue(param_name="timepoint", value="40", reason="mid ring"),
-    ]
+        "timepoint": BoundValue(
+            value=NumberValue(value=40), source="chosen", basis="mid ring"
+        ),
+    }
 
     replayed = _replayed(spec, _built(80), _built(48))
 
-    assert [a.param_name for a in _criterion(replayed, "expr").assumptions] == [
-        "timepoint"
-    ]
+    criterion = _criterion(replayed, "expr")
+    assert (
+        criterion.resolved_params[_PERCENTILE].carried_from,
+        [*criterion.set_by("chosen")],
+    ) == (
+        "",
+        ["timepoint"],
+    )
 
 
 def test_a_replayed_value_retires_the_alternatives_it_was_chosen_from() -> None:
@@ -198,17 +209,16 @@ def test_a_search_changed_outside_rebinds_the_criterion_to_it() -> None:
         )
     )
     spec = _spec()
-    _criterion(spec, "expr").defaulted_params = [_PERCENTILE]
-    _criterion(spec, "expr").assumptions = [
-        AssumedValue(param_name=_PERCENTILE, value="80", reason="ring stage")
-    ]
+    _criterion(spec, "expr").resolved_params = bound(
+        {_PERCENTILE: NumberValue(value=80)}, chosen={_PERCENTILE: "ring stage"}
+    )
 
     replayed = _replayed(spec, _built(80), rebound)
 
     criterion = _criterion(replayed, "expr")
     assert criterion.search_name == "GenesByGoTerm"
-    assert criterion.resolved_params == {"go_term": StringValue(value="GO:0004672")}
-    assert (criterion.defaulted_params, criterion.assumptions) == ([], [])
+    assert criterion.param_values == {"go_term": StringValue(value="GO:0004672")}
+    assert (criterion.defaulted(), criterion.set_by("chosen")) == ([], {})
 
 
 def test_a_step_deleted_outside_takes_its_criterion_out_of_the_spec() -> None:
@@ -253,7 +263,7 @@ def test_a_step_added_outside_is_stated_where_the_strategy_holds_it() -> None:
     assert structure_criteria(replayed.structure) == {"text", "expr", "go"}
     assert replayed.structure is not None
     assert replayed.structure.root.operator is CombineOp.UNION
-    assert _criterion(replayed, "go").resolved_params == {
+    assert _criterion(replayed, "go").param_values == {
         "go_term": StringValue(value="GO:0004672")
     }
 

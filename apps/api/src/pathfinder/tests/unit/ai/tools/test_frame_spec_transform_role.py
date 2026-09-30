@@ -180,7 +180,7 @@ async def test_the_refusal_records_the_transforms_it_names(
         _TRANSFORM,
         "GenesByWeight",
     ]
-    assert overrides[("get_search_overview", "search_name")] == [
+    assert overrides[("get_parameter_options", "search_name")] == [
         "GenesByEcNumber",
         _LEAF,
         _TRANSFORM,

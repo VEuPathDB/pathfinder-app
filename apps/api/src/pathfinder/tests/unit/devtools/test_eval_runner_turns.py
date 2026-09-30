@@ -18,6 +18,7 @@ from pathfinder.ai.conversation.gene_list_marker import (
 from pathfinder.devtools import eval_runner, evals
 from pathfinder.devtools.chat import RespondArgs, RunArgs
 from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption
+from pathfinder.domain.turn_facts import StepFact, TurnFacts
 from pathfinder.evals import store
 from pathfinder.evals.case import (
     CaseProvenance,
@@ -25,6 +26,7 @@ from pathfinder.evals.case import (
     ExpectedOutcome,
     GateAnswer,
     GateEnd,
+    GatePlan,
     RecordedCount,
 )
 from pathfinder.evals.scoring import ObservedOutcome
@@ -39,6 +41,7 @@ def _case(*turns: str, **fields: object) -> EvalCase:
         assistant_id="pathfinder",
         rationale="pins a thing",
         expected=ExpectedOutcome(builds_strategy=True, step_ids_unchanged=True),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",
@@ -51,12 +54,21 @@ def _case(*turns: str, **fields: object) -> EvalCase:
 
 
 class _Capture:
-    def __init__(self, text: str, refused: tuple[str, ...] = ()) -> None:
+    def __init__(
+        self,
+        text: str,
+        refused: tuple[str, ...] = (),
+        facts: TurnFacts | None = None,
+    ) -> None:
         self._text = text
         self._refused = list(refused)
+        self._facts = facts
 
     def assistant_text(self) -> str:
         return self._text
+
+    def turn_facts(self) -> TurnFacts | None:
+        return self._facts
 
     def refused_tools(self) -> list[str]:
         return self._refused
@@ -91,7 +103,7 @@ def _install(
 
     async def _observe(
         conversation_id: UUID,
-        reply_text: str,
+        turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
@@ -100,7 +112,8 @@ def _install(
         del conversation_id
         return ObservedOutcome(
             built_strategy=True,
-            reply_text=reply_text,
+            reply_text=turns.replies[-1],
+            turn_replies=turns.replies,
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
             refused_tools=refused_tools,
@@ -223,28 +236,46 @@ async def test_the_effort_the_run_names_wins_over_the_case(
     assert [args.effort for args in installed.driven] == ["low"]
 
 
-async def test_a_case_that_stops_leaves_only_the_last_gate_unanswered(
+_DELETE_CARD = Gate(kind="approval", tool="delete_step", tool_call_id="del")
+
+
+def _leave(*answers: GateAnswer) -> GatePlan:
+    return GatePlan(policy="leave", answers=list(answers))
+
+
+async def test_a_case_that_stops_answers_every_card_but_the_last_turns(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    installed = _install(monkeypatch, [{100}, {100}])
+    installed = _install(monkeypatch, [{100}, {100}], gate=_DELETE_CARD)
+    answered = _answering(monkeypatch, [Gate(kind="none")])
 
-    await eval_runner.run_one_case(
-        _case("build it", "delete a step", gates="stop"), run_root=tmp_path
+    observed = await eval_runner.run_one_case(
+        _case("build it", "delete a step", gates=GatePlan(policy="stop")),
+        run_root=tmp_path,
     )
 
-    assert [args.approve for args in installed.driven] == ["auto", "prompt"]
+    assert (
+        [args.approve for args in installed.driven],
+        [(a.accept, a.run_dir.parent.name) for a in answered],
+        observed.ends_on,
+    ) == (["prompt", "prompt"], [(True, "turn-1")], "approval")
 
 
-async def test_a_case_that_does_not_stop_answers_every_gate(
+async def test_a_case_that_does_not_stop_answers_every_card(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    installed = _install(monkeypatch, [{100}, {100}])
+    _install(monkeypatch, [{100}, {100}], gate=_DELETE_CARD)
+    answered = _answering(monkeypatch, [Gate(kind="none"), Gate(kind="none")])
 
     await eval_runner.run_one_case(
-        _case("build it", "delete a step"), run_root=tmp_path
+        _case("build it", "delete a step", gates=GatePlan(policy="auto")),
+        run_root=tmp_path,
     )
 
-    assert [args.approve for args in installed.driven] == ["auto", "auto"]
+    assert [(a.accept, a.run_dir.parent.name, a.run_dir.name) for a in answered] == [
+        (True, "turn-1", "answer-1"),
+        (True, "turn-2", "answer-1"),
+    ]
 
 
 async def test_each_turn_carries_the_files_the_case_attaches_to_it(
@@ -300,8 +331,11 @@ async def test_the_gate_the_last_turn_stopped_on_is_observed(
         gate=Gate(kind="approval", tool="delete_step", tool_call_id="call-1"),
     )
 
+    _answering(monkeypatch, [Gate(kind="none")])
+
     observed = await eval_runner.run_one_case(
-        _case("build it", "delete a step", gates="stop"), run_root=tmp_path
+        _case("build it", "delete a step", gates=GatePlan(policy="stop")),
+        run_root=tmp_path,
     )
 
     assert observed.ends_on == "approval"
@@ -401,7 +435,13 @@ _RUN_CARD = Gate(kind="approval", tool="separate_controls", tool_call_id="run")
 _OFFER_CARD = Gate(
     kind="approval", tool="adopt_separating_strategy", tool_call_id="offer"
 )
-_NO = GateAnswer(accept=False, comment="Too broad for a vaccine screen.")
+_YES_TO_THE_RUN = GateAnswer(card="separate_controls", turn=1)
+_NO_TO_THE_OFFER = GateAnswer(
+    card="adopt_separating_strategy",
+    turn=1,
+    accept=False,
+    comment="Too broad for a vaccine screen.",
+)
 
 
 def _answering(
@@ -434,7 +474,11 @@ async def test_explicit_answers_answer_the_gates_in_order(
     answered = _answering(monkeypatch, [_OFFER_CARD, Gate(kind="none")])
 
     observed = await eval_runner.run_one_case(
-        _case("separate these", "yes, run it", gates=[GateAnswer(accept=True), _NO]),
+        _case(
+            "separate these",
+            "yes, run it",
+            gates=_leave(_YES_TO_THE_RUN, _NO_TO_THE_OFFER),
+        ),
         run_root=tmp_path,
         via_worker=True,
     )
@@ -444,10 +488,15 @@ async def test_explicit_answers_answer_the_gates_in_order(
         (True, False, None),
         (False, True, "Too broad for a vaccine screen."),
     ]
-    assert {
-        (a.conversation_id, a.run_dir.name, a.via_worker, a.site) for a in answered
-    } == {(installed.driven[0].conversation_id, "turn-2", True, "plasmodb")}
+    assert [
+        (a.conversation_id, a.run_dir.parent.name, a.run_dir.name, a.via_worker)
+        for a in answered
+    ] == [
+        (installed.driven[0].conversation_id, "turn-2", "answer-1", True),
+        (installed.driven[0].conversation_id, "turn-2", "answer-2", True),
+    ]
     assert (observed.ends_on, observed.reply_text) == ("none", "answered 2")
+    assert observed.turn_replies == ["reply to separate these", "answered 2"]
 
 
 async def test_the_refused_tools_are_read_from_every_run_and_every_answer(
@@ -469,7 +518,7 @@ async def test_the_refused_tools_are_read_from_every_run_and_every_answer(
     monkeypatch.setattr(eval_runner, "drive_respond", _respond)
 
     observed = await eval_runner.run_one_case(
-        _case("separate these", "yes, run it", gates=[GateAnswer(accept=True)]),
+        _case("separate these", "yes, run it", gates=_leave(_YES_TO_THE_RUN)),
         run_root=tmp_path,
     )
 
@@ -481,17 +530,88 @@ async def test_the_refused_tools_are_read_from_every_run_and_every_answer(
     ]
 
 
-async def test_a_gate_past_the_last_answer_is_left_unanswered(
+async def test_a_card_no_answer_names_is_left_under_the_leave_policy(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     _install(monkeypatch, [set()], gate=_RUN_CARD)
     answered = _answering(monkeypatch, [_OFFER_CARD])
 
     observed = await eval_runner.run_one_case(
-        _case("separate these", gates=[GateAnswer(accept=True)]), run_root=tmp_path
+        _case(
+            "separate these",
+            gates=_leave(GateAnswer(card="separate_controls", turn=0)),
+        ),
+        run_root=tmp_path,
     )
 
     assert (len(answered), observed.ends_on) == (1, "proposal")
+
+
+async def test_a_case_that_must_not_build_declines_the_offer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _install(monkeypatch, [set()], gate=_OFFER_CARD)
+    answered = _answering(monkeypatch, [Gate(kind="none")])
+
+    await eval_runner.run_one_case(
+        _case(
+            "I'm investigating virulence factors.",
+            expected=ExpectedOutcome(builds_strategy=False),
+            gates=GatePlan(policy="decline-offers"),
+        ),
+        run_root=tmp_path,
+    )
+
+    assert [(a.accept, a.deny) for a in answered] == [(False, True)]
+
+
+async def test_an_answer_for_a_card_never_raised_blocks_no_later_answer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    installed = _install(monkeypatch, [set(), set()])
+    raised = [Gate(kind="none"), _DELETE_CARD]
+
+    async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
+        capture, _ = await installed.drive(args)
+        return capture, raised.pop(0)
+
+    monkeypatch.setattr(eval_runner, "drive_run", _drive)
+    answered = _answering(monkeypatch, [Gate(kind="none")])
+
+    observed = await eval_runner.run_one_case(
+        _case(
+            "Find kinases.",
+            "Delete the text step.",
+            gates=_leave(
+                GateAnswer(card="consult_user", turn=0, picks=["kinase"]),
+                GateAnswer(card="delete_step", turn=1),
+            ),
+        ),
+        run_root=tmp_path,
+    )
+
+    assert ([a.run_dir.parent.name for a in answered], observed.ends_on) == (
+        ["turn-2"],
+        "none",
+    )
+
+
+async def test_an_answer_is_given_only_to_the_card_of_the_turn_it_names(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _install(monkeypatch, [set(), set()], gate=_DELETE_CARD)
+    answered = _answering(monkeypatch, [Gate(kind="none")])
+
+    await eval_runner.run_one_case(
+        _case(
+            "Delete the text step.",
+            "Delete the GO step.",
+            gates=_leave(GateAnswer(card="delete_step", turn=1)),
+        ),
+        run_root=tmp_path,
+    )
+
+    assert [a.run_dir.parent.name for a in answered] == ["turn-2"]
 
 
 _QUESTIONS = Gate(
@@ -527,7 +647,11 @@ async def test_a_card_answer_is_not_given_to_a_question_card(
     answered = _answering(monkeypatch, [])
 
     observed = await eval_runner.run_one_case(
-        _case("find drug targets", gates=[GateAnswer(accept=True)]), run_root=tmp_path
+        _case(
+            "find drug targets",
+            gates=_leave(GateAnswer(card="delete_step", turn=0)),
+        ),
+        run_root=tmp_path,
     )
 
     assert (answered, observed.ends_on) == ([], "consult")
@@ -540,7 +664,10 @@ async def test_a_question_answer_is_not_given_to_an_approval_card(
     answered = _answering(monkeypatch, [])
 
     observed = await eval_runner.run_one_case(
-        _case("separate these", gates=[GateAnswer(picks=["portal"])]),
+        _case(
+            "separate these",
+            gates=_leave(GateAnswer(card="consult_user", turn=0, picks=["portal"])),
+        ),
         run_root=tmp_path,
     )
 
@@ -554,7 +681,11 @@ async def test_a_question_card_takes_the_picked_options_else_the_recommended(
     answered = _answering(monkeypatch, [Gate(kind="none")])
 
     observed = await eval_runner.run_one_case(
-        _case("carry these", gates=[GateAnswer(picks=["portal"])]), run_root=tmp_path
+        _case(
+            "carry these",
+            gates=_leave(GateAnswer(card="consult_user", turn=0, picks=["portal"])),
+        ),
+        run_root=tmp_path,
     )
 
     assert [(a.answers, a.accept, a.deny) for a in answered] == [
@@ -574,7 +705,13 @@ async def test_an_answer_due_with_no_card_pending_ends_the_turn(
     answered = _answering(monkeypatch, [None])
 
     observed = await eval_runner.run_one_case(
-        _case("separate these", gates=[GateAnswer(accept=True), _NO]),
+        _case(
+            "separate these",
+            gates=_leave(
+                GateAnswer(card="separate_controls", turn=0),
+                GateAnswer(card="separate_controls", turn=0, accept=False),
+            ),
+        ),
         run_root=tmp_path,
     )
 
@@ -589,7 +726,7 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
 
     async def _observe(
         conversation_id: UUID,
-        reply_text: str,
+        turns: eval_runner.TurnsShown,
         *,
         step_ids_unchanged: bool | None,
         ends_on: GateEnd | None,
@@ -598,7 +735,7 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
         observed_on.append(conversation_id)
         return ObservedOutcome(
             built_strategy=False,
-            reply_text=reply_text,
+            reply_text=turns.replies[-1],
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
             refused_tools=refused_tools,
@@ -660,18 +797,18 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
     assert (printed_before_each_case[0], first[:2], first[3:]) == (
         "",
         ["pass", "uat-s1-plasmodb"],
-        ["count=479", "refusals=0", "-"],
+        ["count=479", "assumed=-", "refusals=0", "-"],
     )
     assert (second.split()[:2], second.split()[3:], difference) == (
         ["fail", "uat-s2-plasmodb"],
-        ["count=140", "refusals=0"],
+        ["count=140", "assumed=-", "refusals=0"],
         "rootCount: expected '116 (build 71)', got '140 (build 71)'",
     )
     assert (after[1].split()[:2], after[-1].split()[:6]) == (
         ["PASS", "uat-s1-plasmodb"],
         ["---", "1/2", "passed", "(re-measure", "0,", "failed"],
     )
-    assert "errored 0) refusals=0 harness=" in after[-1]
+    assert "errored 0) refusals=0 assumed=- harness=" in after[-1]
 
 
 def test_a_passing_case_prints_its_refusals_on_every_line(
@@ -699,6 +836,7 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
             built_strategy=True,
             root_count=479,
             refused_tools=["classify_user_intent", "read_gene_record"],
+            assumed=0,
         )
 
     monkeypatch.setattr(eval_runner, "load_corpus", lambda: cases)
@@ -713,20 +851,31 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
     progress, _, first = lines[0].partition("  ")
     listed = lines[1].split("  ")
     assert (progress.split()[3:], first) == (
-        ["count=479", "refusals=2", "(classify_user_intent,", "read_gene_record)"],
+        [
+            "count=479",
+            "assumed=0",
+            "refusals=2",
+            "(classify_user_intent,",
+            "read_gene_record)",
+        ],
         "-",
     )
     assert (listed[0], listed[1], listed[3:]) == (
         "PASS",
         "uat-s1-plasmodb",
-        ["count 479", "refusals=2 (classify_user_intent, read_gene_record)"],
+        [
+            "count 479",
+            "assumed=0",
+            "refusals=2 (classify_user_intent, read_gene_record)",
+        ],
     )
-    assert "errored 0) refusals=2 harness=" in lines[-2]
+    assert "errored 0) refusals=2 assumed=0 harness=" in lines[-2]
     payload = json.loads(out.read_text())
     assert (payload["refusals"], payload["cases"][0]["refusedTools"]) == (
         2,
         ["classify_user_intent", "read_gene_record"],
     )
+    assert (payload["assumed"], payload["cases"][0]["assumed"]) == (0, 0)
 
 
 async def test_a_gene_list_file_reaches_the_turn_as_the_composer_writes_it(
@@ -785,4 +934,45 @@ async def test_a_gene_list_file_with_no_ids_says_so(
             "Use these.\n\nAttached file empty.txt contained no recognizable gene IDs.",
             [],
         ),
+    ]
+
+
+async def test_a_turn_is_observed_as_its_reply_and_the_facts_part_beside_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    installed = _install(monkeypatch, [{100}])
+    shown = TurnFacts(steps=[StepFact(step_id="c1", display_name="GO Term", count=74)])
+    observed: list[eval_runner.TurnsShown] = []
+
+    async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
+        await installed.drive(args)
+        return _Capture("The count is shown beside this reply.", facts=shown), Gate(
+            kind="none"
+        )
+
+    async def _observe(
+        conversation_id: UUID,
+        turns: eval_runner.TurnsShown,
+        *,
+        step_ids_unchanged: bool | None,
+        ends_on: GateEnd | None,
+        refused_tools: list[str],
+    ) -> ObservedOutcome:
+        del conversation_id, step_ids_unchanged
+        observed.append(turns)
+        return ObservedOutcome(
+            built_strategy=True, ends_on=ends_on, refused_tools=refused_tools
+        )
+
+    monkeypatch.setattr(eval_runner, "drive_run", _drive)
+    monkeypatch.setattr(eval_runner, "observe", _observe)
+
+    await eval_runner.run_one_case(_case("build it"), run_root=tmp_path)
+
+    assert observed == [
+        eval_runner.TurnsShown(
+            replies=["The count is shown beside this reply."],
+            facts=["GO Term: 74 genes"],
+            last_facts=shown,
+        )
     ]

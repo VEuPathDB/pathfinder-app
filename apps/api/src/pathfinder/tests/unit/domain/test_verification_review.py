@@ -6,7 +6,6 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from pathfinder.domain.caveats import sample_caveat
 from pathfinder.domain.evidence import (
     SAMPLED_GENE_LIMIT,
     Citation,
@@ -55,6 +54,9 @@ def test_an_unmet_requirement_may_name_nothing() -> None:
         "how": "search",
         "status": "unmet",
         "note": "no step reads gametocyte expression",
+        "shownBy": [],
+        "noRecordShowsIt": False,
+        "noRecordJudgedIt": False,
     }
 
 
@@ -63,22 +65,6 @@ def test_the_sample_holds_at_most_the_limit() -> None:
 
     with pytest.raises(ValidationError, match="at most 8 items"):
         VerificationReview(sampled_genes=genes)
-
-
-def test_only_genes_that_do_not_fit_or_are_unclear_make_the_sample_caveat() -> None:
-    mixed = [
-        _gene("PF3D7_0100100", "yes"),
-        _gene("PF3D7_0100200", "no", "product is a histone, no kinase domain"),
-        _gene("PF3D7_0100300", "unclear", "product is hypothetical"),
-        _gene("PF3D7_0100400", "no", "product is a ribosomal protein"),
-    ]
-    caveat = sample_caveat(mixed)
-
-    assert caveat is not None
-    assert (caveat.sentence, sample_caveat([_gene("PF3D7_0100100", "yes")])) == (
-        "1 of 4 sampled genes unclear; 2 of 4 sampled genes do not fit",
-        None,
-    )
 
 
 def test_the_rows_a_reply_must_name_are_the_unmet_and_the_unexpressed() -> None:

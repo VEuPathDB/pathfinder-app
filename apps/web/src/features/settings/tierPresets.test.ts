@@ -7,6 +7,12 @@ import {
   rolesForAssistant,
   CUSTOM_TIER,
 } from "@/features/settings/tierPresets";
+import {
+  ANTHROPIC_SMALL,
+  DEFAULT_MODEL,
+  OPENAI_FLAGSHIP,
+  OPENAI_SMALL,
+} from "@/lib/models/__fixtures__/models";
 
 const cfg = (modelId: string, reasoningEffort: "low" | "medium" | "high") => ({
   modelId,
@@ -21,19 +27,19 @@ const pathfinder = (
     lead: thinker,
     frame: thinker,
     execution: worker,
-    verification: thinker,
+    verification: worker,
   },
 });
 
-const LUNA = cfg("openai:gpt-5.6-luna", "medium");
-const LUNA_LOW = cfg("openai:gpt-5.6-luna", "low");
-const SOL = cfg("openai:gpt-5.6-sol", "high");
-const TERRA = cfg("openai:gpt-5.6-terra", "medium");
+const STANDARD = cfg(DEFAULT_MODEL.id, "medium");
+const SMALL = cfg(OPENAI_SMALL.id, "medium");
+const SMALL_LOW = cfg(OPENAI_SMALL.id, "low");
+const FLAGSHIP = cfg(OPENAI_FLAGSHIP.id, "high");
 
-const DEFAULT_TIER = pathfinder(LUNA, LUNA);
-const QUALITY_TIER = pathfinder(SOL, TERRA);
-const BALANCED_TIER = pathfinder(TERRA, LUNA);
-const FAST_TIER = pathfinder(LUNA_LOW, LUNA_LOW);
+const DEFAULT_TIER = pathfinder(STANDARD, SMALL);
+const QUALITY_TIER = pathfinder(FLAGSHIP, STANDARD);
+const BALANCED_TIER = pathfinder(STANDARD, SMALL);
+const FAST_TIER = pathfinder(SMALL_LOW, SMALL_LOW);
 
 const PRESETS = {
   pathfinder: {
@@ -45,17 +51,17 @@ const PRESETS = {
     },
     anthropic: {
       default: pathfinder(
-        cfg("anthropic:claude-sonnet-5", "medium"),
-        cfg("anthropic:claude-sonnet-5", "medium"),
+        cfg(ANTHROPIC_SMALL.id, "medium"),
+        cfg(ANTHROPIC_SMALL.id, "medium"),
       ),
     },
   },
   site_help: {
     openai: {
-      default: { roles: { site_help: LUNA } },
-      quality: { roles: { site_help: TERRA } },
-      balanced: { roles: { site_help: LUNA } },
-      fast: { roles: { site_help: LUNA_LOW } },
+      default: { roles: { site_help: SMALL } },
+      quality: { roles: { site_help: STANDARD } },
+      balanced: { roles: { site_help: SMALL } },
+      fast: { roles: { site_help: SMALL_LOW } },
     },
   },
 };
@@ -100,23 +106,23 @@ describe("applyTierPreset", () => {
   it("sets every role's model and effort from the preset", () => {
     expect(applyTierPreset(QUALITY_TIER)).toEqual({
       models: {
-        lead: "openai:gpt-5.6-sol",
-        frame: "openai:gpt-5.6-sol",
-        execution: "openai:gpt-5.6-terra",
-        verification: "openai:gpt-5.6-sol",
+        lead: OPENAI_FLAGSHIP.id,
+        frame: OPENAI_FLAGSHIP.id,
+        execution: DEFAULT_MODEL.id,
+        verification: DEFAULT_MODEL.id,
       },
       reasoning: {
         lead: "high",
         frame: "high",
         execution: "medium",
-        verification: "high",
+        verification: "medium",
       },
     });
   });
 
   it("sets the one role of a one-agent assistant", () => {
     expect(applyTierPreset(PRESETS.site_help.openai.quality)).toEqual({
-      models: { site_help: "openai:gpt-5.6-terra" },
+      models: { site_help: DEFAULT_MODEL.id },
       reasoning: { site_help: "medium" },
     });
   });
@@ -152,13 +158,13 @@ describe("deriveActiveTier", () => {
   });
 
   it("distinguishes tiers that differ only by reasoning effort", () => {
-    // default and fast use the SAME model everywhere; only effort separates
+    // Site help runs one model on default and fast; only effort separates
     // them, so a model-only comparison would conflate the two.
-    const applied = applyTierPreset(FAST_TIER);
+    const applied = applyTierPreset(PRESETS.site_help.openai.fast);
     expect(
       deriveActiveTier(
         PRESETS,
-        "pathfinder",
+        "site_help",
         "openai",
         applied.models,
         applied.reasoning,
@@ -168,10 +174,10 @@ describe("deriveActiveTier", () => {
   });
 
   it("reads only the roles of the assistant it is asked about", () => {
-    const applied = applyTierPreset(PRESETS.site_help.openai.quality);
-    const mixed = { ...applyTierPreset(FAST_TIER).models, ...applied.models };
+    const applied = applyTierPreset(PRESETS.site_help.openai.fast);
+    const mixed = { ...applyTierPreset(QUALITY_TIER).models, ...applied.models };
     const mixedReasoning = {
-      ...applyTierPreset(FAST_TIER).reasoning,
+      ...applyTierPreset(QUALITY_TIER).reasoning,
       ...applied.reasoning,
     };
     expect(
@@ -183,7 +189,7 @@ describe("deriveActiveTier", () => {
         mixedReasoning,
         "default",
       ),
-    ).toBe("quality");
+    ).toBe("fast");
     expect(
       deriveActiveTier(
         PRESETS,
@@ -193,12 +199,12 @@ describe("deriveActiveTier", () => {
         mixedReasoning,
         "default",
       ),
-    ).toBe("fast");
+    ).toBe("quality");
   });
 
   it("is custom when a single role model is changed", () => {
     const applied = applyTierPreset(QUALITY_TIER);
-    const models = { ...applied.models, execution: "openai:gpt-5.6-sol" };
+    const models = { ...applied.models, execution: OPENAI_FLAGSHIP.id };
     expect(
       deriveActiveTier(
         PRESETS,
@@ -236,8 +242,8 @@ describe("deriveActiveTier", () => {
   });
 
   it("prefers the deployment tier when two presets carry the same config", () => {
-    // site_help runs the cheaper model on both default and balanced, so the
-    // picks alone cannot separate them.
+    // site_help runs one config on default and balanced, so the picks alone
+    // cannot separate them.
     expect(deriveActiveTier(PRESETS, "site_help", "openai", {}, {}, "balanced")).toBe(
       "balanced",
     );
@@ -252,7 +258,7 @@ describe("deriveActiveTier", () => {
         PRESETS,
         "pathfinder",
         "openai",
-        { execution: "openai:gpt-5.6-sol" },
+        { execution: OPENAI_FLAGSHIP.id },
         { execution: "high" },
         "balanced",
       ),
@@ -274,21 +280,16 @@ describe("deriveActiveTier", () => {
   });
 
   it("fills a role no pin names from the deployment tier", () => {
-    // Pinning the three reasoning roles onto terra, on a deployment whose
-    // unpinned execution role already runs luna, is the balanced preset.
-    const models = {
-      lead: "openai:gpt-5.6-terra",
-      frame: "openai:gpt-5.6-terra",
-      verification: "openai:gpt-5.6-terra",
-    };
-    const reasoning = {
-      lead: "medium" as const,
-      frame: "medium" as const,
-      verification: "medium" as const,
-    };
+    // The planning roles are unpinned, so the deployment tier decides whether
+    // the pinned worker roles complete the quality preset.
+    const models = { execution: DEFAULT_MODEL.id, verification: DEFAULT_MODEL.id };
+    const reasoning = { execution: "medium" as const, verification: "medium" as const };
+    expect(
+      deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "quality"),
+    ).toBe("quality");
     expect(
       deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),
-    ).toBe("balanced");
+    ).toBe(CUSTOM_TIER);
   });
 
   it("is custom when a role is missing and the deployment tier is unknown", () => {

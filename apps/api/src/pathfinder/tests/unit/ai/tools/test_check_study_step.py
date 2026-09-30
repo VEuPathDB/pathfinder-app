@@ -10,13 +10,12 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.eda import EdaPermissionEntry, EdaStudyDetail
 
-from pathfinder.ai.tools.standalone import strategy_graph
+from pathfinder.ai.tools.standalone import study_step
 from pathfinder.ai.tools.standalone.strategy_graph import (
     StrategySummaryResponse,
-    StudyStepCheck,
-    check_study_step,
     get_strategy,
 )
+from pathfinder.ai.tools.standalone.study_step import StudyStepCheck, check_study_step
 from pathfinder.domain.eda_parts import EdaComparison
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -138,7 +137,7 @@ def _serve_the_study(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
         return permission_entry(), _mfs_study()
 
-    monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", _detail)
+    monkeypatch.setattr(study_step, "get_study_detail_for_dataset", _detail)
 
 
 def _session(spec: str, *, search_name: str) -> StrategySession:
@@ -317,7 +316,7 @@ class TestADatasetTheAccountCannotReach:
         ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
             raise UnknownEdaDatasetError(dataset_id, [])
 
-        monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", _refuse)
+        monkeypatch.setattr(study_step, "get_study_detail_for_dataset", _refuse)
 
     async def test_the_filter_is_reported_under_its_variable_id(self) -> None:
         check = await _check(_subset_spec(filtered=True))

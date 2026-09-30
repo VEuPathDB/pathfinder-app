@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "plasmodb",
+  "method": "POST",
+  "url": "https://plasmodb.org/plasmo/service/record-types/transcript/searches/GenesByOrthologPattern/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-29",
+  "reads": "bound: GenesByOrthologPattern organism=[Plasmodium falciparum 3D7], included_species=pfal, pber, excluded_species=hsap, profile_pattern=%hsap:N%pber:Y%pfal:Y%"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 2259,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 2259,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 2259,
+   "displayTotalCount": 2259
+  }
+ }
+}

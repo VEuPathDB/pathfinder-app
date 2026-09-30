@@ -75,7 +75,7 @@ async def _turn_that_built_then_raised(
     deps = LeadDeps(
         state=working, intent=None, runtime=_context(state), retrieved_memories=[]
     )
-    deps.state.record_build(BuildOutcome(pushed_step_ids=["step_a"], root_count=132))
+    deps.state.record_build(BuildOutcome(pushed_step_ids=["step_a"]))
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: _raising_model(error))
     capture = _LeadRunCapture()
     writer: Any = Collector()

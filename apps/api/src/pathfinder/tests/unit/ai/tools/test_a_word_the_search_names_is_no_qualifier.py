@@ -68,6 +68,7 @@ def _state() -> AgentToolState:
 
 async def _bind(state: AgentToolState, text: str, syntenic: str | None) -> None:
     params: Proposals = {"organism": [_NEOSPORA], "isSyntenic": syntenic}
+    state.request_messages = [text]
     await set_criterion(
         frame_ctx(state),
         criterion_id="c_to_neospora",
@@ -94,9 +95,9 @@ async def test_orthologs_bind_the_transform_at_the_site_default(
 
     [criterion] = state.operational_spec_draft.criteria
     assert criterion.search_name == _TRANSFORM
-    assert criterion.resolved_params["isSyntenic"] == SinglePickValue(value="no")
-    assert "isSyntenic" in criterion.defaulted_params
-    assert criterion.resolved_params["organism"] == MultiPickValue(values=[_NEOSPORA])
+    assert criterion.param_values["isSyntenic"] == SinglePickValue(value="no")
+    assert "isSyntenic" in criterion.defaulted()
+    assert criterion.param_values["organism"] == MultiPickValue(values=[_NEOSPORA])
     assert criterion.unexpressed_qualifiers == []
 
 
@@ -131,4 +132,4 @@ async def test_syntenic_orthologs_bind_with_synteny_on(
     await _bind(state, f"Carry these to their syntenic orthologs in {_NEOSPORA}", "yes")
 
     [criterion] = state.operational_spec_draft.criteria
-    assert criterion.resolved_params["isSyntenic"] == SinglePickValue(value="yes")
+    assert criterion.param_values["isSyntenic"] == SinglePickValue(value="yes")

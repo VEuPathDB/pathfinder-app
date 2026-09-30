@@ -1,5 +1,5 @@
 """The parameter sheet a params-less ``set_criterion`` pins, and what a bound
-criterion records: the search registry and the values FRAME assumed."""
+criterion records: the search registry and who set each value."""
 
 from __future__ import annotations
 
@@ -14,9 +14,8 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import FilterFieldInfo, ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
-from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
-from pathfinder.domain.strategy.operational_spec import AssumedValue
+from pathfinder.domain.strategy.operational_spec import BoundValue
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     KINASE_PARAMS,
     Proposals,
@@ -297,49 +296,18 @@ _FILTER_FIELD = FilterFieldInfo(
     term="Sample type", display="Sample type", type="string", values=["a", "b"]
 )
 _DERISI = "GenesByMicroarrayDerisi"
-_TROPHOZOITE = DeclaredAssumption(
-    param_name="samples_percentile_generic",
-    value="17-30h",
-    reason="the request says trophozoite and this window covers 17-30 hours",
-)
 _STATED: Proposals = {
     "min_expression_percentile": "90",
     "samples_percentile_generic": "17-30h",
     "ref_samples": "Sample type=a",
     "comp_samples": "Sample type=b",
 }
-_REFUSED_ASSUMPTIONS: list[
-    tuple[Proposals, list[DeclaredAssumption], tuple[str, ...]]
-] = [
-    (
-        dict(_STATED),
-        [
-            DeclaredAssumption(
-                param_name="comp_samples", value="Sample type=b", reason="sensible"
-            )
-        ],
-        ("comp_samples", "contrast"),
-    ),
-    (
-        dict(_STATED),
-        [
-            DeclaredAssumption(
-                param_name="samples_percentile", value="17-30h", reason="typo"
-            )
-        ],
-        ("samples_percentile",),
-    ),
-    (
-        {**_STATED, "samples_percentile_generic": None},
-        [_TROPHOZOITE],
-        ("samples_percentile_generic",),
-    ),
-]
+_REQUEST = "top 10 percent of trophozoite expression in the 17-30h window"
 
 
 def _derisi_params(_context: dict[str, str]) -> list[ParameterInfo]:
     return [
-        param_info("min_expression_percentile"),
+        param_info("min_expression_percentile", default_value="80"),
         param_info(
             "samples_percentile_generic",
             "single-pick-vocabulary",
@@ -350,73 +318,46 @@ def _derisi_params(_context: dict[str, str]) -> list[ParameterInfo]:
     ]
 
 
-class TestADeclaredAssumptionIsRecorded:
-    """A value FRAME chose that the request does not state is recorded on the
-    criterion, not narrated."""
+class TestTheToolRecordsWhoSetEachValue:
+    """The tool decides who set each value: the request, the site default or
+    the model, whose reason is the why it gave."""
 
     @pytest.fixture(autouse=True)
     def _serve(self, monkeypatch: pytest.MonkeyPatch) -> None:
         serve_search(monkeypatch, _derisi_params)
 
-    async def _bind(
+    async def _bound(self, params: Proposals) -> dict[str, BoundValue]:
+        state = AgentToolState(request_messages=[_REQUEST])
+        await bind(state, _DERISI, params, text="trophozoite expression")
+        [criterion] = state.operational_spec_draft.criteria
+        return criterion.resolved_params
+
+    @pytest.mark.asyncio
+    async def test_a_value_the_request_states_is_stated_with_its_words(self) -> None:
+        bound = await self._bound(dict(_STATED))
+
+        assert (
+            bound["samples_percentile_generic"].source,
+            bound["samples_percentile_generic"].basis,
+        ) == ("stated", "17-30h")
+
+    @pytest.mark.asyncio
+    async def test_a_value_the_request_does_not_state_is_chosen_with_the_why(
         self,
-        state: AgentToolState,
-        params: Proposals,
-        assumed: list[DeclaredAssumption],
     ) -> None:
-        await bind(
-            state,
-            _DERISI,
-            params,
-            text="top 10 percent of trophozoite expression",
-            assumed=assumed,
+        bound = await self._bound(dict(_STATED))
+
+        assert (
+            bound["min_expression_percentile"].source,
+            bound["min_expression_percentile"].basis,
+        ) == ("chosen", "sets min_expression_percentile")
+
+    @pytest.mark.asyncio
+    async def test_an_unstated_value_at_the_initial_display_value_is_default(
+        self,
+    ) -> None:
+        bound = await self._bound({**_STATED, "min_expression_percentile": "80"})
+
+        assert bound["min_expression_percentile"] == BoundValue(
+            value=bound["min_expression_percentile"].value, source="default"
         )
-
-    @pytest.mark.asyncio
-    async def test_a_declared_assumption_is_recorded_on_the_criterion(self) -> None:
-        state = AgentToolState()
-
-        await self._bind(state, dict(_STATED), [_TROPHOZOITE])
-
-        [criterion] = state.operational_spec_draft.criteria
-        assert criterion.assumptions == [
-            AssumedValue(
-                param_name=_TROPHOZOITE.param_name,
-                value=_TROPHOZOITE.value,
-                reason=_TROPHOZOITE.reason,
-            )
-        ]
-
-    def test_the_declared_shape_carries_no_fold_record(self) -> None:
-        """``carried_from`` is the fold's, so the sheet the model fills has none."""
-        declared = set(DeclaredAssumption.model_json_schema()["properties"])
-
-        assert declared == {"paramName", "value", "reason"}
-        assert "carriedFrom" in AssumedValue.model_json_schema()["properties"]
-
-    @pytest.mark.asyncio
-    async def test_a_criterion_without_assumptions_records_none(self) -> None:
-        state = AgentToolState()
-
-        await self._bind(state, dict(_STATED), [])
-
-        [criterion] = state.operational_spec_draft.criteria
-        assert criterion.assumptions == []
-
-    @pytest.mark.parametrize(("params", "assumed", "fragments"), _REFUSED_ASSUMPTIONS)
-    @pytest.mark.asyncio
-    async def test_a_refused_assumption_names_the_parameter(
-        self,
-        params: Proposals,
-        assumed: list[DeclaredAssumption],
-        fragments: tuple[str, ...],
-    ) -> None:
-        state = AgentToolState()
-
-        with pytest.raises(ModelRetry) as info:
-            await self._bind(state, params, assumed)
-
-        message = str(info.value)
-        for fragment in fragments:
-            assert fragment in message
-        assert state.operational_spec_draft.criteria == []

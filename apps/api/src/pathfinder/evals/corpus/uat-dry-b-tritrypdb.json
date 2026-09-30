@@ -1,0 +1,87 @@
+{
+  "name": "uat-dry-b-tritrypdb",
+  "turns": [
+    "Which Trypanosoma brucei TREU927 protein kinases are more highly expressed in the bloodstream form than in the procyclic form?",
+    "You say a 2-fold cutoff. Is that the only threshold on the expression step, or is there also an expression floor? Please raise the fold change to 4-fold and tell me how the count changes.",
+    "What does a floor of 734.0197714535435 mean? That number means nothing to me. And what was the expression dataset: who generated it, which samples, and is it the one I should trust for slender versus procyclic?",
+    "OK, culture-derived is fine for now. Next, keep only the kinases that have a predicted transmembrane domain.",
+    "Zero is not useful. Put the fold change back to 2-fold, keep the transmembrane filter, and list the kinases that remain.",
+    "Is RDK1 really a transmembrane kinase? How many transmembrane domains does each of the three have, and where did that prediction come from?"
+  ],
+  "siteId": "tritrypdb",
+  "assistantId": "pathfinder",
+  "rationale": "A bound vocabulary value is described by the label the site gives it: the expression floor is \"10 reads\", never its raw term; no reply prints a search's internal name; the final strategy keeps the three transmembrane kinases at 2-fold.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "((GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC INTERSECT GenesByGoTerm) INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 5,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC": {
+        "fold_change": "2"
+      },
+      "GenesByGoTerm": {
+        "go_typeahead": "GO:0004672"
+      },
+      "GenesByTransmembraneDomains": {
+        "min_tm": "1"
+      }
+    },
+    "replyMentions": [
+      "Tb927.11.14070",
+      "Tb927.2.2720",
+      "Tb927.5.3320"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "1": [
+        "10 reads"
+      ],
+      "2": [
+        "10 reads"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "734.0197714535435"
+      ],
+      "3": [
+        "GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC",
+        "GenesByGoTerm"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 3,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "tritrypdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u4",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

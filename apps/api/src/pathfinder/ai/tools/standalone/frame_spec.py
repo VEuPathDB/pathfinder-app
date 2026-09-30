@@ -28,19 +28,21 @@ from pathfinder.ai.tools.standalone._catalog_models import (
     register_search,
     search_display_name,
 )
-from pathfinder.ai.tools.standalone._frame_count import record_and_count_criterion
 from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_bound_analysis,
     refuse_a_search_the_criterion_cannot_use,
     refuse_a_waiting_criterion,
 )
+from pathfinder.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
+from pathfinder.ai.tools.standalone._frame_measure import (
+    display_names,
+    record_bound_criterion,
+)
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    DeclaredAssumption,
     ParamProposals,
     phyletic_overrides,
     radio_overrides,
-    refuse_bad_assumptions,
     refuse_undecided,
     refuse_unknown_names,
     refuse_unmatched_values,
@@ -65,12 +67,15 @@ from pathfinder.ai.tools.standalone._frame_sheet import (
     open_parameter_sheet,
     reconcile_dependents,
 )
+from pathfinder.ai.tools.standalone._frame_sources import (
+    chosen_reason,
+    open_slots,
+)
+from pathfinder.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
     Criterion,
     CriterionRole,
-    OpenSlot,
 )
 
 
@@ -144,7 +149,6 @@ async def set_criterion(
     search_name: str = "",
     role: CriterionRole = "filter",
     params: ParamProposals | None = None,
-    assumed: list[DeclaredAssumption] | None = None,
     saved_strategy: str = "",
     why: SearchChoice | None = None,
 ) -> ToolReturn[SetCriterionResult]:
@@ -185,23 +189,35 @@ async def set_criterion(
     criterion, or the value is beyond a shortlisted vocabulary (use
     ``get_parameter_options(query=...)``).
 
-    ``assumed`` records every value you chose that the criterion text does not
-    state and that is not the sheet's default, one entry per parameter with the
-    value and the reason. Each becomes a constraint the user reads and can
-    override. A half of a reference and comparison pair is never assumed.
+    A number the request writes on the other scale than the parameter's
+    display name names (a fold for a log2 parameter, a log2 value for a fold
+    one) binds converted to the parameter's scale, and ``corrections`` says so.
+
+    The tool records who set each value: the request when its words state it,
+    the site when it is the sheet's default, and you otherwise, with the reason
+    in ``why``. A value you chose becomes a constraint the user reads and can
+    override.
+
+    ``measurements`` names, one clause each, the label the vocabulary gives
+    each pick and, once the binding counts, the count of another reading of
+    each value the site or you set: a number at its loosest bound, a quoted
+    word in its wildcard form, a phrase in the site search, a species group in
+    at least one member. A pick the vocabulary gives no label comes back as a
+    retry naming the labels it holds.
 
     ``why`` goes on the call with ``params``: why this search and not the others
     the catalog answered. Its basis is checked against the read and the values.
 
     ``result_count`` is how many records the binding you just made matches,
-    and is null for a search that runs on another step.
+    and is null for a search that runs on another step or a count that did
+    not arrive in time. A binding the site refuses to count is not recorded
+    and comes back as a retry naming the site's status.
 
     ``alternatives`` is present only when ``result_count`` is 0: one entry per
     vocabulary parameter of this search, with the values the binding took and
     the values it did not. A vocabulary larger than its listing bound reports
     its size alone; read that one with ``get_parameter_options``. Any value you
-    take from it that the criterion text does not state is an ``assumed`` entry
-    like every other.
+    take from it that the request does not state is recorded as your choice.
 
     ``redecide`` names the dependent parameters whose vocabulary changed once
     the parents were bound; the pin carries that fresh vocabulary and nothing is
@@ -263,21 +279,24 @@ async def set_criterion(
         )
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     definition = await _search_definition(search)
-    await refuse_a_search_the_criterion_cannot_use(
-        ctx, record_type, definition, stated, params
-    )
-    qualifiers = await qualifiers_no_search_states(
-        ctx, record_type, definition, stated, params
-    )
-    await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
     infos = await fetch_at({})
-    call = CriterionCall(
-        criterion_id=criterion_id, search_name=search_name, text=text, params=params
+    call, fixed = proposed_call(
+        CriterionCall(
+            criterion_id=criterion_id, search_name=search_name, text=text, params=params
+        ),
+        infos,
+        state.request_messages,
     )
+    await refuse_a_search_the_criterion_cannot_use(
+        ctx, record_type, definition, stated, call.params
+    )
+    qualifiers = await qualifiers_no_search_states(
+        ctx, record_type, definition, stated, call.params
+    )
+    await ensure_search_registered(state, ctx.deps.site_id, record_type, search_name)
     refuse_unknown_names(call, infos)
     refuse_undecided(call, infos)
-    refuse_bad_assumptions(call, assumed or [], infos)
     phyletic = phyletic_overrides(definition, call, infos)
     radio = radio_overrides(definition, call, infos)
     await refuse_unmatched_values(
@@ -288,10 +307,11 @@ async def set_criterion(
         PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset(),
         state,
     )
+    refuse_a_pick_no_lookup_read(state, definition, call)
     # A null proposal states no value, so it leaves the param to resolution.
     # The derived pattern replaces the two lists it was derived from.
     overrides = {
-        **{name: value for name, value in params.items() if value is not None},
+        **{name: value for name, value in call.params.items() if value is not None},
         **(phyletic or {}),
         **radio,
     }
@@ -329,7 +349,7 @@ async def set_criterion(
         )
     # A half switched off holds a value the request never stated, so it is
     # disclosed like a default.
-    defaulted = sorted(set(resolved.defaulted()) | radio.keys())
+    site_supplied = set(resolved.defaulted()) | radio.keys()
     chosen = await rationale_for(
         ctx,
         call,
@@ -337,7 +357,7 @@ async def set_criterion(
         infos,
         resolved.params,
         why,
-        defaulted=defaulted,
+        defaulted=sorted(site_supplied),
         transform=bool(definition.allowed_primary_input_record_class_names),
     )
     canonical = resolved
@@ -348,17 +368,18 @@ async def set_criterion(
         # WDK renders the spec it would run, so it reports which values are its
         # own. That report is about the search being built and outranks the
         # local reading of the request.
-        defaulted = sorted(set(defaulted) | set(substituted))
-    open_params = [
-        OpenSlot(
-            criterion_id=criterion_id,
-            param_name=slot.param_name,
-            question=slot.question,
-            options=slot.options,
-        )
-        for slot in resolved.open_slots
-    ]
-    count, alternatives = await record_and_count_criterion(
+        site_supplied |= set(substituted)
+    bound, labels = await sourced_values(
+        state,
+        call,
+        resolved.params,
+        infos=infos,
+        fetch_at=fetch_at,
+        site_supplied=site_supplied,
+        reason=chosen_reason(why, chosen),
+    )
+    open_params = open_slots(criterion_id, resolved.open_slots, infos)
+    count, alternatives, measured = await record_bound_criterion(
         ctx,
         Criterion(
             id=criterion_id,
@@ -367,19 +388,22 @@ async def set_criterion(
             search_display_name=search_display_name(definition),
             role=role,
             organism_param=next((i.name for i in infos if i.organism_param), None),
-            resolved_params=resolved.params,
-            defaulted_params=defaulted,
+            resolved_params=bound,
+            param_display_names=display_names(bound, open_params, infos),
+            hidden_params=sorted(
+                i.name
+                for i in infos
+                if i.name in bound and not i.is_visible and not i.vocabulary()
+            ),
+            measurements=labels,
             open_params=open_params,
-            assumptions=[
-                AssumedValue(param_name=e.param_name, value=e.value, reason=e.reason)
-                for e in assumed or []
-            ],
             rationale=chosen.rationale,
             unexpressed_qualifiers=qualifiers.unexpressed,
         ),
         record_type=record_type,
         definition=definition,
-        resolved=canonical,
+        canonical=canonical,
+        fetch_at=fetch_at,
         infos=infos,
     )
     return criterion_return(
@@ -390,13 +414,16 @@ async def set_criterion(
             resolved_params={
                 name: to_wire(value) for name, value in resolved.params.items()
             },
-            defaulted_params=defaulted,
+            defaulted_params=sorted(
+                n for n, b in bound.items() if b.source == "default"
+            ),
             open_slots=open_params,
             result_count=count,
             alternatives=alternatives,
             rationale=chosen.rationale,
-            corrections=list(chosen.corrections),
+            corrections=[*fixed, *chosen.corrections],
             unread_searches=qualifiers.unread,
+            measurements=measured,
         ),
         record_type,
         definition,

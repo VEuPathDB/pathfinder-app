@@ -93,25 +93,6 @@ def alt_organism(
     return chosen[0]
 
 
-def _count_in(label: str) -> int:
-    """The count a label ends with, as ``<term> : <name> : <count>``, else 0."""
-    tail = label.rsplit(":", maxsplit=1)[-1].strip()
-    return int(tail) if tail.isdigit() else 0
-
-
-def richest_value(instructions: str, criterion_id: str, name: str) -> str:
-    """The entry of one parameter of the criterion's sheet whose label counts
-    the most records, else its first entry."""
-    entry = next(
-        (e for e in sheet_entries(instructions, criterion_id) if e.name == name), None
-    )
-    if entry is None or not entry.vocabulary:
-        msg = f"The sheet of {criterion_id} lists no value for {name}"
-        raise LookupError(msg)
-    richest = max(entry.vocabulary, key=lambda option: _count_in(option.display))
-    return richest.value
-
-
 def outside_value(
     instructions: str, criterion_id: str, name: str, choices: tuple[str, ...]
 ) -> str:

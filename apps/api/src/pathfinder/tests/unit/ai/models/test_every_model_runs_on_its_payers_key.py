@@ -25,6 +25,7 @@ from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
 from pathfinder.assistants.site_help.agent import build_site_help_agent
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import get_smallest_model
 from pathfinder.platform.model_keys import attach_keyring, one_generation
 from pathfinder.tests._support.provider_wire import (
     ANSWER_TEXT,
@@ -35,6 +36,9 @@ from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _USER_KEY = "sk-user-sentinel-0123456789ABCD"
 _DEPLOYMENT_KEY = "sk-deployment-sentinel-9876543210"
+# The usage the recorded provider wire answers every generation with.
+_WIRE_INPUT_TOKENS = 12
+_WIRE_OUTPUT_TOKENS = 5
 _KEYRING = ProviderKeyring(active={"openai": SecretStr(_USER_KEY)})
 
 
@@ -122,8 +126,13 @@ async def test_the_title_runs_on_the_researchers_key() -> None:
 
     assert title == ANSWER_TEXT.rstrip(".")
     assert [h["authorization"] for h in wire.sent_headers()] == [f"Bearer {_USER_KEY}"]
+    title_model = get_smallest_model("openai")
+    cost = (
+        Decimal(str(title_model.input_price)) * _WIRE_INPUT_TOKENS
+        + Decimal(str(title_model.output_price)) * _WIRE_OUTPUT_TOKENS
+    ) / 1_000_000
     assert [(s.tokens, s.cost_usd, s.paid_by) for s in meter.spent] == [
-        (17, Decimal("0.0000084"), PaidBy.USER)
+        (_WIRE_INPUT_TOKENS + _WIRE_OUTPUT_TOKENS, cost, PaidBy.USER)
     ]
 
 

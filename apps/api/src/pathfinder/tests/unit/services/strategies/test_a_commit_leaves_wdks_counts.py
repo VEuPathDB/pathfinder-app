@@ -8,11 +8,14 @@ numbers.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 from uuid import uuid4
 
 import pytest
+from assistant_core.platform.db import async_session_factory
+from procrastinate.testing import InMemoryConnector
+from pydantic import JsonValue
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, flatten_tree
 from veupathdb.wdk import (
@@ -27,7 +30,10 @@ from veupathdb.wdk import (
 from veupathdb_mcp.catalog import ValidatedParams
 
 from pathfinder.ai.tools.standalone.stream_parts import build_graph_snapshot_payload
-from pathfinder.domain.strategy.operations import UpdateStepParamsOp
+from pathfinder.domain.strategy.operations import (
+    UpdateStepMetaOp,
+    UpdateStepParamsOp,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import (
     commit,
@@ -38,6 +44,7 @@ from pathfinder.services.strategies import (
 )
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
 from pathfinder.services.strategies.sync import (
     SyncResult,
     build_step_tree_from_graph,
@@ -296,3 +303,79 @@ class TestAFailedReadLeavesNoNumberOnTheEditedBranch:
             _INNER: None,
             _OUTER: None,
         }
+
+
+class TestACommitThatMovesTheRootDefersTheRefresh:
+    """The set's WDK read runs in a job, so the edit answers when WDK has it."""
+
+    @pytest.mark.asyncio
+    async def test_one_job_under_the_refresh_lock_not_the_turns(
+        self, wdk: _StubAPI, in_memory_jobs: InMemoryConnector
+    ) -> None:
+        """The job never takes the thread's lock, so a turn does not wait on it."""
+        deps = _stored_thread()
+
+        await apply_and_commit(deps=deps, op=_rebind_text())
+
+        thread = str(deps.conversation_id)
+        refresh_lock = f"gene-set-refresh:{thread}"
+        assert _refresh_jobs(in_memory_jobs) == [
+            (refresh_lock, refresh_lock, thread, _SITE)
+        ]
+
+    @pytest.mark.asyncio
+    async def test_a_rename_defers_nothing(
+        self, wdk: _StubAPI, in_memory_jobs: InMemoryConnector
+    ) -> None:
+        deps = _stored_thread()
+
+        await apply_and_commit(
+            deps=deps, op=UpdateStepMetaOp(step_id=_TEXT, display_name="Proteases")
+        )
+
+        assert _refresh_jobs(in_memory_jobs) == []
+
+    @pytest.mark.asyncio
+    async def test_two_commits_queue_one_job(
+        self, wdk: _StubAPI, in_memory_jobs: InMemoryConnector
+    ) -> None:
+        deps = _stored_thread()
+
+        await apply_and_commit(deps=deps, op=_rebind_text())
+        await apply_and_commit(
+            deps=deps,
+            op=UpdateStepParamsOp(
+                step_id=_TEXT,
+                parameters={"organism": MultiPickValue(values=["AaegL5"])},
+            ),
+        )
+
+        assert len(_refresh_jobs(in_memory_jobs)) == 1
+
+    @pytest.mark.asyncio
+    async def test_a_commit_that_stores_no_thread_defers_nothing(
+        self, wdk: _StubAPI, in_memory_jobs: InMemoryConnector
+    ) -> None:
+        await apply_and_commit(deps=_seeded_session(), op=_rebind_text())
+
+        assert _refresh_jobs(in_memory_jobs) == []
+
+
+def _stored_thread() -> StrategyMutationContext:
+    return replace(_seeded_session(), db_session_factory=async_session_factory)
+
+
+def _refresh_jobs(
+    connector: InMemoryConnector,
+) -> list[tuple[str | None, str | None, JsonValue, JsonValue]]:
+    """Each queued refresh as its lock, its queueing lock, thread and site."""
+    return [
+        (
+            job["lock"],
+            job["queueing_lock"],
+            job["args"]["payload"]["conversation_id"],
+            job["args"]["payload"]["site_id"],
+        )
+        for job in connector.jobs.values()
+        if job["task_name"] == GENE_SET_REFRESH_TASK
+    ]

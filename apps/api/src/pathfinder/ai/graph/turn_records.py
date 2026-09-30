@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Literal
 from uuid import UUID
 
@@ -11,10 +10,13 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
-from pathfinder.domain.evidence import ControlTestEvidence
-from pathfinder.domain.strategy.constraints import Constraint, OpenQuestion
+from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
+from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.services.experiment.variant_comparison import VariantComparison
 
 # What a written reference carries before the identifier itself.
 _REFERENCE_PREFIXES = (
@@ -37,28 +39,40 @@ def normalized_reference(value: str) -> str:
     return text.rstrip("/")
 
 
-_WORD = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+")
-
-
 class NamedStep(CamelModel):
-    """A step as a reply names it: its title, its search and its kind."""
+    """A step as a reply names it: its title and its search."""
 
     model_config = ConfigDict(frozen=True)
 
     title: str
     search_name: str | None = None
-    kind_words: tuple[str, ...] = ()
-
-    def words(self) -> frozenset[str]:
-        """Every lower-case word of the title, the search name and the kind."""
-        text = " ".join([self.title, self.search_name or "", *self.kind_words])
-        return frozenset(word.casefold() for word in _WORD.findall(text))
 
     def described(self) -> str:
         """The step as a correction names it: the title, then the search."""
         if self.search_name is None:
             return f"'{self.title}'"
         return f"'{self.title}' ({self.search_name})"
+
+
+class ReadRecord(CamelModel):
+    """A record a read of this turn returned: its id, its page and what it states."""
+
+    model_config = ConfigDict(frozen=True)
+
+    record_id: str
+    url: str
+    product: str = ""
+    organism: str = ""
+    gene_name: str = ""
+    chromosome: str = ""
+    # The ortholog ids and organisms of the one organism the read asked for.
+    # The first rows of the ortholog table are no fact a researcher checks.
+    asked_orthologs: list[str] = Field(default_factory=list)
+
+    def words(self) -> list[str]:
+        """The record's other words, its chromosome named as one."""
+        chromosome = f"chromosome {self.chromosome}" if self.chromosome else ""
+        return [t for t in (self.gene_name, chromosome, *self.asked_orthologs) if t]
 
 
 class ZeroResultStep(CamelModel):
@@ -91,6 +105,25 @@ class CreatedControlSet(CamelModel):
     name: str
 
 
+class RefusedCall(CamelModel):
+    """A call a tool refused, by the digest of its arguments."""
+
+    tool_name: str
+    arguments: str
+    refusal: str
+    # The same call came back once and failed without running.
+    sent_again: bool = False
+
+
+class ControlTestTarget(CamelModel):
+    """One saved control set on one built step."""
+
+    model_config = ConfigDict(frozen=True)
+
+    wdk_step_id: int
+    control_set_id: str
+
+
 class AnsweredQuestions(CamelModel):
     """The questions one answer closed, and the words of that answer."""
 
@@ -98,6 +131,15 @@ class AnsweredQuestions(CamelModel):
     answer: str
     # A card answers questions a pass asked under this same message.
     on_card: bool = False
+
+
+class CountsAtArrival(CamelModel):
+    """The strategy as a message found it: its root and each step's count."""
+
+    model_config = ConfigDict(frozen=True)
+
+    root_id: str = ""
+    counts: dict[str, int] = Field(default_factory=dict)
 
 
 class TurnMarkers(CamelModel):
@@ -124,12 +166,37 @@ class TurnMarkers(CamelModel):
     verification_stopped: bool = False
     # A reply that did not match the turn's record is corrected once.
     contract_refused: bool = False
+    # The text parts, by run and part, whose restated facts were corrected. Each
+    # part is held to the facts once, after the message's one correction too.
+    facts_corrected: list[str] = Field(default_factory=list)
     # The EDA datasets this turn opened an analysis on.
     eda_datasets_opened: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
     eda_export: EdaExport | None = None
     # Every control result this turn read, in the order each one answered.
     control_tests: list[ControlTestRun] = Field(default_factory=list)
+    # Every column a check of this turn read, the latest read of each.
+    column_fits: list[ColumnFit] = Field(default_factory=list)
+    # The study-step checks this turn computed, the latest read of each step.
+    study_checks: dict[str, list[ConstraintCheck]] = Field(default_factory=dict)
+    # The strategy as the message found it. Every count before an edit of
+    # this turn is read from it.
+    at_arrival: CountsAtArrival | None = None
+    # The genes whose record each check of this turn read, by check id.
+    records_read: dict[str, list[str]] = Field(default_factory=dict)
+    # The genes a sample of this turn returned, whose records a check may read.
+    sampled_gene_ids: list[str] = Field(default_factory=list)
+    # The gene ids each listing or sample of this turn returned, by WDK step,
+    # once each and in the order they came.
+    listings: dict[int, list[str]] = Field(default_factory=dict)
+    # The records this turn's reads returned, once each by id.
+    records_retrieved: list[ReadRecord] = Field(default_factory=list)
+    # The genes the message names that the classification gate resolved.
+    resolved_genes: list[ReadRecord] = Field(default_factory=list)
+    # The variant labels a comparison of this turn returned, in its order.
+    compared_labels: list[str] = Field(default_factory=list)
+    # Every count a comparison of this turn returned.
+    compared_counts: list[int] = Field(default_factory=list)
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -145,16 +212,24 @@ class TurnMarkers(CamelModel):
     added_searches: list[AddedSearch] = Field(default_factory=list)
     # The requirements this message added to the thread's record.
     requirements_added: list[Constraint] = Field(default_factory=list)
+    # The requirements a framing pass of this message found no search states.
+    unstated_requirements: list[str] = Field(default_factory=list)
     # The steps this turn deleted, as they stood before the delete.
     deleted_steps: list[NamedStep] = Field(default_factory=list)
-    # The step counts the site held when the message arrived. A reply may
-    # state one of them after a step leaves.
-    counts_at_arrival: list[int] = Field(default_factory=list)
+    # Why the edit this turn dispatched could not be bound, once no pass may
+    # retry it. The facts show it.
+    unbound_edit: str = ""
+    # The steps each delete card listed, by the card's tool call id.
+    delete_cards: dict[str, list[str]] = Field(default_factory=dict)
     # The questions the latest answer under this message closed.
     answered: AnsweredQuestions | None = None
     # The researcher answered a consult, or accepted a proposal, under this message.
     consulted: bool = False
     accepted_proposal: bool = False
+    # The calls refused since the last call that ran; a call that runs clears them.
+    refused_calls: list[RefusedCall] = Field(default_factory=list)
+    # The control tests asked again under this message, and answered from the first.
+    control_tests_asked_again: list[ControlTestTarget] = Field(default_factory=list)
 
     @property
     def changed_strategy(self) -> bool:
@@ -202,6 +277,92 @@ class TurnMarkers(CamelModel):
         """Record each added step once, keyed by its step id."""
         held = {search.step_id for search in self.added_searches}
         self.added_searches.extend(s for s in searches if s.step_id not in held)
+
+    def record_column_fits(self, fits: Iterable[ColumnFit]) -> None:
+        """Keep one fit per step and column, the latest read."""
+        read = {(fit.wdk_step_id, fit.column): fit for fit in self.column_fits}
+        read.update({(fit.wdk_step_id, fit.column): fit for fit in fits})
+        self.column_fits = list(read.values())
+
+    def record_arrival(
+        self, root_id: str | None, counts: Mapping[str, int | None]
+    ) -> None:
+        """Keep the strategy as the message found it, once per message."""
+        if self.at_arrival is not None:
+            return
+        self.at_arrival = CountsAtArrival(
+            root_id=root_id or "",
+            counts={step: n for step, n in counts.items() if n is not None},
+        )
+
+    def _held_at_arrival(self, step_id: str) -> int | None:
+        """The count the message found for the step, or for the step an export
+        of this turn put it in the place of. A step the turn created has none."""
+        if not self.changed_strategy or self.at_arrival is None:
+            return None
+        export = self.eda_export
+        replaced = (
+            export.replaced_step_id
+            if export is not None and export.step_id == step_id
+            else None
+        )
+        return self.at_arrival.counts.get(replaced or step_id)
+
+    def count_before(self, step_id: str, now: int | None) -> int | None:
+        """The count the step held when the message arrived, when this turn's
+        writes moved it."""
+        held = self._held_at_arrival(step_id)
+        return None if held == now else held
+
+    def root_count_before(self) -> int | None:
+        """The count of the root the message found, once this turn wrote."""
+        if self.at_arrival is None:
+            return None
+        return self._held_at_arrival(self.at_arrival.root_id)
+
+    def record_listed_genes(self, wdk_step_id: int, gene_ids: Iterable[str]) -> None:
+        """Keep each gene id a listing of the step returned, once."""
+        held = self.listings.setdefault(wdk_step_id, [])
+        held.extend(dict.fromkeys(g for g in gene_ids if g not in held))
+
+    def listed_from(self, gene_id: str) -> int | None:
+        """The first WDK step whose listing returned the gene id, or None."""
+        return next(
+            (step for step, genes in self.listings.items() if gene_id in genes), None
+        )
+
+    def record_read(self, record: ReadRecord) -> None:
+        """Record one record a read returned, once, and its page as a source."""
+        self.record_retrieved_source(record.url)
+        held = {read.record_id for read in self.records_retrieved}
+        if record.record_id not in held:
+            self.records_retrieved.append(record)
+
+    def record_resolved_genes(self, records: Iterable[ReadRecord]) -> None:
+        """Record each gene the gate resolved, once."""
+        held = {gene.record_id for gene in self.resolved_genes}
+        self.resolved_genes.extend(r for r in records if r.record_id not in held)
+
+    def record_comparison(self, comparison: VariantComparison) -> None:
+        """Keep each label and every count a comparison returned."""
+        self.compared_labels.extend(v.label for v in comparison.variants)
+        self.compared_counts.extend(sorted(comparison.counts()))
+
+    def record_sampled_genes(self, gene_ids: Iterable[str]) -> None:
+        """Record each gene a sample returned, once."""
+        self.sampled_gene_ids.extend(
+            dict.fromkeys(g for g in gene_ids if g not in self.sampled_gene_ids)
+        )
+
+    def control_gene_ids(self) -> frozenset[str]:
+        """Every control id a control result of this turn filed."""
+        return frozenset(
+            gene_id
+            for run in self.control_tests
+            for filed in (run.evidence.positive, run.evidence.negative)
+            if filed is not None
+            for gene_id in (*filed.returned, *filed.not_returned)
+        )
 
     def record_control_tests(self, runs: Iterable[ControlTestRun]) -> None:
         """Add each control test once, keyed by its tool call."""

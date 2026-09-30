@@ -7,14 +7,12 @@ from typing import Literal
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field
 from veupathdb.domain.parameters import (
-    MultiPickValue,
-    ParamValue,
-    SinglePickValue,
     to_wire,
 )
 from veupathdb_mcp.catalog import contrast_role_of, is_direction_param
 
 from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.domain.caveats import Caveat
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.constraints import (
     Constraint,
@@ -29,6 +27,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OpenSlot,
     OperationalSpec,
     StructureNode,
+    plain_value,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.staleness import StaleBuild
@@ -74,14 +73,14 @@ def _contrast_for(crit: Criterion) -> ContrastSummary | None:
     comparator: str | None = None
     reference: str | None = None
     direction: str | None = None
-    for name, value in crit.resolved_params.items():
+    for name, value in crit.param_values.items():
         role = contrast_role_of(name)
         if role == "comparison":
-            comparator = _plain_value(value)
+            comparator = plain_value(value)
         elif role == "reference":
-            reference = _plain_value(value)
+            reference = plain_value(value)
         elif is_direction_param(name):
-            direction = _plain_value(value)
+            direction = plain_value(value)
     if comparator is None and reference is None:
         return None
     return ContrastSummary(
@@ -90,15 +89,6 @@ def _contrast_for(crit: Criterion) -> ContrastSummary | None:
         reference=reference,
         direction=direction,
     )
-
-
-def _plain_value(value: ParamValue) -> str:
-    """Return a vocabulary term in readable form instead of its JSON wire form."""
-    if isinstance(value, MultiPickValue):
-        return ", ".join(value.values)
-    if isinstance(value, SinglePickValue):
-        return value.value
-    return to_wire(value)
 
 
 def render_structure(node: StructureNode, spec: OperationalSpec) -> str:
@@ -233,13 +223,12 @@ class BuildSection(CamelModel):
     def wdk_strategy_id(self) -> int | None:
         return self.outcome.wdk_strategy_id if self.outcome else None
 
-    @computed
-    def wdk_url(self) -> str | None:
-        return self.outcome.wdk_url if self.outcome else None
-
 
 class VerificationSection(CamelModel):
     digest: VerificationDigest | None = None
+    # The digest's caveats, then each value of the spec that narrows its step.
+    # Empty while no check has run.
+    caveats: list[Caveat] = Field(default_factory=list)
 
     @computed
     def complete(self) -> bool:
@@ -257,9 +246,9 @@ class VerificationSection(CamelModel):
 
 
 def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstraint]:
-    """The criteria's assumed values, as constraints the user can override.
+    """The criteria's chosen values, as constraints the user can override.
 
-    An assumption is what the model chose where the request said nothing, so it
+    A chosen value is what the model set where the request said nothing, so it
     is grounded by construction and never blocks.
     """
     if spec is None:
@@ -268,31 +257,32 @@ def assumption_constraints(spec: OperationalSpec | None) -> list[GroundedConstra
         GroundedConstraint(
             constraint=Constraint(
                 kind=ConstraintKind.OTHER,
-                requested_value=assumed.value,
-                label=assumed.param_name,
+                requested_value=to_wire(chosen.value),
+                label=name,
                 source=ConstraintSource.ASSUMED,
                 hard=False,
             ),
             status=ConstraintStatus.GROUNDED,
-            realized_value=assumed.value,
-            note=assumed.reason,
+            realized_value=to_wire(chosen.value),
+            note=chosen.basis,
         )
         for criterion in spec.criteria
-        for assumed in criterion.assumptions
+        for name, chosen in criterion.set_by("chosen").items()
     ]
 
 
 def unexpressed_constraints(spec: OperationalSpec | None) -> list[GroundedConstraint]:
     """The texts the spec states that no search its pass read can state.
 
-    Each is the researcher's own word, so it stands unmet and blocks until a
-    search states it.
+    Each is the researcher's own word, or the requirement a drop holds open, so
+    it stands unmet and blocks until a search states it.
     """
     if spec is None:
         return []
     return [
         GroundedConstraint(
-            constraint=Constraint(
+            constraint=text.requirement
+            or Constraint(
                 kind=ConstraintKind.OTHER,
                 requested_value=text.word,
                 label=text.stated_in[:_UNEXPRESSED_LABEL],

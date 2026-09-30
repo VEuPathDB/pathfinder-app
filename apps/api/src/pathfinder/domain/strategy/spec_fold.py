@@ -5,15 +5,21 @@ structure."""
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Mapping, Sequence
 
 from pydantic import ConfigDict
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import CombineOp, extract_output_organisms
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    message_states,
+)
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
+    BoundValue,
     Criterion,
     OperationalSpec,
     SpecStructure,
@@ -26,7 +32,7 @@ from pathfinder.domain.strategy.organism_scope import (
     universe_key,
 )
 from pathfinder.domain.strategy.orthology import projected_steps
-from pathfinder.domain.strategy.words import words_of
+from pathfinder.domain.strategy.words import stated_run_of, words_of
 
 
 class FoldedSpec(CamelModel):
@@ -44,7 +50,7 @@ def stated_wire_values(spec: OperationalSpec | None) -> dict[str, dict[str, str]
         return {}
     return {
         criterion.id: {
-            name: to_wire(value) for name, value in criterion.resolved_params.items()
+            name: to_wire(value) for name, value in criterion.param_values.items()
         }
         for criterion in spec.criteria
     }
@@ -98,7 +104,11 @@ def fold_option_criteria(
 
 def carried_values(carrier: Criterion) -> dict[str, str]:
     """The wire values a fold has already carried onto this criterion."""
-    return {a.param_name: a.value for a in carrier.assumptions if a.carried_from}
+    return {
+        name: to_wire(bound.value)
+        for name, bound in carrier.resolved_params.items()
+        if bound.carried_from
+    }
 
 
 def _carry_the_option(
@@ -106,47 +116,75 @@ def _carry_the_option(
 ) -> bool:
     """Give the carrier the values the option states, and report that it can.
 
-    A value the option defaulted or the carrier's own text states does not
-    move, and a value contradicting one the fold carried moves nothing at all.
+    A value the option defaulted, one the carrier holds on the wire already,
+    or one the carrier's own text states does not move, and a value
+    contradicting one the fold carried moves nothing at all.
     A value the carrier only holds because the strategy answers to it is the
-    strategy's, and the option is what the request says about it.
+    strategy's, and the option is what the request says about it. A carried
+    value keeps the source the option bound it with.
     """
     carried = carried_values(carrier)
-    assumed = {a.param_name for a in carrier.assumptions if not a.carried_from}
-    defaulted = set(option.defaulted_params)
-    stated: dict[str, ParamValue] = {}
-    for name, value in option.resolved_params.items():
-        if name in defaulted:
+    stated: dict[str, BoundValue] = {}
+    for name, bound in option.resolved_params.items():
+        if bound.source == "default":
             continue
         if name in carried:
-            if carried[name] != to_wire(value):
+            if carried[name] != to_wire(bound.value):
                 return False
             continue
-        held = name in carrier.resolved_params and name not in carrier.defaulted_params
-        if held and name not in assumed:
-            current = to_wire(carrier.resolved_params[name])
-            if current == to_wire(value) or answered.get(name) != current:
+        held = carrier.resolved_params.get(name)
+        if held is not None and to_wire(held.value) == to_wire(bound.value):
+            continue
+        if held is not None and held.source not in ("default", "chosen"):
+            if answered.get(name) != to_wire(held.value):
                 continue
-        stated[name] = value
+        stated[name] = bound.model_copy(update={"carried_from": option.id})
     carrier.resolved_params.update(stated)
-    carrier.defaulted_params = sorted(set(carrier.defaulted_params) - set(stated))
     if stated:
         carrier.result_count = None
-    # The option replaces the assumption it overrides, so one value has one
-    # reason on the ledger.
-    carrier.assumptions = [
-        *(a for a in carrier.assumptions if a.param_name not in stated),
-        *(
-            AssumedValue(
-                param_name=name,
-                value=to_wire(value),
-                reason=option.text,
-                carried_from=option.id,
-            )
-            for name, value in stated.items()
-        ),
-    ]
+        carrier.measurements = [
+            m for m in carrier.measurements if m.param not in stated
+        ]
     return True
+
+
+# The carrier's step meets an organism and a record type, and a combination
+# states how criteria join, never a value one leaf binds.
+_HELD_BY_THE_CARRIER = frozenset(
+    {ConstraintKind.ORGANISM, ConstraintKind.RECORD_TYPE, ConstraintKind.COMBINATION}
+)
+
+
+def restated_requirement(
+    text: str, requirements: Sequence[Constraint], request_texts: Sequence[str]
+) -> Constraint | None:
+    """The researcher's requirement a criterion's text restates.
+
+    A stated requirement whose words the text carries comes first, else the
+    longest run of a researcher message the text restates. None when the text
+    restates no words of the researcher.
+    """
+    stated = next(
+        (
+            c
+            for c in requirements
+            if c.source is ConstraintSource.USER_EXPLICIT
+            and c.kind not in _HELD_BY_THE_CARRIER
+            and message_states(text, c.requested_value)
+        ),
+        None,
+    )
+    if stated is not None:
+        return stated
+    run = max((stated_run_of(m, text) for m in request_texts), key=len, default="")
+    if not run:
+        return None
+    return Constraint(
+        kind=ConstraintKind.OTHER,
+        requested_value=run,
+        label=run,
+        source=ConstraintSource.USER_EXPLICIT,
+    )
 
 
 class OrganismDrop(CamelModel):
@@ -154,7 +192,8 @@ class OrganismDrop(CamelModel):
 
     ``met`` is true when the text names only the organism, which the carrier's
     organism value meets; otherwise the binding matched all ``records`` genes
-    of the organism and the drop record holds the text unexpressed.
+    of the organism and ``requirement`` is the researcher's requirement the
+    text restated, which stays open.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -165,6 +204,7 @@ class OrganismDrop(CamelModel):
     met: bool
     carrier_id: str
     records: int | None = None
+    requirement: Constraint | None = None
 
     @property
     def fate(self) -> str:
@@ -176,11 +216,15 @@ class OrganismDrop(CamelModel):
                 f"{head} it names only the organism {named}, which "
                 f"{self.carrier_id} already runs on, so that organism value meets it."
             )
-        return (
+        dropped = (
             f"{head} it matches all {self.records:,} genes of {named}, which "
-            f"{self.carrier_id} already runs on, so it narrows nothing. "
-            f"'{self.text}' is recorded unexpressed: bind a search whose values "
-            f"state it, or end with it as a gap."
+            f"{self.carrier_id} already runs on, so it narrows nothing."
+        )
+        if self.requirement is None:
+            return dropped
+        return (
+            f"{dropped} '{self.requirement.requested_value}' stays open: bind a "
+            f"search whose values state it, or end with it as a gap."
         )
 
 
@@ -191,6 +235,25 @@ class FoldedStructure(CamelModel):
 
     structure: SpecStructure
     dropped: tuple[OrganismDrop, ...] = ()
+
+    def holding_open(
+        self, requirements: Sequence[Constraint], request_texts: Sequence[str]
+    ) -> FoldedStructure:
+        """The fold with each unmet drop holding open the requirement its text
+        restates."""
+        dropped = tuple(
+            drop
+            if drop.met
+            else drop.model_copy(
+                update={
+                    "requirement": restated_requirement(
+                        drop.text, requirements, request_texts
+                    )
+                }
+            )
+            for drop in self.dropped
+        )
+        return self.model_copy(update={"dropped": dropped})
 
 
 class _Redundant(CamelModel):
@@ -293,7 +356,11 @@ def fold_organism_universe(
     MINUS input, a transform input and a live step are never dropped.
     """
     reading = _OrganismReading(
-        spec, organisms, record_words, universe_counts, live_step_ids
+        spec,
+        organisms,
+        record_words,
+        universe_counts,
+        live_step_ids,
     )
     root = _organism_folded(tree.root, reading)
     if not reading.dropped:

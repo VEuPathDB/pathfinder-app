@@ -10,7 +10,7 @@ from veupathdb.domain.strategy import (
     wdk_search_name,
 )
 from veupathdb.errors import ValidationError, VEuPathDBError
-from veupathdb.wdk import get_strategy_api
+from veupathdb.wdk import get_site, get_strategy_api
 
 from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.combine_naming import name_the_combines
@@ -24,17 +24,20 @@ from pathfinder.domain.strategy.operations.apply import (
     ApplyResult,
     apply_operation,
 )
+from pathfinder.domain.strategy.revision import answer_revision
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     overwritten_slot,
 )
 from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.strategies.batch_refusal import (
     entry_state,
     refusal_after_the_batch,
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from pathfinder.services.strategies.live_counts import replace_counts_with_wdks
 from pathfinder.services.strategies.naming import name_the_thread_as_the_graph
 from pathfinder.services.strategies.persist import (
@@ -76,6 +79,13 @@ class CommitResult:
     @property
     def failed_step_ids(self) -> list[str]:
         return [failure.step_id for failure in self.failures]
+
+
+def live_strategy_url(site_id: str, sync: SyncStateProtocol | None) -> str | None:
+    """The strategy's page on the site at the root it holds now, or None before a push."""
+    if sync is None or sync.wdk_strategy_id is None:
+        return None
+    return get_site(site_id).strategy_url(sync.wdk_strategy_id, sync.wdk_root_step_id)
 
 
 def _require_graph(deps: StrategyMutationContext) -> StrategyGraph:
@@ -281,6 +291,8 @@ async def apply_operations_and_commit(
         graph=graph,
         sync_result=sync_result.sync_result,
     )
+    if answer_revision(new_ast) != answer_revision(old_ast):
+        await defer_the_gene_set_refresh(deps)
     if renamed:
         await name_the_thread_as_the_graph(deps, graph)
 

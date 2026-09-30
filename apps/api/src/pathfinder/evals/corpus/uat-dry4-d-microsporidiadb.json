@@ -1,0 +1,62 @@
+{
+  "name": "uat-dry4-d-microsporidiadb",
+  "turns": [
+    "Encephalitozoon intestinalis ATCC 50506 genes with a signal peptide and no ortholog in Encephalitozoon cuniculi GB-M1.",
+    "how many genes would there be without the ortholog filter"
+  ],
+  "siteId": "microsporidiadb",
+  "assistantId": "pathfinder",
+  "rationale": "A count question is answered with its count: the signal peptide step holds 66 genes and the result 9, so the reply may say the ortholog filter removes 57, and it never answers with no number.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByOrthologPattern)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "1": [
+        "57"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "substantially larger"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 9,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "microsporidiadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ud4-microsporidiadb",
+    "curatorNote": "Round-4 dry UAT, tester D, investigation 10, conversation 724137b4-6b00-45ce-a93f-0a70093d0796."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

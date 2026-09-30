@@ -11,6 +11,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
+from pathfinder.tests._support.bound_values import bound
 
 _ID = "c_mass_spec"
 _OPEN = "min_peptide_count"
@@ -27,7 +28,7 @@ def _spec(
                 id=_ID,
                 text="detected by mass spectrometry",
                 search_name=search_name,
-                resolved_params=resolved,
+                resolved_params=bound(resolved),
                 open_params=[
                     OpenSlot(criterion_id=_ID, param_name=name) for name in open_names
                 ],

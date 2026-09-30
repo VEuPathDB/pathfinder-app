@@ -11,7 +11,7 @@ from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict, Field, JsonValue
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
@@ -29,7 +29,7 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import control_test_results_event
-from pathfinder.ai.graph.turn_records import ControlTestRun
+from pathfinder.ai.graph.turn_records import ControlTestRun, ControlTestTarget
 from pathfinder.ai.stream_part_payloads import (
     ControlSetSummary,
     ControlTestResults,
@@ -37,6 +37,7 @@ from pathfinder.ai.stream_part_payloads import (
 )
 from pathfinder.ai.tools.standalone.control_repeats import (
     RepeatedControlTest,
+    every_step_tested,
     repeated_control_test,
 )
 from pathfinder.ai.tools.standalone.saved_control_sets import unattached_set
@@ -319,6 +320,21 @@ def _answered_from_this_message(
             return await deferred(
                 ctx, wdk_step_id=wdk_step_id, control_set_id=saved.control_set_id
             )
+        markers = ctx.deps.turn_markers
+        target = ControlTestTarget(
+            wdk_step_id=wdk_step_id, control_set_id=saved.control_set_id
+        )
+        asked = markers.control_tests_asked_again.count(target)
+        markers.control_tests_asked_again.append(target)
+        if asked:
+            msg = (
+                f"{saved.name} was tested on step {wdk_step_id} under this message, "
+                f"and that result was already given again once. Every step tested "
+                f"under this message: {every_step_tested(markers)}. Report these; "
+                f"no test runs again."
+            )
+            # A repeat past the failure spends the tool's retries, so a loop ends.
+            raise ToolFailed(msg) if asked == 1 else ModelRetry(msg)
         counts = _ControlCounts.model_validate(held.model_dump())
         return with_summary(
             RepeatedControlTest(note=_REPEAT_NOTE, outcome=held),

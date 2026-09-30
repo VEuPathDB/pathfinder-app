@@ -19,16 +19,19 @@ from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.evidence import EvidenceCard, RequirementCheck
 from pathfinder.domain.strategy.step_rationale import StepRationale
 from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.redaction import assert_redacted
 
 
 class ExtractedTurn(CamelModel):
-    """One exchange: what was asked, and what the assistant answered."""
+    """One exchange: what was asked, the facts the turn showed, and the reply
+    beside them. The counts, names and caveats are read from ``facts``."""
 
     model_config = ConfigDict(frozen=True)
 
     request: str
     reply: str = ""
+    facts: TurnFacts | None = None
 
 
 class _StoredTexts(CamelModel):
@@ -103,6 +106,8 @@ class EvalExtract(CamelModel):
         for turn in self.turns:
             assert_redacted(turn.request)
             assert_redacted(turn.reply)
+            for line in [] if turn.facts is None else turn.facts.lines():
+                assert_redacted(line)
         if self.verification is not None:
             assert_redacted(self.verification.reason)
             verification = self.verification

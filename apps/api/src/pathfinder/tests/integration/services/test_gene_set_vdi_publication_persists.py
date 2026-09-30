@@ -78,8 +78,7 @@ async def test_the_published_identifier_is_in_the_database_after_a_reload(
     store = GeneSetStore()
     service = GeneSetService(store)
     gene_set = _set(seed_user.id, "gs-vdi-1")
-    store.save(gene_set)
-    await service.flush(gene_set.id)
+    await store.save(gene_set)
     monkeypatch.setattr(vdi, "get_vdi_client", lambda site_id: _FakeVdi())
 
     published = await vdi.publish_to_vdi(
@@ -90,7 +89,7 @@ async def test_the_published_identifier_is_in_the_database_after_a_reload(
         visibility=VdiVisibility.PRIVATE,
     )
 
-    reloaded = await GeneSetStore().aget("gs-vdi-1")
+    reloaded = await GeneSetStore().get("gs-vdi-1")
     assert published.vdi_id == VDI_ID
     assert reloaded is not None
     assert reloaded.vdi_id == VDI_ID
@@ -101,13 +100,9 @@ async def test_a_set_nobody_published_reloads_with_no_pointer(
     seed_user: User,
 ) -> None:
     del patch_app_db_engine
-    store = GeneSetStore()
-    service = GeneSetService(store)
-    gene_set = _set(seed_user.id, "gs-vdi-2")
-    store.save(gene_set)
-    await service.flush(gene_set.id)
+    await GeneSetStore().save(_set(seed_user.id, "gs-vdi-2"))
 
-    reloaded = await GeneSetStore().aget("gs-vdi-2")
+    reloaded = await GeneSetStore().get("gs-vdi-2")
 
     assert reloaded is not None
     assert (reloaded.id, reloaded.name, reloaded.vdi_id) == (

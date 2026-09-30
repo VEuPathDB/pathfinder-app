@@ -122,9 +122,13 @@ async def test_a_built_set_is_attached_to_the_conversation(
         return ResolvedControls(valid_ids=gene_ids)
 
     async def create(
-        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+        _session: AsyncSession,
+        spec: NewControlSet,
+        *,
+        user_id: UUID,
+        conversation_id: UUID | None,
     ) -> ControlSetResponse:
-        del user_id
+        del user_id, conversation_id
         return _listed(
             SavedControls(
                 control_set_id="cs_123",

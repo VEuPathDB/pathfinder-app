@@ -10,7 +10,8 @@ from __future__ import annotations
 from typing import Literal
 
 from pathfinder.evals.case import EvalCase
-from pathfinder.evals.scoring import CaseDifference, ObservedOutcome, score_case
+from pathfinder.evals.difference import CaseDifference
+from pathfinder.evals.scoring import ObservedOutcome, score_case
 
 DriftVerdict = Literal["pass", "re-measure", "fail"]
 

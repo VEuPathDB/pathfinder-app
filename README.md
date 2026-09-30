@@ -123,11 +123,11 @@ The repo now ships with two explicit profiles:
 - **Strict / production-style**
   - root env: [`.env.example`](.env.example)
   - compose: [`docker-compose.yml`](docker-compose.yml)
-  - observability wiring: [`docker-compose.observability.yml`](docker-compose.observability.yml)
+  - tracing wiring: [`docker-compose.observability.yml`](docker-compose.observability.yml)
 - **Local development**
   - root env: [`.env.dev.example`](.env.dev.example)
   - compose: [`docker-compose.dev.yml`](docker-compose.dev.yml)
-  - observability stack: [`docker-compose.observability.dev.yml`](docker-compose.observability.dev.yml)
+  - local Langfuse: [`docker-compose.observability.dev.yml`](docker-compose.observability.dev.yml)
 
 The base profile is intentionally fail-closed. PathFinder will not boot until you explicitly provide:
 
@@ -242,70 +242,41 @@ controls a spec clicks, and no per-route compile to grow the server's heap.
 
 ### Observability
 
-PathFinder supports two observability modes:
+One backend: Langfuse, fed over plain OTLP/HTTP. The api and the worker each
+install the runtime's tracer at start, so every turn is one trace (the Lead run,
+each sub-agent run, every model and tool call) on the conversation's session, with
+the researcher as its user. Product events and rating scores go to the same
+project. What a trace holds and which view answers which question:
+[`docs/knowledge/conventions/observability.md`](docs/knowledge/conventions/observability.md).
+Cost per conversation, researcher and day, straight from the database:
+`uv run python -m pathfinder.devtools.usage report` in `apps/api`.
 
-- **SigNoz** - full-stack APM (distributed traces, metrics, logs). UI at `http://localhost:3301`
-- **Langfuse** - LLM observability (prompt traces, token usage, cost tracking). UI at `http://localhost:3100`
-
-PathFinder also ships a SigNoz pack for dashboards and alert intent:
-
-- pack source: [`ops/observability/signoz/pathfinder-observability-pack.json`](ops/observability/signoz/pathfinder-observability-pack.json)
-- generated dashboards and alert catalog: [`ops/observability/signoz/`](ops/observability/signoz)
-- dashboard filter glossary: [`ops/observability/signoz/dashboard-filters.md`](ops/observability/signoz/dashboard-filters.md)
-
-Refresh the generated artifacts with:
-
-```bash
-python3 ops/observability/signoz/render_pack.py
-```
-
-Import the generated dashboard JSON files into the SigNoz UI. The alert catalog stays environment-neutral so the same thresholds, labels, and runbooks can be used in local, staging, production, or Cedar-hosted workflows without depending on SigNoz-only routing details.
-
-The local observability profile also provisions explicit UI credentials instead
-of relying on ad hoc first-run setup:
-
-- SigNoz admin user: `SIGNOZ_ROOT_USER_EMAIL` / `SIGNOZ_ROOT_USER_PASSWORD`
-- Langfuse admin user: `LANGFUSE_INIT_USER_EMAIL` / `LANGFUSE_INIT_USER_PASSWORD`
-
-To run a live end-to-end verification against the local stack after it starts:
-
-```bash
-python3 ops/observability/live_smoke_test.py
-```
-
-That smoke test drives one real chat turn through the local API and then checks
-both Langfuse and SigNoz storage directly.
-
-**Production/staging wiring**: point the API at existing observability backends.
+**Langfuse elsewhere**: point both processes at it.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 ```
 
-Set these explicitly in `.env` when using that overlay:
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` (`<langfuse>/api/public/otel`), `LANGFUSE_HOST`,
+`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and, to export prompts,
+`OTEL_INCLUDE_CONTENT=true`. The OTLP Authorization header is built from the keys.
 
-- `SIGNOZ_OTEL_ENDPOINT`
-- `LANGFUSE_HOST`
-- `LANGFUSE_PUBLIC_KEY`
-- `LANGFUSE_SECRET_KEY`
-
-**Local-development observability**: start a self-hosted Langfuse + SigNoz stack.
+**Local Langfuse**: the six services of Langfuse's self-host compose.
 
 ```bash
 docker compose --env-file .env.dev \
  -f docker-compose.yml \
- -f docker-compose.dev.yml \
  -f docker-compose.observability.yml \
  -f docker-compose.observability.dev.yml \
-  up -d
+  up -d --build --force-recreate api worker langfuse langfuse-worker \
+  langfuse-db langfuse-clickhouse langfuse-minio langfuse-redis
 ```
 
-That dev overlay bootstraps a local Langfuse project. Open `http://localhost:3100` and sign in with:
-
-```bash
-email:    dev@pathfinder.local
-password: pathfinder-local-dev
-```
+The first start creates the organization, the project, its keys and the login
+from the `LANGFUSE_INIT_*` values. Open `http://localhost:3100` and sign in with
+`LANGFUSE_INIT_USER_EMAIL` / `LANGFUSE_INIT_USER_PASSWORD` (the dev defaults are
+`dev@pathfinder.local` / `pathfinder-local-dev`). On cedar, Langfuse runs as six
+quadlet units: [`deploy/cedar/README.md`](deploy/cedar/README.md).
 
 ### Option D: run API + Web directly (no Docker)
 

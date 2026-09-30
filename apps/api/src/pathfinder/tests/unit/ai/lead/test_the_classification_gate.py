@@ -160,7 +160,8 @@ async def test_a_control_the_message_does_not_hold_is_refused(
         )
 
     assert str(refused.value) == (
-        f"The researcher's message does not hold {absent}. Name as controls only "
-        "the ids the message types or attaches, spelled as it spells them."
+        f"The researcher's message does not hold {absent}. Name only the ids the "
+        "message types, or the ids of this site a file it attaches shows, spelled "
+        "as it spells them."
     )
     assert deps.intent is None

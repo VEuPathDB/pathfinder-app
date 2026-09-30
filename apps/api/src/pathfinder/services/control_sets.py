@@ -49,6 +49,7 @@ class ControlSetResponse(CamelModel):
     version: int
     is_public: bool
     user_id: str | None = None
+    conversation_id: UUID | None = None
     created_at: str
 
 
@@ -66,6 +67,7 @@ def _serialize(cs: ControlSet) -> ControlSetResponse:
         version=cs.version,
         is_public=cs.is_public,
         user_id=format_uuid(cs.user_id),
+        conversation_id=cs.conversation_id,
         created_at=cs.created_at.isoformat() if cs.created_at else "",
     )
 
@@ -118,6 +120,7 @@ class ControlSetService:
         spec: NewControlSet,
         *,
         user_id: UUID,
+        conversation_id: UUID | None = None,
     ) -> ControlSetResponse:
         cs = await self._repo.create(
             ControlSetCreate(
@@ -131,6 +134,7 @@ class ControlSetService:
                 provenance_notes=spec.provenance_notes,
                 is_public=spec.is_public,
                 user_id=user_id,
+                conversation_id=conversation_id,
             ),
         )
         return _serialize(cs)

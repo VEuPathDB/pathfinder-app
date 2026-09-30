@@ -5,7 +5,7 @@ from __future__ import annotations
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.distance import tree_from_ast, tree_from_signature
 from pathfinder.evals.scoring import ObservedOutcome, score_case, structure_signature
 
@@ -64,6 +64,7 @@ def _case(expected: ExpectedOutcome) -> EvalCase:
         assistant_id="pathfinder",
         rationale="pins a thing",
         expected=expected,
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",

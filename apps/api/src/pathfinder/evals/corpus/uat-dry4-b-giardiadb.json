@@ -1,0 +1,59 @@
+{
+  "name": "uat-dry4-b-giardiadb",
+  "turns": [
+    "Giardia muris Roberts-Thompson genes with a cysteine-rich protein annotation.",
+    "OK. Please exclude the genes that have a transmembrane domain from this result.",
+    "Wait, 4,497 genes before the exclusion seems like almost the whole G. muris genome. How many genes actually have the exact phrase 'cysteine-rich protein' in their product description? Just tell me, don't change the strategy yet."
+  ],
+  "siteId": "giardiadb",
+  "assistantId": "pathfinder",
+  "rationale": "An unquoted text on a search with a dependent parameter keeps its phrase reading: the facts show the exact phrase at 0 genes beside the 4,497 the words count, so the exact-phrase question is answered 0, and the organism the message names one letter off shows as stated.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByText MINUS GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "MINUS",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "0": [
+        "Roberts-Thomson) (stated)",
+        "as the phrase \"cysteine-rich protein\": 0 genes"
+      ],
+      "2": [
+        "as the phrase \"cysteine-rich protein\": 0 genes"
+      ]
+    },
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": null,
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "giardiadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ub4-giardiadb",
+    "curatorNote": "Round-4 dry UAT, tester B, investigation 6, conversation e0373ad7-2fdb-4188-838b-ee1e7420fd46."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

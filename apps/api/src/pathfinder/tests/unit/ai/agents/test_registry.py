@@ -38,6 +38,7 @@ from pathfinder.platform.tiers import (
     TierPreset,
     resolve_phase_tier_config,
 )
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 CORE_MODULES: tuple[ModuleType, ...] = (
     runtime,
@@ -131,7 +132,7 @@ def test_request_boundary_still_refuses_a_role_no_assistant_runs() -> None:
         ChatRequestBody.model_validate(
             {
                 "conversationId": str(uuid4()),
-                "phaseModels": {"planner": "openai:gpt-5.6-luna"},
+                "phaseModels": {"planner": DEFAULT_MODEL},
             },
         )
     errors = exc.value.errors()
@@ -145,7 +146,7 @@ def test_request_boundary_accepts_every_declared_role() -> None:
     body = ChatRequestBody.model_validate(
         {
             "conversationId": str(uuid4()),
-            "phaseModels": dict.fromkeys(roles, "openai:gpt-5.6-luna"),
+            "phaseModels": dict.fromkeys(roles, DEFAULT_MODEL),
             "phaseReasoning": dict.fromkeys(roles, "medium"),
         },
     )

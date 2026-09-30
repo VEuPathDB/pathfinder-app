@@ -37,18 +37,22 @@
     "curatorNote": "Needs --via-worker: the separation is a durable task. The run's approval gets a yes and the offer card a no with the comment."
   },
   "effort": "medium",
-  "gates": [
-    {
-      "accept": true,
-      "comment": null,
-      "picks": null
-    },
-    {
-      "accept": false,
-      "comment": "Too broad for a vaccine screen.",
-      "picks": null
-    }
-  ],
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "separate_controls",
+        "turn": 0,
+        "accept": true
+      },
+      {
+        "card": "adopt_separating_strategy",
+        "turn": 0,
+        "accept": false,
+        "comment": "Too broad for a vaccine screen."
+      }
+    ]
+  },
   "attachments": {},
   "newConversationBefore": []
 }

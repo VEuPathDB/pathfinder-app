@@ -101,7 +101,7 @@ async def test_the_count_reads_the_configuration_the_criterion_stores(
     result = await bind(state, "GenesByText", _GIARDIA)
 
     counted = asked[0]["params"]
-    stored = state.operational_spec_draft.criteria[0].resolved_params
+    stored = state.operational_spec_draft.criteria[0].param_values
     assert counted == stored
     assert {name: to_wire(v) for name, v in stored.items()} == result.resolved_params
     assert stored["text_expression"].to_wire() == '"variant surface protein"'
@@ -206,7 +206,7 @@ async def test_the_criterion_binds_whatever_the_count_says(
 
     criterion = state.operational_spec_draft.criteria[0]
     assert criterion.search_name == "GenesByText"
-    assert criterion.resolved_params["text_expression"].to_wire() == (
+    assert criterion.param_values["text_expression"].to_wire() == (
         '"variant surface protein"'
     )
 

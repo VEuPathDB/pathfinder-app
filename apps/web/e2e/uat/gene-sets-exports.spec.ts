@@ -25,12 +25,7 @@ import {
   seedGeneIds,
   toast,
 } from "../fixtures/composer";
-import {
-  countPattern,
-  printed,
-  readConversation,
-  siteGeneIdPrefix,
-} from "../fixtures/site-reads";
+import { printed, readConversation, siteGeneIdPrefix } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 
 const DELETE_NOTICE =
@@ -110,7 +105,10 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
       has: page.getByTestId("data-gene-set"),
     });
     await expect(
-      reply.locator(".prose").filter({ hasText: countPattern(counts.root) }),
+      reply.locator('[data-testid="facts-saved-set"][data-kind="gene_set"]'),
+    ).toHaveText(`Saved gene set ${name}, ${printed(counts.root)} genes`);
+    await expect(
+      reply.locator(".prose").filter({ hasText: `Saved as the gene set ${name}.` }),
     ).not.toHaveCount(0);
     await openTrace(reply);
     await expect(traceRows(reply, "Save gene set")).toHaveCount(1);

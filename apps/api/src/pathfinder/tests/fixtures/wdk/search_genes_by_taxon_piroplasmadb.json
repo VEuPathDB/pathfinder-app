@@ -1,0 +1,426 @@
+{
+  "provenance": {
+    "site": "piroplasmadb",
+    "method": "GET",
+    "url": "https://piroplasmadb.org/piro/service/record-types/transcript/searches/GenesByTaxon?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-29",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searchData": {
+      "summary": "Find all genes from one or more species/organism.",
+      "urlSegment": "GenesByTaxon",
+      "dynamicAttributes": [
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "organism",
+          "direction": "ASC"
+        },
+        {
+          "attributeName": "gene_location_text",
+          "direction": "ASC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "Organism",
+      "fullName": "GeneQuestions.GenesByTaxon",
+      "description": "Find all genes from one or more species/organism.",
+      "defaultAttributes": [
+        "primary_key",
+        "organism",
+        "gene_location_text",
+        "gene_product"
+      ],
+      "groups": [
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "organism"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "shortDisplayName": "Organism",
+      "paramNames": [
+        "organism"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesByTaxon",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Organism",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Select organism(s) you wish to query against. Click the [+] to expand taxon groupings.",
+          "depthExpanded": 0,
+          "dependentParams": [],
+          "displayType": "treeBox",
+          "isReadOnly": false,
+          "vocabulary": {
+            "data": {
+              "display": "@@fake@@",
+              "term": "@@fake@@"
+            },
+            "children": [
+              {
+                "data": {
+                  "display": "Babesiidae",
+                  "term": "Babesiidae"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Babesia bigemina",
+                      "term": "Babesia bigemina"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia bigemina strain BOND",
+                          "term": "Babesia bigemina strain BOND"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia bovis",
+                      "term": "Babesia bovis"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia bovis T2Bo",
+                          "term": "Babesia bovis T2Bo"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia caballi",
+                      "term": "Babesia caballi"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia caballi USDA-D6B2",
+                          "term": "Babesia caballi USDA-D6B2"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia divergens",
+                      "term": "Babesia divergens"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia divergens strain 1802A",
+                          "term": "Babesia divergens strain 1802A"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia duncani",
+                      "term": "Babesia duncani"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia duncani strain WA1 2023",
+                          "term": "Babesia duncani strain WA1 2023"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia gibsoni",
+                      "term": "Babesia gibsoni"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia gibsoni Azabu",
+                          "term": "Babesia gibsoni Azabu"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia microti",
+                      "term": "Babesia microti"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia microti strain RI",
+                          "term": "Babesia microti strain RI"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia ovata",
+                      "term": "Babesia ovata"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia ovata strain Miyake",
+                          "term": "Babesia ovata strain Miyake"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia ovis",
+                      "term": "Babesia ovis"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia ovis Selcuk",
+                          "term": "Babesia ovis Selcuk"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Babesia sp. Xinjiang",
+                      "term": "Babesia sp. Xinjiang"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Babesia sp. Xinjiang Xinjiang",
+                          "term": "Babesia sp. Xinjiang Xinjiang"
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "data": {
+                  "display": "Theileriidae",
+                  "term": "Theileriidae"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Cytauxzoon",
+                      "term": "Cytauxzoon"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Cytauxzoon felis strain Winnie",
+                          "term": "Cytauxzoon felis strain Winnie"
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Theileria",
+                      "term": "Theileria"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Theileria annulata",
+                          "term": "Theileria annulata"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Theileria annulata strain Ankara",
+                              "term": "Theileria annulata strain Ankara"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Theileria equi",
+                          "term": "Theileria equi"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Theileria equi strain WA",
+                              "term": "Theileria equi strain WA"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Theileria orientalis",
+                          "term": "Theileria orientalis"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Theileria orientalis Fish Creek",
+                              "term": "Theileria orientalis Fish Creek"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Theileria orientalis Goon Nure",
+                              "term": "Theileria orientalis Goon Nure"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Theileria orientalis strain Shintoku",
+                              "term": "Theileria orientalis strain Shintoku"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Theileria parva",
+                          "term": "Theileria parva"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Theileria parva strain Muguga",
+                              "term": "Theileria parva strain Muguga"
+                            },
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "allowEmptyValue": false,
+          "name": "organism",
+          "countOnlyLeaves": true,
+          "initialDisplayValue": "[]",
+          "properties": {
+            "maxRecommendedMsg": [
+              "<p>\n          You are selecting more than five organisms.\n        </p>\n        <p>\n          Selecting a large number of organisms may impact performance and make results harder to interpret.\n        </p>\n        <p>\n          <b>Please select five or fewer organisms where possible.</b>\n        </p>\n        <p>\n          For the best experience, use <i>My Organism Preferences</i> in the page header to focus on the organisms you care about most.\n        </p>"
+            ],
+            "specificAttribution": [],
+            "organismProperties": [
+              "pruneNodesWithSingleExtendingChild",
+              "showOnlyPreferredOrganisms",
+              "highlightReferenceOrganisms"
+            ],
+            "maxRecommended": [
+              "5"
+            ]
+          },
+          "group": "empty"
+        }
+      ],
+      "properties": {
+        "specificAttribution": []
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

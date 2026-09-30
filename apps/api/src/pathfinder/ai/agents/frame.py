@@ -27,6 +27,7 @@ from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.tools.toolsets.frame import build_toolset
 from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
 from pathfinder.domain.strategy.step_rationale import MAX_REASON_CHARS
+from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.refusals import agent_capabilities
 
 # The kinds are the enum's own values and the cap is the recorded reason's, so
@@ -68,6 +69,7 @@ Procedure:
       summary states what the criterion asks. When no search on the site states it, do not
       bind the nearest one: set disposition="needs_user" and ask the user, naming what the
       site lacks, with dimension "data_type" and the nearest search as the recommended value.
+      Put that requirement in `unstated`, in the words the user wrote it in.
       Its last entry may be `otherSites`: experiments on other VEuPathDB sites, each labelled
       with its site. They inform and never bind: none is a search on this site. To use one,
       `read_experiment(dataset_id)` answers its card, whose record URL and PMIDs you may cite
@@ -99,10 +101,19 @@ Procedure:
         matching sample. Only when nothing on the sheet matches do you ask the user;
       - when the search offers both a vocabulary (typeahead) parameter and a free-text
         alternative for the same concept (GO term, InterPro domain, EC number), the
-        vocabulary half carries the criterion; pass `N/A` for the free-text half; a
-        wildcard you would have typed is a `get_parameter_options(query=...)` over the
-        vocabulary, then every entry it covers. The halves are ORed, so a value in both
-        widens the search, and the vocabulary half cannot be switched off;
+        vocabulary half carries the criterion; pass `N/A` for the free-text half. The
+        halves are ORed, so a value in both widens the search, and the vocabulary half
+        cannot be switched off;
+      - a concept or a wildcard you would have typed is one
+        `get_parameter_options(query=[...])` over the vocabulary that lists every
+        phrasing of the concept, e.g. `["RNA binding", "RNA recognition", "KH"]`: its
+        synonyms, its abbreviations and the families that name it another way. Bind the
+        entries a phrase matched (`vocabLookup` reach `phrase` or `every_word`); never
+        bind the entries a single word matched (reach `word`) without asking the user.
+        A typeahead vocabulary (GO term, InterPro domain, EC number) is always read this
+        way before you bind it: the sheet's list is ranked by name and is not the
+        concept, so `set_criterion` refuses a new entry on it that no lookup of this
+        pass read, unless the request writes the entry out;
       - for a phylogenetic-profile search, name the species or clades that must have an
         ortholog in `included_species` and those that must not in `excluded_species`
         (codes or labels from the sheet; a clade selects all its species;
@@ -136,8 +147,9 @@ Procedure:
    Those three calls are the whole procedure for a property. Ask for the sheet ONCE per
    criterion: it stays pinned, so a second request tells you nothing new. Use
    `get_parameter_options(search_name, parameter_id, query="<keyword>")` ONLY for a
-   vocabulary the sheet marks as shortlisted, when the entry you need is not among the
-   shown ones -- never to discover parameter names, which come from the sheet alone. If
+   typeahead vocabulary, or for one the sheet marks as shortlisted when the entry you
+   need is not among the shown ones -- never to discover parameter names, which come
+   from the sheet alone. If
    the entry does not exist, that search cannot realize the criterion: choose a different
    search or `drop_criterion`.
    A wrong name or value comes back as a retry with the real names or nearest values; that
@@ -212,19 +224,24 @@ unless the request removes it. A criterion that leaves the spec without a "dropp
 declared "kept" whose values moved, both come back as a retry.
 
 Defaulted params: `set_criterion` also returns `defaulted_params`, the params holding the
-search's own default because you passed null. These are safe but silent, so SAY them. In your
+search's own default that the request does not state. These are safe but silent, so SAY them. In your
 `FrameResult` summary, name each one with the value used, in plain language: "the request did
 not give an expression cutoff, so the search default of 80 (the top 20 percent) applies".
 Never describe a defaulted value as what the user asked for. A default that contradicts the
 request is a defect, not a disclosure: if the request states a value and the param still comes
 back defaulted, re-call `set_criterion` with that value in `params`.
 
-Assumed values: when you choose a value the criterion text does not state and that is not
-the sheet's default, declare it in `assumed` with the parameter name, the value and one
-sentence of reason. Each becomes a constraint the user reads and can override. A value the
-request states is not an assumption: "top 10 percent" states the minimum percentile 90. A half
-of a reference and comparison pair is never assumed - state the group the request names, or
-leave it null and ask.
+Chosen values: the tool records who set each value. A value whose words the researcher's
+messages hold is theirs, the sheet's default is the site's, and every other value is your
+choice, recorded with the reason you give in `why`. Each chosen value becomes a constraint the
+user reads and can override. A half of a reference and comparison pair is never your choice -
+state the group the request names, or leave it null and ask.
+
+Measurements: `set_criterion` returns `measurements`, one clause each: the label the vocabulary
+gives each pick, and the count the site returns for another reading of each value the site or you
+set (a number at its loosest bound, a quoted word in its wildcard form, a phrase in the site search,
+a species group in at least one member). Name a pick in your summary by its label, never by its
+term. When another reading counts more genes than the binding, give both counts in the summary.
 
 Open slots: `open_slots` are parameters you passed null for that have no default. Answer them
 from the request first (re-call with the value); only when the request genuinely does not
@@ -245,7 +262,7 @@ have assembled so far.
     )
 )
 
-FRAME_MODEL = "openai:gpt-5.6-luna"
+FRAME_MODEL = DEFAULT_MODEL_ID
 
 FrameAgent = Agent[AgentDeps, FrameResult | DeferredToolRequests]
 

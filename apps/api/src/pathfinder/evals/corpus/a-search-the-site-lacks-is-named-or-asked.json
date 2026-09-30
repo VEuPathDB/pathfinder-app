@@ -31,5 +31,8 @@
     "stagingId": "",
     "reference": "decisions/a-step-says-what-runs.md",
     "curatorNote": "The deterministic provider settles the titles and the contract; whether a real model asks or builds is what a real run reads."
+  },
+  "gates": {
+    "policy": "auto"
   }
 }

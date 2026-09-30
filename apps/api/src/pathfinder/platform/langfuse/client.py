@@ -1,12 +1,15 @@
-"""Lazy Langfuse SDK singleton. Returns None when credentials are absent."""
+"""Lazy Langfuse SDK singleton. Returns None when credentials are absent.
+
+The client exports only its own events, on a tracer provider of its own; the
+process's traces reach Langfuse through the OTLP exporter.
+"""
 
 import threading
 from dataclasses import dataclass
 
 from assistant_core.platform.logging import get_logger
 from langfuse import Langfuse
-from langfuse.span_filter import is_default_export_span
-from opentelemetry.sdk.trace import ReadableSpan
+from opentelemetry.sdk.trace import TracerProvider
 
 from pathfinder.platform.config import get_settings
 
@@ -25,25 +28,8 @@ _state = _Singleton()
 _lock = threading.Lock()
 
 
-def _should_export_span(span: ReadableSpan) -> bool:
-    """Langfuse export filter that also accepts pathfinder app spans.
-
-    Langfuse's default filter (``is_default_export_span``) only keeps spans
-    from known LLM instrumentors or spans with ``gen_ai.*`` attributes. A span
-    this deployment opens itself carries only ``langfuse.*`` / ``app.*``
-    attributes, so the default filter drops it and its root-trace metadata
-    never reaches Langfuse. Accept any span that sets ``langfuse.*``.
-    """
-    if is_default_export_span(span):
-        return True
-    return any(key.startswith("langfuse.") for key in (span.attributes or {}))
-
-
 def get_langfuse() -> Langfuse | None:
-    """Return the Langfuse SDK client, or None when not configured.
-
-    Thread-safe lazy initialization. The client is created once and reused.
-    """
+    """Return the Langfuse SDK client, or None when not configured."""
     if _state.initialized:
         return _state.client
 
@@ -61,7 +47,8 @@ def get_langfuse() -> Langfuse | None:
             secret_key=settings.langfuse_secret_key,
             public_key=settings.langfuse_public_key,
             host=settings.langfuse_host,
-            should_export_span=_should_export_span,
+            environment=settings.api_env,
+            tracer_provider=TracerProvider(),
         )
         _state.initialized = True
         logger.info("Langfuse SDK initialized", host=settings.langfuse_host)
@@ -69,7 +56,7 @@ def get_langfuse() -> Langfuse | None:
 
 
 def shutdown_langfuse() -> None:
-    """Flush and shutdown the Langfuse client. Called during app shutdown."""
+    """Flush and shut down the Langfuse client."""
     if _state.client is not None:
         _state.client.shutdown()
         _state.client = None

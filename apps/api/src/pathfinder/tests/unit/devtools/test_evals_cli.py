@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.devtools.evals import _build_parser, main
-from pathfinder.evals.case import ExpectedOutcome
+from pathfinder.evals.case import ExpectedOutcome, GatePlan
 
 
 def test_corpus_lists_the_shipped_cases(capsys: pytest.CaptureFixture[str]) -> None:
@@ -47,10 +47,20 @@ def test_promote_accepts_an_expectation_as_json() -> None:
             "pins a thing",
             "--expect",
             '{"buildsStrategy": false}',
+            "--gates",
+            '{"policy": "decline-offers"}',
         ],
     )
 
     assert not ExpectedOutcome.model_validate_json(args.expect).builds_strategy
+    assert GatePlan.model_validate_json(args.gates).policy == "decline-offers"
+
+
+def test_promote_requires_the_case_to_state_its_gate_policy() -> None:
+    parser = _build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["promote", "some-id", "--name", "a", "--rationale", "r"])
 
 
 def test_run_takes_a_case_filter_and_an_output_file() -> None:

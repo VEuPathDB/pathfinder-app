@@ -12,7 +12,13 @@ import { test, expect } from "../fixtures/test";
 import { INJECTION_TEST_MESSAGE, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
 import type { AstNode } from "../fixtures/ast";
-import { LAYOUTS, ORTHOLOGS, TRANSMEMBRANE, layoutOf } from "../fixtures/arc-layouts";
+import {
+  LAYOUTS,
+  ORTHOLOGS,
+  SIGNAL_PEPTIDE,
+  TRANSMEMBRANE,
+  layoutOf,
+} from "../fixtures/arc-layouts";
 import {
   expectBuild,
   expectEvidence,
@@ -21,13 +27,13 @@ import {
   traceRows,
 } from "../fixtures/build-checks";
 import {
-  countPattern,
   readConversation,
   readNodes,
   storedNodes,
   siteCounts,
   siteOrganism,
 } from "../fixtures/site-reads";
+import { cardRemovals } from "../fixtures/strategy-builds";
 import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
 
@@ -40,6 +46,8 @@ const S3_TEXT = (organism: string) =>
 
 /** The one value the consult arc's frame leaves open, as its card asks it. */
 const OPEN_ORGANISM_QUESTION = "Which organism should the signal peptide search read?";
+/** A card option names the value it binds after the name the site shows the parameter by. */
+const organismOption = (organism: string) => `Organism ${organism}`;
 
 const INJECTION_REFUSAL =
   "This message was refused by prompt-injection screening. Rewrite it and send it again.";
@@ -193,10 +201,15 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     );
     const vocabulary = await organismVocabulary(apiClient, siteId);
     expect(offered.length).toBeGreaterThan(1);
-    expect(offered.filter((label) => !vocabulary.terms.includes(label))).toEqual([]);
+    expect(
+      offered.filter((label) => !vocabulary.terms.map(organismOption).includes(label)),
+    ).toEqual([]);
     const recommended = options.filter({ hasText: "Recommended" });
     await expect(recommended).toHaveCount(1);
-    await expect(recommended).toHaveAttribute("aria-label", siteOrganism(siteId));
+    await expect(recommended).toHaveAttribute(
+      "aria-label",
+      organismOption(siteOrganism(siteId)),
+    );
     expect(vocabulary.leaves).toContain(siteOrganism(siteId));
     await expect(carousel.getByTestId("consult-back")).toBeDisabled();
     await expect(carousel.getByTestId("consult-submit")).toBeVisible();
@@ -209,8 +222,17 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       `Q: ${OPEN_ORGANISM_QUESTION}`,
     );
     await expect(recap.getByTestId("consult-recap-answer")).toHaveText(
-      `A: ${siteOrganism(siteId)}`,
+      `A: ${organismOption(siteOrganism(siteId))}`,
     );
+    await expect
+      .poll(
+        async () =>
+          (await storedNodes(apiClient, id))
+            .filter((node) => node.searchName === SIGNAL_PEPTIDE)
+            .map((node) => paramText(node, "organism")),
+        { timeout: 240_000 },
+      )
+      .toEqual([siteOrganism(siteId)]);
 
     await expect(page.getByTestId("data-graph-snapshot")).not.toHaveCount(0, {
       timeout: 240_000,
@@ -252,7 +274,12 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
         { timeout: 60_000 },
       );
     }
-    expect(await replyText(apiClient, id)).toMatch(/GPI/);
+    await expect(
+      chatPage
+        .factsIn(chatPage.assistantMessages)
+        .getByTestId("facts-gap")
+        .filter({ hasText: /GPI/ }),
+    ).not.toHaveCount(0);
   });
 
   test("N3 - A cross-organism INTERSECT is refused", async ({
@@ -299,11 +326,12 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     );
     expect(empty.root).toBe(0);
     await expectEvidence(page, 0);
-    const zeroReply = await replyText(apiClient, id);
-    expect(zeroReply).toContain(
-      "The build pushed 1 step, failed 0, skipped 0 and left 1 empty",
-    );
-    expect(zeroReply).toMatch(countPattern(0));
+    await expect(
+      chatPage.factsCaveatsIn(chatPage.replyCounting(0), "build").filter({
+        hasText: "The build pushed 1 step, failed 0, skipped 0 and left 1 empty",
+      }),
+    ).not.toHaveCount(0);
+    await chatPage.expectRootCount(0);
     const strict = paramText(
       nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE),
       "min_tm",
@@ -374,8 +402,10 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     const approval = page.getByTestId("approval-card");
     const title = approval.getByTestId("approval-card-title");
     await expect(title).toHaveText(/^Delete step '.+' \(.+\)\?$/, { timeout: 60_000 });
-    const named = /^Delete step '(.+)' \(/.exec((await title.textContent()) ?? "");
-    expect(titles).toContain(named?.[1] ?? "");
+    // The card names the step and each step that goes with it, all of the tree.
+    const listed = await cardRemovals(approval);
+    expect(listed.length).toBeGreaterThan(1);
+    for (const name of listed) expect(titles).toContain(name);
 
     await approval.getByTestId("tool-approval-deny").click();
     await expect(page.getByTestId("tool-approval-decision")).toContainText("Denied");

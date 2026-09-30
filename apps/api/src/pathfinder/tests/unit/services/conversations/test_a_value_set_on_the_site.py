@@ -12,6 +12,8 @@ from veupathdb.domain.parameters import NumberValue, StringValue
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.operations import UpdateStepMetaOp, UpdateStepParamsOp
+from pathfinder.services.conversations import strategy_ops
+from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.tests.unit.services.conversations._site_edit_doubles import (
     CEILING,
     EXPORT,
@@ -110,3 +112,21 @@ class TestAValueSetOnTheSite:
         await refresh(repo)
 
         assert repo.stored.root.operator is CombineOp.UNION
+
+
+class TestTheRefreshDefersTheGeneSetRefreshOnlyWhenTheSiteMoved:
+    async def test_a_moved_value_defers_one_refresh_and_a_still_site_none(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        deferred: list[str] = []
+
+        async def _defer(deps: StrategyMutationContext) -> None:
+            deferred.append(deps.site_id)
+
+        monkeypatch.setattr(strategy_ops, "defer_the_gene_set_refresh", _defer)
+        moved = install_the_site(monkeypatch, the_site())
+        await refresh(moved)
+        still = install_the_site(monkeypatch, the_site(score="10"))
+        await refresh(still)
+
+        assert deferred == ["plasmodb"]

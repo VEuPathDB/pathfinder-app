@@ -44,6 +44,9 @@ const PORTAL_DOWN = site({
   unavailableReason: "ReadTimeout",
 });
 
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
+
 import { AppNavRail } from "./AppNavRail";
 
 function draw() {
@@ -73,6 +76,7 @@ function drawFor(siteId: string, onSiteChange: (id: string) => void = () => unde
 }
 
 beforeEach(() => {
+  recordProductEvent.mockClear();
   sites.list = [];
   route.pathname = "/plasmodb/conversation/abc-123";
 });
@@ -124,6 +128,38 @@ describe("AppNavRail site selection", () => {
 
     await userEvent.click(down);
     expect(picked).toHaveBeenCalledWith("veupathdb");
+  });
+
+  it("records site_switched with both sites when another site is picked", async () => {
+    sites.list = [
+      site({}),
+      site({ id: "toxodb", name: "ToxoDB", displayName: "ToxoDB" }),
+    ];
+    drawFor("plasmodb");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Switch site" }));
+    await userEvent.click(await screen.findByTestId("site-menu-item-toxodb"));
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "site_switched",
+          fromSite: "plasmodb",
+          toSite: "toxodb",
+          conversationId: "abc-123",
+        },
+      ],
+    ]);
+  });
+
+  it("records nothing when the current site is picked again", async () => {
+    sites.list = [site({})];
+    drawFor("plasmodb");
+
+    await userEvent.click(await screen.findByRole("button", { name: "Switch site" }));
+    await userEvent.click(await screen.findByTestId("site-menu-item-plasmodb"));
+
+    expect(recordProductEvent).not.toHaveBeenCalled();
   });
 
   it("leaves a site that answers unmarked", async () => {

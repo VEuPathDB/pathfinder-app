@@ -1,8 +1,8 @@
 """The review VERIFY returns, held to the record of the turn.
 
 The structure check and the words no search states are the code's, so their
-rows stand whatever the checker wrote. A sampled gene and a source stand only
-when a read of this turn returned them.
+rows stand whatever the checker wrote. The column fits are the reads' own. A
+sampled gene and a source stand only when a read of this turn returned them.
 """
 
 from __future__ import annotations
@@ -11,7 +11,9 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from functools import partial
 
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.evidence import (
+    ColumnFit,
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -23,11 +25,16 @@ from pathfinder.domain.strategy.combination_check import (
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
     Constraint,
+    ConstraintKind,
     combination_requirements_from,
     message_states_constraint,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
+
+
+# The most step ids one requirement row names.
+_ANSWERED_LIMIT = 8
 
 
 @dataclass(frozen=True)
@@ -42,6 +49,8 @@ class ReviewRecord:
     read_as: Callable[[str], str | None]
     # The page a read of one gene's record records.
     record_url: Callable[[str], str]
+    # The columns this turn's reads measured on the strategy's live steps.
+    column_fits: Sequence[ColumnFit] = ()
 
 
 def _turn_where(messages: Sequence[str], stated: Callable[[str], bool]) -> int:
@@ -129,6 +138,35 @@ def _with_the_unexpressed(
     return held
 
 
+def _with_the_record_type(
+    rows: list[RequirementCheck], record: ReviewRecord
+) -> list[RequirementCheck]:
+    """The rows, with a stated record type met when the site counts the
+    strategy's record class in that noun."""
+    spec = record.spec
+    if spec is None or not spec.criteria:
+        return rows
+    noun = counted_noun(spec.record_type)
+    counted = {
+        c.requested_value.casefold()
+        for c in record.requirements
+        if c.kind == ConstraintKind.RECORD_TYPE
+        and c.requested_value.casefold() in {noun, f"{noun}s"}
+    }
+    return [
+        row.model_copy(
+            update={
+                "status": "met",
+                "answered_by": [c.id for c in spec.criteria][:_ANSWERED_LIMIT],
+                "note": f"the strategy returns {noun}s",
+            }
+        )
+        if row.text.casefold() in counted
+        else row
+        for row in rows
+    ]
+
+
 def _read_genes(
     genes: Iterable[SampledGene], record: ReviewRecord
 ) -> list[SampledGene]:
@@ -143,12 +181,16 @@ def review_held_to_the_turn(
     review: VerificationReview, record: ReviewRecord
 ) -> VerificationReview:
     """The review as the record lets it stand."""
-    rows = _with_the_unexpressed(
-        _with_the_structure(list(review.requirements), record), record
+    rows = _with_the_record_type(
+        _with_the_unexpressed(
+            _with_the_structure(list(review.requirements), record), record
+        ),
+        record,
     )
     return review.model_copy(
         update={
             "requirements": rows,
+            "column_fits": list(record.column_fits),
             "sampled_genes": _read_genes(review.sampled_genes, record),
             "sources": [
                 cited

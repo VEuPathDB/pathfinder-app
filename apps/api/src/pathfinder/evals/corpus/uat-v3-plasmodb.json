@@ -42,7 +42,9 @@
     "curatorNote": "Needs --via-worker for the control test of the second turn."
   },
   "effort": "medium",
-  "gates": "stop",
+  "gates": {
+    "policy": "stop"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

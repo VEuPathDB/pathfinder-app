@@ -12,6 +12,7 @@ function model(name: string, reads: boolean): ModelCatalogEntry {
     id: `openai:${name}`,
     name,
     modelName: name,
+    rank: "standard",
     provider: "openai",
     enabled: true,
     supportsImages: reads,
@@ -19,8 +20,8 @@ function model(name: string, reads: boolean): ModelCatalogEntry {
   };
 }
 
-const READER = model("GPT-5.6 Luna", true);
-const TEXT_ONLY = model("Claude Sonnet 5", false);
+const READER = model("reader", true);
+const TEXT_ONLY = model("text-only", false);
 
 function pending(file: File) {
   return {

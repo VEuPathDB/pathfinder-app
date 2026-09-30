@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, get_args
+from typing import Any, TypeAliasType, get_args
 from uuid import UUID
 
 import httpx
@@ -73,9 +73,9 @@ NOT_RESOURCE_SCOPED: dict[tuple[str, str, str], str] = {
     (
         CONVERSATION.name,
         "POST",
-        "/api/v1/feedback/actions",
-    ): "Langfuse telemetry: the id is an analytics label, and the route reads "
-    "and writes no PathFinder-owned resource.",
+        "/api/v1/product-events",
+    ): "Langfuse product event: the id names the Langfuse session, and the "
+    "route reads and writes no PathFinder-owned resource.",
 }
 
 
@@ -146,10 +146,14 @@ def _path_keys(path: str) -> set[str]:
 def _nested_models(annotation: object) -> Iterator[type[BaseModel]]:
     """Yield the models one field annotation holds, through any generics.
 
-    A model can sit behind any depth of container, as ``list[X] | None`` does.
+    A model can sit behind any depth of container, as ``list[X] | None`` does,
+    or behind a ``type`` alias of a union.
     """
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         yield annotation
+        return
+    if isinstance(annotation, TypeAliasType):
+        yield from _nested_models(annotation.__value__)
         return
     for arg in get_args(annotation):
         yield from _nested_models(arg)
@@ -168,10 +172,12 @@ def _model_keys(model: type[BaseModel], depth: int) -> set[str]:
 
 
 def _body_keys(route: ApiRoute) -> set[str]:
-    """Field names of the request body, one level into nested models."""
-    if route.body_model is None:
-        return set()
-    return _model_keys(route.body_model, depth=1)
+    """Field names of every model the request body can be, one level into nested models."""
+    keys: set[str] = set()
+    for param in route.dependant.body_params:
+        for model in _nested_models(param.field_info.annotation):
+            keys |= _model_keys(model, depth=1)
+    return keys
 
 
 def _is_scoped(route: ApiRoute, resource: Resource) -> bool:

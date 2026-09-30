@@ -1,8 +1,8 @@
 """The separation arc: the run on the controls the message pastes, its card, the build a
 yes starts, and the check of the adopted strategy with those controls.
 
-The Lead's reply names each built search beside the count its step returned,
-read from the build's own record, never typed in here.
+The Lead's reply restates no count: the facts part beside it shows each built
+step with its count.
 """
 
 from __future__ import annotations
@@ -12,11 +12,10 @@ from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.calls import classify, lead_final
-from pathfinder.ai.models.mock.findings import findings
+from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE
 from pathfinder.ai.models.mock.message_words import turn_controls
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
-    added_searches,
     last_return,
     refusal_of,
     text_return,
@@ -39,29 +38,14 @@ class _Resumed(ToolAnswer):
     result: _Report = Field(default_factory=_Report)
 
 
-def _built_prose(messages: list[ModelMessage]) -> str:
-    lines = [
-        f"- {added.search_display_name}, which alone returns {added.rationale.term}"
-        for added in added_searches(messages, _ADOPT)
-        if added.rationale is not None
-    ]
-    built = "\n".join(
-        [
-            "I built the strategy the separation run measured. It runs:",
-            *lines,
-            "",
-            "The check tested it with the controls it was measured on.",
-        ]
-    )
-    return f"{built}{findings(messages)}"
-
-
-def run_reply(positives: list[str], negatives: list[str]) -> str:
-    """The run card's reply, stating the size of each list the call carries."""
-    return (
-        f"[mock] I will measure your {len(set(positives))} positive and "
-        f"{len(set(negatives))} negative controls against the site's searches."
-    )
+_BUILT = (
+    "I built the strategy the separation run measured, and the check tested it "
+    "with the controls it was measured on."
+)
+RUN_REPLY = (
+    "[mock] I will measure your positive and negative controls against the "
+    "site's searches."
+)
 
 
 def separation(messages: list[ModelMessage]) -> list[ToolCallPart]:
@@ -77,7 +61,7 @@ def separation(messages: list[ModelMessage]) -> list[ToolCallPart]:
                 "negative_controls": negatives,
                 "mode": "exact",
                 "budget": SEPARATION_BUDGET_MIN,
-                "reply": run_reply(positives, negatives),
+                "reply": RUN_REPLY,
             },
         ),
     ]
@@ -88,5 +72,5 @@ def separation(messages: list[ModelMessage]) -> list[ToolCallPart]:
         *head,
         scripted_call(_ADOPT, {"task_id": report.task_id, "reply": _ADOPT_REPLY}),
         scripted_call("verify_strategy", {"reason": "check the adopted strategy"}),
-        lead_final(_built_prose(messages), "complete", strategy_changed=True),
+        lead_final(f"{_BUILT}{FACTS_BESIDE}", "complete", strategy_changed=True),
     ]

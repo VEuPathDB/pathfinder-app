@@ -21,7 +21,11 @@ from pydantic_ai.tools import ToolDefinition
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.verify_dispatch import work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
-from pathfinder.tests.unit.ai.models._mock_turns import CONTROL_SET_ID, verify_order
+from pathfinder.tests.unit.ai.models._mock_turns import (
+    CONTROL_SET_ID,
+    LEAF_WDK_ID,
+    verify_order,
+)
 
 _VERIFY_TOOLS = (
     "run_control_tests_on_step",
@@ -95,7 +99,7 @@ def test_a_root_the_order_does_not_name_is_tested_as_the_strategy_read_names_it(
     assert args == {"wdk_step_id": 555, "control_set_id": CONTROL_SET_ID}
 
 
-def test_an_arc_without_controls_samples_the_root() -> None:
+def test_an_arc_without_controls_reads_the_search_steps_columns_first() -> None:
     args = _next("Find genes [[arc:single]]", _read_strategy(verify_order(12)))
 
-    assert args == {"wdk_step_id": 555, "limit": 2}
+    assert args == {"wdk_step_id": LEAF_WDK_ID}

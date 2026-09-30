@@ -34,10 +34,15 @@ _EDIT_TOOL = "edit_strategy"
 _EDIT_ROLE = "frame"
 
 
+def accepted_note(state: PipelineState, tool_call_id: str) -> str:
+    """The note the researcher sent with the yes; the card's words are the Lead's."""
+    answers = state.user_question_answers.get(tool_call_id, [])
+    return " ".join(answer.note for answer in answers if answer.note)
+
+
 def accepted_brief(state: PipelineState, tool_call_id: str, proposal: Proposal) -> str:
     """The edit's brief: the card's changes and the note sent with the yes."""
-    answers = state.user_question_answers.get(tool_call_id, [])
-    return proposal.brief(" ".join(answer.note for answer in answers if answer.note))
+    return proposal.brief(accepted_note(state, tool_call_id))
 
 
 def nothing_to_edit_message(brief: str) -> str:
@@ -84,8 +89,12 @@ async def propose_changes(
     filter, one way rather than another - ends with this call instead of a
     question. The reply is this call's ``reply``: it streams above the card,
     so write the whole answer to the message there and nothing as text.
-    The researcher answers Yes or No and can add a comment. A yes runs the edit
-    with ``proposedChanges`` and the comment as its brief, and the ``EditDelta``
+    Each change is typed by what it binds: values set on a criterion the
+    ledger lists, or a criterion added with the search it runs. A removal is
+    ``delete_step``, whose card lists what it removes. The researcher answers
+    Yes or No and can add a comment. A yes records the comment as the
+    researcher's words and runs the edit with ``proposedChanges`` and the
+    comment as its brief, and the ``EditDelta``
     comes back here: report it as after any ``edit_strategy``. On a conversation
     with no strategy yet, a yes asks you to frame and build the changes. A no
     ends the turn with your text as it stands, so never ask the offer in prose.
@@ -97,6 +106,7 @@ async def propose_changes(
     tool_call_id = dispatch_call_id(ctx)
     deps.state.turn_markers.accepted_proposal = True
     deps.state.domain.declined_proposal = None
+    deps.state.domain.record_request_text(accepted_note(deps.state, tool_call_id))
     brief = accepted_brief(deps.state, tool_call_id, proposal)
     if not deps.step_count:
         raise ModelRetry(nothing_to_edit_message(brief))

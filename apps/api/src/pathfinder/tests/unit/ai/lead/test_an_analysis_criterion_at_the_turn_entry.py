@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.step_words import StampedKind, StepWords
 from pathfinder.tests._support.analysis_catalog import serve_the_catalog
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.eda_step_doubles import DE_DATASET
 from pathfinder.tests.unit.ai.lead._analysis_thread import (
     WAITING,
@@ -62,7 +63,7 @@ def _carried() -> OperationalSpec:
                 id=_EXPORTED,
                 text="Genes higher in 24h than in 18h",
                 search_name=COMPUTE_QUERY,
-                resolved_params=dict(_exported_step().parameters),
+                resolved_params=bound(dict(_exported_step().parameters)),
             )
         ],
         structure=SpecStructure(root=leaf(_EXPORTED)),

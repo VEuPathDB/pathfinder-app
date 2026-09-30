@@ -47,7 +47,7 @@ def _thread(monkeypatch: pytest.MonkeyPatch) -> DisagreementThread:
 
 def _value(spec: OperationalSpec | None, name: str) -> NumberValue:
     assert spec is not None
-    value = next(c for c in spec.criteria if c.id == STAGE).resolved_params[name]
+    value = next(c for c in spec.criteria if c.id == STAGE).param_values[name]
     assert isinstance(value, NumberValue)
     return value
 

@@ -23,6 +23,7 @@ from pathfinder.ai.models.mock.consult_arc import consult
 from pathfinder.ai.models.mock.kept_arcs import recap
 from pathfinder.ai.models.mock.lead_flow import (
     BUILD_REFUSED_MARKER,
+    FACTS_BESIDE,
     FEEDBACK_PROSE,
     SUCCESS_PROSE,
     build_journey,
@@ -106,14 +107,14 @@ def _lead_call(messages: list[ModelMessage], text: str = _BUILD) -> ToolCallPart
 def test_a_verification_that_passes_is_answered_with_the_success() -> None:
     seq = build_journey(_verified(success=True))
 
-    assert _prose(seq) == f"{SUCCESS_PROSE} The strategy returns 479 genes."
+    assert _prose(seq) == f"{SUCCESS_PROSE}{FACTS_BESIDE}"
     assert seq[-1].args_as_dict()["nextState"] == "complete"
 
 
 def test_a_verification_that_fails_is_answered_with_the_problem() -> None:
     seq = build_journey(_verified(success=False))
 
-    assert _prose(seq) == f"{FEEDBACK_PROSE} The strategy returns 479 genes."
+    assert _prose(seq) == f"{FEEDBACK_PROSE}{FACTS_BESIDE}"
     assert seq[-1].args_as_dict()["nextState"] == "await_user"
 
 
@@ -219,6 +220,34 @@ def test_the_recap_answers_with_the_section_and_the_count_it_read() -> None:
     ]
 
     assert _prose(recap(msgs)) == (
-        "This conversation already carries: ## Frame (full)\n- goal: kinases\n\n"
-        "The strategy returns 363 genes."
+        "This conversation already carries: ## Frame (full)\n- goal: kinases."
+    )
+
+
+def test_the_recap_opens_with_its_words_when_the_section_prints_a_number() -> None:
+    """A section sentence that prints a number is left to the facts part."""
+    section = (
+        "## Frame (full)\n- goal: Plasmodium falciparum 3D7 genes with 2 to 99 "
+        "transmembrane domains. The criteria read the site."
+    )
+    msgs: list[ModelMessage] = [
+        _user("Recap [[arc:recap]]"),
+        *_exchange("read_ledger_section", section, "r1"),
+        *_exchange("get_live_strategy_state", {"rootCount": 363}, "l1"),
+    ]
+
+    assert _prose(recap(msgs)) == (
+        "This conversation already carries: The criteria read the site."
+    )
+
+
+def test_the_recap_points_at_the_facts_when_no_section_sentence_is_words() -> None:
+    msgs: list[ModelMessage] = [
+        _user("Recap [[arc:recap]]"),
+        *_exchange("read_ledger_section", "- goal: 363 kinases", "r1"),
+        *_exchange("get_live_strategy_state", {"rootCount": 363}, "l1"),
+    ]
+
+    assert _prose(recap(msgs)) == (
+        "This conversation already carries: the strategy shown beside this reply."
     )

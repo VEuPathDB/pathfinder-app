@@ -15,6 +15,7 @@ import { useSettingsStore } from "@/state/useSettingsStore";
 
 import { server } from "../../../../../vitest.msw-setup";
 import { ModelSettings } from "./ModelSettings";
+import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 const BASE = "http://localhost:3000";
 
@@ -28,8 +29,8 @@ function uniform(modelId: string) {
 const TIERS = {
   presets: {
     pathfinder: {
-      openai: { default: uniform("openai:gpt-5.6-luna") },
-      anthropic: { quality: uniform("anthropic:claude-opus-5") },
+      openai: { default: uniform(DEFAULT_MODEL.id) },
+      anthropic: { quality: uniform(ANTHROPIC_SMALL.id) },
     },
   },
 };
@@ -37,27 +38,29 @@ const TIERS = {
 const CATALOG = {
   models: [
     {
-      id: "openai:gpt-5.6-luna",
-      name: "GPT-5.6 Luna",
+      id: DEFAULT_MODEL.id,
+      name: DEFAULT_MODEL.name,
       provider: "openai",
-      modelName: "gpt-5.6-luna",
+      modelName: DEFAULT_MODEL.modelName,
+      rank: "standard",
       enabled: true,
     },
     {
-      id: "anthropic:claude-opus-5",
-      name: "Claude Opus 5",
+      id: ANTHROPIC_SMALL.id,
+      name: ANTHROPIC_SMALL.name,
       provider: "anthropic",
-      modelName: "claude-opus-5",
+      modelName: ANTHROPIC_SMALL.modelName,
+      rank: "small",
       enabled: false,
     },
   ],
   defaultProvider: "openai",
   defaultTier: "default",
   phaseDefaults: {
-    lead: "openai:gpt-5.6-luna",
-    frame: "openai:gpt-5.6-luna",
-    execution: "openai:gpt-5.6-luna",
-    verification: "openai:gpt-5.6-luna",
+    lead: DEFAULT_MODEL.id,
+    frame: DEFAULT_MODEL.id,
+    execution: DEFAULT_MODEL.id,
+    verification: DEFAULT_MODEL.id,
   },
 };
 
@@ -99,9 +102,7 @@ describe("ModelSettings providers", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Anthropic" }));
     fireEvent.click(await screen.findByRole("button", { name: "Quality" }));
 
-    expect(useSettingsStore.getState().phaseModels["lead"]).toBe(
-      "anthropic:claude-opus-5",
-    );
+    expect(useSettingsStore.getState().phaseModels["lead"]).toBe(ANTHROPIC_SMALL.id);
   });
 
   it("offers no provider choice when only the deployment pays", async () => {
@@ -119,7 +120,7 @@ describe("ModelSettings stage defaults", () => {
 
     const row = await screen.findByTestId("phase-row-lead");
     expect(await within(row).findByText(/^Default:/)).toHaveTextContent(
-      "Default: GPT-5.6 Luna",
+      `Default: ${DEFAULT_MODEL.name}`,
     );
   });
 });

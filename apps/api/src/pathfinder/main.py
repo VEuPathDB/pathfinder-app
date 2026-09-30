@@ -16,10 +16,12 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.platform.context import request_id_ctx
 from assistant_core.platform.db import async_session_factory, close_db, get_engine
 from assistant_core.platform.logging import get_logger, setup_logging
+from assistant_core.platform.observability import shutdown_observability
 from assistant_core.tasks.job_context import install_durable_job_context
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry import trace
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException
 from veupathdb import set_observer
@@ -49,11 +51,9 @@ from pathfinder.platform.error_handlers import (
     unknown_assistant_handler,
     veupathdb_error_handler,
 )
+from pathfinder.platform.langfuse.client import shutdown_langfuse
 from pathfinder.platform.migrations import init_db
-from pathfinder.platform.observability import (
-    setup_observability,
-    shutdown_observability,
-)
+from pathfinder.platform.observability import setup_observability, trace_routes
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 from pathfinder.platform.readiness import (
     ReadinessState,
@@ -79,12 +79,12 @@ from pathfinder.transport.http.routers import (
     eda_datasets,
     evaluation,
     exports,
-    feedback,
     gene_sets,
     health,
     me,
     memories,
     models,
+    product_events,
     seed,
     sites,
     tasks,
@@ -193,12 +193,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         readiness.mark_failed("database", str(e))
         raise
 
-    # Observability and the prompt seed both need a ready database.
-    setup_observability(app=app, db_engine=get_engine())
+    setup_observability(service_name="pathfinder-api", engine=get_engine())
     set_observer(OpenTelemetryObserver())
-    from pathfinder.platform.langfuse.prompts import seed_prompts  # noqa: PLC0415
-
-    seed_prompts()
 
     from assistant_core.platform.spawn import spawn  # noqa: PLC0415
 
@@ -258,10 +254,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     await close_all_eda_clients()
     await close_db()
     shutdown_observability()
-    from pathfinder.platform.langfuse.client import (  # noqa: PLC0415
-        shutdown_langfuse,
-    )
-
     shutdown_langfuse()
 
 
@@ -280,7 +272,7 @@ def _register_routers(app: FastAPI) -> None:
         veupathdb_auth.router,
         gene_sets.router,
         exports.router,
-        feedback.router,
+        product_events.router,
         user_data.router,
         evaluation.router,
         memories.router,
@@ -340,6 +332,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     ) -> Response:
         request_id = request.headers.get("X-Request-ID", str(uuid4()))
         request_id_ctx.set(request_id)
+        trace.get_current_span().set_attribute("app.request_id", request_id)
         veupathdb_auth_token_ctx.set(
             request.headers.get("X-VEUPATHDB-AUTH")
             or request.headers.get("X-VEUPATHDB-AUTHORIZATION")
@@ -372,6 +365,7 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
         )
 
     _register_routers(app)
+    trace_routes(app)
 
     # The dev routes mount under the mock chat provider only.
     if include_dev_routes is None:

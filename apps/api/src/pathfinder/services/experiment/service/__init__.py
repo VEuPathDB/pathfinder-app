@@ -34,7 +34,7 @@ async def run_experiment(
         status="running",
         created_at=datetime.now(UTC).isoformat(),
     )
-    store.save(experiment)
+    await store.save(experiment)
     start = time.monotonic()
     pctx = PhaseContext(config=config, experiment=experiment, store=store)
     try:
@@ -43,12 +43,12 @@ async def run_experiment(
         experiment.status = "completed"
         experiment.total_time_seconds = time.monotonic() - start
         experiment.completed_at = datetime.now(UTC).isoformat()
-        store.save(experiment)
+        await store.save(experiment)
     except Exception as exc:
         experiment.status = "error"
         experiment.error = sanitize_error_for_client(exc)
         experiment.total_time_seconds = time.monotonic() - start
-        store.save(experiment)
+        await store.save(experiment)
         raise
     else:
         return experiment

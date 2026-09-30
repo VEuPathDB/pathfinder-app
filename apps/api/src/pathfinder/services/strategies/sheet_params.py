@@ -1,4 +1,4 @@
-"""The parameter names each search's sheet shows on one site."""
+"""The parameters each search's sheet shows on one site."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from collections.abc import Collection
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp.catalog import (
+    ParameterInfo,
     format_param_info_typed,
     read_search_definition,
     resolve_search_record_type,
@@ -20,13 +21,13 @@ async def sheet_params_for_searches(
     site_id: str,
     record_type: str | None,
     search_names: Collection[str],
-) -> dict[str, frozenset[str]]:
-    """The visible parameter names of every search the catalog reads.
+) -> dict[str, list[ParameterInfo]]:
+    """The visible parameters of every search the catalog reads.
 
     A search the catalog cannot read is left out, so the caller keeps the
     values it already holds for that search.
     """
-    sheets: dict[str, frozenset[str]] = {}
+    sheets: dict[str, list[ParameterInfo]] = {}
     for search_name in sorted(set(search_names)):
         try:
             listed_under = await resolve_search_record_type(
@@ -42,9 +43,9 @@ async def sheet_params_for_searches(
                 error=str(exc),
             )
             continue
-        sheets[search_name] = frozenset(
-            info.name
+        sheets[search_name] = [
+            info
             for info in format_param_info_typed(definition.parameters or [])
             if info.is_visible
-        )
+        ]
     return sheets

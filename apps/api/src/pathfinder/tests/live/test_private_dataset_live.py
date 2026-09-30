@@ -32,6 +32,8 @@ from veupathdb.wdk import (
     RnaSeqRcUpload,
     VdiDatasetGoneError,
     VdiDatasetPostMeta,
+    VdiDatasetStatus,
+    VdiImportStatus,
     VdiInstallDisposition,
     get_strategy_api,
     get_vdi_client,
@@ -40,6 +42,7 @@ from veupathdb.wdk import (
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -61,9 +64,14 @@ _COUNTS = "ENT_fd574cd6"
 _SAMPLE_VARIABLES = ("VAR_081ab087", "VAR_26d10fbf", "VAR_84f17484", "VAR_7033e90f")
 _SAMPLE_HEADER = "sample\ttemperature_condition\tstrain\tgenotype\ttemperature_celsius"
 _GROUP_A, _GROUP_B = "wildtype", "delta-DHC mutant"
+# The site's search for an RNA-Seq upload: the volcano export of the upload runs it.
+_EXPORT_SEARCH = "GenesByDESeqUserDataset"
 # The name this lane uploads the heat shock counts under.
 _UPLOAD_NAME = "PathFinder live test counts"
 _INSTALL_BUDGET_SECONDS = 40 * 60
+# VDI marks an import "failed" when the plugin itself faults, and "invalid" when
+# it refuses the data. Only a failed import gets a new upload.
+_UPLOAD_ATTEMPTS = 3
 _COMPUTE_BUDGET_SECONDS = 10 * 60
 
 
@@ -149,24 +157,32 @@ async def _upload_curated_counts() -> str:
     return created.dataset_id
 
 
-async def _await_install(client: httpx.AsyncClient, vdi_id: str) -> _Upload:
-    """Poll on the site's schedule until the upload installs and its study is listed."""
+async def _settled(vdi_id: str) -> VdiDatasetStatus:
+    """Poll on the site's schedule until the upload installs or fails."""
     vdi = get_vdi_client(_SITE)
     started = time.monotonic()
     outcome, polls = VdiInstallDisposition.CONTINUE, 0
-    while outcome not in {
-        VdiInstallDisposition.INSTALLED,
-        VdiInstallDisposition.FAILED,
-    }:
+    while True:
         assert time.monotonic() - started < _INSTALL_BUDGET_SECONDS
         await asyncio.sleep(poll_interval_seconds(polls, outcome))
         polls += 1
         status = (await vdi.get(vdi_id)).status
         outcome = status.disposition(_PROJECT)
-        assert outcome is not VdiInstallDisposition.FAILED, (
-            f"VEuPathDB did not install {vdi_id}: {status.failure_messages(_PROJECT)}"
-        )
-    install_seconds = round(time.monotonic() - started, 1)
+        if outcome in {VdiInstallDisposition.INSTALLED, VdiInstallDisposition.FAILED}:
+            return status
+
+
+def _plugin_fault(status: VdiDatasetStatus) -> bool:
+    return (
+        status.import_ is not None and status.import_.status is VdiImportStatus.FAILED
+    )
+
+
+async def _listed(
+    client: httpx.AsyncClient, vdi_id: str, install_seconds: float
+) -> _Upload:
+    """The installed upload, once the site lists its study."""
+    started = time.monotonic()
     while (found := await _installed(client)) is None:
         assert time.monotonic() - started < _INSTALL_BUDGET_SECONDS
         await asyncio.sleep(2)
@@ -176,6 +192,16 @@ async def _await_install(client: httpx.AsyncClient, vdi_id: str) -> _Upload:
         created_here=True,
         install_seconds=install_seconds,
     )
+
+
+@contextlib.asynccontextmanager
+async def _curated_upload() -> AsyncGenerator[str]:
+    """One upload of the curated counts, deleted when the block ends."""
+    vdi_id = await _upload_curated_counts()
+    try:
+        yield vdi_id
+    finally:
+        await _delete_and_confirm(vdi_id)
 
 
 async def _delete_and_confirm(vdi_id: str) -> None:
@@ -196,7 +222,10 @@ async def researcher(
     signed_in_to_veupathdb: None,
     require_wdk_creds: str,
 ) -> AsyncGenerator[tuple[httpx.AsyncClient, UUID]]:
-    """A thread held by a researcher signed in as the registered account."""
+    """A thread held by a researcher signed in as the registered account.
+
+    The job queue is open, as in every served process: an exported step defers a job.
+    """
     del patch_app_db_engine, db_cleaner, signed_in_to_veupathdb
     conversation_id = uuid4()
     async with attach_application(), session_maker() as session:
@@ -212,7 +241,10 @@ async def researcher(
         await session.commit()
     reset = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
-        async with client_for(app, user.id, wdk_token=require_wdk_creds) as client:
+        async with (
+            procrastinate_app.open_async(),
+            client_for(app, user.id, wdk_token=require_wdk_creds) as client,
+        ):
             yield client, conversation_id
     finally:
         veupathdb_auth_token_ctx.reset(reset)
@@ -228,11 +260,19 @@ async def installed_upload(
     if owned is not None:
         yield _Upload(dataset_id=owned[0], vdi_id=owned[1], created_here=False)
         return
-    vdi_id = await _upload_curated_counts()
-    try:
-        yield await _await_install(client, vdi_id)
-    finally:
-        await _delete_and_confirm(vdi_id)
+    faults: list[str] = []
+    for _attempt in range(_UPLOAD_ATTEMPTS):
+        async with _curated_upload() as vdi_id:
+            started = time.monotonic()
+            status = await _settled(vdi_id)
+            if status.disposition(_PROJECT) is VdiInstallDisposition.INSTALLED:
+                seconds = round(time.monotonic() - started, 1)
+                yield await _listed(client, vdi_id, seconds)
+                return
+            fault = f"{vdi_id}: {status.failure_messages(_PROJECT)}"
+            assert _plugin_fault(status), f"VEuPathDB refused {fault}"
+            faults.append(fault)
+    pytest.fail(f"The VEuPathDB import plugin faulted on every upload: {faults}")
 
 
 async def _patch(client: httpx.AsyncClient, conversation_id: UUID, body: object) -> Any:
@@ -338,11 +378,7 @@ async def test_an_installed_upload_exports_the_count_the_site_answers(
             )
         )["step"]
         wdk_strategy_id = exported["wdkStrategyId"]
-        step = next(
-            s
-            for s in exported["steps"]
-            if s["searchName"] == "GenesByEdaVizWithCompute"
-        )
+        step = next(s for s in exported["steps"] if s["searchName"] == _EXPORT_SEARCH)
         answered = await get_strategy_api(_SITE).get_step_count(step["wdkStepId"])
 
         retained = volcano.json()["retainedPoints"]

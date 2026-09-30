@@ -71,3 +71,5 @@ class EdaExport(CamelModel):
     effect_size_threshold: float | None = None
     significance_threshold: float | None = None
     effect_direction: EdaEffectDirection | None = None
+    # The step this export took the place of.
+    replaced_step_id: str | None = None

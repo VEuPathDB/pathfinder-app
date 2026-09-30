@@ -129,9 +129,14 @@ async def run_one_chat_turn(
     user_id: UUID,
     connector: InMemoryConnector,
     prompt: str,
+    conversation_id: UUID | None = None,
 ) -> list[dict[str, Any]]:
-    """Post one prompt, run the deferred turn, and return its SSE chunks."""
-    conversation_id = uuid4()
+    """Post one prompt, run the deferred turn, and return its SSE chunks.
+
+    ``conversation_id`` names the thread to continue; a new one opens without it.
+    """
+    thread_id = conversation_id or uuid4()
+    queued = len(chat_turn_jobs(connector))
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
@@ -141,12 +146,12 @@ async def run_one_chat_turn(
         post_task = asyncio.create_task(
             client.post(
                 "/api/v1/chat",
-                json=chat_post_body(conversation_id, prompt),
+                json=chat_post_body(thread_id, prompt),
                 timeout=30.0,
             ),
         )
         await asyncio.wait_for(
-            wait_until_chat_turn_deferred(connector),
+            wait_until_chat_turn_deferred(connector, after=queued),
             timeout=_DEADLOCK_CEILING_SECONDS,
         )
         await run_deferred_chat_turns()

@@ -1,4 +1,4 @@
-"""A memory-store call that never answers ends, and the turn says so."""
+"""A memory-store call that never answers ends, and the turn keeps its reply."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.memory.deadline import MemoryStoreTimeoutError
 from assistant_core.memory.schemas import MemoryValue
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from langgraph.runtime import Runtime
 from langgraph.store.postgres.aio import AsyncPostgresStore
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph import _lead_turn, nodes
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import (
@@ -61,14 +61,14 @@ class _NoTombstones:
         return set()
 
 
-def _context() -> Context:
+def _context(store: AsyncPostgresStore | None = None) -> Context:
     return Context(
         site_id="plasmodb",
         user_id=uuid4(),
         strategy_session=StrategySession(site_id="plasmodb"),
         db_session_factory=no_database,
         cancel_event=asyncio.Event(),
-        memory_store=_StoreThatNeverAnswers(),
+        memory_store=store or _StoreThatNeverAnswers(),
     )
 
 
@@ -131,17 +131,8 @@ async def test_retrieval_gives_up_at_the_deadline(short_deadline: None) -> None:
     assert 0.05 <= elapsed < 1.0
 
 
-async def test_the_auto_write_fails_the_turn(
-    short_deadline: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A store that never answers the auto-write ends the turn as an error."""
-    del short_deadline
-
-    async def _no_turn_message(**kwargs: Any) -> None:
-        del kwargs
-
-    candidate = MemoryValue(
+def _candidate() -> MemoryValue:
+    return MemoryValue(
         kind="knowledge",
         name="kinome",
         summary="the kinome has 105 members",
@@ -149,10 +140,16 @@ async def test_the_auto_write_fails_the_turn(
         created_at=datetime.now(UTC),
     )
 
+
+def _finalize_without_io(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _no_turn_message(**kwargs: Any) -> None:
+        del kwargs
+
     async def _one_candidate(
         _state: PipelineState,
+        **_kwargs: object,
     ) -> Sequence[tuple[MemoryValue, str]]:
-        return [(candidate, "kinome")]
+        return [(_candidate(), "kinome")]
 
     async def _no_compaction(**kwargs: Any) -> None:
         del kwargs
@@ -161,9 +158,55 @@ async def test_the_auto_write_fails_the_turn(
     monkeypatch.setattr(nodes, "collect_turn_memory_candidates", _one_candidate)
     monkeypatch.setattr(nodes, "TombstoneRepository", _NoTombstones)
     monkeypatch.setattr(nodes, "compact_scratchpad", _no_compaction)
+
+
+async def test_an_auto_write_timeout_leaves_the_turn_finished(
+    short_deadline: None,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A store that never answers the auto-write costs the notes, not the reply."""
+    del short_deadline
+    _finalize_without_io(monkeypatch)
     runtime: Runtime[Context] = Runtime(context=_context())
 
-    with pytest.raises(MemoryStoreTimeoutError) as caught:
-        await nodes.finalize_turn_node(_state(verified=True), runtime)
+    command = await nodes.finalize_turn_node(_state(verified=True), runtime)
 
-    assert caught.value.operation == "the memory auto-write"
+    assert command.goto == "__end__"
+    assert command.update is None
+    assert logged_events(caplog.records, logger=nodes.__name__) == [
+        "the memory auto-write failed; the turn keeps its reply"
+    ]
+
+
+class _EmbeddingRefusedError(Exception):
+    """An embedding client error that subclasses none of the builtin I/O errors."""
+
+
+class _StoreWhoseEmbeddingFails(_StoreThatNeverAnswers):
+    """Stands in for a store whose embedding call raises inside ``aput``."""
+
+    async def aput(self, *args: Any, **kwargs: Any) -> None:
+        del args, kwargs
+        raise _EmbeddingRefusedError
+
+
+async def test_an_auto_write_that_raises_keeps_the_gene_sets_to_note(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Any auto-write failure after the reply ends the turn normally, notes unwritten."""
+    _finalize_without_io(monkeypatch)
+    runtime: Runtime[Context] = Runtime(context=_context(_StoreWhoseEmbeddingFails()))
+    state = _state(verified=True)
+    saved = CreatedGeneSet(id="gs-1", name="Pf kinases", gene_count=105)
+    state.domain.created_gene_sets.append(saved)
+
+    command = await nodes.finalize_turn_node(state, runtime)
+
+    assert command.goto == "__end__"
+    assert command.update is None
+    assert state.domain.created_gene_sets == [saved]
+    assert logged_events(caplog.records, logger=nodes.__name__) == [
+        "the memory auto-write failed; the turn keeps its reply"
+    ]

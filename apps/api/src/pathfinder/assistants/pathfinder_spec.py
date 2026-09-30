@@ -18,6 +18,7 @@ from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
 from pathfinder.ai.graph.builder import build_pathfinder_graph
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import (
+    FailureCause,
     PhaseDisposition,
     PipelineState,
     StrategyDomainState,
@@ -60,6 +61,7 @@ PATHFINDER_CHECKPOINT_TYPES: tuple[type, ...] = (
     SearchOverview,
     PhaseDisposition,
     VerificationDigest,
+    FailureCause,
     IntentClassification,
     UserIntent,
     BuildOutcome,

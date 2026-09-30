@@ -83,10 +83,28 @@ Network=pathfinder.network
 WantedBy=default.target
 `;
 
+const langfuseUnit = (name, image, extra = "") => `[Container]
+ContainerName=${name}
+Image=${image}
+Network=pathfinder.network
+EnvironmentFile=%h/.config/pathfinder/langfuse.env
+${extra}
+[Install]
+WantedBy=default.target
+`;
+
+const LANGFUSE_WEB = langfuseUnit(
+  "pathfinder-langfuse",
+  "docker.io/langfuse/langfuse:3.225.11",
+  "PublishPort=127.0.0.1:3110:3000\n",
+);
+
 const INSTALLER = `sed "s|${TAG_PLACEHOLDER}|$PATHFINDER_TAG|g"
 pathfinder-db.service pathfinder-wdk-mcp.service pathfinder-searxng.service
 pathfinder-research-mcp.service pathfinder-api.service pathfinder-worker.service
-pathfinder-web.service
+pathfinder-web.service pathfinder-langfuse.service pathfinder-langfuse-worker.service
+pathfinder-langfuse-db.service pathfinder-langfuse-clickhouse.service
+pathfinder-langfuse-minio.service pathfinder-langfuse-redis.service
 `;
 
 const CLEAN = [
@@ -97,6 +115,27 @@ const CLEAN = [
   unit("pathfinder-research-mcp.container", RESEARCH_MCP),
   unit("pathfinder-searxng.container", SEARXNG),
   unit("pathfinder-db.container", DB),
+  unit("pathfinder-langfuse.container", LANGFUSE_WEB),
+  unit(
+    "pathfinder-langfuse-worker.container",
+    langfuseUnit("pathfinder-langfuse-worker", "docker.io/langfuse/langfuse-worker:3.225.11"),
+  ),
+  unit(
+    "pathfinder-langfuse-db.container",
+    langfuseUnit("pathfinder-langfuse-db", "docker.io/library/postgres:17-alpine"),
+  ),
+  unit(
+    "pathfinder-langfuse-clickhouse.container",
+    langfuseUnit("pathfinder-langfuse-clickhouse", "docker.io/clickhouse/clickhouse-server:25.12"),
+  ),
+  unit(
+    "pathfinder-langfuse-minio.container",
+    langfuseUnit("pathfinder-langfuse-minio", "cgr.dev/chainguard/minio@sha256:6a1d"),
+  ),
+  unit(
+    "pathfinder-langfuse-redis.container",
+    langfuseUnit("pathfinder-langfuse-redis", "docker.io/library/redis:7.4-alpine"),
+  ),
 ];
 
 const withUnit = (name, text) =>
@@ -298,4 +337,23 @@ test("a missing unit is named", () => {
   const units = new Map(CLEAN.filter(([name]) => name !== "pathfinder-db.container"));
 
   assert.match(only(units), /expected pathfinder-api\.container/);
+});
+
+test("a trace store unit that reads the application's secrets is rejected", () => {
+  const leaking = LANGFUSE_WEB.replace(
+    "EnvironmentFile=%h/.config/pathfinder/langfuse.env",
+    "EnvironmentFile=%h/.config/pathfinder/.env",
+  );
+  assert.equal(
+    only(withUnit("pathfinder-langfuse.container", leaking)),
+    "pathfinder-langfuse.container: reads %h/.config/pathfinder/.env, expected %h/.config/pathfinder/langfuse.env",
+  );
+});
+
+test("the trace store UI on every interface is rejected", () => {
+  const open = LANGFUSE_WEB.replace("127.0.0.1:3110:3000", "3110:3000");
+  assert.equal(
+    only(withUnit("pathfinder-langfuse.container", open)),
+    "pathfinder-langfuse.container: publishes 3110:3000, expected 127.0.0.1:3110:3000",
+  );
 });

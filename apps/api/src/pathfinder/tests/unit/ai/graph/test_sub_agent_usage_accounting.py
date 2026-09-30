@@ -26,6 +26,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     SubAgentRunUsage,
     ToolCharge,
 )
+from pathfinder.tests._support.models import ANTHROPIC_SMALL
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
     lead_deps,
@@ -33,8 +34,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 )
 
 _CALL_ID = "mock_frame_problem_cb4558c207"
-_MODEL = "claude-sonnet-5"
-_PROVIDER = "anthropic"
+_PROVIDER, _, _MODEL = ANTHROPIC_SMALL.partition(":")
 
 
 def _pass(tokens: int) -> SubAgentRunUsage:

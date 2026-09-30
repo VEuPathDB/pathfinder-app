@@ -6,6 +6,7 @@ from assistant_core.platform import db
 
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 
 async def test_insert_and_fetch_message(
@@ -18,7 +19,7 @@ async def test_insert_and_fetch_message(
     message_id = uuid4()
     metadata: dict[str, object] = {
         "phase": "scoping",
-        "model": "anthropic:claude-sonnet-4-5",
+        "model": DEFAULT_MODEL,
     }
 
     async with db.async_session_factory() as session:

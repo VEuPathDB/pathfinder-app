@@ -12,6 +12,7 @@ import { useSettingsStore } from "@/state/useSettingsStore";
 import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { SubAgentTraceAnchor, TraceAnchor } from "./TraceAnchor";
 import recordedTurn from "../__fixtures__/recordedTurn.json";
+import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn(), message: vi.fn() },
@@ -86,7 +87,7 @@ function leadUsage(extra: Record<string, unknown> = {}): MessagePart {
     type: "data-lead-usage",
     id: "lu_1",
     data: {
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: 41800,
       costUsd: "0.0131",
       ...extra,
@@ -193,7 +194,7 @@ describe("TraceAnchor", () => {
   it("prints the turn's model with the whole turn's tokens and cost", () => {
     const view = anchorFor("call_1", "search_eda_studies");
     expect(view.getByTestId("trace-usage")).toHaveTextContent(
-      "gpt-5.6-luna - 54.1K, $0.02",
+      `${DEFAULT_MODEL.modelName} - 54.1K, $0.02`,
     );
   });
 
@@ -205,7 +206,7 @@ describe("TraceAnchor", () => {
 
     const last = anchorFor("call_b", "set_criterion", twoRuns());
     expect(last.getByTestId("trace-usage")).toHaveTextContent(
-      "gpt-5.6-luna - 41.8K, $0.01",
+      `${DEFAULT_MODEL.modelName} - 41.8K, $0.01`,
     );
   });
 
@@ -216,7 +217,7 @@ describe("TraceAnchor", () => {
       twoRuns(leadUsage({ reasoningEffort: "high" })),
     );
     expect(view.getByTestId("trace-usage")).toHaveTextContent(
-      "gpt-5.6-luna (high) - 41.8K, $0.01",
+      `${DEFAULT_MODEL.modelName} (high) - 41.8K, $0.01`,
     );
   });
 
@@ -227,14 +228,14 @@ describe("TraceAnchor", () => {
       twoRuns(leadUsage({ reasoningEffort: "none" })),
     );
     expect(view.getByTestId("trace-usage")).toHaveTextContent(
-      "gpt-5.6-luna - 41.8K, $0.01",
+      `${DEFAULT_MODEL.modelName} - 41.8K, $0.01`,
     );
   });
 
   it("names no effort for a turn that reports none", () => {
     const view = anchorFor("call_b", "set_criterion", twoRuns());
     expect(view.getByTestId("trace-usage")).toHaveTextContent(
-      "gpt-5.6-luna - 41.8K, $0.01",
+      `${DEFAULT_MODEL.modelName} - 41.8K, $0.01`,
     );
   });
 

@@ -13,7 +13,10 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
-from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
+from pathfinder.ai.tools.standalone._variant_targets import (
+    checked_variants,
+    reject_combine_variants,
+)
 from pathfinder.ai.tools.standalone.saved_control_sets import (
     ATTACH_A_SET,
     unattached_set,
@@ -72,41 +75,6 @@ def _scored_runs(
     return runs
 
 
-def _membership(comparison: ScoredComparison) -> str:
-    """Which of the control ids each variant's result holds."""
-    return "; ".join(
-        f"{v.label} contains {', '.join(v.control_hits) or 'none of them'}"
-        for v in comparison.variants
-    )
-
-
-def _summary(comparison: ScoredComparison) -> str:
-    scored = [v for v in comparison.variants if v.error is None]
-    failed = [v for v in comparison.variants if v.error is not None]
-    parts = [f"Ran {len(comparison.variants)} variants against the control set."]
-    if scored:
-        rows = "; ".join(
-            f"{v.label}: MCC={v.mcc}, F1={v.f1}, prec={v.precision}" for v in scored
-        )
-        winner = comparison.winner_label or "none"
-        parts.append(f"Ranked by {comparison.objective}: {rows}. Winner: {winner}.")
-    if failed:
-        lines = "; ".join(f"{v.label}: {v.error}" for v in failed)
-        parts.append(
-            f"The scoring failed for {len(failed)} of them - {lines}. "
-            "Tell the user the scoring failed and why; do not name another "
-            "reason and do not report a score for those variants."
-        )
-    parts.append(f"Control ids per variant: {_membership(comparison)}.")
-    parts.append(
-        "Report the winner and the metric trade-offs, then proceed with the "
-        "chosen variant."
-        if scored
-        else "Answer the membership question from the ids above."
-    )
-    return " ".join(parts)
-
-
 async def compare_variants_scored(
     ctx: RunContext[LeadDeps],
     variants: list[VariantSpec],
@@ -131,6 +99,7 @@ async def compare_variants_scored(
     if refused is not None:
         msg = f"{refused} {ATTACH_A_SET}"
         raise ModelRetry(msg)
+    variants = await checked_variants(runtime.site_id, variants)
 
     parsed = parse_id_argument(
         control_set_id, argument="control_set_id", names="control set"
@@ -159,14 +128,12 @@ async def compare_variants_scored(
         type="data-scored-comparison",
         data=result.model_dump(by_alias=True, mode="json"),
     )
-    scored = with_summary(
+    return with_summary(
         result,
         _scored_line(result),
         ctx=ctx,
         extra=[chunk],
     )
-    scored.content = _summary(result)
-    return scored
 
 
 def _scored_line(comparison: ScoredComparison) -> str:

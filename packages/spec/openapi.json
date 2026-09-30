@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a18"
+    "version": "0.2.0a19"
   },
   "paths": {
     "/health": {
@@ -4320,19 +4320,19 @@
         }
       }
     },
-    "/api/v1/feedback/actions": {
+    "/api/v1/product-events": {
       "post": {
         "tags": [
-          "feedback"
+          "product-events"
         ],
-        "summary": "Submit Product Action",
-        "description": "Record a non-score product action in Langfuse.",
-        "operationId": "submit_product_action_api_v1_feedback_actions_post",
+        "summary": "Record Event",
+        "description": "Record one product event on the conversation's Langfuse session.",
+        "operationId": "record_event_api_v1_product_events_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ProductActionRequest"
+                "$ref": "#/components/schemas/ProductEventRequest"
               }
             }
           },
@@ -4357,7 +4357,18 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
       }
     },
     "/api/v1/user/data": {
@@ -5559,6 +5570,38 @@
         ],
         "title": "ApplyOperationRequest"
       },
+      "AssistantRegenerated": {
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
+          "event": {
+            "type": "string",
+            "const": "assistant_regenerated",
+            "title": "Event"
+          },
+          "messageId": {
+            "type": "string",
+            "title": "Messageid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "messageId"
+        ],
+        "title": "AssistantRegenerated",
+        "description": "A request to answer the last message again."
+      },
       "AttachIntoSlot": {
         "properties": {
           "mode": {
@@ -5807,6 +5850,43 @@
           "geneIds"
         ],
         "title": "BuildGoldResponse"
+      },
+      "CardAnswered": {
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
+          "event": {
+            "type": "string",
+            "const": "card_answered",
+            "title": "Event"
+          },
+          "toolName": {
+            "type": "string",
+            "title": "Toolname"
+          },
+          "approved": {
+            "type": "boolean",
+            "title": "Approved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "toolName",
+          "approved"
+        ],
+        "title": "CardAnswered",
+        "description": "A consult or approval card the researcher answered."
       },
       "ChatRequestBody": {
         "properties": {
@@ -8040,6 +8120,38 @@
         "title": "EventsSnapshot",
         "description": "The completed history a thread serves, and where a tail continues it."
       },
+      "ExportRequested": {
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
+          "event": {
+            "type": "string",
+            "const": "export_requested",
+            "title": "Event"
+          },
+          "exportKind": {
+            "type": "string",
+            "title": "Exportkind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "exportKind"
+        ],
+        "title": "ExportRequested",
+        "description": "An export the researcher asked for."
+      },
       "FetchGeneIdsRequest": {
         "properties": {
           "strategyId": {
@@ -8916,9 +9028,12 @@
             "title": "Outputprice",
             "default": 0.0
           },
-          "isProviderSmallest": {
+          "rank": {
+            "$ref": "#/components/schemas/ModelRank"
+          },
+          "isProviderDefault": {
             "type": "boolean",
-            "title": "Isprovidersmallest",
+            "title": "Isproviderdefault",
             "default": false
           },
           "provider": {
@@ -8938,6 +9053,7 @@
         "required": [
           "id",
           "name",
+          "rank",
           "provider",
           "modelName"
         ],
@@ -8993,6 +9109,14 @@
           "google",
           "ollama",
           "mock"
+        ]
+      },
+      "ModelRank": {
+        "type": "string",
+        "enum": [
+          "flagship",
+          "standard",
+          "small"
         ]
       },
       "MultiPickValue": {
@@ -9620,97 +9744,38 @@
         "title": "PrivacyUpdate",
         "description": "A change to one or both of the two flags. An unset field is unchanged."
       },
-      "ProductActionRequest": {
-        "properties": {
-          "action": {
-            "type": "string",
-            "enum": [
-              "plan_approve",
-              "plan_reject",
-              "plan_suggest_changes",
-              "plan_ask_question",
-              "undo_turn",
-              "assistant_regenerate"
-            ],
-            "title": "Action"
+      "ProductEventRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CardAnswered"
           },
-          "streamId": {
-            "type": "string",
-            "title": "Streamid"
+          {
+            "$ref": "#/components/schemas/StrategyOpened"
           },
-          "traceId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Traceid"
+          {
+            "$ref": "#/components/schemas/ExportRequested"
           },
-          "strategyId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Strategyid"
+          {
+            "$ref": "#/components/schemas/TurnUndone"
           },
-          "planId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Planid"
+          {
+            "$ref": "#/components/schemas/AssistantRegenerated"
           },
-          "entryId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Entryid"
-          },
-          "messageGroupId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Messagegroupid"
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/JSONObject"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          {
+            "$ref": "#/components/schemas/SiteSwitched"
           }
-        },
-        "type": "object",
-        "required": [
-          "action",
-          "streamId"
         ],
-        "title": "ProductActionRequest",
-        "description": "A user interaction to be recorded as a product signal."
+        "discriminator": {
+          "propertyName": "event",
+          "mapping": {
+            "assistant_regenerated": "#/components/schemas/AssistantRegenerated",
+            "card_answered": "#/components/schemas/CardAnswered",
+            "export_requested": "#/components/schemas/ExportRequested",
+            "site_switched": "#/components/schemas/SiteSwitched",
+            "strategy_opened": "#/components/schemas/StrategyOpened",
+            "turn_undone": "#/components/schemas/TurnUndone"
+          }
+        }
       },
       "ProviderKeyIn": {
         "properties": {
@@ -10453,6 +10518,13 @@
             "type": "array",
             "title": "Sources"
           },
+          "derivedFrom": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Derivedfrom"
+          },
           "short": {
             "type": "string",
             "title": "Short",
@@ -10650,6 +10722,43 @@
         ],
         "title": "SiteResponse",
         "description": "VEuPathDB site information, with what this process can reach of it."
+      },
+      "SiteSwitched": {
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
+          "event": {
+            "type": "string",
+            "const": "site_switched",
+            "title": "Event"
+          },
+          "fromSite": {
+            "type": "string",
+            "title": "Fromsite"
+          },
+          "toSite": {
+            "type": "string",
+            "title": "Tosite"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "fromSite",
+          "toSite"
+        ],
+        "title": "SiteSwitched",
+        "description": "A move from one VEuPathDB site to another."
       },
       "SourceDocumentUIPart": {
         "properties": {
@@ -11473,6 +11582,49 @@
         ],
         "title": "StrategyAst",
         "description": "Serialized strategy graph state used at every persistence boundary."
+      },
+      "StrategyOpened": {
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
+          "event": {
+            "type": "string",
+            "const": "strategy_opened",
+            "title": "Event"
+          },
+          "siteId": {
+            "type": "string",
+            "title": "Siteid"
+          },
+          "wdkStrategyId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wdkstrategyid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "siteId"
+        ],
+        "title": "StrategyOpened",
+        "description": "The link that opens the strategy on the VEuPathDB site."
       },
       "StrategyStepNode": {
         "properties": {
@@ -12685,6 +12837,38 @@
         "title": "ToolOutputErrorPart",
         "description": "Tool part in output-error state."
       },
+      "TurnUndone": {
+        "properties": {
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversationid"
+          },
+          "event": {
+            "type": "string",
+            "const": "turn_undone",
+            "title": "Event"
+          },
+          "messageId": {
+            "type": "string",
+            "title": "Messageid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "messageId"
+        ],
+        "title": "TurnUndone",
+        "description": "A revert of the thread to an earlier message."
+      },
       "UIMessage": {
         "properties": {
           "id": {
@@ -13593,8 +13777,46 @@
         },
         "type": "array"
       },
+      "AddCriterionChange": {
+        "description": "A change that adds a criterion running one search of the site.",
+        "properties": {
+          "kind": {
+            "const": "add_criterion",
+            "default": "add_criterion",
+            "title": "Kind",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The change as one plain sentence the researcher reads on the card, naming the search and the values it sets by their display names.",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Sentence",
+            "type": "string"
+          },
+          "searchName": {
+            "description": "The site's name of the search the step runs.",
+            "minLength": 1,
+            "title": "Searchname",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Each parameter the search takes a stated value for, by name.",
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "sentence",
+          "searchName"
+        ],
+        "title": "AddCriterionChange",
+        "type": "object"
+      },
       "AnalysisBinding": {
-        "description": "The genes one exported analysis selects, and the document that selects them.\n\n``step_parameters`` is the step's own document, carried as an opaque value\nlike a saved strategy's subtree. ``value_entity_id`` and ``value_variable``\nname the variable the compute measured; a variable id is scoped to its entity.",
+        "description": "The genes one exported analysis selects, and the document that selects them.\n\n``step_parameters`` is the step's own document, carried as an opaque value\nlike a saved strategy's subtree. ``value_entity_id`` and ``value_variable``\nname the variable the compute measured; a variable id is scoped to its entity.\n``effect_size_label`` is the unit of the effect size, as the compute named it.",
         "properties": {
           "datasetId": {
             "title": "Datasetid",
@@ -13669,6 +13891,11 @@
               }
             ],
             "title": "Effectsizethreshold"
+          },
+          "effectSizeLabel": {
+            "default": "",
+            "title": "Effectsizelabel",
+            "type": "string"
           },
           "significanceThreshold": {
             "anyOf": [
@@ -13748,6 +13975,28 @@
             },
             "title": "Stepparameters",
             "type": "object"
+          },
+          "shownSubset": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Shownsubset",
+            "type": "array"
+          },
+          "valueVariableName": {
+            "default": "",
+            "title": "Valuevariablename",
+            "type": "string"
+          },
+          "tallies": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CutTallies"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -13757,33 +14006,79 @@
         "title": "AnalysisBinding",
         "type": "object"
       },
-      "AssumedValue": {
-        "description": "A value the model chose that the criterion text does not state.\n\nIt is reported as a constraint so the user reads it and can override it.",
+      "AssumedValueCaveat": {
+        "description": "A value the request did not state, where another reading counts more genes.",
         "properties": {
-          "paramName": {
-            "title": "Paramname",
+          "kind": {
+            "const": "assumed_value",
+            "default": "assumed_value",
+            "title": "Kind",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "paramDisplayName": {
+            "title": "Paramdisplayname",
             "type": "string"
           },
           "value": {
             "title": "Value",
             "type": "string"
           },
-          "reason": {
-            "title": "Reason",
+          "source": {
+            "enum": [
+              "default",
+              "chosen"
+            ],
+            "title": "Source",
             "type": "string"
           },
-          "carriedFrom": {
-            "default": "",
-            "title": "Carriedfrom",
+          "boundCount": {
+            "title": "Boundcount",
+            "type": "integer"
+          },
+          "readingKind": {
+            "enum": [
+              "loosest_bound",
+              "wildcard_phrase",
+              "site_search_reach",
+              "any_strain",
+              "all_strains",
+              "site_default",
+              "bound_count"
+            ],
+            "title": "Readingkind",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "readingCount": {
+            "title": "Readingcount",
+            "type": "integer"
+          },
+          "sentence": {
+            "description": "The value, who set it, and the count at it beside the other reading's.",
+            "readOnly": true,
+            "title": "Sentence",
             "type": "string"
           }
         },
         "required": [
-          "paramName",
+          "criterionId",
+          "paramDisplayName",
           "value",
-          "reason"
+          "source",
+          "boundCount",
+          "readingKind",
+          "reading",
+          "readingCount",
+          "sentence"
         ],
-        "title": "AssumedValue",
+        "title": "AssumedValueCaveat",
         "type": "object"
       },
       "BackgroundTaskStarted": {
@@ -13807,6 +14102,129 @@
           "estimatedDurationSeconds"
         ],
         "title": "BackgroundTaskStarted",
+        "type": "object"
+      },
+      "BoundLifecycle": {
+        "description": "A requirement a criterion's values state.",
+        "properties": {
+          "state": {
+            "const": "bound",
+            "default": "bound",
+            "title": "State",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "params": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Params",
+            "type": "array"
+          }
+        },
+        "required": [
+          "criterionId"
+        ],
+        "title": "BoundLifecycle",
+        "type": "object"
+      },
+      "BoundValue": {
+        "description": "A bound value, and who set it.\n\n``basis`` is the request's words for a stated value, the model's reason for\na chosen one and the option id for a card value. A default has none, and\nneither has a held value, which a strategy that already exists holds with\nno record of who set it.",
+        "properties": {
+          "value": {
+            "discriminator": {
+              "mapping": {
+                "date": "#/components/schemas/DateValue",
+                "date-range": "#/components/schemas/DateRangeValue",
+                "filter": "#/components/schemas/FilterValue",
+                "input-dataset": "#/components/schemas/InputDatasetValue",
+                "input-step": "#/components/schemas/InputStepValue",
+                "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
+                "number": "#/components/schemas/NumberValue",
+                "number-range": "#/components/schemas/NumberRangeValue",
+                "single-pick-vocabulary": "#/components/schemas/SinglePickValue",
+                "string": "#/components/schemas/StringValue",
+                "timestamp": "#/components/schemas/TimestampValue"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StringValue"
+              },
+              {
+                "$ref": "#/components/schemas/NumberValue"
+              },
+              {
+                "$ref": "#/components/schemas/NumberRangeValue"
+              },
+              {
+                "$ref": "#/components/schemas/DateValue"
+              },
+              {
+                "$ref": "#/components/schemas/DateRangeValue"
+              },
+              {
+                "$ref": "#/components/schemas/TimestampValue"
+              },
+              {
+                "$ref": "#/components/schemas/SinglePickValue"
+              },
+              {
+                "$ref": "#/components/schemas/MultiPickValue"
+              },
+              {
+                "$ref": "#/components/schemas/FilterValue"
+              },
+              {
+                "$ref": "#/components/schemas/InputDatasetValue"
+              },
+              {
+                "$ref": "#/components/schemas/InputStepValue"
+              }
+            ],
+            "title": "Value"
+          },
+          "source": {
+            "enum": [
+              "stated",
+              "chosen",
+              "default",
+              "card",
+              "held"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "basis": {
+            "default": "",
+            "title": "Basis",
+            "type": "string"
+          },
+          "carriedFrom": {
+            "default": "",
+            "title": "Carriedfrom",
+            "type": "string"
+          },
+          "placeholder": {
+            "default": false,
+            "title": "Placeholder",
+            "type": "boolean"
+          },
+          "statedAs": {
+            "default": "",
+            "title": "Statedas",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "source"
+        ],
+        "title": "BoundValue",
         "type": "object"
       },
       "BuildCaveat": {
@@ -13852,7 +14270,7 @@
         "type": "object"
       },
       "BuildOutcome": {
-        "description": "Structured result of a declarative strategy build.",
+        "description": "Structured result of a declarative strategy build. It holds no count:\nevery count is read from the session's sync state through ``built_counts``.",
         "properties": {
           "pushedStepIds": {
             "items": {
@@ -13885,42 +14303,6 @@
               }
             ],
             "title": "Wdkstrategyid"
-          },
-          "wdkUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Wdkurl"
-          },
-          "counts": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "title": "Counts",
-            "type": "object"
-          },
-          "rootCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rootcount"
           },
           "zeroStepIds": {
             "items": {
@@ -14036,27 +14418,40 @@
             ],
             "readOnly": true,
             "title": "Wdkstrategyid"
-          },
-          "wdkUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "readOnly": true,
-            "title": "Wdkurl"
           }
         },
         "required": [
           "succeeded",
           "nodeResults",
-          "wdkStrategyId",
-          "wdkUrl"
+          "wdkStrategyId"
         ],
         "title": "BuildSection",
+        "type": "object"
+      },
+      "CheckGap": {
+        "description": "A value a study-step check computed short of the value the request stated.",
+        "properties": {
+          "kind": {
+            "const": "check",
+            "default": "check",
+            "title": "Kind",
+            "type": "string"
+          },
+          "check": {
+            "$ref": "#/components/schemas/ConstraintCheck"
+          },
+          "sentence": {
+            "description": "The check's shortfall, as a finding.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "check",
+          "sentence"
+        ],
+        "title": "CheckGap",
         "type": "object"
       },
       "CheckedStepCount": {
@@ -14110,6 +14505,64 @@
           "drifted"
         ],
         "title": "CheckedStepCount",
+        "type": "object"
+      },
+      "ChoiceCaveat": {
+        "description": "A pick the request did not state, and the options of its vocabulary it\ndid not take. ``unchosen`` is empty when the vocabulary is too large to list.",
+        "properties": {
+          "kind": {
+            "const": "chosen_among",
+            "default": "chosen_among",
+            "title": "Kind",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "paramDisplayName": {
+            "title": "Paramdisplayname",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "default",
+              "chosen"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "unchosen": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unchosen",
+            "type": "array"
+          },
+          "unchosenCount": {
+            "title": "Unchosencount",
+            "type": "integer"
+          },
+          "sentence": {
+            "description": "The value, who set it, and the options it did not take.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "paramDisplayName",
+          "value",
+          "source",
+          "unchosenCount",
+          "sentence"
+        ],
+        "title": "ChoiceCaveat",
         "type": "object"
       },
       "Citation": {
@@ -14181,6 +14634,101 @@
         ],
         "type": "string"
       },
+      "ColumnFit": {
+        "description": "One column of a step's search, read over the whole step against the\nvalues its criterion binds.",
+        "properties": {
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "criterionText": {
+            "title": "Criteriontext",
+            "type": "string"
+          },
+          "wdkStepId": {
+            "title": "Wdkstepid",
+            "type": "integer"
+          },
+          "column": {
+            "title": "Column",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "boundValue": {
+            "title": "Boundvalue",
+            "type": "string"
+          },
+          "countedIn": {
+            "$ref": "#/components/schemas/CountedIn",
+            "default": "genes"
+          },
+          "total": {
+            "minimum": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "fitting": {
+            "minimum": 0,
+            "title": "Fitting",
+            "type": "integer"
+          },
+          "fittingAtMost": {
+            "minimum": 0,
+            "title": "Fittingatmost",
+            "type": "integer"
+          },
+          "shown": {
+            "default": true,
+            "title": "Shown",
+            "type": "boolean"
+          },
+          "sides": {
+            "items": {
+              "$ref": "#/components/schemas/ThresholdSides"
+            },
+            "title": "Sides",
+            "type": "array"
+          },
+          "fits": {
+            "$ref": "#/components/schemas/ColumnFitState",
+            "description": "How many records of the step hold a value inside every bound.",
+            "readOnly": true
+          },
+          "sentence": {
+            "description": "The records that fit out of the step, the records on each side of a\nthreshold with no stated direction, or that the site shows no column.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "criterionText",
+          "wdkStepId",
+          "column",
+          "displayName",
+          "boundValue",
+          "total",
+          "fitting",
+          "fittingAtMost",
+          "fits",
+          "sentence"
+        ],
+        "title": "ColumnFit",
+        "type": "object"
+      },
+      "ColumnFitState": {
+        "enum": [
+          "all",
+          "some",
+          "none",
+          "not_shown"
+        ],
+        "type": "string"
+      },
       "Constraint": {
         "properties": {
           "kind": {
@@ -14215,7 +14763,13 @@
         "type": "object"
       },
       "ConstraintCheck": {
+        "description": "A value the request stated, compared with the value a step was built with.",
         "properties": {
+          "stepId": {
+            "default": "",
+            "title": "Stepid",
+            "type": "string"
+          },
           "label": {
             "title": "Label",
             "type": "string"
@@ -14468,6 +15022,70 @@
           "pValue"
         ],
         "title": "ControlEnrichment",
+        "type": "object"
+      },
+      "ControlResultFact": {
+        "description": "How many of each control set one test of this turn returned.",
+        "properties": {
+          "testedLabel": {
+            "title": "Testedlabel",
+            "type": "string"
+          },
+          "positivesReturned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Positivesreturned"
+          },
+          "positivesTotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Positivestotal"
+          },
+          "negativesReturned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negativesreturned"
+          },
+          "negativesTotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negativestotal"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "testedLabel",
+          "sentence"
+        ],
+        "title": "ControlResultFact",
         "type": "object"
       },
       "ControlSetEvidence": {
@@ -14772,6 +15390,13 @@
         "title": "ConversationTitlePayload",
         "type": "object"
       },
+      "CountedIn": {
+        "enum": [
+          "genes",
+          "transcripts"
+        ],
+        "type": "string"
+      },
       "Criterion": {
         "properties": {
           "id": {
@@ -14832,66 +15457,30 @@
           },
           "resolvedParams": {
             "additionalProperties": {
-              "discriminator": {
-                "mapping": {
-                  "date": "#/components/schemas/DateValue",
-                  "date-range": "#/components/schemas/DateRangeValue",
-                  "filter": "#/components/schemas/FilterValue",
-                  "input-dataset": "#/components/schemas/InputDatasetValue",
-                  "input-step": "#/components/schemas/InputStepValue",
-                  "multi-pick-vocabulary": "#/components/schemas/MultiPickValue",
-                  "number": "#/components/schemas/NumberValue",
-                  "number-range": "#/components/schemas/NumberRangeValue",
-                  "single-pick-vocabulary": "#/components/schemas/SinglePickValue",
-                  "string": "#/components/schemas/StringValue",
-                  "timestamp": "#/components/schemas/TimestampValue"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/StringValue"
-                },
-                {
-                  "$ref": "#/components/schemas/NumberValue"
-                },
-                {
-                  "$ref": "#/components/schemas/NumberRangeValue"
-                },
-                {
-                  "$ref": "#/components/schemas/DateValue"
-                },
-                {
-                  "$ref": "#/components/schemas/DateRangeValue"
-                },
-                {
-                  "$ref": "#/components/schemas/TimestampValue"
-                },
-                {
-                  "$ref": "#/components/schemas/SinglePickValue"
-                },
-                {
-                  "$ref": "#/components/schemas/MultiPickValue"
-                },
-                {
-                  "$ref": "#/components/schemas/FilterValue"
-                },
-                {
-                  "$ref": "#/components/schemas/InputDatasetValue"
-                },
-                {
-                  "$ref": "#/components/schemas/InputStepValue"
-                }
-              ]
+              "$ref": "#/components/schemas/BoundValue"
             },
             "title": "Resolvedparams",
             "type": "object"
           },
-          "defaultedParams": {
+          "paramDisplayNames": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Paramdisplaynames",
+            "type": "object"
+          },
+          "hiddenParams": {
             "items": {
               "type": "string"
             },
-            "title": "Defaultedparams",
+            "title": "Hiddenparams",
+            "type": "array"
+          },
+          "measurements": {
+            "items": {
+              "$ref": "#/components/schemas/Measurement"
+            },
+            "title": "Measurements",
             "type": "array"
           },
           "openParams": {
@@ -14905,13 +15494,6 @@
             "default": 0.0,
             "title": "Confidence",
             "type": "number"
-          },
-          "assumptions": {
-            "items": {
-              "$ref": "#/components/schemas/AssumedValue"
-            },
-            "title": "Assumptions",
-            "type": "array"
           },
           "alternatives": {
             "items": {
@@ -15069,6 +15651,45 @@
         "title": "CriterionCitations",
         "type": "object"
       },
+      "CutTallies": {
+        "description": "How many genes a compute tested, and how many each reading of its cut keeps.\n\n``retained`` keeps the cut's direction; ``retained_up`` and ``retained_down``\ncount both sides at the same cut. ``at_any_effect`` relaxes the effect size\ncut to 0 and ``at_any_significance`` the p-value cut to 1, the other cut and\nthe direction held.",
+        "properties": {
+          "tested": {
+            "title": "Tested",
+            "type": "integer"
+          },
+          "retained": {
+            "title": "Retained",
+            "type": "integer"
+          },
+          "retainedUp": {
+            "title": "Retainedup",
+            "type": "integer"
+          },
+          "retainedDown": {
+            "title": "Retaineddown",
+            "type": "integer"
+          },
+          "atAnyEffect": {
+            "title": "Atanyeffect",
+            "type": "integer"
+          },
+          "atAnySignificance": {
+            "title": "Atanysignificance",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tested",
+          "retained",
+          "retainedUp",
+          "retainedDown",
+          "atAnyEffect",
+          "atAnySignificance"
+        ],
+        "title": "CutTallies",
+        "type": "object"
+      },
       "DeclinedProposal": {
         "description": "A proposal the researcher answered no, with the note they sent.",
         "properties": {
@@ -15080,9 +15701,23 @@
             "type": "string"
           },
           "proposedChanges": {
-            "description": "Each change a yes makes to the strategy, as one plain sentence the edit realises: \"Exclude genes highly expressed at the other post-blood-meal time points\".",
+            "description": "Each change a yes makes to the strategy, typed by what it binds: values set on a criterion, or a criterion added with its search. A removal is delete_step's card, which lists what it removes. A change that names no search and no value binds nothing and is refused.",
             "items": {
-              "type": "string"
+              "discriminator": {
+                "mapping": {
+                  "add_criterion": "#/components/schemas/AddCriterionChange",
+                  "set_values": "#/components/schemas/SetValuesChange"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SetValuesChange"
+                },
+                {
+                  "$ref": "#/components/schemas/AddCriterionChange"
+                }
+              ]
             },
             "maxItems": 8,
             "minItems": 1,
@@ -15100,6 +15735,28 @@
           "proposedChanges"
         ],
         "title": "DeclinedProposal",
+        "type": "object"
+      },
+      "DeleteCascadePayload": {
+        "description": "The steps a parked delete removes besides its own, as its card names each.",
+        "properties": {
+          "toolCallId": {
+            "title": "Toolcallid",
+            "type": "string"
+          },
+          "removes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Removes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "toolCallId",
+          "removes"
+        ],
+        "title": "DeleteCascadePayload",
         "type": "object"
       },
       "DroppedCriterion": {
@@ -15124,10 +15781,15 @@
             ],
             "title": "Edadatasetid"
           },
-          "unexpressed": {
-            "default": false,
-            "title": "Unexpressed",
-            "type": "boolean"
+          "requirement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Constraint"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -15420,6 +16082,70 @@
           "retained"
         ],
         "title": "EdaVolcanoPoint",
+        "type": "object"
+      },
+      "EditDirection": {
+        "enum": [
+          "loosen",
+          "tighten",
+          "other"
+        ],
+        "type": "string"
+      },
+      "EditDirectionCaveat": {
+        "description": "A step an edit was asked to loosen whose count fell, or to tighten\nwhose count rose.",
+        "properties": {
+          "kind": {
+            "const": "edit_direction",
+            "default": "edit_direction",
+            "title": "Kind",
+            "type": "string"
+          },
+          "stepId": {
+            "title": "Stepid",
+            "type": "string"
+          },
+          "stepName": {
+            "title": "Stepname",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "loosen",
+              "tighten"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "countBefore": {
+            "title": "Countbefore",
+            "type": "integer"
+          },
+          "countAfter": {
+            "title": "Countafter",
+            "type": "integer"
+          },
+          "noun": {
+            "default": "gene",
+            "title": "Noun",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The step, the way it was asked to move, and both of its counts.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stepId",
+          "stepName",
+          "direction",
+          "countBefore",
+          "countAfter",
+          "sentence"
+        ],
+        "title": "EditDirectionCaveat",
         "type": "object"
       },
       "EvidenceCard": {
@@ -15823,6 +16549,32 @@
             "default": "",
             "title": "Note",
             "type": "string"
+          },
+          "lifecycle": {
+            "discriminator": {
+              "mapping": {
+                "bound": "#/components/schemas/BoundLifecycle",
+                "open": "#/components/schemas/OpenLifecycle",
+                "replaced": "#/components/schemas/ReplacedLifecycle",
+                "withdrawn": "#/components/schemas/WithdrawnLifecycle"
+              },
+              "propertyName": "state"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/OpenLifecycle"
+              },
+              {
+                "$ref": "#/components/schemas/BoundLifecycle"
+              },
+              {
+                "$ref": "#/components/schemas/WithdrawnLifecycle"
+              },
+              {
+                "$ref": "#/components/schemas/ReplacedLifecycle"
+              }
+            ],
+            "title": "Lifecycle"
           }
         },
         "required": [
@@ -15892,6 +16644,57 @@
           "verification"
         ],
         "title": "InvestigationLedger",
+        "type": "object"
+      },
+      "LabelGapCaveat": {
+        "description": "A picked entry the request did not state, whose label holds no word of\nthe concept the lookup read.",
+        "properties": {
+          "kind": {
+            "const": "label_without_the_concept",
+            "default": "label_without_the_concept",
+            "title": "Kind",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "paramDisplayName": {
+            "title": "Paramdisplayname",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "default",
+              "chosen"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The entry, who set it, and the terms its label holds no word of.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "paramDisplayName",
+          "value",
+          "source",
+          "reading",
+          "sentence"
+        ],
+        "title": "LabelGapCaveat",
         "type": "object"
       },
       "LeadUsagePayload": {
@@ -16008,6 +16811,51 @@
         "title": "LeafContribution",
         "type": "object"
       },
+      "ListedFact": {
+        "description": "The ids a listing or a sample of one step returned, under that step.",
+        "properties": {
+          "stepId": {
+            "title": "Stepid",
+            "type": "string"
+          },
+          "stepName": {
+            "default": "",
+            "title": "Stepname",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/ListedRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "stepId"
+        ],
+        "title": "ListedFact",
+        "type": "object"
+      },
+      "ListedRecord": {
+        "description": "One id a listing returned, and the site's page of its record.",
+        "properties": {
+          "recordId": {
+            "title": "Recordid",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recordId",
+          "url"
+        ],
+        "title": "ListedRecord",
+        "type": "object"
+      },
       "MeasuredCriterion": {
         "description": "One measured candidate as the figure shows it.",
         "properties": {
@@ -16095,6 +16943,73 @@
         "title": "MeasuredCriterion",
         "type": "object"
       },
+      "Measurement": {
+        "description": "A count the site returned for another reading of one bound value, a\nlabel, the options a pick did not take, or why the value has no reading.\n\n``reading`` is that other reading as the reply may show it, or for\n``not_measurable`` the reason. ``count`` is None for a reading the site\nanswers as words and for a reading whose count did not arrive.\n``unchosen`` lists the labels of the options not taken while the\nvocabulary is small enough to list; ``unchosen_count`` counts them always.",
+        "properties": {
+          "kind": {
+            "enum": [
+              "loosest_bound",
+              "wildcard_phrase",
+              "site_search_reach",
+              "any_strain",
+              "all_strains",
+              "site_default",
+              "bound_count",
+              "vocabulary_label",
+              "options_not_taken",
+              "not_measurable",
+              "picked_from_a_cut_list",
+              "picked_from_a_lookup",
+              "label_without_the_concept"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "param": {
+            "title": "Param",
+            "type": "string"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "reading": {
+            "default": "",
+            "title": "Reading",
+            "type": "string"
+          },
+          "unchosen": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unchosen",
+            "type": "array"
+          },
+          "unchosenCount": {
+            "default": 0,
+            "title": "Unchosencount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "param"
+        ],
+        "title": "Measurement",
+        "type": "object"
+      },
       "MemoryEntryDraft": {
         "properties": {
           "name": {
@@ -16175,7 +17090,7 @@
         "type": "object"
       },
       "NodeResult": {
-        "description": "Per-node build result surfaced to the Ledger/UI (BUILD's count feedback).",
+        "description": "Per-node build result surfaced to the Ledger/UI.",
         "properties": {
           "nodeId": {
             "title": "Nodeid",
@@ -16195,17 +17110,6 @@
               }
             ],
             "title": "Wdkstepid"
-          },
-          "count": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Count"
           },
           "status": {
             "enum": [
@@ -16259,8 +17163,21 @@
         "title": "OfferedLeaf",
         "type": "object"
       },
+      "OpenLifecycle": {
+        "description": "A requirement nothing has answered or retired yet.",
+        "properties": {
+          "state": {
+            "const": "open",
+            "default": "open",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "title": "OpenLifecycle",
+        "type": "object"
+      },
       "OpenSlot": {
-        "description": "An unbound parameter, and the criterion of this spec that holds it.\n\n``criterion_id`` is empty while the slot names a parameter alone, and holds\nthe criterion once the slot is attached to one.",
+        "description": "An unbound parameter, and the criterion of this spec that holds it.\n\n``criterion_id`` is empty while the slot names a parameter alone, and holds\nthe criterion once the slot is attached to one. ``param_kind`` is the kind\nof value the parameter takes, as its sheet gives it.",
         "properties": {
           "paramName": {
             "title": "Paramname",
@@ -16281,6 +17198,24 @@
           "criterionId": {
             "default": "",
             "title": "Criterionid",
+            "type": "string"
+          },
+          "paramKind": {
+            "default": "string",
+            "enum": [
+              "string",
+              "number",
+              "number-range",
+              "date",
+              "date-range",
+              "timestamp",
+              "single-pick-vocabulary",
+              "multi-pick-vocabulary",
+              "filter",
+              "input-dataset",
+              "input-step"
+            ],
+            "title": "Paramkind",
             "type": "string"
           }
         },
@@ -16452,6 +17387,54 @@
         "title": "ParameterAlternatives",
         "type": "object"
       },
+      "ParameterFact": {
+        "description": "One bound value of a step, by the name the site shows, and who set it.\n\n``notes`` are the measurement clauses of a default or chosen value and the\noption label of a card value. ``name`` is the wire name, which the facts\npart does not show.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "stated",
+              "chosen",
+              "default",
+              "card",
+              "held"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "displayName",
+          "value",
+          "source"
+        ],
+        "title": "ParameterFact",
+        "type": "object"
+      },
       "PhaseDisposition": {
         "enum": [
           "awaiting_user",
@@ -16460,6 +17443,53 @@
         ],
         "title": "PhaseDisposition",
         "type": "string"
+      },
+      "PhraseCaveat": {
+        "description": "A several-word text sent unquoted, which matches any of its words,\nwhere the same words as one phrase count otherwise.",
+        "properties": {
+          "kind": {
+            "const": "phrase",
+            "default": "phrase",
+            "title": "Kind",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "paramDisplayName": {
+            "title": "Paramdisplayname",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "wordsCount": {
+            "title": "Wordscount",
+            "type": "integer"
+          },
+          "phraseCount": {
+            "title": "Phrasecount",
+            "type": "integer"
+          },
+          "sentence": {
+            "description": "The text, its count as any of its words, and its count as a phrase.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "paramDisplayName",
+          "value",
+          "wordsCount",
+          "phraseCount",
+          "sentence"
+        ],
+        "title": "PhraseCaveat",
+        "type": "object"
       },
       "Proposal": {
         "description": "The work a card offers: one question and the changes a yes makes.",
@@ -16472,9 +17502,23 @@
             "type": "string"
           },
           "proposedChanges": {
-            "description": "Each change a yes makes to the strategy, as one plain sentence the edit realises: \"Exclude genes highly expressed at the other post-blood-meal time points\".",
+            "description": "Each change a yes makes to the strategy, typed by what it binds: values set on a criterion, or a criterion added with its search. A removal is delete_step's card, which lists what it removes. A change that names no search and no value binds nothing and is refused.",
             "items": {
-              "type": "string"
+              "discriminator": {
+                "mapping": {
+                  "add_criterion": "#/components/schemas/AddCriterionChange",
+                  "set_values": "#/components/schemas/SetValuesChange"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SetValuesChange"
+                },
+                {
+                  "$ref": "#/components/schemas/AddCriterionChange"
+                }
+              ]
             },
             "maxItems": 8,
             "minItems": 1,
@@ -16559,6 +17603,26 @@
         "title": "RecalledMemory",
         "type": "object"
       },
+      "ReplacedLifecycle": {
+        "description": "A requirement another requirement took the place of.\n\n``by`` is the key of the requirement that replaced it.",
+        "properties": {
+          "state": {
+            "const": "replaced",
+            "default": "replaced",
+            "title": "State",
+            "type": "string"
+          },
+          "by": {
+            "title": "By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "by"
+        ],
+        "title": "ReplacedLifecycle",
+        "type": "object"
+      },
       "RequirementCheck": {
         "description": "One requirement the researcher stated, and what in the strategy answers it.",
         "properties": {
@@ -16590,7 +17654,7 @@
           },
           "status": {
             "$ref": "#/components/schemas/RequirementStatus",
-            "description": "met: the strategy states it. unmet: the strategy can state it and does not. unexpressed: no search the site offers can state it."
+            "description": "met: a step states it. unmet: the strategy can state it and no step does; answered_by is then empty. unexpressed: no search the site offers can state it."
           },
           "note": {
             "default": "",
@@ -16598,6 +17662,15 @@
             "maxLength": 300,
             "title": "Note",
             "type": "string"
+          },
+          "shownBy": {
+            "description": "The sampled gene ids or the columns whose fit show it.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Shownby",
+            "type": "array"
           }
         },
         "required": [
@@ -16623,12 +17696,7 @@
             "type": "string"
           },
           "status": {
-            "enum": [
-              "unmet",
-              "unexpressed"
-            ],
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/RequirementGapStatus"
           },
           "sentence": {
             "description": "The requirement, in the researcher's words, and what is missing.",
@@ -16644,6 +17712,15 @@
         ],
         "title": "RequirementGap",
         "type": "object"
+      },
+      "RequirementGapStatus": {
+        "enum": [
+          "unmet",
+          "unexpressed",
+          "unshown",
+          "unjudged"
+        ],
+        "type": "string"
       },
       "RequirementHow": {
         "enum": [
@@ -16663,8 +17740,66 @@
         ],
         "type": "string"
       },
+      "RequirementWithdrawal": {
+        "description": "A held requirement a message takes back, and what replaces it.",
+        "properties": {
+          "key": {
+            "description": "The key of the requirement the message takes back, as the ledger lists it: '<dimension>:<requested value>'.",
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "replacedBy": {
+            "default": "",
+            "description": "The key of the requirement this same message states in its place. Empty when the message only removes it.",
+            "title": "Replacedby",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "RequirementWithdrawal",
+        "type": "object"
+      },
+      "RetiredFact": {
+        "description": "A requirement the researcher withdrew or an answer replaced.",
+        "properties": {
+          "requirement": {
+            "title": "Requirement",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RetiredState"
+          },
+          "replacedBy": {
+            "default": "",
+            "title": "Replacedby",
+            "type": "string"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requirement",
+          "state",
+          "sentence"
+        ],
+        "title": "RetiredFact",
+        "type": "object"
+      },
+      "RetiredState": {
+        "enum": [
+          "withdrawn",
+          "replaced"
+        ],
+        "type": "string"
+      },
       "SampleCaveat": {
-        "description": "A sample of the result where a gene is unclear or does not fit.",
+        "description": "A column of a step whose values do not all fit the bound, or that the\nsite does not show.",
         "properties": {
           "kind": {
             "const": "sample",
@@ -16672,29 +17807,18 @@
             "title": "Kind",
             "type": "string"
           },
-          "unclear": {
-            "title": "Unclear",
-            "type": "integer"
-          },
-          "misfit": {
-            "title": "Misfit",
-            "type": "integer"
-          },
-          "total": {
-            "title": "Total",
-            "type": "integer"
+          "fit": {
+            "$ref": "#/components/schemas/ColumnFit"
           },
           "sentence": {
-            "description": "The unclear and the misfit genes, each out of the sample.",
+            "description": "The records that fit out of the step, or the column the site lacks.",
             "readOnly": true,
             "title": "Sentence",
             "type": "string"
           }
         },
         "required": [
-          "unclear",
-          "misfit",
-          "total",
+          "fit",
           "sentence"
         ],
         "title": "SampleCaveat",
@@ -16722,7 +17846,7 @@
             "$ref": "#/components/schemas/GeneFit"
           },
           "why": {
-            "description": "One line naming the evidence read: a sampled value, the product, a GO term, an expression value.",
+            "description": "The evidence read; when the fit is no, what the record lacks.",
             "maxLength": 300,
             "minLength": 1,
             "title": "Why",
@@ -16735,6 +17859,42 @@
           "why"
         ],
         "title": "SampledGene",
+        "type": "object"
+      },
+      "SavedKind": {
+        "enum": [
+          "gene_set",
+          "control_set"
+        ],
+        "type": "string"
+      },
+      "SavedSetFact": {
+        "description": "A gene set or a control set this conversation saved on this turn.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/SavedKind"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "title": "SavedSetFact",
         "type": "object"
       },
       "SavedStrategyRef": {
@@ -17134,6 +18294,46 @@
         "title": "SeparationReport",
         "type": "object"
       },
+      "SetValuesChange": {
+        "description": "A change that sets parameter values on a criterion the strategy holds.",
+        "properties": {
+          "kind": {
+            "const": "set_values",
+            "default": "set_values",
+            "title": "Kind",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The change as one plain sentence the researcher reads on the card, naming the search and the values it sets by their display names.",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Sentence",
+            "type": "string"
+          },
+          "criterionId": {
+            "description": "The criterion id the ledger lists for the step this changes.",
+            "minLength": 1,
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Each parameter it sets, by name, to the wire value the site takes.",
+            "minProperties": 1,
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "sentence",
+          "criterionId",
+          "params"
+        ],
+        "title": "SetValuesChange",
+        "type": "object"
+      },
       "SiteRead": {
         "enum": [
           "read",
@@ -17193,6 +18393,67 @@
           "reason"
         ],
         "title": "SkippedCriterion",
+        "type": "object"
+      },
+      "SourceFact": {
+        "description": "A record or a reference a read returned, the step whose listing gave the\nrecord, and the check's judgement of the record against the request.\n\n``values`` are the record's other words: its gene name, its chromosome and\nthe orthologs of the one organism the read asked for.",
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "recordId": {
+            "default": "",
+            "title": "Recordid",
+            "type": "string"
+          },
+          "product": {
+            "default": "",
+            "title": "Product",
+            "type": "string"
+          },
+          "organism": {
+            "default": "",
+            "title": "Organism",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Values",
+            "type": "array"
+          },
+          "stepId": {
+            "default": "",
+            "title": "Stepid",
+            "type": "string"
+          },
+          "stepName": {
+            "default": "",
+            "title": "Stepname",
+            "type": "string"
+          },
+          "fit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneFit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "why": {
+            "default": "",
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "SourceFact",
         "type": "object"
       },
       "SpecDiff": {
@@ -17290,6 +18551,75 @@
           }
         },
         "title": "StaleBuild",
+        "type": "object"
+      },
+      "StepFact": {
+        "description": "One step of the strategy, or of the draft while nothing is built.\n\n``step_id`` names the step or the criterion; the facts part does not show it.",
+        "properties": {
+          "stepId": {
+            "title": "Stepid",
+            "type": "string"
+          },
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "operator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "reason": {
+            "default": "",
+            "title": "Reason",
+            "type": "string"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ParameterFact"
+            },
+            "title": "Parameters",
+            "type": "array"
+          },
+          "error": {
+            "default": "",
+            "title": "Error",
+            "type": "string"
+          },
+          "countBefore": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Countbefore"
+          }
+        },
+        "required": [
+          "stepId",
+          "displayName"
+        ],
+        "title": "StepFact",
         "type": "object"
       },
       "StepPushFailure": {
@@ -17758,6 +19088,44 @@
         "title": "TestedParameter",
         "type": "object"
       },
+      "ThresholdSides": {
+        "description": "The records on each side of one threshold whose direction the site does\nnot state, when the step does not hold every record on one side.",
+        "properties": {
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "above": {
+            "minimum": 0,
+            "title": "Above",
+            "type": "integer"
+          },
+          "aboveAtMost": {
+            "minimum": 0,
+            "title": "Aboveatmost",
+            "type": "integer"
+          },
+          "below": {
+            "minimum": 0,
+            "title": "Below",
+            "type": "integer"
+          },
+          "belowAtMost": {
+            "minimum": 0,
+            "title": "Belowatmost",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "value",
+          "above",
+          "aboveAtMost",
+          "below",
+          "belowAtMost"
+        ],
+        "title": "ThresholdSides",
+        "type": "object"
+      },
       "ToolSummaryPayload": {
         "description": "Payload for the tool-summary chunk. The tool call id names the call the\nline describes, so a reducer patches that call's part and appends nothing.",
         "properties": {
@@ -17785,6 +19153,211 @@
           "summary"
         ],
         "title": "ToolSummaryPayload",
+        "type": "object"
+      },
+      "TurnFacts": {
+        "description": "Everything a turn shows beside its reply. The reply holds no fact outside it.",
+        "properties": {
+          "recordNoun": {
+            "default": "gene",
+            "title": "Recordnoun",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepFact"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "draft": {
+            "default": false,
+            "title": "Draft",
+            "type": "boolean"
+          },
+          "rootCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rootcount"
+          },
+          "rootCountBefore": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rootcountbefore"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Removed",
+            "type": "array"
+          },
+          "strategyUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strategyurl"
+          },
+          "caveats": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "assumed_value": "#/components/schemas/AssumedValueCaveat",
+                  "build": "#/components/schemas/BuildCaveat",
+                  "chosen_among": "#/components/schemas/ChoiceCaveat",
+                  "controls": "#/components/schemas/ControlsCaveat",
+                  "edit_direction": "#/components/schemas/EditDirectionCaveat",
+                  "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
+                  "phrase": "#/components/schemas/PhraseCaveat",
+                  "sample": "#/components/schemas/SampleCaveat",
+                  "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
+                  "zero_combine": "#/components/schemas/ZeroCombineCaveat"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ControlsCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/SampleCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/BuildCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/AssumedValueCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/UnmeasuredValueCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ChoiceCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/LabelGapCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/EditDirectionCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/PhraseCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ZeroCombineCaveat"
+                }
+              ]
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
+          "gaps": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "check": "#/components/schemas/CheckGap",
+                  "requirement": "#/components/schemas/RequirementGap",
+                  "structure": "#/components/schemas/StructureGap",
+                  "word": "#/components/schemas/WordGap"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/RequirementGap"
+                },
+                {
+                  "$ref": "#/components/schemas/WordGap"
+                },
+                {
+                  "$ref": "#/components/schemas/StructureGap"
+                },
+                {
+                  "$ref": "#/components/schemas/CheckGap"
+                }
+              ]
+            },
+            "title": "Gaps",
+            "type": "array"
+          },
+          "columnFits": {
+            "items": {
+              "$ref": "#/components/schemas/ColumnFit"
+            },
+            "title": "Columnfits",
+            "type": "array"
+          },
+          "retired": {
+            "items": {
+              "$ref": "#/components/schemas/RetiredFact"
+            },
+            "title": "Retired",
+            "type": "array"
+          },
+          "saved": {
+            "items": {
+              "$ref": "#/components/schemas/SavedSetFact"
+            },
+            "title": "Saved",
+            "type": "array"
+          },
+          "controlResults": {
+            "items": {
+              "$ref": "#/components/schemas/ControlResultFact"
+            },
+            "title": "Controlresults",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceFact"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "listed": {
+            "items": {
+              "$ref": "#/components/schemas/ListedFact"
+            },
+            "title": "Listed",
+            "type": "array"
+          },
+          "namedGenes": {
+            "items": {
+              "$ref": "#/components/schemas/SourceFact"
+            },
+            "title": "Namedgenes",
+            "type": "array"
+          },
+          "stoppedCheck": {
+            "default": "",
+            "title": "Stoppedcheck",
+            "type": "string"
+          },
+          "refusal": {
+            "default": "",
+            "title": "Refusal",
+            "type": "string"
+          }
+        },
+        "title": "TurnFacts",
         "type": "object"
       },
       "TurnFailedPayload": {
@@ -17857,6 +19430,71 @@
         "title": "TurnUsage",
         "type": "object"
       },
+      "UnmeasuredValueCaveat": {
+        "description": "A value the request did not state, whose other reading did not arrive.",
+        "properties": {
+          "kind": {
+            "const": "unmeasured_value",
+            "default": "unmeasured_value",
+            "title": "Kind",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "paramDisplayName": {
+            "title": "Paramdisplayname",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "default",
+              "chosen"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "readingKind": {
+            "enum": [
+              "loosest_bound",
+              "wildcard_phrase",
+              "site_search_reach",
+              "any_strain",
+              "all_strains",
+              "site_default",
+              "bound_count"
+            ],
+            "title": "Readingkind",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The value, who set it, and the reading that was not counted.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "paramDisplayName",
+          "value",
+          "source",
+          "readingKind",
+          "reading",
+          "sentence"
+        ],
+        "title": "UnmeasuredValueCaveat",
+        "type": "object"
+      },
       "UserIntent": {
         "description": "The Lead's typed parsing of the latest user message.\n\nThe message is the turn's own and is read from the state, so this model\ncarries what the classification decides and no text of the message.\nDistinct from ``ProblemFrame``: ``UserIntent`` is per-message and\nre-derived each turn; ``ProblemFrame`` is the durable scoping artifact.\nThe Lead writes this via the ``classify_user_intent`` tool as its\nfirst action on a new user message; the Ledger then derives downstream\nbooleans (e.g. ``intent_satisfied``) from typed fields here.",
         "properties": {
@@ -17882,18 +19520,24 @@
             "title": "Differentialsides",
             "type": "array"
           },
+          "editDirection": {
+            "$ref": "#/components/schemas/EditDirection",
+            "default": "other",
+            "description": "For a change to the strategy: 'loosen' when the message asks the result to admit more records (a lower cut, a wider range, a requirement dropped), 'tighten' when it asks for fewer, 'other' for any other message."
+          },
+          "asks": {
+            "description": "Each part of this message that asks for an answer about results and not for records: to report, explain or compare counts or steps, such as 'tell me how the two counts compare'. List the ask's own words and never the records it names: those are requirements. In the message's own words; empty when it asks for none.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Asks",
+            "type": "array"
+          },
           "referencedStepIds": {
             "items": {
               "type": "string"
             },
             "title": "Referencedstepids",
-            "type": "array"
-          },
-          "referencedStrategyIds": {
-            "items": {
-              "type": "integer"
-            },
-            "title": "Referencedstrategyids",
             "type": "array"
           },
           "explicitConstraints": {
@@ -17902,6 +19546,14 @@
               "$ref": "#/components/schemas/Constraint"
             },
             "title": "Explicitconstraints",
+            "type": "array"
+          },
+          "withdrawnRequirements": {
+            "description": "One entry per requirement the conversation holds that this message takes back or swaps for another: removing a requirement or a step that states it, or replacing a value with a new one. The key is the requirement's '<dimension>:<requested value>'; a swap names the requirement it states in its place in ``replacedBy``.",
+            "items": {
+              "$ref": "#/components/schemas/RequirementWithdrawal"
+            },
+            "title": "Withdrawnrequirements",
             "type": "array"
           },
           "namedControls": {
@@ -17914,6 +19566,14 @@
               }
             ],
             "description": "The gene ids this message names as positive or negative controls, typed or in an attached gene-ID list, each spelled as the message spells it. None when the message names no control."
+          },
+          "namedGeneIds": {
+            "description": "Every other gene id this message types or an attached file shows, whatever the classification, each spelled as the message spells it.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Namedgeneids",
+            "type": "array"
           }
         },
         "required": [
@@ -17974,6 +19634,17 @@
             "default": false,
             "title": "Truncated",
             "type": "boolean"
+          },
+          "resultStepId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultstepid"
           }
         },
         "required": [
@@ -18018,6 +19689,17 @@
               }
             ],
             "title": "Error"
+          },
+          "resultCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultcount"
           }
         },
         "required": [
@@ -18101,9 +19783,16 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "assumed_value": "#/components/schemas/AssumedValueCaveat",
                   "build": "#/components/schemas/BuildCaveat",
+                  "chosen_among": "#/components/schemas/ChoiceCaveat",
                   "controls": "#/components/schemas/ControlsCaveat",
-                  "sample": "#/components/schemas/SampleCaveat"
+                  "edit_direction": "#/components/schemas/EditDirectionCaveat",
+                  "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
+                  "phrase": "#/components/schemas/PhraseCaveat",
+                  "sample": "#/components/schemas/SampleCaveat",
+                  "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
+                  "zero_combine": "#/components/schemas/ZeroCombineCaveat"
                 },
                 "propertyName": "kind"
               },
@@ -18116,6 +19805,27 @@
                 },
                 {
                   "$ref": "#/components/schemas/BuildCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/AssumedValueCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/UnmeasuredValueCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ChoiceCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/LabelGapCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/EditDirectionCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/PhraseCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ZeroCombineCaveat"
                 }
               ]
             },
@@ -18126,6 +19836,7 @@
             "items": {
               "discriminator": {
                 "mapping": {
+                  "check": "#/components/schemas/CheckGap",
                   "requirement": "#/components/schemas/RequirementGap",
                   "structure": "#/components/schemas/StructureGap",
                   "word": "#/components/schemas/WordGap"
@@ -18141,6 +19852,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/StructureGap"
+                },
+                {
+                  "$ref": "#/components/schemas/CheckGap"
                 }
               ]
             },
@@ -18159,7 +19873,6 @@
             "items": {
               "$ref": "#/components/schemas/ConstraintCheck"
             },
-            "maxItems": 12,
             "title": "Constraintreport",
             "type": "array"
           },
@@ -18186,7 +19899,7 @@
         "type": "object"
       },
       "VerificationReview": {
-        "description": "What the check read against the researcher's words: each stated\nrequirement, a sample of the genes, and the sources it retrieved.",
+        "description": "What the check read against the researcher's words: each stated\nrequirement, the columns of each step, a sample of the genes where no\ncolumn shows a value, and the sources it retrieved.",
         "properties": {
           "requirements": {
             "description": "One row per requirement the researcher stated, in any message.",
@@ -18197,8 +19910,16 @@
             "title": "Requirements",
             "type": "array"
           },
+          "columnFits": {
+            "description": "Filled by the runtime from this turn's read_step_columns calls; anything written here is replaced.",
+            "items": {
+              "$ref": "#/components/schemas/ColumnFit"
+            },
+            "title": "Columnfits",
+            "type": "array"
+          },
           "sampledGenes": {
-            "description": "The root step's genes whose record this check read.",
+            "description": "The root step's genes whose record this check read, for a criterion no column shows.",
             "items": {
               "$ref": "#/components/schemas/SampledGene"
             },
@@ -18231,6 +19952,59 @@
               }
             ]
           },
+          "caveats": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "assumed_value": "#/components/schemas/AssumedValueCaveat",
+                  "build": "#/components/schemas/BuildCaveat",
+                  "chosen_among": "#/components/schemas/ChoiceCaveat",
+                  "controls": "#/components/schemas/ControlsCaveat",
+                  "edit_direction": "#/components/schemas/EditDirectionCaveat",
+                  "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
+                  "phrase": "#/components/schemas/PhraseCaveat",
+                  "sample": "#/components/schemas/SampleCaveat",
+                  "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
+                  "zero_combine": "#/components/schemas/ZeroCombineCaveat"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ControlsCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/SampleCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/BuildCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/AssumedValueCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/UnmeasuredValueCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ChoiceCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/LabelGapCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/EditDirectionCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/PhraseCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ZeroCombineCaveat"
+                }
+              ]
+            },
+            "title": "Caveats",
+            "type": "array"
+          },
           "complete": {
             "readOnly": true,
             "title": "Complete",
@@ -18247,6 +20021,26 @@
           "successful"
         ],
         "title": "VerificationSection",
+        "type": "object"
+      },
+      "WithdrawnLifecycle": {
+        "description": "A requirement a later message of the researcher took back.",
+        "properties": {
+          "state": {
+            "const": "withdrawn",
+            "default": "withdrawn",
+            "title": "State",
+            "type": "string"
+          },
+          "turnId": {
+            "title": "Turnid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turnId"
+        ],
+        "title": "WithdrawnLifecycle",
         "type": "object"
       },
       "WordGap": {
@@ -18274,6 +20068,63 @@
           "sentence"
         ],
         "title": "WordGap",
+        "type": "object"
+      },
+      "ZeroCombineCaveat": {
+        "description": "A combine that holds no record while each input holds some.\n\n``inside`` is the input whose records the combine reads against the\nrecords of ``outside``.",
+        "properties": {
+          "kind": {
+            "const": "zero_combine",
+            "default": "zero_combine",
+            "title": "Kind",
+            "type": "string"
+          },
+          "operator": {
+            "title": "Operator",
+            "type": "string"
+          },
+          "inside": {
+            "title": "Inside",
+            "type": "string"
+          },
+          "insideCount": {
+            "title": "Insidecount",
+            "type": "integer"
+          },
+          "outside": {
+            "title": "Outside",
+            "type": "string"
+          },
+          "outsideCount": {
+            "title": "Outsidecount",
+            "type": "integer"
+          },
+          "allAmong": {
+            "title": "Allamong",
+            "type": "boolean"
+          },
+          "noun": {
+            "default": "gene",
+            "title": "Noun",
+            "type": "string"
+          },
+          "sentence": {
+            "description": "The operator, and how the records of one input stand to the other's.",
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operator",
+          "inside",
+          "insideCount",
+          "outside",
+          "outsideCount",
+          "allAmong",
+          "sentence"
+        ],
+        "title": "ZeroCombineCaveat",
         "type": "object"
       },
       "StreamPartsSchemaIndex": {
@@ -18319,6 +20170,16 @@
               }
             ]
           },
+          "deleteCascade": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeleteCascadePayload"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "edaAnalysisState": {
             "anyOf": [
               {
@@ -18353,6 +20214,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/EvidenceCard"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnFacts"
               },
               {
                 "type": "null"

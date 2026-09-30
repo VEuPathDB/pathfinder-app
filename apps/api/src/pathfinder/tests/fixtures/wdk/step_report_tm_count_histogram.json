@@ -1,0 +1,38 @@
+{
+  "provenance": {
+    "site": "plasmodb",
+    "method": "POST",
+    "url": "https://plasmodb.org/plasmo/service/users/current/steps/441031663/reports/tm_count-histogram",
+    "status": 200,
+    "content_type": "text/plain",
+    "recorded_at": "2026-09-28",
+    "reads": "step column fit"
+  },
+  "body": {
+    "recordCountLabel": "# of Genes",
+    "data": {
+      "11": 29,
+      "22": 1,
+      "12": 23,
+      "13": 7,
+      "14": 8,
+      "15": 1,
+      "16": 3,
+      "17": 1,
+      "18": 1,
+      "19": 1,
+      "2": 322,
+      "3": 127,
+      "4": 106,
+      "5": 52,
+      "6": 45,
+      "7": 44,
+      "8": 32,
+      "9": 22,
+      "10": 28,
+      "21": 1
+    },
+    "type": "int",
+    "attrLabel": "# TM Domains"
+  }
+}

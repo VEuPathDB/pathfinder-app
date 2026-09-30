@@ -12,6 +12,7 @@ from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from pathfinder.ai.capabilities.metering import ModelSpend, SpendMeter
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 
 def _answers_prose(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
@@ -25,7 +26,7 @@ async def test_a_run_whose_output_never_validates_is_recorded() -> None:
         FunctionModel(_answers_prose),
         output_type=int,
         retries=0,
-        capabilities=[meter.on("openai:gpt-5.6-luna")],
+        capabilities=[meter.on(DEFAULT_MODEL)],
     )
 
     with pytest.raises(UnexpectedModelBehavior):

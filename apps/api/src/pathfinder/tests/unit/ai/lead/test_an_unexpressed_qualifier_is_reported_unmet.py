@@ -1,6 +1,6 @@
 """A word of a criterion that no search of the pass could state stands as an
 unmet requirement: the ledger blocks on it, VERIFY cannot pass over it, and the
-reply names it."""
+facts part shows it as a gap."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.ledger_render import render_constraints_full
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.lead.verify_dispatch import _findings, _held
 from pathfinder.domain.caveats import WordGap
 from pathfinder.domain.evidence import VerificationReview
@@ -25,7 +26,6 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _TEXT = "all Plasmodium falciparum 3D7 genes, pseudogenes included"
@@ -53,7 +53,7 @@ def _deps(unexpressed: list[str]) -> LeadDeps:
         user_message_id=uuid4(),
         domain=StrategyDomainState(operational_spec=spec),
     )
-    state.record_build(BuildOutcome(pushed_step_ids=["step_all"], root_count=5720))
+    state.record_build(BuildOutcome(pushed_step_ids=["step_all"]))
     state.turn_markers.framed = True
     state.turn_markers.verified = True
     return lead_deps(state)
@@ -77,7 +77,7 @@ def test_the_ledger_blocks_on_the_word_no_search_states() -> None:
 
 def test_verification_cannot_pass_over_it() -> None:
     deps = _deps(["pseudogenes"])
-    findings = _findings(deps, VerificationReview())
+    findings = _findings(deps, VerificationReview(), [])
     held = _held(
         VerificationDigest(
             disposition=PhaseDisposition.DONE,
@@ -98,24 +98,8 @@ def test_verification_cannot_pass_over_it() -> None:
     )
 
 
-def test_a_reply_that_omits_it_is_refused() -> None:
-    found = kinds(
-        _deps(["pseudogenes"]),
-        reply("The strategy holds 5720 Plasmodium falciparum 3D7 genes.", changed=True),
-    )
-
-    assert "unstated_gap" in found
-
-
-def test_a_reply_that_names_it_passes() -> None:
-    prose = (
-        "The strategy holds 5720 Plasmodium falciparum 3D7 genes. No search "
-        "read this turn could state pseudogenes, so that part is unmet."
-    )
-
-    assert "unstated_gap" not in kinds(
-        _deps(["pseudogenes"]), reply(prose, changed=True)
-    )
+def test_the_word_is_a_gap_the_facts_part_shows() -> None:
+    assert turn_facts(_deps(["pseudogenes"])).gaps == [WordGap(word="pseudogenes")]
 
 
 def test_a_criterion_every_word_of_which_a_search_states_asks_nothing() -> None:
@@ -123,6 +107,4 @@ def test_a_criterion_every_word_of_which_a_search_states_asks_nothing() -> None:
     ledger = derive_ledger(deps.state, None)
 
     assert ledger.constraints.blocking is False
-    assert "unstated_gap" not in kinds(
-        deps, reply("The strategy holds 5720 genes.", changed=True)
-    )
+    assert turn_facts(deps).gaps == []

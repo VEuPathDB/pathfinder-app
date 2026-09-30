@@ -48,13 +48,13 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentRe
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
+from pathfinder.domain.strategy.orthology import organism_move_refusal
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import (
@@ -77,11 +77,9 @@ from pathfinder.domain.strategy.spec_to_operations import (
 )
 from pathfinder.domain.strategy.step_words import added_searches
 from pathfinder.services.strategies.commit import (
-    CommitResult,
     apply_operations_and_commit,
 )
-from pathfinder.services.strategies.graph_outcome import outcome_for_graph
-from pathfinder.services.strategies.sync_state import ensure_sync_state
+from pathfinder.services.strategies.graph_outcome import live_outcome
 
 __all__ = ["edit_strategy", "run_edit"]
 
@@ -151,16 +149,27 @@ async def run_edit(
     planned = spec_without_pending_analyses(after)
     diff = diff_specs(before, planned)
     if frame.disposition != "spec_ready":
+        asked = {q.prompt for q in frame.card_questions}
         return EditDelta(
             diff=diff,
             disposition="needs_user",
             summary=frame.summary,
-            open_questions=list(frame.open_questions),
+            open_questions=[
+                q for q in deps.state.domain.open_questions if q.question in asked
+            ],
+            card_questions=frame.card_questions,
         )
     _refuse_a_pending_change_this_turn_did_not_account_for(
         deps, pending, frame.changes, drafted
     )
     _refuse_a_removal_the_card_owns(deps, diff, graph)
+    moved = organism_move_refusal(
+        "other" if deps.intent is None else deps.intent.edit_direction,
+        before=before,
+        after=planned,
+    )
+    if moved is not None:
+        refuse_and_restore(deps, moved)
     return await _push_the_edit(
         deps=deps,
         after=after,
@@ -220,7 +229,7 @@ async def _push_the_edit(
             deps,
             _refused_values_message(exc, diff=diff, after=planned, added=introduced),
         )
-    outcome = _outcome_after_edit(agent_deps, commit)
+    outcome = live_outcome(agent_deps.strategy_session, commit.failed_step_ids)
     # The spec the thread carries states the option on the step that runs it,
     # exactly as the spec a build leaves behind does.
     deps.state.domain.operational_spec = after
@@ -369,21 +378,13 @@ def _refused_values_message(
     )
 
 
-def _outcome_after_edit(agent_deps: AgentDeps, commit: CommitResult) -> BuildOutcome:
-    """The build the edit leaves behind, with the counts the commit wrote.
-
-    The commit replaces every count with VEuPathDB's own before it returns, so
-    the Lead reports the numbers the snapshot and the stored strategy carry.
-    """
-    session = agent_deps.strategy_session
-    sync_state = ensure_sync_state(session)
-    return outcome_for_graph(
-        graph=session.get_graph(None),
-        sync_state=sync_state,
-        counts=sync_state.step_counts,
-        failed_step_ids=commit.failed_step_ids,
-        wdk_url=commit.sync_result.wdk_url if commit.sync_result else None,
+def _unbound(deps: LeadDeps, reason: str, refusal: str) -> EditDelta:
+    """The edit no pass may retry, with the refusal that stopped it as a fact."""
+    unbound = (
+        f"The edit was not applied: {reason} The planning pass refused it: {refusal}"
     )
+    deps.state.turn_markers.unbound_edit = unbound
+    return EditDelta(diff=SpecDiff(), disposition="unbound", summary=unbound)
 
 
 def _emit_graph_snapshot(agent_deps: AgentDeps) -> None:
@@ -412,14 +413,20 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     from it, and ``added_step_ids`` names the criteria it built a step for. A
     criterion framed on an earlier turn and built here reads as added in both.
     A claim about what the whole turn did to the spec it started from is read
-    from ``ledger.frame.diff`` instead.
+    from ``ledger.frame.diff`` instead. Disposition ``unbound`` ends the edit:
+    nothing was applied, and the reply names what could not be bound.
     """
     tool_call_id = dispatch_call_id(ctx)
-    result = await run_edit(
-        deps=ctx.deps,
-        parent_tool_call_id=tool_call_id,
-        reason=reason,
-    )
+    try:
+        result = await run_edit(
+            deps=ctx.deps,
+            parent_tool_call_id=tool_call_id,
+            reason=reason,
+        )
+    except ModelRetry as refused:
+        if not ctx.last_attempt:
+            raise
+        return _unbound(ctx.deps, reason, refused.message)
     if isinstance(result, SubAgentApprovalWait):
         defer_dispatch(ctx.deps, tool_call_id, result)
     return result

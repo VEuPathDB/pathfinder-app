@@ -24,6 +24,12 @@ from pathfinder.ai.lead.sub_agent_tools import (
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.platform.config import get_settings
+from pathfinder.tests._support.models import (
+    ANTHROPIC_SMALL,
+    DEFAULT_MODEL,
+    OPENAI_FLAGSHIP,
+    OPENAI_STANDARD,
+)
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_runtime,
     pipeline_state,
@@ -211,16 +217,16 @@ def test_default_phase_model_comes_from_the_configured_tier() -> None:
     # (default_provider, default_tier) preset, and the stable ``provider:model``
     # id goes to pydantic-ai verbatim.
     kwargs = phase_override_kwargs(_ctx(), "frame")
-    assert kwargs["model"] == "openai:gpt-5.6-luna"
+    assert kwargs["model"] == DEFAULT_MODEL
 
 
 @pytest.mark.usefixtures("_real_provider")
 def test_anthropic_pick_enables_caching() -> None:
     kwargs = phase_override_kwargs(
-        _ctx(phase_models={"frame": "anthropic:claude-opus-5"}),
+        _ctx(phase_models={"frame": ANTHROPIC_SMALL}),
         "frame",
     )
-    assert kwargs["model"] == "anthropic:claude-opus-5"
+    assert kwargs["model"] == ANTHROPIC_SMALL
     settings = kwargs["model_settings"]
     assert settings["anthropic_cache_instructions"] is True
     assert settings["anthropic_cache_tool_definitions"] is True
@@ -230,10 +236,10 @@ def test_anthropic_pick_enables_caching() -> None:
 @pytest.mark.usefixtures("_real_provider")
 def test_openai_pick_carries_no_anthropic_flags() -> None:
     kwargs = phase_override_kwargs(
-        _ctx(phase_models={"execution": "openai:gpt-5.6-terra"}),
+        _ctx(phase_models={"execution": OPENAI_STANDARD}),
         "execution",
     )
-    assert kwargs["model"] == "openai:gpt-5.6-terra"
+    assert kwargs["model"] == OPENAI_STANDARD
     assert "anthropic_cache_instructions" not in kwargs["model_settings"]
 
 
@@ -241,7 +247,7 @@ def test_openai_pick_carries_no_anthropic_flags() -> None:
 def test_reasoning_effort_composes_with_caching() -> None:
     kwargs = phase_override_kwargs(
         _ctx(
-            phase_models={"execution": "anthropic:claude-opus-5"},
+            phase_models={"execution": ANTHROPIC_SMALL},
             phase_reasoning={"execution": "high"},
         ),
         "execution",
@@ -255,7 +261,7 @@ def test_reasoning_effort_composes_with_caching() -> None:
 def test_phase_default_model_id_stays_stable_for_cost() -> None:
     # The readback id used for cost attribution must remain the stable
     # ``provider:model`` catalog id.
-    assert phase_default_model_id("frame") == "openai:gpt-5.6-luna"
+    assert phase_default_model_id("frame") == DEFAULT_MODEL
 
 
 @pytest.mark.usefixtures("_real_provider")
@@ -271,9 +277,9 @@ def test_configured_tier_actually_drives_phase_model_and_effort(
     frame = phase_override_kwargs(_ctx(), "frame")
     execution = phase_override_kwargs(_ctx(), "execution")
 
-    assert frame["model"] == "openai:gpt-5.6-sol"
+    assert frame["model"] == OPENAI_FLAGSHIP
     assert frame["model_settings"]["thinking"] == "high"
-    assert execution["model"] == "openai:gpt-5.6-terra"
+    assert execution["model"] == OPENAI_STANDARD
     assert execution["model_settings"]["thinking"] == "medium"
 
 
@@ -286,6 +292,6 @@ def test_explicit_phase_pick_outranks_the_configured_tier(
     monkeypatch.setattr(settings, "default_tier", "quality", raising=False)
 
     kwargs = phase_override_kwargs(
-        _ctx(phase_models={"frame": "openai:gpt-5.6-terra"}), "frame"
+        _ctx(phase_models={"frame": OPENAI_STANDARD}), "frame"
     )
-    assert kwargs["model"] == "openai:gpt-5.6-terra"
+    assert kwargs["model"] == OPENAI_STANDARD

@@ -3,27 +3,34 @@ answer: typed caveats and gaps, each worded by one sentence of its own."""
 
 from __future__ import annotations
 
-import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Discriminator
 
+from pathfinder.domain.constraint_check import CheckGap
 from pathfinder.domain.evidence import (
+    ColumnFit,
     ControlTestEvidence,
     NamedControlSet,
-    SampledGene,
+    RequirementCheck,
     VerificationReview,
 )
-from pathfinder.domain.strategy.step_rationale import names_the_phrase
-from pathfinder.domain.strategy.words import names_a_run_of
-
-
-def _names_the_number(prose: str, number: str) -> bool:
-    """Whether the prose holds the number whole, not inside a longer one."""
-    pattern = rf"(?<![\w.]){re.escape(number)}(?![\w]|[.,]\d)"
-    return re.search(pattern, prose) is not None
+from pathfinder.domain.strategy.constraints import (
+    ConstraintSource,
+    GroundedConstraint,
+    message_states,
+)
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.value_caveats import (
+    AssumedValueCaveat,
+    ChoiceCaveat,
+    LabelGapCaveat,
+    UnmeasuredValueCaveat,
+    assumed_value_caveats,
+)
+from pathfinder.domain.zero_combine import ZeroCombineCaveat
 
 
 def _counted(count: int, noun: str) -> str:
@@ -79,37 +86,146 @@ class ControlsCaveat(CamelModel):
 
 
 class SampleCaveat(CamelModel):
-    """A sample of the result where a gene is unclear or does not fit."""
+    """A column of a step whose values do not all fit the bound, or that the
+    site does not show."""
 
     model_config = ConfigDict(frozen=True)
 
     kind: Literal["sample"] = "sample"
-    unclear: int
-    misfit: int
-    total: int
+    fit: ColumnFit
 
     @computed
     def sentence(self) -> str:
-        """The unclear and the misfit genes, each out of the sample."""
-        clauses = [
-            *(
-                [f"{self.unclear} of {self.total} sampled genes unclear"]
-                if self.unclear
-                else []
-            ),
-            *(
-                [f"{self.misfit} of {self.total} sampled genes do not fit"]
-                if self.misfit
-                else []
-            ),
-        ]
-        return "; ".join(clauses)
+        """The records that fit out of the step, or the column the site lacks."""
+        return self.fit.sentence
 
     def texts(self) -> list[str]:
-        return []
+        return self.fit.texts()
 
     def redacted(self, redact: Callable[[str], str]) -> SampleCaveat:
-        return self
+        fit = self.fit.model_copy(
+            update={"criterion_text": redact(self.fit.criterion_text)}
+        )
+        return self.model_copy(update={"fit": fit})
+
+
+# The way the researcher asked an edit to move a step's count.
+type EditDirection = Literal["loosen", "tighten", "other"]
+
+
+class EditDirectionCaveat(CamelModel):
+    """A step an edit was asked to loosen whose count fell, or to tighten
+    whose count rose."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["edit_direction"] = "edit_direction"
+    step_id: str
+    step_name: str
+    direction: Literal["loosen", "tighten"]
+    count_before: int
+    count_after: int
+    noun: str = "gene"
+
+    @computed
+    def sentence(self) -> str:
+        """The step, the way it was asked to move, and both of its counts."""
+        moved = "fell" if self.count_after < self.count_before else "rose"
+        return (
+            f"'{self.step_name}' was edited to {self.direction} it, and its count "
+            f"{moved} from {_counted_with_commas(self.count_before, self.noun)} "
+            f"to {_counted_with_commas(self.count_after, self.noun)}"
+        )
+
+    def texts(self) -> list[str]:
+        return [self.step_name]
+
+    def redacted(self, redact: Callable[[str], str]) -> EditDirectionCaveat:
+        return self.model_copy(update={"step_name": redact(self.step_name)})
+
+
+def _counted_with_commas(count: int, noun: str) -> str:
+    return f"{count:,} {noun}" if count == 1 else f"{count:,} {noun}s"
+
+
+def edit_direction_caveats(
+    direction: EditDirection,
+    before: Mapping[str, int],
+    after: Mapping[str, tuple[str, int | None]],
+    noun: str,
+) -> list[EditDirectionCaveat]:
+    """Each step whose count moved against the way the edit was asked to move it.
+
+    ``after`` holds each step's name and its count now, by step id.
+    """
+    if direction == "other":
+        return []
+    return [
+        EditDirectionCaveat(
+            step_id=step_id,
+            step_name=name,
+            direction=direction,
+            count_before=was,
+            count_after=now,
+            noun=noun,
+        )
+        for step_id, was in before.items()
+        if step_id in after
+        for name, now in [after[step_id]]
+        if now is not None and (now < was if direction == "loosen" else now > was)
+    ]
+
+
+class PhraseCaveat(CamelModel):
+    """A several-word text sent unquoted, which matches any of its words,
+    where the same words as one phrase count otherwise."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["phrase"] = "phrase"
+    criterion_id: str
+    param_display_name: str
+    value: str
+    words_count: int
+    phrase_count: int
+
+    @computed
+    def sentence(self) -> str:
+        """The text, its count as any of its words, and its count as a phrase."""
+        return (
+            f"{self.param_display_name} {self.value!r} matches any of its words: "
+            f"{_counted_with_commas(self.words_count, 'gene')}; as the phrase "
+            f'"{self.value}": {_counted_with_commas(self.phrase_count, "gene")}'
+        )
+
+    def texts(self) -> list[str]:
+        return [self.value]
+
+    def redacted(self, redact: Callable[[str], str]) -> PhraseCaveat:
+        return self.model_copy(update={"value": redact(self.value)})
+
+
+def phrase_caveats(spec: OperationalSpec | None) -> list[PhraseCaveat]:
+    """Each unquoted several-word text whose phrase reading counts otherwise."""
+    if spec is None:
+        return []
+    return [
+        PhraseCaveat(
+            criterion_id=c.id,
+            param_display_name=c.display_name_of(m.param),
+            value=m.reading.strip('"'),
+            words_count=c.result_count,
+            phrase_count=m.count,
+        )
+        for c in spec.criteria
+        for m in c.measurements
+        if m.kind == "wildcard_phrase"
+        and m.reading.startswith('"')
+        and m.param in c.resolved_params
+        and m.count is not None
+        and c.result_count is not None
+        and m.count != c.result_count
+    ]
 
 
 class BuildCaveat(CamelModel):
@@ -131,12 +247,6 @@ class BuildCaveat(CamelModel):
             f"{self.failed}, skipped {self.skipped} and left {self.empty} empty"
         )
 
-    def stated_by(self, prose: str) -> bool:
-        """Whether the prose names every count that is not zero, or the pushed
-        count when nothing failed, was skipped or came back empty."""
-        shortfall = [n for n in (self.failed, self.skipped, self.empty) if n]
-        return all(_names_the_number(prose, str(n)) for n in shortfall or [self.pushed])
-
     def texts(self) -> list[str]:
         return []
 
@@ -145,9 +255,25 @@ class BuildCaveat(CamelModel):
 
 
 Caveat = Annotated[
-    ControlsCaveat | SampleCaveat | BuildCaveat,
+    ControlsCaveat
+    | SampleCaveat
+    | BuildCaveat
+    | AssumedValueCaveat
+    | UnmeasuredValueCaveat
+    | ChoiceCaveat
+    | LabelGapCaveat
+    | EditDirectionCaveat
+    | PhraseCaveat
+    | ZeroCombineCaveat,
     Discriminator("kind"),
 ]
+
+
+def caveats_for(
+    spec: OperationalSpec | None, measured: Sequence[Caveat]
+) -> list[Caveat]:
+    """The caveats a check measured, then the values of the spec that narrow."""
+    return [*measured, *assumed_value_caveats(spec), *phrase_caveats(spec)]
 
 
 def controls_caveat(test: ControlTestEvidence) -> ControlsCaveat | None:
@@ -166,29 +292,30 @@ def controls_caveat(test: ControlTestEvidence) -> ControlsCaveat | None:
     return None
 
 
-def sample_caveat(genes: Sequence[SampledGene]) -> SampleCaveat | None:
-    """The caveat of a sample, or None when every gene fits."""
-    unclear = sum(1 for gene in genes if gene.fits == "unclear")
-    misfit = sum(1 for gene in genes if gene.fits == "no")
-    if not unclear and not misfit:
-        return None
-    return SampleCaveat(unclear=unclear, misfit=misfit, total=len(genes))
+def sample_caveat(fit: ColumnFit) -> SampleCaveat | None:
+    """The caveat of one column fit, or None when every record fits."""
+    return None if fit.fits == "all" else SampleCaveat(fit=fit)
 
 
 def measured_caveats(
     *,
     build: BuildCaveat | None,
     controls: Sequence[ControlTestEvidence],
-    genes: Sequence[SampledGene],
+    column_fits: Sequence[ColumnFit],
 ) -> list[Caveat]:
     """Every caveat one check measured, in the order the ledger lists them."""
     tested = (controls_caveat(test) for test in controls)
-    sampled = sample_caveat(genes)
+    columns = (sample_caveat(fit) for fit in column_fits)
     return [
         *([] if build is None else [build]),
         *(caveat for caveat in tested if caveat is not None),
-        *([] if sampled is None else [sampled]),
+        *(caveat for caveat in columns if caveat is not None),
     ]
+
+
+# unshown: a text query answers the row and a sampled record shows it missing.
+# unjudged: a text query answers the row and no sampled record judged it.
+type RequirementGapStatus = Literal["unmet", "unexpressed", "unshown", "unjudged"]
 
 
 class RequirementGap(CamelModel):
@@ -198,17 +325,24 @@ class RequirementGap(CamelModel):
 
     kind: Literal["requirement"] = "requirement"
     text: str
-    status: Literal["unmet", "unexpressed"]
+    status: RequirementGapStatus
 
     @computed
     def sentence(self) -> str:
         """The requirement, in the researcher's words, and what is missing."""
         if self.status == "unexpressed":
             return f"'{self.text}': no search on this site states it"
+        if self.status == "unshown":
+            return f"'{self.text}': no sampled record shows it"
+        if self.status == "unjudged":
+            return f"'{self.text}': no sampled record judged it"
         return f"'{self.text}': nothing in the strategy answers it"
 
-    def named_by(self, prose: str) -> bool:
-        return names_a_run_of(prose, self.text)
+    @property
+    def fails_the_check(self) -> bool:
+        """Whether the gap holds the check short of success: a step answers
+        an unjudged row, so only the records are silent on it."""
+        return self.status != "unjudged"
 
     def texts(self) -> list[str]:
         return [self.text]
@@ -230,14 +364,15 @@ class WordGap(CamelModel):
         """The word, and that no search states it."""
         return f"'{self.word}': no search the strategy runs states it"
 
-    def named_by(self, prose: str) -> bool:
-        return names_the_phrase(prose, self.word)
-
     def texts(self) -> list[str]:
         return [self.word]
 
     def redacted(self, redact: Callable[[str], str]) -> WordGap:
         return self.model_copy(update={"word": redact(self.word)})
+
+    @property
+    def fails_the_check(self) -> bool:
+        return True
 
 
 class StructureGap(CamelModel):
@@ -254,17 +389,68 @@ class StructureGap(CamelModel):
         """The combination, and the operator the strategy joins it with."""
         return f"'{self.expression}': the strategy joins it with {self.built}"
 
-    def named_by(self, prose: str) -> bool:
-        return names_the_phrase(prose, self.expression)
-
     def texts(self) -> list[str]:
         return [self.expression]
 
     def redacted(self, redact: Callable[[str], str]) -> StructureGap:
         return self.model_copy(update={"expression": redact(self.expression)})
 
+    @property
+    def fails_the_check(self) -> bool:
+        return True
 
-Gap = Annotated[RequirementGap | WordGap | StructureGap, Discriminator("kind")]
+
+Gap = Annotated[
+    RequirementGap | WordGap | StructureGap | CheckGap, Discriminator("kind")
+]
+
+
+def _names(text: str, words: str) -> bool:
+    """Whether the text carries the words, or the words carry the text."""
+    return message_states(text, words) or message_states(words, text)
+
+
+def _requirement_naming(
+    text: str,
+    requirements: Sequence[GroundedConstraint],
+    *,
+    met: Sequence[str] = (),
+) -> GroundedConstraint | None:
+    """The one requirement of the researcher the text names, by its key.
+
+    A requirement a ``met`` row names is not the one the text misses. A text
+    that names several of the rest, or none, names no one requirement, so the
+    order the requirements come in decides nothing.
+    """
+    named = {
+        held.constraint.key: held
+        for held in requirements
+        if held.constraint.source is ConstraintSource.USER_EXPLICIT
+        and _names(text, held.constraint.requested_value)
+    }
+    missing = [
+        held
+        for held in named.values()
+        if not any(_names(row, held.constraint.requested_value) for row in met)
+    ]
+    found = missing or list(named.values())
+    return found[0] if len(found) == 1 else None
+
+
+def _names_a_requirement(text: str, requirements: Sequence[GroundedConstraint]) -> bool:
+    return any(_names(text, held.constraint.requested_value) for held in requirements)
+
+
+def _retired(text: str, requirements: Sequence[GroundedConstraint]) -> bool:
+    held = _requirement_naming(text, requirements)
+    return held is not None and held.retired
+
+
+def _gap_status(row: RequirementCheck) -> RequirementGapStatus:
+    shown = row.shown_status
+    if shown == "unexpressed" or shown == "unjudged":
+        return shown
+    return "unshown" if row.no_record_shows_it else "unmet"
 
 
 def check_gaps(
@@ -272,23 +458,48 @@ def check_gaps(
     structure: StructureGap | None,
     words: Sequence[str],
     review: VerificationReview,
+    requirements: Sequence[GroundedConstraint] = (),
+    unstated: Sequence[str] = (),
+    asked: Sequence[str] = (),
 ) -> list[Gap]:
     """Every gap of one check, once each: the structure, the words no search
-    states, then each requirement row neither of those already names."""
+    states, the requirements no search on the site states, then each
+    requirement row none of those already names.
+
+    A gap a withdrawn or replaced requirement names is no gap. A row that
+    names no requirement the thread holds, or that carries every word of a
+    question the thread ``asked``, is no requirement. A row that names one
+    requirement carries the requirement's own words.
+    """
+    live_structure = structure
+    if structure is not None and _retired(structure.expression, requirements):
+        live_structure = None
+    live_words = [w for w in dict.fromkeys(words) if not _retired(w, requirements)]
     named = {word.casefold() for word in words}
     if structure is not None:
         named.add(structure.expression.casefold())
-    rows: list[Gap] = [
-        RequirementGap(
-            text=row.text,
-            status="unexpressed" if row.status == "unexpressed" else "unmet",
-        )
-        for row in review.to_report()
-        if row.text.casefold() not in named
-    ]
+    rows: list[Gap] = []
+    for text in dict.fromkeys(unstated):
+        if text.casefold() in named or _retired(text, requirements):
+            continue
+        named.add(text.casefold())
+        rows.append(RequirementGap(text=text, status="unexpressed"))
+    met = [row.text for row in review.requirements if row.shown_status == "met"]
+    for row in review.to_report():
+        if not _names_a_requirement(row.text, requirements) or any(
+            message_states(row.text, question) for question in asked
+        ):
+            continue
+        held = _requirement_naming(row.text, requirements, met=met)
+        text = row.text if held is None else held.constraint.requested_value
+        spelled = {row.text.casefold(), text.casefold()}
+        if spelled & named or (held is not None and held.retired):
+            continue
+        named.add(text.casefold())
+        rows.append(RequirementGap(text=text, status=_gap_status(row)))
     return [
-        *([] if structure is None else [structure]),
-        *(WordGap(word=word) for word in dict.fromkeys(words)),
+        *([] if live_structure is None else [live_structure]),
+        *(WordGap(word=word) for word in live_words),
         *rows,
     ]
 
@@ -297,13 +508,19 @@ __all__ = [
     "BuildCaveat",
     "Caveat",
     "ControlsCaveat",
+    "EditDirection",
+    "EditDirectionCaveat",
     "Gap",
+    "PhraseCaveat",
     "RequirementGap",
     "SampleCaveat",
     "StructureGap",
     "WordGap",
+    "caveats_for",
     "check_gaps",
     "controls_caveat",
+    "edit_direction_caveats",
     "measured_caveats",
+    "phrase_caveats",
     "sample_caveat",
 ]

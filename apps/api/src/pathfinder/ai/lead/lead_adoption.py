@@ -57,6 +57,7 @@ async def _attach_the_controls(
                 source="separation",
             ),
             user_id=runtime.user_id,
+            conversation_id=deps.conversation_id,
         )
         await session.commit()
     deps.state.turn_markers.record_control_set(

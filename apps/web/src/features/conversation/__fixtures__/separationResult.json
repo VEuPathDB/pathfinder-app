@@ -22,30 +22,54 @@
           "role": "seed",
           "resolvedParams": {
             "go_term": {
-              "type": "string",
-              "value": "N/A"
+              "value": {
+                "type": "string",
+                "value": "N/A"
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "go_term_evidence": {
-              "type": "multi-pick-vocabulary",
-              "values": ["Curated", "Computed"]
+              "value": {
+                "type": "multi-pick-vocabulary",
+                "values": ["Curated", "Computed"]
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "go_term_slim": {
-              "type": "single-pick-vocabulary",
-              "value": "No"
+              "value": {
+                "type": "single-pick-vocabulary",
+                "value": "No"
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "go_typeahead": {
-              "type": "multi-pick-vocabulary",
-              "values": ["GO:0044217"]
+              "value": {
+                "type": "multi-pick-vocabulary",
+                "values": ["GO:0044217"]
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "organism": {
-              "type": "multi-pick-vocabulary",
-              "values": ["Plasmodium falciparum 3D7"]
+              "value": {
+                "type": "multi-pick-vocabulary",
+                "values": ["Plasmodium falciparum 3D7"]
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             }
           },
-          "defaultedParams": [],
+          "measurements": [],
           "openParams": [],
           "confidence": 1.0,
-          "assumptions": [],
           "alternatives": [],
           "analysis": null,
           "needsAnalysisOn": null,
@@ -76,18 +100,27 @@
           "role": "seed",
           "resolvedParams": {
             "geneListDataset": {
-              "type": "single-pick-vocabulary",
-              "value": "pfal3D7_subcellular_localization_ApicoplastTargeting_RSRC"
+              "value": {
+                "type": "single-pick-vocabulary",
+                "value": "pfal3D7_subcellular_localization_ApicoplastTargeting_RSRC"
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "geneListParam": {
-              "type": "single-pick-vocabulary",
-              "value": "Apicoplast"
+              "value": {
+                "type": "single-pick-vocabulary",
+                "value": "Apicoplast"
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             }
           },
-          "defaultedParams": [],
+          "measurements": [],
           "openParams": [],
           "confidence": 1.0,
-          "assumptions": [],
           "alternatives": [],
           "analysis": null,
           "needsAnalysisOn": null,
@@ -118,30 +151,54 @@
           "role": "seed",
           "resolvedParams": {
             "go_term": {
-              "type": "string",
-              "value": "N/A"
+              "value": {
+                "type": "string",
+                "value": "N/A"
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "go_term_evidence": {
-              "type": "multi-pick-vocabulary",
-              "values": ["Curated", "Computed"]
+              "value": {
+                "type": "multi-pick-vocabulary",
+                "values": ["Curated", "Computed"]
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "go_term_slim": {
-              "type": "single-pick-vocabulary",
-              "value": "No"
+              "value": {
+                "type": "single-pick-vocabulary",
+                "value": "No"
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "go_typeahead": {
-              "type": "multi-pick-vocabulary",
-              "values": ["GO:0051701"]
+              "value": {
+                "type": "multi-pick-vocabulary",
+                "values": ["GO:0051701"]
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             },
             "organism": {
-              "type": "multi-pick-vocabulary",
-              "values": ["Plasmodium falciparum 3D7"]
+              "value": {
+                "type": "multi-pick-vocabulary",
+                "values": ["Plasmodium falciparum 3D7"]
+              },
+              "source": "card",
+              "basis": "0c6100d2-0000-4000-8000-00000000a16a",
+              "carriedFrom": ""
             }
           },
-          "defaultedParams": [],
+          "measurements": [],
           "openParams": [],
           "confidence": 1.0,
-          "assumptions": [],
           "alternatives": [],
           "analysis": null,
           "needsAnalysisOn": null,

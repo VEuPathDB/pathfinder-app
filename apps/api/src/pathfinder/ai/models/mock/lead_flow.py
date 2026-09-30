@@ -19,15 +19,10 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import Script, Sequence
 from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final
-from pathfinder.ai.models.mock.findings import findings
 from pathfinder.ai.models.mock.reads import (
-    added_search_lines,
-    drafted_search_lines,
     frame_is_ready,
-    live_count_sentence,
     refusal_of,
     turn_start_instructions,
-    verification_prose,
     verified,
 )
 
@@ -64,6 +59,11 @@ _NEEDS_A_VALUE = (
         "your request does not state."
     ),
     "Which value do you want me to use?",
+)
+# The facts part shows the steps, their counts and what the check found, so a
+# reply points at it and restates none of them.
+FACTS_BESIDE = (
+    "\n\nThe steps, their counts and what the check found are shown beside this reply."
 )
 EDIT_PROSE = (
     "**Edited the strategy.** The criterion you named changed; every other "
@@ -149,14 +149,6 @@ def _unbuilt(messages: list[ModelMessage]) -> ToolCallPart | None:
     return lead_final(f"{said} {asked}", "await_user", questions=[asked])
 
 
-def written_tail(messages: list[ModelMessage], count: str | None = None) -> str:
-    """What a reply that wrote the strategy ends on: each search the turn
-    added with its reason, then ``count``, else the count the site answers now."""
-    count = count or live_count_sentence(messages)
-    lines = added_search_lines(messages) or drafted_search_lines(messages)
-    return f"\n\n{lines}\n\n{count}" if lines else f" {count}"
-
-
 def _checked(
     messages: list[ModelMessage],
     success: str,
@@ -164,14 +156,14 @@ def _checked(
     *,
     changed: bool = True,
 ) -> list[ToolCallPart]:
-    """Verify, state each gap and caveat the check found, read the count the
-    site answers now, and state it beside each search the turn added, named
-    with its reason."""
-    tail = f"{findings(messages)}{written_tail(messages)}"
+    """Verify, read the strategy the site holds now, and answer with what the
+    check decided, pointing at the facts beside the reply."""
     final = (
-        lead_final(f"{success}{tail}", "complete", strategy_changed=changed)
+        lead_final(f"{success}{FACTS_BESIDE}", "complete", strategy_changed=changed)
         if verified(messages)
-        else lead_final(f"{failure}{tail}", "await_user", strategy_changed=changed)
+        else lead_final(
+            f"{failure}{FACTS_BESIDE}", "await_user", strategy_changed=changed
+        )
     )
     return [
         scripted_call("verify_strategy", {"reason": "mock verification"}),
@@ -226,12 +218,11 @@ def build_when_framed(
 
 def check_or_build(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Check the strategy the thread holds, which changes nothing, else build
-    one and check it, and answer with what the check found."""
-    found = verification_prose(messages) or SUCCESS_PROSE
+    one and check it, and answer with what the check decided."""
     if thread_is_framed(messages):
-        checked = _checked(messages, found, found, changed=False)
+        checked = _checked(messages, SUCCESS_PROSE, FEEDBACK_PROSE, changed=False)
         return [classify("extend_strategy"), *checked]
-    return build_journey(messages, success=found, failure=found)
+    return build_journey(messages)
 
 
 def extend_or_build(

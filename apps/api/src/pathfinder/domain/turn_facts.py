@@ -1,0 +1,555 @@
+"""The facts a turn shows beside the Lead's reply: the strategy's steps and
+values, what the check measured, and what the turn saved or was refused."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import Literal
+
+from assistant_core.platform.pydantic_base import CamelModel, computed
+from pydantic import ConfigDict, Field, ValidationInfo, field_validator
+
+from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat
+from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence, GeneFit
+from pathfinder.domain.strategy.operational_spec import ValueSource
+from pathfinder.domain.value_caveats import (
+    AssumedValueCaveat,
+    ChoiceCaveat,
+    UnmeasuredValueCaveat,
+    ValueCaveat,
+)
+
+type SavedKind = Literal["gene_set", "control_set"]
+
+# A held line that carries a record's own words. A number in them is the
+# record's own and no count, so a reply holds it only beside the same word.
+RECORD_WORDS = "Record words: "
+type RetiredState = Literal["withdrawn", "replaced"]
+
+
+def _counted(count: int | None, noun: str) -> str:
+    if count is None:
+        return "count not available"
+    return f"{count:,} {noun}" if count == 1 else f"{count:,} {noun}s"
+
+
+def _with_before(count: int | None, before: int | None, noun: str) -> str:
+    if before is None:
+        return _counted(count, noun)
+    return f"{_counted(count, noun)}, {_counted(before, noun)} before this turn's edit"
+
+
+class ParameterFact(CamelModel):
+    """One bound value of a step, by the name the site shows, and who set it.
+
+    ``notes`` are the measurement clauses of a default or chosen value and the
+    option label of a card value. ``name`` is the wire name, which the facts
+    part does not show.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    display_name: str
+    value: str
+    label: str = ""
+    source: ValueSource
+    notes: list[str] = Field(default_factory=list)
+
+    def lines(self) -> list[str]:
+        shown = f"{self.value} ({self.label})" if self.label else self.value
+        return [f"{self.display_name}: {shown}", *self.notes]
+
+    def redacted(self, redact: Callable[[str], str]) -> ParameterFact:
+        return self.model_copy(
+            update={
+                "value": redact(self.value),
+                "label": redact(self.label),
+                "notes": [redact(note) for note in self.notes],
+            }
+        )
+
+
+class StepFact(CamelModel):
+    """One step of the strategy, or of the draft while nothing is built.
+
+    ``step_id`` names the step or the criterion; the facts part does not show it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    step_id: str
+    display_name: str
+    operator: str | None = None
+    count: int | None = None
+    # Why the step runs its search, as its recorded reason reads.
+    reason: str = ""
+    parameters: list[ParameterFact] = Field(default_factory=list)
+    # What the site answered when it refused the step, whole.
+    error: str = ""
+    # The count the step held before this turn's first edit of it.
+    count_before: int | None = None
+
+    def lines(self, noun: str) -> list[str]:
+        title = (
+            f"{self.operator} {self.display_name}"
+            if self.operator
+            else self.display_name
+        )
+        return [
+            f"{title}: {_with_before(self.count, self.count_before, noun)}",
+            *([self.reason] if self.reason else []),
+            *(line for p in self.parameters for line in p.lines()),
+            *([self.error] if self.error else []),
+        ]
+
+    def redacted(self, redact: Callable[[str], str]) -> StepFact:
+        return self.model_copy(
+            update={
+                "display_name": redact(self.display_name),
+                "reason": redact(self.reason),
+                "parameters": [p.redacted(redact) for p in self.parameters],
+                "error": redact(self.error),
+            }
+        )
+
+
+class SourceFact(CamelModel):
+    """A record or a reference a read returned, the step whose listing gave the
+    record, and the check's judgement of the record against the request.
+
+    ``values`` are the record's other words: its gene name, its chromosome and
+    the orthologs of the one organism the read asked for.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    url: str
+    record_id: str = ""
+    product: str = ""
+    organism: str = ""
+    values: list[str] = Field(default_factory=list)
+    step_id: str = ""
+    step_name: str = ""
+    fit: GeneFit | None = None
+    why: str = ""
+
+    def _words(self) -> list[str]:
+        return [t for t in (self.product, self.organism, *self.values) if t]
+
+    def _fit(self) -> str:
+        return "" if self.fit is None else f" (the check judged its fit {self.fit})"
+
+    def described(self) -> str:
+        """The record's id and words, its fit, and its link."""
+        named = ", ".join(t for t in (self.record_id, *self._words()) if t)
+        return f"{named}{self._fit()}: {self.url}" if named else self.url
+
+    def held_lines(self, where: str) -> list[str]:
+        """The record as a reply may hold it: its id, fit and link, then its own
+        words on a line of their own."""
+        named = f"{self.record_id}{self._fit()}: " if self.record_id else ""
+        words = self._words()
+        return [
+            f"{where}: {named}{self.url}",
+            *([f"{RECORD_WORDS}{', '.join(words)}"] if words else []),
+        ]
+
+    def where(self) -> str:
+        return f"Read from {self.step_name}" if self.step_name else "Read"
+
+    def line(self) -> str:
+        return f"{self.where()}: {self.described()}"
+
+    def redacted(self, redact: Callable[[str], str]) -> SourceFact:
+        return self.model_copy(
+            update={
+                "url": redact(self.url),
+                "product": redact(self.product),
+                "organism": redact(self.organism),
+                "values": [redact(value) for value in self.values],
+                "step_name": redact(self.step_name),
+                "why": redact(self.why),
+            }
+        )
+
+
+class ListedRecord(CamelModel):
+    """One id a listing returned, and the site's page of its record."""
+
+    model_config = ConfigDict(frozen=True)
+
+    record_id: str
+    url: str
+
+
+class ListedFact(CamelModel):
+    """The ids a listing or a sample of one step returned, under that step."""
+
+    model_config = ConfigDict(frozen=True)
+
+    step_id: str
+    step_name: str = ""
+    records: list[ListedRecord] = Field(default_factory=list)
+
+    def line(self) -> str:
+        ids = ", ".join(r.record_id for r in self.records)
+        return f"Listed from {self.step_name}: {ids}"
+
+    def redacted(self, redact: Callable[[str], str]) -> ListedFact:
+        return self.model_copy(update={"step_name": redact(self.step_name)})
+
+
+class RetiredFact(CamelModel):
+    """A requirement the researcher withdrew or an answer replaced."""
+
+    model_config = ConfigDict(frozen=True)
+
+    requirement: str
+    state: RetiredState
+    replaced_by: str = ""
+
+    @computed
+    def sentence(self) -> str:
+        if self.state == "replaced" and self.replaced_by:
+            return f"'{self.requirement}' is replaced by {self.replaced_by}"
+        return f"'{self.requirement}' is withdrawn"
+
+    def redacted(self, redact: Callable[[str], str]) -> RetiredFact:
+        return self.model_copy(
+            update={
+                "requirement": redact(self.requirement),
+                "replaced_by": redact(self.replaced_by),
+            }
+        )
+
+
+class SavedSetFact(CamelModel):
+    """A gene set or a control set this conversation saved on this turn."""
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: SavedKind
+    name: str
+    count: int | None = None
+
+    def line(self) -> str:
+        what = "gene set" if self.kind == "gene_set" else "control set"
+        held = "" if self.count is None else f", {_counted(self.count, 'gene')}"
+        return f"Saved {what} {self.name}{held}"
+
+    def redacted(self, redact: Callable[[str], str]) -> SavedSetFact:
+        return self.model_copy(update={"name": redact(self.name)})
+
+
+class ControlResultFact(CamelModel):
+    """How many of each control set one test of this turn returned."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tested_label: str
+    positives_returned: int | None = None
+    positives_total: int | None = None
+    negatives_returned: int | None = None
+    negatives_total: int | None = None
+
+    @computed
+    def sentence(self) -> str:
+        clauses = [
+            f"{returned} of {total} {kind} controls returned"
+            for kind, returned, total in (
+                ("positive", self.positives_returned, self.positives_total),
+                ("negative", self.negatives_returned, self.negatives_total),
+            )
+            if total is not None
+        ]
+        return f"{self.tested_label}: {'; '.join(clauses)}"
+
+    def redacted(self, redact: Callable[[str], str]) -> ControlResultFact:
+        return self.model_copy(update={"tested_label": redact(self.tested_label)})
+
+
+def control_result_fact(test: ControlTestEvidence) -> ControlResultFact:
+    """The counts one control test measured, without the ids it filed."""
+    positive, negative = test.positive, test.negative
+    return ControlResultFact(
+        tested_label=test.tested_label,
+        positives_returned=None if positive is None else positive.returned_count,
+        positives_total=None if positive is None else positive.controls_count,
+        negatives_returned=None if negative is None else negative.returned_count,
+        negatives_total=None if negative is None else negative.controls_count,
+    )
+
+
+class TurnFacts(CamelModel):
+    """Everything a turn shows beside its reply. The reply holds no fact outside it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    record_noun: str = "gene"
+    steps: list[StepFact] = Field(default_factory=list)
+    # True while the steps are the draft's criteria and nothing is built.
+    draft: bool = False
+    root_count: int | None = None
+    # The root's count before this turn's first edit.
+    root_count_before: int | None = None
+    # The titles of the steps this turn deleted.
+    removed: list[str] = Field(default_factory=list)
+    strategy_url: str | None = None
+    caveats: list[Caveat] = Field(default_factory=list)
+    gaps: list[Gap] = Field(default_factory=list)
+    column_fits: list[ColumnFit] = Field(default_factory=list)
+    retired: list[RetiredFact] = Field(default_factory=list)
+    saved: list[SavedSetFact] = Field(default_factory=list)
+    control_results: list[ControlResultFact] = Field(default_factory=list)
+    # What the turn's reads returned, each under the step it was read from.
+    sources: list[SourceFact] = Field(default_factory=list)
+    # The ids each listing of this turn returned, under the step it listed.
+    listed: list[ListedFact] = Field(default_factory=list)
+    # The genes the message names that the site resolved to its records.
+    named_genes: list[SourceFact] = Field(default_factory=list)
+    stopped_check: str = ""
+    refusal: str = ""
+
+    @field_validator("caveats", mode="after")
+    @classmethod
+    def _one_drawer_per_measurement(
+        cls, caveats: list[Caveat], info: ValidationInfo
+    ) -> list[Caveat]:
+        """A measurement a step row shows as a note is no caveat as well."""
+        steps: list[StepFact] = info.data.get("steps", [])
+        noted = {
+            (step.step_id, p.display_name)
+            for step in steps
+            for p in step.parameters
+            if p.notes
+        }
+        return [c for c in caveats if not _drawn_by_a_row(c, noted)]
+
+    def empty(self) -> bool:
+        return not any(
+            (
+                self.steps,
+                self.removed,
+                self.strategy_url,
+                self.caveats,
+                self.gaps,
+                self.column_fits,
+                self.retired,
+                self.saved,
+                self.control_results,
+                self.sources,
+                self.listed,
+                self.named_genes,
+                self.stopped_check,
+                self.refusal,
+            )
+        )
+
+    def lines(self) -> list[str]:
+        """Every line the facts part shows, in the order it shows them."""
+        return self._rows(held=False)
+
+    def held_lines(self) -> list[str]:
+        """The lines a reply may restate: every shown line, with each record's
+        own words on a line of their own."""
+        return self._rows(held=True)
+
+    def _source_rows(self, source: SourceFact, where: str, *, held: bool) -> list[str]:
+        if held:
+            return source.held_lines(where)
+        return [f"{where}: {source.described()}"]
+
+    def _step_rows(self, step: StepFact, *, held: bool) -> list[str]:
+        return [
+            *step.lines(self.record_noun),
+            *(
+                row
+                for s in self.sources
+                if s.step_id == step.step_id
+                for row in self._source_rows(s, s.where(), held=held)
+            ),
+            *(
+                listed.line()
+                for listed in self.listed
+                if listed.step_id == step.step_id
+            ),
+        ]
+
+    def _rows(self, *, held: bool) -> list[str]:
+        noun = self.record_noun
+        root = (
+            []
+            if self.root_count is None
+            else [
+                f"Result: {_with_before(self.root_count, self.root_count_before, noun)}"
+            ]
+        )
+        return [
+            *(line for step in self.steps for line in self._step_rows(step, held=held)),
+            *root,
+            *(f"Removed {title}" for title in self.removed),
+            *([] if self.strategy_url is None else [self.strategy_url]),
+            *(caveat.sentence for caveat in self.caveats),
+            *(gap.sentence for gap in self.gaps),
+            *(fit.sentence for fit in self.column_fits),
+            *(retired.sentence for retired in self.retired),
+            *(saved.line() for saved in self.saved),
+            *(result.sentence for result in self.control_results),
+            *(
+                row
+                for s in self.sources
+                if not s.step_id
+                for row in self._source_rows(s, s.where(), held=held)
+            ),
+            *(
+                row
+                for gene in self.named_genes
+                for row in self._source_rows(gene, "Named in the message", held=held)
+            ),
+            *([self.stopped_check] if self.stopped_check else []),
+            *([self.refusal] if self.refusal else []),
+        ]
+
+    def text(self) -> str:
+        return "\n".join(self.lines())
+
+    def sources_named(self, words: Sequence[str]) -> frozenset[ValueSource]:
+        """Who set each value the words name. A value is named when every word
+        of its value, or of its label, is among the words."""
+        return frozenset(
+            p.source
+            for step in self.steps
+            for p in step.parameters
+            if any(_names(value_words(shown), words) for shown in (p.value, p.label))
+        )
+
+    def record_products(self) -> list[tuple[str, str]]:
+        """Each record id this turn read or resolved, with its product."""
+        return [
+            (record.record_id, record.product)
+            for record in (*self.sources, *self.named_genes)
+            if record.record_id and record.product
+        ]
+
+    def counts(self) -> frozenset[int]:
+        """Each step's count and the result's, and each count before this
+        turn's edit."""
+        return frozenset(
+            n
+            for n in (
+                *(c for s in self.steps for c in (s.count, s.count_before)),
+                self.root_count,
+                self.root_count_before,
+            )
+            if n is not None
+        )
+
+    def carries(self, caveat: ValueCaveat) -> bool:
+        """Whether a step row shows this value with who set it and its measurement."""
+        return any(
+            step.step_id == caveat.criterion_id
+            and p.display_name == caveat.param_display_name
+            and p.source == caveat.source
+            and p.notes
+            for step in self.steps
+            for p in step.parameters
+        )
+
+    def redacted(self, redact: Callable[[str], str]) -> TurnFacts:
+        return self.model_copy(
+            update={
+                "steps": [step.redacted(redact) for step in self.steps],
+                "removed": [redact(title) for title in self.removed],
+                "strategy_url": None
+                if self.strategy_url is None
+                else redact(self.strategy_url),
+                "caveats": [caveat.redacted(redact) for caveat in self.caveats],
+                "gaps": [gap.redacted(redact) for gap in self.gaps],
+                "column_fits": [
+                    fit.model_copy(
+                        update={
+                            "criterion_text": redact(fit.criterion_text),
+                            "display_name": redact(fit.display_name),
+                            "bound_value": redact(fit.bound_value),
+                        }
+                    )
+                    for fit in self.column_fits
+                ],
+                "retired": [retired.redacted(redact) for retired in self.retired],
+                "saved": [saved.redacted(redact) for saved in self.saved],
+                "control_results": [
+                    result.redacted(redact) for result in self.control_results
+                ],
+                "sources": [source.redacted(redact) for source in self.sources],
+                "listed": [listed.redacted(redact) for listed in self.listed],
+                "named_genes": [gene.redacted(redact) for gene in self.named_genes],
+                "stopped_check": redact(self.stopped_check),
+                "refusal": redact(self.refusal),
+            }
+        )
+
+
+_EDGE_MARKS = "*_`\"'.,;:!?()[]"
+
+
+def value_words(text: str) -> list[str]:
+    """The words of a value or of a phrase, casefolded, a hyphen splitting two."""
+    return [
+        w
+        for part in text.replace("-", " ").split()
+        if (w := part.strip(_EDGE_MARKS).casefold())
+    ]
+
+
+def _abbreviates(short: str, word: str) -> bool:
+    """Whether ``short`` is ``word`` cut to some of its letters, as hr is hour."""
+    if not (short.isalpha() and word.isalpha()) or len(short) >= len(word):
+        return False
+    letters = iter(word)
+    return short[0] == word[0] and all(c in letters for c in short)
+
+
+def _names(shown: Sequence[str], words: Sequence[str]) -> bool:
+    return bool(shown) and all(
+        any(s == w or _abbreviates(s, w) for w in words) for s in shown
+    )
+
+
+def _drawn_by_a_row(caveat: Caveat, noted: set[tuple[str, str]]) -> bool:
+    match caveat:
+        case (
+            AssumedValueCaveat()
+            | UnmeasuredValueCaveat()
+            | ChoiceCaveat()
+            | PhraseCaveat()
+        ):
+            return (caveat.criterion_id, caveat.param_display_name) in noted
+        case _:
+            return False
+
+
+def uncarried_assumptions(
+    caveats: Sequence[ValueCaveat], facts: TurnFacts | None
+) -> int:
+    """How many values the request did not state, and that narrow their step,
+    no step row shows with who set them and their measurement."""
+    narrowing = [c for c in caveats if c.kind == "assumed_value"]
+    return sum(1 for c in narrowing if facts is None or not facts.carries(c))
+
+
+__all__ = [
+    "RECORD_WORDS",
+    "ControlResultFact",
+    "ListedFact",
+    "ListedRecord",
+    "ParameterFact",
+    "RetiredFact",
+    "SavedSetFact",
+    "SourceFact",
+    "StepFact",
+    "TurnFacts",
+    "control_result_fact",
+    "uncarried_assumptions",
+    "value_words",
+]

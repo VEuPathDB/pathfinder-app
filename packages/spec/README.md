@@ -24,7 +24,7 @@ This folder contains the OpenAPI specification for the Pathfinder API.
 - **models** / **tiers** -- the LLM model catalog and its tier presets
 - **me** (`/api/v1/me/`) -- privacy settings and quota
 - **user** (`/api/v1/user/data`) -- user data deletion
-- **feedback** (`/api/v1/feedback/actions`) -- product action feedback
+- **product-events** (`/api/v1/product-events`) -- what a researcher did in the UI, recorded in Langfuse
 - **eval** (`/api/v1/eval/`) -- thesis evaluation endpoints
 - **veupathdb-auth** (`/api/v1/veupathdb/auth/`) -- VEuPathDB authentication proxy
 - **health** (`/health`, `/health/ready`, `/health/config`, `/health/system`) -- probes

@@ -16,7 +16,7 @@ from assistant_core.tasks.scope import (
 
 from pathfinder.ai.conversation.turn_failure import turn_closed_on_failure
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
-from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.assistants.registry import get_assistant_registry, turn_trace_labels
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.turn_keys import turn_keys
@@ -69,7 +69,13 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
                 user_id=parsed.user_id, spec=spec, body=body, writer=writer
             ):
                 await run_turn(
-                    request=TurnRequest(body=body, user_id=parsed.user_id),
+                    request=TurnRequest(
+                        body=body,
+                        user_id=parsed.user_id,
+                        trace_labels=turn_trace_labels(
+                            spec.assistant_id, body.phase_models
+                        ),
+                    ),
                     spec=spec,
                     compiled_graph=graph,
                     memory_store=store,

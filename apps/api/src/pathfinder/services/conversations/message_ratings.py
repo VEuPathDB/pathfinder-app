@@ -38,10 +38,7 @@ from pathfinder.persistence.repositories.message_rating import (
     MessageRatingRepository,
 )
 from pathfinder.platform.errors import ErrorCode, NotFoundError
-from pathfinder.platform.langfuse.actions import (
-    ProductActionEvent,
-    record_product_action,
-)
+from pathfinder.platform.langfuse.scores import RatingScore, record_rating
 from pathfinder.services.eval_data.rated import (
     stage_disliked_message,
     unstage_rated_message,
@@ -205,20 +202,17 @@ async def _write_withheld(
 
 
 def _report(turn: _RatedTurn, rating: Rating | None) -> None:
-    usage = turn.metadata.usage
-    record_product_action(
-        ProductActionEvent(
-            action="message_rated",
-            stream_id=str(turn.message_id),
+    usage = turn.metadata.usage or _TurnUsage()
+    record_rating(
+        RatingScore(
+            message_id=turn.message_id,
+            conversation_id=turn.conversation_id,
+            trace_id=turn.metadata.trace_id,
+            rating=rating,
             metadata={
-                "rating": rating or "cleared",
-                "conversationId": str(turn.conversation_id),
-                "messageId": str(turn.message_id),
-                "turnTraceId": turn.metadata.trace_id,
-                "siteId": turn.site_id,
-                "assistantId": turn.assistant_id,
-                "totalTokens": None if usage is None else usage.total_tokens,
-                "costUsd": None if usage is None else usage.cost_usd,
+                "site_id": turn.site_id,
+                "assistant_id": turn.assistant_id,
+                **usage.model_dump(exclude_none=True),
             },
         ),
     )

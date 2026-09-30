@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _TEXT = "GenesByText"
@@ -51,9 +52,9 @@ def _on_screen() -> tuple[OperationalSpec, StrategySession]:
                 text="odorant binding protein",
                 search_name=_TEXT,
                 role="seed",
-                resolved_params={
-                    "text_search_organism": MultiPickValue(values=["Anopheles"])
-                },
+                resolved_params=bound(
+                    {"text_search_organism": MultiPickValue(values=["Anopheles"])}
+                ),
             )
         ],
         structure=SpecStructure(
@@ -78,12 +79,14 @@ def _with_the_domain_leaf(before: OperationalSpec) -> OperationalSpec:
             id="step_domain",
             text="InterPro odorant binding domain",
             search_name=_DOMAIN,
-            resolved_params={
-                "organism": MultiPickValue(values=["Anopheles gambiae PEST"]),
-                "domain_database": StringValue(value="Pfam"),
-                "domain_accession": StringValue(value="N/A"),
-                "domain_typeahead": MultiPickValue(values=["PF03392"]),
-            },
+            resolved_params=bound(
+                {
+                    "organism": MultiPickValue(values=["Anopheles gambiae PEST"]),
+                    "domain_database": StringValue(value="Pfam"),
+                    "domain_accession": StringValue(value="N/A"),
+                    "domain_typeahead": MultiPickValue(values=["PF03392"]),
+                }
+            ),
         )
     )
     after.structure = SpecStructure(

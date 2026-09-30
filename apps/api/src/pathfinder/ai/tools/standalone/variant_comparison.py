@@ -11,8 +11,16 @@ from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
-from pathfinder.services.evidence.comparisons import run_variant_comparison
+from pathfinder.ai.tools.standalone._variant_targets import (
+    checked_variants,
+    refuse_a_search_no_step_runs,
+    reject_combine_variants,
+)
+from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.services.evidence.comparisons import (
+    counted_in_place,
+    run_variant_comparison,
+)
 from pathfinder.services.experiment.variant_comparison import (
     VariantComparison,
     VariantSpec,
@@ -21,32 +29,20 @@ from pathfinder.services.experiment.variant_comparison import (
 _MIN_VARIANTS = 2
 
 
-def _summary(comparison: VariantComparison) -> str:
-    sizes = "; ".join(
-        f"{v.label}: {v.gene_count} genes ({v.unique_count} unique)"
-        for v in comparison.variants
-        if v.error is None
-    )
-    failed = "; ".join(
-        f"{v.label} failed: {v.error}"
-        for v in comparison.variants
-        if v.error is not None
-    )
-    fail_note = f" Some variants failed - {failed}." if failed else ""
-    overlaps = "; ".join(
-        f"{o.a} vs {o.b}: {o.shared} shared (Jaccard {o.jaccard})"
-        for o in comparison.overlaps
-    )
-    note = (
-        " (results were large; overlap figures are lower bounds)"
-        if (comparison.truncated)
-        else ""
-    )
-    return (
-        f"Ran {len(comparison.variants)} variants. Sizes - {sizes}. "
-        f"Overlap - {overlaps}.{note}{fail_note} Summarize the trade-off for "
-        "the user and ask which to proceed with (no scoring - no controls)."
-    )
+def _steps_running(
+    session: StrategySession, variants: list[VariantSpec]
+) -> dict[str, str]:
+    """The one step of the strategy that runs each variant's search, by label."""
+    graph = session.get_graph(None)
+    if graph is None:
+        return {}
+    running = {
+        v.label: [
+            sid for sid, s in graph.steps.items() if s.search_name == v.search_name
+        ]
+        for v in variants
+    }
+    return {label: steps[0] for label, steps in running.items() if len(steps) == 1}
 
 
 async def compare_search_variants(
@@ -59,7 +55,11 @@ async def compare_search_variants(
     values / ablate a step - instead of committing to one plan. Each variant
     runs as an anonymous WDK report (no step or strategy is created, so the
     user's workspace is untouched). Returns result sizes, pairwise overlap,
-    and the genes unique to each variant, rendered as a comparison card.
+    and the genes unique to each variant, rendered as a comparison card. A
+    variant of a search one step of the strategy runs is also counted in the
+    strategy's result with the variant in place (``resultCount``), which is
+    the count to answer "how many of the result would remain" from. Each
+    variant takes only parameters its search takes.
 
     Provide at least two variants; each is one search with one set of
     parameter values, given a short human ``label`` (e.g. "2-fold",
@@ -80,8 +80,11 @@ async def compare_search_variants(
         )
         raise ModelRetry(msg)
     reject_combine_variants(variants)
+    refuse_a_search_no_step_runs(variants, ctx.deps.runtime.strategy_session)
+    site_id = ctx.deps.runtime.site_id
+    variants = await checked_variants(site_id, variants)
 
-    comparison = await run_variant_comparison(ctx.deps.runtime.site_id, variants)
+    comparison = await run_variant_comparison(site_id, variants)
     if all(v.error is not None for v in comparison.variants):
         failures = "; ".join(
             f"{v.label}: {v.error}" for v in comparison.variants if v.error
@@ -92,18 +95,25 @@ async def compare_search_variants(
             "valid values, then retry."
         )
         raise ModelRetry(msg)
+    session = ctx.deps.runtime.strategy_session
+    graph = session.get_graph(None)
+    strategy = None if graph is None else graph.to_strategy_ast()
+    steps = _steps_running(session, variants)
+    if strategy is not None and steps:
+        comparison = await counted_in_place(
+            site_id, comparison, variants, strategy=strategy, steps=steps
+        )
+    ctx.deps.state.turn_markers.record_comparison(comparison)
     chunk = DataChunk(
         type="data-variant-comparison",
         data=comparison.model_dump(by_alias=True, mode="json"),
     )
-    ran = with_summary(
+    return with_summary(
         comparison,
         _variant_line(comparison),
         ctx=ctx,
         extra=[chunk],
     )
-    ran.content = _summary(comparison)
-    return ran
 
 
 def _variant_line(comparison: VariantComparison) -> str:

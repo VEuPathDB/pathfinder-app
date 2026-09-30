@@ -67,6 +67,7 @@ def _ranked(*definitions: WDKSearch) -> AgentToolState:
 
 
 async def _open(state: AgentToolState, text: str) -> None:
+    state.request_messages = [text]
     await set_criterion(
         frame_ctx(state),
         criterion_id="c_conserved",

@@ -1,4 +1,4 @@
-"""A delete card names the step the call removes, and the reply names that step.
+"""A delete card names the step the call removes, and the facts part names it.
 
 The strategy is the orthology transform over an INTERSECT of the signal
 peptide and transmembrane searches; the call removes the transform.
@@ -32,8 +32,9 @@ from pathfinder.ai.lead.lead_agent import LEAD_MODEL, LeadAgent
 from pathfinder.ai.lead.lead_tools import delete_step
 from pathfinder.ai.lead.live_state import LiveStepState, LiveStrategyState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
-from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.ai.lead.turn_facts import turn_facts
+from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -51,12 +52,6 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
 TRANSFORM = "c_orthologs_pvivax_p01"
 DELETE_REPLY = "The orthology transform goes, and the intersection becomes the root."
 ASKED = "Delete step 'Transform by Orthology' (GenesByOrthologs, 142 genes)?"
-MISNAMED = (
-    "Removed the intersection step. Both underlying searches were kept exactly "
-    "as they were: the predicted signal-peptide search retains 479 Plasmodium "
-    "vivax P01 ortholog records, and the 2-99 transmembrane-domain search "
-    "retains 840 Plasmodium vivax P01 ortholog records."
-)
 LIVE = LiveStrategyState(
     wdk_strategy_id=330703053,
     step_count=4,
@@ -196,42 +191,8 @@ def stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
     return install_stub_api(monkeypatch)
 
 
-async def _deleted_the_transform() -> list[str]:
-    ctx = lead_run_context(
-        user_prompt="Delete the intersection step but keep both searches.",
-        strategy_session=session_with(_strategy(), {}),
-        tool_call_id="call_delete",
-    )
-    await delete_step(
-        ctx,
-        step_id=TRANSFORM,
-        reply="I will make this change and report what it takes with it.",
-    )
-    record = turn_record(ctx)
-    return [
-        mismatch.sentence
-        for mismatch in reconcile(
-            LeadResponse(prose=MISNAMED, strategy_changed=True), record
-        )
-        if mismatch.kind == "misnamed_deletion"
-    ]
-
-
 @pytest.mark.usefixtures("stub_api")
-async def test_a_reply_naming_a_step_it_did_not_delete_is_corrected() -> None:
-    sentences = await _deleted_the_transform()
-
-    assert sentences == [
-        (
-            "Your reply says it removed the intersection step, and that step is "
-            "still in the strategy. This turn deleted 'Transform by Orthology' "
-            "(GenesByOrthologs). Name the step that was deleted, by its title."
-        )
-    ]
-
-
-@pytest.mark.usefixtures("stub_api")
-async def test_a_reply_naming_the_deleted_step_stands() -> None:
+async def test_the_deleted_step_is_shown_by_its_title_beside_the_reply() -> None:
     ctx = lead_run_context(
         user_prompt="Delete the orthology step.",
         strategy_session=session_with(_strategy(), {}),
@@ -243,18 +204,28 @@ async def test_a_reply_naming_the_deleted_step_stands() -> None:
         reply="I will make this change and report what it takes with it.",
     )
 
-    kinds = [
-        mismatch.kind
-        for mismatch in reconcile(
-            LeadResponse(
-                prose="Removed the orthology transform step; the intersection stands.",
-                strategy_changed=True,
-            ),
-            turn_record(ctx),
-        )
-    ]
+    assert turn_facts(ctx.deps).removed == ["Transform by Orthology"]
 
-    assert "misnamed_deletion" not in kinds
+
+@pytest.mark.usefixtures("stub_api")
+async def test_a_delete_shows_the_root_s_count_before_it() -> None:
+    """The root's count when the message arrived stands beside the count after."""
+    session = session_with(_strategy(), {})
+    counts = {TRANSFORM: 142, "step_497dcd2a": 116, "step_sp": 479, "step_tm": 840}
+    ensure_sync_state(session).step_counts = dict(counts)
+    ctx = lead_run_context(
+        user_prompt="Delete the orthology step.",
+        strategy_session=session,
+        tool_call_id="call_delete",
+    )
+    ctx.deps.state.turn_markers.record_arrival(TRANSFORM, counts)
+    await delete_step(
+        ctx,
+        step_id=TRANSFORM,
+        reply="I will make this change and report what it takes with it.",
+    )
+
+    assert turn_facts(ctx.deps).root_count_before == 142
 
 
 @pytest.mark.usefixtures("stub_api")

@@ -1,9 +1,15 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ControlTestEvidence } from "@pathfinder/shared";
+
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/plasmodb/conversation/conv-4",
+}));
 
 import { EVIDENCE_CARD } from "../content/parts/evidenceCardFixture";
 import { EvidenceCardBody } from "./EvidenceCardBody";
@@ -110,5 +116,20 @@ describe("EvidenceCardBody control tests", () => {
       "Control test of Signal peptide controls on Genes by Molecular Weight",
       "Control test of Apicoplast controls on Genes by Molecular Weight",
     ]);
+  });
+});
+
+describe("EvidenceCardBody site link", () => {
+  it("records strategy_opened with the card's site and WDK strategy id", () => {
+    render(<EvidenceCardBody card={EVIDENCE_CARD} />);
+
+    fireEvent.click(screen.getByTestId("evidence-strategy-link"));
+
+    expect(recordProductEvent).toHaveBeenCalledWith({
+      event: "strategy_opened",
+      siteId: "plasmodb",
+      wdkStrategyId: 300125410,
+      conversationId: "conv-4",
+    });
   });
 });

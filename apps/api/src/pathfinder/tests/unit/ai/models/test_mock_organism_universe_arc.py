@@ -18,6 +18,7 @@ from pathfinder.ai.tools.standalone.frame_structure import (
     set_structure,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.organism_reads import serve_organism_reads
 from pathfinder.tests._support.recorded_searches import client_search, suite_search
 from pathfinder.tests._support.site_organisms import recorded_organisms
@@ -64,12 +65,14 @@ def _bound(call: dict[str, object]) -> Criterion:
         text=str(call["text"]),
         search_name=search_name,
         organism_param=_marked(search_name),
-        resolved_params={
-            name: MultiPickValue(values=value)
-            for name, value in params.items()
-            if isinstance(value, list)
-        },
-        defaulted_params=sorted(n for n, v in params.items() if v is None),
+        resolved_params=bound(
+            {
+                name: MultiPickValue(values=value)
+                for name, value in params.items()
+                if isinstance(value, list)
+            },
+            defaulted=sorted(n for n, v in params.items() if v is None),
+        ),
     )
 
 

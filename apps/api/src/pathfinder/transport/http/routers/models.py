@@ -6,9 +6,9 @@ from assistant_core.pricing import lookup_per_mtok_prices
 from fastapi import APIRouter
 from pydantic import ConfigDict
 
-from pathfinder.ai.models.catalog import ModelEntry, get_model_catalog
 from pathfinder.assistants.registry import installed_phase_defaults
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import ModelEntry, get_model_catalog
 
 
 class ModelCatalogEntryResponse(ModelEntry):

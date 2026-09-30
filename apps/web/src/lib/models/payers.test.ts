@@ -10,6 +10,7 @@ import {
   withPayers,
   type Payers,
 } from "./payers";
+import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 function entry(id: string, enabled: boolean): ModelCatalogEntry {
   const [provider = "", modelName = ""] = id.split(":");
@@ -17,49 +18,56 @@ function entry(id: string, enabled: boolean): ModelCatalogEntry {
     id,
     name: modelName,
     modelName,
+    rank: "standard",
     provider: provider as ModelCatalogEntry["provider"],
     enabled,
   };
 }
 
-const OPUS = entry("anthropic:claude-opus-5", false);
-const LUNA = entry("openai:gpt-5.6-luna", true);
+const ANTHROPIC = entry(ANTHROPIC_SMALL.id, false);
+const OPENAI = entry(DEFAULT_MODEL.id, true);
 const DEPLOYMENT_ONLY: Payers = { openai: "deployment" };
 const USER_ONLY: Payers = { anthropic: "user" };
 const MIXED: Payers = { openai: "deployment", anthropic: "user" };
 const ROLES = ["lead", "frame", "execution", "verification"];
 const DEFAULTS = {
-  lead: "openai:gpt-5.6-luna",
-  frame: "openai:gpt-5.6-luna",
-  execution: "openai:gpt-5.6-luna",
-  verification: "openai:gpt-5.6-luna",
+  lead: DEFAULT_MODEL.id,
+  frame: DEFAULT_MODEL.id,
+  execution: DEFAULT_MODEL.id,
+  verification: DEFAULT_MODEL.id,
 };
 
 describe("selectable", () => {
   it("reads the deployment's view while the reader's payers are unknown", () => {
-    expect([selectable(OPUS, undefined), selectable(LUNA, undefined)]).toEqual([
+    expect([selectable(ANTHROPIC, undefined), selectable(OPENAI, undefined)]).toEqual([
       false,
       true,
     ]);
   });
 
   it("offers a provider the researcher's own key pays for", () => {
-    expect([selectable(OPUS, USER_ONLY), selectable(LUNA, USER_ONLY)]).toEqual([
+    expect([selectable(ANTHROPIC, USER_ONLY), selectable(OPENAI, USER_ONLY)]).toEqual([
       true,
       false,
     ]);
   });
 
   it("offers every provider someone pays for", () => {
-    expect([selectable(OPUS, MIXED), selectable(LUNA, MIXED)]).toEqual([true, true]);
+    expect([selectable(ANTHROPIC, MIXED), selectable(OPENAI, MIXED)]).toEqual([
+      true,
+      true,
+    ]);
   });
 
   it("marks a model that runs on the researcher's key", () => {
-    expect([onOwnKey(OPUS, MIXED), onOwnKey(LUNA, MIXED)]).toEqual([true, false]);
+    expect([onOwnKey(ANTHROPIC, MIXED), onOwnKey(OPENAI, MIXED)]).toEqual([
+      true,
+      false,
+    ]);
   });
 
   it("rewrites enabled from the payers", () => {
-    expect(withPayers([OPUS, LUNA], USER_ONLY).map((m) => m.enabled)).toEqual([
+    expect(withPayers([ANTHROPIC, OPENAI], USER_ONLY).map((m) => m.enabled)).toEqual([
       true,
       false,
     ]);
@@ -73,16 +81,16 @@ describe("rolesPaidByDeployment", () => {
 
   it("names none when every role runs on the researcher's keys", () => {
     const picks = {
-      lead: "anthropic:claude-opus-5",
-      frame: "anthropic:claude-opus-5",
-      execution: "anthropic:claude-sonnet-5",
-      verification: "anthropic:claude-opus-5",
+      lead: ANTHROPIC_SMALL.id,
+      frame: ANTHROPIC_SMALL.id,
+      execution: ANTHROPIC_SMALL.id,
+      verification: ANTHROPIC_SMALL.id,
     };
     expect(rolesPaidByDeployment(ROLES, picks, DEFAULTS, USER_ONLY)).toEqual([]);
   });
 
   it("names the roles left on the deployment in a mixed turn", () => {
-    const picks = { lead: "anthropic:claude-opus-5" };
+    const picks = { lead: ANTHROPIC_SMALL.id };
     expect(rolesPaidByDeployment(ROLES, picks, DEFAULTS, MIXED)).toEqual([
       "frame",
       "execution",
@@ -93,7 +101,7 @@ describe("rolesPaidByDeployment", () => {
 
 describe("refusedProvidersInUse", () => {
   it("names a refused provider only when a role runs on it", () => {
-    const picks = { lead: "anthropic:claude-opus-5" };
+    const picks = { lead: ANTHROPIC_SMALL.id };
     expect(refusedProvidersInUse(ROLES, picks, DEFAULTS, ["anthropic"])).toEqual([
       "anthropic",
     ]);

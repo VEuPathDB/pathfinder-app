@@ -7,9 +7,9 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
+from pathfinder.domain.control_enrichment import ControlEnrichment
 from pathfinder.domain.evidence import (
     CheckedStepCount,
-    ControlEnrichment,
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,

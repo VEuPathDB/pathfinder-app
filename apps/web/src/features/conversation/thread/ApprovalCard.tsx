@@ -17,6 +17,8 @@ export interface ApprovalCardProps {
   decision: ApprovalDecision;
   /** What a decided card names, when the call names its target. */
   subject?: string | null;
+  /** Each other step the approved call removes, listed under the question. */
+  removes?: readonly string[];
 }
 
 function Decision({
@@ -53,6 +55,7 @@ export function ApprovalCard({
   onDeny,
   decision,
   subject = null,
+  removes = [],
 }: ApprovalCardProps): ReactElement {
   if (decision !== "pending") {
     return <Decision approved={decision === "approved"} subject={subject} />;
@@ -69,6 +72,21 @@ export function ApprovalCard({
         <ShieldAlert className="size-3.5 text-warning" aria-hidden />
         {prompt}
       </p>
+      {removes.length > 0 ? (
+        <div data-testid="approval-card-cascade" className="text-xs">
+          <p className="text-muted-foreground">It also removes:</p>
+          <ul className="list-disc pl-5">
+            {removes.map((step, index) => (
+              <li
+                key={`${String(index)}:${step}`}
+                data-testid="approval-card-cascade-step"
+              >
+                {step}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {showRaw && <ToolInput input={input} className="p-0" />}
       <div data-testid="tool-approval-controls" className="flex justify-end gap-2">
         <Button

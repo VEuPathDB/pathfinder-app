@@ -68,7 +68,6 @@ def _deps(usage_log: list[SubAgentRunUsage] | None = None) -> LeadDeps:
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1", "s2"],
         failed_steps=[],
-        root_count=0,
     )
     recorded = usage_log if usage_log is not None else []
     return lead_deps(state, record_usage=recorded.append)

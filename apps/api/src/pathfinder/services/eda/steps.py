@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID
 
 from assistant_core.platform.types import JSONObject
@@ -24,8 +24,16 @@ from pathfinder.services.eda.compute import (
     stored_volcano_cut,
 )
 from pathfinder.services.eda.direction import direction_sentence
-from pathfinder.services.eda.export import analysis_binding, eda_step_request
+from pathfinder.services.eda.export import (
+    ExportReading,
+    analysis_binding,
+    eda_step_request,
+    read_the_export,
+)
 from pathfinder.services.eda.gene_subset import refuse_a_subset_that_selects_no_genes
+from pathfinder.services.strategies.user_dataset_searches import (
+    user_dataset_export_search,
+)
 
 
 def eda_search_name(*, is_compute_backed: bool) -> str:
@@ -57,7 +65,8 @@ def eda_step_node(
     analysis: EdaAnalysisDetail,
     *,
     dataset_id: str,
-    thresholds: VolcanoThresholds | None = None,
+    thresholds: VolcanoThresholds | None,
+    reading: ExportReading,
 ) -> EdaStepPlan:
     """The step this analysis exports. Thresholds select the compute export.
 
@@ -98,8 +107,23 @@ def eda_step_node(
         spec,
         node.parameters,
         reads_a_volcano=is_compute_backed,
+        reading=reading,
     )
     return EdaStepPlan(node=node, is_compute_backed=is_compute_backed, binding=binding)
+
+
+async def on_the_user_dataset_search(site_id: str, plan: EdaStepPlan) -> EdaStepPlan:
+    """The plan on the site's user-dataset search when the study is the researcher's upload.
+
+    That search takes the same two parameters and answers the same genes, and the
+    site opens it where the researcher edits the analysis.
+    """
+    search_name = await user_dataset_export_search(
+        site_id, plan.binding.dataset_id, reads_a_volcano=plan.is_compute_backed
+    )
+    if search_name is None:
+        return plan
+    return replace(plan, node=plan.node.model_copy(update={"search_name": search_name}))
 
 
 async def export_analysis_step(
@@ -121,10 +145,20 @@ async def export_analysis_step(
         await refuse_a_subset_that_selects_no_genes(
             binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
         )
-    plan = eda_step_node(
-        analysis,
+    reading = await read_the_export(
+        binding.site_id,
         dataset_id=binding.dataset_id,
+        analysis=analysis,
         thresholds=thresholds,
+    )
+    plan = await on_the_user_dataset_search(
+        binding.site_id,
+        eda_step_node(
+            analysis,
+            dataset_id=binding.dataset_id,
+            thresholds=thresholds,
+            reading=reading,
+        ),
     )
     refreshed = await ConversationService(session).apply_operation(
         conversation_id,

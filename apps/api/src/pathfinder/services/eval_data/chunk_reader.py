@@ -1,5 +1,5 @@
-"""Reading requests, replies, the verification verdict and its evidence card out
-of the chunk log.
+"""Reading requests, the facts each turn showed, replies, the verification
+verdict and its evidence card out of the chunk log.
 
 The chunk log is the durable record of what the user saw, so it is what an
 extract is made of. Every text that leaves here is redacted first.
@@ -16,15 +16,18 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.evidence import (
     Citation,
+    ColumnFit,
     EvidenceCard,
     RequirementCheck,
     SampledGene,
     VerificationReview,
 )
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.extract import ExtractedTurn, ExtractedVerification
 from pathfinder.evals.redaction import redact_text
 
 TEXT_DELTA = "text-delta"
+FACTS = "data-facts"
 LEDGER_UPDATE = "data-ledger-update"
 EVIDENCE_CARD = "data-evidence-card"
 
@@ -93,11 +96,13 @@ class LoggedChunk(BaseModel):
 def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
     """The exchanges in the log, in order, redacted.
 
-    A user message opens a turn; the text deltas that follow are its reply.
-    One id names one message, so a repeated envelope keeps the first.
+    A user message opens a turn; the text deltas that follow are its reply and
+    the last facts part that follows is what it showed beside the reply. One id
+    names one message, so a repeated envelope keeps the first.
     """
     requests: list[str] = []
     replies: list[list[str]] = []
+    shown: list[TurnFacts | None] = []
     seen: set[str] = set()
     for row in rows:
         chunk = row.chunk
@@ -109,17 +114,30 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
                 seen.add(message.id)
             requests.append(redact_text(message.text()))
             replies.append([])
+            shown.append(None)
         elif chunk.type == TEXT_DELTA and chunk.delta and replies:
             replies[-1].append(chunk.delta)
+        elif chunk.type == FACTS and chunk.data is not None and shown:
+            shown[-1] = TurnFacts.model_validate(chunk.data).redacted(redact_text)
     return [
-        ExtractedTurn(request=request, reply=redact_text("".join(reply)))
-        for request, reply in zip(requests, replies, strict=True)
+        ExtractedTurn(request=request, reply=redact_text("".join(reply)), facts=facts)
+        for request, reply, facts in zip(requests, replies, shown, strict=True)
     ]
 
 
 def _redacted_row(row: RequirementCheck) -> RequirementCheck:
     return row.model_copy(
         update={"text": redact_text(row.text), "note": redact_text(row.note)}
+    )
+
+
+def _redacted_fit(fit: ColumnFit) -> ColumnFit:
+    return fit.model_copy(
+        update={
+            "criterion_text": redact_text(fit.criterion_text),
+            "display_name": redact_text(fit.display_name),
+            "bound_value": redact_text(fit.bound_value),
+        }
     )
 
 
@@ -150,6 +168,7 @@ def _redacted_review(review: VerificationReview) -> VerificationReview:
     return review.model_copy(
         update={
             "requirements": [_redacted_row(row) for row in review.requirements],
+            "column_fits": [_redacted_fit(fit) for fit in review.column_fits],
             "sampled_genes": [_redacted_gene(g) for g in review.sampled_genes],
             "sources": [_redacted_source(cited) for cited in review.sources],
         }

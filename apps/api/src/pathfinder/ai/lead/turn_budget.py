@@ -17,10 +17,12 @@ from pathfinder.ai.tools.standalone.graph_helpers import (
     build_step_response,
     counted_records,
 )
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.build_outcome import built_counts
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.platform.config import get_settings
+from pathfinder.services.strategies.commit import live_strategy_url
 
 # One turn's ceiling on the Lead's own model requests, and on the tool calls
 # they make. A sub-agent pass runs under a ceiling of its own.
@@ -69,16 +71,15 @@ _OUT_OF_DATE = (
 
 
 def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> str:
-    """What the strategy holds, with the count and link the ledger's build cites.
+    """What the strategy holds, its recorded count and the link to its live root.
 
-    A build the ledger marks stale cites neither, because both describe the
-    strategy as it was built and not as the site holds it now.
+    A build the ledger marks stale cites neither.
     """
     graph = session.graph
     if graph is None or not graph.steps:
         return "Nothing was built."
     held = f"The strategy holds {count_noun(len(graph.steps), 'step')}"
-    url = ledger.build.wdk_url
+    url = live_strategy_url(session.site_id, session.sync_state)
     root_id = strategy_root_id(graph, session.sync_state)
     if root_id is None:
         if ledger.build.stale_build is not None:
@@ -87,9 +88,7 @@ def _strategy_state(ledger: InvestigationLedger, session: StrategySession) -> st
     title = build_step_response(graph, graph.steps[root_id]).display_name
     if ledger.build.stale_build is not None:
         return f'{held}; the final step is "{title}". {_OUT_OF_DATE}'
-    count = next(
-        (n.count for n in ledger.build.node_results if n.node_id == root_id), None
-    )
+    count = built_counts(graph, session.sync_state).of(root_id)
     if count is None:
         return _with_link(f'{held}; the final step is "{title}".', url)
     returns = (

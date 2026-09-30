@@ -11,14 +11,16 @@ from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
     SpecStructure,
 )
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._disagreement_thread import joined, leaf
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -26,11 +28,12 @@ from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 BOUND = ["c_signal", "c_stage", "c_conserved", "c_secreted"]
 OPEN = "c_localised"
 OPEN_PARAM = "evidence"
-QUESTION = OpenQuestion(
+ASKED = SlotQuestion(
     question="No GPI-anchor search is realizable; use signal-peptide evidence?",
     dimension=ConstraintKind.DATA_TYPE,
     recommended_value="signal peptide",
 )
+QUESTION = ASKED.typed()
 ANSWER = "Go with your recommendation"
 
 
@@ -39,7 +42,7 @@ def _bound(criterion_id: str) -> Criterion:
         id=criterion_id,
         text=f"{criterion_id} property",
         search_name=f"GenesBy_{criterion_id}",
-        resolved_params={"value": StringValue(value=criterion_id)},
+        resolved_params=bound({"value": StringValue(value=criterion_id)}),
     )
 
 
@@ -48,9 +51,9 @@ def _localised(evidence: str | None) -> Criterion:
         id=OPEN,
         text="localised to the surface",
         search_name="GenesBySignalPeptide",
-        resolved_params={}
-        if evidence is None
-        else {OPEN_PARAM: StringValue(value=evidence)},
+        resolved_params=bound(
+            {} if evidence is None else {OPEN_PARAM: StringValue(value=evidence)}
+        ),
         open_params=[]
         if evidence is not None
         else [OpenSlot(criterion_id=OPEN, param_name=OPEN_PARAM)],

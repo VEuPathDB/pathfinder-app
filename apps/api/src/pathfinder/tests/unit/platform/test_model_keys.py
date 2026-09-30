@@ -29,6 +29,14 @@ from pathfinder.platform.model_keys import (
     probe_key,
     turn_paid_by,
 )
+from pathfinder.tests._support.models import (
+    ANTHROPIC_SMALL,
+    DEFAULT_MODEL,
+    GOOGLE_SMALL,
+    GOOGLE_STANDARD,
+    OPENAI_SMALL,
+    OPENAI_STANDARD,
+)
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
     allow_requests_to_the_wire,
@@ -37,9 +45,9 @@ from pathfinder.tests._support.provider_wire import (
 _USER_KEY = "sk-user-sentinel-0123456789ABCD"
 _DEPLOYMENT_KEY = "sk-deployment-sentinel-9876543210"
 _SMALLEST: dict[KeyableProvider, str] = {
-    "openai": "openai:gpt-5.6-luna",
-    "anthropic": "anthropic:claude-haiku-4-5",
-    "google": "google:gemini-3.5-flash-lite",
+    "openai": OPENAI_SMALL,
+    "anthropic": ANTHROPIC_SMALL,
+    "google": GOOGLE_SMALL,
 }
 _KEY_HEADER: dict[KeyableProvider, tuple[str, str]] = {
     "openai": ("authorization", f"Bearer {_USER_KEY}"),
@@ -92,7 +100,7 @@ async def test_a_provider_without_a_live_key_runs_on_the_deployment_key() -> Non
     keyring = ProviderKeyring(active={"anthropic": SecretStr(_USER_KEY)})
 
     with attach_keyring(keyring, build=wire.build):
-        await one_generation(_model("openai:gpt-5.6-luna"))
+        await one_generation(_model(DEFAULT_MODEL))
 
     assert [h["authorization"] for h in wire.sent_headers()] == [
         f"Bearer {_DEPLOYMENT_KEY}"
@@ -116,7 +124,7 @@ def test_a_refused_key_raises_before_any_request(
     keyring = ProviderKeyring(refused={"openai": refusal})
 
     with attach_keyring(keyring, build=wire.build), pytest.raises(error):
-        keyed_model("openai:gpt-5.6-luna")
+        keyed_model(DEFAULT_MODEL)
 
     assert wire.requests == []
 
@@ -128,9 +136,9 @@ async def test_a_key_refused_during_the_turn_is_not_called_again() -> None:
 
     with attach_keyring(keyring, build=wire.build) as keys:
         with pytest.raises(ProviderKeyRefusedError):
-            await one_generation(_model("openai:gpt-5.6-luna"))
+            await one_generation(_model(DEFAULT_MODEL))
         with pytest.raises(ProviderKeyRefusedError):
-            keyed_model("openai:gpt-5.6-terra")
+            keyed_model(OPENAI_STANDARD)
 
     assert keys.refusals == {"openai": KeyRefusal.INVALID}
     assert len(wire.requests) == 1
@@ -143,9 +151,9 @@ async def test_a_key_with_no_credit_is_marked_and_refused_with_that_sentence() -
 
     with attach_keyring(keyring, build=wire.build) as keys:
         with pytest.raises(ProviderKeyRefusedError) as during:
-            await one_generation(_model("anthropic:claude-haiku-4-5"))
+            await one_generation(_model(ANTHROPIC_SMALL))
         with pytest.raises(ProviderKeyRefusedError) as after:
-            keyed_model("anthropic:claude-haiku-4-5")
+            keyed_model(ANTHROPIC_SMALL)
 
     assert keys.refusals == {"anthropic": KeyRefusal.NO_CREDIT}
     assert [during.value.title, after.value.title] == [
@@ -168,13 +176,13 @@ def test_a_provider_nobody_holds_a_key_for_is_refused(
     monkeypatch.setattr(settings, "gemini_api_key", "")
 
     with pytest.raises(ProviderNotConfiguredError, match="No Google key"):
-        keyed_model("google:gemini-3.6-flash")
+        keyed_model(GOOGLE_STANDARD)
 
 
 def test_a_mock_deployment_and_a_built_model_pass_unchanged() -> None:
     built = FunctionModel(lambda _messages, _info: ModelResponse(parts=[]))
 
-    assert keyed_model("openai:gpt-5.6-luna") == "openai:gpt-5.6-luna"
+    assert keyed_model(DEFAULT_MODEL) == DEFAULT_MODEL
     assert keyed_model(built) is built
 
 
@@ -183,13 +191,13 @@ def test_the_turn_pays_on_the_key_that_holds_the_provider() -> None:
 
     with attach_keyring(keyring):
         payers = [
-            turn_paid_by("anthropic:claude-opus-5"),
-            turn_paid_by("openai:gpt-5.6-luna"),
+            turn_paid_by(ANTHROPIC_SMALL),
+            turn_paid_by(DEFAULT_MODEL),
             turn_paid_by(""),
         ]
 
     assert payers == [PaidBy.USER, PaidBy.DEPLOYMENT, PaidBy.DEPLOYMENT]
-    assert turn_paid_by("anthropic:claude-opus-5") is PaidBy.DEPLOYMENT
+    assert turn_paid_by(ANTHROPIC_SMALL) is PaidBy.DEPLOYMENT
 
 
 def test_a_built_provider_holds_the_key_it_was_given() -> None:
@@ -207,7 +215,7 @@ def test_a_keyed_model_never_prints_its_key() -> None:
     keyring = ProviderKeyring(active={"openai": SecretStr(_USER_KEY)})
 
     with attach_keyring(keyring, build=ProviderWire().build):
-        model = _model("openai:gpt-5.6-luna")
+        model = _model(DEFAULT_MODEL)
 
     assert (repr(model) + str(model)).count(_USER_KEY) == 0
 
@@ -269,4 +277,4 @@ def test_a_deployment_model_of_a_provider_it_holds_no_key_for_fails_at_build(
     monkeypatch.setattr(get_settings(), "anthropic_api_key", "")
 
     with pytest.raises(ProviderNotConfiguredError, match="No Anthropic key"):
-        deployment_model("anthropic:claude-haiku-4-5")
+        deployment_model(ANTHROPIC_SMALL)

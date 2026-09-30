@@ -22,7 +22,8 @@ from pathfinder.tests.integration.http.conftest import (
     make_user,
 )
 
-pytestmark = pytest.mark.asyncio
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("open_job_queue")]
 
 _CORRUPT_AST: dict[str, Any] = {"root": "not-a-node"}
 

@@ -13,12 +13,13 @@ from collections.abc import Iterator
 import pytest
 from pydantic import ValidationError
 
-from pathfinder.ai.models.catalog import get_model_entry
 from pathfinder.platform.identity import (
     PATHFINDER_ASSISTANT_ID,
     SITE_HELP_ASSISTANT_ID,
 )
+from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.tiers import TIER_PRESETS, PhaseTierConfig
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.transport.http.routers.tiers import TierListResponse, list_tiers
 
 EXPECTED_ASSISTANTS: frozenset[str] = frozenset(
@@ -170,4 +171,4 @@ def test_phase_tier_config_is_frozen() -> None:
     cfg = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["anthropic"]["quality"].roles["lead"]
     assert cfg.model_config.get("frozen") is True
     with pytest.raises(ValidationError):
-        _assign(cfg, "model_id", "openai:gpt-5.6-luna")
+        _assign(cfg, "model_id", DEFAULT_MODEL)

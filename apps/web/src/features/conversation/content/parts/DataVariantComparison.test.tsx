@@ -40,6 +40,52 @@ function inThread(ui: ReactElement<{ data: object }>) {
 }
 
 describe("DataVariantComparison", () => {
+  it("shows the result count of each variant where the strategy was counted", () => {
+    const counted: VariantComparison = {
+      variants: [
+        {
+          label: "Minimum 2",
+          searchName: "GenesByTransmembraneDomains",
+          geneCount: 1490,
+          uniqueCount: 461,
+          sampleUniqueGenes: [],
+          resultCount: 227,
+        },
+        {
+          label: "Minimum 3",
+          searchName: "GenesByTransmembraneDomains",
+          geneCount: 1029,
+          uniqueCount: 0,
+          sampleUniqueGenes: [],
+          resultCount: 82,
+        },
+      ],
+      overlaps: [{ a: "Minimum 2", b: "Minimum 3", shared: 1029, jaccard: 0.6906 }],
+      resultStepId: "step_intersect",
+    };
+    inThread(<DataVariantComparison data={counted} />);
+    const card = screen.getByTestId("data-variant-comparison");
+    expect(Array.from(card.querySelectorAll("th")).map((th) => th.textContent)).toEqual(
+      ["Variant", "Genes", "Unique to it", "In the result"],
+    );
+    expect(
+      Array.from(card.querySelectorAll("tbody tr")).map((tr) =>
+        Array.from(tr.querySelectorAll("td")).map((td) => td.textContent),
+      ),
+    ).toEqual([
+      ["Minimum 2", "1,490", "461", "227"],
+      ["Minimum 3", "1,029", "0", "82"],
+    ]);
+  });
+
+  it("adds no result column where no variant was counted in the strategy", () => {
+    inThread(<DataVariantComparison data={COMPARISON} />);
+    const card = screen.getByTestId("data-variant-comparison");
+    expect(Array.from(card.querySelectorAll("th")).map((th) => th.textContent)).toEqual(
+      ["Variant", "Genes", "Unique to it"],
+    );
+  });
+
   it("captions the figure with the variant count and the largest set", () => {
     inThread(<DataVariantComparison data={COMPARISON} />);
     expect(screen.getByTestId("figure-caption").textContent).toBe(

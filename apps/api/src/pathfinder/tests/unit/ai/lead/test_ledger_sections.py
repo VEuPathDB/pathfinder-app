@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue
 from veupathdb.domain.strategy import CombineOp
 
@@ -19,6 +21,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests._support.bound_values import bound
 
 
 def _fold_change_criterion(
@@ -28,12 +31,14 @@ def _fold_change_criterion(
         id="female_enrichment",
         text="genes enriched in female adults",
         search_name="GenesByMicroarray_GSE22339_male_vs_female_RSRC",
-        resolved_params={
-            "samples_fc_comp_generic": MultiPickValue(values=[comparator]),
-            "samples_fc_ref_generic": MultiPickValue(values=[reference]),
-            "regulated_dir": SinglePickValue(value=direction),
-            "protein_coding_only": SinglePickValue(value="yes"),
-        },
+        resolved_params=bound(
+            {
+                "samples_fc_comp_generic": MultiPickValue(values=[comparator]),
+                "samples_fc_ref_generic": MultiPickValue(values=[reference]),
+                "regulated_dir": SinglePickValue(value=direction),
+                "protein_coding_only": SinglePickValue(value="yes"),
+            }
+        ),
     )
 
 
@@ -79,7 +84,9 @@ def test_criteria_without_a_contrast_pair_are_not_reported() -> None:
         id="obp",
         text="odorant binding proteins",
         search_name="GenesByText",
-        resolved_params={"text_expression": SinglePickValue(value="odorant binding")},
+        resolved_params=bound(
+            {"text_expression": SinglePickValue(value="odorant binding")}
+        ),
     )
     assert _section(plain).contrasts == []
 
@@ -90,10 +97,12 @@ def test_a_half_bound_contrast_still_surfaces_what_is_known() -> None:
         id="c",
         text="t",
         search_name="S",
-        resolved_params={
-            "samples_fc_comp_generic": MultiPickValue(values=["female"]),
-            "regulated_dir": SinglePickValue(value="up-regulated"),
-        },
+        resolved_params=bound(
+            {
+                "samples_fc_comp_generic": MultiPickValue(values=["female"]),
+                "regulated_dir": SinglePickValue(value="up-regulated"),
+            }
+        ),
     )
     contrast = _section(half).contrasts[0]
     assert contrast.comparator == "female"
@@ -167,7 +176,7 @@ def test_frame_section_structure_render_absent_without_structure() -> None:
 
 
 def test_build_section_succeeded() -> None:
-    outcome = BuildOutcome(pushed_step_ids=["s1"], wdk_strategy_id=1, root_count=10)
+    outcome = BuildOutcome(pushed_step_ids=["s1"], wdk_strategy_id=1)
     section = BuildSection(outcome=outcome, pushed_count=1)
     assert section.succeeded is True
 
@@ -184,24 +193,20 @@ def test_build_section_defaults_to_fresh() -> None:
     assert "staleBuild" not in dumped
 
 
-def test_build_section_surfaces_node_results_and_strategy_link() -> None:
+def test_build_section_surfaces_node_results_and_holds_no_link() -> None:
     outcome = BuildOutcome(
         pushed_step_ids=["s1", "s2"],
         wdk_strategy_id=42,
-        wdk_url="https://plasmodb.org/s/42",
-        root_count=10,
         node_results=[
             NodeResult(
                 node_id="n1",
                 search_name="GenesByText",
                 wdk_step_id=1,
-                count=10,
                 status="ok",
             ),
             NodeResult(
                 node_id="n2",
                 search_name="GenesByOrthologs",
-                count=None,
                 status="failed",
                 error="Answer Params must be null",
             ),
@@ -210,13 +215,24 @@ def test_build_section_surfaces_node_results_and_strategy_link() -> None:
     section = BuildSection(outcome=outcome, pushed_count=2)
     dumped = section.model_dump(by_alias=True, mode="json", exclude_none=True)
     assert dumped["wdkStrategyId"] == 42
-    assert dumped["wdkUrl"] == "https://plasmodb.org/s/42"
+    assert "wdkUrl" not in dumped
     assert [n["searchName"] for n in dumped["nodeResults"]] == [
         "GenesByText",
         "GenesByOrthologs",
     ]
     assert dumped["nodeResults"][1]["status"] == "failed"
     assert dumped["nodeResults"][1]["error"] == "Answer Params must be null"
+
+
+def test_the_ledger_has_no_field_to_hold_a_link() -> None:
+    """The link is read from the live sync state, so no build record keeps one."""
+    held = {
+        *(f.name for f in dataclasses.fields(BuildOutcome)),
+        *BuildSection.model_fields,
+        *BuildSection.model_computed_fields,
+    }
+
+    assert sorted(name for name in held if "url" in name) == []
 
 
 def test_build_section_node_results_empty_without_outcome() -> None:

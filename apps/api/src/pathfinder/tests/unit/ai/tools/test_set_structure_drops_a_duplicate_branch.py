@@ -77,13 +77,13 @@ async def test_the_second_copy_of_the_three_leaves_leaves_the_tree(
         ),
     )
     assert sorted(c.id for c in draft.criteria) == sorted([*ORIGINAL, "c_text"])
-    assert [(d.text, d.unexpressed) for d in draft.dropped] == [
-        ("P. falciparum 3D7 genes expressed in the blood stage", False),
+    assert [(d.text, d.requirement) for d in draft.dropped] == [
+        ("P. falciparum 3D7 genes expressed in the blood stage", None),
         (
             "P. falciparum 3D7 genes with variants per kb (CDS) <= 1 across isolates",
-            False,
+            None,
         ),
-        ("P. falciparum 3D7 genes with no human equivalent", False),
+        ("P. falciparum 3D7 genes with no human equivalent", None),
     ]
     assert draft.unexpressed() == []
     assert summary_of(result).data["summary"] == (

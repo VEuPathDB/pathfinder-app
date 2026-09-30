@@ -167,6 +167,38 @@ export class ChatPage {
     return this.assistantMessages.filter({ hasText: pattern });
   }
 
+  // The facts part: the steps, counts, caveats and links a reply shows beside its prose
+  /** The facts part `reply` shows. */
+  factsIn(reply: Locator): Locator {
+    return reply.getByTestId("data-facts");
+  }
+
+  /** The row of the step named `name` in the facts part `reply` shows. */
+  factsStepIn(reply: Locator, name: string): Locator {
+    return this.factsIn(reply).locator(
+      `[data-testid="facts-step"][data-step-name=${JSON.stringify(name)}]`,
+    );
+  }
+
+  /** The caveats of `kind` the facts parts of `reply` show. */
+  factsCaveatsIn(reply: Locator, kind: string): Locator {
+    return this.factsIn(reply).locator(
+      `[data-testid="facts-caveat"][data-kind="${kind}"]`,
+    );
+  }
+
+  /** Every reply whose facts part shows `count` as the strategy's result. */
+  replyCounting(count: number): Locator {
+    return this.assistantMessages.filter({
+      has: this.page.locator(`[data-testid="facts-root-count"][data-count="${count}"]`),
+    });
+  }
+
+  /** Assert a reply's facts part shows `count` as the strategy's result. */
+  async expectRootCount(count: number, timeout = 60_000) {
+    await expect(this.replyCounting(count)).not.toHaveCount(0, { timeout });
+  }
+
   /** The one user message that carries `text`. */
   userMessage(text: string): Locator {
     return this.userMessages.filter({ hasText: text });

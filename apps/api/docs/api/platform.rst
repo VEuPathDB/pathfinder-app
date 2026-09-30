@@ -152,6 +152,20 @@ Health
    :undoc-members:
    :show-inheritance:
 
+Model Catalog
+-------------
+
+**Purpose:** The catalog of selectable models: cloud entries plus local
+entries read from YAML, each with its prices, its measured attachment flags
+and its rank in its provider's lineup. The one module that names a model id.
+
+**Key functions:** :py:func:`get_model_entry`, :py:func:`get_model_catalog`
+
+.. automodule:: pathfinder.platform.model_catalog
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Readiness
 ---------
 

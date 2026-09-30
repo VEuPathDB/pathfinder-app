@@ -35,6 +35,8 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
+from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.held_counts import session_holding
 
 
 def _state(
@@ -52,7 +54,7 @@ def _state(
                 text="kinase domain",
                 search_name="GenesByGoTerm",
                 role="seed",
-                resolved_params={"go_term": StringValue(value="GO:0004672")},
+                resolved_params=bound({"go_term": StringValue(value="GO:0004672")}),
             ),
         ],
         structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="s1")),
@@ -60,13 +62,10 @@ def _state(
     outcome = BuildOutcome(
         pushed_step_ids=["s1"],
         wdk_strategy_id=330423363,
-        counts={"s1": 142},
-        root_count=142,
         node_results=[
             NodeResult(
                 node_id="s1",
                 search_name="GenesByGoTerm",
-                count=142,
                 status="ok",
             ),
         ],
@@ -120,13 +119,10 @@ def _eda_state(*, user_id: Any) -> PipelineState:
             last_build_outcome=BuildOutcome(
                 pushed_step_ids=["step_1"],
                 wdk_strategy_id=330423363,
-                counts={"step_1": 1543},
-                root_count=1543,
                 node_results=[
                     NodeResult(
                         node_id="step_1",
                         search_name="GenesByEdaVizWithCompute",
-                        count=1543,
                         status="ok",
                     ),
                 ],
@@ -153,6 +149,10 @@ def _eda_state(*, user_id: Any) -> PipelineState:
     return state
 
 
+def _exported() -> StrategySession:
+    return session_holding("plasmodb", "step_1", "GenesByEdaVizWithCompute", 1543)
+
+
 async def _seed_user() -> Any:
     user_id = uuid4()
     async with async_session_factory() as session:
@@ -161,11 +161,16 @@ async def _seed_user() -> Any:
     return user_id
 
 
-def _context(user_id: Any, store: Any) -> Context:
+def _context(
+    user_id: Any, store: Any, *, held: StrategySession | None = None
+) -> Context:
+    """The turn's context, whose session holds the kinase step at 142 genes
+    unless ``held`` names another."""
     return Context(
         site_id="plasmodb",
         user_id=user_id,
-        strategy_session=StrategySession(site_id="plasmodb"),
+        strategy_session=held
+        or session_holding("plasmodb", "s1", "GenesByGoTerm", 142),
         db_session_factory=async_session_factory,
         cancel_event=asyncio.Event(),
         memory_store=store,
@@ -303,7 +308,7 @@ async def test_a_verified_eda_export_writes_a_case(
     async with lifespan_memory_store(os.environ["DATABASE_URL"]) as raw:
         await nodes.finalize_turn_node(
             _eda_state(user_id=user_id),
-            Runtime(context=_context(user_id, raw)),
+            Runtime(context=_context(user_id, raw, held=_exported())),
         )
         cases = await MemoryStore(store=raw).list_all(user_id=user_id, kind="case")
 

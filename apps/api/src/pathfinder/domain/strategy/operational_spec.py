@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Literal
 
 from pydantic import ConfigDict, Field, model_validator
-from veupathdb.domain.parameters import ParamValue, UnboundParameter
+from veupathdb.domain.parameters import (
+    MultiPickValue,
+    ParamKind,
+    ParamValue,
+    SinglePickValue,
+    UnboundParameter,
+    to_wire,
+)
 from veupathdb.domain.strategy import (
     CombineOp,
     StrategyStepNode,
@@ -27,24 +35,100 @@ class OpenSlot(UnboundParameter):
     """An unbound parameter, and the criterion of this spec that holds it.
 
     ``criterion_id`` is empty while the slot names a parameter alone, and holds
-    the criterion once the slot is attached to one.
+    the criterion once the slot is attached to one. ``param_kind`` is the kind
+    of value the parameter takes, as its sheet gives it.
     """
 
     criterion_id: str = ""
+    param_kind: ParamKind = "string"
 
 
-class AssumedValue(CamelModel):
-    """A value the model chose that the criterion text does not state.
+ValueSource = Literal["stated", "chosen", "default", "card", "held"]
 
-    It is reported as a constraint so the user reads it and can override it.
+
+class BoundValue(CamelModel):
+    """A bound value, and who set it.
+
+    ``basis`` is the request's words for a stated value, the model's reason for
+    a chosen one and the option id for a card value. A default has none, and
+    neither has a held value, which a strategy that already exists holds with
+    no record of who set it.
     """
 
-    param_name: str
-    value: str
-    reason: str
-    # The option criterion a fold absorbed to place this value. Empty while the
-    # value is one FRAME chose at bind time.
+    model_config = ConfigDict(frozen=True)
+
+    value: ParamValue
+    source: ValueSource
+    basis: str = ""
+    # The option criterion a fold carried this value from, empty otherwise.
     carried_from: str = ""
+    # The value is a placeholder the site shows in an empty box: it states nothing.
+    placeholder: bool = False
+    # The request's longer phrase a chosen text leaves words out of, else empty.
+    stated_as: str = ""
+
+
+def bind_values(
+    values: Mapping[str, ParamValue], source: ValueSource, basis: str = ""
+) -> dict[str, BoundValue]:
+    """Each value bound with the one source and basis they share."""
+    return {
+        name: BoundValue(value=value, source=source, basis=basis)
+        for name, value in values.items()
+    }
+
+
+def plain_value(value: ParamValue) -> str:
+    """A vocabulary term in readable form instead of its JSON wire form."""
+    match value:
+        case MultiPickValue(values=terms):
+            return ", ".join(terms)
+        case SinglePickValue(value=term):
+            return term
+        case _:
+            return to_wire(value)
+
+
+CountedKind = Literal[
+    "loosest_bound",
+    "wildcard_phrase",
+    "site_search_reach",
+    "any_strain",
+    "all_strains",
+    "site_default",
+    "bound_count",
+]
+MeasurementKind = Literal[
+    CountedKind,
+    "vocabulary_label",
+    "options_not_taken",
+    "not_measurable",
+    "picked_from_a_cut_list",
+    "picked_from_a_lookup",
+    "label_without_the_concept",
+]
+
+
+class Measurement(CamelModel):
+    """A count the site returned for another reading of one bound value, a
+    label, the options a pick did not take, or why the value has no reading.
+
+    ``reading`` is that other reading as the reply may show it, or for
+    ``not_measurable`` the reason. ``count`` is None for a reading the site
+    answers as words and for a reading whose count did not arrive.
+    ``unchosen`` lists the labels of the options not taken while the
+    vocabulary is small enough to list; ``unchosen_count`` counts them always.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    kind: MeasurementKind
+    param: str
+    count: int | None = None
+    label: str = ""
+    reading: str = ""
+    unchosen: list[str] = Field(default_factory=list)
+    unchosen_count: int = 0
 
 
 class ParameterAlternatives(CamelModel):
@@ -66,15 +150,16 @@ class DroppedCriterion(CamelModel):
     # The EDA dataset a drop recorded before a criterion could wait for its
     # analysis. The turn entry restates it as such a criterion.
     eda_dataset_id: str | None = None
-    # True when the text is a requirement no search states. It is a gap while
-    # no criterion of the spec states the text.
-    unexpressed: bool = False
+    # The researcher's requirement the dropped text restated, which stays open.
+    # It is a gap while no criterion of the spec states its value.
+    requirement: Constraint | None = None
 
 
 class UnexpressedText(CamelModel):
     """A text the request states that no search of the spec states.
 
-    ``criterion_id`` is the criterion that holds it, None once a drop holds it.
+    ``criterion_id`` is the criterion that holds it; once a drop holds it,
+    ``criterion_id`` is None and ``requirement`` is the requirement held open.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -83,6 +168,7 @@ class UnexpressedText(CamelModel):
     criterion_id: str | None
     stated_in: str
     why: str
+    requirement: Constraint | None = None
 
 
 class StructureNode(CamelModel):
@@ -149,13 +235,16 @@ class Criterion(CamelModel):
     role: CriterionRole = "filter"
     # The parameter WDK marks as the search's organism, None when it marks none.
     organism_param: str | None = None
-    resolved_params: dict[str, ParamValue] = Field(default_factory=dict)
-    # Params holding the search default rather than a value the request states.
-    # Reported to the user, because a default is a safe choice and a silent one.
-    defaulted_params: list[str] = Field(default_factory=list)
+    resolved_params: dict[str, BoundValue] = Field(default_factory=dict)
+    # The name the site shows each bound parameter by, read when it binds.
+    param_display_names: dict[str, str] = Field(default_factory=dict)
+    # The bound parameters the sheet hides and offers no entries for. The site
+    # sets them, so no facts row draws them.
+    hidden_params: list[str] = Field(default_factory=list)
+    # The counts the site returned for other readings of the bound values.
+    measurements: list[Measurement] = Field(default_factory=list)
     open_params: list[OpenSlot] = Field(default_factory=list)
     confidence: float = 0.0
-    assumptions: list[AssumedValue] = Field(default_factory=list)
     # The choices inside a criterion that matches no record. Empty otherwise.
     alternatives: list[ParameterAlternatives] = Field(default_factory=list)
     # The records the binding matched when it was bound. None when no count
@@ -182,11 +271,32 @@ class Criterion(CamelModel):
         return self.needs_analysis_on is not None
 
     @property
+    def param_values(self) -> dict[str, ParamValue]:
+        """The bound values, without who set them."""
+        return {name: bound.value for name, bound in self.resolved_params.items()}
+
+    def set_by(self, source: ValueSource) -> dict[str, BoundValue]:
+        """The bound values this source set, by parameter name."""
+        return {
+            name: bound
+            for name, bound in self.resolved_params.items()
+            if bound.source == source
+        }
+
+    def display_name_of(self, param: str) -> str:
+        """The name the site shows the parameter by, else the parameter's own."""
+        return self.param_display_names.get(param, param)
+
+    def defaulted(self) -> list[str]:
+        """The params holding the site default, sorted by name."""
+        return sorted(self.set_by("default"))
+
+    @property
     def step_parameters(self) -> dict[str, ParamValue]:
         """The parameters the criterion's step carries."""
         if self.analysis is not None:
             return dict(self.analysis.step_parameters)
-        return dict(self.resolved_params)
+        return self.param_values
 
     @property
     def title(self) -> str:
@@ -199,6 +309,23 @@ class Criterion(CamelModel):
         if self.analysis is not None:
             return AnalysisRationale.of(self.analysis)
         return self.rationale
+
+    def counted_at(self, count: int | None) -> Criterion:
+        """The criterion with a bind count that did not arrive replaced by the
+        count its built step holds, which counts the same values."""
+        if self.result_count is not None or count is None:
+            return self
+        return self.model_copy(
+            update={
+                "result_count": count,
+                "measurements": [
+                    m.model_copy(update={"count": count})
+                    if m.kind == "bound_count" and m.count is None
+                    else m
+                    for m in self.measurements
+                ],
+            }
+        )
 
 
 class OperationalSpec(CamelModel):
@@ -225,7 +352,7 @@ class OperationalSpec(CamelModel):
 
     def unexpressed(self) -> list[UnexpressedText]:
         """Every text no search states: each criterion's own words, then each
-        dropped text no criterion of the spec states."""
+        requirement a drop holds open that no criterion of the spec states."""
         held = [
             UnexpressedText(
                 word=word,
@@ -241,13 +368,28 @@ class OperationalSpec(CamelModel):
         ]
         dropped = [
             UnexpressedText(
-                word=d.text, criterion_id=None, stated_in=d.text, why=d.reason
+                word=kept.requested_value,
+                criterion_id=None,
+                stated_in=kept.label,
+                why=d.reason,
+                requirement=kept,
             )
             for d in self.dropped
-            if d.unexpressed
-            and not any(names_a_run_of(c.text, d.text) for c in self.criteria)
+            if (kept := d.requirement) is not None
+            and not any(
+                names_a_run_of(c.text, kept.requested_value) for c in self.criteria
+            )
         ]
         return [*held, *dropped]
+
+    def counted_at(self, step_counts: Mapping[str, int | None]) -> OperationalSpec:
+        """The spec with each criterion whose bind count did not arrive counted
+        at its built step's count."""
+        return self.model_copy(
+            update={
+                "criteria": [c.counted_at(step_counts.get(c.id)) for c in self.criteria]
+            }
+        )
 
     @property
     def ready_to_build(self) -> bool:

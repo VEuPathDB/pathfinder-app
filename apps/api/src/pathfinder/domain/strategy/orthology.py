@@ -22,6 +22,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb.model import CamelModel
 
+from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -34,6 +35,7 @@ __all__ = [
     "OrganismChange",
     "copy_refusal",
     "organism_change",
+    "organism_move_refusal",
     "projected_steps",
     "restate_copies",
     "round_trip_refusal",
@@ -75,6 +77,37 @@ def organism_change(
     if not searched or not answered or searched == answered:
         return None
     return OrganismChange(seed=sorted(searched), records=sorted(answered))
+
+
+def organism_move_refusal(
+    direction: EditDirection, *, before: OperationalSpec, after: OperationalSpec
+) -> str | None:
+    """Why an edit that narrows or widens the result moves its records to
+    another organism, or None.
+
+    Such an edit keeps the organism the held root answers. Either side
+    unknown is no move.
+    """
+    if direction == "other":
+        return None
+    marked = organism_params_of([*before.criteria, *after.criteria])
+    held_tree, edited_tree = stated_steps(before), stated_steps(after)
+    if held_tree is None or edited_tree is None:
+        return None
+    held = extract_output_organisms(held_tree, marked)
+    edited = extract_output_organisms(edited_tree, marked)
+    if not held or not edited or held == edited:
+        return None
+    source, target = ", ".join(sorted(held)), ", ".join(sorted(edited))
+    return (
+        f"This edit asks to {direction} the result, which keeps its organism, "
+        f"and the edited tree would answer genes of {target} where the strategy "
+        f"answers genes of {source}. A one-way orthology transform returns the "
+        f"other organism's genes. To keep the {source} genes that have "
+        f"orthologs in {target}, state the round trip: {_KEPT_BY_INTERSECT}, "
+        f"where the transform back to {source} takes the transform to {target} "
+        f"as its input, and the transform to {target} takes {_COPY}."
+    )
 
 
 def restate_copies(spec: OperationalSpec) -> OperationalSpec:
@@ -347,7 +380,7 @@ def projected_steps(
     return StrategyStepNode(
         id=node.criterion_id or generate_step_id(),
         search_name=criterion.search_name if criterion is not None else "",
-        parameters=dict(criterion.resolved_params) if criterion is not None else {},
+        parameters=criterion.param_values if criterion is not None else {},
         primary_input=(
             projected_steps(node.inputs[0], by_id)
             if node.kind == "transform" and node.inputs

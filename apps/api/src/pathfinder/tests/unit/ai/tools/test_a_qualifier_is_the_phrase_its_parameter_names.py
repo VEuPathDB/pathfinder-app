@@ -53,6 +53,13 @@ def _qualifiers(text: str) -> list[str]:
             "cell",
             True,
         ),
+        (
+            "Babesia bovis T2Bo genes with a variant erythrocyte surface antigen "
+            "annotation",
+            "variant",
+            False,
+        ),
+        ("genes with a high gene variant count", "variant", True),
     ],
 )
 def test_a_word_qualifies_when_its_modifier_reads_like_the_names(
@@ -84,3 +91,14 @@ def test_the_s10_wording_reads_no_qualifier_on_toxodb() -> None:
         for q in qualifiers_of(text)
         if q.stem in naming and naming[q.stem].names(q)
     ] == []
+
+
+def test_an_article_before_a_word_is_no_compound() -> None:
+    """``a variant`` puts no modifier before the word, and the one parameter
+    name that carries it reads ``gene variant``."""
+    naming = the_one_search_naming(transcript_listing())
+    text = "genes with a variant erythrocyte surface antigen annotation"
+    variant = next(q for q in qualifiers_of(text) if q.stem == "variant")
+
+    assert naming["variant"].modifiers == frozenset({"gene"})
+    assert naming["variant"].names(variant) is False

@@ -15,7 +15,7 @@ from pathfinder.ai.tools.standalone._validation_helpers import (
     GraphSnapshotContent,
     StepOkResponse,
 )
-from pathfinder.domain.strategy.build_outcome import citable_count
+from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.combine_naming import combine_name
 from pathfinder.domain.strategy.explain import explain_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -97,11 +97,7 @@ def build_step_response(
         wdk_step_id = sync_state.wdk_step_ids.get(step.id)
         validation = sync_state.step_validations.get(step.id)
         wdk_push_error = sync_state.wdk_push_errors.get(step.id)
-        estimated_size = citable_count(
-            step.id,
-            counts=sync_state.step_counts,
-            refused=sync_state.wdk_push_errors,
-        )
+        estimated_size = built_counts(graph, sync_state).of(step.id)
 
     return StepResponse(
         id=step.id,

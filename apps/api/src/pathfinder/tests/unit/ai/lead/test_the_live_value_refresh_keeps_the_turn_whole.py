@@ -19,6 +19,7 @@ from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.dispatch_context import record_the_spec_the_dispatch_found
 from pathfinder.ai.lead.sub_agent_stream import SubAgentResume
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     with_the_percentile,
@@ -64,7 +65,11 @@ def _bound_to_a_branch_term(monkeypatch: pytest.MonkeyPatch) -> DisagreementThre
         if criterion.id == STAGE:
             criterion.resolved_params = {
                 **criterion.resolved_params,
-                _ORGANISM: _BRANCH,
+                **bound(
+                    {
+                        _ORGANISM: _BRANCH,
+                    }
+                ),
             }
     # The push wrote the submitted form, so the step already held the leaves
     # when the thread last answered to this spec.
@@ -81,7 +86,7 @@ def _bound_to_a_branch_term(monkeypatch: pytest.MonkeyPatch) -> DisagreementThre
 
 
 def _stage_value(spec: OperationalSpec, name: str) -> object:
-    return next(c for c in spec.criteria if c.id == STAGE).resolved_params[name]
+    return next(c for c in spec.criteria if c.id == STAGE).param_values[name]
 
 
 async def test_a_branch_term_the_criterion_states_is_not_replaced_by_its_leaves(
@@ -106,7 +111,11 @@ async def test_restating_the_branch_term_on_a_kept_criterion_is_no_movement(
             if criterion.id == STAGE:
                 criterion.resolved_params = {
                     **criterion.resolved_params,
-                    _ORGANISM: _BRANCH,
+                    **bound(
+                        {
+                            _ORGANISM: _BRANCH,
+                        }
+                    ),
                 }
         return with_the_proteome(2)(found)
 
@@ -155,7 +164,11 @@ async def test_restating_the_branch_term_alone_asks_for_no_operation(
             if criterion.id == STAGE:
                 criterion.resolved_params = {
                     **criterion.resolved_params,
-                    _ORGANISM: _BRANCH,
+                    **bound(
+                        {
+                            _ORGANISM: _BRANCH,
+                        }
+                    ),
                 }
         return found
 

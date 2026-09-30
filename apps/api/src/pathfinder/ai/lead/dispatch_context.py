@@ -66,7 +66,10 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             ),
             organism_hints=organism_hints_from(requirements),
             combination_requirements=combination_requirements_from(requirements),
+            stated_requirements=list(state.domain.requirements),
             created_gene_sets=deps.created_gene_sets,
+            request_messages=state.researcher_messages(),
+            turn_counts=deps.turn_counts,
         ),
         turn_markers=state.turn_markers,
         ledger_summary=ledger.render_summary(),
@@ -151,6 +154,26 @@ def the_edit_the_strategy_owes(
     return answered, diff_specs(
         spec_without_pending_analyses(answered), spec_without_pending_analyses(found)
     )
+
+
+def refuse_and_keep_what_it_bound(deps: LeadDeps, message: str) -> NoReturn:
+    """Reject the pass, and keep each bound criterion the dispatch did not find.
+
+    Every criterion the dispatch found is put back as it was found, so the
+    retry keeps new work and never a change to what was there.
+    """
+    before = deps.state.domain.spec_before_dispatch
+    draft = deps.state.domain.operational_spec
+    if before is not None and draft is not None:
+        found = {c.id for c in before.criteria}
+        kept = before.model_copy(deep=True)
+        kept.criteria += [
+            c.model_copy(deep=True)
+            for c in draft.criteria
+            if c.bound and c.id not in found
+        ]
+        deps.state.domain.operational_spec = kept
+    raise ModelRetry(message)
 
 
 def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:

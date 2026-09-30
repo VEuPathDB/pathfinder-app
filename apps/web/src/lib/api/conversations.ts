@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { cancelConversation } from "@pathfinder/shared/generated/hooks/useCancelConversation";
 import type { InsertSavedRequest } from "@pathfinder/shared/generated/types/InsertSavedRequest";
 
 import { client } from "./client";
@@ -11,6 +12,11 @@ const conversationDuplicateSchema = z.object({
 });
 
 type ConversationDuplicate = z.infer<typeof conversationDuplicateSchema>;
+
+/** Ask the worker to stop the turn in flight. A failed request is not surfaced: the stream ends on its own. */
+export function stopTurn(conversationId: string): void {
+  cancelConversation(conversationId).catch(() => {});
+}
 
 /** Duplicate a whole conversation (incl. its strategy) into a new copy. */
 export async function duplicateConversation(

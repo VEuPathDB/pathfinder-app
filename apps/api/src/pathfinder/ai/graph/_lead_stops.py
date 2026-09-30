@@ -6,7 +6,6 @@ import re
 from typing import Any
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
-from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
 from pydantic_ai.run import AgentRunResultEvent
 
@@ -15,8 +14,8 @@ from pathfinder.ai.graph._lead_capture import GuardStop, _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.ai.models.catalog import get_model_entry
 from pathfinder.domain.provider_keys import PROVIDER_NAMES
+from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.model_keys import turn_refusals
 
 
@@ -68,59 +67,31 @@ def absorb_loop_stop(
     )
 
 
-# One clause is what the reader needs; the rest of an error text is the
-# provider's payload.
-MAX_FAILURE_CLAUSE_CHARS = 120
-
-_PROVIDER_ERROR = re.compile(r"^status_code:\s*(?P<status>\d{3})\b")
-# A payload starts at its first bracket and runs to the end of the text.
-_PAYLOAD = re.compile(r"[{\[].*", re.DOTALL)
-_URL = re.compile(r"\S*://\S*")
-_UNNAMED_FAILURE = "the run failed"
+# A link's query can carry a credential, so the refusal is shown without it.
+_URL_QUERY = re.compile(r"(\S*://[^\s?]*)\?\S*")
+_SHOWN_BESIDE = "what it answered is shown beside this reply"
 
 
-class _FailureText(BaseModel):
-    """An error text, read as the one clause the user needs."""
-
-    model_config = ConfigDict(frozen=True)
-
-    status: int | None = None
-    clause: str = ""
-
-    @model_validator(mode="before")
-    @classmethod
-    def _read_the_error_text(cls, value: object) -> object:
-        match value:
-            case str() as text:
-                found = _PROVIDER_ERROR.match(text.strip())
-                if found is not None:
-                    return {"status": int(found["status"])}
-                return {"clause": _one_clause(text)}
-            case _:
-                return value
-
-    def sentence(self) -> str:
-        """What the reply says happened."""
-        if self.status is not None:
-            return f"the model provider answered {self.status}"
-        return self.clause or _UNNAMED_FAILURE
+def shown_refusal(error: str | None) -> str:
+    """The refusal that ended the run, whole, with each link's query left out."""
+    return _URL_QUERY.sub(r"\1", (error or "").strip())
 
 
-def _one_clause(text: str) -> str:
-    """The first line of an error, without its payload, its urls or its length.
-
-    The clause joins a sentence of the reply, so it ends without a stop.
-    """
-    lines = text.strip().splitlines()
-    first = lines[0] if lines else ""
-    plain = _URL.sub("", _PAYLOAD.sub("", first))
-    clause = " ".join(plain.split())
-    if len(clause) > MAX_FAILURE_CLAUSE_CHARS:
-        clause = clause[:MAX_FAILURE_CLAUSE_CHARS].rsplit(" ", 1)[0]
-    return clause.rstrip(".")
-
-
+# What a stopped turn asks for next. A turn whose change landed keeps that
+# change, so it asks for the check and never for the message again.
 _SEND_AGAIN = "Send the message again and I will start over from it."
+_CHECK_THE_CHANGE = (
+    "The change shown beside this reply landed and was not checked. Ask me to "
+    "check it and I will go on from there."
+)
+_AFTER_SETTINGS: dict[bool, str] = {
+    False: "or send the message again and I will start over from it.",
+    True: "then ask me to check the change shown beside this reply, which landed.",
+}
+_AFTER_KEYS: dict[bool, str] = {
+    False: "then send the message again.",
+    True: "then ask me to check the change shown beside this reply, which landed.",
+}
 # The name the model settings show for each stage a researcher can set.
 _STAGE_LABELS: dict[PhaseRole, str] = {
     "lead": "Assistant",
@@ -149,26 +120,29 @@ def _stage_that_did_not_answer(
 def _what_to_do_next(
     capture: _LeadRunCapture,
     unanswered: UnansweredStage | None,
+    *,
+    changed: bool,
 ) -> str:
     """The action the reply offers, which names a model that never answered.
 
     The catalog holds every model a researcher can pick, so an id outside it is
     no choice to point at.
     """
+    again = _CHECK_THE_CHANGE if changed else _SEND_AGAIN
     stage = _stage_that_did_not_answer(capture, unanswered)
     if stage is None:
-        return _SEND_AGAIN
+        return again
     entry = get_model_entry(stage.model_id)
     if entry is None:
-        return _SEND_AGAIN
+        return again
     return (
         f"The {_STAGE_LABELS[stage.role]} stage of this turn runs {entry.name}, "
         f"and it did not answer. Choose a different model for that stage in "
-        f"Settings, or send the message again and I will start over from it."
+        f"Settings, {_AFTER_SETTINGS[changed]}"
     )
 
 
-def _refused_key_prose() -> str | None:
+def _refused_key_prose(*, changed: bool) -> str | None:
     """The reply for a turn a provider stopped by refusing the researcher's key.
 
     The key is the thing to change, so the reply names it and no model.
@@ -181,24 +155,27 @@ def _refused_key_prose() -> str | None:
     return (
         f"I stopped this turn: {refused} refused the key you added, so nothing "
         f"more ran on it. Replace or remove {keys} in Settings, under Provider "
-        "keys, then send the message again."
+        f"keys, {_AFTER_KEYS[changed]}"
     )
 
 
 def fallback_prose(
     capture: _LeadRunCapture,
     unanswered: UnansweredStage | None,
+    *,
+    changed: bool,
 ) -> str:
     """What the user reads when the run ended with no reply of its own."""
-    refused = _refused_key_prose()
+    refused = _refused_key_prose(changed=changed)
     if capture.run_error and refused is not None:
         return refused
     if capture.run_error:
         return (
-            "I stopped this turn on an error I could not recover from: "
-            f"{_FailureText.model_validate(capture.run_error).sentence()}. "
-            f"{_what_to_do_next(capture, unanswered)}"
+            f"I stopped this turn on an error I could not recover from; "
+            f"{_SHOWN_BESIDE}. {_what_to_do_next(capture, unanswered, changed=changed)}"
         )
+    if changed:
+        return _CHECK_THE_CHANGE
     return (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
@@ -223,4 +200,6 @@ def final_reply(
         return None
     if capture.offer_declined:
         return None
-    return stop_response(fallback_prose(capture, unanswered), changed=changed)
+    return stop_response(
+        fallback_prose(capture, unanswered, changed=changed), changed=changed
+    )

@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.ai.models.catalog import get_model_catalog
+from pathfinder.platform.model_catalog import get_model_catalog
 from pathfinder.tests.protocol_document import protocol_section
 
 _CATALOG_MODEL_ID = get_model_catalog()[0].id

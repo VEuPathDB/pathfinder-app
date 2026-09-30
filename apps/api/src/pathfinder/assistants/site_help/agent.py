@@ -28,11 +28,12 @@ from pathfinder.assistants.site_help.organisms import (
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.model_keys import keyed_model
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
 
-SITE_HELP_MODEL = "openai:gpt-5.6-luna"
+SITE_HELP_MODEL = DEFAULT_MODEL_ID
 
 
 class SiteHelpDeps(AssistantDeps):

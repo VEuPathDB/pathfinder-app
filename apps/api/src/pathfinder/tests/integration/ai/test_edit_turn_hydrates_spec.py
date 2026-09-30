@@ -193,7 +193,7 @@ async def test_pre_turn_hydrates_when_the_spec_is_missing(
     assert spec is not None
     assert {c.id for c in spec.criteria} == {"step_taxon", "step_expr"}
     taxon = next(c for c in spec.criteria if c.id == "step_taxon")
-    assert taxon.resolved_params["organism"] == MultiPickValue(values=["Plasmodium"])
+    assert taxon.param_values["organism"] == MultiPickValue(values=["Plasmodium"])
     assert refusing_api.calls == 0
 
 
@@ -210,7 +210,7 @@ async def test_the_hydrated_spec_keeps_the_persisted_percentile(
     spec = refreshed.domain.operational_spec
     assert spec is not None
     expr = next(c for c in spec.criteria if c.id == "step_expr")
-    assert expr.resolved_params["min_expression_percentile"] == NumberValue(value=90)
+    assert expr.param_values["min_expression_percentile"] == NumberValue(value=90)
     assert refusing_api.calls == 0
 
 

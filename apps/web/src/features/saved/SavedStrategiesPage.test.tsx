@@ -37,6 +37,8 @@ vi.mock("@/lib/api/conversations", () => ({
 const routerPushMock = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPushMock }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
 const mockDelete = vi.mocked(deleteStrategy);
 const mockBegin = vi.mocked(beginStrategy);
@@ -173,6 +175,26 @@ describe("SavedStrategiesPage", () => {
     renderPage([DRAFT]);
     const link = await screen.findByRole("link", { name: "start a new conversation" });
     expect(link.getAttribute("href")).toBe(chatRoot("plasmodb"));
+  });
+
+  it("records strategy_opened when the row's site link is followed", async () => {
+    renderPage([
+      {
+        ...KINASES,
+        wdkUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/101",
+      },
+    ]);
+
+    await userEvent.click(
+      await screen.findByRole("link", { name: "Open in PlasmoDB" }),
+    );
+
+    expect(recordProductEvent).toHaveBeenCalledWith({
+      event: "strategy_opened",
+      siteId: "plasmodb",
+      wdkStrategyId: 101,
+      conversationId: "k1",
+    });
   });
 
   it("opens the row's conversation at its chat route", async () => {

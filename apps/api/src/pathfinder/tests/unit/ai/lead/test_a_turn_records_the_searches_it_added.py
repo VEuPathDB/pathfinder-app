@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.spec_tree import (
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -43,7 +44,7 @@ def _exported(criterion_id: str = "c_gpi") -> Criterion:
         text=_GPI_WORDS,
         search_name="GenesByExportPrediction",
         search_display_name="Exported Protein",
-        resolved_params=dict(_ORGANISM),
+        resolved_params=bound(dict(_ORGANISM)),
     )
 
 
@@ -54,7 +55,7 @@ def _taxon() -> Criterion:
         search_name="GenesByTaxon",
         search_display_name="Organism",
         role="seed",
-        resolved_params=dict(_ORGANISM),
+        resolved_params=bound(dict(_ORGANISM)),
     )
 
 
@@ -178,9 +179,9 @@ async def test_an_edit_of_a_value_records_no_added_search(
 ) -> None:
     built = _built()
     after = built[0].model_copy(deep=True)
-    after.criteria[0].resolved_params = {
-        "organism": MultiPickValue(values=["Plasmodium vivax P01"])
-    }
+    after.criteria[0].resolved_params = bound(
+        {"organism": MultiPickValue(values=["Plasmodium vivax P01"])}
+    )
 
     deps, delta = await _edited(monkeypatch, built, after)
 

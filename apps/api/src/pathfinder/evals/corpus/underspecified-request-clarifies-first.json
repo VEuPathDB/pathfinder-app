@@ -16,9 +16,7 @@
     "replyMentions": [
       "clarify"
     ],
-    "replyOmits": [
-      "Verified end-to-end"
-    ]
+    "replyOmits": []
   },
   "provenance": {
     "site": "plasmodb",
@@ -28,5 +26,8 @@
     "stagingId": "",
     "reference": "backlog/clarification-turn-forgets-the-original-request.md",
     "curatorNote": "Pins the first half of that item: the clarification turn itself."
+  },
+  "gates": {
+    "policy": "decline-offers"
   }
 }

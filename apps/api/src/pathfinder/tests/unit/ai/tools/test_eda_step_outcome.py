@@ -13,7 +13,7 @@ from veupathdb_mcp import ToolErrorPayload
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
-from pathfinder.domain.strategy.build_outcome import StepPushFailure
+from pathfinder.domain.strategy.build_outcome import StepPushFailure, built_counts
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.platform.errors import ErrorCode
@@ -143,7 +143,7 @@ async def test_the_export_records_the_build_the_turn_left(
     state = lead_ctx.deps.state
     outcome = state.domain.last_build_outcome
     assert outcome is not None
-    assert outcome.root_count == 1543
+    assert built_counts(session.graph, session.sync_state).root_count == 1543
     assert outcome.pushed_step_ids == [step_id]
     assert outcome.wdk_strategy_id == WDK_STRATEGY_ID
     assert [n.node_id for n in outcome.node_results] == [step_id]
@@ -153,7 +153,7 @@ async def test_the_export_records_the_build_the_turn_left(
     ledger = derive_ledger(state, None)
     assert ledger.build.pushed_count == 1
     assert ledger.build.succeeded is True
-    assert "root_count: 1543" in ledger.render_section("build")
+    assert "root_count" not in ledger.render_section("build")
 
 
 async def test_the_export_records_what_the_case_remembers(
@@ -203,7 +203,7 @@ async def test_a_zero_count_export_is_recorded_as_a_zero_step(
 
     outcome = lead_ctx.deps.state.domain.last_build_outcome
     assert outcome is not None
-    assert outcome.root_count == 0
+    assert built_counts(session.graph, session.sync_state).root_count == 0
     result = returned(answer, eda_step.EdaStepCreated)
     assert outcome.zero_step_ids == [result.step_id]
 

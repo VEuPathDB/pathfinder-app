@@ -18,7 +18,7 @@ from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService
-from pathfinder.services.gene_sets.store import GeneSetStore
+from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
 
 def _stub_resolve(
@@ -43,7 +43,7 @@ async def test_creating_an_empty_gene_set_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _stub_resolve(monkeypatch, [])
-    store = GeneSetStore()
+    store = InMemoryGeneSetStore()
 
     with pytest.raises(ValidationError) as excinfo:
         await GeneSetService(store).create(
@@ -57,14 +57,14 @@ async def test_creating_an_empty_gene_set_is_rejected(
 
     # The message must say what to do, not just that something failed.
     assert "0 genes" in str(excinfo.value.detail)
-    assert store._cache == {}
+    assert store.rows == {}
 
 
 async def test_a_resolved_gene_set_is_still_created(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _stub_resolve(monkeypatch, ["PF3D7_0100100", "PF3D7_0100200"])
-    store = GeneSetStore()
+    store = InMemoryGeneSetStore()
 
     gs = await GeneSetService(store).create(
         user_id=uuid4(),

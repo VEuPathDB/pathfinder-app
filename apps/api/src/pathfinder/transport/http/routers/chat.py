@@ -10,12 +10,12 @@ from fastapi import APIRouter, Depends, Response
 from pathfinder.ai.conversation.attachments import ReadAttachment, read_attachments
 from pathfinder.ai.conversation.dispatcher import dispatch
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.ai.models.catalog import get_model_entry
 from pathfinder.assistants.registry import (
     assistant_role_models,
     get_assistant_registry,
     prompt_reader_model,
 )
+from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.services.wdk_identity import require_session_matches_wdk_identity
 from pathfinder.transport.http.deps import (
     CurrentPrincipal,

@@ -191,7 +191,7 @@ class TestTheBuildRule:
 
     def test_a_clean_build_does_not_contradict(self) -> None:
         section = BuildSection(
-            outcome=BuildOutcome(pushed_step_ids=["s1", "s2"], root_count=16),
+            outcome=BuildOutcome(pushed_step_ids=["s1", "s2"]),
             pushed_count=2,
         )
         assert [build_contradiction(section, built_step_count=2)] == [None]

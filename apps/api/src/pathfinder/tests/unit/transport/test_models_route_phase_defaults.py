@@ -9,6 +9,10 @@ import pytest
 from fastapi import FastAPI
 
 from pathfinder.platform.config import get_settings
+from pathfinder.tests._support.models import (
+    OPENAI_SMALL,
+    OPENAI_STANDARD,
+)
 from pathfinder.transport.http.routers.models import router
 
 
@@ -34,10 +38,10 @@ async def test_the_route_answers_the_models_the_tier_runs(
     body = await _body()
 
     assert body["defaultTier"] == "balanced"
-    assert body["phaseDefaults"]["lead"] == "openai:gpt-5.6-terra"
-    assert body["phaseDefaults"]["frame"] == "openai:gpt-5.6-terra"
-    assert body["phaseDefaults"]["verification"] == "openai:gpt-5.6-terra"
-    assert body["phaseDefaults"]["execution"] == "openai:gpt-5.6-luna"
+    assert body["phaseDefaults"]["lead"] == OPENAI_STANDARD
+    assert body["phaseDefaults"]["frame"] == OPENAI_STANDARD
+    assert body["phaseDefaults"]["verification"] == OPENAI_SMALL
+    assert body["phaseDefaults"]["execution"] == OPENAI_SMALL
 
 
 async def test_the_route_answers_one_model_under_a_uniform_tier(
@@ -45,8 +49,8 @@ async def test_the_route_answers_one_model_under_a_uniform_tier(
 ) -> None:
     settings = get_settings()
     monkeypatch.setattr(settings, "default_provider", "openai", raising=False)
-    monkeypatch.setattr(settings, "default_tier", "default", raising=False)
+    monkeypatch.setattr(settings, "default_tier", "fast", raising=False)
 
     body = await _body()
 
-    assert set(body["phaseDefaults"].values()) == {"openai:gpt-5.6-luna"}
+    assert set(body["phaseDefaults"].values()) == {OPENAI_SMALL}

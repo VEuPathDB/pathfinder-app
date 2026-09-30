@@ -20,11 +20,12 @@ from pathfinder.ai.graph._lead_capture import (
 )
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.models.catalog import context_window_for
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.tests._support.database import detached_session
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
-_LEAD_MODEL = "openai:gpt-5.6-luna"
+_LEAD_MODEL = DEFAULT_MODEL
 
 
 class _Collector:

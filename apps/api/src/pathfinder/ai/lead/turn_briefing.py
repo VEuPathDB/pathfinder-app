@@ -8,12 +8,18 @@ them.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
+
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
 
 from pathfinder.domain.strategy.ast_diff import StepChange
-from pathfinder.domain.strategy.constraint_grounding import ground_constraints
+from pathfinder.domain.strategy.constraint_grounding import (
+    RealizedSpec,
+    ground_constraints,
+)
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintStatus,
@@ -157,17 +163,21 @@ def compose_turn_briefing(
     requirements: list[Constraint],
     answered: StrategyAst | None = None,
     live: StrategyAst | None = None,
+    upload_types: Mapping[str, str] = MappingProxyType({}),
 ) -> TurnBriefing:
     """Turn one thread's activity into the briefing the Lead reads.
 
     ``answered`` is the tree the thread's spec answered to and ``live`` the
     tree the strategy holds now, so what moved is read graph against graph.
+    ``upload_types`` holds the type of the upload each step runs on.
     """
     return TurnBriefing(
         strategy=outside_changes(answered, live),
         tasks=list(activity.finished_tasks),
         analysis=activity.analysis,
-        constraints=_regrounded(requirements, before=answered, after=live),
+        constraints=_regrounded(
+            requirements, before=answered, after=live, upload_types=upload_types
+        ),
     )
 
 
@@ -176,12 +186,13 @@ def _regrounded(
     *,
     before: StrategyAst | None,
     after: StrategyAst | None,
+    upload_types: Mapping[str, str],
 ) -> list[ConstraintShift]:
     """Requirements whose grounding differs between the two states."""
     if not requirements or before is None or after is None:
         return []
-    was = _statuses(requirements, before)
-    now = _statuses(requirements, after)
+    was = _statuses(requirements, before, upload_types)
+    now = _statuses(requirements, after, upload_types)
     return [
         ConstraintShift(label=requirement.label, before=was[index], after=now[index])
         for index, requirement in enumerate(requirements)
@@ -192,6 +203,7 @@ def _regrounded(
 def _statuses(
     requirements: list[Constraint],
     ast: StrategyAst,
+    upload_types: Mapping[str, str],
 ) -> list[ConstraintStatus]:
     nodes = list(walk(ast.root))
     for detached in ast.detached_roots:
@@ -202,11 +214,14 @@ def _statuses(
         grounded.status
         for grounded in ground_constraints(
             requirements,
-            search_names=[node.search_name for node in nodes],
-            param_names=values.keys(),
-            param_values=values,
-            structure=spec.structure,
-            criteria=spec.criteria,
+            RealizedSpec(
+                search_names=[node.search_name for node in nodes],
+                param_names=frozenset(values),
+                param_values=values,
+                structure=spec.structure,
+                criteria=spec.criteria,
+                upload_types=dict(upload_types),
+            ),
         )
     ]
 

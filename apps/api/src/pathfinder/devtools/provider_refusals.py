@@ -27,9 +27,9 @@ from pydantic import BaseModel, ConfigDict, JsonValue, SecretStr, model_validato
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models import infer_model
 
-from pathfinder.ai.models.catalog import get_smallest_model
 from pathfinder.domain.provider_keys import KeyableProvider, KeyRefusal
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import get_smallest_model
 from pathfinder.platform.model_keys import build_provider, one_generation
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "refusals"

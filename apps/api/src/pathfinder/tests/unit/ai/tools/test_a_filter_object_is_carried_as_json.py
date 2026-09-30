@@ -73,7 +73,7 @@ async def test_an_object_filter_value_binds_in_the_shape_its_facet_takes(
 
     await bind(st, "GenesByVariantCharacteristics", proposals, text="rare variants")
 
-    bound = st.operational_spec_draft.criteria[0].resolved_params[_VARIANT_STATS]
+    bound = st.operational_spec_draft.criteria[0].param_values[_VARIANT_STATS]
     assert isinstance(bound, FilterValue)
     assert json.loads(bound.to_wire()) == {
         "filters": [

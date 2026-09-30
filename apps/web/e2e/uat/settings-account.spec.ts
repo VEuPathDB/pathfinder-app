@@ -33,7 +33,7 @@ import {
 } from "../fixtures/api-client";
 import { LAYOUTS } from "../fixtures/arc-layouts";
 import { expectBuild, openTrace } from "../fixtures/build-checks";
-import { countPattern, siteControlSets, siteOrganism } from "../fixtures/site-reads";
+import { siteControlSets, siteOrganism } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { SettingsPage } from "../pages/settings.page";
 
@@ -489,7 +489,7 @@ test.describe("Settings and account", () => {
         prompt("single", S1_TEXT(siteOrganism(siteId))),
       );
       const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-      const reply = chatPage.assistantReply(countPattern(counts.root));
+      const reply = chatPage.replyCounting(counts.root);
       await expect(reply.getByTestId("trace-usage")).toHaveCount(1, {
         timeout: 60_000,
       });

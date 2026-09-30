@@ -179,4 +179,49 @@ describe("core/strategyGraph/serialize", () => {
     const res2 = serializeStrategyAst(broken, strategy);
     expect(res2).toBeNull();
   });
+  it("takes the record type a step names when the strategy names none", () => {
+    const stepsById: Record<string, Step> = {
+      a: step({ id: "a", displayName: "A", searchName: "q1", recordType: "" }),
+      b: step({
+        id: "b",
+        displayName: "B",
+        searchName: "q2",
+        recordType: "transcript",
+        primaryInputStepId: "a",
+      }),
+    };
+    const res = serializeStrategyAst(stepsById, {
+      id: "s",
+      name: "S",
+      siteId: "vectorbase",
+      recordType: null,
+      steps: Object.values(stepsById),
+      rootStepId: "b",
+      isSaved: false,
+      createdAt: "t",
+      updatedAt: "t",
+    });
+    expect([res?.recordType, res?.plan.recordType]).toEqual([
+      "transcript",
+      "transcript",
+    ]);
+  });
+
+  it("gives no plan while neither the strategy nor a step names a record type", () => {
+    const stepsById: Record<string, Step> = {
+      a: step({ id: "a", displayName: "A", searchName: "q1", recordType: "" }),
+    };
+    const res = serializeStrategyAst(stepsById, {
+      id: "s",
+      name: "S",
+      siteId: "plasmodb",
+      recordType: "",
+      steps: Object.values(stepsById),
+      rootStepId: "a",
+      isSaved: false,
+      createdAt: "t",
+      updatedAt: "t",
+    });
+    expect(res).toEqual(null);
+  });
 });

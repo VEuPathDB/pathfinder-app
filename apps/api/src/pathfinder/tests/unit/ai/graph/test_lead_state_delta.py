@@ -17,7 +17,11 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import (
+    AskedQuestion,
+    OpenQuestion,
+)
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.tests._support.database import no_database
@@ -137,7 +141,7 @@ def test_a_lead_response_records_the_questions_it_asks() -> None:
         prose="Which RNA-seq study?",
         strategy_changed=False,
         asked_questions=[
-            OpenQuestion(
+            AskedQuestion(
                 question="Which gametocyte RNA-seq study?",
                 dimension=ConstraintKind.DATA_TYPE,
                 recommended_value="P. falciparum 3D7 gametocyte RNA-seq",
@@ -149,6 +153,27 @@ def test_a_lead_response_records_the_questions_it_asks() -> None:
     assert isinstance(domain, StrategyDomainState)
     assert [q.recommended_value for q in domain.open_questions] == [
         "P. falciparum 3D7 gametocyte RNA-seq"
+    ]
+
+
+def test_a_lead_question_is_recorded_with_no_option() -> None:
+    """A label binds nothing, so the question is answered in the researcher's words."""
+    state = _state()
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse(
+        prose="Which organism?",
+        strategy_changed=False,
+        asked_questions=[
+            AskedQuestion(
+                question="Which organism?", options=["P. vivax", "P. knowlesi"]
+            )
+        ],
+    )
+    domain = _delta(state, _deps(state), capture)["domain"]
+
+    assert isinstance(domain, StrategyDomainState)
+    assert [(q.question, q.options) for q in domain.open_questions] == [
+        ("Which organism?", [])
     ]
 
 
@@ -164,7 +189,7 @@ def test_the_record_that_names_a_dimension_wins_the_same_question() -> None:
         prose="Which gametocyte RNA-seq study?",
         strategy_changed=False,
         asked_questions=[
-            OpenQuestion(
+            AskedQuestion(
                 question="Which gametocyte RNA-seq study?",
                 dimension=ConstraintKind.DATA_TYPE,
                 recommended_value="the 3D7 one",
@@ -196,7 +221,7 @@ def test_a_bare_record_does_not_replace_the_dimension_already_asked() -> None:
     capture.response = LeadResponse(
         prose="Which study?",
         strategy_changed=False,
-        asked_questions=[OpenQuestion(question="Which study?")],
+        asked_questions=[AskedQuestion(question="Which study?")],
     )
     domain = _delta(state, deps, capture)["domain"]
 

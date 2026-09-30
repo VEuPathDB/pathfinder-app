@@ -1,5 +1,6 @@
 import { DataControlTestResults } from "./parts/DataControlTestResults";
 import { DataEvidenceCard } from "./parts/DataEvidenceCard";
+import { DataFacts } from "./parts/DataFacts";
 import { DataGeneSet } from "./parts/DataGeneSet";
 import { DataGraphCleared } from "./parts/DataGraphCleared";
 import { DataGraphSnapshot } from "./parts/DataGraphSnapshot";
@@ -12,9 +13,10 @@ import { noRender } from "./coreDataParts";
 import type { DataPartComponentMap } from "./dataPartComponentMap";
 
 /** Parts of the strategy product: graph, strategy, gene sets, controls,
- * comparisons and separations. */
+ * comparisons, separations, and the facts a turn shows beside its reply. */
 export type StrategyDataPartKind =
   | "data-ledger-update"
+  | "data-facts"
   | "data-control-test-results"
   | "data-evidence-card"
   | "data-separation-result"
@@ -25,10 +27,12 @@ export type StrategyDataPartKind =
   | "data-variant-comparison"
   | "data-scored-comparison"
   | "data-gene-set"
-  | "data-strategy-revision";
+  | "data-strategy-revision"
+  | "data-delete-cascade";
 
 export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKind> = {
   "data-ledger-update": noRender,
+  "data-facts": DataFacts,
   "data-control-test-results": DataControlTestResults,
   "data-evidence-card": DataEvidenceCard,
   "data-separation-result": DataSeparationResult,
@@ -41,4 +45,6 @@ export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKi
   "data-gene-set": DataGeneSet,
   // SupersededBadge reads the revision off the parts array.
   "data-strategy-revision": noRender,
+  // The approval card reads the cascade off the parts array.
+  "data-delete-cascade": noRender,
 };

@@ -5,11 +5,16 @@ containers under one user account. The images come from the registry: a release
 tag of this repository publishes them (`.github/workflows/publish-images.yml`),
 and the host only pulls. Nothing is built on cedar, and there is no sudo.
 
-Seven units make the stack: `pathfinder-db`, `pathfinder-wdk-mcp`,
-`pathfinder-searxng`, `pathfinder-research-mcp`, `pathfinder-api`,
-`pathfinder-worker` and `pathfinder-web`. Only the web and the api publish a
-port, both on the loopback interface (3010 and 8010); the rest are reached by
-container name on the `pathfinder` network.
+Thirteen units make the stack. Seven run the application: `pathfinder-db`,
+`pathfinder-wdk-mcp`, `pathfinder-searxng`, `pathfinder-research-mcp`,
+`pathfinder-api`, `pathfinder-worker` and `pathfinder-web`. Six run Langfuse, the
+trace store: `pathfinder-langfuse` (UI, public API, OTLP ingress),
+`pathfinder-langfuse-worker`, `pathfinder-langfuse-db`,
+`pathfinder-langfuse-clickhouse`, `pathfinder-langfuse-minio` and
+`pathfinder-langfuse-redis`. Only the web, the api and the Langfuse UI publish a
+port, all on the loopback interface (3010, 8010 and 3110); the rest are reached
+by container name on the `pathfinder` network. What a trace holds and which
+Langfuse view answers which question is `docs/knowledge/conventions/observability.md`.
 
 ## First install
 
@@ -58,6 +63,19 @@ chmod 600 ~/.config/pathfinder/.env
 $EDITOR ~/.config/pathfinder/.env
 ```
 
+Write the Langfuse file the same way. `deploy/cedar/langfuse.env.example` names
+every variable the six Langfuse units read; the application units never read it.
+Generate each secret on the host with `openssl rand -hex 32`, choose the two
+project keys (`pk-lf-...`, `sk-lf-...`) once, and write them in both files:
+`LANGFUSE_INIT_PROJECT_PUBLIC_KEY` and `LANGFUSE_INIT_PROJECT_SECRET_KEY` here,
+`LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` in `.env`:
+
+```bash
+cp ~/pathfinder/deploy/cedar/langfuse.env.example ~/.config/pathfinder/langfuse.env
+chmod 600 ~/.config/pathfinder/langfuse.env
+$EDITOR ~/.config/pathfinder/langfuse.env
+```
+
 Install and start the stack. `PATHFINDER_TAG` is the release the units pull:
 
 ```bash
@@ -68,9 +86,9 @@ PATHFINDER_TAG=v0.2.0a2 ./deploy/cedar/install.sh
 The installer copies the units, the network and the volumes to
 `~/.config/containers/systemd/`, substitutes the tag, copies the metasearch
 settings to `~/.config/pathfinder/searxng/settings.yml`, enables linger so the
-stack survives a logout, reloads systemd and starts the seven units. It is
+stack survives a logout, reloads systemd and starts the thirteen units. It is
 idempotent: a second run with the same tag writes nothing, restarts nothing and
-prints `systemctl --user status` for the seven units.
+prints `systemctl --user status` for the thirteen units.
 
 The first start pulls about 3.7 GB of images and the api applies the database
 migrations, so give it several minutes before the smoke test.
@@ -84,6 +102,19 @@ PATHFINDER_TAG=v0.2.0a3 ./deploy/cedar/install.sh
 
 The five units whose image name carries the tag restart; the postgres and searxng
 units are only started. The postgres volume and the catalog volume are not touched.
+
+**A release that changes the shape of a turn's checkpoint takes
+`--purge-checkpoints`:**
+
+```bash
+PATHFINDER_TAG=v0.2.0a19 ./deploy/cedar/install.sh --purge-checkpoints
+```
+
+The installer starts the database, truncates the three checkpoint tables and
+then starts the stack, so every thread's next turn rebuilds its state from the
+persisted events; the conversations, the messages and the saved sets are not
+touched. The release notes in `docs/knowledge/log.md` say when a release needs
+it (v0.2.0a19 does).
 
 **Before bumping to a release that changes a durable job payload, drain the
 queue first.** The job names do not change, so an in-flight job reaches the new
@@ -117,13 +148,23 @@ then exits is usually missing a variable in `~/.config/pathfinder/.env`.
 
 ## Reaching the deployment
 
-Until the vhost exists, tunnel both ports from a workstation:
+Until the vhost exists, tunnel the three ports from a workstation:
 
 ```bash
-ssh -p 2112 -L 3010:localhost:3010 -L 8010:localhost:8010 amuharram@cedar.penn.apidb.org
+ssh -p 2112 -L 3010:localhost:3010 -L 8010:localhost:8010 -L 3110:localhost:3110 amuharram@cedar.penn.apidb.org
 ```
 
-The app is then `http://localhost:3010` and the api `http://localhost:8010`.
+The app is then `http://localhost:3010`, the api `http://localhost:8010` and
+Langfuse `http://localhost:3110`. Langfuse stays behind the tunnel: it is not part
+of the tester vhost.
+
+### First login to Langfuse
+
+The first start of `pathfinder-langfuse` reads the `LANGFUSE_INIT_*` variables and
+creates the organization, the project, its two API keys and the operator's login,
+so there is no setup to click through. Sign in at `http://localhost:3110` with
+`LANGFUSE_INIT_USER_EMAIL` and `LANGFUSE_INIT_USER_PASSWORD`. The variables are
+read only while the database is empty; changing them later changes nothing.
 The browser talks to the web origin only: the server rewrites `/api/...` and
 `/health/...` to `http://pathfinder-api:8000` on the container network, which is
 the address baked into the image at build time. The api port is published for
@@ -146,6 +187,21 @@ browser on `http://localhost:3010`:
    real one; the mock provider is a test stack only.
 3. Confirm a durable task (a control test, an enrichment, a parameter sweep)
    reaches a result, which proves the worker picked it up.
+4. Open the trace of that turn: in Langfuse, Sessions, the newest session is the
+   conversation. Its trace is named `pathfinder`, carries the researcher as its
+   user and the site in its tags, and holds the Lead run, each sub-agent run and
+   every model and tool call with its prompt and completion. The trace's cost
+   matches the turn's cost in `python -m pathfinder.devtools.usage report`, run in
+   the api container.
+
+From the host, the same check without a browser (the keys are read from the env
+file and never printed):
+
+```bash
+set -a; . ~/.config/pathfinder/.env; set +a
+curl -s -u "$LANGFUSE_PUBLIC_KEY:$LANGFUSE_SECRET_KEY" \
+  "http://localhost:3110/api/public/traces?limit=1" | python3 -m json.tool | head -40
+```
 
 ## The tester URL
 
@@ -171,9 +227,13 @@ the api once the vhost is live.
 ```bash
 systemctl --user stop pathfinder-web.service pathfinder-worker.service \
   pathfinder-api.service pathfinder-research-mcp.service \
-  pathfinder-searxng.service pathfinder-wdk-mcp.service pathfinder-db.service
+  pathfinder-searxng.service pathfinder-wdk-mcp.service pathfinder-db.service \
+  pathfinder-langfuse.service pathfinder-langfuse-worker.service \
+  pathfinder-langfuse-redis.service pathfinder-langfuse-minio.service \
+  pathfinder-langfuse-clickhouse.service pathfinder-langfuse-db.service
 ```
 
 The volumes `pathfinder-postgres-data` and `pathfinder-catalogs` outlive the
 containers. Removing them discards every conversation, strategy and gene set
-this deployment holds.
+this deployment holds. The five `pathfinder-langfuse-*` volumes hold the traces,
+scores and events; removing them discards those and the Langfuse login.

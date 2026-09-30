@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from pydantic_ai import ToolFailed
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
     CombineOp,
@@ -13,7 +14,6 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 from veupathdb.wdk import WDKRecordType, WDKSearch
-from veupathdb_mcp import ToolErrorPayload
 from veupathdb_mcp.wdk import SampleRecordsResult
 
 from pathfinder.ai.tools.standalone import _sample_attributes, results
@@ -142,15 +142,23 @@ async def test_the_root_sample_asks_for_the_leaves_attributes(
         ]
 
     async def sample(
-        site_id: str, step_id: int, *, limit: int, attributes: list[str] | None
-    ) -> SampleRecordsResult:
-        del site_id, limit
+        site_id: str,
+        step_id: int,
+        *,
+        limit: int,
+        attributes: list[str] | None,
+        record_type: str,
+        seed: str,
+    ) -> results.SampledRecords:
+        del site_id, limit, record_type, seed
         asked.append(attributes)
-        return SampleRecordsResult(step_id=step_id, total_count=0)
+        return results.SampledRecords(
+            SampleRecordsResult(step_id=step_id, total_count=0), []
+        )
 
     monkeypatch.setattr(_sample_attributes, "get_raw_searches", searches)
     monkeypatch.setattr(_sample_attributes, "get_raw_record_types", record_types)
-    monkeypatch.setattr(results, "step_sample_records", sample)
+    monkeypatch.setattr(results, "sample_page", sample)
 
     await results.get_sample_records(
         agent_run_context(strategy_session=_signal_peptide_and_transmembrane()), 42
@@ -169,36 +177,44 @@ async def test_the_root_sample_asks_for_the_leaves_attributes(
     ]
 
 
-async def test_a_sample_the_site_does_not_answer_in_time_is_a_warning(
+async def test_a_sample_the_site_does_not_answer_in_time_fails_the_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The read is bounded, so a check goes on without the sample."""
+    """The read is bounded; a failed call is not held as answered, and the
+    check goes on without the sample."""
 
     async def selected(site_id: str, record_type: str, graph: object) -> list[str]:
         del site_id, record_type, graph
         return []
 
     async def never(
-        site_id: str, step_id: int, *, limit: int, attributes: list[str] | None
-    ) -> SampleRecordsResult:
-        del site_id, limit, attributes
+        site_id: str,
+        step_id: int,
+        *,
+        limit: int,
+        attributes: list[str] | None,
+        record_type: str,
+        seed: str,
+    ) -> results.SampledRecords:
+        del site_id, limit, attributes, record_type, seed
         await asyncio.sleep(60)
-        return SampleRecordsResult(step_id=step_id, total_count=0)
+        return results.SampledRecords(
+            SampleRecordsResult(step_id=step_id, total_count=0), []
+        )
 
     monkeypatch.setattr(results, "sample_attributes", selected)
-    monkeypatch.setattr(results, "step_sample_records", never)
-    monkeypatch.setattr(results, "SAMPLE_DEADLINE_SECONDS", 0.01)
+    monkeypatch.setattr(results, "sample_page", never)
+    monkeypatch.setattr(results, "READ_DEADLINE_SECONDS", 0.01)
 
-    answer = await results.get_sample_records(
-        agent_run_context(strategy_session=_signal_peptide_and_transmembrane()), 42
+    with pytest.raises(ToolFailed) as failed:
+        await results.get_sample_records(
+            agent_run_context(strategy_session=_signal_peptide_and_transmembrane()),
+            42,
+        )
+
+    assert failed.value.message == (
+        "get_sample_records got no answer from the site (no answer within 0.01 s "
+        "for step 42). Nothing was read and the strategy is unchanged. Say that "
+        "the site did not answer this read, and answer from what the turn already "
+        "holds."
     )
-
-    assert returned(answer, ToolErrorPayload).model_dump(
-        include={"code", "message"}
-    ) == {
-        "code": "WDK_ERROR",
-        "message": (
-            "The site did not answer the sample of step 42 within 0.01 s. Go on "
-            "without it and say that the genes were not sampled."
-        ),
-    }

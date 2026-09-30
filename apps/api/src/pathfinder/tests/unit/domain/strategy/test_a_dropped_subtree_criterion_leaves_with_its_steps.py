@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
 )
+from pathfinder.tests._support.bound_values import bound
 
 from ._builders import (
     applied,
@@ -39,7 +40,9 @@ def _spec_over_a_saved_subtree() -> OperationalSpec:
                 id="step_expr",
                 text="top decile",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={"min_expression_percentile": NumberValue(value=90)},
+                resolved_params=bound(
+                    {"min_expression_percentile": NumberValue(value=90)}
+                ),
             ),
         ],
         structure=SpecStructure(

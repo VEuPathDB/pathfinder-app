@@ -25,7 +25,6 @@ import {
   traceRows,
 } from "../fixtures/build-checks";
 import {
-  countPattern,
   printed,
   readConversation,
   readNodes,
@@ -36,6 +35,7 @@ import {
 } from "../fixtures/site-reads";
 import {
   buildOn,
+  cardRemovals,
   expectCountAnswered,
   nodeBySearch,
   openCanvas,
@@ -67,12 +67,12 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
 
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
     await expectEvidence(page, counts.root);
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(counts.root);
 
     const leaf = nodeBySearch(await readNodes(apiClient, id), SIGNAL_PEPTIDE);
     expect(paramText(leaf, "organism")).toContain(organism);
 
-    const reply = chatPage.assistantReply(countPattern(counts.root));
+    const reply = chatPage.replyCounting(counts.root);
     await openTrace(reply);
     await expect(reply.getByTestId("trace-group-label")).toContainText([
       "Planning",
@@ -104,7 +104,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     for (const input of inputs) expect(input).toBeGreaterThanOrEqual(counts.root);
 
     await expectEveryRequirementAnswered(await expectEvidence(page, counts.root));
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(counts.root);
   });
 
   test("S3 - UNION", async ({ chatPage, graphPage, apiClient, page, siteId }) => {
@@ -158,7 +158,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(paramText(transform, "isSyntenic")).toBe("no");
     expect(paramText(transform, "organism")).not.toBe("");
     expect(paramText(transform, "organism")).not.toContain(organism);
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(counts.root);
 
     await openCanvas(graphPage, siteId, id);
     await graphPage.clickNode(transform.id ?? "");
@@ -370,7 +370,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       (s) => s.searchName === SIGNAL_PEPTIDE,
     );
     expect(signalAfter?.wdkStepId).toBe(signalBefore?.wdkStepId);
-    await expect(chatPage.assistantReply(countPattern(edited.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(edited.root);
 
     await openCanvas(graphPage, siteId, id);
     const tm = nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE);
@@ -422,7 +422,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     const afterIds = (after.steps ?? []).map((step) => step.wdkStepId);
     for (const kept of keptIds.filter((wdk) => wdk != null))
       expect(afterIds).toContain(kept);
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(counts.root);
   });
 
   test("S11 - Delete a step", async ({
@@ -447,10 +447,23 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       new RegExp(`^Delete step '.+' \\(${TRANSMEMBRANE}, .+\\)\\?$`),
       { timeout: 240_000 },
     );
+    // The minus goes with its transmembrane input; the signal-peptide search stays.
+    await expect(approval.getByTestId("approval-card-cascade-step")).toHaveCount(
+      LAYOUTS.minus.steps - LAYOUTS.single.steps - 1,
+    );
+    const listed = await cardRemovals(approval);
+    const before = (await readConversation(apiClient, id)).steps ?? [];
     await approval.getByTestId("tool-approval-approve").click();
     await expect(page.getByTestId("tool-approval-decision")).toContainText("Approved");
     await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+    const kept = new Set(
+      ((await readConversation(apiClient, id)).steps ?? []).map((step) => step.id),
+    );
+    const gone = before
+      .filter((step) => !kept.has(step.id))
+      .map((step) => step.displayName ?? "");
+    expect(gone.sort()).toEqual(listed.sort());
 
     const canvasId = await buildOn(
       chatPage,
@@ -496,7 +509,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(layout.searches).toContain(SIGNAL_PEPTIDE);
     expect(layout.operators).toEqual(["INTERSECT"]);
     const counts = await expectBuild(page, apiClient, id, siteId, layout);
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(counts.root);
   });
 
   test("S13 - Clear", async ({ chatPage, graphPage, apiClient, page, siteId }) => {
@@ -563,7 +576,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       siteId,
       LAYOUTS["count-question"],
     );
-    await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+    await chatPage.expectRootCount(counts.root);
   });
 
   test("S15 - A question about one gene does not build", async ({

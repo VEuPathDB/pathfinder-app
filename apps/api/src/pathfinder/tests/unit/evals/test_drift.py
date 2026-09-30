@@ -8,10 +8,12 @@ from pathfinder.evals.case import (
     CaseProvenance,
     EvalCase,
     ExpectedOutcome,
+    GatePlan,
     RecordedCount,
 )
+from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.drift import classify, count_difference
-from pathfinder.evals.scoring import CaseDifference, ObservedOutcome
+from pathfinder.evals.scoring import ObservedOutcome
 
 _INTERSECT = "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)"
 _UNION = "(GenesWithSignalPeptide UNION GenesByTransmembraneDomains)"
@@ -35,6 +37,7 @@ def _case(*, count: int | None = 116) -> EvalCase:
                 )
             ),
         ),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",

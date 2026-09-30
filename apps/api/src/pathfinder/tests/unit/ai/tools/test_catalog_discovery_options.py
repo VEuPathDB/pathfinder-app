@@ -22,7 +22,9 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import catalog_discovery
+from pathfinder.ai.tools.toolsets.frame import build_toolset
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_run_context,
@@ -65,9 +67,9 @@ class TestInheritsBoundParentContext:
                 id="timecourse",
                 text="trophozoite expression",
                 search_name="GenesByMicroarrayDerisi",
-                resolved_params={
-                    "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
-                },
+                resolved_params=bound(
+                    {"profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")}
+                ),
             )
         )
         return ctx
@@ -349,6 +351,52 @@ class TestReadingOnePhyleticList:
         assert info.name == "profile_pattern"
         assert info.is_visible is False
         assert info.allowed_values is None
+
+
+class TestSeveralPhrasingsReachTheRead:
+    """A concept's phrasings travel to the lookup as one list."""
+
+    async def test_a_list_of_phrasings_is_forwarded_whole(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        read = AsyncMock(return_value=_param_info(name="domain_typeahead"))
+        monkeypatch.setattr(catalog_discovery, "read_parameter_options", read)
+
+        await catalog_discovery.get_parameter_options(
+            agent_run_context(),
+            search_name="GenesByInterproDomain",
+            parameter_id="domain_typeahead",
+            query=["RNA binding", "RNA recognition", "KH"],
+        )
+
+        assert read.await_args is not None
+        narrowing = read.await_args.kwargs["narrowing"]
+        assert narrowing.terms == ("RNA binding", "RNA recognition", "KH")
+
+    async def test_the_frame_schema_offers_a_list_of_phrasings(self) -> None:
+        tools = await build_toolset().get_tools(agent_run_context())
+        schema = tools["get_parameter_options"].tool_def.parameters_json_schema
+
+        assert {"type": "array", "items": {"type": "string"}} in schema["properties"][
+            "query"
+        ]["anyOf"]
+
+    async def test_the_same_phrasings_read_twice_are_one_read(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        read = AsyncMock(return_value=_param_info(name="domain_typeahead"))
+        monkeypatch.setattr(catalog_discovery, "read_parameter_options", read)
+        ctx = agent_run_context()
+
+        for _ in range(2):
+            await catalog_discovery.get_parameter_options(
+                ctx,
+                search_name="GenesByInterproDomain",
+                parameter_id="domain_typeahead",
+                query=["RNA binding", "KH"],
+            )
+
+        assert read.await_count == 1
 
 
 class TestTheInvestigationsOrganismsReachTheRead:

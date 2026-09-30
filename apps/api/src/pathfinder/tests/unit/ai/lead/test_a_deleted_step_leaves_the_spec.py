@@ -16,6 +16,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead import answered_strategy, edit_dispatch, pre_turn
@@ -161,8 +162,8 @@ async def test_a_turn_that_resumes_a_parked_call_is_refreshed_like_any_other() -
 
 @pytest.fixture
 def sheet(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _sheets(**_kwargs: Any) -> dict[str, frozenset[str]]:
-        return {_SIGNAL_SEARCH: frozenset()}
+    async def _sheets(**_kwargs: Any) -> dict[str, list[ParameterInfo]]:
+        return {_SIGNAL_SEARCH: []}
 
     monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)

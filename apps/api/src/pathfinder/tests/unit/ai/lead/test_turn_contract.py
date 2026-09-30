@@ -2,46 +2,33 @@
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
-    LeadResponse,
     reconcile,
 )
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
-from pathfinder.domain.evidence import SourceReference
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, StepPushFailure
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     AN_ESSAY,
     ASKING_REPLY,
     BLAMING_REPLY,
     CLAIMS_A_CHANGE,
-    CLAIMS_A_GENE_SET_ENRICHMENT,
     CLEAN_REPLY,
-    CONTROL_SET_CLAIM,
     CRITERION,
     DATASET,
-    DENIES_A_CONTROL_SET,
-    DENIES_A_GENE_SET,
     EDA_PROSE,
-    GENE_SET_REPLY,
-    LISTS_SAVED_CONTROL_SETS,
-    LISTS_SAVED_GENE_SETS,
-    NAMES_A_CONTROL_SET_IN_A_SECOND_CLAUSE,
     REAL_FAILURE_REPLY,
     REDIRECT,
     REPORTS_THE_STRATEGY,
     WITH_CODE,
     blame_deps,
     building_deps,
-    control_source_deps,
     eda_deps,
     framing_deps,
     kinds,
@@ -59,7 +46,7 @@ class TestTheRecordTheTurnLeft:
         assert record.changed_strategy is True
         assert record.build_unverified is False
         assert record.build_outcome is not None
-        assert record.build_outcome.root_count == 132
+        assert record.facts.root_count == 132
 
     def test_the_record_names_the_criterion_waiting_for_its_analysis(self) -> None:
         record = turn_record(run_context_for(eda_deps()))
@@ -242,10 +229,10 @@ class TestTheUnrecordedQuestionRule:
         report = reply(
             ASKING_REPLY,
             questions=[
-                OpenQuestion(
+                AskedQuestion(
                     question="Which gametocyte RNA-seq study?",
                     dimension=ConstraintKind.DATA_TYPE,
-                    recommended_value="the 3D7 one",
+                    recommended_value="the asexual one",
                 ),
             ],
         )
@@ -257,82 +244,6 @@ class TestTheUnrecordedQuestionRule:
 
     def test_a_completed_turn_stands(self) -> None:
         assert kinds(framing_deps(), reply(ASKING_REPLY, next_state="complete")) == ([])
-
-
-class TestTheControlSetAReplyClaims:
-    """A durable artifact the reply names is one the turn wrote."""
-
-    def test_a_control_set_the_turn_never_wrote_is_a_mismatch(self) -> None:
-        mismatches = reconcile(
-            reply(CONTROL_SET_CLAIM),
-            turn_record(run_context_for(control_source_deps())),
-        )
-
-        assert [m.kind for m in mismatches] == ["unwritten_control_set"]
-        sentence = mismatches[0].sentence
-        assert "build_control_set" in sentence
-        assert "rhoptry positives" in sentence
-        assert "102 genes" in sentence
-
-    def test_the_control_set_the_turn_wrote_stands(self) -> None:
-        deps = control_source_deps(wrote_control_set=True)
-
-        assert kinds(deps, reply(CONTROL_SET_CLAIM)) == []
-
-    def test_a_reply_that_names_what_the_turn_saved_stands(self) -> None:
-        assert kinds(control_source_deps(), reply(GENE_SET_REPLY)) == []
-
-    def test_listing_the_control_sets_a_user_already_has_stands(self) -> None:
-        assert kinds(control_source_deps(), reply(LISTS_SAVED_CONTROL_SETS)) == []
-
-    def test_a_control_set_named_in_a_later_clause_stands(self) -> None:
-        deps = control_source_deps()
-
-        assert kinds(deps, reply(NAMES_A_CONTROL_SET_IN_A_SECOND_CLAUSE)) == []
-
-    def test_saying_no_control_set_was_created_stands(self) -> None:
-        assert kinds(control_source_deps(), reply(DENIES_A_CONTROL_SET)) == []
-
-
-class TestTheGeneSetAReplyClaims:
-    """A saved gene set the reply names is one this turn saved."""
-
-    def test_a_gene_set_the_turn_never_saved_is_a_mismatch(self) -> None:
-        deps = control_source_deps(saved_gene_set=False, wrote_control_set=True)
-
-        mismatches = reconcile(
-            reply(GENE_SET_REPLY),
-            turn_record(run_context_for(deps)),
-        )
-
-        assert [m.kind for m in mismatches] == ["unwritten_gene_set"]
-        sentence = mismatches[0].sentence
-        assert "save_gene_set" in sentence
-        assert "rhoptry controls" in sentence
-
-    def test_the_gene_set_the_turn_saved_stands(self) -> None:
-        assert kinds(control_source_deps(), reply(GENE_SET_REPLY)) == []
-
-    def test_a_saved_set_called_a_control_set_is_corrected_once(self) -> None:
-        """The turn saved a gene set, so only the wrong noun is a mismatch."""
-        assert kinds(control_source_deps(), reply(CONTROL_SET_CLAIM)) == [
-            "unwritten_control_set",
-        ]
-
-    def test_listing_the_gene_sets_a_user_already_has_stands(self) -> None:
-        deps = control_source_deps(saved_gene_set=False)
-
-        assert kinds(deps, reply(LISTS_SAVED_GENE_SETS)) == []
-
-    def test_saying_no_gene_set_was_saved_stands(self) -> None:
-        deps = control_source_deps(saved_gene_set=False)
-
-        assert kinds(deps, reply(DENIES_A_GENE_SET)) == []
-
-    def test_an_enrichment_over_a_gene_set_saves_none_and_claims_none(self) -> None:
-        deps = control_source_deps(saved_gene_set=False)
-
-        assert kinds(deps, reply(CLAIMS_A_GENE_SET_ENRICHMENT)) == []
 
 
 class TestTheOffTopicEssayRule:
@@ -369,96 +280,23 @@ class TestTheOffTopicEssayRule:
         assert kinds(deps, reply(AN_ESSAY + WITH_CODE)) == []
 
 
-# What the recorder put on the markers after one literature search answered.
-_A_PAPER_REFERENCES = (
-    "https://pubmed.ncbi.nlm.nih.gov/16460820/",
-    "10.1016/j.molbiopara.2006.01.001",
-    "16460820",
-    "https://europepmc.org/article/MED/16460820",
-)
 _RECORD_URL = "https://toxodb.org/toxo/app/record/gene/TGME49_233460"
 
 
-class TestTheSourcesTheReplyLists:
-    def test_a_paper_this_turn_retrieved_passes(self) -> None:
-        deps = reading_deps()
-        for reference in _A_PAPER_REFERENCES:
-            deps.state.turn_markers.record_retrieved_source(reference)
-        report = reply(
-            "The SRS family is reviewed there.",
-            sources=[
-                SourceReference(
-                    kind="literature",
-                    label="SAG1-related sequences",
-                    doi="10.1016/j.molbiopara.2006.01.001",
-                ),
-            ],
-        )
-
-        assert kinds(deps, report) == []
-
-    def test_a_reference_no_read_of_this_turn_returned_is_one_mismatch(self) -> None:
-        deps = reading_deps()
-        for reference in _A_PAPER_REFERENCES:
-            deps.state.turn_markers.record_retrieved_source(reference)
-        report = reply(
-            "The SRS family is reviewed there.",
-            sources=[
-                SourceReference(
-                    kind="literature",
-                    label="A review nobody read",
-                    doi="10.1000/invented.2026.99",
-                ),
-            ],
-        )
-
-        assert kinds(deps, report) == ["unretrieved_source"]
-
-    def test_a_source_the_reader_cannot_open_is_refused(self) -> None:
-        with pytest.raises(ValidationError, match="a url, a DOI or a PMID"):
-            LeadResponse.model_validate(
-                {
-                    "prose": "A review says so.",
-                    "sources": [{"kind": "literature", "label": "A review"}],
-                }
-            )
-
-    def test_a_doi_written_only_in_the_prose_is_not_scanned(self) -> None:
-        deps = reading_deps()
-        report = reply("See doi:10.1000/invented.2026.99 for the review.")
-
-        assert kinds(deps, report) == []
-
-    def test_the_record_this_turn_read_is_a_source_it_can_cite(self) -> None:
+class TestTheLinksTheReplyGives:
+    def test_the_record_this_turn_read_may_be_linked(self) -> None:
         deps = reading_deps()
         deps.state.turn_markers.record_retrieved_source(_RECORD_URL)
-        report = reply(
-            "The record says one exon.",
-            sources=[
-                SourceReference(
-                    kind="record",
-                    label="TGME49_233460 on ToxoDB",
-                    url=_RECORD_URL,
-                ),
-            ],
-        )
+        report = reply(f"The [gene record]({_RECORD_URL}) says one exon.")
 
         assert kinds(deps, report) == []
 
-    def test_the_same_reference_is_matched_whatever_form_it_is_written_in(self) -> None:
-        deps = reading_deps()
-        for reference in _A_PAPER_REFERENCES:
-            deps.state.turn_markers.record_retrieved_source(reference)
-        report = reply(
-            "The review states it.",
-            sources=[
-                SourceReference(
-                    kind="literature",
-                    label="SAG1-related sequences",
-                    url="https://doi.org/10.1016/j.molbiopara.2006.01.001",
-                    pmid="16460820",
-                ),
-            ],
-        )
+    def test_a_link_no_read_of_this_turn_returned_is_refused(self) -> None:
+        report = reply(f"The [gene record]({_RECORD_URL}) says one exon.")
 
-        assert kinds(deps, report) == []
+        assert kinds(reading_deps(), report) == ["fact_outside_the_block"]
+
+    def test_a_doi_in_the_prose_is_refused(self) -> None:
+        report = reply("See doi:10.1000/invented.2026.99 for the review.")
+
+        assert kinds(reading_deps(), report) == ["fact_outside_the_block"]

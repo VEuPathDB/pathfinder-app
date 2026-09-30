@@ -21,7 +21,7 @@ from pathfinder.ai.stream_part_payloads import (
     StrategyLink,
     StrategyMeta,
 )
-from pathfinder.domain.strategy.build_outcome import citable_count
+from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.session import (
     StrategyGraph,
     StrategySession,
@@ -56,13 +56,7 @@ def _coerce_operator(op: str | None) -> GraphEdgeOperator | None:
 
 def _count_for_step(step_id: str, sync_state: SyncStateProtocol | None) -> int | None:
     """The count a step may be cited with, or nothing when it has none."""
-    if sync_state is None:
-        return None
-    return citable_count(
-        step_id,
-        counts=sync_state.step_counts,
-        refused=sync_state.wdk_push_errors,
-    )
+    return built_counts(None, sync_state).of(step_id)
 
 
 def _snapshot_edges(graph: StrategyGraph) -> list[GraphEdge]:

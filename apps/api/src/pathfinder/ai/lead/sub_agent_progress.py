@@ -31,7 +31,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     apply_agent_state,
     phase_model_id,
 )
-from pathfinder.ai.models.catalog import context_window_for
+from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
 
 __all__ = [

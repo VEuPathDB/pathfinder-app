@@ -1,0 +1,68 @@
+{
+  "name": "uat-dry-a-piroplasmadb",
+  "turns": [
+    "List Babesia bovis T2Bo genes in the ves multigene family.",
+    "The ves genes are annotated on the site as \"variant erythrocyte surface antigen\" (VESA1), not by the word ves. Please search the product names for that instead and tell me how many you get.",
+    "One gene can't be right; the ves family in T2Bo has well over a hundred members. Most product names on the site read \"variant erythrocyte surface antigen-1\" with a hyphen, so the exact phrase probably misses them. Try a wildcard on that phrase instead.",
+    "Great, 146 looks more like it. How many of those VESA1 genes sit on chromosome 1? Keep the full list too, I want both.",
+    "Can you compare the two counts in one sentence I could put in a paper, i.e. what fraction of the VESA1 genes are on chromosome 1?"
+  ],
+  "siteId": "piroplasmadb",
+  "assistantId": "pathfinder",
+  "rationale": "An exact product phrase that finds one gene of a family states the count its wildcard form finds (146); the chromosome 1 subset (47) is bound on chromosome 1 and stated beside the full family, whichever tree keeps both, and the closing sentence carries both counts.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": null,
+    "recordType": "transcript",
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByLocation": {
+        "chromosomeOptional": "1"
+      }
+    },
+    "replyMentions": [
+      "146",
+      "47"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "2": [
+        "146"
+      ],
+      "3": [
+        "47",
+        "146"
+      ]
+    },
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": null,
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "piroplasmadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u3",
+    "curatorNote": "Keeping the full list admits a root of either the subset or the union, so the shape is not pinned."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

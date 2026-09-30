@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathfinder.evals.scoring import CaseDifference
+from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.summary import CaseResult, EvalRunSummary
 
 

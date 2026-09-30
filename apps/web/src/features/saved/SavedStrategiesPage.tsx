@@ -18,6 +18,7 @@ import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrate
 import { deleteStrategy } from "@pathfinder/shared/generated/hooks/useDeleteStrategy";
 import { getSavedStrategyConsumerCountsSuspenseQueryOptions } from "@pathfinder/shared/generated/hooks/useGetSavedStrategyConsumerCountsSuspense";
 import { toUserMessage } from "@/lib/api/errors";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { chatRoot, chatUrl } from "@/lib/routes";
 import { countNoun } from "@/lib/utils/countNoun";
@@ -256,6 +257,14 @@ function SavedRow({
             target="_blank"
             rel="noreferrer"
             aria-label={`Open in ${siteShortName(siteId)}`}
+            onClick={() =>
+              recordProductEvent({
+                event: "strategy_opened",
+                siteId,
+                wdkStrategyId: conv.wdkStrategyId ?? null,
+                conversationId: conv.id,
+              })
+            }
           >
             <ExternalLink className="h-4 w-4" aria-hidden />
           </a>

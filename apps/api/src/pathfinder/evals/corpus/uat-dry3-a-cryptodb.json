@@ -1,0 +1,64 @@
+{
+  "name": "uat-dry3-a-cryptodb",
+  "turns": [
+    "Cryptosporidium meleagridis UKMEL1 genes with a signal peptide expressed in oocysts.",
+    "Drop the oocyst expression requirement entirely: remove the C. hominis expression step, and please confirm the count goes back to the signal peptide count."
+  ],
+  "siteId": "cryptodb",
+  "assistantId": "pathfinder",
+  "rationale": "A card offers only choices that can move the count: no card offers the proxy's percentile floor or its protein-coding switch over an empty cross-species INTERSECT, no reply claims an edit that was never sent, and the dropped proxy leaves the 421-gene signal peptide step with no \"'0' is withdrawn\" row.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesWithSignalPeptide",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {
+      "0": [
+        "Minimum expression percentile: 0",
+        "Protein Coding Only: all",
+        "could not apply"
+      ],
+      "1": [
+        "'0' is withdrawn",
+        "'Minimum expression percentile: 0'"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 421,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "cryptodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ua-cryptodb",
+    "curatorNote": "Round-3 dry UAT, tester A, investigation 3, conversation 63f6d5f9-7989-48a0-93c1-8f8eb70b1812. The second turn is the report's quote with the ask the classifier recorded. Live: the C. hominis arm is 783 genes at percentile 80, 3,886 at 0 and 792 at all, and each INTERSECT with the 421 is 0."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "auto"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

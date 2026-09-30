@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.domain.strategy.constraint_grounding import ground_constraints
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
+from pathfinder.domain.strategy.constraint_grounding import (
+    RealizedSpec,
+    ground_constraints,
+)
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -37,9 +41,11 @@ def _explicit(kind: ConstraintKind, value: str, label: str) -> Constraint:
 def _ground_on_microarray(constraint: Constraint) -> GroundedConstraint:
     [grounded] = ground_constraints(
         [constraint],
-        search_names=[_MICROARRAY_SEARCH],
-        param_names={"fold_change"},
-        param_values={"fold_change": "2"},
+        RealizedSpec(
+            search_names=[_MICROARRAY_SEARCH],
+            param_names=frozenset({"fold_change"}),
+            param_values={"fold_change": "2"},
+        ),
     )
     return grounded
 
@@ -86,9 +92,11 @@ def _ground_percentile(
 ) -> GroundedConstraint:
     [grounded] = ground_constraints(
         [_percentile(requested)],
-        search_names=[_MICROARRAY_SEARCH],
-        param_names={param_name},
-        param_values={param_name: bound},
+        RealizedSpec(
+            search_names=[_MICROARRAY_SEARCH],
+            param_names=frozenset({param_name}),
+            param_values={param_name: bound},
+        ),
     )
     return grounded
 
@@ -161,11 +169,12 @@ def _ground_combination(
 ) -> GroundedConstraint:
     [grounded] = ground_constraints(
         [_explicit(ConstraintKind.COMBINATION, value, "how the evidence combines")],
-        search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
-        param_names=set(),
-        param_values={},
-        structure=structure,
-        criteria=[_MS_CRITERION, _DERISI_CRITERION],
+        RealizedSpec(
+            search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
+            param_values={},
+            structure=structure,
+            criteria=[_MS_CRITERION, _DERISI_CRITERION],
+        ),
     )
     return grounded
 
@@ -229,11 +238,16 @@ def _ground_with_transform(structure: SpecStructure) -> GroundedConstraint:
                 "how the evidence combines",
             )
         ],
-        search_names=["GenesByMassSpec", "GenesByRNASeqEvidence", "GenesByOrthologs"],
-        param_names=set(),
-        param_values={},
-        structure=structure,
-        criteria=[_MS_CRITERION, _DERISI_CRITERION, _ORTHOLOG_CRITERION],
+        RealizedSpec(
+            search_names=[
+                "GenesByMassSpec",
+                "GenesByRNASeqEvidence",
+                "GenesByOrthologs",
+            ],
+            param_values={},
+            structure=structure,
+            criteria=[_MS_CRITERION, _DERISI_CRITERION, _ORTHOLOG_CRITERION],
+        ),
     )
     return grounded
 
@@ -286,11 +300,12 @@ def _ground_with_exclusion(structure: SpecStructure) -> GroundedConstraint:
                 ConstraintKind.COMBINATION, _AND_REMOVING, "how the evidence combines"
             )
         ],
-        search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
-        param_names=set(),
-        param_values={},
-        structure=structure,
-        criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
+        RealizedSpec(
+            search_names=["GenesByMassSpec", "GenesByRNASeqEvidence"],
+            param_values={},
+            structure=structure,
+            criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
+        ),
     )
     return grounded
 
@@ -335,14 +350,70 @@ class TestGroundingACombinationThatRemovesACriterion:
                     "how the evidence combines",
                 )
             ],
-            search_names=["GenesByMassSpec"],
-            param_names=set(),
-            param_values={},
-            structure=_removed_from(
-                CombineOp.MINUS, StructureNode(kind="leaf", criterion_id="c_ms")
+            RealizedSpec(
+                search_names=["GenesByMassSpec"],
+                param_values={},
+                structure=_removed_from(
+                    CombineOp.MINUS, StructureNode(kind="leaf", criterion_id="c_ms")
+                ),
+                criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
             ),
-            criteria=[_MS_CRITERION, _DERISI_CRITERION, _EXCLUDE_CRITERION],
         )
 
         assert grounded.status is ConstraintStatus.GROUNDED
         assert "fewer than two" in grounded.note
+
+
+def _toxodb_export() -> Criterion:
+    """The toxodb step an exported EDA analysis selects, at log2 0.585."""
+    return Criterion(
+        id="step_818600c8",
+        text="up in bradyzoites over tachyzoites",
+        analysis=AnalysisBinding(
+            dataset_id="DS_toxo_bradyzoite",
+            effect_direction="upOnly",
+            effect_size_threshold=0.585,
+            significance_threshold=0.05,
+            words="bradyzoite over tachyzoite, log2 fold change 0.585, p 0.05",
+        ),
+    )
+
+
+class TestAnAnalysisStatesItsCuts:
+    def test_a_fold_change_an_exported_analysis_cuts_at_is_grounded(self) -> None:
+        [grounded] = ground_constraints(
+            [_explicit(ConstraintKind.FOLD_CHANGE, "1.5-fold", "fold change")],
+            RealizedSpec(
+                search_names=[],
+                param_values={},
+                criteria=[_toxodb_export()],
+            ),
+        )
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+
+    def test_a_significance_an_exported_analysis_cuts_at_is_grounded(self) -> None:
+        [grounded] = ground_constraints(
+            [_explicit(ConstraintKind.STATISTICAL_THRESHOLD, "p 0.05", "p value")],
+            RealizedSpec(
+                search_names=[],
+                param_values={},
+                criteria=[_toxodb_export()],
+            ),
+        )
+
+        assert grounded.status is ConstraintStatus.GROUNDED
+
+    def test_a_fold_change_no_search_and_no_analysis_states_is_ungroundable(
+        self,
+    ) -> None:
+        [grounded] = ground_constraints(
+            [_explicit(ConstraintKind.FOLD_CHANGE, "1.5-fold", "fold change")],
+            RealizedSpec(
+                search_names=["GenesWithSignalPeptide"],
+                param_names=frozenset({"organism"}),
+                param_values={},
+            ),
+        )
+
+        assert grounded.status is ConstraintStatus.UNGROUNDABLE

@@ -16,8 +16,13 @@ import { ToolApprovalControls, findToolApproval } from "./ToolApprovalControls";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
+const recordProductEvent = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
+
 beforeEach(() => {
   vi.mocked(toast.error).mockClear();
+  recordProductEvent.mockClear();
   useSettingsStore.setState({ showRawToolCalls: false, showTokenUsage: true });
 });
 
@@ -163,6 +168,33 @@ describe("ToolApprovalControls", () => {
     expect(screen.getByTestId("approval-card-title")).toHaveTextContent(ASKED);
   });
 
+  it("lists each other step the delete removes apart from its question", () => {
+    const removes = [
+      "'Intersect' (116 genes)",
+      "'Signal Peptide' (GenesWithSignalPeptide, 479 genes)",
+    ];
+    renderControls([
+      pendingPart("tool-delete_step"),
+      summaryPart(ASKED),
+      {
+        type: "data-delete-cascade",
+        data: { toolCallId: "call-1", removes },
+      },
+    ]);
+    expect(screen.getByTestId("approval-card-title")).toHaveTextContent(ASKED);
+    expect(
+      screen.getAllByTestId("approval-card-cascade-step").map((li) => li.textContent),
+    ).toEqual(removes);
+  });
+
+  it("draws no cascade for a delete that removes only its own step", () => {
+    renderControls([pendingPart("tool-delete_step"), summaryPart(ASKED)]);
+    expect(screen.getByTestId("approval-card").textContent).toBe(
+      `${ASKED} Deny Approve`,
+    );
+    expect(screen.queryByTestId("approval-card-cascade")).toBeNull();
+  });
+
   it("keeps the asked line on a replayed card after the step is gone", () => {
     renderControls([
       {
@@ -237,6 +269,36 @@ describe("ToolApprovalControls", () => {
     renderControls([pendingPart("tool-clear_strategy")], respond);
     fireEvent.click(screen.getByTestId("tool-approval-deny"));
     expect(respond).toHaveBeenCalledWith({ id: "appr-1", approved: false });
+  });
+
+  it("records an approval as card_answered with the tool name and conversation", () => {
+    renderControls([pendingPart("tool-optimize_search_parameters")]);
+    fireEvent.click(screen.getByTestId("tool-approval-approve"));
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "card_answered",
+          toolName: "optimize_search_parameters",
+          approved: true,
+          conversationId: "conv-1",
+        },
+      ],
+    ]);
+  });
+
+  it("records a denial as card_answered with approved false", () => {
+    renderControls([pendingPart("tool-clear_strategy")]);
+    fireEvent.click(screen.getByTestId("tool-approval-deny"));
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "card_answered",
+          toolName: "clear_strategy",
+          approved: false,
+          conversationId: "conv-1",
+        },
+      ],
+    ]);
   });
 
   it("reports a rejected approval response through toast.error", async () => {

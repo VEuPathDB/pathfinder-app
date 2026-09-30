@@ -56,7 +56,7 @@ def test_a_step_the_spec_leaves_out_is_stated_before_an_edit_plans_one() -> None
     }
     expr = next(c for c in stated.criteria if c.id == "step_expr")
     assert expr.search_name == "GenesByRNASeqEvidence"
-    assert expr.resolved_params == dict(expr_leaf().parameters)
+    assert expr.param_values == dict(expr_leaf().parameters)
 
 
 def test_the_strategy_owns_the_operator_of_the_part_it_holds() -> None:

@@ -23,6 +23,7 @@ import { edaDataPartComponents } from "./edaDataParts";
 import { strategyDataPartComponents } from "./strategyDataParts";
 import { dataPartComponents } from "./contentComponents";
 import { EVIDENCE_CARD } from "./parts/evidenceCardFixture";
+import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 const toastError = vi.hoisted(() => vi.fn());
 vi.mock("sonner", () => ({
@@ -373,13 +374,13 @@ describe("message dispatch", () => {
     const usage = [
       {
         type: "data-lead-usage" as const,
-        data: { modelId: "openai:gpt-5.6-luna", tokens: 41800, costUsd: "0.0131" },
+        data: { modelId: DEFAULT_MODEL.id, tokens: 41800, costUsd: "0.0131" },
       },
     ];
     useSettingsStore.setState({ showTokenUsage: true });
     const view = render(<Thread content={usage} />);
     expect(view.queryAllByTestId("model-badge")).toHaveLength(0);
-    expect(view.container.textContent).not.toContain("gpt-5.6-luna");
+    expect(view.container.textContent).not.toContain(DEFAULT_MODEL.modelName);
     expect(view.container.textContent).not.toContain("41.8K");
   });
 

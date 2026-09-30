@@ -3,6 +3,7 @@
 import type { ReactElement } from "react";
 import type {
   Citation,
+  ColumnFit,
   RequirementCheck,
   SampledGene,
   VerificationReview,
@@ -20,6 +21,13 @@ const REQUIREMENT_COLUMNS = [
   { head: "Requirement" },
   { head: "Answered by" },
   { head: "How" },
+] as const;
+
+const FIT_COLUMNS = [
+  { head: "Search" },
+  { head: "Column" },
+  { head: "Bound" },
+  { head: "Fit", numeric: true },
 ] as const;
 
 const GENE_COLUMNS = [
@@ -104,6 +112,42 @@ function requirementRow(row: RequirementCheck, index: number): ExhibitRow {
   };
 }
 
+/** The records inside the bound out of the step, or that the site shows no column. */
+/** A threshold the step holds on neither side is stated with the count on each
+ * side, which the fit's own sentence carries. */
+function fitCount(fit: ColumnFit): string {
+  if (fit.fits === "not_shown") return "The site shows no column";
+  if ((fit.sides ?? []).length > 0) return fit.sentence;
+  const inside =
+    fit.fitting === fit.fittingAtMost
+      ? `${fit.fitting}`
+      : `${fit.fitting} to ${fit.fittingAtMost}`;
+  return `${inside} of ${fit.total} ${fit.countedIn ?? "genes"}`;
+}
+
+/** Every record inside the known bounds; an open side is a count, not a misfit. */
+function fitsEveryRecord(fit: ColumnFit): boolean {
+  if (fit.fits === "all") return true;
+  return (fit.sides ?? []).length > 0 && fit.fitting === fit.total;
+}
+
+function fitRow(fit: ColumnFit): ExhibitRow {
+  return {
+    key: `${fit.wdkStepId}-${fit.column}`,
+    testId: "evidence-column-fit",
+    cells: [
+      fit.criterionText,
+      <span key="column" className="font-mono">
+        {fit.displayName}
+      </span>,
+      fit.boundValue,
+      <span key="fit" className={fitsEveryRecord(fit) ? "" : "text-destructive"}>
+        {fitCount(fit)}
+      </span>,
+    ],
+  };
+}
+
 function geneRow(gene: SampledGene): ExhibitRow {
   return {
     key: gene.geneId,
@@ -157,22 +201,29 @@ function Sources({ cited }: { cited: readonly Citation[] }): ReactElement | null
   );
 }
 
-/** What the check read against the researcher's words: each requirement, a
- * sample of the genes, and the sources it chose to read. */
+/** What the check read against the researcher's words: each requirement, the
+ * columns of each step, a sample of the genes where no column shows, and the
+ * sources it chose to read. */
 export function EvidenceReview({
   review,
 }: {
   review: VerificationReview | undefined;
 }): ReactElement | null {
   const rows = review?.requirements ?? [];
+  const fits = review?.columnFits ?? [];
   const genes = review?.sampledGenes ?? [];
   const sources = review?.sources ?? [];
-  if (rows.length === 0 && genes.length === 0 && sources.length === 0) return null;
+  if ([rows, fits, genes, sources].every((part) => part.length === 0)) return null;
   return (
     <div data-testid="evidence-review" className="space-y-3">
       {rows.length > 0 ? (
         <div data-testid="evidence-requirements">
           <ExhibitTable columns={REQUIREMENT_COLUMNS} rows={rows.map(requirementRow)} />
+        </div>
+      ) : null}
+      {fits.length > 0 ? (
+        <div data-testid="evidence-column-fits">
+          <ExhibitTable columns={FIT_COLUMNS} rows={fits.map(fitRow)} />
         </div>
       ) : null}
       {genes.length > 0 ? (

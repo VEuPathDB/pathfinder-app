@@ -4,6 +4,11 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
 import { CUSTOM_TIER } from "@/features/settings/tierPresets";
 import { TierPicker } from "./TierPicker";
+import {
+  DEFAULT_MODEL,
+  OPENAI_FLAGSHIP,
+  OPENAI_SMALL,
+} from "@/lib/models/__fixtures__/models";
 
 afterEach(cleanup);
 
@@ -17,9 +22,9 @@ const uniform = (modelId: string, effort: "low" | "medium" | "high"): TierPreset
 });
 
 const PRESETS: Record<string, TierPreset> = {
-  quality: uniform("openai:gpt-5.6-sol", "high"),
-  default: uniform("openai:gpt-5.6-luna", "medium"),
-  fast: uniform("openai:gpt-5.6-luna", "low"),
+  quality: uniform(OPENAI_FLAGSHIP.id, "high"),
+  default: uniform(DEFAULT_MODEL.id, "medium"),
+  fast: uniform(DEFAULT_MODEL.id, "low"),
 };
 
 describe("TierPicker", () => {
@@ -71,7 +76,7 @@ describe("TierPicker", () => {
   it("falls back to the raw key for a tier it has no label for", () => {
     render(
       <TierPicker
-        presets={{ experimental: uniform("openai:gpt-5.6-terra", "low") }}
+        presets={{ experimental: uniform(OPENAI_SMALL.id, "low") }}
         activeTier={CUSTOM_TIER}
         onSelect={vi.fn()}
       />,

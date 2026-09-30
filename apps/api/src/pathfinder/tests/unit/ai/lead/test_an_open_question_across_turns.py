@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     PROTEOME_PARAM,
@@ -68,9 +69,9 @@ def _localised(value: float | None) -> Criterion:
         id=_LOCALISED,
         text="localised to the apicoplast",
         search_name="GenesByLocalisation",
-        resolved_params={}
-        if value is None
-        else {_LOCALISED_PARAM: NumberValue(value=value)},
+        resolved_params=bound(
+            {} if value is None else {_LOCALISED_PARAM: NumberValue(value=value)}
+        ),
         open_params=[]
         if value is not None
         else [OpenSlot(criterion_id=_LOCALISED, param_name=_LOCALISED_PARAM)],
@@ -173,10 +174,12 @@ def _restating_the_stage_and_answering() -> Draft:
                 id=STAGE,
                 text="expressed in merozoites",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={
-                    STAGE_PERCENTILE: NumberValue(value=80),
-                    STAGE_TIMEPOINT: NumberValue(value=40),
-                },
+                resolved_params=bound(
+                    {
+                        STAGE_PERCENTILE: NumberValue(value=80),
+                        STAGE_TIMEPOINT: NumberValue(value=40),
+                    }
+                ),
             )
         )
         assert found.structure is not None

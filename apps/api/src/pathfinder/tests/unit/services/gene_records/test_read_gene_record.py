@@ -182,18 +182,71 @@ async def test_the_summary_lists_the_orthologs_and_their_total() -> None:
     assert found.orthologs[0].organism == "Ortholog organism 0"
 
 
-@pytest.mark.usefixtures("_no_expression")
-async def test_only_twenty_ortholog_rows_ride_the_summary() -> None:
+def _funestus_orthologs() -> list[dict[str, str]]:
+    """The 132 rows AFUN008228 lists, with its one PEST ortholog at row 106."""
     rows = [
-        {"organism": f"Organism {i}", "ortho_gene_source_id": f"G{i}"}
-        for i in range(31)
+        {"organism": f"Anopheles species {i}", "ortho_gene_source_id": f"AX{i:03d}"}
+        for i in range(132)
     ]
-    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": rows}))
+    rows[105] = {
+        "organism": "Anopheles gambiae PEST",
+        "ortho_gene_source_id": "AGAP008819",
+    }
+    return rows
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_a_cut_ortholog_list_says_how_many_rows_it_holds_of_how_many() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(api, "vectorbase", "AFUN008228")
+
+    assert (found.ortholog_count, len(found.orthologs)) == (132, 20)
+    assert found.orthologs_shown == (
+        "The first 20 of 132 ortholog rows. A gene absent from them may be "
+        "among the other 112; read the record with ortholog_organism to see "
+        "every row of one organism."
+    )
+    assert found.summary_line().endswith("132 orthologs (20 shown)")
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_an_ortholog_question_reads_every_row_of_the_organism() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Anopheles gambiae PEST"
+    )
+
+    assert [o.model_dump() for o in found.orthologs] == [
+        {"organism": "Anopheles gambiae PEST", "gene_id": "AGAP008819"}
+    ]
+    assert found.orthologs_shown == (
+        "Every row of the 132 whose organism is Anopheles gambiae PEST: 1."
+    )
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_an_organism_no_row_names_is_stated_as_absent_from_the_whole_list() -> (
+    None
+):
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _funestus_orthologs()}))
+
+    found = await read_the_gene_record(
+        api, "vectorbase", "AFUN008228", ortholog_organism="Aedes aegypti LVP"
+    )
+
+    assert found.orthologs == []
+    assert found.orthologs_shown == "None of the 132 rows names Aedes aegypti LVP."
+
+
+@pytest.mark.usefixtures("_no_expression")
+async def test_a_whole_ortholog_list_carries_no_note() -> None:
+    api = _GeneRecord(_record(dict(_SRS29B), {"Orthologs": _ORTHOLOGS}))
 
     found = await read_the_gene_record(api, "toxodb", "TGME49_233460")
 
-    assert found.ortholog_count == 31
-    assert len(found.orthologs) == 20
+    assert (len(found.orthologs), found.orthologs_shown) == (14, "")
 
 
 @pytest.mark.usefixtures("_no_expression")

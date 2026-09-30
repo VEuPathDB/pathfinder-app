@@ -9,6 +9,8 @@ import type { EdaAnalysisState, EdaEntityCount } from "@pathfinder/shared";
 import type { ConversationEdaResponse } from "@pathfinder/shared/generated/types/ConversationEdaResponse";
 import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
 import type { EdaComputeSummary } from "@pathfinder/shared/generated/types/EdaComputeSummary";
+import type { EdaOwnDatasetResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetResponse";
+import type { EdaOwnDatasetListResponse } from "@pathfinder/shared/generated/types/EdaOwnDatasetListResponse";
 import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
 import type { EdaStudySummaryResponse } from "@pathfinder/shared/generated/types/EdaStudySummaryResponse";
 import type { EdaVizResponse } from "@pathfinder/shared/generated/types/EdaVizResponse";
@@ -41,6 +43,18 @@ export async function ownStudy(
   );
   if (study === undefined) throw new Error(`${siteId} lists no study of its own`);
   return study;
+}
+
+/** The researcher's uploads on the site, newest first, as the tab's route answers. */
+export async function ownDatasets(
+  api: ApiClient,
+  siteId: string,
+): Promise<EdaOwnDatasetResponse[]> {
+  const resp = await api.get(`/api/v1/eda/datasets?siteId=${siteId}`, {
+    timeout: 60_000,
+  });
+  expect(resp.status(), `datasets on ${siteId}`).toBe(200);
+  return ((await resp.json()) as EdaOwnDatasetListResponse).datasets;
 }
 
 /** The analysis the conversation holds, or null when no study is open. */

@@ -120,7 +120,7 @@ def _drive_part(
 def _drive(
     result_content: object,
     tool_name: str = "get_search_overview",
-    outcome: Literal["success", "denied"] = "success",
+    outcome: Literal["success", "denied", "failed"] = "success",
 ) -> list[str]:
     return _drive_part(
         ToolReturnPart(
@@ -153,6 +153,13 @@ def test_normal_result_still_renders_as_completed() -> None:
 
 def test_denied_call_renders_as_denied() -> None:
     assert _drive("The tool call was denied.", outcome="denied") == ["denied"]
+
+
+def test_a_call_that_failed_without_running_renders_as_failed() -> None:
+    """A tool that raised ToolFailed did not run, so its row is an error."""
+    assert _drive(
+        "The reason holds 196 characters. It did not run again.", outcome="failed"
+    ) == ["failed"]
 
 
 def test_retry_prompt_renders_as_failed() -> None:

@@ -1,1 +1,1 @@
-"""LLM model configuration and catalog."""
+"""The deterministic mock model a mock deployment runs every role on."""

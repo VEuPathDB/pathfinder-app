@@ -33,6 +33,7 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.bound_values import bound, stated
 from pathfinder.tests.unit.ai.lead._answered_draft import classify
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -46,7 +47,9 @@ def _spec() -> OperationalSpec:
                 text="protease text",
                 search_name="GenesByText",
                 role="seed",
-                resolved_params={"organism": MultiPickValue(values=["Plasmodium"])},
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Plasmodium"])}
+                ),
             ),
             Criterion(id="step_go", text="proteolysis GO", search_name="GenesByGoTerm"),
         ],
@@ -129,11 +132,13 @@ def _carrier(criterion_id: str = "gametocyte_expression") -> Criterion:
         id=criterion_id,
         text="upregulated in gametocytes",
         search_name=_SEARCH,
-        resolved_params={
-            "organism": MultiPickValue(values=["Pf3D7"]),
-            "dataset": StringValue(value=_DEFAULT_DATASET),
-        },
-        defaulted_params=["dataset"],
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=["Pf3D7"]),
+                "dataset": StringValue(value=_DEFAULT_DATASET),
+            },
+            defaulted=["dataset"],
+        ),
     )
 
 
@@ -142,7 +147,7 @@ def _option(search_name: str = _SEARCH) -> Criterion:
         id="sexual_stage_option",
         text="use the sexual stage dataset",
         search_name=search_name,
-        resolved_params={"dataset": StringValue(value=_SEXUAL_STAGE)},
+        resolved_params=bound({"dataset": StringValue(value=_SEXUAL_STAGE)}),
     )
 
 
@@ -251,8 +256,10 @@ async def test_the_spec_stored_after_an_edit_is_folded(
     await run_edit(deps=run.deps, parent_tool_call_id="t1", reason="new dataset")
 
     (stored,) = run.stored_criteria
-    assert stored.resolved_params["dataset"] == StringValue(value=_SEXUAL_STAGE)
-    assert [a.reason for a in stored.assumptions] == ["use the sexual stage dataset"]
+    assert (
+        stored.param_values["dataset"],
+        stored.resolved_params["dataset"].carried_from,
+    ) == (StringValue(value=_SEXUAL_STAGE), "sexual_stage_option")
 
 
 async def test_an_option_two_steps_could_carry_refuses_the_edit(
@@ -293,8 +300,9 @@ async def test_a_stored_option_no_step_carries_does_not_refuse_the_edit(
         criteria=[before.criteria[0].model_copy(deep=True)],
         structure=before.structure,
     )
-    after.criteria[0].resolved_params["dataset"] = StringValue(value=_SEXUAL_STAGE)
-    after.criteria[0].defaulted_params = []
+    after.criteria[0].resolved_params["dataset"] = stated(
+        StringValue(value=_SEXUAL_STAGE)
+    )
     run = _edit_run(monkeypatch, before=before, after=after, session=session)
 
     await run_edit(deps=run.deps, parent_tool_call_id="t1", reason="new dataset")
@@ -307,7 +315,7 @@ def _timecourse_option() -> Criterion:
         id="timecourse_option",
         text="use the gametocyte timecourse dataset",
         search_name=_SEARCH,
-        resolved_params={"dataset": StringValue(value=_TIMECOURSE)},
+        resolved_params=bound({"dataset": StringValue(value=_TIMECOURSE)}),
     )
 
 

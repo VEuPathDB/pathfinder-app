@@ -1,0 +1,70 @@
+{
+  "name": "uat-dry3-d-hostdb",
+  "turns": [
+    "Mus musculus C57BL/6J genes on chromosome 17 with the GO term 'MHC class I protein complex'.",
+    "Change the chromosome to 19. How does the count change?",
+    "Put it back to chromosome 17 and show me a sample of five genes from the result.",
+    "Can you show me that same sample of five genes again? I want to copy the IDs."
+  ],
+  "siteId": "hostdb",
+  "assistantId": "pathfinder",
+  "rationale": "The same sample request on an unchanged step answers the same records in a later turn, a placeholder the site left is shown as not set, and each edit shows the root's count before it: chromosome 17 gives 2,268 location genes and 9 in the intersection, chromosome 19 gives 1,372 and 0.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": null,
+    "recordType": "transcript",
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "0": [
+        "not set (site placeholder)"
+      ],
+      "1": [
+        "0 genes, 9 genes before this turn's edit"
+      ],
+      "2": [
+        "9 genes, 0 genes before this turn's edit"
+      ]
+    },
+    "turnReplyOmits": {
+      "0": [
+        "(Example: chr22)"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 9,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "hostdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ud-hostdb",
+    "curatorNote": "Round-3 dry UAT, tester D, investigation 12, conversation 2fef18b7-1292-41d9-9050-036249632a0e. Turns 2 to 4 are the reports' quotes of the messages. The sample of turn 3 and turn 4 must hold the same five genes; no expectation field compares two turns' records yet."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

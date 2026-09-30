@@ -22,7 +22,8 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 
-from pathfinder.ai.models.mock.calls import classify, lead_final
+from pathfinder.ai.lead.card_question import CardQuestion
+from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final, narrated
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
 from pathfinder.ai.models.mock.lead_flow import build_journey, run_sequence
 from pathfinder.ai.models.mock.reads import (
@@ -55,7 +56,10 @@ CARD_REPLY = (
 )
 # The card offers at most this many options, as the frame result holds them.
 _OPTIONS = 8
-_ANSWER = re.compile(r"^Answer: .*?-> (?P<chosen>[^;\n]+)", re.MULTILINE)
+# The answer states the value the picked option bound on the open slot.
+_ANSWER = re.compile(
+    rf'^Answer: .*?sets {OPEN_PARAM} to "(?P<chosen>[^"]+)"', re.MULTILINE
+)
 
 
 def _site() -> SiteValues:
@@ -150,6 +154,8 @@ def _asked(crit: CriterionSpec, offer: _Offer | None) -> dict[str, Any]:
                 "question": OPEN_QUESTION,
                 "dimension": "organism",
                 "recommendedValue": offer.recommended,
+                "criterionId": crit.criterion_id,
+                "paramName": OPEN_PARAM,
                 "options": offer.options,
             }
         ],
@@ -223,42 +229,24 @@ def open_value_frame(messages: list[ModelMessage]) -> ToolCallPart:
     return _answered_frame(messages, answer["chosen"].strip())
 
 
-class _Question(ToolAnswer):
-    question: str
-    recommended_value: str = ""
-    options: list[str] = Field(default_factory=list)
-
-
 class _Framed(ToolAnswer):
     disposition: str = ""
-    open_questions: list[_Question] = Field(default_factory=list)
+    card_questions: list[CardQuestion] = Field(default_factory=list)
 
 
-def open_questions(messages: list[ModelMessage]) -> list[_Question]:
-    """The questions the newest frame pass left for the researcher."""
+def open_questions(messages: list[ModelMessage]) -> list[CardQuestion]:
+    """The card the newest frame pass left for the researcher."""
     framed = last_return(messages, "frame_problem", _Framed)
     if framed is None or framed.disposition != "needs_user":
         return []
-    return framed.open_questions
+    return framed.card_questions
 
 
-def card_args(questions: list[_Question]) -> dict[str, Any]:
-    """One card question per open question, its options from the frame, the
-    recommended one marked."""
+def card_args(questions: list[CardQuestion]) -> dict[str, Any]:
+    """The card the frame result carries, asked as it stands."""
     return {
         "reply": CARD_REPLY,
-        "questions": [
-            {
-                "id": f"q{index}",
-                "prompt": q.question,
-                "kind": "single_choice",
-                "options": [
-                    {"label": o, "recommended": o == q.recommended_value}
-                    for o in q.options
-                ],
-            }
-            for index, q in enumerate(questions, 1)
-        ],
+        "questions": [q.model_dump(by_alias=True, mode="json") for q in questions],
     }
 
 
@@ -294,7 +282,9 @@ def _asking(messages: list[ModelMessage]) -> list[ToolCallPart]:
         return [*head, scripted_call(CONSULT, card_args(asked))]
     return [
         *head,
-        lead_final(f"{frame_summary(messages)} I built nothing.", "await_user"),
+        lead_final(
+            narrated(f"{frame_summary(messages)} I built nothing."), "await_user"
+        ),
     ]
 
 
@@ -303,4 +293,58 @@ def consult(messages: list[ModelMessage]) -> ToolCallPart:
     a frame of the answer, the build and its check."""
     if not deferred_tool_resolved(messages, CONSULT):
         return run_sequence(messages, _asking(messages))
+    return run_sequence(_since_the_answer(messages), build_journey(messages))
+
+
+# The fold change the withdraw arc's message states, which no signal peptide
+# search states.
+WITHDRAWN = "2-fold"
+
+
+def _stating_the_fold_change() -> ToolCallPart:
+    return scripted_call(
+        CLASSIFY,
+        {
+            "intent": {
+                "classification": "new_strategy",
+                "inferredGoal": "[mock] new_strategy",
+                "explicitConstraints": [
+                    {
+                        "kind": "fold_change",
+                        "label": "fold change",
+                        "requestedValue": WITHDRAWN,
+                        "source": "user_explicit",
+                        "hard": True,
+                    }
+                ],
+            }
+        },
+    )
+
+
+class _Carded(ToolAnswer):
+    card_questions: list[CardQuestion] = Field(default_factory=list)
+
+
+def _withdrawing(messages: list[ModelMessage]) -> list[ToolCallPart]:
+    head = [
+        _stating_the_fold_change(),
+        scripted_call("frame_problem", {"reason": "mock frame"}),
+    ]
+    framed = last_return(messages, "frame_problem", _Carded)
+    if framed is not None and framed.card_questions:
+        return [*head, scripted_call(CONSULT, card_args(framed.card_questions))]
+    return [
+        *head,
+        lead_final(
+            narrated(f"{frame_summary(messages)} I built nothing."), "await_user"
+        ),
+    ]
+
+
+def withdraw(messages: list[ModelMessage]) -> ToolCallPart:
+    """State a requirement no search states and ask the card that offers to drop
+    it, whatever the pass's disposition; the answered card builds the rest."""
+    if not deferred_tool_resolved(messages, CONSULT):
+        return run_sequence(messages, _withdrawing(messages))
     return run_sequence(_since_the_answer(messages), build_journey(messages))

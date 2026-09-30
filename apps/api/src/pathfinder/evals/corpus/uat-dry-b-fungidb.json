@@ -1,0 +1,97 @@
+{
+  "name": "uat-dry-b-fungidb",
+  "turns": [
+    "On FungiDB, which Candida albicans SC5314 genes are predicted to be GPI-anchored and have no ortholog in Saccharomyces cerevisiae S288c?",
+    "Good. Now also require that they are expressed during hyphal growth.",
+    "One gene is too few to be meaningful. Remove whichever step you added last and tell me what the count goes back to.",
+    "Give me the final count in one sentence a grant reviewer would accept.",
+    "A reviewer will say GPI biosynthesis enzymes are not GPI-anchored proteins. Is there a GO cellular component term for GPI-anchored or anchored-membrane proteins on FungiDB that fits my question better? If so, use it instead and give me the new count."
+  ],
+  "siteId": "fungidb",
+  "assistantId": "pathfinder",
+  "rationale": "A GO term is named with the label the site reads for it, obsolete included; the cellular-component term intersected with the no-S. cerevisiae profile gives 58.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByGoTerm INTERSECT GenesByOrthologPattern)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByGoTerm": {
+        "go_typeahead": "GO:0031225"
+      }
+    },
+    "replyMentions": [
+      "GO:0031225",
+      "obsolete anchored component of membrane"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 58,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "fungidb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u6",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "propose_changes",
+        "turn": 1,
+        "accept": true
+      },
+      {
+        "card": "consult_user",
+        "turn": 1,
+        "accept": true,
+        "picks": [
+          "Use a direct protein-prediction search if available"
+        ]
+      },
+      {
+        "card": "propose_changes",
+        "turn": 1,
+        "accept": true
+      },
+      {
+        "card": "consult_user",
+        "turn": 1,
+        "accept": true,
+        "picks": [
+          "Keep the current GPI-biosynthesis search"
+        ]
+      },
+      {
+        "card": "delete_step",
+        "turn": 2,
+        "accept": true
+      }
+    ]
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

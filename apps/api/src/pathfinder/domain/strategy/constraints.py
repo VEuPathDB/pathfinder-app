@@ -5,9 +5,9 @@ import re
 from collections import Counter
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Literal, NamedTuple
+from typing import Annotated, Literal, NamedTuple
 
-from pydantic import Field
+from pydantic import ConfigDict, Discriminator, Field
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.words import WORD, words_of
@@ -50,6 +50,56 @@ class Constraint(CamelModel):
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
 
+    @property
+    def key(self) -> str:
+        """The identity of the requirement: its dimension and the value it states."""
+        return f"{self.kind.value}:{self.requested_value}"
+
+
+class OpenLifecycle(CamelModel):
+    """A requirement nothing has answered or retired yet."""
+
+    model_config = ConfigDict(frozen=True)
+
+    state: Literal["open"] = "open"
+
+
+class BoundLifecycle(CamelModel):
+    """A requirement a criterion's values state."""
+
+    model_config = ConfigDict(frozen=True)
+
+    state: Literal["bound"] = "bound"
+    criterion_id: str
+    params: list[str] = Field(default_factory=list)
+
+
+class WithdrawnLifecycle(CamelModel):
+    """A requirement a later message of the researcher took back."""
+
+    model_config = ConfigDict(frozen=True)
+
+    state: Literal["withdrawn"] = "withdrawn"
+    turn_id: str
+
+
+class ReplacedLifecycle(CamelModel):
+    """A requirement another requirement took the place of.
+
+    ``by`` is the key of the requirement that replaced it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    state: Literal["replaced"] = "replaced"
+    by: str
+
+
+Lifecycle = Annotated[
+    OpenLifecycle | BoundLifecycle | WithdrawnLifecycle | ReplacedLifecycle,
+    Discriminator("state"),
+]
+
 
 class GroundedConstraint(CamelModel):
     constraint: Constraint
@@ -59,48 +109,12 @@ class GroundedConstraint(CamelModel):
     # single parameter.
     realized_param: str = ""
     note: str = ""
-
-
-_QUESTION_LIMIT = 300
-_LABEL_LIMIT = 120
-_OPTIONS_LIMIT = 8
-
-
-class OpenQuestion(CamelModel):
-    """A question the assistant asked the user, and the value it recommended.
-
-    The recommendation is typed here so the next turn reads it instead of the
-    reply text that offered it.
-    """
-
-    question: str = Field(min_length=1, max_length=_QUESTION_LIMIT)
-    dimension: ConstraintKind = ConstraintKind.OTHER
-    recommended_value: str = ""
-    # The values the question card offers, read from the sheet the pass read.
-    options: list[str] = Field(default_factory=list, max_length=_OPTIONS_LIMIT)
+    lifecycle: Lifecycle = Field(default_factory=OpenLifecycle)
 
     @property
-    def decides_a_dimension(self) -> bool:
-        """Whether the question names the dimension its answer states.
-
-        A question recorded as bare text carries the default dimension, which
-        names nothing.
-        """
-        return (
-            bool(self.recommended_value) or self.dimension is not ConstraintKind.OTHER
-        )
-
-    def recommendation(self) -> Constraint | None:
-        """The recommended value as a constraint, or None when none was offered."""
-        if not self.recommended_value:
-            return None
-        return Constraint(
-            kind=self.dimension,
-            requested_value=self.recommended_value,
-            label=self.question[:_LABEL_LIMIT],
-            source=ConstraintSource.ASSUMED,
-            hard=False,
-        )
+    def retired(self) -> bool:
+        """Whether the researcher withdrew the requirement or another replaced it."""
+        return self.lifecycle.state in ("withdrawn", "replaced")
 
 
 # A binomial is a genus and a species epithet, and only a genus abbreviates.
@@ -152,19 +166,6 @@ def message_states_constraint(message: str, constraint: Constraint) -> bool:
     if request is None:
         return message_states(message, value)
     return combination_operator_is_stated(message, request)
-
-
-def standing_recommendations(
-    questions: Sequence[OpenQuestion], stated: Sequence[Constraint]
-) -> list[Constraint]:
-    """The recommended values the latest message leaves standing.
-
-    A message that states a value on a dimension replaces every recommendation
-    on it, so the ledger never carries two answers to one question.
-    """
-    replaced = {c.kind for c in stated}
-    offered = (q.recommendation() for q in questions)
-    return [c for c in offered if c is not None and c.kind not in replaced]
 
 
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
@@ -235,8 +236,12 @@ def merge_constraints(
 
 
 _SHARE_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:%|percent\b)", re.IGNORECASE)
+_ORDINAL_RE = re.compile(r"(\d+(?:\.\d+)?)(?:st|nd|rd|th)\s+percentile", re.IGNORECASE)
 _TOP_RE = re.compile(r"\btop\b|\bhighest\b", re.IGNORECASE)
 _BOTTOM_RE = re.compile(r"\bbottom\b|\blowest\b", re.IGNORECASE)
+# A percentile named as a cut is a lower bound unless the text puts the genes
+# below it.
+_BELOW_RE = re.compile(r"\bbelow\b|\bunder\b|\bat most\b", re.IGNORECASE)
 _FULL_SCALE = 100.0
 
 
@@ -248,6 +253,14 @@ class PercentileRequest(CamelModel):
 
     @classmethod
     def parse(cls, text: str) -> PercentileRequest | None:
+        """A share with its end ("top 5 percent"), or the percentile that
+        bounds it ("95th percentile", "below the 10th percentile")."""
+        ordinal = _ORDINAL_RE.search(text)
+        if ordinal is not None:
+            bound = float(ordinal.group(1))
+            if _BOTTOM_RE.search(text) or _BELOW_RE.search(text):
+                return cls(direction="bottom", share=bound)
+            return cls(direction="top", share=_FULL_SCALE - bound)
         share = _SHARE_RE.search(text)
         if share is None:
             return None
@@ -316,6 +329,27 @@ _JOINING_WORDS = frozenset({"with", "plus"})
 _AS_WELL_AS = "as well as"
 _EITHER = "either"
 _CLAUSE_BREAK_RE = re.compile(r"[,;:.!?]")
+# An "include" verb adds an alternative to what the request already finds.
+_ADDS_AN_ALTERNATIVE_RE = re.compile(
+    r"\balso\s+include|\bto\s+include\b|(?:^|[,;.]\s*)include\b"
+    r"|\bas\s+an?\s+alternative\b",
+    re.IGNORECASE,
+)
+# Words that add a term and state neither operator: a class added to a class
+# is an OR, a property added to a property is an AND.
+_STATES_NEITHER_RE = re.compile(
+    r"\bin\s+addition\s+to\b|\bas\s+well\b(?!\s+as\b)", re.IGNORECASE
+)
+
+
+def adds_an_alternative(text: str) -> bool:
+    """Whether the text adds an alternative with an "include" verb."""
+    return bool(_ADDS_AN_ALTERNATIVE_RE.search(text))
+
+
+def _states_neither(text: str) -> bool:
+    return bool(_STATES_NEITHER_RE.search(text))
+
 
 # What a connective's own words state. "list" is a bare separator, which takes
 # the operator of the next conjunction in the list.
@@ -337,7 +371,8 @@ class Connective(CamelModel):
 class CombinationReading(CamelModel):
     """How the message itself joins a combination's terms, in message order.
 
-    ``named`` is the operator the message names as a set operation.
+    ``named`` is the operator the message names as a set operation, or OR when
+    the words after the last term add it as an alternative.
     """
 
     connectives: list[Connective]
@@ -418,8 +453,10 @@ def _between(message: str, first: _Span, second: _Span) -> tuple[str, list[str]]
 
 
 def _stated_by(text: str, words: Sequence[str]) -> _Stated:
-    if _AND_OR_RE.search(text):
+    if _AND_OR_RE.search(text) or adds_an_alternative(text):
         return "OR"
+    if _states_neither(text):
+        return "both"
     says_or, says_and = "or" in words, "and" in words
     if says_or and says_and:
         return "both"
@@ -440,7 +477,7 @@ def _named_operator(message: str) -> CombinationOperator | None:
 
 
 def _resolved(
-    stated: Sequence[_Stated], default: CombinationOperator
+    stated: Sequence[_Stated], default: CombinationOperator | None
 ) -> list[CombinationOperator | None]:
     """Each connective's operator, a bare separator taking the next conjunction's."""
     following: CombinationOperator | None = default
@@ -478,8 +515,18 @@ def read_combination(
     between = [_between(message, first, second) for first, second in pairs]
     clause = _CLAUSE_BREAK_RE.split(message[: spans[0].start])[-1]
     opening = [*words_of(clause), *words_of(spans[0].term)[:1]]
-    default: CombinationOperator = "OR" if _EITHER in opening else "AND"
+    default: CombinationOperator | None = (
+        "OR"
+        if _EITHER in opening or adds_an_alternative(clause)
+        else None
+        if _states_neither(clause)
+        else "AND"
+    )
     operators = _resolved([_stated_by(*joined) for joined in between], default)
+    trailing = _CLAUSE_BREAK_RE.split(message[spans[-1].end :])[0]
+    if operators and _states_neither(trailing):
+        operators[-1] = None
+    named = _named_operator(message)
     return CombinationReading(
         connectives=[
             Connective(before=first.term, after=second.term, text=text, operator=op)
@@ -487,7 +534,7 @@ def read_combination(
                 pairs, between, operators, strict=True
             )
         ],
-        named=_named_operator(message),
+        named="OR" if named is None and adds_an_alternative(trailing) else named,
     )
 
 

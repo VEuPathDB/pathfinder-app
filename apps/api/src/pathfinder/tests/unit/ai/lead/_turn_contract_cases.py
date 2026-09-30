@@ -7,9 +7,8 @@ from uuid import uuid4
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
-from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.graph.turn_records import ControlTestRun, CreatedControlSet
+from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, LeadTurnState, reconcile
@@ -17,16 +16,19 @@ from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
-    SourceReference,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
 )
+from pathfinder.domain.strategy.questions import (
+    AskedQuestion,
+    OpenQuestion,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.held_counts import session_holding
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -42,53 +44,18 @@ BLAMING_REPLY = (
     "materialize and verify it without changing these requirements."
 )
 REAL_FAILURE_REPLY = (
-    "VEuPathDB refused the organism value on one step, so the build pushed two "
-    "steps of three. Try again later once I re-bind that criterion."
+    "VEuPathDB refused the organism value on one step, so the build pushed the "
+    "other steps only. Try again later once I re-bind that criterion."
 )
 CLEAN_REPLY = (
-    "The planning pass stopped on its call budget with three of eight criteria "
-    "bound. I am running it again on the remaining five."
+    "The planning pass stopped on its call budget with some criteria still "
+    "unbound. I am running it again on the remaining ones."
 )
 ASKING_REPLY = (
     "The spec needs one value: which gametocyte RNA-seq study should the "
-    "expression filter read? I recommend the 3D7 one."
+    "expression filter read? I recommend the asexual one."
 )
 EDA_PROSE = "The piggyBac score could not be mapped to a searchable gene field."
-CONTROL_SET_CLAIM = (
-    'Created the Workbench positive control set "rhoptry positives" from the '
-    "strategy's rhoptry-protein step. It contains 102 genes from Toxoplasma "
-    "gondii ME49."
-)
-GENE_SET_REPLY = (
-    'Saved the 102 rhoptry-protein genes as the gene set "rhoptry positives". '
-    "It can become a control set when you ask for one."
-)
-LISTS_SAVED_CONTROL_SETS = (
-    "You have two saved control sets on this site: 'kinase positives' with 61 "
-    "genes and 'ribosomal negatives' with 84."
-)
-NAMES_A_CONTROL_SET_IN_A_SECOND_CLAUSE = (
-    "I saved the 102 genes as a gene set; the control set is yours to ask for "
-    "whenever you want one."
-)
-DENIES_A_CONTROL_SET = (
-    "I have not created a control set: the ids are read, and nothing is saved "
-    "until you name the set."
-)
-SAVED_GENE_SET = CreatedGeneSet(id="gs-1", name="rhoptry positives", gene_count=102)
-SAVED_CONTROL_SET = CreatedControlSet(id="cs-1", name="rhoptry controls")
-LISTS_SAVED_GENE_SETS = (
-    "You have two saved gene sets on this site: 'kinase hits' with 61 genes "
-    "and 'rhoptry positives' with 102."
-)
-DENIES_A_GENE_SET = (
-    "I have not saved a gene set: the genes are read from the step, and "
-    "nothing is stored until you name the set."
-)
-CLAIMS_A_GENE_SET_ENRICHMENT = (
-    "I created a gene set enrichment over the 102 rhoptry-protein genes. The "
-    "top terms are protein export and host cell remodeling."
-)
 REDIRECT = (
     "I build and check search strategies on the VEuPathDB sites, and run "
     "enrichment, EDA and exports on what they return. Ask me one of those and "
@@ -106,15 +73,13 @@ def reply(
     *,
     changed: bool = False,
     next_state: LeadTurnState = "await_user",
-    questions: list[OpenQuestion] | None = None,
-    sources: list[SourceReference] | None = None,
+    questions: list[AskedQuestion] | None = None,
 ) -> LeadResponse:
     return LeadResponse(
         prose=prose,
         next_state=next_state,
         strategy_changed=changed,
         asked_questions=list(questions or []),
-        sources=list(sources or []),
     )
 
 
@@ -129,18 +94,21 @@ def reading_deps() -> LeadDeps:
     state.turn_markers.intent_classified = True
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1", "s2", "s3"],
-        root_count=1,
     )
-    return lead_deps(state)
+    return lead_deps(
+        state, strategy_session=session_holding("plasmodb", "s3", "GenesByText", 1)
+    )
 
 
 def building_deps(*, verified: bool = True) -> LeadDeps:
     """A turn that pushed a build, checked unless the caller says otherwise."""
     state = pipeline_state(user_prompt="Add an essentiality filter.")
     state.user_message_id = uuid4()
-    state.record_build(BuildOutcome(pushed_step_ids=["s1"], root_count=132))
+    state.record_build(BuildOutcome(pushed_step_ids=["s1"]))
     state.turn_markers.verified = verified
-    return lead_deps(state)
+    return lead_deps(
+        state, strategy_session=session_holding("plasmodb", "s1", "GenesByText", 132)
+    )
 
 
 def blame_deps() -> LeadDeps:
@@ -197,29 +165,6 @@ def control_test_deps() -> LeadDeps:
             )
         ]
     )
-    return deps
-
-
-def control_source_deps(
-    *,
-    saved_gene_set: bool = True,
-    wrote_control_set: bool = False,
-) -> LeadDeps:
-    """A turn that read a step's ids and saved them as a workbench gene set."""
-    deps = lead_deps(
-        pipeline_state(
-            site_id="toxodb",
-            user_prompt=(
-                "Build a positive control set from the genes this strategy's "
-                "rhoptry step holds, and call it rhoptry positives."
-            ),
-            user_message_id=uuid4(),
-        ),
-    )
-    if saved_gene_set:
-        deps.state.turn_markers.record_gene_set(SAVED_GENE_SET)
-    if wrote_control_set:
-        deps.state.turn_markers.record_control_set(SAVED_CONTROL_SET)
     return deps
 
 

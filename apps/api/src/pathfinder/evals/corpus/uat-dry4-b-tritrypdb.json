@@ -1,0 +1,61 @@
+{
+  "name": "uat-dry4-b-tritrypdb",
+  "turns": [
+    "Leishmania infantum JPCM5 genes with a zinc finger domain that are expressed in amastigotes.",
+    "Thanks. Actually, change the stage to promastigotes instead of amastigotes, keeping the zinc finger part the same."
+  ],
+  "siteId": "tritrypdb",
+  "assistantId": "pathfinder",
+  "rationale": "The organism the message names shows as stated, and the 0 hr sample FRAME picked for promastigotes shows as chosen in the facts and is never called the site's default in the reply.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByInterproDomain INTERSECT GenesByMicroarraylinfJPCM5_microarrayExpression_Myler_promastigote_RSRCPercentile)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "0": [
+        "Leishmania infantum JPCM5) (stated)"
+      ],
+      "1": [
+        "Samples: 0 hr (0 hr) (chosen)"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "site's default 0"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": null,
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "tritrypdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ub4-tritrypdb",
+    "curatorNote": "Round-4 dry UAT, tester B, investigation 4, conversation 5bd26447-7e40-4594-a092-7af749d9ddd9."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -22,9 +22,6 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-anthropic}
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
-      OPENAI_MODEL: ${OPENAI_MODEL:-}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-}
       S2_API_KEY: ${S2_API_KEY:-}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
@@ -48,9 +45,7 @@ services:
       # the worker the same two values. This process screens the user's
       # message; the worker screens every tool result.
       INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
-      INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-openai:gpt-5.6-luna}
-      # Set OTEL_INCLUDE_CONTENT=true to export prompts and completions in agent traces.
-      OTEL_INCLUDE_CONTENT: ${OTEL_INCLUDE_CONTENT:-false}
+      INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-}
       # Seconds of silence after which the chat SSE stream sends a comment frame.
       SSE_KEEPALIVE_SECONDS: ${SSE_KEEPALIVE_SECONDS:-15}
       # Silence after which a worker counts as dead and its turn is failed.
@@ -109,12 +104,9 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-anthropic}
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
-      OPENAI_MODEL: ${OPENAI_MODEL:-}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-}
       # This process runs the turn, so it screens every tool result.
       INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
-      INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-openai:gpt-5.6-luna}
+      INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-}
       S2_API_KEY: ${S2_API_KEY:-}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
@@ -167,7 +159,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a31
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a35
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -243,7 +235,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a31
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0a35
       target: research
     restart: unless-stopped
     mem_limit: 512m

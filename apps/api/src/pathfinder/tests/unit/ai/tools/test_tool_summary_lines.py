@@ -20,7 +20,7 @@ from veupathdb_mcp.wdk import (
 )
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.lead import lead_tools
+from pathfinder.ai.lead import lead_reads
 from pathfinder.ai.tools.standalone import (
     catalog_discovery,
     eda_analysis,
@@ -126,7 +126,7 @@ class TestASilentZeroReportsEmpty:
 
     async def test_get_live_strategy_state(self) -> None:
         chunk = summary_of(
-            await lead_tools.get_live_strategy_state(
+            await lead_reads.get_live_strategy_state(
                 lead_run_context(tool_call_id="call_1")
             )
         )

@@ -9,9 +9,12 @@ from pydantic_ai.toolsets.function import FunctionToolset
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps, ServiceOutageMemory
 from pathfinder.ai.tools.toolsets._dynamic import EnumOverrides, ValidatingEnumToolset
+from pathfinder.ai.tools.toolsets._read_once import ReadOnceToolset
+from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides, build_toolset
 from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
+from pathfinder.tests.unit.ai.tools.test_catalog_discovery import serve_go_overview
 
 # name -> (every argument, the required ones)
 _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
@@ -32,7 +35,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset({"record_type", "search_name"}),
         frozenset({"search_name"}),
     ),
-    "get_strategy": (frozenset({"graph_id", "summary_only"}), frozenset()),
+    "get_strategy": (frozenset({"summary_only"}), frozenset()),
     "list_saved_strategies": (frozenset(), frozenset()),
     "list_searches": (frozenset({"record_type"}), frozenset()),
     "list_transforms": (frozenset({"record_type"}), frozenset()),
@@ -58,7 +61,6 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "set_criterion": (
         frozenset(
             {
-                "assumed",
                 "criterion_id",
                 "params",
                 "role",
@@ -108,13 +110,16 @@ async def test_set_structure_takes_the_structure_node_itself() -> None:
 
 def test_the_toolset_guards_its_enums_at_call_time() -> None:
     toolset = build_toolset()
-    assert isinstance(toolset, ValidatingEnumToolset)
-    assert isinstance(toolset.wrapped, FunctionToolset)
-    assert set(toolset.wrapped.tools) == set(_MOUNTED)
+    assert isinstance(toolset, ReadOnceToolset)
+    refusals = toolset.wrapped
+    assert isinstance(refusals, RefusalMemoryToolset)
+    guard = refusals.wrapped
+    assert isinstance(guard, ValidatingEnumToolset)
+    assert isinstance(guard.wrapped, FunctionToolset)
+    assert set(guard.wrapped.tools) == set(_MOUNTED)
 
 
 _ENUM_KEYS = (
-    ("get_search_overview", "search_name"),
     ("set_criterion", "search_name"),
     ("get_parameter_options", "search_name"),
 )
@@ -214,3 +219,27 @@ def test_outage_memory_counts_per_search_not_per_tool() -> None:
     assert outage.record_search_failure(DOWN) == 2
     assert DOWN in outage.unavailable_searches()
     assert UP not in outage.unavailable_searches()
+
+
+@pytest.mark.asyncio
+async def test_an_overview_reads_a_search_no_catalog_read_answered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The overview is itself a catalog read, so any name the site holds is one
+    it may take."""
+    client = serve_go_overview(monkeypatch)
+    state = AgentToolState()
+    state.record_catalog_read(listing(["GenesByText"]))
+    ctx = agent_run_context(agent_state=state)
+    toolset = build_toolset()
+    tools = await toolset.get_tools(ctx)
+
+    await toolset.call_tool(
+        "get_search_overview",
+        {"search_name": "GenesWithSignalPeptide"},
+        ctx,
+        tools["get_search_overview"],
+    )
+
+    assert ("get_search_overview", "search_name") not in _frame_enum_overrides(ctx)
+    assert client.reads == ["GenesWithSignalPeptide"]

@@ -15,8 +15,8 @@ from pydantic import ConfigDict, Field, model_validator
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.separation import SkipReason
 
+from pathfinder.domain.control_enrichment import ControlEnrichment
 from pathfinder.domain.evidence import (
-    ControlEnrichment,
     ControlSetEvidence,
     ControlTestEvidence,
 )

@@ -63,6 +63,7 @@ async def test_a_binding_records_what_the_catalog_answered(
         answered=4,
         query=QUERY,
         tool_call_id="call_read",
+        derived_from=result.resolved_params,
     )
     assert (result.rationale, state.operational_spec_draft.criteria[0].rationale) == (
         chosen,
@@ -105,7 +106,7 @@ async def test_a_listing_records_no_comparison() -> None:
 
 
 @pytest.mark.asyncio
-async def test_a_value_edit_keeps_the_rationale(
+async def test_a_binding_that_changes_no_value_keeps_the_rationale(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state = AgentToolState()
@@ -115,14 +116,9 @@ async def test_a_value_edit_keeps_the_rationale(
         operational_spec_draft=state.operational_spec_draft.model_copy(deep=True)
     )
 
-    result = await choose(
-        edit, None, params=PARAMS | {"organism": ["Plasmodium vivax P01"]}
-    )
+    result = await choose(edit, None, params=PARAMS)
 
-    assert (result.resolved_params["organism"], result.rationale) == (
-        '["Plasmodium vivax P01"]',
-        first.rationale,
-    )
+    assert result.rationale == first.rationale
 
 
 @pytest.mark.asyncio

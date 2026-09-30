@@ -1,20 +1,9 @@
 """Sphinx configuration for Pathfinder API documentation."""
 
-import importlib
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-# Autodoc copies source annotation text onto every class in a documented
-# class's MRO, which restores BaseModel.__pydantic_extra__. A model with
-# extra="allow" must be built before that happens.
-for _early in (
-    "fastapi.openapi.models",
-    "langchain_core.messages",
-    "pathfinder.transport.http.schemas.sites",
-):
-    importlib.import_module(_early)
 
 # -- Project information -----------------------------------------------------
 
@@ -53,6 +42,11 @@ autodoc_inherit_docstrings = False
 # Include type hints in parameter descriptions for clarity.
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented_params"
+
+# Type comment support writes source annotations back onto every class in a
+# documented class's MRO. Pydantic clears those on BaseModel, so a model with
+# extra="allow" fails to build after it. The source has no type comments.
+autodoc_use_type_comments = False
 
 # Sphinx renders Annotated metadata field by field as types, so a
 # Discriminator("kind") reads as a reference to "kind", which many models

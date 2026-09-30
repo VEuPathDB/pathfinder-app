@@ -22,6 +22,7 @@ from pathfinder.ai.lead.answered_strategy import (
 )
 from pathfinder.ai.lead.turn_briefing import compose_turn_briefing
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     structure_criteria,
@@ -93,6 +94,7 @@ def attach_turn_briefing(
         requirements=state.domain.requirements,
         answered=answered,
         live=live_tree(context.strategy_session.get_graph(None)),
+        upload_types=state.domain.upload_types,
     ).render()
     return state
 
@@ -146,6 +148,7 @@ async def refresh_live_strategy_state(
     )
     working_state.domain.stale_build = detect_build_staleness(
         working_state.domain.last_build_outcome,
+        built_counts(context.strategy_session.get_graph(None), sync_state),
         live_counts,
     )
     await _stamp_the_analysis_kinds(context)
@@ -153,8 +156,18 @@ async def refresh_live_strategy_state(
     await hydrate_spec_from_the_strategy(working_state, context)
     _state_every_analysis(working_state, context.strategy_session.get_graph(None))
     _record_the_spec_the_turn_started_from(working_state)
-    _record_the_counts_the_turn_started_from(working_state, live_counts)
+    _record_the_strategy_at_arrival(working_state, context)
     return working_state
+
+
+def _record_the_strategy_at_arrival(state: PipelineState, context: Context) -> None:
+    """Keep the root and every step's count as the message found them."""
+    session = context.strategy_session
+    graph = session.get_graph(None)
+    state.turn_markers.record_arrival(
+        None if graph is None else graph.primary_root_id(),
+        {} if session.sync_state is None else session.sync_state.step_counts,
+    )
 
 
 async def _stamp_the_analysis_kinds(context: Context) -> None:
@@ -257,20 +270,6 @@ def _record_the_spec_the_turn_started_from(state: PipelineState) -> None:
     state.domain.spec_before_turn = (
         None if entry_spec is None else entry_spec.model_copy(deep=True)
     )
-
-
-def _record_the_counts_the_turn_started_from(
-    state: PipelineState, counts: dict[str, int | None]
-) -> None:
-    """Keep the step counts the site held when the message arrived.
-
-    A turn that resumes a parked call keeps the record its message started.
-    """
-    if state.resumes_parked_call:
-        return
-    state.turn_markers.counts_at_arrival = [
-        count for count in counts.values() if count is not None
-    ]
 
 
 async def hydrate_spec_from_the_strategy(

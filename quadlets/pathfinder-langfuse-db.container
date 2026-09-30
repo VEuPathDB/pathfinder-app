@@ -1,0 +1,23 @@
+[Unit]
+Description=Pathfinder Langfuse PostgreSQL database
+
+[Container]
+ContainerName=pathfinder-langfuse-db
+Image=docker.io/library/postgres:17-alpine
+Network=pathfinder.network
+Volume=pathfinder-langfuse-postgres-data.volume:/var/lib/postgresql/data
+# POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB.
+EnvironmentFile=%h/.config/pathfinder/langfuse.env
+Environment=TZ=UTC
+Environment=PGTZ=UTC
+# The doubled dollar reaches the shell as one, so the container reads its own variables.
+HealthCmd=sh -c 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+HealthInterval=5s
+HealthTimeout=5s
+HealthRetries=10
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

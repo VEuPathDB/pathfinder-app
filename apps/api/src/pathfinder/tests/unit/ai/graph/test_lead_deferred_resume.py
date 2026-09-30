@@ -39,6 +39,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 
 class _FakeResult:
@@ -54,7 +55,7 @@ class _FakeResult:
         self.output = output
         self.response = SimpleNamespace(
             finish_reason=None,
-            model_name="openai:gpt-5-mini",
+            model_name=DEFAULT_MODEL,
             provider_name=None,
             provider_url=None,
         )

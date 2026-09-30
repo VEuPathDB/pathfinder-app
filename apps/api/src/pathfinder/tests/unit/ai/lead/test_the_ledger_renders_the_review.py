@@ -1,5 +1,5 @@
 """The verification section the Lead reads in full carries the check's review:
-each requirement row, each sampled gene and each source."""
+each requirement row, each column, each sampled gene and each source."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from pathfinder.domain.evidence import (
     SampledGene,
     VerificationReview,
 )
+from pathfinder.tests._support.column_fits import tm_fit
 
 
 def test_the_full_section_lists_the_review() -> None:
@@ -35,6 +36,7 @@ def test_the_full_section_lists_the_review() -> None:
                 note="no step reads transmembrane domains",
             ),
         ],
+        column_fits=[tm_fit(840, 840)],
         sampled_genes=[
             SampledGene(
                 gene_id="PF3D7_0100200",
@@ -69,6 +71,9 @@ def test_the_full_section_lists_the_review() -> None:
         "- [unmet] at least 2 transmembrane domains (message 2, search; answered "
         "by nothing): no step reads transmembrane domains"
     )
+    assert rendered.split("\n### Columns\n")[1].split("\n\n")[0] == (
+        "- [all] c_tm: 840 of 840 genes fit # TM Domains (2 to 99)"
+    )
     assert rendered.split("\n### Sampled genes\n")[1].split("\n\n")[0] == (
         "- PF3D7_0100200, histone H3 (Plasmodium falciparum 3D7): fits no - a "
         "histone carries no signal peptide"
@@ -96,15 +101,44 @@ def test_two_sets_on_one_step_are_two_caveat_lines_that_name_their_set() -> None
                 control_set=NamedControlSet(id="set-b", name="Exported"),
             ),
             ControlsCaveat(positives_returned=1, positives_total=2),
-            SampleCaveat(unclear=2, misfit=0, total=8),
+            SampleCaveat(fit=tm_fit(12, 40)),
         ],
     )
 
-    rendered = render_verification_full(VerificationSection(digest=digest))
+    rendered = render_verification_full(
+        VerificationSection(digest=digest, caveats=list(digest.caveats))
+    )
 
     assert rendered.split("\n### Caveats\n")[1].split("\n\n")[0] == (
         "- 3 of 5 positive controls returned (control set Kinases, id set-a)\n"
         "- 3 of 5 positive controls returned (control set Exported, id set-b)\n"
         "- 1 of 2 positive controls returned\n"
-        "- 2 of 8 sampled genes unclear"
+        "- 12 of 40 genes fit # TM Domains (2 to 99)"
+    )
+
+
+def test_a_row_no_record_judged_is_rendered_unjudged() -> None:
+    row = RequirementCheck(
+        text="a predicted GPI anchor",
+        turn=1,
+        answered_by=["step_0c6996fa"],
+        how="parameter",
+        status="met",
+        note="no sampled record judged it; the query text alone does not show it",
+        no_record_judged_it=True,
+    )
+    digest = VerificationDigest(
+        disposition=PhaseDisposition.DONE,
+        prose="Checked.",
+        reason="the text row is unjudged",
+        success=True,
+        review=VerificationReview(requirements=[row]),
+    )
+
+    rendered = render_verification_full(VerificationSection(digest=digest))
+
+    assert rendered.split("\n### Requirements\n")[1].split("\n\n")[0] == (
+        "- [unjudged] a predicted GPI anchor (message 1, parameter; answered by "
+        "step_0c6996fa): no sampled record judged it; the query text alone does "
+        "not show it"
     )

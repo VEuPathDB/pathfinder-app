@@ -7,7 +7,6 @@ import pytest
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.tests.unit.ai.models._mock_pins import edit_order
 from pathfinder.tests.unit.ai.models._mock_turns import (
-    SHEET_GO_TERMS,
     SHEET_ORGANISMS,
     Scene,
     args_of,
@@ -365,10 +364,11 @@ def test_the_round_trip_edit_states_the_strategy_twice() -> None:
     assert trip["inputs"][0]["inputs"][0]["inputs"] == [held]
 
 
-def test_a_site_whose_seeds_hold_no_go_term_takes_the_sheet_first_term() -> None:
+def test_a_site_whose_seeds_hold_no_go_term_binds_the_ribosome_term() -> None:
+    """A term every eukaryote genome annotates has genes in the site's organism."""
     calls = play("frame", "vectorbase", "[[arc:go]]", work_order=_ORDER)
 
     bound = [a for a in args_of(calls, "set_criterion") if "params" in a]
     assert bound[0]["search_name"] == "GenesByGoTerm"
-    assert bound[0]["params"]["go_typeahead"] == [SHEET_GO_TERMS[0]]
+    assert bound[0]["params"]["go_typeahead"] == ["GO:0003735"]
     assert bound[0]["params"]["organism"] == ["Anopheles gambiae PEST"]

@@ -12,6 +12,7 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.persistence.models import User
 
@@ -56,7 +57,9 @@ async def test_auto_write_persists_strategy_on_verification_complete(
             store=mem_store,
             tombstones=tombstones,
             user_id=state.user_id,
-            candidates=await collect_turn_memory_candidates(state),
+            candidates=await collect_turn_memory_candidates(
+                state, counts=BuiltCounts()
+            ),
         )
         assert written >= 1
         strategies = await mem_store.list_all(user_id=user_id, kind="strategy")

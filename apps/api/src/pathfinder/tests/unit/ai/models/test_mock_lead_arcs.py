@@ -6,9 +6,13 @@ import pytest
 
 from pathfinder.ai.lead.build_messages import build_would_replace_the_strategy
 from pathfinder.ai.models.mock.edit_arcs import DELETED_PROSE
+from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, SUCCESS_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins, memory_pins
-from pathfinder.tests.unit.ai.models._mock_questions import asking_frame
+from pathfinder.tests.unit.ai.models._mock_questions import (
+    ORGANISM_LABEL,
+    asking_frame,
+)
 from pathfinder.tests.unit.ai.models._mock_turns import (
     BUILT_ROOT_WDK_ID,
     CONTROL_SET_ID,
@@ -81,6 +85,7 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "consult": FRAMED,
+    "withdraw": FRAMED,
     "no-search-states-it": FRAMED,
     "cross-organism": FRAMED,
     "portal-only": FRAMED,
@@ -168,7 +173,10 @@ def test_a_value_the_frame_leaves_open_is_asked_on_the_card(site_id: str) -> Non
     ] == [
         (
             "Which organism should the signal peptide search read?",
-            [(o, i == 0) for i, o in enumerate(SHEET_ORGANISMS[site_id])],
+            [
+                (f"{ORGANISM_LABEL} {o}", i == 0)
+                for i, o in enumerate(SHEET_ORGANISMS[site_id])
+            ],
         )
     ]
 
@@ -260,25 +268,22 @@ def test_the_portal_route_on_a_framed_thread_is_an_edit_that_builds_nothing() ->
     assert not calls[-1].args_as_dict()["strategyChanged"]
 
 
-def test_a_build_reply_states_the_count_the_site_answers_now() -> None:
+def test_a_build_reply_points_at_the_facts_beside_it() -> None:
     calls = play("lead", "vectorbase", "[[arc:intersect]]")
 
-    assert (
-        calls[-1]
-        .args_as_dict()["prose"]
-        .endswith(f"The strategy returns {LIVE_ROOT_COUNT:,} genes.")
-    )
+    assert calls[-1].args_as_dict()["prose"] == f"{SUCCESS_PROSE}{FACTS_BESIDE}"
     assert calls[-1].args_as_dict()["nextState"] == "complete"
 
 
-def test_the_count_question_is_answered_by_the_recap() -> None:
+def test_the_count_question_is_answered_by_the_recap_and_the_facts() -> None:
     calls = play("lead", "plasmodb", f"{COUNT_QUESTION} [[arc:recap]]")
 
-    prose = str(calls[-1].args_as_dict()["prose"])
-    assert (
-        prose.rsplit("\n\n", maxsplit=1)[-1]
-        == f"The strategy returns {LIVE_ROOT_COUNT:,} genes."
-    )
+    assert names(calls)[-3:] == [
+        "read_ledger_section",
+        "get_live_strategy_state",
+        "final_result",
+    ]
+    assert str(LIVE_ROOT_COUNT) not in str(calls[-1].args_as_dict()["prose"])
 
 
 def test_the_product_clear_message_routes_to_the_clear_arc() -> None:
@@ -303,8 +308,7 @@ def test_the_rename_calls_the_tool_with_the_name_after_to() -> None:
 
     assert args_of(calls, "rename_strategy") == [{"name": "UAT signal peptide screen"}]
     assert calls[-1].args_as_dict()["prose"] == (
-        "Renamed the strategy to UAT signal peptide screen. "
-        f"It returns {LIVE_ROOT_COUNT:,} genes."
+        "Renamed the strategy to UAT signal peptide screen."
     )
     assert not calls[-1].args_as_dict()["strategyChanged"]
 
@@ -402,7 +406,10 @@ def test_the_gene_question_reads_a_control_gene_of_the_site() -> None:
     calls = play("lead", "vectorbase", "[[arc:gene-question]]")
 
     assert args_of(calls, "read_gene_record") == [{"gene_id": gene}]
-    assert calls[-1].args_as_dict()["prose"] == f"{gene} encodes a conserved protein."
+    assert calls[-1].args_as_dict()["prose"] == (
+        "The record names its product as a conserved protein. The record's link "
+        "is shown beside this reply."
+    )
 
 
 def test_the_separation_measures_the_site_controls() -> None:

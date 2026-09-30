@@ -30,7 +30,7 @@ from pathfinder.ai.agents.strategy_instructions import (
 )
 from pathfinder.ai.lead.lead_pins import pinned_eda_sheet
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
-from pathfinder.ai.lead.verify_dispatch import RootSample, work_order
+from pathfinder.ai.lead.verify_dispatch import RootSample, SearchStep, work_order
 from pathfinder.ai.models.mock import role_script
 from pathfinder.ai.models.mock.arc import Role
 from pathfinder.ai.models.mock.faults import made_by_a_fault
@@ -106,6 +106,8 @@ SAVED_GENE_COUNT = 116
 OWN_EXPERIMENT_SEARCH = "GenesByOwnExperiment"
 LIVE_ROOT_COUNT = 1203
 STRATEGY_ROOT_WDK_ID = 555
+# The search step under the root whose columns a check reads.
+LEAF_WDK_ID = 554
 LIVE_ROOT_WDK_ID = 900_003
 GENE_SET_ID = "gs-7"
 CONTROL_SET_ID = "cs-1"
@@ -249,6 +251,7 @@ class _Tools:
                     }
                 ]
             },
+            "read_step_columns": {"fits": [], "note": "No column shows a bound value."},
             "get_sample_records": {
                 "records": [{"id": f"{g}.1"} for g in positives[:2]]
             },
@@ -437,7 +440,6 @@ def built_thread() -> Scene:
 
 def verify_order(count: int, controls: AttachedControls | None = None) -> str:
     """VERIFY's work order over a root of ``count`` records."""
-    root = RootSample(
-        step_id="step_root", wdk_step_id=STRATEGY_ROOT_WDK_ID, count=count
-    )
+    leaf = SearchStep(step_id="step_leaf", wdk_step_id=LEAF_WDK_ID)
+    root = RootSample("step_root", STRATEGY_ROOT_WDK_ID, count, (leaf,))
     return work_order("mock verification", controls, root)

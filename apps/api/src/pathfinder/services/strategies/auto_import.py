@@ -1,8 +1,7 @@
-"""Auto-import the gene set of a WDK-linked chat.
+"""The gene set a WDK-linked chat's build creates and links.
 
-A chat whose build reaches WDK gets a gene set created and linked. Once
-imported (or once the user deletes the auto-imported gene set), the chat is
-marked so a later build does not recreate it.
+Once imported (or once the user deletes the set), the chat is marked so a
+later build does not recreate it. ``gene_set_refresh`` keeps the set current.
 """
 
 from typing import Protocol
@@ -13,6 +12,7 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
+from pathfinder.domain.strategy.revision import answer_revision, parse_strategy_ast
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
     ConversationRepository,
@@ -42,7 +42,7 @@ class StrategyLinkWriter(Protocol):
 class GeneSetImporter(Protocol):
     """The gene set surface auto-import calls."""
 
-    def find_by_wdk_strategy(
+    async def find_strategy_import(
         self,
         user_id: UUID,
         wdk_strategy_id: int,
@@ -60,7 +60,7 @@ class GeneSetImporter(Protocol):
         wdk: GeneSetWdkContext | None = None,
     ) -> GeneSet: ...
 
-    async def flush(self, gene_set_id: str, /) -> None: ...
+    async def save(self, gene_set: GeneSet, /) -> None: ...
 
 
 def _is_eligible(strategy: ConversationStrategyView) -> bool:
@@ -89,17 +89,18 @@ async def auto_import_gene_set(
 ) -> GeneSet | None:
     """Create the thread's gene set under ``name`` and link it to the thread.
 
-    Returns the created set, or None when the thread is not eligible, already
-    has a set for its strategy, or its strategy returned no genes.
+    Returns the created set, or None when the thread is not eligible, an
+    earlier import already made its set, or its strategy returned no genes.
     """
     conversation, strategy = thread
     wdk_id = strategy.wdk_strategy_id
     if wdk_id is None or not _is_eligible(strategy):
         return None
+    revision = answer_revision(parse_strategy_ast(strategy.strategy_ast))
 
-    # A set that already exists for this WDK strategy (from a concurrent
-    # background task or a previous partial import) is linked, not recreated.
-    existing = gene_set_service.find_by_wdk_strategy(user_id, wdk_id)
+    # Only a set an earlier import made is linked; a set the researcher saved
+    # on the same strategy stays theirs.
+    existing = await gene_set_service.find_strategy_import(user_id, wdk_id)
     if existing:
         await conv_repo.update_conversation(
             conversation.id,
@@ -123,7 +124,8 @@ async def auto_import_gene_set(
                 record_type=strategy.record_type,
             ),
         )
-        await gene_set_service.flush(gs.id)
+        gs.answer_revision = revision
+        await gene_set_service.save(gs)
         await conv_repo.update_conversation(
             conversation.id,
             ConversationUpdate(
@@ -166,7 +168,7 @@ async def import_gene_set_for_conversation(
     """Create + link a gene set for a single just-built conversation.
 
     Called inline after an auto-build commits ``wdk_strategy_id``, so a fresh
-    session sees it. Idempotent (``_is_eligible`` + ``find_by_wdk_strategy``).
+    session sees it. Idempotent (``_is_eligible`` + ``find_strategy_import``).
     Returns the created gene set, or ``None`` if ineligible/already imported.
     A thread with a name gives the set that name; ``name`` stands in until the
     thread has one.
@@ -179,19 +181,6 @@ async def import_gene_set_for_conversation(
                 return None
             conversation, strategy = found
             gene_set_svc = GeneSetService(get_gene_set_store())
-            if (
-                strategy.gene_set_id is not None
-                and strategy.wdk_strategy_id is not None
-            ):
-                # Already linked -> re-resolve from the (rebuilt) strategy so a
-                # re-run that changed the result replaces the stale snapshot.
-                resynced = await gene_set_svc.resync_strategy(
-                    strategy.gene_set_id,
-                    wdk_strategy_id=strategy.wdk_strategy_id,
-                    site_id=site_id,
-                )
-                await session.commit()
-                return resynced
             created = await auto_import_gene_set(
                 (conversation, strategy),
                 name=conversation.name or name,

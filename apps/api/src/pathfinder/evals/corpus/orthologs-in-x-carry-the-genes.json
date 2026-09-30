@@ -32,5 +32,8 @@
     "stagingId": "",
     "reference": "wdk/pathfinder/rules/pathfinder-mapping.md#WDK-MAP-009",
     "curatorNote": "Two turns on one thread: the first builds the seed, the second carries it."
+  },
+  "gates": {
+    "policy": "auto"
   }
 }

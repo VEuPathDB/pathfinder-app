@@ -16,6 +16,7 @@ from typing import Protocol
 from assistant_core.mcp.admission import install_admitted_sources
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import setup_logging
+from assistant_core.platform.observability import shutdown_observability
 from assistant_core.registry import install_assistant_registry
 from assistant_core.tasks.app import worker_queues
 from assistant_core.tasks.completion_turn import install_completion_turn
@@ -34,6 +35,8 @@ from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.langfuse.client import shutdown_langfuse
+from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
 
 _CANNOT_SCREEN = "the injection judge did not build; this worker consumes no jobs"
@@ -73,6 +76,7 @@ class _RunningWorker(Protocol):
 
 async def amain() -> None:
     setup_logging()
+    setup_observability(service_name="pathfinder-worker")
     install_procrastinate_redaction()
     # The index shares this process's pool instead of opening a second one.
     use_embedding_session_factory(async_session_factory)
@@ -108,6 +112,8 @@ async def amain() -> None:
             await worker.run()
         finally:
             heartbeat.stop()
+            shutdown_observability()
+            shutdown_langfuse()
 
 
 def main() -> None:

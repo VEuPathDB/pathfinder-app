@@ -115,6 +115,7 @@ def test_an_unclassified_turn_is_offered_the_gene_set_save_beside_remember() -> 
     } <= seen.steps[0]
 
 
+@pytest.mark.usefixtures("recorded_site_organisms")
 def test_a_context_statement_is_offered_no_building_tool() -> None:
     seen = _run(
         "I'm investigating virulence factors in Leishmania major",
@@ -194,6 +195,7 @@ def test_a_question_about_the_data_keeps_the_reads_an_answer_needs() -> None:
     assert {"read_ledger_section", "get_live_strategy_state"} <= seen.steps[1]
 
 
+@pytest.mark.usefixtures("recorded_site_organisms")
 def test_a_context_statement_turn_answers_in_prose() -> None:
     seen = OfferedTools()
     prompt = "I'm investigating virulence factors in Leishmania major"
@@ -296,6 +298,7 @@ def test_every_building_intent_is_offered_the_whole_eda_route(
     assert seen.steps[1] >= EDA_ROUTE_TOOLS
 
 
+@pytest.mark.usefixtures("recorded_site_organisms")
 @pytest.mark.parametrize(
     "classification",
     [

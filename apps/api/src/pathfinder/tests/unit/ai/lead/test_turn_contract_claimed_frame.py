@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -28,7 +29,7 @@ CLAIMS_AN_ADDITION = (
 )
 SUMMARISES_THE_PLAN = (
     "The strategy combines the surface criterion with the merozoite stage "
-    "criterion, and the root holds 316 genes."
+    "criterion, and the root count is shown beside this reply."
 )
 _REQUEST = "Add a filter requiring direct mass-spec proteome evidence."
 
@@ -54,7 +55,7 @@ def _mass_spec() -> Criterion:
         id="c_mass_spec",
         text="detected in the merozoite proteome",
         search_name="GenesByMassSpec",
-        resolved_params={"min_peptide_count": NumberValue(value=2)},
+        resolved_params=bound({"min_peptide_count": NumberValue(value=2)}),
     )
 
 

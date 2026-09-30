@@ -10,8 +10,8 @@ from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.graph.turn_records import AnsweredQuestions
 from pathfinder.ai.lead.frame_dispatch import frame_work_order
 from pathfinder.ai.lead.intent import ANSWERING_INTENTS, IntentClassification
-from pathfinder.domain.strategy.constraints import (
-    ConstraintKind,
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     standing_recommendations,
 )
@@ -46,6 +46,7 @@ def test_the_answering_intents_are_the_answers_and_the_changes() -> None:
     }
 
 
+@pytest.mark.usefixtures("recorded_site_organisms")
 @pytest.mark.parametrize(
     "kind",
     sorted(

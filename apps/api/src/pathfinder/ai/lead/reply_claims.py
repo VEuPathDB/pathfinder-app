@@ -1,5 +1,5 @@
-"""What a reply's prose claims, the references it cites, and the internal
-names it must not print.
+"""What a reply's prose claims, and the internal names a runtime summary must
+not print.
 
 Pure text reading. The turn contract joins these readings to the record of the
 turn; nothing here knows what the turn did.
@@ -15,13 +15,6 @@ from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
-# An artifact the reply reports as saved. An offer to save one is an
-# infinitive, and a listing says "saved control sets" with no words between.
-_SAVED = r"\b(?:created|saved|built|made|added|stored)\s+.{1,40}?\b"
-# A gene set that qualifies another noun names an analysis or a note.
-_THE_SET_ITSELF = r"(?!\s+(?:enrichment|note))"
-SAVED_A_CONTROL_SET = re.compile(_SAVED + r"control sets?\b")
-SAVED_A_GENE_SET = re.compile(_SAVED + r"gene sets?\b" + _THE_SET_ITSELF)
 _CLAUSE_END = re.compile(r"[.!?;\n]")
 
 # A clause that takes its own claim back. The second form is the report of a

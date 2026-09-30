@@ -13,11 +13,11 @@ from dataclasses import dataclass
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb_mcp import tool_payloads
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.ai.agents.state import CatalogRead
+from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
@@ -26,6 +26,7 @@ from pathfinder.ai.tools.standalone._frame_rationale_terms import (
     Binding,
     checked_term,
 )
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.step_rationale import (
     MAX_REASON_CHARS,
     ComparedSearch,
@@ -94,7 +95,10 @@ async def rationale_for(
 ) -> ChosenWhy:
     """The recorded reason for this binding, or a retry naming what is wrong.
 
-    A value edit on the search the criterion already runs keeps its reason.
+    A binding on the search the criterion already runs keeps its reason while
+    it changes no value the reason was derived from. One that changes such a
+    value records the edit's why, checked like a new one against the catalog
+    read the reason holds, and is refused without one.
     """
     criterion_id, search_name = call.criterion_id, call.search_name
     state = ctx.deps.agent_state
@@ -102,13 +106,20 @@ async def rationale_for(
         (c for c in state.operational_spec_draft.criteria if c.id == criterion_id),
         None,
     )
+    read = state.last_read_answering(search_name)
     # The counts of a criterion the controls chose belong to the values they
     # measured, so an edit of those values states a reason of its own.
-    if why is None and held is not None and held.search_name == search_name:
+    if held is not None and held.search_name == search_name:
         kept = held.rationale
-        if kept is None or kept.kind == "search":
-            return ChosenWhy(kept)
-    read = state.last_read_answering(search_name)
+        if kept is None:
+            return ChosenWhy(None)
+        if kept.kind == "search":
+            changed = kept.changed_by(_wired(values))
+            if not changed:
+                return ChosenWhy(kept)
+            if why is None:
+                raise ModelRetry(_derived_from_changed(criterion_id, kept, changed))
+            read = read or _read_behind(kept, held, record_type)
     bound = None if read is None else read.hit(search_name)
     if read is None or bound is None:
         raise ModelRetry(_unread(criterion_id, search_name))
@@ -150,9 +161,49 @@ async def rationale_for(
         query=read.query,
         tool_call_id=read.tool_call_id,
         sources=sources_retrieved(ctx, criterion_id, why.sources),
+        derived_from=_wired(values),
     )
     corrections = () if chosen.correction is None else (chosen.correction,)
     return ChosenWhy(rationale, corrections)
+
+
+def _wired(values: Mapping[str, ParamValue]) -> dict[str, str]:
+    return {name: to_wire(value) for name, value in values.items()}
+
+
+def _read_behind(
+    kept: SearchRationale, held: Criterion, record_type: str
+) -> CatalogRead:
+    """The catalog read the kept reason recorded, as the searches it compared."""
+    bound = CatalogHit(
+        name=kept.search_name,
+        display_name=held.search_display_name or kept.search_name,
+        similarity=kept.similarity,
+    )
+    compared = [
+        CatalogHit(name=c.name, display_name=c.display_name, similarity=c.similarity)
+        for c in kept.compared
+    ]
+    return CatalogRead(
+        tool_call_id=kept.tool_call_id,
+        tool="search_for_searches" if kept.similarity is not None else "list_searches",
+        query=kept.query,
+        record_type=record_type,
+        hits=[bound, *compared],
+    )
+
+
+def _derived_from_changed(
+    criterion_id: str, kept: SearchRationale, changed: Sequence[str]
+) -> str:
+    held = ", ".join(
+        f"{name} {kept.derived_from.get(name, '')}".strip() for name in changed
+    )
+    return (
+        f"{criterion_id}: its reason was derived from {held}, which this edit "
+        f"changes, so the reason no longer holds: '{kept.sentence}'. Pass a why "
+        f"for the values this call binds. Nothing was recorded."
+    )
 
 
 def _unseen_mentions(

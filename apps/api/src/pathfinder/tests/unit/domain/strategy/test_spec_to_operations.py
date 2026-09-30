@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.operations import (
     UpdateCombineOperatorOp,
     UpdateStepParamsOp,
 )
+from pathfinder.tests._support.bound_values import bound, stated
 
 from ._builders import (
     applied,
@@ -66,7 +67,7 @@ def test_kept_criterion_emits_no_operation() -> None:
     after = _edited(
         before,
         "step_expr",
-        resolved_params={"min_expression_percentile": NumberValue(value=75)},
+        resolved_params=bound({"min_expression_percentile": NumberValue(value=75)}),
     )
 
     ops = plan(before, after, graph_of(root))
@@ -83,7 +84,7 @@ def test_changed_param_emits_update_step_params_on_the_same_step_id() -> None:
     after = _edited(
         before,
         "step_go",
-        resolved_params={"organism": MultiPickValue(values=["P. vivax"])},
+        resolved_params=bound({"organism": MultiPickValue(values=["P. vivax"])}),
     )
 
     ops = plan(before, after, graph_of(root))
@@ -151,7 +152,7 @@ def test_an_update_carries_only_the_values_the_edit_moved() -> None:
     after = _edited(
         before,
         "step_expr",
-        resolved_params={"min_expression_percentile": NumberValue(value=75)},
+        resolved_params=bound({"min_expression_percentile": NumberValue(value=75)}),
     )
 
     ops = plan(before, after, graph)
@@ -196,7 +197,9 @@ def test_added_transform_emits_add_transform_with_the_current_root_as_input() ->
             text="map to P. vivax orthologs",
             search_name="GenesByOrthologs",
             role="transform",
-            resolved_params={"organism": MultiPickValue(values=["P. vivax P01"])},
+            resolved_params=bound(
+                {"organism": MultiPickValue(values=["P. vivax P01"])}
+            ),
         )
     )
     assert before.structure is not None
@@ -280,13 +283,17 @@ def test_a_changed_criterion_that_names_no_step_is_refused() -> None:
                 id="c1_protease_text",
                 text="protease text",
                 search_name="GenesByText",
-                resolved_params={"organism": MultiPickValue(values=["Plasmodium"])},
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Plasmodium"])}
+                ),
             )
         ],
         structure=SpecStructure(root=spec_leaf("c1_protease_text")),
     )
     after = labelled.model_copy(deep=True)
-    after.criteria[0].resolved_params["organism"] = MultiPickValue(values=["P. vivax"])
+    after.criteria[0].resolved_params["organism"] = stated(
+        MultiPickValue(values=["P. vivax"])
+    )
 
     with pytest.raises(UnsupportedEditError):
         plan(labelled, after, graph_of(three_step_root()))

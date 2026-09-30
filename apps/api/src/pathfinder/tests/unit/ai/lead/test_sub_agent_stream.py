@@ -31,8 +31,9 @@ from pathfinder.ai.lead.sub_agent_progress import (
     emit_running_usage,
 )
 from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage
-from pathfinder.ai.models.catalog import get_model_entry
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.platform.model_catalog import get_model_entry
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
     lead_deps,
@@ -41,7 +42,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _WIRE_PHASES = frozenset({"frame", "build", "verification"})
 _CALL_ID = "sa_1"
-_MODEL = "openai:gpt-5.6-luna"
+_MODEL = DEFAULT_MODEL
 _UNKNOWN_MODEL = "nosuchprovider:nosuchmodel"
 _NOTHING = SubAgentCallUsage()
 

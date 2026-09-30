@@ -1,21 +1,24 @@
-from collections.abc import Collection, Iterable
+from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, VocabOption
-from veupathdb_mcp.catalog import ExperimentCard, SheetEntry
+from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     DroppedCriterion,
+    Measurement,
     OperationalSpec,
     ParameterAlternatives,
     SpecStructure,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
+from pathfinder.services.strategies.cut_picks import OptionsRead
+from pathfinder.services.strategies.measurements import TurnCounts
 
 
 class ParamVocabSnapshot(BaseModel):
@@ -34,7 +37,22 @@ class ParamVocabSnapshot(BaseModel):
     help: str = ""
     default_value: str | None = None
     allowed_values: list[VocabOption] | None = None
+    # The count the shown list was cut from. None when the list travelled whole.
+    allowed_values_total: int | None = None
     allowed_values_tree: str | None = None
+    vocab_lookup: VocabLookup | None = None
+
+    def options_read(self, param: str) -> OptionsRead | None:
+        """The read a pick of this parameter came from, when its list was cut
+        or a lookup narrowed it."""
+        if self.allowed_values_total is None and self.vocab_lookup is None:
+            return None
+        return OptionsRead(
+            param=param,
+            shown=frozenset(v.value for v in self.allowed_values or []),
+            total=self.allowed_values_total,
+            lookup=self.vocab_lookup,
+        )
 
 
 class CreatedGeneSet(BaseModel):
@@ -60,6 +78,14 @@ class SearchOverview(BaseModel):
     required_params: list[str]
 
     param_vocab: dict[str, ParamVocabSnapshot] = Field(default_factory=dict)
+
+    def options_reads(self) -> list[OptionsRead]:
+        """Every read of a parameter of this search a pick can come from."""
+        return [
+            read
+            for name, snapshot in self.param_vocab.items()
+            if (read := snapshot.options_read(name)) is not None
+        ]
 
 
 class PinnedSheet(BaseModel):
@@ -138,6 +164,8 @@ class AgentToolState:
     # Every catalog answer of this pass, oldest first.
     catalog_reads: list[CatalogRead] = field(default_factory=list)
     read_param_options: set[str] = field(default_factory=set)
+    # The (search, parameter) pairs a query narrowed this pass.
+    looked_up: set[tuple[str, str]] = field(default_factory=set)
     operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
     # The organisms this investigation states. A capped vocabulary renders the
     # branches that match them first.
@@ -145,6 +173,9 @@ class AgentToolState:
     # How the user said their evidence lines combine. A proposed structure that
     # contradicts one of them is refused.
     combination_requirements: list[Constraint] = field(default_factory=list)
+    # The requirements the thread states. A dropped criterion holds open the one
+    # its text restates.
+    stated_requirements: list[Constraint] = field(default_factory=list)
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)
@@ -158,6 +189,12 @@ class AgentToolState:
     # The sentence that sends a request only the portal answers there, once a
     # refusal of this pass wrote it.
     portal_route: str = ""
+    # Every message the researcher wrote for the request, oldest first. A value
+    # whose words they hold is theirs.
+    request_messages: list[str] = field(default_factory=list)
+    # The counts read for other readings of bound values. Every pass of the
+    # turn shares it, so one configuration is read once.
+    turn_counts: TurnCounts = field(default_factory=TurnCounts)
 
     def pin_sheet(
         self,
@@ -237,11 +274,19 @@ class AgentToolState:
                 criterion.result_count = result_count
                 criterion.alternatives = alternatives
 
+    def frame_record_measurements(
+        self, criterion_id: str, measurements: list[Measurement]
+    ) -> None:
+        """Add the counts the site returned for other readings of its values."""
+        for criterion in self.operational_spec_draft.criteria:
+            if criterion.id == criterion_id:
+                criterion.measurements = [*criterion.measurements, *measurements]
+
     def frame_set_structure(self, structure: SpecStructure) -> None:
         self.operational_spec_draft.structure = structure
 
     def frame_drop_criterion(
-        self, criterion_id: str, reason: str, *, unexpressed: bool = False
+        self, criterion_id: str, reason: str, *, requirement: Constraint | None = None
     ) -> bool:
         """Remove a criterion from the draft (keyed by id, like
         ``frame_set_criterion``) and record it in ``dropped``. Returns False if
@@ -253,7 +298,7 @@ class AgentToolState:
             return False
         spec.criteria = [c for c in spec.criteria if c.id != criterion_id]
         spec.dropped.append(
-            DroppedCriterion(text=match.text, reason=reason, unexpressed=unexpressed)
+            DroppedCriterion(text=match.text, reason=reason, requirement=requirement)
         )
         self.open_sheets.pop(criterion_id, None)
         return True
@@ -279,7 +324,7 @@ class AgentToolState:
         merged: dict[str, ParamValue] = {}
         for criterion in self.operational_spec_draft.criteria:
             if criterion.search_name == search_name:
-                merged.update(criterion.resolved_params)
+                merged.update(criterion.param_values)
         return merged
 
     @staticmethod
@@ -288,7 +333,7 @@ class AgentToolState:
         parameter_id: str,
         *,
         context_values: dict[str, ParamValue] | None = None,
-        query: str | None = None,
+        terms: Sequence[str] = (),
     ) -> str:
         """Stable key for one parameter-options read. Context-sensitive so a
         dependent param re-read under a different parent value is a new read,
@@ -298,7 +343,7 @@ class AgentToolState:
             ctx = ";".join(
                 f"{k}={v.model_dump_json()}" for k, v in sorted(context_values.items())
             )
-        return f"{search_name}|{parameter_id}|{ctx}|{query or ''}"
+        return f"{search_name}|{parameter_id}|{ctx}|{';'.join(terms)}"
 
     def mark_param_read(self, key: str) -> None:
         self.read_param_options.add(key)

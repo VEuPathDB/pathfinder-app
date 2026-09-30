@@ -3,17 +3,21 @@ from __future__ import annotations
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import Field
+from pydantic import Field, model_validator
 
+from pathfinder.domain.caveats import EditDirection
+from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.strategy.constraints import (
     CONSTRAINT_KINDS,
     CombinationReading,
     CombinationRequest,
     Constraint,
     ConstraintKind,
+    message_states,
     read_combination,
 )
-from pathfinder.domain.strategy.words import words_of
+from pathfinder.domain.strategy.requirement_lifecycle import RequirementWithdrawal
+from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 
 class IntentClassification(StrEnum):
@@ -114,8 +118,27 @@ class UserIntent(CamelModel):
             "Empty otherwise."
         ),
     )
+    edit_direction: EditDirection = Field(
+        default="other",
+        description=(
+            "For a change to the strategy: 'loosen' when the message asks the "
+            "result to admit more records (a lower cut, a wider range, a "
+            "requirement dropped), 'tighten' when it asks for fewer, 'other' "
+            "for any other message."
+        ),
+    )
+    asks: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Each part of this message that asks for an answer about results "
+            "and not for records: to report, explain or compare counts or "
+            "steps, such as 'tell me how the two counts compare'. List the "
+            "ask's own words and never the records it names: those are "
+            "requirements. In the message's own words; empty when it asks for "
+            "none."
+        ),
+    )
     referenced_step_ids: list[str] = Field(default_factory=list)
-    referenced_strategy_ids: list[int] = Field(default_factory=list)
     explicit_constraints: list[Constraint] = Field(
         default_factory=list,
         description=(
@@ -125,6 +148,16 @@ class UserIntent(CamelModel):
             "scoping's provisional assumptions for the same dimension."
         ),
     )
+    withdrawn_requirements: list[RequirementWithdrawal] = Field(
+        default_factory=list,
+        description=(
+            "One entry per requirement the conversation holds that this message "
+            "takes back or swaps for another: removing a requirement or a step "
+            "that states it, or replacing a value with a new one. The key is "
+            "the requirement's '<dimension>:<requested value>'; a swap names "
+            "the requirement it states in its place in ``replacedBy``."
+        ),
+    )
     named_controls: NamedControls | None = Field(
         default=None,
         description=(
@@ -132,6 +165,53 @@ class UserIntent(CamelModel):
             "typed or in an attached gene-ID list, each spelled as the message "
             "spells it. None when the message names no control."
         ),
+    )
+    named_gene_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Every other gene id this message types or an attached file shows, "
+            "whatever the classification, each spelled as the message spells it."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _no_side_is_a_constraint(self) -> UserIntent:
+        """A question that compares holds no side as a constraint; a build
+        builds its sides. A constraint is a side when it shares a word with a
+        side and both sides do not hold all of its words."""
+        if not (
+            self.is_differential
+            and self.classification is IntentClassification.FOLLOW_UP_QUESTION
+        ):
+            return self
+        sides = [set(_content_words(side)) for side in self.differential_sides]
+        self.explicit_constraints = [
+            c
+            for c in self.explicit_constraints
+            if not _is_a_side(set(_content_words(c.requested_value)), sides)
+        ]
+        return self
+
+    def researcher_asks(self, message: str) -> list[ResearcherAsk]:
+        """The parts of the message that ask for an answer: all of it when the
+        message is a question, else each ask that does not restate the
+        message, since the message itself is the request."""
+        if self.classification is IntentClassification.FOLLOW_UP_QUESTION:
+            return [ResearcherAsk(message=message, text=message, question=True)]
+        return [
+            ResearcherAsk(message=message, text=ask)
+            for ask in self.asks
+            if not message_states(ask, message)
+        ]
+
+
+def _content_words(text: str) -> list[str]:
+    return [word for word in words_of(text) if word not in FILLER_WORDS]
+
+
+def _is_a_side(words: set[str], sides: list[set[str]]) -> bool:
+    return any(words & side for side in sides) and not all(
+        words <= side for side in sides
     )
 
 
@@ -194,18 +274,26 @@ def _occurs_in(gene_id: str, message: str) -> bool:
     )
 
 
-def unstated_control_ids(named: NamedControls, message: str) -> list[str]:
-    """The control ids the intent names that the message does not hold."""
-    ids = [*named.positive_ids, *named.negative_ids]
-    return [gene_id for gene_id in ids if not _occurs_in(gene_id, message)]
+def named_ids(intent: UserIntent) -> list[str]:
+    """Every gene id the intent names, controls first."""
+    named = intent.named_controls
+    controls = [] if named is None else [*named.positive_ids, *named.negative_ids]
+    return [*controls, *intent.named_gene_ids]
 
 
-def unstated_controls_message(ids: list[str]) -> str:
-    """The refusal of named controls the researcher's message does not hold."""
+def untyped_ids(intent: UserIntent, message: str) -> list[str]:
+    """The gene ids the intent names that the message text does not hold."""
+    return [
+        gene_id for gene_id in named_ids(intent) if not _occurs_in(gene_id, message)
+    ]
+
+
+def unstated_ids_message(ids: list[str]) -> str:
+    """The refusal of named gene ids the researcher's message does not hold."""
     return (
-        f"The researcher's message does not hold {', '.join(ids)}. Name as "
-        "controls only the ids the message types or attaches, spelled as it "
-        "spells them."
+        f"The researcher's message does not hold {', '.join(ids)}. Name only the "
+        "ids the message types, or the ids of this site a file it attaches "
+        "shows, spelled as it spells them."
     )
 
 

@@ -42,15 +42,16 @@ Times are the measured wall time of the same turns with `openai:gpt-5.6-luna` at
 | 6 | V2, V3, V4, V5 | 35 min (V2 measured 521 s, V4 run 135 s plus its turns; V3 up to 15 min when it runs) |
 | 7 | E1 to E5, E8 | 25 min (E2 146 s) |
 | 8 | E6, E7 (needs the count matrix) | 20 min (install about 68 s) |
-| 9 | M1 to M6 | 20 min |
-| 10 | C1 to C16 | 25 min |
-| 11 | A1, A3, A5, A6 (A2 where keys are on) | 20 min |
-| 12 | G2, G3 | 10 min |
-| 13 | X1, X6 | 10 min (127 s) |
-| 14 | L1 to L5 | 20 min |
-| 15 | F12 with account B | 15 min |
-| 16 | R1, R4 with the operator; R2, R5, R6, R7 | 45 min (R5 about 30 turns) |
-| 17 | H1 | 10 min |
+| 9 | UD1 to UD4 ([user datasets](flows-user-datasets.md); also on vectorbase) | 25 min (UD1 and UD2 each run one DESeq2 compute) |
+| 10 | M1 to M6 | 20 min |
+| 11 | C1 to C16 | 25 min |
+| 12 | A1, A3, A5, A6 (A2 where keys are on) | 20 min |
+| 13 | G2, G3 | 10 min |
+| 14 | X1, X6 | 10 min (127 s) |
+| 15 | L1 to L5 | 20 min |
+| 16 | F12 with account B | 15 min |
+| 17 | R1, R4 with the operator; R2, R5, R6, R7 | 45 min (R5 about 30 turns) |
+| 18 | H1 | 10 min |
 
 ## H1 - The data-hygiene sweep (end of every sitting)
 
@@ -60,7 +61,7 @@ Times are the measured wall time of the same turns with `openai:gpt-5.6-luna` at
 | 2 | Nav rail `Saved strategies` | `Delete saved strategy` on each UAT row | `No saved strategies yet.` |
 | 3 | Settings, `Memory` | Delete every row UAT wrote (confirm each) | Every section `No items stored yet.`, or only rows that predate UAT |
 | 4 | Composer | `/export`, `Latest gene set on this site (CSV)` on each site | `No gene sets to export.` |
-| 5 | Each VEuPathDB site, signed in as the account | My Strategies; My Data Sets; the study analyses | No strategy, dataset or analysis UAT made. PathFinder never deletes datasets or analyses: delete them there |
+| 5 | Each VEuPathDB site, signed in as the account | My Strategies; My Data Sets; the study analyses | No strategy, dataset or analysis UAT made, except the three `pathfinder-uat-*` uploads the UD flows read ([sites and accounts](sites-and-accounts.md#user-datasets-of-the-dev-account)). PathFinder never deletes datasets or analyses: delete them there |
 | 6 | A dedicated UAT account only | Settings, `Data`, `Clear ALL data + VEuPathDB`, type `delete my data`, `Confirm` | Toast `Data cleared`; steps 1 to 4 read empty again |
 
 ## Bug template

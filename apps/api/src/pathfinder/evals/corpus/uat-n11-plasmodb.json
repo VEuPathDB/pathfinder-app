@@ -36,7 +36,9 @@
     "curatorNote": ""
   },
   "effort": "medium",
-  "gates": "auto",
+  "gates": {
+    "policy": "decline-offers"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

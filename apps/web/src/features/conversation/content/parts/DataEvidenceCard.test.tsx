@@ -241,6 +241,121 @@ describe("DataEvidenceCard", () => {
     expect(genes.getByText("erythrocyte binding antigen-181")).toBeInTheDocument();
   });
 
+  it("lists each column the check read as a row, before the sampled genes", () => {
+    const review = REVIEWED_CARD.review ?? {};
+    const fit = {
+      criterionId: "step_e7a86f13",
+      criterionText: "at least 2 transmembrane domains",
+      wdkStepId: 441031663,
+      column: "tm_count",
+      displayName: "# TM Domains",
+      boundValue: "2 to 99",
+      countedIn: "genes" as const,
+      total: 840,
+      fitting: 840,
+      fittingAtMost: 840,
+      shown: true,
+      fits: "all" as const,
+      sentence: "840 of 840 genes fit # TM Domains (2 to 99)",
+    };
+    render(
+      <DataEvidenceCard
+        data={{
+          ...REVIEWED_CARD,
+          review: {
+            ...review,
+            columnFits: [
+              fit,
+              {
+                ...fit,
+                column: "molecular_weight",
+                displayName: "Molecular Weight",
+                boundValue: "0 to 200000",
+                fitting: 708,
+                fittingAtMost: 756,
+                fits: "some" as const,
+                sentence: "",
+              },
+              {
+                ...fit,
+                column: "signalp",
+                displayName: "SignalP",
+                total: 0,
+                fitting: 0,
+                fittingAtMost: 0,
+                shown: false,
+                fits: "not_shown" as const,
+                sentence: "",
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    const rows = screen.getAllByTestId("evidence-column-fit");
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "at least 2 transmembrane domains# TM Domains2 to 99840 of 840 genes",
+      "at least 2 transmembrane domainsMolecular Weight0 to 200000708 to 756 of 840 genes",
+      "at least 2 transmembrane domainsSignalP2 to 99The site shows no column",
+    ]);
+    const body = screen.getByTestId("evidence-review");
+    const sections = Array.from(body.children).map((node) =>
+      node.getAttribute("data-testid"),
+    );
+    expect(sections.slice(0, 3)).toEqual([
+      "evidence-requirements",
+      "evidence-column-fits",
+      "evidence-sampled-genes",
+    ]);
+  });
+
+  it("states a threshold the step holds on neither side with both counts", () => {
+    const sentence =
+      "840 of 840 genes fit # TM Domains (99 or less); 242 to 294 of 840 genes " +
+      "hold # TM Domains 5 or more and 546 to 598 hold 5 or less";
+    render(
+      <DataEvidenceCard
+        data={{
+          ...REVIEWED_CARD,
+          review: {
+            ...(REVIEWED_CARD.review ?? {}),
+            columnFits: [
+              {
+                criterionId: "step_e7a86f13",
+                criterionText: "at least 2 transmembrane domains",
+                wdkStepId: 441031663,
+                column: "tm_count",
+                displayName: "# TM Domains",
+                boundValue: "5",
+                countedIn: "genes" as const,
+                total: 840,
+                fitting: 840,
+                fittingAtMost: 840,
+                shown: true,
+                sides: [
+                  {
+                    value: "5",
+                    above: 242,
+                    aboveAtMost: 294,
+                    below: 546,
+                    belowAtMost: 598,
+                  },
+                ],
+                fits: "some" as const,
+                sentence,
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    const row = screen.getByTestId("evidence-column-fit");
+    expect(row).toHaveTextContent(sentence);
+    expect(row.querySelector(".text-destructive")).toBeNull();
+  });
+
   it("links each source the check read", () => {
     render(<DataEvidenceCard data={REVIEWED_CARD} />);
 

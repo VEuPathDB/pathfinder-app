@@ -1,0 +1,72 @@
+{
+  "name": "uat-dry3-d-veupathdb",
+  "turns": [
+    "Genes across Trypanosomatidae with the GO term 'glycosome'.",
+    "Please narrow that to Leishmania donovani BPK282A1, and show me the count before next to the count after.",
+    "Show me a sample of five of those genes with their products.",
+    "I lost that list, sorry. Show me a sample of five of those genes again."
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "A record is read once per turn: the fourth turn lists the five sampled L. donovani BPK282A1 genes of the 115-gene glycosome step instead of re-reading their records to the turn budget.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByGoTerm",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByGoTerm": {
+        "go_typeahead": "GO:0020015"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "3": [
+        "LdBPK_010310.1",
+        "LdBPK_030050.1",
+        "LdBPK_040440.1",
+        "LdBPK_041170.1",
+        "LdBPK_050090.1"
+      ]
+    },
+    "turnReplyOmits": {
+      "3": [
+        "budget of 80 model calls"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 115,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ud-veupathdb",
+    "curatorNote": "Round-3 dry UAT, tester D, investigation 11, conversation 7202ead1-6ccd-46c4-9a33-54bbb822b134. Turns 2 to 4 are the reports' quotes of the messages."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

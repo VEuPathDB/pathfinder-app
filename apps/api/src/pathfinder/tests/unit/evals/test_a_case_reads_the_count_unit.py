@@ -5,7 +5,7 @@ from __future__ import annotations
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 from pathfinder.devtools.eval_runner import counts_in_genes
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.scoring import ObservedOutcome, score_case
 
 # The title of a search the reply turned down, quoted as the site names it.
@@ -28,6 +28,7 @@ def _case(counts: bool | None) -> EvalCase:
         assistant_id="pathfinder",
         rationale="pins the count unit",
         expected=ExpectedOutcome(builds_strategy=True, counts_in_genes=counts),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="toxodb",
             assistant="pathfinder",

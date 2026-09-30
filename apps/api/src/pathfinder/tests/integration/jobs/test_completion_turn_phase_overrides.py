@@ -53,6 +53,7 @@ from pathfinder.assistants.site_help.spec import (
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.persistence.models import User
 from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -66,7 +67,7 @@ _PROMPT = "compare the febrile samples against the normal ones"
 _TOOL = "run_eda_compute"
 _DURABLE_TASK = f"durable:{_TOOL}"
 
-_PINNED_MODEL = "openai:gpt-5.6-luna"
+_PINNED_MODEL = DEFAULT_MODEL
 _PINNED_EFFORT = "high"
 
 

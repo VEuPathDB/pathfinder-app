@@ -8,7 +8,7 @@ import { ParamStepper } from "@/features/conversation/slash/ParamStepper";
 import { SlashPopover } from "@/features/conversation/slash/SlashPopover";
 import { commands } from "@/features/conversation/slash/registry";
 import { useSlashCommands } from "@/features/conversation/slash/useSlashCommands";
-import { getAuthHeaders } from "@/lib/api/http";
+import { stopTurn } from "@/lib/api/conversations";
 import {
   useConversationDetail,
   useConversationExists,
@@ -109,10 +109,7 @@ export function Composer({
   const isRunning = useAuiState((s) => s.thread.isRunning);
   const lastSendAt = useRef(0);
   const requestServerCancel = (): void => {
-    void fetch(`/api/v1/conversations/${conversationId}/cancel`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-    }).catch(() => {});
+    stopTurn(conversationId);
   };
   const handleStopClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
     if (stopClickBlocked(lastSendAt.current, Date.now())) {

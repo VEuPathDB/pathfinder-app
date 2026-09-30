@@ -117,7 +117,7 @@ function installHandlers(stubs: RevertStubs): void {
         name: "strategy",
       });
     }),
-    http.post("http://localhost:3000/api/v1/feedback/actions", () =>
+    http.post("http://localhost:3000/api/v1/product-events", () =>
       HttpResponse.json({ accepted: true }),
     ),
     http.post("http://localhost:3000/api/v1/chat", () => {

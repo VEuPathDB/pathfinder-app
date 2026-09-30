@@ -8,6 +8,7 @@ import { importGeneSet } from "@pathfinder/shared/generated/hooks/useImportGeneS
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { updateStrategy } from "@pathfinder/shared/generated/hooks/useUpdateStrategy";
 import { listGeneSets } from "@/lib/api/geneSets";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { toStrategy, writeStrategy } from "@/lib/api/strategy";
 import { queryKeyPrefixes } from "@/lib/query/keys";
 import { beginConversation } from "@/features/conversation/api/beginConversation";
@@ -86,6 +87,16 @@ async function exportLatestGeneSet(
   return { kind: "download", url: exported.url, filename: exported.filename };
 }
 
+const EXPORT_OPTIONS = [
+  { value: "strategy-json", label: "Current strategy (JSON)" },
+  { value: "chat-md", label: "This conversation (Markdown)" },
+  { value: "chat-json", label: "This conversation (JSON)" },
+  { value: "gene-set-csv", label: "Latest gene set on this site (CSV)" },
+  { value: "gene-set-txt", label: "Latest gene set on this site (TXT)" },
+];
+
+const EXPORT_KINDS: ReadonlySet<string> = new Set(EXPORT_OPTIONS.map((o) => o.value));
+
 export const exportCommand: Command = {
   kind: "deterministic",
   name: "export",
@@ -97,17 +108,18 @@ export const exportCommand: Command = {
       kind: "select",
       name: "what",
       label: "What to export",
-      options: [
-        { value: "strategy-json", label: "Current strategy (JSON)" },
-        { value: "chat-md", label: "This conversation (Markdown)" },
-        { value: "chat-json", label: "This conversation (JSON)" },
-        { value: "gene-set-csv", label: "Latest gene set on this site (CSV)" },
-        { value: "gene-set-txt", label: "Latest gene set on this site (TXT)" },
-      ],
+      options: EXPORT_OPTIONS,
     },
   ],
   run: async (values, ctx) => {
     const what = values["what"] ?? "";
+    if (EXPORT_KINDS.has(what)) {
+      recordProductEvent({
+        event: "export_requested",
+        exportKind: what,
+        conversationId: ctx.conversationExists ? ctx.conversationId : null,
+      });
+    }
     switch (what) {
       case "strategy-json":
         return exportStrategy(ctx);

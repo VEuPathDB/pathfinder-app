@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "cryptodb",
+  "method": "POST",
+  "url": "https://cryptodb.org/cryptodb/service/record-types/transcript/searches/GenesByOrthologPattern/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-29",
+  "reads": "excluded species reading: GenesByOrthologPattern organism=[Cryptosporidium parvum Iowa II], profile_pattern=%tgar:Y%tgca:Y%tgco:Y%tgee:Y%tgfo:Y%tggd:Y%tggt:Y%tgma:Y%tgon:Y%tgop:Y%tgru:Y%tgta:Y%tgtg:Y%tgva:Y%tgve:Y%"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 2408,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 2408,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 2408,
+   "displayTotalCount": 2408
+  }
+ }
+}

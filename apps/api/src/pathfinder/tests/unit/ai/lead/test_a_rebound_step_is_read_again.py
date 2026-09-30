@@ -39,6 +39,7 @@ from pathfinder.tests._support.analysis_catalog import (
     WGCNA_SEARCH,
     serve_the_catalog,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import turn_runtime
 from pathfinder.tests.unit.ai.lead._analysis_thread import document
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import install_stub_api
@@ -122,7 +123,7 @@ async def test_an_edit_that_rebinds_the_search_is_read_again_at_the_turn_entry(
                 id="step_de",
                 text="WGCNA modules instead",
                 search_name=WGCNA_SEARCH,
-                resolved_params=dict(_eda("x", WGCNA_SEARCH).parameters),
+                resolved_params=bound(dict(_eda("x", WGCNA_SEARCH).parameters)),
             )
         ],
         structure=SpecStructure(

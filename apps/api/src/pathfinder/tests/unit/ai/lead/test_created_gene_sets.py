@@ -30,10 +30,12 @@ from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import gene_sets
 from pathfinder.ai.tools.toolsets import verification
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.conversations.message_ratings import TurnMemories
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.gene_set_store import keep_saved
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -44,7 +46,7 @@ SET_NAME = "gametocyte candidates"
 @pytest.fixture
 def saved(monkeypatch: pytest.MonkeyPatch) -> list[GeneSet]:
     kept: list[GeneSet] = []
-    monkeypatch.setattr(gene_sets, "store_gene_set", kept.append)
+    monkeypatch.setattr(gene_sets, "store_gene_set", keep_saved(kept))
     return kept
 
 
@@ -151,7 +153,7 @@ async def _one_note(deps: LeadDeps) -> MemoryValue:
     deps.state.domain = _domain_after_the_turn(deps)
     notes = [
         value
-        for value, _key in collect_memory_candidates(deps.state)
+        for value, _key in collect_memory_candidates(deps.state, counts=BuiltCounts())
         if value.kind == "gene_set_note"
     ]
     assert len(notes) == 1
@@ -166,7 +168,7 @@ async def test_a_recorded_set_becomes_one_gene_set_note(
     await _one_note(deps)
     keys = [
         key
-        for value, key in collect_memory_candidates(deps.state)
+        for value, key in collect_memory_candidates(deps.state, counts=BuiltCounts())
         if value.kind == "gene_set_note"
     ]
 
@@ -204,6 +206,7 @@ class _NoTombstones:
         return set()
 
 
+@pytest.mark.usefixtures("saved")
 async def test_a_written_note_leaves_the_created_list(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -212,7 +215,7 @@ async def test_a_written_note_leaves_the_created_list(
     async def _nothing(**kwargs: Any) -> None:
         del kwargs
 
-    async def _no_candidates(_state: PipelineState) -> list[Any]:
+    async def _no_candidates(_state: PipelineState, **_kwargs: object) -> list[Any]:
         return []
 
     async def _wrote(turn: TurnMemories, **kwargs: Any) -> int:

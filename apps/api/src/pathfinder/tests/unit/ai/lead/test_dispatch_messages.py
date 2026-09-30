@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
+from pathfinder.tests._support.bound_values import bound
 
 _BUDGET_STOP = PhaseStop(
     role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60, criteria_bound=1
@@ -190,7 +191,7 @@ def _with_an_open_slot() -> OperationalSpec:
 
 def _answered(value: str) -> OperationalSpec:
     after = _with_an_open_slot()
-    after.criteria[0].resolved_params = {_OPEN_PARAM: StringValue(value=value)}
+    after.criteria[0].resolved_params = bound({_OPEN_PARAM: StringValue(value=value)})
     after.criteria[0].open_params = []
     return after
 

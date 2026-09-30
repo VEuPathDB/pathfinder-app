@@ -48,6 +48,24 @@ describe("YourDatasets", () => {
     expect(screen.getByText("No datasets of yours on PlasmoDB.")).toBeInTheDocument();
   });
 
+  it("lists an upload whose creation time carries the site's offset", async () => {
+    serve([
+      {
+        ...dataset("lhZ5ptRgo014J", "installed"),
+        name: "pathfinder-uat-deseq",
+        created: "2026-09-29T09:52:08.771807-04:00",
+      },
+    ]);
+    render(<YourDatasets siteId="plasmodb" onPick={vi.fn()} />);
+
+    const row = await screen.findByTestId("eda-own-dataset-lhZ5ptRgo014J");
+    expect(row).toHaveTextContent("pathfinder-uat-deseqYour upload");
+    expect(screen.getByRole("link", { name: "Upload on VEuPathDB" })).toHaveAttribute(
+      "href",
+      UPLOAD_URL,
+    );
+  });
+
   it("opens an installed upload by its study id", async () => {
     serve([dataset("4xZ5Q5pV1s4IM", "installed")]);
     const onPick = vi.fn();

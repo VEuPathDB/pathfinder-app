@@ -15,9 +15,7 @@
     "stepIdsUnchanged": null,
     "parameters": {},
     "replyMentions": [],
-    "replyOmits": [
-      "Verified end-to-end"
-    ]
+    "replyOmits": []
   },
   "provenance": {
     "site": "plasmodb",
@@ -27,5 +25,8 @@
     "stagingId": "",
     "reference": "log.md#2026-09-15",
     "curatorNote": "The gene is a named annotation lookup, not a set."
+  },
+  "gates": {
+    "policy": "decline-offers"
   }
 }

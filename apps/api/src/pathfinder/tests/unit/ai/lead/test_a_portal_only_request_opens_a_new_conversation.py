@@ -12,8 +12,9 @@ from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 
@@ -50,7 +51,7 @@ _ROUTE = (
     "[Open a new conversation there](/veupathdb/conversation); this conversation "
     "stays on PlasmoDB."
 )
-_SWITCH = OpenQuestion(
+_SWITCH = SlotQuestion(
     question=(
         "Would you like to continue this mapping in the VEuPathDB Portal, where "
         "Plasmodium falciparum 3D7 and Toxoplasma gondii ME49 can be held in one "

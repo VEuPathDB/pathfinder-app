@@ -51,6 +51,10 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support import wdk_write_stubs
+from pathfinder.tests._support.bound_values import stated
+
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = pytest.mark.usefixtures("open_job_queue")
 
 WDK_IDS = {"step_text": 100, "step_go": 200, "step_join": 300}
 
@@ -314,8 +318,8 @@ def _organism_swap(before: OperationalSpec) -> OperationalSpec:
     after = before.model_copy(deep=True)
     for criterion in after.criteria:
         if criterion.id == "step_go":
-            criterion.resolved_params["organism"] = MultiPickValue(
-                values=["Plasmodium vivax P01"]
+            criterion.resolved_params["organism"] = stated(
+                MultiPickValue(values=["Plasmodium vivax P01"])
             )
     return after
 
@@ -390,7 +394,7 @@ async def test_the_untouched_criterion_keeps_its_values(
     assert graph is not None
     untouched = _before().criteria[0]
     assert untouched.id == "step_text"
-    assert graph.steps["step_text"].parameters == untouched.resolved_params
+    assert graph.steps["step_text"].parameters == untouched.param_values
 
 
 async def test_edit_does_not_re_put_the_step_tree_when_topology_is_unchanged(
@@ -453,6 +457,6 @@ async def test_edit_refuses_on_a_changed_revision(
     spec = deps.state.domain.operational_spec
     assert spec is not None
     assert {c.id for c in spec.criteria} == {"step_text", "step_go"}
-    assert spec.criteria[1].resolved_params["organism"] == MultiPickValue(
+    assert spec.criteria[1].param_values["organism"] == MultiPickValue(
         values=["Plasmodium"]
     )

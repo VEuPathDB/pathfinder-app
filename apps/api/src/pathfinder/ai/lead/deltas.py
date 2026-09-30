@@ -1,14 +1,21 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field, model_validator
 
-from pathfinder.ai.graph.state import VerificationDigest
+from pathfinder.ai.graph.state import OmittedFromInput, VerificationDigest
+from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS, OpenQuestion
+from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.questions import (
+    OpenQuestion,
+    SlotQuestion,
+)
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
 
@@ -25,14 +32,22 @@ class FrameResult(CamelModel):
 
     summary: str = ""
     disposition: Literal["spec_ready", "needs_user", "needs_research"] = "spec_ready"
-    open_questions: list[OpenQuestion] = Field(
+    open_questions: list[SlotQuestion] = Field(
         default_factory=list,
         description=(
             "One entry per open slot only the user can decide, each naming "
-            "the dimension its answer states, the value you recommend, and in "
-            "`options` up to 8 values the sheet you read offers for it: its "
-            "facets or its vocabulary. The Lead asks it on the question card "
-            "with those options."
+            "the dimension its answer states, the value you recommend, the "
+            "`criterion_id` and `param_name` of the slot, and in `options` up "
+            "to 8 values the sheet you read offers for it: its facets or its "
+            "vocabulary. Each option sets that parameter to its value. The "
+            "Lead asks it on the question card with those options."
+        ),
+    )
+    unstated: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Each requirement of the request that no search on this site "
+            "states, in the researcher's own words. Nothing is bound for it."
         ),
     )
     changes: list[CriterionChange] = Field(
@@ -43,6 +58,27 @@ class FrameResult(CamelModel):
             "workspace was empty."
         ),
     )
+    # The open questions as the question card asks them. The dispatch sets it
+    # from the recorded questions, so FRAME's schema omits it.
+    card_questions: Annotated[list[CardQuestion], OmittedFromInput] = Field(
+        default_factory=list
+    )
+
+    def questions(self, spec: OperationalSpec | None = None) -> list[OpenQuestion]:
+        """The open questions, each option typed by what answering it binds.
+
+        ``spec`` holds the criteria the questions set, which name each
+        parameter and hold the counts measured at the offered values. A
+        question whose offered values bind one value offers no choice, so it
+        is not asked.
+        """
+        by_id = {c.id: c for c in spec.criteria} if spec is not None else {}
+        noun = counted_noun(None if spec is None else spec.record_type)
+        return [
+            q.typed(by_id.get(q.criterion_id), noun=noun)
+            for q in self.open_questions
+            if q.offers_a_choice(by_id.get(q.criterion_id))
+        ]
 
     @model_validator(mode="after")
     def _every_asked_question_decides_something(self) -> FrameResult:
@@ -85,9 +121,13 @@ class EditDelta(CamelModel):
     """
 
     diff: SpecDiff
-    disposition: Literal["applied", "needs_user"] = "applied"
+    # ``unbound``: every framing pass of the edit was refused, and the summary
+    # says why; nothing was applied.
+    disposition: Literal["applied", "needs_user", "unbound"] = "applied"
     summary: str = ""
     open_questions: list[OpenQuestion] = Field(default_factory=list)
+    # The open questions as the question card asks them, option by option.
+    card_questions: list[CardQuestion] = Field(default_factory=list)
     description: str = ""
     operations_applied: int = 0
     added_step_ids: list[str] = Field(

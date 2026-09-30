@@ -25,5 +25,8 @@
     "stagingId": "",
     "reference": "decisions/an-edit-is-a-delta-not-a-rebuild.md",
     "curatorNote": "The step ids are read from the persisted strategy on both sides of the last turn."
+  },
+  "gates": {
+    "policy": "auto"
   }
 }

@@ -52,7 +52,6 @@ never read.
 
 | Synonym | Path | Reason |
 |---|---|---|
-| thread | apps/web/src/lib/telemetry/globalHandlers.ts | The browser's main thread, in a telemetry event no researcher reads. |
 | user | apps/web/src/features/conversation/content/parts/PublishToVdiButton.tsx | "User dataset" is VEuPathDB's own name for an upload. |
 | chat | apps/web/src/features/conversation/runtime/buildRequestBody.ts | A developer invariant that names the chat request body builder. |
 | chat | apps/web/src/features/conversation/runtime/chatHelpersContext.ts | A developer invariant that names the chat runtime hook. |

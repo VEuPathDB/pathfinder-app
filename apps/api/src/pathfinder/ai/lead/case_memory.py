@@ -19,7 +19,7 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.graph.turn_records import ZeroResultStep
 from pathfinder.ai.lead.ledger_sections import render_structure
 from pathfinder.domain.eda_thread import EdaAnalysisFacts, EdaExport
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 
 __all__ = ["collect_case_candidates"]
@@ -28,12 +28,11 @@ _NAME_LIMIT = 120
 _SUMMARY_LIMIT = 400
 
 
-def collect_case_candidates(state: PipelineState) -> list[MemoryCandidate]:
-    """The cases of one turn: what reached the count, then each recovery.
-
-    A turn reaching a count through an EDA export leaves the export's case; a
-    turn reaching it through a spec leaves the spec's, plus its recoveries.
-    """
+def collect_case_candidates(
+    state: PipelineState, *, counts: BuiltCounts
+) -> list[MemoryCandidate]:
+    """The cases of one turn at the counts the session holds: the export's case
+    for a turn that exported, else the spec's case and its recoveries."""
     outcome = state.domain.last_build_outcome
     if outcome is None:
         return []
@@ -41,7 +40,7 @@ def collect_case_candidates(state: PipelineState) -> list[MemoryCandidate]:
     if export is not None:
         # The count came from the export, so the export's case is THE case.
         # A spec the turn framed but never built may not claim the result.
-        exported = outcome.counts.get(export.step_id)
+        exported = counts.of(export.step_id)
         if exported is None:
             return []
         return [_eda_case(state, export, state.domain.eda_analysis, exported)]
@@ -49,9 +48,9 @@ def collect_case_candidates(state: PipelineState) -> list[MemoryCandidate]:
     # answers to and never a plan that runs ahead of it.
     spec = state.domain.answered_spec
     candidates: list[MemoryCandidate] = []
-    if spec is not None and spec.criteria and outcome.root_count is not None:
-        candidates.append(_outcome_case(state, spec, outcome))
-        candidates.extend(_recovery_cases(state, spec, outcome))
+    if spec is not None and spec.criteria and counts.root_count is not None:
+        candidates.append(_outcome_case(state, spec, counts.root_count))
+        candidates.extend(_recovery_cases(state, spec, outcome, counts))
     return candidates
 
 
@@ -74,7 +73,7 @@ def _tags(state: PipelineState, spec: OperationalSpec | None) -> list[str]:
 
 
 def _params(criterion: Criterion) -> dict[str, str]:
-    return {name: value.to_wire() for name, value in criterion.resolved_params.items()}
+    return {name: value.to_wire() for name, value in criterion.param_values.items()}
 
 
 def _criteria_rows(spec: OperationalSpec) -> list[dict[str, object]]:
@@ -141,7 +140,7 @@ def _case_value(
 def _outcome_case(
     state: PipelineState,
     spec: OperationalSpec,
-    outcome: BuildOutcome,
+    root_count: int,
 ) -> MemoryCandidate:
     goal = _goal(state, spec)
     structure = _structure_line(spec)
@@ -150,13 +149,13 @@ def _outcome_case(
         "goal": goal,
         "site": state.site_id,
         "structure": structure,
-        "root_count": outcome.root_count,
+        "root_count": root_count,
         "criteria": _criteria_rows(spec),
     }
     return _case_value(
         state,
         name=goal or f"chat-{state.conversation_id.hex[:8]}",
-        summary=f"{goal} reached {outcome.root_count} results through {structure}",
+        summary=f"{goal} reached {root_count} results through {structure}",
         content=content,
         spec=spec,
     )
@@ -166,13 +165,14 @@ def _recoveries(
     state: PipelineState,
     spec: OperationalSpec,
     outcome: BuildOutcome,
+    counts: BuiltCounts,
 ) -> list[tuple[ZeroResultStep, Criterion]]:
     """Each search that emptied a build of this thread and now has results,
     with the criterion that carries the params it has now."""
     filled = {
         node.search_name
         for node in outcome.node_results
-        if node.status == "ok" and node.count
+        if node.status == "ok" and counts.of(node.node_id)
     }
     criterion_by_search = {c.search_name: c for c in spec.criteria if c.search_name}
     return [
@@ -186,10 +186,11 @@ def _recovery_cases(
     state: PipelineState,
     spec: OperationalSpec,
     outcome: BuildOutcome,
+    counts: BuiltCounts,
 ) -> list[MemoryCandidate]:
     goal = _goal(state, spec)
     cases: list[MemoryCandidate] = []
-    for entry, criterion in _recoveries(state, spec, outcome):
+    for entry, criterion in _recoveries(state, spec, outcome, counts):
         params = _params(criterion)
         emptied_for = entry.criterion_text or criterion.text
         content: dict[str, object] = {
@@ -199,7 +200,7 @@ def _recovery_cases(
             "emptied_search": entry.search_name,
             "emptied_criterion": emptied_for,
             "fixed_params": params,
-            "root_count": outcome.root_count,
+            "root_count": counts.root_count,
         }
         rendered = ", ".join(f"{name}={value}" for name, value in params.items())
         cases.append(

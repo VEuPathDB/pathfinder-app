@@ -41,7 +41,9 @@
     "curatorNote": "Not measured in the flow tables."
   },
   "effort": "medium",
-  "gates": "auto",
+  "gates": {
+    "policy": "auto"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

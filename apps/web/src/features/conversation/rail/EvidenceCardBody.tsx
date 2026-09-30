@@ -16,8 +16,10 @@ import {
   type ExhibitNote,
   type ExhibitRow,
 } from "@/features/conversation/thread/ExhibitTable";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
+import { useConversationId } from "../useConversationId";
 import { referenceHref } from "./evidenceCards";
 import { EvidenceReview } from "./EvidenceReview";
 
@@ -201,8 +203,24 @@ function Citations({
   );
 }
 
-function SiteLinks({ url, siteId }: { url: string; siteId: string }): ReactElement {
+function SiteLinks({
+  url,
+  siteId,
+  wdkStrategyId,
+}: {
+  url: string;
+  siteId: string;
+  wdkStrategyId: number | null;
+}): ReactElement {
   const target = useSiteLinkTarget();
+  const conversationId = useConversationId();
+  const recordOpen = () =>
+    recordProductEvent({
+      event: "strategy_opened",
+      siteId,
+      wdkStrategyId,
+      conversationId,
+    });
   const site = siteShortName(siteId);
   const link = "text-primary underline-offset-2 hover:underline";
   return (
@@ -214,10 +232,17 @@ function SiteLinks({ url, siteId }: { url: string; siteId: string }): ReactEleme
         rel="noopener noreferrer"
         aria-label={`Open in ${site}`}
         className={link}
+        onClick={recordOpen}
       >
         {`Open in ${site}`}
       </a>
-      <a href={url} target={target} rel="noopener noreferrer" className={link}>
+      <a
+        href={url}
+        target={target}
+        rel="noopener noreferrer"
+        className={link}
+        onClick={recordOpen}
+      >
         {`Run GO, pathway or word enrichment in ${site}`}
       </a>
     </div>
@@ -263,7 +288,11 @@ export function EvidenceCardBody({
       <EvidenceReview review={card.review} />
       <Citations cited={card.citations} />
       {card.strategyUrl == null ? null : (
-        <SiteLinks url={card.strategyUrl} siteId={card.siteId} />
+        <SiteLinks
+          url={card.strategyUrl}
+          siteId={card.siteId}
+          wdkStrategyId={card.wdkStrategyId ?? null}
+        />
       )}
     </div>
   );

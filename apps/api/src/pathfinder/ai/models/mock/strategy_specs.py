@@ -124,17 +124,24 @@ def zero_spec(values: SiteValues) -> SpecPlan:
     )
 
 
+# Structural constituent of ribosome, which every eukaryote genome annotates.
+_RIBOSOME_TERM = "GO:0003735"
+
+
 def _go(values: SiteValues) -> CriterionSpec:
-    """The seed's GO term, else the first term the sheet lists. The free-text
-    half stays null: a proposal that fills both ORed halves is refused."""
+    """The seed's GO term, else the ribosome term. The free-text half stays
+    null: a proposal that fills both ORed halves is refused."""
     text = f"{values.organism} genes by GO term"
     if values.leaf(GO_TERM) is None:
         return CriterionSpec(
             criterion_id="go_genes",
             text=text,
             search_name=GO_TERM,
-            values={"organism": [values.organism], "go_term": None},
-            sheet_first="go_typeahead",
+            values={
+                "organism": [values.organism],
+                "go_term": None,
+                "go_typeahead": [_RIBOSOME_TERM],
+            },
         )
     return seed_criterion(
         values, GO_TERM, "go_genes", text, overrides={"go_term": None}

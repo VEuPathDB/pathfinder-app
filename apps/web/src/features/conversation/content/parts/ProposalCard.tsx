@@ -53,7 +53,7 @@ function ProposalCardView({
         className="list-disc space-y-1 rounded-md border border-border bg-background/60 py-2.5 pl-7 pr-2.5 text-xs leading-snug text-foreground"
       >
         {proposal.proposedChanges.map((change, index) => (
-          <li key={index}>{change}</li>
+          <li key={index}>{change.sentence}</li>
         ))}
       </ul>
       {card.decision === "pending" ? (

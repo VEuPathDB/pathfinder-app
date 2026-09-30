@@ -10,7 +10,7 @@ import pytest
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import flatten_tree
 
-from pathfinder.ai.tools.standalone.strategy_graph import (
+from pathfinder.ai.tools.standalone.study_step import (
     StudyStepCheck,
     check_study_step,
 )

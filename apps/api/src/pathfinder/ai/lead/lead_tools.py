@@ -1,22 +1,18 @@
-"""The Lead's own tools: intent, memory, gene sets, live state and the ledger."""
+"""The Lead's own tools: intent, memory, gene sets, clears and deletes."""
 
 from __future__ import annotations
-
-from typing import Literal
 
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
-from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.card_reply import CardReply
-from pathfinder.ai.lead.classification_gate import classification_refusal
+from pathfinder.ai.lead.classification_gate import classification_refusal, read_the_site
 from pathfinder.ai.lead.deleted_steps import named_step
-from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import (
     ANSWERING_INTENTS,
@@ -27,7 +23,6 @@ from pathfinder.ai.lead.intent import (
     already_classified_message,
     repeated_refusal_message,
 )
-from pathfinder.ai.lead.live_state import LiveStrategyState, read_live_state
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import (
     conversation,
@@ -44,8 +39,7 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
 )
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.strategy.organism_phrases import complete_organisms
-
-LedgerSectionName = Literal["frame", "build", "verification"]
+from pathfinder.services.strategies.graph_outcome import live_outcome
 
 
 async def classify_user_intent(
@@ -54,7 +48,8 @@ async def classify_user_intent(
 ) -> ToolReturn[ClassifiedIntent]:
     """Classify the user's intent for this turn. Call this exactly once,
     before any other sub-agent call. A second call on the same turn is
-    only to change the classification; one that repeats it is refused.
+    only to change the classification, and only before the turn changed the
+    strategy; one that repeats it, or comes after a write, is refused.
 
     The message classified is this turn's own, which is pinned in your
     instructions; it is never passed here. Construct a ``UserIntent``
@@ -120,22 +115,33 @@ async def classify_user_intent(
     again, so it keeps the classification that request had. None of them
     is a ``follow_up_question``: that value is for a message that asks you
     to EXPLAIN something the conversation already holds. A question whose answer is
-    a count, a list or a membership is a build however it is phrased.
+    a count, a list or a membership is a build however it is phrased, unless it
+    compares counts or asks about the strategy the conversation holds: "did my
+    change go through?", "what is the count now?" is a ``follow_up_question``,
+    and a request classification of a message that states nothing outside its
+    asks is refused.
 
     A question whose answer is the size or the members of a gene search on
     the site - "how many protein-coding genes does 3D7 have", "which genes
-    on chromosome 6 carry a signal peptide", "compare the gene counts of
-    three organisms" - asks for a build, whatever its grammar: the search
-    computes the answer and the step behind it is the provenance. It is
-    ``new_strategy`` on a conversation with no strategy and ``extend_strategy``
-    otherwise, never a ``follow_up_question``. A question the record or
-    the literature answers - a product, a mechanism, a rate - is not one.
+    on chromosome 6 carry a signal peptide" - asks for a build, whatever its
+    grammar: the search computes the answer and the step behind it is the
+    provenance. It is ``new_strategy`` on a conversation with no strategy and
+    ``extend_strategy`` otherwise, never a ``follow_up_question``. A question
+    the record or the literature answers - a product, a mechanism, a rate - is
+    not one.
+
+    A question that compares counts - two strains, two searches, two values
+    of one parameter, "how does that count compare with the reference
+    strain", "would a domain search find more genes than this one" - is a
+    ``follow_up_question`` answered by ``compare_search_variants``: each side
+    runs as an anonymous report and no step is added. Its sides go in
+    ``differential_sides``, never in ``explicit_constraints``.
 
     Two classifications ask for no strategy at all:
 
     - ``context_statement``: the message states what the user works on and
-      asks for nothing. No imperative, no question about the data. Example:
-      "I'm investigating virulence factors in Leishmania major".
+      asks for nothing; one that names an organism of this site and what to
+      find in it asks for a build. Example: "I work on drug resistance".
     - ``memory_request``: the message asks you to keep something for later.
       Example: "Please remember for future conversations: I always work with
       P. falciparum 3D7 and I prefer the Su et al. strand-specific dataset."
@@ -153,31 +159,29 @@ async def classify_user_intent(
     knowledge, and any message that names no VEuPathDB object, gene, organism,
     dataset or analysis. A borderline message that carries a real biological
     question is in scope. An ``off_topic`` turn reaches no tool after this one
-    and answers in two sentences, so a message the tools can answer is never
-    one.
+    and answers in two sentences, so a message the tools can answer, or one
+    naming genes of this site, typed or attached, is never one.
     """
     held = ctx.deps.intent
     state = ctx.deps.state
-    reclassified = state.turn_markers.intent_classified
-    if (
-        reclassified
-        and held is not None
-        and held.classification is intent.classification
-    ):
-        raise ModelRetry(already_classified_message(held.classification))
+    if state.turn_markers.intent_classified and held is not None:
+        if held.classification is intent.classification:
+            raise ToolFailed(already_classified_message(held.classification))
+        if state.turn_markers.changed_strategy:
+            raise ToolFailed(_written_turn_message(held.classification))
     refused = ctx.deps.refused_classification
     if refused is not None and refused.intent == intent:
         raise ToolFailed(repeated_refusal_message(refused.sentence))
-    if (refusal := classification_refusal(state, intent)) is not None:
+    site = await read_the_site(state, intent)
+    if (refusal := classification_refusal(state, intent, site)) is not None:
         ctx.deps.refused_classification = RefusedClassification(
             intent=intent, sentence=refusal
         )
         raise ModelRetry(refusal)
     corrections: list[str] = []
     if intent.explicit_constraints:
-        vocabulary = await list_organisms(ctx.deps.runtime.site_id)
         constraints, corrections = complete_organisms(
-            intent.explicit_constraints, state.user_prompt, vocabulary
+            intent.explicit_constraints, state.user_prompt, site.organisms
         )
         if corrections:
             intent = intent.model_copy(update={"explicit_constraints": constraints})
@@ -197,6 +201,15 @@ async def classify_user_intent(
         ClassifiedIntent(intent=intent, corrections=corrections),
         "; ".join([f"Intent: {intent.classification.value}", *corrections]),
         ctx=ctx,
+    )
+
+
+def _written_turn_message(classification: IntentClassification) -> str:
+    """The refusal of a new classification on a turn that already wrote."""
+    return (
+        f"This turn is classified as {classification.value}, and it already "
+        "changed the strategy under that classification. The classification "
+        "that did the work governs the turn: keep it and go on with the turn."
     )
 
 
@@ -297,46 +310,6 @@ async def export_gene_set(
     )
 
 
-async def get_live_strategy_state(
-    ctx: RunContext[LeadDeps],
-) -> ToolReturn[LiveStrategyState]:
-    """Read the strategy as it exists RIGHT NOW, bypassing the Ledger's cache.
-
-    The Ledger's build counts describe the last build this conversation ran.
-    The user can change the strategy between turns (graph editor, VEuPathDB
-    web UI), which leaves those counts wrong. Call this before stating any
-    result count, parameter value, or step list as current fact - and always
-    when the Ledger shows a STALE marker or the user asks what the strategy
-    does "now".
-
-    Every count comes from the site. An ``estimatedSize`` or ``rootCount`` of
-    null is UNKNOWN, never zero: say the count is not available for that step
-    rather than reporting a number from an earlier turn. Describe a step from
-    its ``parameters``, which are the values stored on it; its name can still
-    describe the value it was built with.
-    """
-    live = await read_live_state(
-        ctx.deps.runtime.strategy_session,
-        ctx.deps.runtime.site_id,
-    )
-    if not live.step_count:
-        return with_summary(live, "No strategy yet", ctx=ctx, status="empty")
-    genes = live.root_count
-    if genes is None:
-        return with_summary(
-            live,
-            f"{live.step_count} steps, count not available",
-            ctx=ctx,
-            status="warn",
-        )
-    return with_summary(
-        live,
-        f"{live.step_count} steps, {genes:,} genes",
-        ctx=ctx,
-        status="ok" if genes else "empty",
-    )
-
-
 async def clear_the_strategy(
     ctx: RunContext[LeadDeps], *, keep_control_sets: bool
 ) -> ToolReturn[ClearStrategyResult]:
@@ -402,8 +375,8 @@ async def delete_step(
     on a conversation that holds several roots and no push says which is the
     strategy - name a step under the one you mean instead. The write appends a
     revision, so a revert restores what it removed, and the user approves the
-    call on its card; ``reply`` streams above the card and says what the
-    delete takes with it.
+    call on its card, which lists every step the graph says goes. ``reply``
+    streams above the card and promises no step of them stays.
 
     Args:
         step_id: The step to remove, by the id the strategy graph shows.
@@ -424,31 +397,22 @@ async def delete_step(
         if after is None or held_id not in after.steps
     )
     ctx.deps.state.turn_markers.edited = True
-    if ctx.deps.state.domain.operational_spec is not None:
-        ctx.deps.state.domain.operational_spec = (
-            inner.deps.agent_state.operational_spec_draft
+    domain = ctx.deps.state.domain
+    framed = domain.operational_spec
+    if framed is not None:
+        domain.operational_spec = inner.deps.agent_state.operational_spec_draft
+        remaining = (
+            [] if domain.operational_spec is None else domain.operational_spec.criteria
+        )
+        kept = {c.id for c in remaining}
+        domain.retire_what_a_delete_leaves_unanswered(
+            [c for c in framed.criteria if c.id not in kept], remaining
         )
     the_strategy_now_answers_to(
         ctx.deps.state,
         ctx.deps.state.domain.operational_spec,
         ctx.deps.runtime.strategy_session.get_graph(None),
     )
+    if ctx.deps.state.domain.last_build_outcome is not None:
+        ctx.deps.state.record_resync(live_outcome(session))
     return deleted
-
-
-def read_ledger_section(
-    ctx: RunContext[LeadDeps],
-    section: LedgerSectionName,
-) -> ToolReturn[str]:
-    """Return the full detail of one Ledger section.
-
-    The pinned summary already shows counts and derived booleans; use
-    this when you need step-level detail (failed step IDs, open slot
-    questions, fit-report rationales) before deciding the next move.
-    """
-    ledger = derive_ledger(ctx.deps.state, ctx.deps.intent)
-    return with_summary(
-        ledger.render_section(section),
-        f"Read {section}",
-        ctx=ctx,
-    )

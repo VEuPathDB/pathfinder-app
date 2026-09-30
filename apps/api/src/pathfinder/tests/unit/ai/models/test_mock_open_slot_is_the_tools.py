@@ -26,6 +26,7 @@ from pathfinder.ai.agents.strategy_instructions import (
     pinned_frame_sheets,
     pinned_frame_workspace,
 )
+from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.models.mock import role_script
 from pathfinder.ai.models.mock.site_values import SiteValues
@@ -33,6 +34,7 @@ from pathfinder.ai.models.mock.specs import CriterionReply
 from pathfinder.ai.tools.standalone import frame_spec
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
+from pathfinder.domain.strategy.questions import SetValues
 from pathfinder.tests._support.catalog_reads import listing
 from pathfinder.tests._support.recorded_searches import (
     no_count,
@@ -170,3 +172,21 @@ async def test_the_question_offers_the_sheet_values_of_the_slot_the_tool_opens(
             *(v for v in published if v.split()[0] == "Plasmodium" and v != organism),
         ][:8]
     )
+
+
+async def test_each_option_of_the_question_sets_the_slot_the_tool_opened(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    bind_scripted_scope("plasmodb", "Find drug targets [[arc:consult]]")
+
+    answers, result = await _played()
+    [bound] = {CriterionReply.model_validate(answer).criterion_id for answer in answers}
+    [question] = FrameResult.model_validate(result).questions()
+
+    assert {
+        (option.binding.criterion_id, *option.binding.params)
+        for option in question.options
+        if isinstance(option.binding, SetValues)
+    } == {(bound, _OPEN)}
+    assert len(question.options) > 1

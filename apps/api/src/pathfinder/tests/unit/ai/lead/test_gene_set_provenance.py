@@ -20,6 +20,7 @@ from pathfinder.ai.tools.standalone.gene_set_models import GeneSetCreatedRespons
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import ensure_sync_state
+from pathfinder.tests._support.gene_set_store import keep_saved
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -44,7 +45,7 @@ VISIBLE_LEAF_PARAMS = {"text_expression": StringValue(value="secreted")}
 @pytest.fixture
 def saved(monkeypatch: pytest.MonkeyPatch) -> list[GeneSet]:
     kept: list[GeneSet] = []
-    monkeypatch.setattr(gene_sets, "store_gene_set", kept.append)
+    monkeypatch.setattr(gene_sets, "store_gene_set", keep_saved(kept))
     return kept
 
 

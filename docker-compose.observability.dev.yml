@@ -1,343 +1,27 @@
-# Explicit local-development observability overlay.
+# Local Langfuse for development: the six services of Langfuse's self-host
+# compose, and the api and the worker pointed at its OTLP ingress.
 #
 # Usage:
 #   docker compose --env-file .env.dev \
 #     -f docker-compose.yml \
-#     -f docker-compose.dev.yml \
 #     -f docker-compose.observability.yml \
 #     -f docker-compose.observability.dev.yml \
 #     up -d
 #
-# SigNoz UI:   http://localhost:3301
-# Langfuse UI: http://localhost:3100
+# Langfuse UI: http://localhost:3100 (LANGFUSE_INIT_USER_EMAIL / _PASSWORD)
+
+x-local-tracing: &local-tracing
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://langfuse:3000/api/public/otel}
+  OTEL_INCLUDE_CONTENT: ${OTEL_INCLUDE_CONTENT:-true}
+  LANGFUSE_HOST: ${LANGFUSE_HOST:-http://langfuse:3000}
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-pathfinder-local-dev}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-pathfinder-local-dev}
 
 services:
   api:
-    environment:
-      SIGNOZ_OTEL_ENDPOINT: ${SIGNOZ_OTEL_ENDPOINT:-http://signoz-otel-collector:4317}
-      SIGNOZ_TRACE_OTEL_HTTP_ENDPOINT: ${SIGNOZ_TRACE_OTEL_HTTP_ENDPOINT:-http://signoz-otel-collector:4318/v1/traces}
-      LANGFUSE_HOST: ${LANGFUSE_HOST:-http://langfuse:3000}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-pathfinder-local-dev}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-pathfinder-local-dev}
-
-  signoz-zookeeper:
-    image: signoz/zookeeper:3.7.1
-    environment:
-      ZOO_4LW_COMMANDS_WHITELIST: "ruok,stat"
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-    networks:
-      default:
-        aliases:
-          - zookeeper
-    volumes:
-      - signoz_zookeeper_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  signoz-init-clickhouse:
-    image: alpine:3.20
-    volumes:
-      - signoz_clickhouse_user_scripts:/scripts
-    entrypoint:
-      - /bin/sh
-    command:
-      - -ec
-      - |
-        if [ -x /scripts/histogramQuantile ]; then
-          echo "histogramQuantile UDF binary already present, skipping download"
-          exit 0
-        fi
-        apk add --no-cache wget tar >/dev/null
-        version="${SIGNOZ_HISTOGRAM_QUANTILE_VERSION:-v0.0.1}"
-        node_arch=$$(uname -m | sed -e s/aarch64/arm64/ -e s/x86_64/amd64/)
-        echo "Fetching histogram-quantile $${version} for linux/$${node_arch}"
-        cd /tmp
-        wget -q -O histogram-quantile.tar.gz \
-          "https://github.com/SigNoz/signoz/releases/download/histogram-quantile%2F$${version}/histogram-quantile_linux_$${node_arch}.tar.gz"
-        tar -xzf histogram-quantile.tar.gz
-        install -m 0755 histogram-quantile /scripts/histogramQuantile
-        echo "histogramQuantile UDF binary installed at /scripts/histogramQuantile"
-    restart: on-failure
-
-  signoz-clickhouse:
-    image: clickhouse/clickhouse-server:25.5-alpine
-    depends_on:
-      signoz-zookeeper:
-        condition: service_healthy
-      signoz-init-clickhouse:
-        condition: service_completed_successfully
-    environment:
-      CLICKHOUSE_MAX_SERVER_MEMORY_USAGE_TO_RAM_RATIO: "0.5"
-      CLICKHOUSE_SKIP_USER_SETUP: ${SIGNOZ_CLICKHOUSE_SKIP_USER_SETUP:-1}
-    volumes:
-      - signoz_clickhouse_data:/var/lib/clickhouse
-      - signoz_clickhouse_user_scripts:/var/lib/clickhouse/user_scripts
-      - ./ops/observability/signoz-clickhouse-cluster.xml:/etc/clickhouse-server/config.d/cluster.xml:ro
-      - ./ops/observability/signoz-clickhouse-listen.xml:/etc/clickhouse-server/config.d/listen.xml:ro
-      - ./ops/observability/signoz-clickhouse-settings.xml:/etc/clickhouse-server/users.d/settings.xml:ro
-      - ./ops/observability/signoz-clickhouse-custom-function.xml:/etc/clickhouse-server/custom_function.xml:ro
-    networks:
-      default:
-        aliases:
-          - clickhouse
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8123/ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
-  signoz-telemetrystore-migrator:
-    image: signoz/signoz-otel-collector:v0.144.2
-    depends_on:
-      signoz-clickhouse:
-        condition: service_healthy
-    environment:
-      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN: tcp://clickhouse:9000
-      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER: cluster
-      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION: "true"
-      SIGNOZ_OTEL_COLLECTOR_TIMEOUT: 10m
-    entrypoint:
-      - /bin/sh
-    command:
-      - -c
-      - |
-        /signoz-otel-collector migrate bootstrap &&
-        /signoz-otel-collector migrate sync up &&
-        /signoz-otel-collector migrate async up
-    restart: on-failure
-
-  signoz-otel-collector:
-    image: signoz/signoz-otel-collector:v0.144.2
-    depends_on:
-      signoz-clickhouse:
-        condition: service_healthy
-      signoz-telemetrystore-migrator:
-        condition: service_completed_successfully
-    ports:
-      - "${OTEL_GRPC_PORT:-4317}:4317"
-      - "${OTEL_HTTP_PORT:-4318}:4318"
-    environment:
-      SIGNOZ_CLICKHOUSE_HOST: signoz-clickhouse
-      SIGNOZ_CLICKHOUSE_PORT: "9000"
-      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN: tcp://clickhouse:9000
-      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_CLUSTER: cluster
-      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_REPLICATION: "true"
-      SIGNOZ_OTEL_COLLECTOR_TIMEOUT: 10m
-    volumes:
-      - ./ops/observability/signoz-otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
-    entrypoint:
-      - /bin/sh
-    command:
-      - -c
-      - |
-        /signoz-otel-collector migrate sync check &&
-        /signoz-otel-collector --config /etc/otel-collector-config.yaml
-    networks:
-      default:
-        aliases:
-          - otel-collector
-    healthcheck:
-      test: ["CMD-SHELL", "kill -0 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  signoz:
-    image: signoz/signoz:v0.118.0
-    depends_on:
-      signoz-clickhouse:
-        condition: service_healthy
-      signoz-otel-collector:
-        condition: service_healthy
-    ports:
-      - "${SIGNOZ_PORT:-3301}:8080"
-    environment:
-      SIGNOZ_TELEMETRYSTORE_PROVIDER: clickhouse
-      SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN: tcp://clickhouse:9000
-      SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_CLUSTER: cluster
-      SIGNOZ_SQLSTORE_SQLITE_PATH: /var/lib/signoz/signoz.db
-      SIGNOZ_PROMETHEUS_ACTIVE__QUERY__TRACKER_ENABLED: "false"
-      SIGNOZ_TOKENIZER_JWT_SECRET: ${SIGNOZ_TOKENIZER_JWT_SECRET:-pathfinder-local-signoz-jwt-secret}
-    volumes:
-      - signoz_data:/var/lib/signoz
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/api/v1/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-
-  signoz-bootstrap:
-    image: python:3.14-slim
-    depends_on:
-      signoz:
-        condition: service_healthy
-    environment:
-      SIGNOZ_ROOT_USER_EMAIL: ${SIGNOZ_ROOT_USER_EMAIL:-dev@pathfinder.local}
-      SIGNOZ_ROOT_USER_PASSWORD: ${SIGNOZ_ROOT_USER_PASSWORD:-pathfinder-local-dev}
-    volumes:
-      - signoz_data:/var/lib/signoz:ro
-    entrypoint:
-      - /bin/sh
-    command:
-      - -ec
-      - |
-        python - <<'PY'
-        import json
-        import os
-        import sqlite3
-        import time
-        from urllib.request import Request, urlopen
-
-        db_path = "/var/lib/signoz/signoz.db"
-        user_count = None
-        for _ in range(20):
-          try:
-            with sqlite3.connect(db_path) as conn:
-              user_count = conn.execute("select count(*) from users").fetchone()[0]
-            break
-          except sqlite3.Error:
-            time.sleep(1)
-        if user_count is None:
-          raise SystemExit("SigNoz bootstrap could not open signoz.db")
-        if user_count > 0:
-          print(f"SigNoz already has {user_count} user(s); skipping bootstrap.")
-          raise SystemExit(0)
-
-        payload = json.dumps(
-          {
-            "email": os.environ["SIGNOZ_ROOT_USER_EMAIL"],
-            "password": os.environ["SIGNOZ_ROOT_USER_PASSWORD"],
-          }
-        ).encode("utf-8")
-        request = Request(
-          "http://signoz:8080/api/v1/register",
-          data=payload,
-          headers={"Content-Type": "application/json"},
-          method="POST",
-        )
-        with urlopen(request, timeout=30) as response:
-          print(response.read().decode("utf-8"))
-        PY
-
-  signoz-dashboards-bootstrap:
-    image: python:3.14-slim
-    depends_on:
-      signoz-bootstrap:
-        condition: service_completed_successfully
-    environment:
-      SIGNOZ_ROOT_USER_EMAIL: ${SIGNOZ_ROOT_USER_EMAIL:-dev@pathfinder.local}
-      SIGNOZ_ROOT_USER_PASSWORD: ${SIGNOZ_ROOT_USER_PASSWORD:-pathfinder-local-dev}
-    volumes:
-      - ./ops/observability/signoz/dashboards:/dashboards:ro
-      - signoz_data:/var/lib/signoz:ro
-    entrypoint:
-      - /bin/sh
-    command:
-      - -ec
-      - |
-        python - <<'PY'
-        import json
-        import os
-        import pathlib
-        import sqlite3
-        from urllib.error import HTTPError
-        from urllib.request import Request, urlopen
-
-        base = "http://signoz:8080"
-
-        # SigNoz v0.113 requires orgID at login time.  It is not discoverable
-        # via any unauthenticated HTTP endpoint, so read it directly from the
-        # SigNoz SQLite state (mounted read-only via the signoz_data volume).
-        with sqlite3.connect("/var/lib/signoz/signoz.db") as conn:
-          org_row = conn.execute("SELECT id FROM organizations LIMIT 1").fetchone()
-        if org_row is None:
-          raise SystemExit("SigNoz sqlite has no organizations row yet")
-        org_id = org_row[0]
-
-        login_payload = json.dumps(
-          {
-            "email": os.environ["SIGNOZ_ROOT_USER_EMAIL"],
-            "password": os.environ["SIGNOZ_ROOT_USER_PASSWORD"],
-            "orgID": org_id,
-          }
-        ).encode("utf-8")
-        login_req = Request(
-          f"{base}/api/v2/sessions/email_password",
-          data=login_payload,
-          headers={"Content-Type": "application/json"},
-          method="POST",
-        )
-        with urlopen(login_req, timeout=30) as resp:
-          body = json.loads(resp.read().decode("utf-8"))
-        token = body.get("data", {}).get("accessToken")
-        if not token:
-          raise SystemExit(f"SigNoz login did not return accessToken: {body}")
-
-        auth_headers = {
-          "Authorization": f"Bearer {token}",
-          "Content-Type": "application/json",
-        }
-
-        list_req = Request(
-          f"{base}/api/v1/dashboards",
-          headers=auth_headers,
-          method="GET",
-        )
-        with urlopen(list_req, timeout=30) as resp:
-          listing = json.loads(resp.read().decode("utf-8"))
-        title_to_id: dict[str, str] = {}
-        for entry in listing.get("data", []) or []:
-          data = entry.get("data") or {}
-          title = data.get("title") or entry.get("title")
-          dashboard_id = entry.get("id") or data.get("id")
-          if isinstance(title, str) and isinstance(dashboard_id, str):
-            title_to_id[title] = dashboard_id
-
-        dashboards_dir = pathlib.Path("/dashboards")
-        created = 0
-        updated = 0
-        for path in sorted(dashboards_dir.glob("*.json")):
-          if path.name == "manifest.json":
-            continue
-          spec = json.loads(path.read_text())
-          title = spec.get("title") or path.stem
-          existing_id = title_to_id.get(title)
-          if existing_id is None:
-            req = Request(
-              f"{base}/api/v1/dashboards",
-              data=json.dumps(spec).encode("utf-8"),
-              headers=auth_headers,
-              method="POST",
-            )
-            verb = "imported"
-            counter_name = "created"
-          else:
-            req = Request(
-              f"{base}/api/v1/dashboards/{existing_id}",
-              data=json.dumps(spec).encode("utf-8"),
-              headers=auth_headers,
-              method="PUT",
-            )
-            verb = "updated"
-            counter_name = "updated"
-          try:
-            with urlopen(req, timeout=30) as resp:
-              resp.read()
-            print(f"[ok]   {verb} dashboard: {title}")
-            if counter_name == "created":
-              created += 1
-            else:
-              updated += 1
-          except HTTPError as err:
-            detail = err.read().decode("utf-8", errors="replace")
-            print(f"[warn] failed to {verb} {title}: {err.code} {detail}")
-        print(f"SigNoz dashboards: created={created} updated={updated}")
-        PY
+    environment: *local-tracing
+  worker:
+    environment: *local-tracing
 
   langfuse-db:
     image: postgres:17-alpine
@@ -358,7 +42,7 @@ services:
       retries: 5
 
   langfuse-clickhouse:
-    image: clickhouse/clickhouse-server:26.3
+    image: clickhouse/clickhouse-server:25.12
     user: "101:101"
     environment:
       CLICKHOUSE_DB: default
@@ -417,7 +101,7 @@ services:
       start_period: 3s
 
   langfuse-worker:
-    image: langfuse/langfuse-worker:3.167.4
+    image: langfuse/langfuse-worker:3.225.11
     depends_on:
       langfuse-db:
         condition: service_healthy
@@ -468,7 +152,7 @@ services:
       REDIS_TLS_ENABLED: "false"
 
   langfuse:
-    image: langfuse/langfuse:3.167.4
+    image: langfuse/langfuse:3.225.11
     depends_on:
       langfuse-db:
         condition: service_healthy
@@ -504,10 +188,6 @@ services:
       LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-pathfinder-local-dev}
 
 volumes:
-  signoz_zookeeper_data:
-  signoz_clickhouse_data:
-  signoz_clickhouse_user_scripts:
-  signoz_data:
   langfuse_postgres_data:
   langfuse_clickhouse_data:
   langfuse_clickhouse_logs:

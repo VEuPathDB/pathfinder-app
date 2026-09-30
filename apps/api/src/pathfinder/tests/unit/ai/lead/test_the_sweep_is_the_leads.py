@@ -11,7 +11,6 @@ from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pathfinder.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.lead_agent import build_lead_agent
-from pathfinder.ai.tools.toolsets._dynamic import DynamicEnumToolset
 from pathfinder.ai.tools.toolsets.verification import build_toolset
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.parameter_optimization.config import (
@@ -82,14 +81,13 @@ def test_the_budget_carries_the_ceiling_the_config_states() -> None:
 async def test_the_step_id_is_an_enum_of_the_strategys_live_steps() -> None:
     session = StrategySession(site_id="plasmodb")
     session.sync_state = WDKSyncState(wdk_step_ids={"a": 440230693, "b": 440230653})
-    mounted = [
+    [mounted] = [
         toolset
         for toolset in build_lead_agent().toolsets
-        if isinstance(toolset, DynamicEnumToolset)
-        and SWEEP in toolset_tool_names(toolset)
+        if SWEEP in toolset_tool_names(toolset)
     ]
 
-    offered = await mounted[0].get_tools(
+    offered = await mounted.get_tools(
         lead_run_context(strategy_session=session),
     )
     schema = offered[SWEEP].tool_def.parameters_json_schema

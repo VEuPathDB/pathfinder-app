@@ -16,8 +16,14 @@ from pathfinder.ai.tools.standalone.frame_structure import (
     SetStructureResult,
     set_structure,
 )
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
 from pathfinder.domain.strategy.step_rationale import SearchRationale
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.organism_reads import (
     serve_organism_reads,
     serve_universe_counts,
@@ -30,6 +36,13 @@ PEST = "Anopheles gambiae PEST"
 ORGANISMS = [PEST, "Anopheles stephensi Indian", "Aedes aegypti LVP_AGWG"]
 # The genes of PEST, as vectorbase's organism search counts them.
 PEST_GENES = 13_845
+# The requirement the researcher stated, which the plan's text restates.
+ANNOTATED = Constraint(
+    kind=ConstraintKind.OTHER,
+    requested_value="gene annotation",
+    label="annotated genes",
+    source=ConstraintSource.USER_EXPLICIT,
+)
 
 
 def _organism_rationale(search_name: str) -> SearchRationale:
@@ -48,11 +61,13 @@ def _pest_universe(text: str) -> Criterion:
         text=text,
         search_name="GenesByGeneModelChars",
         organism_param="organism_select_none",
-        resolved_params={
-            "organism_select_none": MultiPickValue(values=[PEST]),
-            "gene_model_char": StringValue(value='{"filters":[]}'),
-        },
-        defaulted_params=["gene_model_char"],
+        resolved_params=bound(
+            {
+                "organism_select_none": MultiPickValue(values=[PEST]),
+                "gene_model_char": StringValue(value='{"filters":[]}'),
+            },
+            defaulted=["gene_model_char"],
+        ),
         result_count=PEST_GENES,
         rationale=_organism_rationale("GenesByGeneModelChars"),
     )
@@ -66,11 +81,13 @@ def _signal(*, defaulted: bool = False) -> Criterion:
         text="proteins with a predicted signal peptide",
         search_name="GenesWithSignalPeptide",
         organism_param="organism",
-        resolved_params={
-            "organism": MultiPickValue(values=[PEST]),
-            "signalp_version": SinglePickValue(value="SignalP-6.0"),
-        },
-        defaulted_params=["signalp_version"] if defaulted else [],
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=[PEST]),
+                "signalp_version": SinglePickValue(value="SignalP-6.0"),
+            },
+            defaulted=["signalp_version"] if defaulted else [],
+        ),
         result_count=627,
         rationale=_organism_rationale("GenesWithSignalPeptide") if defaulted else None,
     )
@@ -82,17 +99,19 @@ def _tm() -> Criterion:
         text="proteins with 2 to 99 transmembrane domains",
         search_name="GenesByTransmembraneDomains",
         organism_param="organism",
-        resolved_params={
-            "organism": MultiPickValue(values=[PEST]),
-            "min_tm": StringValue(value="2"),
-            "max_tm": StringValue(value="99"),
-        },
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=[PEST]),
+                "min_tm": StringValue(value="2"),
+                "max_tm": StringValue(value="99"),
+            }
+        ),
         result_count=1_214,
     )
 
 
 def _state(*criteria: Criterion) -> AgentToolState:
-    state = AgentToolState()
+    state = AgentToolState(stated_requirements=[ANNOTATED])
     for criterion in criteria:
         state.frame_set_criterion(criterion)
         state.register_search(
@@ -160,7 +179,7 @@ async def test_a_leaf_naming_only_the_organism_leaves_the_tree_and_the_criteria(
     assert sorted(site) == ["organisms:vectorbase", "record types:vectorbase"]
 
 
-async def test_a_binding_that_matches_every_gene_leaves_its_text_unexpressed(
+async def test_a_binding_that_matches_every_gene_holds_its_requirement_open(
     site: list[str], universe: list[tuple[str, str, str, tuple[str, ...]]]
 ) -> None:
     del site
@@ -176,13 +195,13 @@ async def test_a_binding_that_matches_every_gene_leaves_its_text_unexpressed(
     assert [(c.id, c.unexpressed_qualifiers) for c in draft.criteria] == [
         ("c_signal", [])
     ]
-    assert [(d.text, d.unexpressed) for d in draft.dropped] == [
-        ("PEST gene annotation", True)
+    assert [(d.text, d.requirement) for d in draft.dropped] == [
+        ("PEST gene annotation", ANNOTATED)
     ]
-    assert unexpressed_words(draft) == ["PEST gene annotation"]
+    assert unexpressed_words(draft) == ["gene annotation"]
 
 
-async def test_rebinding_the_carrier_keeps_the_dropped_text_unexpressed(
+async def test_rebinding_the_carrier_keeps_the_requirement_open(
     site: list[str], universe: list[tuple[str, str, str, tuple[str, ...]]]
 ) -> None:
     del site, universe
@@ -191,7 +210,7 @@ async def test_rebinding_the_carrier_keeps_the_dropped_text_unexpressed(
 
     state.frame_set_criterion(_signal())
 
-    assert unexpressed_words(state.operational_spec_draft) == ["PEST gene annotation"]
+    assert unexpressed_words(state.operational_spec_draft) == ["gene annotation"]
 
 
 async def test_a_criterion_that_states_the_dropped_text_meets_it(

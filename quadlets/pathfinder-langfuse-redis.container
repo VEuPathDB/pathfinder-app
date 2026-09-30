@@ -1,0 +1,22 @@
+[Unit]
+Description=Pathfinder Langfuse Redis, the ingestion queue
+
+[Container]
+ContainerName=pathfinder-langfuse-redis
+Image=docker.io/library/redis:7.4-alpine
+Network=pathfinder.network
+Volume=pathfinder-langfuse-redis-data.volume:/data
+# REDIS_AUTH, the password the server requires and Langfuse sends.
+EnvironmentFile=%h/.config/pathfinder/langfuse.env
+# The doubled dollar reaches the shell as one, so the container reads its own variable.
+Exec=sh -c 'exec redis-server --requirepass "$$REDIS_AUTH" --maxmemory-policy noeviction'
+HealthCmd=sh -c 'redis-cli -a "$$REDIS_AUTH" ping | grep -q PONG'
+HealthInterval=5s
+HealthTimeout=10s
+HealthRetries=10
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

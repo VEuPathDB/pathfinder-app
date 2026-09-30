@@ -34,16 +34,23 @@ const REGISTRY_IMAGES = new Map([
   ["pathfinder-wdk-mcp.container", "pathfinder-wdk-mcp"],
   ["pathfinder-research-mcp.container", "pathfinder-research-mcp"],
 ]);
-// The two units that run somebody else's image, each at a pinned tag.
+// The units that run somebody else's image, each at a pinned tag or digest.
 const UPSTREAM_IMAGES = new Map([
   ["pathfinder-db.container", "docker.io/pgvector/pgvector:pg16"],
   ["pathfinder-searxng.container", "docker.io/searxng/searxng:"],
+  ["pathfinder-langfuse.container", "docker.io/langfuse/langfuse:3."],
+  ["pathfinder-langfuse-worker.container", "docker.io/langfuse/langfuse-worker:3."],
+  ["pathfinder-langfuse-db.container", "docker.io/library/postgres:17"],
+  ["pathfinder-langfuse-clickhouse.container", "docker.io/clickhouse/clickhouse-server:2"],
+  ["pathfinder-langfuse-minio.container", "cgr.dev/chainguard/minio@sha256:"],
+  ["pathfinder-langfuse-redis.container", "docker.io/library/redis:7"],
 ]);
 // The host ports the deployment publishes, both on the loopback interface.
 // Every other unit is reached by container name on the podman network.
 const PUBLISHED = new Map([
   ["pathfinder-web.container", "127.0.0.1:3010:3000"],
   ["pathfinder-api.container", "127.0.0.1:8010:8000"],
+  ["pathfinder-langfuse.container", "127.0.0.1:3110:3000"],
 ]);
 // The endpoints an assistant's declaration resolves to. A compose service name
 // does not resolve on the podman network, so both units state them.
@@ -61,6 +68,16 @@ const SECRET_READERS = [
   "pathfinder-searxng.container",
 ];
 const ENVIRONMENT_FILE = "%h/.config/pathfinder/.env";
+// The trace store reads its own secrets, and none of the application's.
+const LANGFUSE_ENVIRONMENT_FILE = "%h/.config/pathfinder/langfuse.env";
+const LANGFUSE_UNITS = [
+  "pathfinder-langfuse.container",
+  "pathfinder-langfuse-worker.container",
+  "pathfinder-langfuse-db.container",
+  "pathfinder-langfuse-clickhouse.container",
+  "pathfinder-langfuse-minio.container",
+  "pathfinder-langfuse-redis.container",
+];
 
 /**
  * A systemd unit as sections of key and value pairs. A line that ends with a
@@ -185,6 +202,10 @@ function checkEnvironment(name, parsed, report) {
   if (SECRET_READERS.includes(name)) {
     if (!files.includes(ENVIRONMENT_FILE)) {
       report(`${name}: no EnvironmentFile=${ENVIRONMENT_FILE}`);
+    }
+  } else if (LANGFUSE_UNITS.includes(name)) {
+    if (files.length !== 1 || files[0] !== LANGFUSE_ENVIRONMENT_FILE) {
+      report(`${name}: reads ${files.join(", ") || "nothing"}, expected ${LANGFUSE_ENVIRONMENT_FILE}`);
     }
   } else if (files.length > 0) {
     report(`${name}: reads ${files.join(", ")}, expected no EnvironmentFile`);

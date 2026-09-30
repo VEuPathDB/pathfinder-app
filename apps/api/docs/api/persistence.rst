@@ -107,3 +107,13 @@ Split into domain-specific repository modules.
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: pathfinder.persistence.repositories.gene_set
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.persistence.repositories.experiment
+   :members:
+   :undoc-members:
+   :show-inheritance:

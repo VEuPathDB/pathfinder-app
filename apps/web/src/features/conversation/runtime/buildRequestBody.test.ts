@@ -4,6 +4,7 @@ import { beforeEach, describe, it, expect } from "vitest";
 import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
 import { buildChatRequestBody } from "./buildRequestBody";
+import { ANTHROPIC_SMALL, OPENAI_FLAGSHIP } from "@/lib/models/__fixtures__/models";
 
 describe("buildChatRequestBody", () => {
   it("throws if siteId is empty", () => {
@@ -71,12 +72,12 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
-      phaseModels: { lead: "openai:gpt-5.4", frame: "anthropic:claude-sonnet-4-6" },
+      phaseModels: { lead: OPENAI_FLAGSHIP.id, frame: ANTHROPIC_SMALL.id },
       phaseReasoning: { lead: "high" },
     });
     expect(out["phaseModels"]).toEqual({
-      lead: "openai:gpt-5.4",
-      frame: "anthropic:claude-sonnet-4-6",
+      lead: OPENAI_FLAGSHIP.id,
+      frame: ANTHROPIC_SMALL.id,
     });
     expect(out["phaseReasoning"]).toEqual({ lead: "high" });
   });

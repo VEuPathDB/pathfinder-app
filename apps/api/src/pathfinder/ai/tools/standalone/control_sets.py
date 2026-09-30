@@ -16,6 +16,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._id_arguments import parse_id_argument
 from pathfinder.ai.tools.standalone.saved_control_sets import (
     ControlSetSummary,
+    control_set_summary,
     listed_control_sets,
 )
 from pathfinder.domain.evidence import NamedControlSet
@@ -82,6 +83,7 @@ async def build_control_set(
                 source="chat",
             ),
             user_id=runtime.user_id,
+            conversation_id=ctx.deps.conversation_id,
         )
         await session.commit()
 
@@ -109,12 +111,13 @@ async def list_control_sets(
     ctx: RunContext[LeadDeps],
 ) -> ToolReturn[list[ControlSetSummary]]:
     """List every control set the user saved on this site, attached to this
-    conversation or not, so you can find the one the researcher names."""
+    conversation or not, so you can find the one the researcher names. The
+    sets this conversation saved come first, marked ``savedHere``."""
     runtime = ctx.deps.runtime
     sets = await saved_control_sets(
         runtime.db_session_factory, site_id=runtime.site_id, user_id=runtime.user_id
     )
-    return listed_control_sets(ctx, sets)
+    return listed_control_sets(ctx, sets, ctx.deps.conversation_id)
 
 
 async def use_control_set(
@@ -142,12 +145,7 @@ async def use_control_set(
     ctx.deps.state.domain.attach_control_set(
         NamedControlSet(id=saved.control_set_id, name=saved.name)
     )
-    summary = ControlSetSummary(
-        control_set_id=saved.control_set_id,
-        name=saved.name,
-        positive_count=len(saved.positive_ids),
-        negative_count=len(saved.negative_ids),
-    )
+    summary = control_set_summary(saved, ctx.deps.conversation_id)
     return with_summary(
         summary,
         f"{saved.name}: {summary.positive_count} positive, "

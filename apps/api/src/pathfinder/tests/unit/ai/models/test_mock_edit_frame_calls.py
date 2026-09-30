@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.tests._support.bound_values import bound
 
 _PF = "Plasmodium falciparum 3D7"
 _TM = "GenesByTransmembraneDomains"
@@ -47,18 +48,20 @@ def _spec() -> OperationalSpec:
                 text="genes with a predicted signal peptide",
                 search_name="GenesWithSignalPeptide",
                 role="seed",
-                resolved_params={"organism": organism},
+                resolved_params=bound({"organism": organism}),
             ),
             Criterion(
                 id="step_tm",
                 text="genes with 2 to 99 transmembrane domains",
                 search_name=_TM,
                 role="filter",
-                resolved_params={
-                    "organism": organism,
-                    "min_tm": StringValue(value="2"),
-                    "max_tm": StringValue(value="99"),
-                },
+                resolved_params=bound(
+                    {
+                        "organism": organism,
+                        "min_tm": StringValue(value="2"),
+                        "max_tm": StringValue(value="99"),
+                    }
+                ),
             ),
         ],
         structure=SpecStructure(root=_SHAPE),

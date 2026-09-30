@@ -10,8 +10,9 @@ import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import scored_comparison
 from pathfinder.ai.tools.standalone._variant_targets import reject_combine_variants
@@ -19,15 +20,31 @@ from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_sc
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.services.control_sets import ControlSetResponse
+from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.scored_comparison import (
     ScoredComparison,
     ScoredVariant,
 )
 from pathfinder.services.experiment.variant_comparison import VariantSpec
-from pathfinder.tests._support.tool_returns import returned, summary_text
-from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import (
+    detached_lead_context,
+    unwrap_function_toolset,
+)
+from pathfinder.tests.unit.ai.tools.test_frame_spec import param_info
 
 _WDK_STRATEGY_ID = "330531493"
+
+
+@pytest.fixture(autouse=True)
+def _every_parameter_is_taken(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _takes(
+        site_id: str, record_type: str, search_name: str, context: dict[str, str]
+    ) -> list[ParameterInfo]:
+        del site_id, record_type, search_name, context
+        return [param_info("fold_change")]
+
+    monkeypatch.setattr(variant_comparison, "search_parameters", _takes)
 
 
 def _variants(first: str = "SA", second: str = "SB") -> list[VariantSpec]:
@@ -118,7 +135,7 @@ async def test_it_emits_the_scored_card_and_the_summary(
     assert captured["positive_controls"] == ["g1", "g2"]
     assert captured["objective"] == "mcc"
     assert result.metadata[0].type == "data-scored-comparison"
-    assert "Winner: b" in summary_text(result)
+    assert result.content is None
 
 
 async def test_each_scored_variant_names_the_saved_set_it_ran(
@@ -149,6 +166,31 @@ async def test_each_scored_variant_names_the_saved_set_it_ran(
     ]
 
 
+async def test_a_parameter_no_search_takes_is_refused_before_the_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    held = _pin_control_set(monkeypatch, positive_ids=["g1"], negative_ids=[])
+    variants = [
+        VariantSpec.model_validate(
+            {
+                "label": label,
+                "searchName": "SA",
+                "parameters": {"input": {"type": "string", "value": "441126163"}},
+            }
+        )
+        for label in ("a", "b")
+    ]
+
+    with pytest.raises(ModelRetry) as refused:
+        await compare_variants_scored(
+            _attached_to(held), variants, control_set_id=held.id
+        )
+
+    assert str(refused.value).startswith(
+        "SA takes no parameter input (a, b). The parameters it takes: fold_change."
+    )
+
+
 async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> None:
     _pin_control_set(monkeypatch, positive_ids=["g1"], negative_ids=[])
 
@@ -165,7 +207,7 @@ class TestTheLeadCanReachControlScoring:
     every unit test of the tool itself keeps passing."""
 
     def _lead_tool_names(self) -> list[str]:
-        return sorted(build_lead_agent()._function_toolset.tools)
+        return sorted(unwrap_function_toolset(build_lead_toolset()).tools)
 
     def test_the_scored_comparison_tool_is_registered(self) -> None:
         assert "compare_variants_scored" in self._lead_tool_names()
@@ -207,29 +249,31 @@ class TestAFailedScoringIsReportedAsOne:
         objective="mcc",
     )
 
-    async def _content(self, monkeypatch: pytest.MonkeyPatch) -> str:
+    async def _scored(self, monkeypatch: pytest.MonkeyPatch) -> ScoredComparison:
         held = _pin_control_set(monkeypatch, positive_ids=["g1", "g2"], negative_ids=[])
         _pin_comparison(monkeypatch, self._COMPARISON)
         result = await compare_variants_scored(
             _attached_to(held), _variants(), control_set_id=held.id
         )
-        return summary_text(result)
+        return returned(result, ScoredComparison)
 
-    async def test_the_summary_says_the_scoring_failed(
+    async def test_the_result_carries_each_failed_scoring_and_no_winner(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        content = await self._content(monkeypatch)
+        scored = await self._scored(monkeypatch)
 
-        assert "scoring failed" in content
-        assert "Winner" not in content
+        assert [v.error for v in scored.variants] == [
+            "parameters.channel: Input should be a valid string",
+            "parameters.channel: Input should be a valid string",
+        ]
+        assert scored.winner_label is None
 
-    async def test_the_summary_carries_membership_per_variant(
+    async def test_the_result_carries_membership_per_variant(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        content = await self._content(monkeypatch)
+        scored = await self._scored(monkeypatch)
 
-        assert "top 20% contains g1" in content
-        assert "top 5% contains none of them" in content
+        assert [v.control_hits for v in scored.variants] == [["g1"], []]
 
 
 class TestAControlSetIdIsARetry:

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import pytest
 from assistant_core.graph.turn_state import (
-    ConsultQuestion,
     PendingApproval,
     UserQuestionAnswer,
 )
@@ -17,6 +16,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.graph.turn_records import AnsweredQuestions
 from pathfinder.ai.lead import frame_dispatch
+from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_consult import consult_user
@@ -57,7 +57,7 @@ async def _answered_on_a_card() -> LeadDeps:
     }
     await consult_user(
         run_context_for(deps, "call_consult"),
-        questions=[ConsultQuestion(id="q1", prompt="Which localisation evidence?")],
+        questions=[CardQuestion(id="q1", prompt="Which localisation evidence?")],
         reply="I will make this change and report what it takes with it.",
     )
     return deps
@@ -98,7 +98,7 @@ async def test_a_card_answer_with_no_open_question_changes_no_answer() -> None:
 
     await consult_user(
         run_context_for(deps, "call_consult"),
-        questions=[ConsultQuestion(id="q1", prompt="Arm?")],
+        questions=[CardQuestion(id="q1", prompt="Arm?")],
         reply="I will make this change and report what it takes with it.",
     )
 

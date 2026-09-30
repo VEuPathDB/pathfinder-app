@@ -7,10 +7,8 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.frame_dispatch import frame_work_order
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
-from pathfinder.domain.strategy.constraints import (
-    ConstraintKind,
-    OpenQuestion,
-)
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
 from typing import Any
@@ -12,7 +13,9 @@ from assistant_core.capabilities.repetition_guard import (
 from pathfinder.devtools.models import (
     Anomaly,
     CapturedToolCall,
+    GroundedConstraintProbe,
     LedgerConstraintsProbe,
+    LedgerProbe,
     RunSummary,
     SearchArgs,
 )
@@ -88,45 +91,82 @@ def refused(call: CapturedToolCall) -> bool:
     return call.status == "failed" or _guard_refused(call)
 
 
-def _loops(calls: list[CapturedToolCall]) -> list[Anomaly]:
-    failed_by_tool: dict[str, list[CapturedToolCall]] = defaultdict(list)
-    refused_by_tool: dict[str, list[CapturedToolCall]] = defaultdict(list)
+def _failure_streak(calls: list[CapturedToolCall]) -> list[CapturedToolCall]:
+    """The longest run of failures no completed call interrupts."""
+    longest: list[CapturedToolCall] = []
+    streak: list[CapturedToolCall] = []
     for call in calls:
-        if _guard_refused(call):
-            refused_by_tool[call.tool].append(call)
         if call.status == "failed":
-            failed_by_tool[call.tool].append(call)
-    out: list[Anomaly] = []
-    for tool in sorted(set(failed_by_tool) | set(refused_by_tool)):
-        failed = failed_by_tool[tool]
-        guarded = refused_by_tool[tool]
-        if len(failed) < LOOP_THRESHOLD and not guarded:
+            streak = [*streak, call]
+            longest = max(longest, streak, key=len)
+        elif call.status == "completed":
+            streak = []
+    return longest
+
+
+def _identical_completions(calls: list[CapturedToolCall]) -> list[CapturedToolCall]:
+    """The completed calls whose arguments an earlier completed call already sent."""
+    seen: set[str] = set()
+    repeats: list[CapturedToolCall] = []
+    for call in calls:
+        if call.status != "completed" or _guard_refused(call):
             continue
+        key = json.dumps(call.args, sort_keys=True, default=str)
+        if key in seen:
+            repeats.append(call)
+        seen.add(key)
+    return repeats
+
+
+def _tool_loop(tool: str, calls: list[CapturedToolCall]) -> Anomaly | None:
+    failed = _failure_streak(calls)
+    repeats = _identical_completions(calls)
+    guarded = [c for c in calls if _guard_refused(c)]
+    parts: list[str] = []
+    if len(failed) >= LOOP_THRESHOLD:
         signatures = {(e.kind, e.param) for c in failed for e in c.errors}
-        refusal_note = (
-            f" The repetition guard refused {len(guarded)} identical call(s)."
-            if guarded
-            else ""
+        parts.append(
+            f"{tool} failed {len(failed)} times in a row "
+            f"({len(signatures) or 'unclassified'} distinct error signatures) "
+            f"- the agent is stuck retrying."
         )
-        seen = {c.seq: c for c in failed + guarded}
-        out.append(
-            Anomaly(
-                kind="loop",
-                severity="critical",
-                message=(
-                    f"{tool} failed {len(failed)} times "
-                    f"({len(signatures) or 'unclassified'} distinct error signatures) "
-                    f"- the agent is stuck retrying.{refusal_note}"
-                ),
-                evidence=_evidence([seen[key] for key in sorted(seen)]),
-                details={
-                    "tool": tool,
-                    "failures": len(failed),
-                    "guard_refusals": len(guarded),
-                },
-            )
+    if len(repeats) >= LOOP_THRESHOLD:
+        parts.append(
+            f"{tool} completed {len(repeats)} calls whose arguments an earlier "
+            f"call already sent - the agent re-reads what it holds."
         )
-    return out
+    if guarded:
+        parts.append(
+            f"The repetition guard refused {len(guarded)} identical call(s) of {tool}."
+        )
+    if not parts:
+        return None
+    seen = {c.seq: c for c in failed + repeats + guarded}
+    return Anomaly(
+        kind="loop",
+        severity="critical",
+        message=" ".join(parts),
+        evidence=_evidence([seen[key] for key in sorted(seen)]),
+        details={
+            "tool": tool,
+            "failures": len(failed),
+            "identical_completions": len(repeats),
+            "guard_refusals": len(guarded),
+        },
+    )
+
+
+def loops(calls: list[CapturedToolCall]) -> list[Anomaly]:
+    """One loop per tool that failed in a row, repeated a completed read, or
+    met the repetition guard, at ``LOOP_THRESHOLD`` calls or one guard refusal."""
+    by_tool: dict[str, list[CapturedToolCall]] = defaultdict(list)
+    for call in calls:
+        by_tool[call.tool].append(call)
+    return [
+        anomaly
+        for tool in sorted(by_tool)
+        if (anomaly := _tool_loop(tool, by_tool[tool])) is not None
+    ]
 
 
 def _wdk_service_errors(calls: list[CapturedToolCall]) -> list[Anomaly]:
@@ -170,49 +210,84 @@ def _mentions(text: str, needle: str) -> bool:
     return bool(target) and target in flat
 
 
+def _stated(
+    probe: LedgerConstraintsProbe, status: str
+) -> list[GroundedConstraintProbe]:
+    """The researcher's own constraints the grounding left at this status."""
+    return [
+        g
+        for g in probe.grounded
+        if g.constraint.source == "user_explicit" and g.status == status
+    ]
+
+
+def _constraints_by_phase(
+    ledgers: dict[str, dict[str, Any]],
+) -> list[tuple[str, LedgerConstraintsProbe]]:
+    read = [
+        (phase, LedgerProbe.model_validate(ledger)) for phase, ledger in ledgers.items()
+    ]
+    return [(phase, probe.constraints) for phase, probe in read if probe.constraints]
+
+
 def _silent_constraint_violation(
     ledgers: dict[str, dict[str, Any]],
     assistant_text: str,
 ) -> list[Anomaly]:
     out: list[Anomaly] = []
-    for phase, ledger in ledgers.items():
-        raw = (ledger or {}).get("constraints")
-        if raw is None:
-            continue
-        probe = LedgerConstraintsProbe.model_validate(raw)
-        if not probe.blocking:
-            continue
-        labels = [
-            g.constraint.label
-            for g in probe.grounded
-            if g.constraint.source == "user_explicit"
-            and g.status in {"substituted", "ungroundable"}
-        ]
-        # "silent" is the claim being made. A Lead that explained the
-        # substitution in its reply was not silent, whatever the ledger's
-        # structured fields say.
+    for phase, probe in _constraints_by_phase(ledgers):
+        substituted = [g for g in _stated(probe, "substituted") if g.constraint.hard]
+        # A Lead that explained the substitution in its reply was not silent.
         spoken = [
             value
-            for g in probe.grounded
+            for g in substituted
             for value in (g.constraint.label, g.constraint.requested_value)
             if value and _mentions(assistant_text, value)
         ]
-        if spoken:
+        if not substituted or spoken:
             continue
+        labels = [g.constraint.label for g in substituted]
         out.append(
             Anomaly(
                 kind="silent_constraint_violation",
                 severity="critical",
                 message=(
-                    f"{probe.unmet_count} user-explicit constraint(s) unmet "
-                    f"({', '.join(labels) or 'unnamed'}) yet the turn did not pause "
+                    f"{len(substituted)} user-explicit constraint(s) unmet "
+                    f"({', '.join(labels)}) yet the turn did not pause "
                     f"or flag it - the plan silently deviated from what the user asked."
                 ),
                 evidence=[f"state/{phase}.json"],
                 details={
                     "phase": phase,
-                    "unmet_count": probe.unmet_count,
+                    "unmet_count": len(substituted),
                     "labels": labels,
+                },
+            )
+        )
+    return out
+
+
+def _ungroundable_constraints(ledgers: dict[str, dict[str, Any]]) -> list[Anomaly]:
+    out: list[Anomaly] = []
+    for phase, probe in _constraints_by_phase(ledgers):
+        unread = _stated(probe, "ungroundable")
+        if not unread:
+            continue
+        read_as = "; ".join(f"{g.constraint.label}: {g.note}" for g in unread)
+        out.append(
+            Anomaly(
+                kind="ungroundable_constraint",
+                severity="warning",
+                message=(
+                    f"{len(unread)} user-explicit constraint(s) could not be read "
+                    f"against the strategy ({read_as}) - whether the strategy "
+                    f"meets them is not known."
+                ),
+                evidence=[f"state/{phase}.json"],
+                details={
+                    "phase": phase,
+                    "labels": [g.constraint.label for g in unread],
+                    "notes": [g.note for g in unread],
                 },
             )
         )
@@ -295,9 +370,10 @@ def diagnose(
 
     anomalies = (
         _catch_22(calls)
-        + _loops(calls)
+        + loops(calls)
         + _wdk_service_errors(calls)
         + _silent_constraint_violation(ledgers, assistant_text)
+        + _ungroundable_constraints(ledgers)
         + _silent_zero(ledgers, assistant_text)
         + _budget(summary)
         + _no_plan(summary)

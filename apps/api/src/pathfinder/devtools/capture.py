@@ -4,18 +4,22 @@ import json
 import logging
 import shutil
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from itertools import count
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from pathfinder.devtools.diagnosis import diagnose, refused
+from pathfinder.ai.graph.state import PipelineState
+from pathfinder.devtools.diagnosis import diagnose, loops, refused
 from pathfinder.devtools.models import (
     Anomaly,
+    CapturedModelRequest,
     CapturedToolCall,
     Chunk,
+    LedgerConstraintsProbe,
+    LedgerProbe,
     PhaseSnapshot,
     RunSummary,
     SpanNode,
@@ -24,14 +28,16 @@ from pathfinder.devtools.models import (
     sub_agent_call_data,
     sub_agent_step_data,
 )
+from pathfinder.devtools.transcript import assumed_lines, facts_lines
+from pathfinder.domain.turn_facts import TurnFacts, uncarried_assumptions
+from pathfinder.domain.value_caveats import assumed_value_caveats
 
-LOOP_THRESHOLD = 5
 RESULT_CLIP = 140
 # The model's terminal call. The reply it carries is the transcript's own
 # section, so a call that answered draws no row; one that failed is a retry of
 # the output itself, which every artifact shows.
 OUTPUT_TOOL = "final_result"
-_ARTIFACT_SUBDIRS = ("tools", "state", "errors", "wdk")
+_ARTIFACT_SUBDIRS = ("tools", "state", "errors", "wdk", "llm")
 _ARTIFACT_FILES = (
     "events.jsonl",
     "summary.json",
@@ -40,6 +46,61 @@ _ARTIFACT_FILES = (
     "tree.txt",
     "transcript.md",
 )
+
+
+def unshown_assumed_values(
+    values: Mapping[str, object], facts: TurnFacts | None
+) -> int:
+    """How many narrowing values the request did not state that the last facts
+    part does not carry, over the checkpointed spec."""
+    spec = PipelineState.model_validate(values).domain.operational_spec
+    return uncarried_assumptions(assumed_value_caveats(spec), facts)
+
+
+def model_read_outputs(run_dir: Path, wanted: set[str]) -> dict[str, object]:
+    """The value each wanted call returned, read from the run's model requests."""
+    found: dict[str, object] = {}
+    for path in sorted((run_dir / "llm").glob("*-request.json")):
+        if not wanted - found.keys():
+            break
+        request = CapturedModelRequest.model_validate_json(path.read_text())
+        returns = request.tool_returns()
+        found.update({tcid: returns[tcid] for tcid in wanted & returns.keys()})
+    return found
+
+
+# Where the worker container mounts the run directories.
+WORKER_RUN_ROOT = Path("/data/pf-runs")
+_WORKER_LLM = ".worker-llm"
+
+
+def worker_llm_dir(turn_id: UUID) -> Path:
+    """Where the worker writes one turn's model requests, as the worker sees it."""
+    return WORKER_RUN_ROOT / _WORKER_LLM / str(turn_id)
+
+
+def local_run_root() -> Path:
+    """This process's view of the worker's mount: the mount itself inside a
+    container, and the host side of the compose bind mount outside one."""
+    if WORKER_RUN_ROOT.is_dir():
+        return WORKER_RUN_ROOT
+    return Path(__file__).resolve().parents[3] / ".pf-runs"
+
+
+def collect_worker_llm(local_root: Path, turn_id: UUID, run_dir: Path) -> bool:
+    """Move one worker turn's model requests into the run directory.
+
+    False when the worker wrote none where this process can read them.
+    """
+    staged = local_root / worker_llm_dir(turn_id).relative_to(WORKER_RUN_ROOT)
+    if not (staged / "llm").is_dir():
+        return False
+    target = run_dir / "llm"
+    target.mkdir(parents=True, exist_ok=True)
+    for path in (staged / "llm").iterdir():
+        shutil.move(path, target / path.name)
+    shutil.rmtree(staged)
+    return True
 
 
 def reset_run_dir(run_dir: Path) -> None:
@@ -149,14 +210,14 @@ class RunCapture:
         self._durable_tasks: list[tuple[str, str]] = []
         self._current_phase = ""
         self._ledger_by_phase: dict[str, dict[str, Any]] = {}
+        self._constraints: LedgerConstraintsProbe | None = None
         self._tokens = 0
         self._cost = 0.0
         self._has_error = False
         self._reply_parts: list[str] = []
+        self._facts: TurnFacts | None = None
+        self._unshown_assumed: int | None = None
         self._terminal_error: str | None = None
-        self._fail_counts: dict[str, int] = {}
-        self._looped_tools: set[str] = set()
-        self._loop = False
         self._pending: tuple[str, str] | None = None
 
     async def write(self, chunk: dict[str, Any]) -> int:
@@ -176,6 +237,7 @@ class RunCapture:
             "data-sub-agent-step": self._on_step,
             "data-turn-usage": self._on_turn_usage,
             "data-ledger-update": self._on_ledger,
+            "data-facts": self._on_facts,
             "tool-input-available": self._on_tool_input,
             "tool-output-available": self._on_tool_output,
             "tool-output-error": self._on_tool_output_error,
@@ -230,25 +292,14 @@ class RunCapture:
         if data.state == "completed":
             call.status = "completed"
             call.result = data.result_summary
-            self._fail_counts.pop(call.tool, None)
         elif data.state == "failed":
             call.status = "failed"
             call.result = data.result_summary
             call.errors = decode_errors(data.result_summary)
-            self._note_failure(call.tool)
         elif data.state == "denied":
-            # The user refused the call. The tool did not fail, so the loop
-            # counter stays where it is.
+            # The user refused the call. The tool did not fail.
             call.status = "denied"
             call.result = data.result_summary
-
-    def _note_failure(self, tool: str) -> None:
-        self._fail_counts[tool] = self._fail_counts.get(tool, 0) + 1
-        if self._fail_counts[tool] >= LOOP_THRESHOLD and tool not in self._looped_tools:
-            self._loop = True
-            self._looped_tools.add(tool)
-            if not self.quiet:
-                print(f"⚠ loop: {tool} failed {self._fail_counts[tool]} times")
 
     def _on_turn_usage(self, env: Chunk) -> None:
         data = env.data or {}
@@ -256,8 +307,16 @@ class RunCapture:
         self._cost = max(self._cost, float(data.get("costUsd", 0) or 0))
 
     def _on_ledger(self, env: Chunk) -> None:
+        if env.data is None:
+            return
+        self._ledger_by_phase[self._current_phase or "turn"] = env.data
+        constraints = LedgerProbe.model_validate(env.data).constraints
+        if constraints is not None:
+            self._constraints = constraints
+
+    def _on_facts(self, env: Chunk) -> None:
         if env.data is not None:
-            self._ledger_by_phase[self._current_phase or "turn"] = env.data
+            self._facts = TurnFacts.model_validate(env.data)
 
     def _on_tool_input(self, env: Chunk) -> None:
         if not env.tool_call_id:
@@ -290,11 +349,9 @@ class RunCapture:
             call.duration_ms = call.ended_ms - call.started_ms
         call.status = status
         call.result = result
+        call.output = env.output
         if status == "failed":
             call.errors = decode_errors(result)
-            self._note_failure(call.tool)
-        elif status == "completed":
-            self._fail_counts.pop(call.tool, None)
 
     def _on_tool_output(self, env: Chunk) -> None:
         self._settle(env, "completed", _as_text(env.output))
@@ -337,6 +394,14 @@ class RunCapture:
         that.
         """
         return "".join(self._reply_parts)
+
+    def turn_facts(self) -> TurnFacts | None:
+        """The facts part the turn showed beside its reply, or None."""
+        return self._facts
+
+    def note_checkpoint(self, values: Mapping[str, object]) -> None:
+        """Count the assumed values the checkpoint holds against this turn's facts."""
+        self._unshown_assumed = unshown_assumed_values(values, self._facts)
 
     def _render(self, env: Chunk) -> str | None:
         if env.type == "data-sub-agent-call":
@@ -470,10 +535,11 @@ class RunCapture:
             tool_calls=len(self.counted_calls()),
             failures=len([c for c in calls if c.status == "failed"]),
             phases=self.phases(),
-            loop_detected=self._loop,
+            loop_detected=bool(loops(calls)),
             conversation_id=str(self.conversation_id),
             turn_id=str(self.turn_id),
             run_dir=str(self.run_dir),
+            assumed=self._unshown_assumed,
         )
 
     def _render_tree_text(self, node: SpanNode, depth: int = 0) -> list[str]:
@@ -491,9 +557,17 @@ class RunCapture:
             out.append(f"- [{call.phase or 'lead'}] {call.tool} -> {call.status}")
             if call.result:
                 out.append(f"    {_clip(call.result)}")
+        if self._facts is not None:
+            out += ["", "## Facts", "", *facts_lines(self._facts)]
         reply = self.assistant_text()
         if reply:
             out += ["", "## Reply", "", reply]
+        out += [
+            "",
+            "## Assumed",
+            "",
+            *assumed_lines(self._unshown_assumed, self._constraints),
+        ]
         return "\n".join(out) + "\n"
 
     def flush(self) -> Path:
@@ -503,7 +577,12 @@ class RunCapture:
         with (out / "events.jsonl").open("w") as fh:
             for event in self._events:
                 fh.write(json.dumps(event, separators=(",", ":")) + "\n")
-        for call in self.rendered_calls():
+        calls = self.rendered_calls()
+        unread = {call.tool_call_id for call in calls if call.output is None}
+        outputs = model_read_outputs(out, unread)
+        for call in calls:
+            if call.output is None:
+                call.output = outputs.get(call.tool_call_id)
             name = f"{call.seq:02d}-{call.tool or 'unknown'}.json"
             (out / "tools" / name).write_text(call.model_dump_json(indent=2))
         for snap in self.snapshots():

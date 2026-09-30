@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.security import APIKeyCookie, APIKeyHeader, HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 from jwt.types import Options
+from opentelemetry import trace
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -143,6 +144,7 @@ async def resolve_principal(
         _application_id(service_token),
     )
     user_id_ctx.set(principal.user_id)
+    trace.get_current_span().set_attribute("user.id", str(principal.user_id))
     application_id_ctx.set(principal.application_id)
     return principal
 

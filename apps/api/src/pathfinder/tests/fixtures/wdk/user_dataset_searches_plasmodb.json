@@ -1,0 +1,501 @@
+[
+ {
+  "urlSegment": "GenesByDESeqUserDataset",
+  "displayName": "RNA-Seq Differential Expression (User Datasets)",
+  "shortDisplayName": "UD RNA-Seq (de)",
+  "fullName": "GeneQuestions.GenesByDESeqUserDataset",
+  "queryName": "GenesByDESeqUserDataset",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "eda_dataset_id",
+   "eda_analysis_spec"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "eda_dataset_id",
+     "eda_analysis_spec"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "P. falciparum",
+    "P. vivax",
+    "P. yoelii",
+    "P. berghei",
+    "P. chabaudi",
+    "P. knowlesi"
+   ],
+   "userDatasetType": [
+    "rnaseqrc"
+   ],
+   "edaNotebookType": [
+    "differentialExpressionNotebook"
+   ],
+   "specificAttribution": [],
+   "displayCategory": [
+    "Differential Expression"
+   ]
+  },
+  "parameters": [
+   {
+    "displayName": "RNA-Seq Raw Counts User Dataset",
+    "minSelectedCount": 1,
+    "maxSelectedCount": 1,
+    "isVisible": true,
+    "type": "single-pick-vocabulary",
+    "help": "A public RNA-Seq Raw Counts User Dataset, or a private one you have imported into your workspace, and that is installed in this website",
+    "dependentParams": [],
+    "displayType": "select",
+    "isReadOnly": false,
+    "vocabulary": [
+     [
+      "EDAUD_lhZ5ptRgo014J",
+      "pathfinder-uat-deseq",
+      null
+     ]
+    ],
+    "allowEmptyValue": false,
+    "name": "eda_dataset_id",
+    "initialDisplayValue": "EDAUD_lhZ5ptRgo014J",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   },
+   {
+    "displayName": "Filter genes based on the data below",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": true,
+    "type": "string",
+    "help": "Filter genes based on the data below, and then click Get Answer to see your list of genes.",
+    "visibleHelp": "Specify your set of genes by clicking on one or more variables in the panel at left;\n                            then interact with the variable display on the right to subset on the selected variable.<br>\n                            After subsetting, click <strong>Get Answer</strong> to get the specified set of genes.",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": true,
+    "name": "eda_analysis_spec",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": false
+ },
+ {
+  "urlSegment": "GenesByUserDatasetGeneList",
+  "displayName": "Gene List (User Datasets)",
+  "shortDisplayName": "UD Gene List",
+  "fullName": "GeneQuestions.GenesByUserDatasetGeneList",
+  "queryName": "GenesByUserDatasetGeneList",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "geneListUserDataset"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "geneListUserDataset"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "P. falciparum",
+    "P. vivax",
+    "P. yoelii",
+    "P. berghei",
+    "P. chabaudi",
+    "P. knowlesi"
+   ],
+   "specificAttribution": [],
+   "userDatasetType": [
+    "genelist"
+   ]
+  },
+  "parameters": [
+   {
+    "displayName": "Gene List User Dataset",
+    "minSelectedCount": 1,
+    "maxSelectedCount": 1,
+    "isVisible": true,
+    "type": "single-pick-vocabulary",
+    "help": "A public Gene List User Dataset, or a private one you have imported into your workspace, and that is installed in this website",
+    "dependentParams": [],
+    "displayType": "select",
+    "isReadOnly": false,
+    "vocabulary": [
+     [
+      "bla",
+      "Choose a public or private Gene List User Dataset, or Upload one first",
+      null
+     ],
+     [
+      "dMY5sYJRNl11F",
+      "csv uploaded msps",
+      null
+     ],
+     [
+      "p0Z51wRgo404A",
+      "pathfinder-uat-genelist",
+      null
+     ],
+     [
+      "h9Z5p4Ql0x0d8",
+      "UAT G3",
+      null
+     ],
+     [
+      "5gZ54hwZJg0k5",
+      "UAT G3",
+      null
+     ],
+     [
+      "MkZ5lgQIM00o9",
+      "UAT G3",
+      null
+     ],
+     [
+      "8QZ5UMQ1wx0dZ",
+      "UAT G3",
+      null
+     ],
+     [
+      "tZZ5opQZFd05g",
+      "UAT G3",
+      null
+     ],
+     [
+      "14Z59YwMVY0EZ",
+      "UAT G3",
+      null
+     ],
+     [
+      "JhZ599E4YR0R5",
+      "UAT G3",
+      null
+     ],
+     [
+      "kUZ5cVQs1V0RM",
+      "UAT G3",
+      null
+     ],
+     [
+      "ptZ55lQkRE0l4",
+      "UAT G3",
+      null
+     ],
+     [
+      "kMZ5spF9wE0FY",
+      "UAT G3",
+      null
+     ],
+     [
+      "0hZ5kcFlFs08l",
+      "UAT G3",
+      null
+     ],
+     [
+      "N5Z5AAAlVl0xs",
+      "UAT G3",
+      null
+     ],
+     [
+      "RIZ54xBwcB0Qd",
+      "UAT G3",
+      null
+     ],
+     [
+      "tUZ5chJ1Bc0wA",
+      "UAT G3",
+      null
+     ],
+     [
+      "Q0Z5hQExEg0YE",
+      "UAT G3",
+      null
+     ],
+     [
+      "AhZ508IZ0k09c",
+      "UAT G3",
+      null
+     ],
+     [
+      "NMZ5gMA5dc0BY",
+      "UAT G3",
+      null
+     ],
+     [
+      "pdZ5gxQ1MZ08Q",
+      "UAT G3",
+      null
+     ],
+     [
+      "ggZ5hEBpk80Bh",
+      "UAT G3",
+      null
+     ],
+     [
+      "dBZ5w9xFwF0U9",
+      "UAT G3",
+      null
+     ],
+     [
+      "dQZ5scwJhx0Vs",
+      "UAT G3",
+      null
+     ],
+     [
+      "p4Z5E8Q1II0dR",
+      "UAT G3",
+      null
+     ]
+    ],
+    "allowEmptyValue": false,
+    "name": "geneListUserDataset",
+    "initialDisplayValue": "bla",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": false
+ },
+ {
+  "urlSegment": "GenesByPhenotypeUserDataset",
+  "displayName": "Phenotype (User Datasets)",
+  "shortDisplayName": "UD Phenotype",
+  "fullName": "GeneQuestions.GenesByPhenotypeUserDataset",
+  "queryName": "GenesByPhenotypeUserDataset",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "eda_dataset_id",
+   "eda_analysis_spec"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "eda_dataset_id",
+     "eda_analysis_spec"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "P. falciparum",
+    "P. vivax",
+    "P. yoelii",
+    "P. berghei",
+    "P. chabaudi",
+    "P. knowlesi"
+   ],
+   "specificAttribution": [],
+   "userDatasetType": [
+    "phenotype"
+   ]
+  },
+  "parameters": [
+   {
+    "displayName": "Phenotype User Dataset",
+    "minSelectedCount": 1,
+    "maxSelectedCount": 1,
+    "isVisible": true,
+    "type": "single-pick-vocabulary",
+    "help": "A public Phenotype User Dataset, or a private one you have imported into your workspace, and that is installed in this website",
+    "dependentParams": [],
+    "displayType": "select",
+    "isReadOnly": false,
+    "vocabulary": [
+     [
+      "EDAUD_c1Z5oVRJpY04s",
+      "pathfinder-uat-phenotype",
+      null
+     ]
+    ],
+    "allowEmptyValue": false,
+    "name": "eda_dataset_id",
+    "initialDisplayValue": "EDAUD_c1Z5oVRJpY04s",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   },
+   {
+    "displayName": "Filter genes based on the data below",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": true,
+    "type": "string",
+    "help": "Filter genes based on the data below, and then click Get Answer to see your list of genes.",
+    "visibleHelp": "Specify your set of genes by clicking on one or more variables in the panel at left;\n                            then interact with the variable display on the right to subset on the selected variable.<br>\n                            After subsetting, click <strong>Get Answer</strong> to get the specified set of genes.",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": true,
+    "name": "eda_analysis_spec",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": false
+ },
+ {
+  "urlSegment": "GenesByEdaVizWithCompute",
+  "displayName": "Gene Dataset Filtering",
+  "shortDisplayName": "Gene Dataset",
+  "fullName": "GeneQuestions.GenesByEdaVizWithCompute",
+  "queryName": "GenesByEdaVizWithCompute",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "eda_dataset_id",
+   "eda_analysis_spec"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "eda_dataset_id",
+     "eda_analysis_spec"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "P. falciparum",
+    "P. vivax",
+    "P. yoelii",
+    "P. berghei",
+    "P. chabaudi",
+    "P. knowlesi"
+   ],
+   "specificAttribution": []
+  },
+  "parameters": [
+   {
+    "displayName": "EDA Dataset ID",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": false,
+    "type": "string",
+    "help": "EDA Dataset ID",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": false,
+    "name": "eda_dataset_id",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   },
+   {
+    "displayName": "Filter genes based on the data below",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": true,
+    "type": "string",
+    "help": "Filter genes based on the data below, and then click Get Answer to see your list of genes.",
+    "visibleHelp": "Specify your set of genes by clicking on one or more variables in the panel at left;\n                            then interact with the variable display on the right to subset on the selected variable.<br>\n                            After subsetting, click <strong>Get Answer</strong> to get the specified set of genes.",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": false,
+    "name": "eda_analysis_spec",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "P. falciparum",
+      "P. vivax",
+      "P. yoelii",
+      "P. berghei",
+      "P. chabaudi",
+      "P. knowlesi"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": true
+ }
+]

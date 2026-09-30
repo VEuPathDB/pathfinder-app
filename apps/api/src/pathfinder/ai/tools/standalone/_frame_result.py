@@ -61,6 +61,11 @@ class SetCriterionResult(CamelModel):
     corrections: list[str] = Field(
         default_factory=list, exclude_if=lambda notes: not notes
     )
+    # One clause per measurement of the binding: each pick's label, and the
+    # count of each other reading of a value the site or the model set.
+    measurements: list[str] = Field(
+        default_factory=list, exclude_if=lambda clauses: not clauses
+    )
     # Searches of this pass the site could not answer, so no word of the
     # criterion was compared against them. Absent when every one was read.
     unread_searches: list[str] = Field(

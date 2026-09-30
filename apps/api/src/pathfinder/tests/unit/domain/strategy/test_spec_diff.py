@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
+from pathfinder.tests._support.bound_values import bound
 
 
 def _criterion(cid: str, **params: ParamValue) -> Criterion:
@@ -27,7 +28,7 @@ def _criterion(cid: str, **params: ParamValue) -> Criterion:
         id=cid,
         text=f"criterion {cid}",
         search_name=f"By{cid}",
-        resolved_params=dict(params),
+        resolved_params=bound(dict(params)),
     )
 
 

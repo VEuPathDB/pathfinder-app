@@ -10,9 +10,9 @@ from __future__ import annotations
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
 
+from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import StrategyDistance
 from pathfinder.evals.drift import DriftVerdict
-from pathfinder.evals.scoring import CaseDifference
 
 
 class CaseResult(CamelModel):
@@ -22,7 +22,8 @@ class CaseResult(CamelModel):
     moved, not only from whether it crossed the line. ``observed_count`` is the
     root count the run produced, and ``count_drift`` names it and the build it
     was read on beside the recorded count, whenever the two differ.
-    ``refused_tools`` names the tool of each refused call, on a pass too.
+    ``refused_tools`` names the tool of each refused call, on a pass too, and
+    ``assumed`` the applied values the request did not state, None when uncounted.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -36,6 +37,7 @@ class CaseResult(CamelModel):
     error: str = ""
     duration_seconds: float = 0.0
     refused_tools: list[str] = Field(default_factory=list)
+    assumed: int | None = None
 
     @computed
     def passed(self) -> bool:
@@ -76,6 +78,11 @@ class EvalRunSummary(CamelModel):
     @computed
     def refusals(self) -> int:
         return sum(len(case.refused_tools) for case in self.cases)
+
+    @computed
+    def assumed(self) -> int | None:
+        counted = [case.assumed for case in self.cases if case.assumed is not None]
+        return sum(counted) if counted else None
 
     @computed
     def pass_rate(self) -> float:

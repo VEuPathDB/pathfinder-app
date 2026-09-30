@@ -18,10 +18,17 @@ readonly TAG_PLACEHOLDER REPO_ROOT CONFIG_HOME UNIT_DIR APP_DIR
 # The persistent registry login the units read; a reboot keeps it.
 export REGISTRY_AUTH_FILE="${REGISTRY_AUTH_FILE:-$APP_DIR/ghcr-auth.json}"
 
-# The start order of the stack. The metasearch and the two tool servers are
-# required by no other unit, so the installer starts every one of them.
+# The start order of the stack. The metasearch, the two tool servers and the
+# trace store are required by no application unit, so the installer starts
+# every one of them.
 SERVICES=(
   pathfinder-db.service
+  pathfinder-langfuse-db.service
+  pathfinder-langfuse-clickhouse.service
+  pathfinder-langfuse-minio.service
+  pathfinder-langfuse-redis.service
+  pathfinder-langfuse-worker.service
+  pathfinder-langfuse.service
   pathfinder-wdk-mcp.service
   pathfinder-searxng.service
   pathfinder-research-mcp.service
@@ -124,11 +131,40 @@ start_stack() {
   done
 }
 
+# The checkpoint tables hold the shape of a turn's state as the release that
+# wrote it laid it out. A release that changes that shape cannot read them, so
+# the operator passes --purge-checkpoints on that bump and every thread starts
+# its next turn from its persisted events instead.
+purge_checkpoints() {
+  systemctl --user start pathfinder-db.service
+  local attempt
+  for attempt in $(seq 1 30); do
+    if podman exec pathfinder-db pg_isready -U postgres > /dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+  podman exec -i pathfinder-db psql -U postgres -d pathfinder -v ON_ERROR_STOP=1 \
+    -c "TRUNCATE checkpoints, checkpoint_blobs, checkpoint_writes"
+  echo "purged the checkpoint tables"
+}
+
 main() {
+  local purge=0
+  if [ "${1:-}" = "--purge-checkpoints" ]; then
+    purge=1
+  elif [ -n "${1:-}" ]; then
+    echo "usage: PATHFINDER_TAG=<tag> $0 [--purge-checkpoints]" >&2
+    exit 2
+  fi
   mkdir -p "$UNIT_DIR" "$APP_DIR/searxng"
 
   if [ ! -f "$APP_DIR/.env" ]; then
     echo "no $APP_DIR/.env: copy deploy/cedar/env.example there and fill it in" >&2
+    exit 1
+  fi
+  if [ ! -f "$APP_DIR/langfuse.env" ]; then
+    echo "no $APP_DIR/langfuse.env: copy deploy/cedar/langfuse.env.example there and fill it in" >&2
     exit 1
   fi
 
@@ -138,6 +174,9 @@ main() {
   loginctl enable-linger "$(id -un)"
   systemctl --user daemon-reload
 
+  if [ "$purge" -eq 1 ]; then
+    purge_checkpoints
+  fi
   start_stack
 
   # status reports a non-zero code for a unit that is not running, which is

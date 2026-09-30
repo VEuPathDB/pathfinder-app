@@ -1,0 +1,45 @@
+[Unit]
+Description=Pathfinder Langfuse web: the UI, the public API and the OTLP ingress
+After=pathfinder-langfuse-db.service pathfinder-langfuse-clickhouse.service pathfinder-langfuse-minio.service pathfinder-langfuse-redis.service
+Requires=pathfinder-langfuse-db.service pathfinder-langfuse-clickhouse.service pathfinder-langfuse-minio.service pathfinder-langfuse-redis.service
+
+[Container]
+ContainerName=pathfinder-langfuse
+Image=docker.io/langfuse/langfuse:3.225.11
+Network=pathfinder.network
+# The UI is reached through the SSH tunnel, on the loopback interface only.
+PublishPort=127.0.0.1:3110:3000
+# Every secret, and the headless first start, come from this file.
+EnvironmentFile=%h/.config/pathfinder/langfuse.env
+Environment=NEXTAUTH_URL=http://localhost:3110
+Environment=TELEMETRY_ENABLED=false
+Environment=CLICKHOUSE_MIGRATION_URL=clickhouse://pathfinder-langfuse-clickhouse:9000
+Environment=CLICKHOUSE_URL=http://pathfinder-langfuse-clickhouse:8123
+Environment=CLICKHOUSE_CLUSTER_ENABLED=false
+Environment=LANGFUSE_USE_AZURE_BLOB=false
+Environment=LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+Environment=LANGFUSE_S3_EVENT_UPLOAD_REGION=auto
+Environment=LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://pathfinder-langfuse-minio:9000
+Environment=LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+Environment=LANGFUSE_S3_EVENT_UPLOAD_PREFIX=events/
+Environment=LANGFUSE_S3_MEDIA_UPLOAD_BUCKET=langfuse
+Environment=LANGFUSE_S3_MEDIA_UPLOAD_REGION=auto
+Environment=LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT=http://pathfinder-langfuse-minio:9000
+Environment=LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE=true
+Environment=LANGFUSE_S3_MEDIA_UPLOAD_PREFIX=media/
+Environment=LANGFUSE_S3_BATCH_EXPORT_ENABLED=false
+Environment=REDIS_HOST=pathfinder-langfuse-redis
+Environment=REDIS_PORT=6379
+Environment=REDIS_TLS_ENABLED=false
+Environment=HOSTNAME=0.0.0.0
+HealthCmd=wget --spider -q http://localhost:3000/api/public/health
+HealthInterval=10s
+HealthTimeout=5s
+HealthStartPeriod=120s
+HealthRetries=10
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

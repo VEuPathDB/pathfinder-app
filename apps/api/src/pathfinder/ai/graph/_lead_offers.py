@@ -25,6 +25,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
     ToolInputStartChunk,
     ToolOutputDeniedChunk,
 )
+from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.graph._lead_answers import answers_for, is_pure_approval, typed_reply
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -32,6 +33,7 @@ from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.proposal import (
     OFFER_TOOLS,
     PROPOSAL_TOOL,
+    AddCriterionChange,
     AdoptionArgs,
     DeclinedProposal,
 )
@@ -70,7 +72,15 @@ def _declined_offer(
     return DeclinedProposal(
         question=offer.question,
         proposed_changes=[
-            f"{criterion.text} ({criterion.role})" for criterion in offer.spec.criteria
+            AddCriterionChange(
+                sentence=f"{criterion.text} ({criterion.role})",
+                search_name=criterion.search_name,
+                params={
+                    name: to_wire(bound.value)
+                    for name, bound in criterion.resolved_params.items()
+                },
+            )
+            for criterion in offer.spec.criteria
         ],
         note=note,
     )

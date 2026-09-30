@@ -14,6 +14,7 @@ from pathfinder.domain.provider_keys import (
     provider_name,
     provider_of,
 )
+from pathfinder.tests._support.models import ANTHROPIC_SMALL, GOOGLE_STANDARD
 
 _SENTINEL = "sk-proj-sentinel-0123456789WXYZ"
 _DEPLOYMENT: frozenset[ModelProvider] = frozenset({"openai"})
@@ -65,8 +66,8 @@ def test_the_keyring_never_prints_a_key() -> None:
 
 def test_a_model_id_names_its_provider() -> None:
     assert [
-        provider_of("anthropic:claude-opus-5"),
-        provider_of("google:gemini-3.6-flash"),
+        provider_of(ANTHROPIC_SMALL),
+        provider_of(GOOGLE_STANDARD),
         provider_of("mock:deterministic"),
     ] == ["anthropic", "google", "mock"]
 

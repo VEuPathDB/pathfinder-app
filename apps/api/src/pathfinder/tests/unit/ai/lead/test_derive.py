@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 from pathfinder.tests.unit.domain.strategy._analysis import (
     DATASET,
@@ -42,7 +43,7 @@ def _bound_spec() -> OperationalSpec:
                 id="c1",
                 text="protein kinases",
                 search_name="GenesByGoTerm",
-                resolved_params={},
+                resolved_params=bound({}),
             ),
         ],
         structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="c1")),
@@ -125,7 +126,6 @@ def test_a_realized_zero_is_a_result_and_not_a_recovery() -> None:
             "step_fb1f017c",
         ],
         wdk_strategy_id=227235400,
-        root_count=0,
         zero_step_ids=["step_811d87da", "step_95c8dca2"],
     )
     ledger = derive_ledger(_state(last_build_outcome=outcome), None)
@@ -145,7 +145,6 @@ def test_a_push_error_needs_recovery() -> None:
                 error="422 profile_pattern: Invalid value",
             ),
         ],
-        root_count=0,
         zero_step_ids=["step_811d87da"],
     )
     ledger = derive_ledger(_state(last_build_outcome=outcome), None)
@@ -192,7 +191,6 @@ def test_build_section_succeeded() -> None:
     outcome = BuildOutcome(
         pushed_step_ids=["s1"],
         wdk_strategy_id=1,
-        root_count=10,
     )
     ledger = derive_ledger(_state(last_build_outcome=outcome), None)
     assert ledger.build.succeeded is True
@@ -227,7 +225,10 @@ def _criterion(cid: str, percentile: float | None = None) -> Criterion:
         {} if percentile is None else {"pct": NumberValue(value=percentile)}
     )
     return Criterion(
-        id=cid, text=f"criterion {cid}", search_name=f"By{cid}", resolved_params=params
+        id=cid,
+        text=f"criterion {cid}",
+        search_name=f"By{cid}",
+        resolved_params=bound(params),
     )
 
 

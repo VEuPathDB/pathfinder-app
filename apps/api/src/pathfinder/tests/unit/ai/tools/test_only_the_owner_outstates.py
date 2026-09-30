@@ -31,7 +31,9 @@ _OWNER = "GenesByRodentMalariaPhenotype"
 
 
 def _state() -> AgentToolState:
-    state = AgentToolState()
+    state = AgentToolState(
+        request_messages=["genes with a predicted signal peptide in the blood stage"]
+    )
     state.record_catalog_read(
         CatalogRead(
             tool_call_id="call_ranked",

@@ -135,7 +135,6 @@ def _deps() -> LeadDeps:
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1", "s2", "s3", "s4"],
         wdk_strategy_id=330423363,
-        root_count=_ROOT_COUNT,
     )
     return lead_deps(state, strategy_session=_session())
 

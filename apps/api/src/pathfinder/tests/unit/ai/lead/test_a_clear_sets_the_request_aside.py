@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead import lead_tools
+from pathfinder.ai.lead import classification_gate
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.derive import derive_ledger
@@ -19,7 +19,7 @@ from pathfinder.ai.lead.turn_budget import budget_stop_report
 from pathfinder.ai.lead.verify_dispatch import verification_scope
 from pathfinder.ai.tools.standalone import conversation
 from pathfinder.domain.evidence import NamedControlSet
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.staleness import StaleBuild
@@ -55,7 +55,7 @@ def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _organisms(site_id: str) -> list[str]:
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(lead_tools, "list_organisms", _organisms)
+    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
 
 
 @pytest.fixture(autouse=True)
@@ -155,9 +155,11 @@ async def test_the_case_of_a_rebuild_after_a_clear_names_this_message() -> None:
     the_strategy_now_answers_to(
         state, spec, deps.runtime.strategy_session.get_graph(None)
     )
-    state.record_build(BuildOutcome(pushed_step_ids=[_REBUILT], root_count=12))
+    state.record_build(BuildOutcome(pushed_step_ids=[_REBUILT]))
 
-    candidates = collect_case_candidates(state)
+    candidates = collect_case_candidates(
+        state, counts=BuiltCounts(by_step={_REBUILT: 12}, root_id=_REBUILT)
+    )
 
     assert [value.content["goal"] for value, _key in candidates] == [_NEW]
 
@@ -171,7 +173,7 @@ def test_a_new_build_supersedes_the_staleness_of_the_one_before() -> None:
         ),
     )
 
-    state.record_build(BuildOutcome(pushed_step_ids=[_REBUILT], root_count=12))
+    state.record_build(BuildOutcome(pushed_step_ids=[_REBUILT]))
 
     assert state.domain.stale_build is None
     assert "STALE:" not in derive_ledger(state, None).render_summary()

@@ -25,6 +25,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderKeyRefusedError
 from pathfinder.platform.model_keys import keyed_model, one_generation, turn_paid_by
 from pathfinder.services.provider_keys import key_statuses, record_refusals, store_key
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
@@ -108,8 +109,8 @@ async def test_a_key_refused_inside_the_turn_is_marked_after_it(
         writer=_Chunks(),
         build=wire.build,
     ):
-        assert turn_paid_by("openai:gpt-5.6-luna") is PaidBy.USER
-        model = keyed_model("openai:gpt-5.6-luna")
+        assert turn_paid_by(DEFAULT_MODEL) is PaidBy.USER
+        model = keyed_model(DEFAULT_MODEL)
         assert isinstance(model, Model)
         with pytest.raises(ProviderKeyRefusedError):
             await one_generation(model)

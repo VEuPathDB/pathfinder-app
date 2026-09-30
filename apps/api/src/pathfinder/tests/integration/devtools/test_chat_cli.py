@@ -40,6 +40,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.durable_worker import durable_call_refusal
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests._support.recorded_searches import (
     serve_recorded_plasmodb,
     suite_search,
@@ -56,14 +57,14 @@ def test_parse_run_args_maps_phase_models_and_run_dir(tmp_path: Path) -> None:
             "--site",
             "plasmodb",
             "--model",
-            "frame=openai:gpt-5.6-luna",
+            f"frame={DEFAULT_MODEL}",
             "--run-dir",
             str(tmp_path / "r"),
         ]
     )
     assert args.prompt == "hello"
     assert args.site == "plasmodb"
-    assert args.phase_models == {"frame": "openai:gpt-5.6-luna"}
+    assert args.phase_models == {"frame": DEFAULT_MODEL}
     assert args.approve == "prompt"
     assert args.run_dir == tmp_path / "r"
 

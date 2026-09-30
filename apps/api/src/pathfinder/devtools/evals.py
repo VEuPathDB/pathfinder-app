@@ -27,8 +27,8 @@ from assistant_core.platform.db import async_session_factory
 
 from pathfinder.devtools import chat
 from pathfinder.devtools.chat import route_framework_logs_to_stderr
-from pathfinder.devtools.eval_runner import refusals_label, run_corpus
-from pathfinder.evals.case import ExpectedOutcome
+from pathfinder.devtools.eval_runner import assumed_label, refusals_label, run_corpus
+from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.evals.store import CORPUS_DIR, load_corpus
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
 from pathfinder.services.eval_data.curation import (
@@ -116,6 +116,7 @@ async def _promote(args: argparse.Namespace) -> int:
                 else ExpectedOutcome.model_validate_json(args.expect)
             ),
             curator_note=args.note,
+            gates=GatePlan.model_validate_json(args.gates),
         ),
     )
     print(f"promoted -> {path}")
@@ -165,8 +166,12 @@ def _run(args: argparse.Namespace) -> int:
     for case in summary.cases:
         mark = "ERROR" if case.error else _MARKS[case.verdict]
         count = "" if case.observed_count is None else f"  count {case.observed_count}"
+        assumed = assumed_label(case.assumed)
         refusals = refusals_label(case.refused_tools)
-        print(f"{mark}  {case.name}  {case.duration_seconds}s{count}  {refusals}")
+        print(
+            f"{mark}  {case.name}  {case.duration_seconds}s{count}  "
+            f"{assumed}  {refusals}"
+        )
         if case.distance is not None:
             print(
                 f"      distance: topology {case.distance.topology}, "
@@ -186,6 +191,7 @@ def _run(args: argparse.Namespace) -> int:
         f"--- {summary.passed}/{summary.case_count} passed "
         f"(re-measure {summary.re_measure}, failed {summary.failed}, "
         f"errored {summary.errored}) refusals={summary.refusals} "
+        f"{assumed_label(summary.assumed)} "
         f"harness={summary.harness} provider={summary.provider}",
     )
     if args.out:
@@ -223,6 +229,16 @@ def _build_parser() -> argparse.ArgumentParser:
             "the expectation as JSON, e.g. '{\"buildsStrategy\": false}'; "
             "defaults to what the recorded run did, which `show` prints; "
             "a disliked turn has no default and requires it"
+        ),
+    )
+    promote.add_argument(
+        "--gates",
+        required=True,
+        metavar="JSON",
+        help=(
+            'how the case meets its cards, e.g. \'{"policy": "decline-offers"}\' '
+            'or \'{"policy": "leave", "answers": [{"card": "delete_step", '
+            '"turn": 1}]}\''
         ),
     )
     promote.add_argument("--note", default="", help="curator note")

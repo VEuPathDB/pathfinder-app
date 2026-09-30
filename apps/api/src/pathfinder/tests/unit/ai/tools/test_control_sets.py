@@ -85,9 +85,13 @@ async def test_build_control_set_validates_persists_and_reports_unresolved(
     persisted: list[NewControlSet] = []
 
     async def _create(
-        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+        _session: AsyncSession,
+        spec: NewControlSet,
+        *,
+        user_id: UUID,
+        conversation_id: UUID | None,
     ) -> ControlSetResponse:
-        del user_id
+        del user_id, conversation_id
         persisted.append(spec)
         return created
 
@@ -119,9 +123,13 @@ async def test_build_control_set_records_what_the_turn_wrote(
     _patch_validate(monkeypatch, {"g1": ResolvedControls(valid_ids=["g1"])})
 
     async def _create(
-        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+        _session: AsyncSession,
+        spec: NewControlSet,
+        *,
+        user_id: UUID,
+        conversation_id: UUID | None,
     ) -> ControlSetResponse:
-        del user_id
+        del user_id, conversation_id
         return _stored(control_set_id="cs_123", name=spec.name)
 
     monkeypatch.setattr(control_sets, "create_control_set", _create)
@@ -167,9 +175,13 @@ async def test_build_control_set_refuses_when_no_positive_resolves(
     persisted: list[NewControlSet] = []
 
     async def _create(
-        _session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+        _session: AsyncSession,
+        spec: NewControlSet,
+        *,
+        user_id: UUID,
+        conversation_id: UUID | None,
     ) -> ControlSetResponse:
-        del user_id
+        del user_id, conversation_id
         persisted.append(spec)
         return _stored(control_set_id="cs_unused", name=spec.name)
 

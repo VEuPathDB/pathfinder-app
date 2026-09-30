@@ -19,12 +19,19 @@ CaseOrigin = Literal["promoted", "cataloged-failure", "uat-flow"]
 # The card a turn ends on, as the researcher sees it: none, a question, an
 # approval of a tool call, or an offer of further work.
 GateEnd = Literal["none", "consult", "approval", "proposal"]
-# "stop" leaves the last turn's gate unanswered; every earlier gate is answered.
-GatePolicy = Literal["auto", "stop"]
+# How a case meets a card no answer names: "auto" says yes to every approval and
+# offer and takes each question's recommended options; "stop" does the same but
+# leaves the last turn's card unanswered; "decline-offers" says no to an offer,
+# yes to any other approval and leaves a question unanswered; "leave" answers
+# nothing. A card left unanswered is denied by the next message.
+GatePolicy = Literal["auto", "stop", "decline-offers", "leave"]
+# The tool a question card is raised by; every other card is an approval.
+QUESTION_CARD = "consult_user"
 
 
 class GateAnswer(CamelModel):
-    """The answer to one card: a yes or a no, or the options a question card takes.
+    """The answer to one card, named by the tool the card is for and the turn
+    whose message raised it.
 
     A no may carry a comment. ``picks`` answers a question card: each question
     takes the options whose label holds a pick, else its recommended ones, and a
@@ -33,6 +40,8 @@ class GateAnswer(CamelModel):
 
     model_config = ConfigDict(frozen=True)
 
+    card: str = Field(min_length=1)
+    turn: int = Field(ge=0)
     accept: bool = True
     comment: str | None = None
     picks: list[str] | None = None
@@ -42,10 +51,39 @@ class GateAnswer(CamelModel):
         if self.accept and self.comment is not None:
             msg = "a comment is sent with a no only"
             raise ValueError(msg)
+        if (self.picks is not None) != (self.card == QUESTION_CARD):
+            msg = "a question card is answered by its picks, and only a question card"
+            raise ValueError(msg)
         if self.picks is not None and not self.accept:
             msg = "a question card is answered by its picks, not by a no"
             raise ValueError(msg)
         return self
+
+
+class GatePlan(CamelModel):
+    """The answers a case names, and the policy for every card none names."""
+
+    model_config = ConfigDict(frozen=True)
+
+    policy: GatePolicy
+    answers: list[GateAnswer] = Field(default_factory=list)
+
+    def default_answer(
+        self, card: str, *, turn: int, offer: bool, final: bool
+    ) -> GateAnswer | None:
+        """The policy's answer to a card no answer names, or None to leave it."""
+        question = card == QUESTION_CARD
+        match self.policy:
+            case "leave":
+                return None
+            case "stop" if final:
+                return None
+            case "decline-offers" if question:
+                return None
+            case "decline-offers" if offer:
+                return GateAnswer(card=card, turn=turn, accept=False)
+            case _:
+                return GateAnswer(card=card, turn=turn, picks=[] if question else None)
 
 
 class CaseProvenance(CamelModel):
@@ -137,6 +175,10 @@ class ExpectedOutcome(CamelModel):
     final_count_below_every_input: bool | None = None
     met_requirements: int | None = None
     unmet_requirements: int | None = None
+    unexpressed_requirements: int | None = None
+    turn_reply_mentions: dict[int, list[str]] = Field(default_factory=dict)
+    turn_reply_omits: dict[int, list[str]] = Field(default_factory=dict)
+    assumed_stated: int | None = Field(default=None, ge=0)
     root_count: RecordedCount | None = None
     ends_on: GateEnd | None = None
 
@@ -148,8 +190,9 @@ class EvalCase(CamelModel):
     first message cannot: an edit is a second message over a built strategy.
     ``effort`` is the effort the case was measured at, and ``attachments`` maps
     a turn's index to the files under the corpus ``files`` directory it sends.
-    ``gates`` is a policy, or the answers the case's cards get in order; a card
-    past the last answer, or of another kind than the answer, is left unanswered.
+    ``gates`` names the answer each card gets by its tool and turn, and the
+    policy for every card no answer names. A case that must build nothing never
+    accepts an offer.
     ``new_conversation_before`` names the turns that open a new conversation for
     the same researcher.
     """
@@ -164,12 +207,12 @@ class EvalCase(CamelModel):
     expected: ExpectedOutcome
     provenance: CaseProvenance
     effort: ReasoningEffort | None = None
-    gates: GatePolicy | list[GateAnswer] = "auto"
+    gates: GatePlan
     attachments: dict[int, list[str]] = Field(default_factory=dict)
     new_conversation_before: list[int] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _attachments_name_a_turn(self) -> EvalCase:
+    def _indexes_name_a_turn(self) -> EvalCase:
         for turn in self.attachments:
             if not 0 <= turn < len(self.turns):
                 msg = f"an attachment names turn {turn}, and the case has {len(self.turns)}"
@@ -178,20 +221,27 @@ class EvalCase(CamelModel):
             if not 0 < turn < len(self.turns):
                 msg = f"a new conversation starts before a later turn, not turn {turn}"
                 raise ValueError(msg)
+        for answer in self.gates.answers:
+            if answer.turn >= len(self.turns):
+                msg = f"an answer names turn {answer.turn}, and the case has {len(self.turns)}"
+                raise ValueError(msg)
+        if self.expected.builds_strategy is False and (
+            self.gates.policy == "auto"
+            or (self.gates.policy == "stop" and len(self.turns) > 1)
+        ):
+            msg = "a case that must build nothing never accepts an offer"
+            raise ValueError(msg)
+        phrased = {*self.expected.turn_reply_mentions, *self.expected.turn_reply_omits}
+        for turn in sorted(phrased):
+            if not 0 <= turn < len(self.turns):
+                msg = f"a reply phrase names turn {turn}, and the case has {len(self.turns)}"
+                raise ValueError(msg)
         return self
-
-    def gate_answers(self) -> list[GateAnswer]:
-        """The answers the case gives its cards, in order; none under a policy."""
-        match self.gates:
-            case "auto" | "stop":
-                return []
-            case answers:
-                return list(answers)
 
     def _free_text(self) -> list[str]:
         """Every text the case carries that a person could have written."""
         expected = self.expected
-        answers = self.gate_answers()
+        answers = self.gates.answers
         return [
             *self.turns,
             self.rationale,
@@ -199,6 +249,8 @@ class EvalCase(CamelModel):
             *expected.reply_mentions,
             *expected.reply_omits,
             *expected.step_titles_omit,
+            *(p for phrases in expected.turn_reply_mentions.values() for p in phrases),
+            *(p for phrases in expected.turn_reply_omits.values() for p in phrases),
             *(v for values in expected.parameters.values() for v in values.values()),
             *(name for names in self.attachments.values() for name in names),
             *(answer.comment for answer in answers if answer.comment is not None),
@@ -213,12 +265,14 @@ class EvalCase(CamelModel):
 
 
 __all__ = [
+    "QUESTION_CARD",
     "CaseOrigin",
     "CaseProvenance",
     "EvalCase",
     "ExpectedOutcome",
     "GateAnswer",
     "GateEnd",
+    "GatePlan",
     "GatePolicy",
     "RecordedCount",
 ]

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 
 _SOURCES = CardSources(
     check_id="call_verify",
@@ -17,6 +18,7 @@ _SOURCES = CardSources(
     wdk_strategy_id=None,
     root_wdk_step_id=None,
     node_results=[],
+    counts=BuiltCounts(),
     spec=None,
     control_tests=[],
     pending_checks=["Febrile vs normal"],

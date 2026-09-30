@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import { BuildDetail } from "./LedgerPanelDetail";
 
-function buildWith(count: number): InvestigationLedger["build"] {
+function built(): InvestigationLedger["build"] {
   return {
     pushedCount: 1,
     failedCount: 0,
@@ -17,29 +17,23 @@ function buildWith(count: number): InvestigationLedger["build"] {
     recoveryKind: "none",
     succeeded: true,
     wdkStrategyId: null,
-    wdkUrl: null,
-    nodeResults: [{ nodeId: "n1", searchName: "GenesByText", count, status: "ok" }],
+    nodeResults: [{ nodeId: "n1", searchName: "GenesByText", status: "zero" }],
   };
 }
 
-describe("BuildDetail counts", () => {
-  it("says a count is from the build, not what the strategy holds now", () => {
-    // The strategy rail shows the live count. An edit outside the build moves
-    // one and not the other, so an unqualified number reads as current fact.
-    render(<BuildDetail build={buildWith(3259)} />);
+describe("BuildDetail rows", () => {
+  it("shows no count: the live counts are the facts part's", () => {
+    render(<BuildDetail build={built()} />);
 
-    expect(screen.getByText(/3,259 genes at build/)).toBeInTheDocument();
+    expect(screen.queryByText(/genes/)).not.toBeInTheDocument();
   });
 
-  it("still shows the number", () => {
-    render(<BuildDetail build={buildWith(15)} />);
+  it("keeps the search name and the build status", () => {
+    render(<BuildDetail build={built()} />);
 
-    expect(screen.getByText(/15/)).toBeInTheDocument();
-  });
-
-  it("keeps the search name", () => {
-    render(<BuildDetail build={buildWith(1)} />);
-
-    expect(screen.getByText("GenesByText")).toBeInTheDocument();
+    expect([
+      screen.getByText("GenesByText").textContent,
+      screen.getByText("zero").textContent,
+    ]).toEqual(["GenesByText", "zero"]);
   });
 });

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
+from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.ledger_sections import BuildSection
@@ -51,6 +52,7 @@ def hold_the_built_step(session: StrategySession, step: str = STEP) -> None:
         wdk_step_ids={step: _WDK_STEP},
         step_counts={step: 70},
         wdk_strategy_id=_WDK_STRATEGY,
+        wdk_step_tree=WDKStepTree(step_id=_WDK_STEP),
     )
 
 
@@ -65,15 +67,11 @@ def built_outcome(step: str = STEP) -> BuildOutcome:
     return BuildOutcome(
         pushed_step_ids=[step],
         wdk_strategy_id=_WDK_STRATEGY,
-        wdk_url=URL,
-        counts={step: 70},
-        root_count=70,
         node_results=[
             NodeResult(
                 node_id=step,
                 search_name=SEARCH,
                 wdk_step_id=_WDK_STEP,
-                count=70,
                 status="ok",
             )
         ],

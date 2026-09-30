@@ -45,8 +45,9 @@ class Fault:
         return None
 
 
-# A FRAME tool may be refused three times; the fourth refusal stops the pass.
-_UNTIL_THE_PASS_STOPS = 4
+# A FRAME tool may be refused three times, and an identical call refused again
+# fails once without counting, so the fifth identical call stops the pass.
+_UNTIL_THE_PASS_STOPS = 5
 
 FAULTS: dict[str, Fault] = {
     "syntenic-left-off": Fault("frame", fault_calls.syntenic_left_off),
@@ -54,24 +55,15 @@ FAULTS: dict[str, Fault] = {
     "repeat-control-test": Fault(
         "verification", fault_calls.repeat_control_test, times=2
     ),
-    "transcript-count": Fault("lead", fault_calls.transcript_count),
     "all-unclear": Fault("verification", fault_calls.all_unclear),
     "sweep-without-controls": Fault("lead", fault_calls.sweep_without_controls),
     "long-reason": Fault("frame", fault_calls.long_reason, _UNTIL_THE_PASS_STOPS),
     "short-card-reply": Fault("lead", fault_calls.short_card_reply),
     "unlisted-search": Fault("frame", fault_calls.unlisted_search),
     "value-as-term": Fault("frame", fault_calls.value_as_term, stands=True),
+    "display-name-term": Fault("frame", fault_calls.display_name_term, stands=True),
     "off-vocabulary": Fault("frame", fault_calls.off_vocabulary),
-    "unbacked-controls": Fault("lead", fault_calls.unbacked_controls),
-    "misstated-count": Fault("lead", fault_calls.misstated_count),
-    "misnamed-deletion": Fault("lead", fault_calls.misnamed_deletion),
-    "unstated-caveat": Fault("lead", reply_faults.unstated_caveat),
-    "unstated-gap": Fault(
-        "lead",
-        reply_faults.unstated_gap,
-        setup=Fault("verification", reply_faults.unmet_requirement),
-    ),
-    "misstated-control-list": Fault("lead", reply_faults.misstated_control_list),
+    "unshown-count": Fault("lead", reply_faults.unshown_count),
     "organism-split": Fault("lead", reply_faults.organism_split, stands=True),
     "open-value-in-prose": Fault("lead", reply_faults.open_value_in_prose),
 }

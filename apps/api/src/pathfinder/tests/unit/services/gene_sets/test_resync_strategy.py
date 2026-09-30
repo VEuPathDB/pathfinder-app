@@ -15,8 +15,8 @@ from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import EmptyResyncError, GeneSetService
-from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
 Resolved = tuple[list[str], GeneSetWdkContext, int]
 
@@ -25,8 +25,8 @@ Resolved = tuple[list[str], GeneSetWdkContext, int]
 async def test_resync_strategy_replaces_stale_snapshot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = GeneSetStore()
-    store.save(
+    store = InMemoryGeneSetStore()
+    await store.save(
         GeneSet(
             id="g1",
             name="Immunogenic candidates",
@@ -59,17 +59,26 @@ async def test_resync_strategy_replaces_stale_snapshot(
 
     monkeypatch.setattr(operations, "resolve_wdk_context", _fake_resolve)
 
-    out = await svc.resync_strategy("g1", wdk_strategy_id=330427013, site_id="plasmodb")
+    out = await svc.resync_strategy(
+        "g1",
+        wdk_strategy_id=330427013,
+        site_id="plasmodb",
+        answer_revision="9f1c2b7a4e3d5c60",
+    )
 
     assert out is not None
+    assert out.answer_revision == "9f1c2b7a4e3d5c60"
     assert out.gene_ids == ["PF3D7_A", "PF3D7_B"]  # fresh + deduped
     assert out.wdk_step_id == 439858933  # re-resolved to the rebuilt root
     assert out.step_count == 4
 
 
-async def _resync(store: GeneSetStore) -> GeneSet:
+async def _resync(store: InMemoryGeneSetStore) -> GeneSet:
     out = await GeneSetService(store).resync_strategy(
-        "g2", wdk_strategy_id=214626640, site_id="plasmodb"
+        "g2",
+        wdk_strategy_id=214626640,
+        site_id="plasmodb",
+        answer_revision="9f1c2b7a4e3d5c60",
     )
     assert out is not None
     return out
@@ -119,8 +128,8 @@ def _resolver(
 async def test_a_resync_carries_the_search_name_record_type_and_parameters(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = GeneSetStore()
-    store.save(_signal_peptide_set())
+    store = InMemoryGeneSetStore()
+    await store.save(_signal_peptide_set())
     parameters: dict[str, ParamValue] = {
         "min_molecular_weight": StringValue(value="50000"),
         "organism": MultiPickValue(values=["Plasmodium falciparum 3D7"]),
@@ -151,8 +160,8 @@ async def test_a_resync_carries_the_search_name_record_type_and_parameters(
 async def test_a_resync_onto_another_root_step_replaces_the_previous_search_name(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = GeneSetStore()
-    store.save(_signal_peptide_set())
+    store = InMemoryGeneSetStore()
+    await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
         "resolve_wdk_context",
@@ -180,8 +189,8 @@ async def test_a_resync_onto_a_multi_step_strategy_records_no_search(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A strategy with more than one step has no single search to record."""
-    store = GeneSetStore()
-    store.save(_signal_peptide_set())
+    store = InMemoryGeneSetStore()
+    await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
         "resolve_wdk_context",
@@ -244,8 +253,8 @@ async def test_a_resync_that_reads_no_genes_leaves_the_set_whole(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A resolution with no genes has learnt nothing, so it writes nothing."""
-    store = GeneSetStore()
-    store.save(_signal_peptide_set())
+    store = InMemoryGeneSetStore()
+    await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
         "resolve_wdk_context",
@@ -254,11 +263,14 @@ async def test_a_resync_that_reads_no_genes_leaves_the_set_whole(
 
     with pytest.raises(EmptyResyncError) as caught:
         await GeneSetService(store).resync_strategy(
-            "g2", wdk_strategy_id=214626640, site_id="plasmodb"
+            "g2",
+            wdk_strategy_id=214626640,
+            site_id="plasmodb",
+            answer_revision="9f1c2b7a4e3d5c60",
         )
 
     assert "gametocyte secreted" in str(caught.value.detail)
-    kept = store.get("g2")
+    kept = await store.get("g2")
     assert kept is not None
     assert kept.gene_ids == SIGNAL_PEPTIDE_GENES
     assert kept.search_name == "GenesWithSignalPeptide"
@@ -271,8 +283,8 @@ async def test_a_resync_that_reads_a_smaller_real_list_replaces_the_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A strategy that holds fewer genes than before is still a resolution."""
-    store = GeneSetStore()
-    store.save(_signal_peptide_set())
+    store = InMemoryGeneSetStore()
+    await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
         "resolve_wdk_context",

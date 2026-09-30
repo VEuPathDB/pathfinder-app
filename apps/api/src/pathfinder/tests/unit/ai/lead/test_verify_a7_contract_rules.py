@@ -1,4 +1,4 @@
-"""Attacks on the ``claimed_frame`` and ``machine_words`` contract rules.
+"""Attacks on the ``claimed_frame`` contract rule.
 
 Each test states one reply the release verifier constructed, and asserts how
 the rule reads it.
@@ -6,31 +6,25 @@ the rule reads it.
 
 from __future__ import annotations
 
-from dataclasses import replace
 from uuid import uuid4
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
-from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     SpecStructure,
     StructureNode,
 )
-from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
-    session_with_one_step,
-    user_intent,
 )
 
-THE_CHOICE = OpenQuestion(
+THE_CHOICE = AskedQuestion(
     question="Which proteomics evidence should the filter require?",
     dimension=ConstraintKind.DATA_TYPE,
     recommended_value="two independent observations",
@@ -122,91 +116,3 @@ class TestClaimedFrameOverAnEmptyDiff:
             )
             == []
         )
-
-
-def _editing_deps() -> LeadDeps:
-    deps = lead_deps(
-        pipeline_state(
-            user_prompt="Add a mass-spec evidence filter.",
-            user_message_id=uuid4(),
-        ),
-        intent=user_intent(IntentClassification.EDIT_STRATEGY),
-        strategy_session=session_with_one_step(),
-    )
-    deps.state.turn_markers.intent_classified = True
-    return deps
-
-
-def _machine_kinds(prose: str, *, refused: dict[str, int] | None = None) -> list[str]:
-    ctx = replace(run_context_for(_editing_deps()), retries=dict(refused or {}))
-    report: LeadResponse = reply(prose, questions=[THE_CHOICE])
-    return [
-        m.kind for m in reconcile(report, turn_record(ctx)) if m.kind == "machine_words"
-    ]
-
-
-class TestMachineWordsAfterARefusedDispatch:
-    def test_a_gene_count_passes(self) -> None:
-        assert (
-            _machine_kinds(
-                "The site returned 422 genes, so I stopped. Which evidence?",
-                refused=A_REFUSED_EDIT,
-            )
-            == []
-        )
-
-    def test_an_http_status_is_refused(self) -> None:
-        assert _machine_kinds(
-            "VEuPathDB answered HTTP 422, so nothing was added. Which evidence?",
-            refused=A_REFUSED_EDIT,
-        ) == ["machine_words"]
-
-    def test_a_step_number_in_prose_passes(self) -> None:
-        assert (
-            _machine_kinds(
-                "The ortholog step (step 3) was not changed. Which evidence?",
-                refused=A_REFUSED_EDIT,
-            )
-            == []
-        )
-
-    def test_naming_the_act_in_plain_words_passes(self) -> None:
-        assert (
-            _machine_kinds(
-                "I could not verify the strategy, so it is unchanged. Which evidence?",
-                refused={"verify_strategy": 1},
-            )
-            == []
-        )
-
-    def test_the_identifier_form_is_refused(self) -> None:
-        assert _machine_kinds(
-            "I could not run verify_strategy. Which evidence?",
-            refused={"verify_strategy": 1},
-        ) == ["machine_words"]
-
-    def test_a_success_turn_mentioning_the_retry_is_not_checked(self) -> None:
-        assert _machine_kinds("A ModelRetry is not a thing here. Which evidence?") == []
-
-    def test_the_lead_tool_names_are_refused(self) -> None:
-        """The approval tools the Lead calls itself are identifiers too."""
-        assert _machine_kinds(
-            "The delete_step call was declined and clear_strategy was not "
-            "offered; consult_user came back empty. Which evidence?",
-            refused=A_REFUSED_EDIT,
-        ) == ["machine_words"]
-
-    def test_a_hyphenated_gene_count_passes(self) -> None:
-        assert (
-            _machine_kinds(
-                "The intersection left a 422-gene set unchanged. Which evidence?",
-                refused=A_REFUSED_EDIT,
-            )
-            == []
-        )
-
-    def test_a_capitalised_error_code_is_refused(self) -> None:
-        assert _machine_kinds(
-            "Error 422 came back from the site. Which evidence?",
-            refused=A_REFUSED_EDIT,
-        ) == ["machine_words"]

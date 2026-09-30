@@ -15,7 +15,8 @@ from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import CONTRACT_HEADING, LeadResponse, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     CLEAN_REPLY,
@@ -45,7 +46,7 @@ A_BUDGET_STOP = PhaseStop(
     criteria_bound=0,
     criteria_declared=4,
 )
-THE_CHOICE = OpenQuestion(
+THE_CHOICE = AskedQuestion(
     question="Should the ortholog screen keep the strict species list?",
     dimension=ConstraintKind.ORGANISM,
     recommended_value="the relaxed representative list",

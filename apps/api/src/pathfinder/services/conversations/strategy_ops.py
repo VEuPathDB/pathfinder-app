@@ -43,6 +43,7 @@ from pathfinder.services.conversations.responses import (
 from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.dataset_sources import save_dataset_sources
+from pathfinder.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from pathfinder.services.strategies.insert_saved import (
     InsertSavedResult,
     insert_saved_into_conversation,
@@ -268,13 +269,15 @@ async def refresh_counts(
         live = await read_the_live_strategy(sync_state, site_id)
         if live is None:
             raise SiteUnavailableError(site_id, SITE_DID_NOT_ANSWER)
-        await take_what_the_site_holds(
+        edits = await take_what_the_site_holds(
             graph=graph, sync_state=sync_state, site_id=site_id, live=live
         )
         take_the_sites_counts(graph=graph, sync_state=sync_state, live=live)
         await persist_strategy_ast_to_conversation(
             deps=ctx, graph=graph, sync_result=None
         )
+        if edits.moved:
+            await defer_the_gene_set_refresh(ctx)
         refreshed = await locked_repo.get_with_strategy(conversation_id)
         if refreshed is None:
             raise NotFoundError(

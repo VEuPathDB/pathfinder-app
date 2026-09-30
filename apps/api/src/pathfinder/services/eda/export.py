@@ -4,6 +4,7 @@ those parameters read back as the analysis they select."""
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 
 from pydantic import ValidationError
 from veupathdb.domain.parameters import ParamValue, to_wire
@@ -22,15 +23,51 @@ from veupathdb.eda import (
 from veupathdb_mcp.catalog import EdaStepRequest
 
 from pathfinder.domain.eda_parts import EdaEffectDirection
-from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, AnalysisKind
+from pathfinder.domain.strategy.analysis_binding import (
+    AnalysisBinding,
+    AnalysisKind,
+    CutTallies,
+)
 from pathfinder.services.eda.authoring import serialize_spec
+from pathfinder.services.eda.catalog import get_study_detail_for_dataset
 from pathfinder.services.eda.compute import (
     VolcanoThresholds,
     analysis_computation,
     comparison_of,
+    read_cut_tallies,
 )
-from pathfinder.services.eda.description import filter_summaries
+from pathfinder.services.eda.description import display_names, filter_summaries
 from pathfinder.services.eda.direction import direction_sentence
+
+type VariableNames = Mapping[tuple[str, str], str]
+
+
+@dataclass(frozen=True, slots=True)
+class ExportReading:
+    """What an export reads beside the analysis: the study's name for each
+    variable, by entity and variable id, and the counts of a compute's cut."""
+
+    display_names: VariableNames = field(default_factory=dict)
+    tallies: CutTallies | None = None
+
+
+async def read_the_export(
+    site_id: str,
+    *,
+    dataset_id: str,
+    analysis: EdaAnalysisDetail,
+    thresholds: VolcanoThresholds | None,
+) -> ExportReading:
+    """The study's names for the analysis's variables, and the counts of the cut."""
+    entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
+    tallies = (
+        None
+        if thresholds is None
+        else await read_cut_tallies(
+            site_id, study_id=entry.study_id, analysis=analysis, cut=thresholds
+        )
+    )
+    return ExportReading(display_names=display_names(study), tallies=tallies)
 
 
 def _volcano(
@@ -156,6 +193,7 @@ def exported_analysis(
         spec,
         parameters,
         reads_a_volcano=kind is AnalysisKind.COMPUTE,
+        reading=ExportReading(),
     )
 
 
@@ -165,19 +203,33 @@ def analysis_binding(
     parameters: Mapping[str, ParamValue],
     *,
     reads_a_volcano: bool,
+    reading: ExportReading,
 ) -> AnalysisBinding:
-    """What an analysis document selects, beside the parameters that carry it."""
-    subset = filter_summaries(spec.descriptor.subset.descriptor, display_names={})
+    """What an analysis document selects, beside the parameters that carry it,
+    and what the export read of its study and its compute.
+
+    ``subset`` names each variable by its id; the words name it as the study
+    does when the export read the study.
+    """
+    filters = spec.descriptor.subset.descriptor
+    shown = filter_summaries(filters, display_names=reading.display_names)
     stated = AnalysisBinding(
         dataset_id=dataset_id,
-        subset=subset,
-        words=_subset_words(spec.display_name, subset),
+        subset=filter_summaries(filters, display_names={}),
+        words=_subset_words(spec.display_name, shown),
         step_parameters=dict(parameters),
+        shown_subset=shown,
     )
     computation = _volcano_computation(spec.descriptor) if reads_a_volcano else None
     cut = None if computation is None else _volcano_cut(computation)
     if computation is None or cut is None:
         return stated
+    stated = stated.model_copy(
+        update={
+            "effect_size_label": _effect_size_label(computation),
+            "tallies": reading.tallies,
+        }
+    )
     compared = next(
         (
             held
@@ -204,6 +256,9 @@ def analysis_binding(
             "method": method,
             "value_entity_id": measured.entity_id,
             "value_variable": measured.variable_id,
+            "value_variable_name": reading.display_names.get(
+                (measured.entity_id, measured.variable_id), ""
+            ),
             "words": (
                 f"{direction_sentence(comparison, cut.effect_direction)} "
                 f"({method}, {_bounds(cut)})"
@@ -251,6 +306,15 @@ def _is_a_volcano(descriptor: EdaVisualizationDescriptor) -> bool:
             return True
         case _:
             return False
+
+
+def _effect_size_label(computation: EdaComputation) -> str:
+    """The unit the compute stored beside the cut, or nothing when it stored none."""
+    match computation.visualizations[0].descriptor:
+        case EdaVolcanoDescriptor(configuration=configuration):
+            return configuration.effect_size_label or ""
+        case _:
+            return ""
 
 
 def _volcano_cut(computation: EdaComputation) -> VolcanoThresholds | None:

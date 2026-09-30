@@ -16,6 +16,7 @@ from pathfinder.ai.stream_part_payloads import ControlTestResults
 from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.separation import SeparationReport
+from pathfinder.domain.turn_facts import TurnFacts
 
 
 def control_test_results_event(results: ControlTestResults) -> DataChunk:
@@ -42,6 +43,14 @@ def separation_result_event(report: SeparationReport) -> DataChunk:
     )
 
 
+def facts_event(facts: TurnFacts) -> DataChunk:
+    """Report the facts the turn shows beside its reply."""
+    return DataChunk(
+        type="data-facts",
+        data=facts.model_dump(by_alias=True, mode="json"),
+    )
+
+
 class StrategyRevisionPayload(CamelModel):
     """Payload for the strategy-revision chunk. The revision is a fingerprint
     of the strategy that the turn describes.
@@ -65,6 +74,23 @@ def ledger_update_event(*, ledger: InvestigationLedger) -> DataChunk:
     return DataChunk(
         type="data-ledger-update",
         data=ledger.model_dump(by_alias=True, mode="json"),
+    )
+
+
+class DeleteCascadePayload(CamelModel):
+    """The steps a parked delete removes besides its own, as its card names each."""
+
+    tool_call_id: str
+    removes: list[str]
+
+
+def delete_cascade_event(*, tool_call_id: str, removes: list[str]) -> DataChunk:
+    """Report what a delete card removes beside its one-line question."""
+    return DataChunk(
+        type="data-delete-cascade",
+        data=DeleteCascadePayload(
+            tool_call_id=tool_call_id, removes=removes
+        ).model_dump(by_alias=True, mode="json"),
     )
 
 

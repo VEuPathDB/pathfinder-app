@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from assistant_core.persistence.models import Conversation
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
+from pathfinder.domain.strategy.revision import answer_revision, parse_strategy_ast
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
@@ -39,8 +40,9 @@ class _StubRepo:
 class _StubGeneSetService:
     resolved: list[str]
     created: list[GeneSet] = field(default_factory=list)
+    saved: list[GeneSet] = field(default_factory=list)
 
-    def find_by_wdk_strategy(
+    async def find_strategy_import(
         self,
         _user_id: UUID,
         _wdk_strategy_id: int,
@@ -71,8 +73,8 @@ class _StubGeneSetService:
         self.created.append(gs)
         return gs
 
-    async def flush(self, _gene_set_id: str) -> None:
-        return None
+    async def save(self, gene_set: GeneSet) -> None:
+        self.saved.append(gene_set)
 
 
 def _thread() -> tuple[Conversation, ConversationStrategyView]:
@@ -100,7 +102,7 @@ def _thread() -> tuple[Conversation, ConversationStrategyView]:
 async def _run(
     thread: tuple[Conversation, ConversationStrategyView],
     resolved: list[str],
-) -> tuple[_StubRepo, list[GeneSet]]:
+) -> tuple[_StubRepo, list[GeneSet], list[GeneSet]]:
     conversation = thread[0]
     repo = _StubRepo()
     svc = _StubGeneSetService(resolved=resolved)
@@ -112,11 +114,11 @@ async def _run(
         site_id="plasmodb",
         user_id=conversation.user_id,
     )
-    return repo, [] if created is None else [created]
+    return repo, [] if created is None else [created], svc.saved
 
 
 async def test_empty_result_creates_nothing_and_does_not_latch() -> None:
-    repo, created = await _run(_thread(), [])
+    repo, created, _saved = await _run(_thread(), [])
 
     assert created == []
     assert repo.updates == []
@@ -124,9 +126,12 @@ async def test_empty_result_creates_nothing_and_does_not_latch() -> None:
 
 async def test_non_empty_result_imports_and_latches() -> None:
     thread = _thread()
-    repo, created = await _run(thread, ["PF3D7_0100100"])
+    repo, created, saved = await _run(thread, ["PF3D7_0100100"])
 
     assert len(created) == 1
+    assert [(gs.id, gs.answer_revision) for gs in saved] == [
+        (created[0].id, answer_revision(parse_strategy_ast(thread[1].strategy_ast)))
+    ]
     assert len(repo.updates) == 1
     conversation_id, upd = repo.updates[0]
     assert conversation_id == thread[0].id
@@ -138,6 +143,6 @@ async def test_the_set_takes_the_name_the_caller_gives() -> None:
     thread = _thread()
     thread[0].name = ""
 
-    _repo, created = await _run(thread, ["PF3D7_0100100"])
+    _repo, created, _saved = await _run(thread, ["PF3D7_0100100"])
 
     assert [gs.name for gs in created] == ["Kinases expressed in gametocytes"]

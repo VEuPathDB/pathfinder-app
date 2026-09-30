@@ -23,6 +23,7 @@ from veupathdb.eda import (
 )
 
 from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
+from pathfinder.domain.strategy.analysis_binding import CutTallies
 from pathfinder.platform.errors import AppError, ErrorCode
 from pathfinder.services.eda.catalog import resolve_dataset
 
@@ -139,6 +140,29 @@ def retained_summary(
         retained=up + down,
         retained_up=up,
         retained_down=down,
+    )
+
+
+def cut_tallies(stats: VolcanoStatsResponse, cut: VolcanoThresholds) -> CutTallies:
+    """The genes the compute tested, and how many each reading of the cut keeps."""
+
+    def kept(effect: float, significance: float, direction: str) -> RetainedSummary:
+        return retained_summary(
+            stats,
+            effect_size_threshold=effect,
+            significance_threshold=significance,
+            effect_direction=direction,
+        )
+
+    effect, significance = cut.effect_size_threshold, cut.significance_threshold
+    both = kept(effect, significance, "upAndDown")
+    return CutTallies(
+        tested=both.total_rows - both.unparseable_rows,
+        retained=kept(effect, significance, cut.effect_direction).retained,
+        retained_up=both.retained_up,
+        retained_down=both.retained_down,
+        at_any_effect=kept(0.0, significance, cut.effect_direction).retained,
+        at_any_significance=kept(effect, 1.0, cut.effect_direction).retained,
     )
 
 
@@ -338,6 +362,25 @@ def stored_volcano_cut(analysis: EdaAnalysisDetail) -> VolcanoThresholds:
             case _:
                 continue
     return DEFAULT_VOLCANO_CUT
+
+
+async def read_cut_tallies(
+    site_id: str,
+    *,
+    study_id: str,
+    analysis: EdaAnalysisDetail,
+    cut: VolcanoThresholds,
+) -> CutTallies:
+    """The counts of this cut, from the statistics the analysis's compute holds."""
+    computation = analysis_computation(analysis)
+    statistics = await read_statistics(
+        site_id,
+        compute_name=computation.descriptor.type,
+        study_id=study_id,
+        config=computation.descriptor.configuration,
+        filters=analysis.descriptor.subset.descriptor,
+    )
+    return cut_tallies(statistics, cut)
 
 
 async def bound_volcano(

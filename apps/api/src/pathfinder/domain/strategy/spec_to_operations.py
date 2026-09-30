@@ -250,7 +250,7 @@ def _moved_values(change: CriterionChange, after: Criterion) -> dict[str, ParamV
     """The values this change moved, as the edited spec states them."""
     return {
         name: value
-        for name, value in after.resolved_params.items()
+        for name, value in after.param_values.items()
         if name in change.changed_params
     }
 

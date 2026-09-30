@@ -44,13 +44,17 @@
     "curatorNote": ""
   },
   "effort": "medium",
-  "gates": [
-    {
-      "accept": false,
-      "comment": "Not now: a kinase filter is too narrow for what I need.",
-      "picks": null
-    }
-  ],
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "propose_changes",
+        "turn": 1,
+        "accept": false,
+        "comment": "Not now: a kinase filter is too narrow for what I need."
+      }
+    ]
+  },
   "attachments": {},
   "newConversationBefore": []
 }

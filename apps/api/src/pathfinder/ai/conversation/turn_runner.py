@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import dataclasses
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from assistant_core.graph.turn_state import DurableTaskResult
 from assistant_core.mcp.resolution import ResolvedToolSources
 from assistant_core.platform.context import PhaseOverrides, attach_phase_overrides
 from assistant_core.platform.logging import get_logger
+from assistant_core.platform.observability import TraceScope, traced
 from assistant_core.spec import (
     AssistantSpec,
     TurnContextRequest,
@@ -107,6 +109,29 @@ class TurnRequest:
     user_id: UUID
     durable_result: DurableTaskResult | None = None
     durable_results: tuple[DurableTaskResult, ...] = ()
+    trace_labels: Mapping[str, str] = field(default_factory=dict)
+
+
+def turn_trace_scope(
+    request: TurnRequest, assistant_id: str, turn_id: UUID
+) -> TraceScope:
+    """The root span one turn runs under, on its thread's session."""
+    body = request.body
+    resumed = request.durable_result is not None
+    return TraceScope(
+        name=assistant_id,
+        session_id=body.conversation_id,
+        user_id=request.user_id,
+        tags=(body.site_id,),
+        metadata={
+            "assistant_id": assistant_id,
+            "turn_id": str(turn_id),
+            "site_id": body.site_id,
+            "turn_kind": "durable_completion" if resumed else "message",
+            **request.trace_labels,
+        },
+        input_text="" if resumed else body.last_user_text,
+    )
 
 
 async def run_turn(
@@ -152,15 +177,19 @@ async def run_turn(
                     tool_sources=dict(resolved.by_name),
                 ),
             )
+        request = dataclasses.replace(request, body=body)
         # Work this turn defers outlives the turn, so it reads the picks here.
-        with attach_phase_overrides(
-            PhaseOverrides(
-                models=body.runtime_phase_models,
-                reasoning=body.runtime_phase_reasoning,
+        with (
+            traced(turn_trace_scope(request, spec.assistant_id, writer.turn_id)),
+            attach_phase_overrides(
+                PhaseOverrides(
+                    models=body.runtime_phase_models,
+                    reasoning=body.runtime_phase_reasoning,
+                ),
             ),
         ):
             await _run_turn_with_context(
-                request=dataclasses.replace(request, body=body),
+                request=request,
                 spec=spec,
                 compiled_graph=compiled_graph,
                 runtime_context=runtime_context,

@@ -12,6 +12,7 @@ from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.specs import CriterionReply, criterion_call, frame_call
 from pathfinder.ai.models.mock.strategy_specs import intersect_spec
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 SITES = ("plasmodb", "vectorbase")
@@ -28,7 +29,7 @@ def _workspace(site_id: str, *criterion_ids: str) -> str:
                 id=cid,
                 text=f"{cid} genes",
                 search_name="GenesWithSignalPeptide",
-                resolved_params={"organism": organism},
+                resolved_params=bound({"organism": organism}),
             )
         )
     return pinned_frame_workspace(agent_run_context(agent_state=state)) or ""

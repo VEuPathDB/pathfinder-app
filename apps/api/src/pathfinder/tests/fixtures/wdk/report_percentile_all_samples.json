@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "plasmodb",
+  "method": "POST",
+  "url": "https://plasmodb.org/plasmo/service/record-types/transcript/searches/GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-29",
+  "reads": "other option: GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile, samples_percentile_generic=[asexual blood stages], min_expression_percentile=80, max_expression_percentile=100, any_or_all=all, protein_coding_only=yes, channel=Channel 1, profileset_generic=Sense"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 1087,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 1103,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 1103,
+   "displayTotalCount": 1087
+  }
+ }
+}

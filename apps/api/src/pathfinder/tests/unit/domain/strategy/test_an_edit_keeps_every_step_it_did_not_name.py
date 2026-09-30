@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.domain.strategy._builders import (
     applied,
     combine,
@@ -143,7 +144,11 @@ def _with_one_value_moved(
         if criterion.id == target:
             criterion.resolved_params = {
                 **criterion.resolved_params,
-                "moved_value": moved,
+                **bound(
+                    {
+                        "moved_value": moved,
+                    }
+                ),
             }
     return after, moved
 

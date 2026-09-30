@@ -12,8 +12,8 @@ status: stable
 `ai/lead/turn_contract.py` owns the Lead's reply and the check on it, and
 `ai/lead/turn_record.py` owns the record the check reads:
 
-- `LeadResponse` - the typed reply. It carries three fields the runtime reads as claims:
-  `strategy_changed`, `asked_questions` and `sources`.
+- `LeadResponse` - the typed reply. It carries two fields the runtime reads as claims:
+  `strategy_changed` and `asked_questions`.
 - `TurnRecord` - a frozen model of what the turn did, built by `turn_record(ctx)` from
   `TurnMarkers`, the domain state and the derived ledger.
 - `reconcile(report, record) -> list[Mismatch]` - one pure function, one rule per failure
@@ -44,14 +44,16 @@ or no criterion of it holds an open slot - and tells FRAME to record the criteri
 The two answer one failure from opposite ends: the pass that asks about nothing, and the reply
 that reports what the pass never wrote.
 
-`machine_words` is the rule for how a failure is told. A turn whose dispatch was refused, whose
-pass stopped, or whose push lost a step is a turn that owes the user one plain sentence: what did
-not work, and what was not done. The rule refuses the reply when its prose prints a dispatch tool
-name, a minted step id, or an error string, because the researcher holds none of those and none of
-them says what went wrong. It reads the prose in `ai/lead/reply_claims.py`, beside the claim
-patterns, and its correction and `unfinished_work`'s carry the same sentence to write instead. A
-status code is read only next to the word that makes it one: a bare number in that range is a gene
-count.
+`fact_outside_the_block` is the rule for what the prose may print. The facts part beside the
+reply (`ai/lead/turn_facts.py`, rendered by the product) shows every step with its values and
+count, the caveats and gaps, the strategy link, the saved sets, the control results and the
+references the turn read. The rule refuses a reply whose prose prints a number, an identifier
+the facts part does not show (a token holding a digit, an underscore or an internal colon, a
+search url segment, a step or criterion id) or an http link the facts part does not hold
+(`ai/lead/facts_in_prose.py`). The correction names the printed tokens and says the facts are
+shown beside the reply. See
+[the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md), which
+retired the twelve rules that held the prose to one fact each.
 
 The one latch is also what the precondition gate reads: `intent_gate.verification_pending` is
 `contract_refused and built and not verified`, the condition the deleted `verification_nudged`
@@ -70,18 +72,6 @@ turn leaves open is asked on the question card: `open_value_in_prose` refuses a 
 not end on a card while one is open, with its options from the ledger's `OPEN` line or the
 question's `options`. See
 [an-offer-is-a-card-not-prose](an-offer-is-a-card-not-prose.md).
-
-The `unbacked_evidence` rule reads the prose against the control tests the turn recorded: a
-control count or a control gene id the reply states must be one a test of this turn filed
-(`ai/lead/evidence_claims.py`, see [VERIFY shows its evidence](verify-shows-its-evidence.md)). A
-bare list size ("the 80 positive controls", "81 positives") is held by `misstated_control_list`
-(`ai/lead/verdict_claims.py`) to a list the turn holds: the lists a `separate_controls` card call
-carries, or the size a control result was measured on.
-
-The `counted_in_the_wrong_unit` rule reads the prose against the counts of the steps the
-strategy holds: a transcript strategy is counted in genes (`graph_helpers.py::counted_noun`), so
-a reply that writes one of those counts as "145 transcripts" is corrected to "145 genes". A
-transcript count the strategy does not hold is left alone.
 
 `unclassified_turn` reads the classification gate: a reply on a turn whose message holds no
 accepted classification, while the gate's last refusal stands, is refused with that refusal's

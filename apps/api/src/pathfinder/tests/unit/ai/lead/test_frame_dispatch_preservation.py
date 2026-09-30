@@ -26,6 +26,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _PROMPT = "use the DeRisi dataset for the expression filter, keep the rest"
@@ -44,7 +45,7 @@ def _go_criterion(organism: str = "Plasmodium") -> Criterion:
         id="step_go",
         text="genes annotated with protein kinase activity",
         search_name="GenesByGoTerm",
-        resolved_params={"organism": MultiPickValue(values=[organism])},
+        resolved_params=bound({"organism": MultiPickValue(values=[organism])}),
     )
 
 
@@ -53,7 +54,9 @@ def _expression_criterion(percentile: float = 80) -> Criterion:
         id="step_expr",
         text="genes in the top expression decile",
         search_name="GenesByRNASeqEvidence",
-        resolved_params={"min_expression_percentile": NumberValue(value=percentile)},
+        resolved_params=bound(
+            {"min_expression_percentile": NumberValue(value=percentile)}
+        ),
     )
 
 

@@ -102,7 +102,10 @@ def _site(monkeypatch: pytest.MonkeyPatch) -> None:
             "only it names a GPI anchor",
             (
                 "c_gpi: the name and the description of GenesByExportPrediction do "
-                "not hold GPI anchor."
+                "not hold GPI anchor. They read: Exported Protein; Find genes that "
+                "are predicted by ExportPred to produce an exported protein. Pass as "
+                "the term a phrase of the request these words hold, or give another "
+                "basis."
             ),
         ),
     ],

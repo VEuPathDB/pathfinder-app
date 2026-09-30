@@ -1,14 +1,16 @@
 """FRAME-phase toolset - retrieval-grounded operationalize + bind + resolve."""
 
-from pydantic_ai.tools import RunContext
+from pydantic_ai.tools import RunContext, Tool
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
 
+from pathfinder.ai.agents.tool_vocabulary import RECORD_READS
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     another_sites_entry,
     read_experiment,
 )
+from pathfinder.ai.tools.standalone._frame_schema import name_the_open_sheets
 from pathfinder.ai.tools.standalone.catalog import (
     browse_search_categories,
     get_record_types,
@@ -37,6 +39,8 @@ from pathfinder.ai.tools.toolsets._dynamic import (
     EnumOverrides,
     ValidatingEnumToolset,
 )
+from pathfinder.ai.tools.toolsets._read_once import ReadOnceToolset
+from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 
 
 def _frame_enum_overrides(ctx: RunContext[AgentDeps]) -> EnumOverrides:
@@ -47,8 +51,8 @@ def _frame_enum_overrides(ctx: RunContext[AgentDeps]) -> EnumOverrides:
     reachable = known - ctx.deps.service_outage.unavailable_searches()
     candidates = sorted(reachable or known)
     overrides: EnumOverrides = {}
+    # An overview is a catalog read of its own, so it takes any name the site holds.
     if reachable:
-        overrides[("get_search_overview", "search_name")] = candidates
         overrides[("set_criterion", "search_name")] = candidates
         overrides[("get_parameter_options", "search_name")] = candidates
     return overrides
@@ -74,7 +78,7 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_parameter_options,
             lookup_phyletic_codes,
             list_saved_strategies,
-            set_criterion,
+            Tool(set_criterion, prepare=name_the_open_sheets),
             set_structure,
             drop_criterion,
             lookup_gene_records,
@@ -85,8 +89,13 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             remember,
         ],
     )
-    return ValidatingEnumToolset(
-        wrapped=base,
-        build_overrides=_frame_enum_overrides,
-        explain=another_sites_entry,
+    return ReadOnceToolset(
+        wrapped=RefusalMemoryToolset(
+            wrapped=ValidatingEnumToolset(
+                wrapped=base,
+                build_overrides=_frame_enum_overrides,
+                explain=another_sites_entry,
+            )
+        ),
+        reads=RECORD_READS,
     )

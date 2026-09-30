@@ -24,7 +24,7 @@ def selected_organisms(criterion: Criterion) -> frozenset[str]:
     if criterion.organism_param is None:
         return frozenset()
     step = StrategyStepNode(
-        search_name=criterion.search_name, parameters=criterion.resolved_params
+        search_name=criterion.search_name, parameters=criterion.param_values
     )
     found = extract_output_organisms(
         step, {criterion.search_name: criterion.organism_param}
@@ -43,7 +43,7 @@ def organism_only(criterion: Criterion, organisms: Collection[str]) -> bool:
     others = set(criterion.resolved_params) - {criterion.organism_param}
     return (
         bool(selected)
-        and others <= set(criterion.defaulted_params)
+        and others <= set(criterion.defaulted())
         and selected <= set(organisms)
     )
 

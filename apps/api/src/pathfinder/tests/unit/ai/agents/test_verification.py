@@ -10,13 +10,30 @@ def _normalized(text: str) -> str:
     return " ".join(text.split())
 
 
-def test_a_numeric_parameter_is_restated_only_from_the_constraint_report() -> None:
+def test_a_numeric_parameter_is_restated_only_from_the_tool_that_read_it() -> None:
     assert (
-        "A numeric parameter is restated ONLY from its ``constraint_report`` "
-        "entry. Write the bound value and the realized reading that entry "
-        "carries; never add an interpretation of your own next to a number "
-        '("80 (top 10%)"). An entry whose status is substituted is a '
-        "deviation: report the realized reading and set ``honored=False``."
+        "A numeric parameter is restated ONLY from the tool result that read it: "
+        "``check_study_step``'s ``checks``, a column fit, or the parameters "
+        "``get_strategy`` returns. Write the bound value and the realized reading "
+        "that result carries; never add an interpretation of your own next to a "
+        'number ("80 (top 10%)"). A value that was substituted is a deviation: '
+        "report the realized reading and the step that holds it in the note, "
+        "and mark its row ``unmet`` with ``answered_by`` empty."
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)
+
+
+def test_a_row_a_step_states_is_met_whatever_the_records_show() -> None:
+    assert (
+        "``status``: ``met`` when a step states it, whatever the sampled records "
+        "show; ``unmet`` when the strategy could state it and no step does, with "
+        "``answered_by`` empty;"
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)
+
+
+def test_the_study_step_verdict_is_the_tools() -> None:
+    assert (
+        "the runtime records those checks as the digest's report, and one not "
+        "honored fails the check whatever the digest says"
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
 
 
@@ -67,3 +84,17 @@ def test_a_control_test_runs_only_on_a_set_attached_to_the_conversation() -> Non
         "state that no controls were available."
     ) in instructions
     assert "when available" not in instructions
+
+
+def test_a_text_requirement_is_shown_by_the_records() -> None:
+    assert (
+        "a requirement a text value answers is met only when a record you judged "
+        "``yes`` or a column fit names it here"
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)
+
+
+def test_a_question_the_researcher_asks_is_no_row() -> None:
+    assert (
+        'A question the researcher asks ("what was it before?") is answered in '
+        "the reply and is never a row"
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)

@@ -36,7 +36,9 @@
     "curatorNote": "Not measured in the flow tables; needs the research tool source."
   },
   "effort": "medium",
-  "gates": "auto",
+  "gates": {
+    "policy": "auto"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

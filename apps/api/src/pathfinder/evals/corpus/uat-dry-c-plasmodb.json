@@ -1,0 +1,86 @@
+{
+  "name": "uat-dry-c-plasmodb",
+  "turns": [
+    "I want candidate vaccine antigens in Plasmodium falciparum 3D7: proteins with a predicted signal peptide or at least one transmembrane domain, expressed in sporozoites.",
+    "Thanks. Can you tell me how many genes each step returns, and does each of those numbers seem right to you? 549 feels like a lot of candidates for sporozoite surface antigens.",
+    "Let's tighten it then. Right now signal peptide is only an alternative to the transmembrane branch. I want a signal peptide required as well, not just as one of two options.",
+    "Good, 125 is a workable size. Now make the sporozoite expression cutoff stricter - top 5 percent instead of the top 20 - and tell me what that does to the count.",
+    "Actually, use the 3D7 blood-stage expression instead of sporozoite.",
+    "Before I accept 39, flip the last combine - the one joining the surface features to blood-stage expression - to a UNION, and explain to me why the counts differ.",
+    "Undo that, keep the intersection.",
+    "Here are three genes I would expect a good antigen list to contain: PF3D7_0304600, PF3D7_1133400, PF3D7_0930300. Check them against the strategy - are they in the 39, and if not, which step drops them?",
+    "Don't re-run it - the control check you already ran reported 2 of 3 recovered on the final step, so one of my three is being dropped somewhere; I'll come back to that. For now, save the current 39-gene result as a gene set called 'vaccine candidates draft'.",
+    "Now the other direction: 39 is on the short side and one of my three known antigens is missing from it. If you had to drop exactly one step to loosen the list, which would you drop and why?",
+    "Agreed, drop the blood-stage expression step and tell me the new count.",
+    "Last thing: give me a five-sentence summary of this whole session that I could put in front of my PI, including the final count and what the saved gene set holds."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "The closing summary names the gene set this conversation saved (vaccine candidates draft) and the current count (288); a requirement swapped or undone earlier yields no gap, and no reply prints a step id.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByTransmembraneDomains": {
+        "min_tm": "1"
+      }
+    },
+    "replyMentions": [
+      "vaccine candidates draft",
+      "288"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": 0,
+    "turnReplyMentions": {
+      "5": [
+        "884"
+      ]
+    },
+    "turnReplyOmits": {
+      "9": [
+        "step_"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 288,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u7",
+    "curatorNote": "The first message states the recorded framing, so the later messages, which quote the recorded counts, describe the strategy the run holds."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "delete_step",
+        "turn": 10,
+        "accept": true
+      }
+    ]
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

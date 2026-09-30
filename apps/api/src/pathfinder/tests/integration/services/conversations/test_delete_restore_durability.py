@@ -12,11 +12,13 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
+from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import Conversation
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.service import ConversationService
 
@@ -27,7 +29,11 @@ async def db_session(
     db_cleaner: None,
 ) -> AsyncGenerator[AsyncSession]:
     del db_cleaner
-    async with session_maker() as session:
+    # A delete purges the thread's checkpoints, so the tables must exist.
+    async with (
+        lifespan_checkpointer(get_settings().database_url),
+        session_maker() as session,
+    ):
         yield session
 
 

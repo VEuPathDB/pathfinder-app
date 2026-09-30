@@ -28,17 +28,6 @@ _COUNT = re.compile(
     r"(?:\s+controls?\b|s\b)",
     re.IGNORECASE,
 )
-# A list size is a count whose noun is the list itself: "the 80 positive
-# controls", "81 positives", "80 positive and 40 negative controls". A count
-# after a word that picks a part of the list ("the top 20 positives") is not.
-_LIST = re.compile(
-    r"(?<![\w.,])(?:(?P<part>top|bottom|first|last|best|highest|lowest|"
-    r"remaining|other|only|extra|additional)\s+)?"
-    r"(?P<size>\d[\d,]*)\s+(?:known\s+|reference\s+|tested\s+)?"
-    r"(?P<kind>positive|negative)"
-    r"(?:\s+controls?\b|s\b|(?=\s+and\s+\d[\d,]*\s+(?:positive|negative)\s+controls?\b))",
-    re.IGNORECASE,
-)
 # A clause ends at a sentence end, a line break or a contrast.
 _CLAUSE_END = re.compile(
     r"[.;!?]+(?=\s|$)|\n+|,?\s+(?:but|while|whereas)\s+", re.IGNORECASE
@@ -160,6 +149,10 @@ def _number(text: str) -> int:
     return int(text.replace(",", ""))
 
 
+def _kind(text: str) -> ControlKind:
+    return "positive" if text.casefold() == "positive" else "negative"
+
+
 def _count_claims(prose: str) -> list[CountClaim]:
     return [
         CountClaim(
@@ -196,11 +189,6 @@ def _id_claims(prose: str) -> list[ControlClaim]:
             if _STEP_ID.search(gene_id) is None
         )
     return claims
-
-
-def count_claims(prose: str) -> list[CountClaim]:
-    """Every control count the prose states."""
-    return _count_claims(_EMPHASIS.sub("", prose))
 
 
 def control_claims(prose: str) -> list[ControlClaim]:
@@ -293,85 +281,6 @@ def unbacked_sample_claims(
     return found
 
 
-@dataclass(frozen=True)
-class ControlList:
-    """A list of controls of one kind the turn holds, by its size."""
-
-    kind: ControlKind
-    size: int
-
-    def text(self) -> str:
-        return f"{self.size} {self.kind}"
-
-
-@dataclass(frozen=True)
-class ListClaim:
-    """A stated size of a list of controls of one kind."""
-
-    stated: int
-    kind: ControlKind
-
-    def text(self) -> str:
-        return f"{self.stated} {self.kind} controls"
-
-
-def _kind(text: str) -> ControlKind:
-    return "positive" if text.casefold() == "positive" else "negative"
-
-
-def list_claims(prose: str) -> list[ListClaim]:
-    """Every count the prose states whose noun is a list of controls.
-
-    A count out of a total is a result, not a size, and a count of a part of
-    the list names no list.
-    """
-    return [
-        ListClaim(stated=_number(match["size"]), kind=_kind(match["kind"]))
-        for clause in _CLAUSE_END.split(_EMPHASIS.sub("", prose))
-        for match in _LIST.finditer(_COUNT.sub(" ", clause))
-        if not match["part"]
-    ]
-
-
-def control_lists(tests: Iterable[ControlTestEvidence]) -> tuple[ControlList, ...]:
-    """The size of every list of controls the results were measured on."""
-    held = tuple(tests)
-    return tuple(
-        dict.fromkeys(
-            ControlList(kind=kind, size=each.controls_count)
-            for kind in _KINDS
-            for each in _sets(held, kind)
-        )
-    )
-
-
-def unbacked_list_claims(
-    claims: Sequence[ListClaim],
-    lists: Sequence[ControlList],
-    tests: Sequence[ControlTestEvidence],
-) -> list[ListClaim]:
-    """The claims that are neither a list of their kind nor a count a control
-    result backs (returned or not returned), each once.
-
-    A kind the turn holds no list of has no size to hold a claim to.
-    """
-    backed = {
-        (kind, count)
-        for kind in _KINDS
-        for each in _sets(tests, kind)
-        for count in (each.returned_count, len(each.not_returned))
-    }
-    return list(
-        dict.fromkeys(
-            claim
-            for claim in claims
-            if any(held.kind == claim.kind for held in lists)
-            and ControlList(kind=claim.kind, size=claim.stated) not in lists
-            and (claim.kind, claim.stated) not in backed
-        )
-    )
-
-
 def backing_results(
     this_turn: Iterable[ControlTestEvidence],
     last_card: EvidenceCard | None,
@@ -396,18 +305,12 @@ def unbacked_claims(
 
 __all__ = [
     "ControlClaim",
-    "ControlList",
     "CountClaim",
     "IdClaim",
-    "ListClaim",
     "SampleClaim",
     "backing_results",
     "control_claims",
-    "control_lists",
-    "count_claims",
-    "list_claims",
     "sample_claims",
     "unbacked_claims",
-    "unbacked_list_claims",
     "unbacked_sample_claims",
 ]

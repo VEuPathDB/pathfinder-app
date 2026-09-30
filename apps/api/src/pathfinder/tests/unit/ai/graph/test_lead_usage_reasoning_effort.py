@@ -25,8 +25,9 @@ from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.config import get_settings
 from pathfinder.tests._support.database import detached_session
+from pathfinder.tests._support.models import DEFAULT_MODEL, OPENAI_FLAGSHIP
 
-_LEAD_MODEL = "openai:gpt-5.6-luna"
+_LEAD_MODEL = DEFAULT_MODEL
 
 
 class _Collector:
@@ -74,7 +75,7 @@ def test_the_tier_effort_comes_back_beside_the_model() -> None:
     resolved = resolve_lead_model_context(build_lead_agent())
 
     assert (resolved.model_id, resolved.reasoning_effort) == (
-        "openai:gpt-5.6-sol",
+        OPENAI_FLAGSHIP,
         "high",
     )
 

@@ -6,12 +6,14 @@ from assistant_core.scratchpad.compactor import (
     CompactionResult,
     CompactorDeps,
 )
-from pydantic_ai import Agent, RunContext
+from assistant_core.scratchpad.models import NoteCreate
+from pydantic_ai import Agent, ModelRetry, RunContext
 
 from pathfinder.ai.agents._model_resolution import (
     resolve_orchestrator_model_entry,
 )
 from pathfinder.ai.capabilities.metering import SpendMeter
+from pathfinder.domain.scratchpad_facts import hard_facts
 from pathfinder.platform.model_keys import keyed_model
 
 _COMPACTOR_INSTRUCTIONS = f"""\
@@ -24,6 +26,8 @@ replaces the input set. Output at most {MAX_COMPACTED_NOTES} notes.
 Rules:
 - Never invent content. Every output note must be grounded in at least one \
 input note.
+- Every gene id, step id, strategy id, search name and count in the input \
+appears verbatim in the output.
 - Merge same-topic notes (same search name, same biological concept) into \
 one note that captures what was learned, not the iterative path.
 - Drop stale notes (e.g. "considering GenesByRNASeq" when a later note \
@@ -31,6 +35,25 @@ says "using GenesByRNASeq with params X").
 - Keep dead-end notes - they prevent the agent re-trying known failures.
 - Tags: preserve informative tags; drop housekeeping tags.
 """
+
+_LISTED_MISSING = 20
+
+
+def _note_text(note: NoteCreate) -> str:
+    return "\n".join((note.title, note.summary, " ".join(note.tags), note.body))
+
+
+def _missing_facts_message(missing: frozenset[str]) -> str:
+    listed = sorted(missing)
+    named = ", ".join(listed[:_LISTED_MISSING])
+    rest = len(listed) - _LISTED_MISSING
+    noun = "identifier" if len(listed) == 1 else "identifiers"
+    return (
+        f"The compacted notes dropped {len(listed)} {noun} the input notes carry. "
+        "Every gene id, step id, strategy id, search name and count in the input "
+        f"must appear verbatim in the output. Missing: {named}"
+        + (f" and {rest} more" if rest > 0 else "")
+    )
 
 
 def build_compactor_agent(
@@ -58,5 +81,15 @@ def build_compactor_agent(
             "## Input notes (non-pinned, for compaction)\n\n"
             f"{ctx.deps.input_notes_markdown}"
         )
+
+    @agent.output_validator
+    def _keeps_every_identifier(
+        ctx: RunContext[CompactorDeps], output: CompactionResult
+    ) -> CompactionResult:
+        kept = hard_facts("\n".join(_note_text(note) for note in output.notes))
+        missing = hard_facts(ctx.deps.input_notes_markdown) - kept
+        if missing:
+            raise ModelRetry(_missing_facts_message(missing))
+        return output
 
     return agent

@@ -1,15 +1,16 @@
 /**
  * Helpers the strategy feature specs share: a build on a fresh conversation,
  * the stored step a search runs and its parameters, the canvas once it has
- * settled, and the count question the recap arc answers.
+ * settled, the steps a delete card says go, and the count question the recap
+ * arc answers.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 import { prompt } from "./arcs";
 import type { ApiClient } from "./api-client";
 import { type AstNode, COMBINE_SEARCH_NAME } from "./ast";
-import { countPattern, siteCounts } from "./site-reads";
+import { siteCounts } from "./site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
 
@@ -29,6 +30,20 @@ export function combineWith(nodes: readonly AstNode[], operator: string): AstNod
   );
   expect(matches, `exactly one ${operator} combine`).toHaveLength(1);
   return matches[0] as AstNode;
+}
+
+const CARD_STEP = /^'(.+)' \(/;
+const ASKED_STEP = /^Delete step '(.+)' \(/;
+
+/** The title of every step a pending delete card says goes: its own, then the cascade's. */
+export async function cardRemovals(approval: Locator): Promise<string[]> {
+  const asked = ASKED_STEP.exec(
+    (await approval.getByTestId("approval-card-title").textContent()) ?? "",
+  );
+  const cascade = await approval
+    .getByTestId("approval-card-cascade-step")
+    .allTextContents();
+  return [asked?.[1] ?? "", ...cascade.map((line) => CARD_STEP.exec(line)?.[1] ?? "")];
 }
 
 /** The node with `id`. */
@@ -84,7 +99,10 @@ export async function expectCanvasSaved(graphPage: GraphPage): Promise<void> {
   );
 }
 
-/** Ask the strategy's count and assert the reply states what the site answers. */
+/** The words the recap arc's reply opens with. */
+export const RECAP_REPLY = /This conversation already carries/;
+
+/** Ask the strategy's count and assert the facts beside the reply show what the site answers. */
 export async function expectCountAnswered(
   chatPage: ChatPage,
   api: ApiClient,
@@ -93,7 +111,9 @@ export async function expectCountAnswered(
 ): Promise<number> {
   await chatPage.sendAndSettle(prompt("recap", COUNT_QUESTION));
   const { root } = await siteCounts(api, conversationId, siteId);
-  await expect(chatPage.assistantReply(countPattern(root))).not.toHaveCount(0);
+  await expect(
+    chatPage.assistantReply(RECAP_REPLY).and(chatPage.replyCounting(root)),
+  ).not.toHaveCount(0);
   return root;
 }
 

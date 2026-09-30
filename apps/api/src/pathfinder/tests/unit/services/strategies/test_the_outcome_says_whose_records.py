@@ -58,9 +58,7 @@ def _outcome(graph: StrategyGraph) -> OrganismChange | None:
     return outcome_for_graph(
         graph=graph,
         sync_state=WDKSyncState(organism_params=_MARKS),
-        counts={},
         failed_step_ids=[],
-        wdk_url=None,
     ).organism_change
 
 
@@ -79,9 +77,7 @@ def test_the_ledger_prints_whose_records_they_are() -> None:
     outcome = outcome_for_graph(
         graph=graph,
         sync_state=WDKSyncState(organism_params=_MARKS),
-        counts={},
         failed_step_ids=[],
-        wdk_url=None,
     )
 
     rendered = render_build_full(BuildSection(outcome=outcome))

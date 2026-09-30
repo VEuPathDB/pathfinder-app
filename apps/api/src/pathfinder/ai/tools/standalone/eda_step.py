@@ -12,7 +12,6 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.strategy import CombineOp
-from veupathdb.eda import EdaAnalysisDetail
 from veupathdb.errors import ValidationError
 from veupathdb_mcp import ToolErrorPayload
 
@@ -23,10 +22,10 @@ from pathfinder.ai.tools.standalone._eda_step_criterion import (
     WaitingPlacement,
     export_placement,
 )
+from pathfinder.ai.tools.standalone._eda_step_cut import VolcanoAsk, the_cut
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     compared_groups,
     refuse_half_a_cut,
-    volcano_thresholds,
 )
 from pathfinder.ai.tools.standalone._eda_step_spec import (
     restate_the_structure,
@@ -50,7 +49,7 @@ from pathfinder.ai.tools.standalone.stream_parts import (
     strategy_link_chunk,
 )
 from pathfinder.domain.eda_parts import EdaEffectDirection
-from pathfinder.domain.eda_thread import ConversationAnalysisView, EdaExport
+from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
@@ -59,13 +58,10 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
 from pathfinder.domain.strategy.step_words import StampedKind, StepWords, step_words
 from pathfinder.services.eda.binding import read_analysis
-from pathfinder.services.eda.compute import NoComputationError, VolcanoThresholds
 from pathfinder.services.eda.direction import selection_sentence
-from pathfinder.services.eda.gene_subset import (
-    NoGeneSubsetError,
-    refuse_a_subset_that_selects_no_genes,
+from pathfinder.services.eda.steps import (
+    EdaStepPlan,
 )
-from pathfinder.services.eda.steps import EdaStepPlan, eda_step_node
 from pathfinder.services.strategies.commit import (
     CommitResult,
     apply_operations_and_commit,
@@ -82,8 +78,7 @@ class EdaStepCreated(EdaExport):
     wdk_strategy_id: int | None = None
     wdk_url: str | None = None
     guidance: str = ""
-    # The step this export took the place of, and every step that left with it.
-    replaced_step_id: str | None = None
+    # Every step that left with the one this export took the place of.
     dropped_step_ids: list[str] = Field(default_factory=list)
     # The operator this export was joined to the strategy's root with, and the
     # combine step that join created, which is the strategy's new root.
@@ -121,7 +116,7 @@ def _strategy_context(
 
 
 def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
-    """Take the exported step as this turn's build, with the sync's counts.
+    """Take the exported step as this turn's build.
 
     A commit that did not sync left the step off VEuPathDB: it is a draft on
     the canvas with no size, so the turn records no build and the ledger keeps
@@ -135,9 +130,7 @@ def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
         outcome_for_graph(
             graph=session.get_graph(None),
             sync_state=ensure_sync_state(session),
-            counts=sync.counts,
             failed_step_ids=commit.failed_step_ids,
-            wdk_url=sync.wdk_url,
         ),
     )
 
@@ -210,35 +203,6 @@ def _guidance(wdk_strategy_id: int | None, *, is_compute_backed: bool) -> str:
     )
 
 
-async def _planned_export(
-    binding: ConversationAnalysisView,
-    analysis: EdaAnalysisDetail,
-    *,
-    thresholds: VolcanoThresholds | None,
-) -> EdaStepPlan:
-    """The step the analysis exports, once it is known to hold genes."""
-    try:
-        if thresholds is None:
-            await refuse_a_subset_that_selects_no_genes(
-                binding.site_id, dataset_id=binding.dataset_id, analysis=analysis
-            )
-    except NoGeneSubsetError as exc:
-        raise ModelRetry(exc.retry) from exc
-    try:
-        plan = eda_step_node(
-            analysis,
-            dataset_id=binding.dataset_id,
-            thresholds=thresholds,
-        )
-    except NoComputationError as exc:
-        msg = (
-            f"{exc} Call run_eda_compute to run the differential expression, "
-            f"then export the genes that pass its thresholds."
-        )
-        raise ModelRetry(msg) from exc
-    return plan
-
-
 async def create_eda_step(
     ctx: RunContext[LeadDeps],
     *,
@@ -277,7 +241,9 @@ async def create_eda_step(
 
     A gene passes when the absolute effect size is at or above
     ``effect_size_threshold`` and the p-value is at or below
-    ``significance_threshold``. Those are the same comparisons the plot uses, so
+    ``significance_threshold``. Pass the number the researcher wrote: a fold
+    they wrote ("1.5-fold") on a compute that names a log2 effect size binds at
+    its log2, and ``guidance`` says so. Those are the same comparisons the plot uses, so
     the step's count matches the number you told the researcher.
 
     Set ``criterion_id`` to the id of a criterion the pinned route names as
@@ -336,10 +302,12 @@ async def create_eda_step(
 
     analysis = await read_analysis(binding.site_id, analysis_id=binding.analysis_id)
     direction: EdaEffectDirection = effect_direction or "upAndDown"
-    thresholds = volcano_thresholds(
-        analysis, effect_size_threshold, significance_threshold, effect_direction
+    thresholds, plan, rescaled = await the_cut(
+        binding,
+        analysis,
+        VolcanoAsk(effect_size_threshold, significance_threshold, effect_direction),
+        ctx.deps.state.researcher_messages(),
     )
-    plan = await _planned_export(binding, analysis, thresholds=thresholds)
     comparison = compared_groups(analysis, thresholds, caption)
     node = plan.node
 
@@ -403,12 +371,17 @@ async def create_eda_step(
         dataset_id=binding.dataset_id,
         analysis_id=binding.analysis_id,
         is_compute_backed=plan.is_compute_backed,
-        effect_size_threshold=effect_size_threshold,
+        effect_size_threshold=plan.binding.effect_size_threshold,
         significance_threshold=significance_threshold,
         effect_direction=direction if plan.is_compute_backed else None,
         wdk_strategy_id=wdk_strategy_id,
         wdk_url=sync.wdk_url if sync is not None else None,
-        guidance=_guidance(wdk_strategy_id, is_compute_backed=plan.is_compute_backed),
+        guidance=" ".join(
+            [
+                _guidance(wdk_strategy_id, is_compute_backed=plan.is_compute_backed),
+                *([] if rescaled is None else [rescaled.sentence]),
+            ]
+        ),
         replaced_step_id=replace_step_id,
         dropped_step_ids=list(result.dropped_step_ids),
         combined_with_root=combine_with_root,

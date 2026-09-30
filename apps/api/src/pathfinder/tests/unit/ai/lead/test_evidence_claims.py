@@ -3,19 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.evidence_claims import (
     CountClaim,
     control_claims,
     unbacked_claims,
 )
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import LeadResponse, hold_the_turn_contract
 from pathfinder.domain.evidence import ControlSetEvidence, ControlTestEvidence
-from pathfinder.tests._support.run_context import run_context_for
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _TESTED = (
     ControlTestEvidence(
@@ -154,41 +148,3 @@ def test_a_vectorbase_gene_id_is_read_as_a_control_id() -> None:
             "result of this turn or of its last check lists it."
         )
     ]
-
-
-def _checked_deps() -> LeadDeps:
-    """A turn that ran one control test and wrote nothing."""
-    deps = lead_deps(
-        pipeline_state(user_prompt="How well does it recover my controls?")
-    )
-    deps.state.turn_markers.intent_classified = True
-    deps.state.turn_markers.record_control_tests(
-        [ControlTestRun(tool_call_id="call_controls", evidence=_TESTED[0])]
-    )
-    return deps
-
-
-def test_the_contract_refuses_an_unbacked_count_once() -> None:
-    deps = _checked_deps()
-    report = LeadResponse(
-        prose="The strategy recovered 8 of 10 positive controls.",
-        strategy_changed=False,
-    )
-
-    with pytest.raises(ModelRetry) as raised:
-        hold_the_turn_contract(run_context_for(deps), report)
-
-    assert "7 of 10 positive controls returned" in str(raised.value)
-    assert "taken from the evidence card" in str(raised.value)
-    assert hold_the_turn_contract(run_context_for(deps), report) is report
-
-
-def test_the_contract_passes_the_recorded_numbers() -> None:
-    deps = _checked_deps()
-    report = LeadResponse(
-        prose="The strategy recovered 7 of 10 positive controls.",
-        strategy_changed=False,
-    )
-
-    assert hold_the_turn_contract(run_context_for(deps), report) is report
-    assert deps.state.turn_markers.contract_refused is False

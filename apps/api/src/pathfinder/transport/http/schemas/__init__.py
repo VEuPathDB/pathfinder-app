@@ -23,7 +23,6 @@ from .conversations import (
     UpdateConversationRequest,
 )
 from .health import HealthResponse, SystemConfigResponse
-from .product_actions import ProductActionRequest
 from .sites import (
     DependentParamsRequest,
     ParamSpecsRequest,
@@ -51,7 +50,6 @@ __all__ = [
     "OpenConversationRequest",
     "OpenConversationResponse",
     "ParamSpecsRequest",
-    "ProductActionRequest",
     "PushConversationRequest",
     "RecordDetailRequest",
     "RecordTypeResponse",

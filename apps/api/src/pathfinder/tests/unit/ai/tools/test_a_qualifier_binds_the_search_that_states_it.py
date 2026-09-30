@@ -32,7 +32,7 @@ _GENE_TYPE = suite_search("search_genes_by_gene_type")
 
 
 def _state() -> AgentToolState:
-    state = AgentToolState()
+    state = AgentToolState(request_messages=[_TEXT, _MAPS])
     state.record_catalog_read(
         CatalogRead(
             tool_call_id="call_all_genes",
@@ -149,10 +149,9 @@ async def test_a_value_that_states_it_binds(monkeypatch: pytest.MonkeyPatch) -> 
     assert criterion.unexpressed_qualifiers == []
 
 
-@pytest.mark.asyncio
-async def test_a_qualifier_no_search_of_the_pass_states_is_recorded_unexpressed(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def _bind_the_taxon(
+    monkeypatch: pytest.MonkeyPatch, messages: list[str]
+) -> Criterion:
     serve_recorded(monkeypatch, [_TAXON, _GENE_TYPE])
     serve_params(
         monkeypatch,
@@ -161,7 +160,7 @@ async def test_a_qualifier_no_search_of_the_pass_states_is_recorded_unexpressed(
     no_validation(monkeypatch)
     no_count(monkeypatch)
     serve_site_listing(monkeypatch, [])
-    state = AgentToolState()
+    state = AgentToolState(request_messages=messages)
     state.record_catalog_read(
         CatalogRead(
             tool_call_id="call_taxon",
@@ -191,10 +190,49 @@ async def test_a_qualifier_no_search_of_the_pass_states_is_recorded_unexpressed(
             reason="Organism covers Plasmodium falciparum 3D7",
         ),
     )
-
     [criterion] = state.operational_spec_draft.criteria
+    return criterion
+
+
+@pytest.mark.asyncio
+async def test_a_word_the_researcher_states_that_no_search_states_is_unexpressed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    criterion = await _bind_the_taxon(monkeypatch, [_TEXT])
+
     assert criterion.search_name == "GenesByTaxon"
     assert criterion.unexpressed_qualifiers == ["pseudogenes"]
+
+
+@pytest.mark.asyncio
+async def test_a_word_only_the_criterion_text_holds_is_never_unexpressed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The plan's words are not the researcher's, so they are never a gap."""
+    criterion = await _bind_the_taxon(
+        monkeypatch, ["all Plasmodium falciparum 3D7 genes"]
+    )
+
+    assert criterion.unexpressed_qualifiers == []
+
+
+@pytest.mark.asyncio
+async def test_a_word_only_the_criterion_text_holds_refuses_no_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch)
+    state = _state()
+    state.request_messages = ["all Plasmodium falciparum 3D7 genes"]
+
+    await set_criterion(
+        frame_ctx(state),
+        criterion_id="c_all_genes",
+        text=_TEXT,
+        search_name=_TAXON.url_segment,
+        role="seed",
+    )
+
+    assert list(state.open_sheets) == ["c_all_genes"]
 
 
 _ORTHOLOGS = client_search("search_genes_by_orthologs")
@@ -272,3 +310,65 @@ async def test_a_filter_is_held_to_the_word_another_criterion_states(
         "plasmodb, Gene Type carries 'pseudogenes' (Gene type, Include "
         "Pseudogenes). Bind that search. Nothing was recorded."
     )
+
+
+_SEARCH_TEXT = suite_search("search_genes_by_text")
+_PHRASE = "gene fragments, pseudogenes annotated"
+
+
+def _text_state() -> AgentToolState:
+    state = AgentToolState(request_messages=[_PHRASE])
+    state.record_catalog_read(
+        CatalogRead(
+            tool_call_id="call_text",
+            tool="search_for_searches",
+            record_type="transcript",
+            query="pseudogenes fragment annotation",
+            hits=[
+                CatalogHit(
+                    name=d.url_segment,
+                    display_name=d.display_name,
+                    record_type="transcript",
+                )
+                for d in (_SEARCH_TEXT, _GENE_TYPE)
+            ],
+        )
+    )
+    return state
+
+
+@pytest.mark.asyncio
+async def test_a_word_the_text_value_carries_is_stated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The phrase bound to the text parameter states its own words, so no other
+    search outstates them."""
+    serve_recorded(monkeypatch, [_SEARCH_TEXT, _GENE_TYPE])
+    serve_params(
+        monkeypatch,
+        lambda _context: format_param_info_typed(_SEARCH_TEXT.parameters or []),
+    )
+    no_validation(monkeypatch)
+    no_count(monkeypatch)
+    serve_site_listing(monkeypatch, [])
+    state = _text_state()
+
+    await set_criterion(
+        frame_ctx(state),
+        criterion_id="c_fragment",
+        text=_PHRASE,
+        search_name=_SEARCH_TEXT.url_segment,
+        role="seed",
+        params={
+            "text_search_organism": ["Plasmodium falciparum 3D7"],
+            "text_expression": '"pseudogenes annotated"',
+            "text_fields": ["product"],
+        },
+        why=SearchChoice(
+            basis="parameter",
+            term="Text term (use * as wildcard)",
+            reason="the phrase is product text",
+        ),
+    )
+
+    assert "c_fragment" in {c.id for c in state.operational_spec_draft.criteria}

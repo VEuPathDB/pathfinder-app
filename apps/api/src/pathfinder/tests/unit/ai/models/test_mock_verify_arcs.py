@@ -8,6 +8,7 @@ from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.tests.unit.ai.models._mock_turns import (
     CONTROL_SET_ID,
+    LEAF_WDK_ID,
     STRATEGY_ROOT_WDK_ID,
     Scene,
     args_of,
@@ -19,6 +20,7 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
 SITES = ("plasmodb", "vectorbase")
 _REVIEW = [
     "get_strategy",
+    "read_step_columns",
     "get_sample_records",
     "read_gene_record",
     "read_gene_record",
@@ -75,6 +77,26 @@ def test_an_adopted_strategy_is_tested_with_the_set_it_was_measured_on() -> None
     assert args_of(calls, "run_control_tests_on_step") == [
         {"wdk_step_id": STRATEGY_ROOT_WDK_ID, "control_set_id": "cs-adopted"}
     ]
+
+
+@pytest.mark.parametrize("site_id", SITES)
+def test_a_step_whose_columns_show_its_values_is_not_sampled(site_id: str) -> None:
+    fitted = {
+        "wdkStepId": LEAF_WDK_ID,
+        "fits": [{"column": "tm_count", "total": 12, "fitting": 12}],
+        "note": "",
+    }
+
+    calls = play(
+        "verification",
+        site_id,
+        "[[arc:single]]",
+        work_order=verify_order(12),
+        scene=Scene(answers={"read_step_columns": fitted}),
+    )
+
+    assert names(calls) == ["get_strategy", "read_step_columns", "final_result"]
+    assert args_of(calls, "read_step_columns") == [{"wdk_step_id": LEAF_WDK_ID}]
 
 
 @pytest.mark.parametrize("site_id", SITES)

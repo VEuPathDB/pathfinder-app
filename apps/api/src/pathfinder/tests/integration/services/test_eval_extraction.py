@@ -22,7 +22,7 @@ from pathfinder.domain.evidence import (
     ControlTestEvidence,
     EvidenceCard,
 )
-from pathfinder.evals.case import ExpectedOutcome
+from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.evals.store import load_case
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
@@ -377,6 +377,7 @@ async def test_promotion_writes_a_case_and_ends_the_association(
             name="a-promoted-case",
             rationale="pins the intersect build",
             expected=ExpectedOutcome(builds_strategy=True, step_count=3),
+            gates=GatePlan(policy="auto"),
         ),
         directory=tmp_path,
     )
@@ -404,7 +405,11 @@ async def test_a_promoted_case_survives_the_user(
     await promote_staged_case(
         staging=staging,
         staging_id=staging_id,
-        edits=PromotionEdits(name="a-surviving-case", rationale="pins a build"),
+        edits=PromotionEdits(
+            name="a-surviving-case",
+            rationale="pins a build",
+            gates=GatePlan(policy="auto"),
+        ),
         directory=tmp_path,
     )
 

@@ -7,7 +7,7 @@ import { statesAllTerm, type ParamValueMap } from "@/lib/parameters/paramValue";
 export type SerializedStrategyPlan = {
   plan: StrategyAst;
   name: string;
-  recordType: string | null;
+  recordType: string;
   /** Step IDs not reachable from the chosen root. Excluded from the pushed plan. */
   orphanIds: string[];
 };
@@ -28,7 +28,11 @@ export function serializeStrategyAst(
   const steps = Object.values(stepsById);
   if (steps.length === 0) return null;
 
-  const recordType = strategy?.recordType ?? steps[0]?.recordType ?? "gene";
+  // A plan WDK can validate names its record type; none is guessed.
+  const recordType = [strategy?.recordType, ...steps.map((s) => s.recordType)].find(
+    (named): named is string => named != null && named !== "",
+  );
+  if (recordType === undefined) return null;
 
   const inputStepIds = new Set<string>();
   for (const step of steps) {

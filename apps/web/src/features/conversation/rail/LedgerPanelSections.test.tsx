@@ -73,8 +73,14 @@ const FRAME_WITH_SPEC: InvestigationLedger["frame"] = {
         searchName: "GenesByText",
         role: "seed",
         resolvedParams: {
-          text_expression: { type: "string", value: "gametocyte" },
-          text_fields: { type: "string", value: "product" },
+          text_expression: {
+            value: { type: "string", value: "gametocyte" },
+            source: "stated",
+          },
+          text_fields: {
+            value: { type: "string", value: "product" },
+            source: "stated",
+          },
         },
         openParams: [],
         confidence: 0.9,
@@ -126,9 +132,8 @@ const BUILD_WITH_NODES = {
   recoveryKind: "search_replan" as const,
   succeeded: false,
   wdkStrategyId: 42,
-  wdkUrl: "https://plasmodb.org/s/42",
   nodeResults: [
-    { nodeId: "n1", searchName: "GenesByText", count: 61, status: "ok" as const },
+    { nodeId: "n1", searchName: "GenesByText", status: "ok" as const },
     {
       nodeId: "n2",
       searchName: "GenesByOrthologs",
@@ -139,16 +144,13 @@ const BUILD_WITH_NODES = {
 };
 
 describe("BuildSection detail", () => {
-  it("renders per-node results and the strategy link in detail mode", () => {
+  it("renders per-node results with no count and no link in detail mode", () => {
     render(<BuildSection build={BUILD_WITH_NODES} detail />);
     expect(screen.getByText("GenesByText")).toBeInTheDocument();
-    expect(screen.getByText(/61/)).toBeInTheDocument();
+    expect(screen.queryByText(/genes/)).toBeNull();
     expect(screen.getByText("GenesByOrthologs")).toBeInTheDocument();
     expect(screen.getByText(/Answer Params must be null/)).toBeInTheDocument();
-    expect(screen.getByRole("link")).toHaveAttribute(
-      "href",
-      "https://plasmodb.org/s/42",
-    );
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("omits node detail in summary mode", () => {
@@ -160,8 +162,8 @@ describe("BuildSection detail", () => {
     const build = {
       ...BUILD_WITH_NODES,
       nodeResults: [
-        { nodeId: "n1", searchName: "GenesByText", count: 61, status: "ok" as const },
-        { nodeId: "n3", searchName: "__combine__", count: 42, status: "ok" as const },
+        { nodeId: "n1", searchName: "GenesByText", status: "ok" as const },
+        { nodeId: "n3", searchName: "__combine__", status: "ok" as const },
       ],
     };
     render(<BuildSection build={build} detail />);
@@ -182,10 +184,20 @@ const VERIFY_WITH_DIGEST = {
     caveats: [
       {
         kind: "sample" as const,
-        unclear: 2,
-        misfit: 0,
-        total: 8,
-        sentence: "2 of 8 sampled genes unclear",
+        fit: {
+          criterionId: "c_tm",
+          criterionText: "two or more transmembrane domains",
+          wdkStepId: 441031663,
+          column: "tm_count",
+          displayName: "# TM Domains",
+          boundValue: "2 to 99",
+          total: 40,
+          fitting: 12,
+          fittingAtMost: 12,
+          fits: "some" as const,
+          sentence: "12 of 40 genes fit # TM Domains (2 to 99)",
+        },
+        sentence: "12 of 40 genes fit # TM Domains (2 to 99)",
       },
     ],
     gaps: [
@@ -218,7 +230,6 @@ describe("sections tolerate the optional lists exclude_none drops", () => {
           succeeded: false,
           nodeResults: [],
           wdkStrategyId: null,
-          wdkUrl: null,
         }}
       />,
     );
@@ -254,7 +265,9 @@ describe("VerificationSection detail", () => {
       />,
     );
     expect(screen.getByText(/61 genes overlap the gold set/)).toBeInTheDocument();
-    expect(screen.getByText("2 of 8 sampled genes unclear")).toBeInTheDocument();
+    expect(
+      screen.getByText("12 of 40 genes fit # TM Domains (2 to 99)"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("'exported': no search the strategy runs states it"),
     ).toBeInTheDocument();

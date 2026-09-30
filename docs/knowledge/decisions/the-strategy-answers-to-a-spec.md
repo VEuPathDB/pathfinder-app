@@ -81,7 +81,12 @@ the message, and the text between two consecutive terms, in message order, is
 the connective. A connective with "or" (or "and/or") states OR; one with "and",
 "with", "plus" or "as well as" states AND; a bare comma or no text takes the
 next conjunction in the list, and AND when none follows, OR when the list opens
-with "either". An "or" inside one term's span is an alternative within that
+with "either". An "include" verb states OR ("also include", "broaden ... to
+include", "add ... as an alternative"). "In addition to" and a trailing "as
+well" state neither operator, because a class added to a class is an OR and a
+property added to a property is an AND: no operator is stated, the model splits
+the constraint, no hard combination is recorded, and FRAME asks when the shape
+matters. An "or" inside one term's span is an alternative within that
 requirement and never a connective. A message that names a "union" or an
 "intersection" states that operator. `classify_user_intent` refuses a
 combination whose terms the message carries and whose operator it does not,

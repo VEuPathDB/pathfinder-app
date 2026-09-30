@@ -17,6 +17,8 @@ from veupathdb.domain.parameters import coerce_context_values
 from veupathdb_mcp.catalog import (
     GetParameterOptionsResult,
     ParameterInfo,
+    ParameterNotOnSearch,
+    ParentContextRequired,
     SearchOverviewResult,
     UnknownSearchError,
     VocabNarrowing,
@@ -26,11 +28,12 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import ParamVocabSnapshot
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._catalog_elsewhere import joined
 from pathfinder.ai.tools.standalone._catalog_models import register_search
 
 
 class AlreadyReadNotice(CamelModel):
-    """Returned when the model re-reads something it already read this turn.
+    """Returned when the model re-reads something the agent state already holds.
 
     The full payload is suppressed because the model already holds it.
     """
@@ -62,9 +65,10 @@ async def get_search_overview(
         return with_summary(
             AlreadyReadNotice(
                 message=(
-                    f"You already inspected '{search_name}' this turn; same as "
-                    "your earlier read. Move on (inspect a different search, "
-                    "read a parameter, or record a decision)."
+                    f"You already inspected '{search_name}'; this is that read. "
+                    "A criterion that already runs it re-binds with no other "
+                    "read; a new criterion binds it from a search_for_searches "
+                    "answer that names it."
                 ),
                 search_name=search_name,
             ),
@@ -98,7 +102,7 @@ async def get_parameter_options(
     parameter_id: str,
     record_type: str | None = None,
     context_values: dict[str, Any] | None = None,
-    query: str | None = None,
+    query: str | list[str] | None = None,
 ) -> ToolReturn[GetParameterOptionsResult | AlreadyReadNotice]:
     """Get detailed parameter info including vocabulary/allowed values.
 
@@ -111,6 +115,9 @@ async def get_parameter_options(
         ``parameter_id`` does not exist on ``search_name``. The payload
         carries did-you-mean suggestions plus the full valid list; call
         again with one of them.
+      - ``ParentContextRequired`` (``kind="parent_context_required"``) when
+        the vocabulary depends on parents no value is bound for; call again
+        with them in ``context_values``.
 
     Args:
         ctx: Agent run context.
@@ -123,9 +130,10 @@ async def get_parameter_options(
             depends on, for dependent vocab refresh. Pass the RAW value: a
             string for a single pick, a list for multi-pick; the system types
             it. Example: ``{"profileset_generic": "<term>"}``.
-        query: Optional substring filter for large vocabularies. Case-insensitive.
-            Use when vocabulary is large and you need specific entries
-            (e.g. query='cruzi' for T. cruzi).
+        query: One phrase, or a list of the phrasings of one concept, that
+            narrows the vocabulary. Hyphen and space match alike, and a phrase
+            also matches its words in any order. For a concept with several
+            names pass them all, e.g. ["RNA binding", "RNA recognition", "KH"].
     """
     deps = ctx.deps
     explicit = coerce_context_values(context_values) if context_values else {}
@@ -134,8 +142,11 @@ async def get_parameter_options(
     inherited = deps.agent_state.resolved_params_for(search_name)
     merged = {**inherited, **explicit}
     typed_context = merged or None
+    narrowing = VocabNarrowing(
+        query=query, organism_hints=deps.agent_state.organism_hints
+    )
     read_key = deps.agent_state.param_read_key(
-        search_name, parameter_id, context_values=typed_context, query=query
+        search_name, parameter_id, context_values=typed_context, terms=narrowing.terms
     )
     if deps.agent_state.was_param_read(read_key):
         return with_summary(
@@ -158,20 +169,29 @@ async def get_parameter_options(
         parameter_id,
         record_type=record_type,
         context_values=typed_context,
-        narrowing=VocabNarrowing(
-            query=query,
-            organism_hints=deps.agent_state.organism_hints,
-        ),
+        narrowing=narrowing,
     )
-    if result.kind != "parameter_info":
-        return with_summary(
-            result,
-            f"{parameter_id} is not on {search_name}",
-            ctx=ctx,
-            status="warn",
-        )
+    match result:
+        case ParameterInfo():
+            pass
+        case ParentContextRequired(parent_parameter_ids=parents):
+            return with_summary(
+                result,
+                f"{parameter_id} needs {joined(parents)} first",
+                ctx=ctx,
+                status="warn",
+            )
+        case ParameterNotOnSearch():
+            return with_summary(
+                result,
+                f"{parameter_id} is not on {search_name}",
+                ctx=ctx,
+                status="warn",
+            )
     _snapshot_param_vocab(deps, search_name, result)
     deps.agent_state.mark_param_read(read_key)
+    if narrowing.terms:
+        deps.agent_state.looked_up.add((search_name, parameter_id))
     return with_summary(
         result,
         _options_summary(parameter_id, result),
@@ -185,6 +205,9 @@ def _has_vocabulary_type(info: ParameterInfo) -> bool:
 
 
 def _options_summary(parameter_id: str, info: ParameterInfo) -> str:
+    if info.allowed_values_total is not None:
+        shown = len(info.allowed_values or [])
+        return f"{parameter_id}: {shown} of {info.allowed_values_total} options shown"
     options = len(info.vocabulary())
     if options or _has_vocabulary_type(info):
         return f"{parameter_id}: {options} options"

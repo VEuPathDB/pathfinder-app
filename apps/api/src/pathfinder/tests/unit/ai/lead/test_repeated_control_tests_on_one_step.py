@@ -17,7 +17,7 @@ import pytest
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.tasks import decorator, service
 from pydantic import Field
-from pydantic_ai.exceptions import CallDeferred
+from pydantic_ai.exceptions import CallDeferred, ModelRetry, ToolFailed
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.turn_records import ControlTestRun
@@ -29,6 +29,7 @@ from pathfinder.ai.tools.standalone.experiment import (
     run_control_tests_on_step,
 )
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.tests._support.saved_controls import (
     SAVED_SET,
     SAVED_SET_ID,
@@ -96,6 +97,7 @@ def _card(runs: list[ControlTestRun]) -> list[tuple[str, int, int, int, float]]:
         wdk_strategy_id=None,
         root_wdk_step_id=None,
         node_results=(),
+        counts=BuiltCounts(),
         spec=None,
         control_tests=tuple(runs),
         pending_checks=[],
@@ -183,7 +185,10 @@ async def test_a_set_tested_twice_on_one_step_starts_one_task(
             ctx.deps.turn_markers.record_control_tests([run])
 
     assert len(tasks.created) == 1
+    assert len(ctx.deps.turn_markers.control_tests) == 1
     (repeat,) = answered
+    # One summary row and no exhibit: the trace keeps the first test's row alone.
+    assert len(repeat.metadata or []) == 1
     body = returned(repeat, RepeatedControlTest).model_dump(by_alias=True, mode="json")
     assert len(body["outcome"]["positiveRecoveredIds"]) == 52
     assert len(body["outcome"]["negativeAdmittedIds"]) == 2
@@ -217,3 +222,78 @@ async def test_a_set_holding_an_id_not_yet_tested_starts_a_task(
         )
 
     assert len(tasks.created) == 1
+
+
+_OTHER_STEP = 441_030_513
+
+
+async def test_a_second_repeat_fails_naming_every_step_tested_with_its_recall(
+    tasks: _Tasks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    whole = _SEQUENCE.calls[0]
+    serve_saved_controls(
+        monkeypatch, experiment, saved_set(whole.positive or [], whole.negative)
+    )
+    ctx = agent_run_context(control_sets=[SAVED_SET])
+    ctx.deps.conversation_id = uuid4()
+    other = _worker_result(whole) | {
+        "stepId": _OTHER_STEP,
+        "targetLabel": "Genes by Taxon",
+        "positiveRecoveredIds": whole.positive,
+        "positiveMissedIds": [],
+    }
+    for index, result in enumerate((_worker_result(whole), other)):
+        run = control_test_run(result, tool_call_id=f"call_{index}")
+        assert run is not None
+        ctx.deps.turn_markers.record_control_tests([run])
+
+    ctx.tool_call_id = "call_2"
+    first = await run_control_tests_on_step(
+        ctx, wdk_step_id=_SEQUENCE.wdk_step_id, control_set_id=SAVED_SET_ID
+    )
+    ctx.tool_call_id = "call_3"
+    with pytest.raises(ToolFailed) as failed:
+        await run_control_tests_on_step(
+            ctx, wdk_step_id=_SEQUENCE.wdk_step_id, control_set_id=SAVED_SET_ID
+        )
+
+    assert returned(first, RepeatedControlTest).outcome.step_id == (
+        _SEQUENCE.wdk_step_id
+    )
+    assert tasks.created == []
+    assert failed.value.message == (
+        f"{SAVED_SET.name} was tested on step {_SEQUENCE.wdk_step_id} under this "
+        f"message, and that result was already given again once. Every step "
+        f"tested under this message: {_SEQUENCE.tested_label} (step "
+        f"{_SEQUENCE.wdk_step_id}): 52 of 80 positive controls returned, recall "
+        f"0.65; 2 of 40 negative controls returned. Genes by Taxon (step "
+        f"{_OTHER_STEP}): 80 of 80 positive controls returned, recall 1.00; 2 of "
+        f"40 negative controls returned. Report these; no test runs again."
+    )
+
+
+async def test_a_repeat_past_the_failure_spends_the_tools_retries(
+    tasks: _Tasks, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    whole = _SEQUENCE.calls[0]
+    serve_saved_controls(
+        monkeypatch, experiment, saved_set(whole.positive or [], whole.negative)
+    )
+    ctx = agent_run_context(control_sets=[SAVED_SET])
+    run = control_test_run(_worker_result(whole), tool_call_id="call_0")
+    assert run is not None
+    ctx.deps.turn_markers.record_control_tests([run])
+    raised: list[str] = []
+
+    for _ in range(3):
+        try:
+            await run_control_tests_on_step(
+                ctx, wdk_step_id=_SEQUENCE.wdk_step_id, control_set_id=SAVED_SET_ID
+            )
+            raised.append("answered")
+        except ToolFailed:
+            raised.append("failed")
+        except ModelRetry:
+            raised.append("retry")
+
+    assert (raised, tasks.created) == (["answered", "failed", "retry"], [])

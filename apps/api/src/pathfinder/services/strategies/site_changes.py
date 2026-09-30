@@ -40,6 +40,7 @@ from veupathdb_mcp.wdk import build_snapshot_from_wdk, canonicalize_synced_param
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from pathfinder.services.strategies.live_counts import read_the_live_strategy
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -135,16 +136,16 @@ async def read_the_site_into_the_thread(
         )
         if not edits.moved:
             return live
-        await persist_strategy_ast_to_conversation(
-            deps=StrategyMutationContext(
-                site_id=session.site_id,
-                strategy_session=stored,
-                conversation_id=conversation_id,
-                locked_session=locked,
-            ),
-            graph=stored_graph,
-            sync_result=None,
+        written = StrategyMutationContext(
+            site_id=session.site_id,
+            strategy_session=stored,
+            conversation_id=conversation_id,
+            locked_session=locked,
         )
+        await persist_strategy_ast_to_conversation(
+            deps=written, graph=stored_graph, sync_result=None
+        )
+        await defer_the_gene_set_refresh(written)
     session.graph = stored_graph
     session.sync_state = sync_state
     return live

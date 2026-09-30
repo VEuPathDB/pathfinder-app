@@ -33,6 +33,7 @@ from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
 from pathfinder.platform.model_keys import attach_keyring
+from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 from pathfinder.tests.integration.http.conftest import make_user
 
 _TOOL_CHARGE = Decimal("0.005")
@@ -108,7 +109,7 @@ def _cost(model_id: str, tokens: int) -> Decimal:
 
 async def test_a_streamed_charge_on_the_researchers_key_is_theirs(user: User) -> None:
     capture = _LeadRunCapture()
-    lead = "anthropic:claude-opus-5"
+    lead = ANTHROPIC_SMALL
     usage = RunUsage(input_tokens=1000, output_tokens=200)
 
     written: list[object] = []
@@ -134,9 +135,9 @@ async def test_a_streamed_charge_on_the_researchers_key_is_theirs(user: User) ->
 async def test_the_residual_splits_by_payer_and_the_tool_charge_is_the_deployments(
     user: User,
 ) -> None:
-    lead = "anthropic:claude-opus-5"
-    keyed_pass = _pass("anthropic:claude-sonnet-5", PaidBy.USER, 400)
-    deployment_pass = _pass("openai:gpt-5.6-luna", PaidBy.DEPLOYMENT, 700)
+    lead = ANTHROPIC_SMALL
+    keyed_pass = _pass(ANTHROPIC_SMALL, PaidBy.USER, 400)
+    deployment_pass = _pass(DEFAULT_MODEL, PaidBy.DEPLOYMENT, 700)
     capture = _LeadRunCapture(lead_model=lead, tokens=300, cost_usd=Decimal("0.3"))
     absorb_sub_agent_usage(capture, keyed_pass)
     absorb_sub_agent_usage(capture, deployment_pass)
@@ -146,8 +147,8 @@ async def test_the_residual_splits_by_payer_and_the_tool_charge_is_the_deploymen
         await _persist_residual_quota(_context(user), _state(user), capture)
 
     rows = await _rows(user)
-    own_cost = Decimal("0.3") + _cost("anthropic:claude-sonnet-5", 400)
-    deployment_cost = _cost("openai:gpt-5.6-luna", 700) + _TOOL_CHARGE
+    own_cost = Decimal("0.3") + _cost(ANTHROPIC_SMALL, 400)
+    deployment_cost = _cost(DEFAULT_MODEL, 700) + _TOOL_CHARGE
     assert rows == {
         PaidBy.USER: (700, own_cost.quantize(Decimal("0.000001"))),
         PaidBy.DEPLOYMENT: (700, deployment_cost.quantize(Decimal("0.000001"))),

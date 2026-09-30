@@ -15,6 +15,7 @@ from assistant_core.platform.db import async_session_factory
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.persistence.models import User
 
@@ -56,7 +57,9 @@ async def test_strategy_autowrite_is_idempotent(
                 store=store,
                 tombstones=tombstones,
                 user_id=state.user_id,
-                candidates=await collect_turn_memory_candidates(state),
+                candidates=await collect_turn_memory_candidates(
+                    state, counts=BuiltCounts()
+                ),
             )
         strategies = await store.list_all(user_id=user_id, kind="strategy")
         assert len(strategies) == 1, (
@@ -97,7 +100,9 @@ async def test_gene_set_autowrite_is_idempotent(
                 store=store,
                 tombstones=tombstones,
                 user_id=state.user_id,
-                candidates=await collect_turn_memory_candidates(state),
+                candidates=await collect_turn_memory_candidates(
+                    state, counts=BuiltCounts()
+                ),
             )
         sets = await store.list_all(user_id=user_id, kind="gene_set_note")
         assert len(sets) == 1

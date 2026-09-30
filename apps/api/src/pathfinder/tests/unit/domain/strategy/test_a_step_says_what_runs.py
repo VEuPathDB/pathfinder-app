@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.step_words import (
     added_searches,
     step_words,
 )
+from pathfinder.tests._support.bound_values import bound
 
 from ._builders import (
     graph_of,
@@ -118,7 +119,7 @@ def _restated_title(after: OperationalSpec, renamed: str) -> str | None:
 def test_a_restated_step_keeps_the_name_a_researcher_gave_it() -> None:
     after = spec_of(three_step_root())
     text = next(c for c in after.criteria if c.id == "step_text")
-    text.resolved_params = {}
+    text.resolved_params = bound({})
 
     assert _restated_title(after, "My proteases") == "My proteases"
 
@@ -128,7 +129,7 @@ def test_a_rebound_step_takes_the_name_of_its_new_search() -> None:
     text = next(c for c in after.criteria if c.id == "step_text")
     text.search_name = "GenesByExportPrediction"
     text.search_display_name = "Exported Protein"
-    text.resolved_params = {"organism": MultiPickValue(values=["Plasmodium"])}
+    text.resolved_params = bound({"organism": MultiPickValue(values=["Plasmodium"])})
 
     assert _restated_title(after, "My proteases") == "Exported Protein"
 

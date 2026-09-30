@@ -19,8 +19,7 @@
         "organism": "Plasmodium vivax P01"
       },
       "GenesByText": {
-        "text_expression": "kinase",
-        "text_search_organism": "Plasmodium falciparum 3D7"
+        "text_expression": "kinase"
       }
     },
     "replyMentions": [
@@ -36,5 +35,18 @@
     "stagingId": "",
     "reference": "decisions/an-edit-is-a-delta-not-a-rebuild.md",
     "curatorNote": "Two turns on one thread: the first builds, the second edits. A single-prompt case cannot reach the state this pins."
+  },
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "consult_user",
+        "turn": 1,
+        "accept": true,
+        "picks": [
+          "Plasmodium vivax P01"
+        ]
+      }
+    ]
   }
 }

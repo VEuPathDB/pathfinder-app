@@ -25,6 +25,7 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
     SearchMatch,
+    build_sheet,
     format_param_info_typed,
 )
 
@@ -232,10 +233,15 @@ async def test_a_percentile_hit_sends_only_the_parameters_its_sheet_lists(
 ) -> None:
     played, state = await _bound_on(monkeypatch, _PERCENTILE, "plasmodb")
 
-    visible = {p.name for p in _PERCENTILE.parameters or [] if p.is_visible}
+    listed = {
+        e.name
+        for e in build_sheet(
+            format_param_info_typed(list(_PERCENTILE.parameters or [])), query=""
+        )
+    }
     (criterion,) = state.operational_spec_draft.criteria
     assert played.refusals == []
-    assert [sorted(set(params) - visible) for params in played.bound] == [
+    assert [sorted(set(params) - listed) for params in played.bound] == [
         [] for _ in played.bound
     ]
     assert played.bound[-1]["samples_percentile_generic"] == ["asexual blood stages"]

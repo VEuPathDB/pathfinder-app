@@ -8,7 +8,7 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.ai.lead.case_memory import collect_case_candidates
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -38,7 +38,7 @@ def _name_of(goal: str) -> str:
             answered_spec=spec,
             original_request=goal,
             last_build_outcome=BuildOutcome(
-                pushed_step_ids=["s1"], counts={"s1": 9}, root_count=9
+                pushed_step_ids=["s1"],
             ),
             verification_digest=VerificationDigest(
                 disposition=PhaseDisposition.DONE,
@@ -48,7 +48,9 @@ def _name_of(goal: str) -> str:
             ),
         )
     )
-    value, _key = collect_case_candidates(state)[0]
+    value, _key = collect_case_candidates(
+        state, counts=BuiltCounts(by_step={"s1": 9}, root_id="s1")
+    )[0]
     return value.name
 
 

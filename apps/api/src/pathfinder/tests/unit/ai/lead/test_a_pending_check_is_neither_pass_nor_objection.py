@@ -79,7 +79,7 @@ async def test_the_digest_takes_its_pending_checks_from_the_strategy(
     )
     deps = _kinase_deps(session)
     deps.state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1"], wdk_strategy_id=330558093, root_count=61
+        pushed_step_ids=["s1"], wdk_strategy_id=330558093
     )
     written: dict[str, Any] = {
         "digest": {**_BUILD_DIGEST["digest"], "pendingChecks": ["step_made_up"]}
@@ -104,7 +104,7 @@ async def test_a_strategy_with_every_study_step_read_has_no_pending_check(
         )
     )
     deps.state.domain.last_build_outcome = BuildOutcome(
-        pushed_step_ids=["s1"], wdk_strategy_id=330558093, root_count=61
+        pushed_step_ids=["s1"], wdk_strategy_id=330558093
     )
 
     delta = await _verify(monkeypatch, deps, _BUILD_DIGEST)
@@ -225,9 +225,7 @@ _PENDING_REPLIES = {
 
 def test_a_reply_about_a_pending_check_is_not_site_blame() -> None:
     """The site did not describe the step, so naming the site is the truth."""
-    clean = BuildSection(
-        outcome=BuildOutcome(pushed_step_ids=["step_de"], root_count=61)
-    )
+    clean = BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
     pending = VerificationSection(digest=_digest("step_de"))
 
     got = {
@@ -239,9 +237,7 @@ def test_a_reply_about_a_pending_check_is_not_site_blame() -> None:
 
 
 def test_the_same_reply_without_a_pending_check_is_site_blame() -> None:
-    clean = BuildSection(
-        outcome=BuildOutcome(pushed_step_ids=["step_de"], root_count=61)
-    )
+    clean = BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
     passed = VerificationSection(digest=_digest())
 
     got = {
@@ -259,9 +255,7 @@ _BUSY = "VEuPathDB is temporarily busy, so try the build again later."
 
 
 def _clean_build() -> BuildSection:
-    return BuildSection(
-        outcome=BuildOutcome(pushed_step_ids=["step_de"], root_count=61)
-    )
+    return BuildSection(outcome=BuildOutcome(pushed_step_ids=["step_de"]))
 
 
 def test_a_busy_site_is_blame_even_with_a_pending_check() -> None:

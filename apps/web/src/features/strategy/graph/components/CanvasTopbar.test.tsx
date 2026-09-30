@@ -21,6 +21,9 @@ vi.mock("@pathfinder/shared/generated/hooks/usePushStrategy", () => ({
   ),
 }));
 
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
+
 vi.mock("@pathfinder/shared/generated/hooks/useComputeStepCounts", () => ({
   computeStepCounts: vi.fn(async () => ({ counts: {} })),
 }));
@@ -180,6 +183,19 @@ describe("the link to the host site", () => {
     expect(screen.getByTestId("canvas-topbar")).toContainElement(
       screen.getByRole("link", { name: "Open in PlasmoDB" }),
     );
+  });
+
+  it("records strategy_opened with the site and WDK strategy id on click", () => {
+    renderTopbar(withWdk);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open in PlasmoDB" }));
+
+    expect(recordProductEvent).toHaveBeenCalledWith({
+      event: "strategy_opened",
+      siteId: "plasmodb",
+      wdkStrategyId: 330528343,
+      conversationId: "conv-1",
+    });
   });
 
   it("points at the strategy on the host site", () => {

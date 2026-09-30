@@ -24,6 +24,7 @@ from pathfinder.domain.strategy.operations import (
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     STAGE,
     STAGE_PERCENTILE,
@@ -74,7 +75,7 @@ def nested_spec() -> OperationalSpec:
             id=THIRD,
             text="Plasmodium falciparum",
             search_name=THIRD_SEARCH,
-            resolved_params={THIRD_PARAM: StringValue(value="Pf3D7")},
+            resolved_params=bound({THIRD_PARAM: StringValue(value="Pf3D7")}),
         )
     )
     assert spec.structure is not None
@@ -113,9 +114,9 @@ def proteome(value: float | None) -> Criterion:
         id=PROTEOME,
         text="detected in the merozoite proteome",
         search_name="GenesByMassSpec",
-        resolved_params={}
-        if value is None
-        else {PROTEOME_PARAM: NumberValue(value=value)},
+        resolved_params=bound(
+            {} if value is None else {PROTEOME_PARAM: NumberValue(value=value)}
+        ),
         open_params=[]
         if value is not None
         else [OpenSlot(criterion_id=PROTEOME, param_name=PROTEOME_PARAM)],
@@ -146,7 +147,11 @@ def with_the_percentile(value: float) -> Draft:
             if criterion.id == STAGE:
                 criterion.resolved_params = {
                     **criterion.resolved_params,
-                    STAGE_PERCENTILE: NumberValue(value=value),
+                    **bound(
+                        {
+                            STAGE_PERCENTILE: NumberValue(value=value),
+                        }
+                    ),
                 }
         return found
 

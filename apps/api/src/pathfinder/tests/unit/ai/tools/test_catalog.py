@@ -448,4 +448,4 @@ class TestListTransforms:
         await list_transforms(_ctx(state))
 
         overrides = _frame_enum_overrides(_ctx(state))
-        assert "GenesByOrthologs" in overrides[("get_search_overview", "search_name")]
+        assert "GenesByOrthologs" in overrides[("set_criterion", "search_name")]

@@ -1,0 +1,74 @@
+{
+  "name": "uat-dry-a-cryptodb",
+  "turns": [
+    "Give me Cryptosporidium parvum Iowa II genes that have an ortholog in Toxoplasma gondii but none in Homo sapiens.",
+    "Which searches did you use for this, and why those? I want to understand exactly what 'has an ortholog in Toxoplasma gondii' means in your search.",
+    "That's stricter than I meant. I don't need an ortholog in all 15 Toxoplasma strains, one in the reference strain ME49 is enough. Please change it to: ortholog in T. gondii ME49, none in Homo sapiens, and tell me the new count. Also please use strain names, not codes.",
+    "I got an error message saying the content was flagged for biological risk and to send the message again. Did my change to ME49-only go through? What is the count now?",
+    "OK, 497. Now narrow it: and that are predicted to be secreted.",
+    "Thanks, 68 is a workable list. Can you give me the link to this strategy on CryptoDB so I can open it there?"
+  ],
+  "siteId": "cryptodb",
+  "assistantId": "pathfinder",
+  "rationale": "A strategy link names the workspace route the site serves, never a route it lacks; the ME49-only profile edit is stated with its count on the turn that made it, and the final strategy intersects that profile with the signal peptide search.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByOrthologPattern INTERSECT GenesWithSignalPeptide)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologPattern": {
+        "included_species": "tgon",
+        "excluded_species": "hsap"
+      }
+    },
+    "replyMentions": [
+      "/app/workspace/strategies/"
+    ],
+    "replyOmits": [
+      "/app/strategy/"
+    ],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "2": [
+        "497"
+      ],
+      "3": [
+        "497"
+      ]
+    },
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 68,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "cryptodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u2",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

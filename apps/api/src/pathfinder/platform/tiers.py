@@ -1,7 +1,7 @@
 """Tier preset registry - maps (assistant, provider, tier) to per-role configs.
 
-Each cloud provider defines tiers that auto-populate an assistant's roles with
-a model and a reasoning effort. The frontend fetches these via
+Each cloud provider's tiers are derived from the ranks of its catalog entries,
+and auto-populate an assistant's roles with a model and a reasoning effort. The frontend fetches these via
 ``GET /api/v1/tiers`` so it never hardcodes model assignments, and each agent
 applies the configured tier beneath an explicit per-role user pick.
 
@@ -10,14 +10,23 @@ falls back to that agent's compile-time model.
 """
 
 from dataclasses import dataclass
+from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import ModelProvider, ReasoningEffort, TierName
 from pydantic import ConfigDict
 
+from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
 from pathfinder.platform.identity import (
     PATHFINDER_ASSISTANT_ID,
     SITE_HELP_ASSISTANT_ID,
+)
+from pathfinder.platform.model_catalog import (
+    ModelEntry,
+    ModelRank,
+    get_model_catalog,
+    provider_default,
+    validate_lineup,
 )
 
 __all__ = [
@@ -25,6 +34,7 @@ __all__ = [
     "TIER_PRESETS",
     "PhaseTierConfig",
     "TierPreset",
+    "derive_tiers",
     "get_tier_preset",
     "resolve_phase_tier_config",
 ]
@@ -60,75 +70,78 @@ class _Tier:
     worker: PhaseTierConfig
 
 
-def _split(
-    reasoning_model: str,
-    reasoning_effort: ReasoningEffort,
-    execution_model: str,
-    execution_effort: ReasoningEffort,
-) -> _Tier:
-    return _Tier(
-        thinker=PhaseTierConfig(
-            model_id=reasoning_model, reasoning_effort=reasoning_effort
-        ),
-        worker=PhaseTierConfig(
-            model_id=execution_model, reasoning_effort=execution_effort
-        ),
+type _Pick = Literal[ModelRank, "default"]
+type _Slot = tuple[_Pick, ReasoningEffort]
+
+_RANKS_DOWN: tuple[ModelRank, ...] = ("flagship", "standard", "small")
+
+# The thinker slot, then the worker slot, of each tier.
+_SHAPES: dict[TierName, tuple[_Slot, _Slot]] = {
+    "quality": (("flagship", "high"), ("standard", "medium")),
+    "balanced": (("standard", "medium"), ("small", "medium")),
+    "default": (("default", "medium"), ("small", "medium")),
+    "fast": (("small", "low"), ("small", "low")),
+}
+
+
+def _model_at(
+    entries: tuple[ModelEntry, ...], provider: ModelProvider, pick: _Pick
+) -> str:
+    """The provider's entry at ``pick``, or at the next rank down it has.
+
+    A validated lineup holds a small entry, so the search always ends.
+    """
+    if pick == "default":
+        return provider_default(provider, entries).id
+    return next(
+        entry.id
+        for rank in _RANKS_DOWN[_RANKS_DOWN.index(pick) :]
+        for entry in entries
+        if entry.provider == provider and entry.rank == rank
     )
 
 
-def _uniform(model_id: str, effort: ReasoningEffort) -> _Tier:
-    """A tier that runs every role on one model at one effort."""
-    cfg = PhaseTierConfig(model_id=model_id, reasoning_effort=effort)
-    return _Tier(thinker=cfg, worker=cfg)
+def derive_tiers(
+    entries: tuple[ModelEntry, ...], provider: ModelProvider
+) -> dict[TierName, _Tier]:
+    """The provider's tiers, read from the ranks of its catalog entries.
 
+    A tier whose two slots land on one model runs it at the thinker's effort.
 
-_OPENAI: dict[TierName, _Tier] = {
-    "quality": _split("openai:gpt-5.6-sol", "high", "openai:gpt-5.6-terra", "medium"),
-    "balanced": _split(
-        "openai:gpt-5.6-terra", "medium", "openai:gpt-5.6-luna", "medium"
-    ),
-    "default": _uniform("openai:gpt-5.6-luna", "medium"),
-    "fast": _uniform("openai:gpt-5.6-luna", "low"),
-}
+    :raises ValueError: If the entries break a rule of ``validate_lineup``.
+    """
+    validate_lineup(entries)
+    tiers: dict[TierName, _Tier] = {}
+    for name, ((think_pick, think_effort), (work_pick, work_effort)) in _SHAPES.items():
+        thinker = PhaseTierConfig(
+            model_id=_model_at(entries, provider, think_pick),
+            reasoning_effort=think_effort,
+        )
+        worker_id = _model_at(entries, provider, work_pick)
+        worker = (
+            thinker
+            if worker_id == thinker.model_id
+            else PhaseTierConfig(model_id=worker_id, reasoning_effort=work_effort)
+        )
+        tiers[name] = _Tier(thinker=thinker, worker=worker)
+    return tiers
 
-_ANTHROPIC: dict[TierName, _Tier] = {
-    "quality": _split(
-        "anthropic:claude-opus-5", "high", "anthropic:claude-sonnet-5", "medium"
-    ),
-    "balanced": _split(
-        "anthropic:claude-sonnet-5", "medium", "anthropic:claude-haiku-4-5", "medium"
-    ),
-    "default": _uniform("anthropic:claude-sonnet-5", "medium"),
-    "fast": _uniform("anthropic:claude-haiku-4-5", "low"),
-}
-
-_GOOGLE: dict[TierName, _Tier] = {
-    "quality": _split(
-        "google:gemini-3.1-pro-preview", "high", "google:gemini-3.6-flash", "medium"
-    ),
-    "balanced": _split(
-        "google:gemini-3.6-flash", "medium", "google:gemini-3.5-flash-lite", "medium"
-    ),
-    "default": _uniform("google:gemini-3.6-flash", "medium"),
-    "fast": _uniform("google:gemini-3.5-flash-lite", "low"),
-}
 
 _BY_PROVIDER: dict[ModelProvider, dict[TierName, _Tier]] = {
-    "openai": _OPENAI,
-    "anthropic": _ANTHROPIC,
-    "google": _GOOGLE,
+    provider: derive_tiers(get_model_catalog(), provider)
+    for provider in KEYABLE_PROVIDERS
 }
 
 
 def _pathfinder_preset(tier: _Tier) -> TierPreset:
-    """Spend on the roles that reason, and run the mechanical WDK
-    step-building role on the cheaper model."""
+    """Spend on the Lead and FRAME, which plan the turn, and run BUILD and
+    VERIFY on the cheaper model."""
     return TierPreset(
         roles={
             "lead": tier.thinker,
             "frame": tier.thinker,
             "execution": tier.worker,
-            "verification": tier.thinker,
+            "verification": tier.worker,
         },
     )
 

@@ -19,7 +19,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_words import StampedKind
-from pathfinder.tests._support.eda_doubles import SPECIES_VARIABLE
 from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
@@ -35,7 +34,8 @@ from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
 )
 
 _WAITING = "c_essential"
-_WORDS = f"The genes of the analysis 'berghei subset': {SPECIES_VARIABLE} is one of P. berghei"
+# The study names the species variable, so the words name it too.
+_WORDS = "The genes of the analysis 'berghei subset': Species is one of P. berghei"
 
 
 def _ctx(session: StrategySession) -> RunContext[LeadDeps]:

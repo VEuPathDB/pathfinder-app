@@ -40,6 +40,13 @@ async def _joined(session: AsyncSession) -> AsyncIterator[AsyncSession]:
     yield session
 
 
+def writes_a_thread(deps: StrategyMutationContext) -> bool:
+    """Whether the context stores its writes on a thread."""
+    return deps.conversation_id is not None and (
+        deps.locked_session is not None or deps.db_session_factory is not None
+    )
+
+
 def strategy_write_scope(
     deps: StrategyMutationContext,
 ) -> AbstractAsyncContextManager[AsyncSession] | None:

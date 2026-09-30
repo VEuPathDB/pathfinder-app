@@ -9,11 +9,11 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_ai import BinaryContent
 from pydantic_ai.ui.vercel_ai.request_types import FileUIPart
 
-from pathfinder.ai.models.catalog import ModelEntry, get_model_catalog
 from pathfinder.platform.errors import (
     AttachmentNotReadableError,
     AttachmentTooLargeError,
 )
+from pathfinder.platform.model_catalog import ModelEntry, get_model_catalog
 
 _MIB = 1024 * 1024
 MAX_FILE_BYTES = 10 * _MIB

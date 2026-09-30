@@ -110,6 +110,8 @@ VERIFICATION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "list_gene_sets",
     "lookup_gene_records",
     "read_gene_record",
+    "read_step_columns",
+    "read_step_ids",
     "remember",
     "request_search_inspection",
     "resolve_gene_ids_to_records",

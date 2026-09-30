@@ -103,7 +103,7 @@ class _FailingClient:
         raise self.error
 
 
-def _overview(**_kw: object) -> SearchOverviewResult:
+def go_overview(**_kw: object) -> SearchOverviewResult:
     """The formatted overview the tool wraps, with nothing of its own to say."""
     return SearchOverviewResult(
         search_name="GenesByGoTerm",
@@ -117,7 +117,14 @@ async def _transcript(*_a: object, **_k: object) -> str:
     return "transcript"
 
 
-def _overview_client(monkeypatch: pytest.MonkeyPatch) -> _OverviewClient:
+def serve_go_overview(monkeypatch: pytest.MonkeyPatch) -> _OverviewClient:
+    """The GO-term search, its overview formatted by a stub."""
+    client = overview_client(monkeypatch)
+    monkeypatch.setattr(search_inspection, "format_search_overview", go_overview)
+    return client
+
+
+def overview_client(monkeypatch: pytest.MonkeyPatch) -> _OverviewClient:
     """A search whose overview is formatted by a stub, so only the tool runs."""
     monkeypatch.setattr(search_inspection, "resolve_search_record_type", _transcript)
     client = _OverviewClient()
@@ -129,8 +136,8 @@ class TestTheSearchOverviewRead:
     async def test_the_first_read_registers_the_second_is_a_notice(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        client = _overview_client(monkeypatch)
-        monkeypatch.setattr(search_inspection, "format_search_overview", _overview)
+        client = overview_client(monkeypatch)
+        monkeypatch.setattr(search_inspection, "format_search_overview", go_overview)
         ctx = agent_run_context()
 
         first = (
@@ -149,17 +156,22 @@ class TestTheSearchOverviewRead:
         ).return_value
         assert isinstance(second, AlreadyReadNotice)
         assert second.search_name == "GenesByGoTerm"
+        assert second.message == (
+            "You already inspected 'GenesByGoTerm'; this is that read. A criterion "
+            "that already runs it re-binds with no other read; a new criterion "
+            "binds it from a search_for_searches answer that names it."
+        )
         assert client.reads == ["GenesByGoTerm"]
 
     async def test_the_sheet_is_ranked_on_the_goal(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        _overview_client(monkeypatch)
+        overview_client(monkeypatch)
         captured: dict[str, str] = {}
 
         def _capture_query(*, query: str, **_kw: object) -> SearchOverviewResult:
             captured["query"] = query
-            return _overview()
+            return go_overview()
 
         monkeypatch.setattr(search_inspection, "format_search_overview", _capture_query)
         ctx = agent_run_context()
@@ -387,3 +399,22 @@ class TestTheOptionCountSummary:
 
         assert data["summary"] == "organism: 0 options"
         assert data["status"] == "empty"
+
+    async def test_a_cut_list_says_how_many_of_the_total_it_shows(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        shown = [VocabOption(value=f"PF{i:05d}", display="") for i in range(300)]
+        info = _param_info(
+            name="domain_typeahead",
+            type="multi-pick-vocabulary",
+            allowed_values=shown,
+            allowed_values_total=340,
+            vocab_leaves=[
+                *shown,
+                *(VocabOption(value=f"PF9{i:04d}", display="") for i in range(40)),
+            ],
+        )
+        data = await self._read_summary(monkeypatch, info)
+
+        assert data["summary"] == "domain_typeahead: 300 of 340 options shown"
+        assert data["status"] == "ok"

@@ -43,15 +43,19 @@
     "curatorNote": ""
   },
   "effort": "medium",
-  "gates": [
-    {
-      "accept": true,
-      "comment": null,
-      "picks": [
-        "portal"
-      ]
-    }
-  ],
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "consult_user",
+        "turn": 1,
+        "accept": true,
+        "picks": [
+          "portal"
+        ]
+      }
+    ]
+  },
   "attachments": {},
   "newConversationBefore": []
 }

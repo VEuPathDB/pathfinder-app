@@ -27,6 +27,8 @@ class SavedControls(CamelModel):
     name: str
     positive_ids: list[str]
     negative_ids: list[str]
+    conversation_id: UUID | None = None
+    """The thread the set was saved in, or None for a set saved outside one."""
 
 
 class UnknownControlSetError(NotFoundError):
@@ -70,9 +72,13 @@ async def create_control_set(
     spec: NewControlSet,
     *,
     user_id: UUID,
+    conversation_id: UUID | None,
 ) -> ControlSetResponse:
-    """Persist a control set for one user. The caller commits the session."""
-    return await ControlSetService(session).create(spec, user_id=user_id)
+    """Persist a control set for one user, saved in ``conversation_id`` when
+    one is given. The caller commits the session."""
+    return await ControlSetService(session).create(
+        spec, user_id=user_id, conversation_id=conversation_id
+    )
 
 
 def _saved(held: ControlSetResponse) -> SavedControls:
@@ -81,6 +87,7 @@ def _saved(held: ControlSetResponse) -> SavedControls:
         name=held.name,
         positive_ids=held.positive_ids,
         negative_ids=held.negative_ids,
+        conversation_id=held.conversation_id,
     )
 
 

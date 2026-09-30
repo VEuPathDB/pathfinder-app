@@ -12,6 +12,7 @@ from pathfinder.evals.case import (
     EvalCase,
     ExpectedOutcome,
     GateAnswer,
+    GatePlan,
 )
 from pathfinder.evals.redaction import RedactionFailedError
 from pathfinder.evals.store import (
@@ -31,6 +32,7 @@ def _case(name: str) -> EvalCase:
         assistant_id="pathfinder",
         rationale="pins the build path",
         expected=ExpectedOutcome(builds_strategy=True),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",
@@ -94,6 +96,7 @@ def test_a_case_names_at_least_one_turn() -> None:
             assistant_id="pathfinder",
             rationale="pins the build path",
             expected=ExpectedOutcome(builds_strategy=True),
+            gates=GatePlan(policy="leave"),
             provenance=CaseProvenance(
                 site="plasmodb",
                 assistant="pathfinder",
@@ -128,8 +131,25 @@ _EMAIL = "someone@example.org"
             )
         },
         {"attachments": {0: [f"{_EMAIL}.csv"]}},
-        {"gates": [GateAnswer(accept=False, comment=f"ask {_EMAIL}")]},
-        {"gates": [GateAnswer(picks=[_EMAIL])]},
+        {
+            "gates": GatePlan(
+                policy="leave",
+                answers=[
+                    GateAnswer(
+                        card="delete_step",
+                        turn=0,
+                        accept=False,
+                        comment=f"ask {_EMAIL}",
+                    )
+                ],
+            )
+        },
+        {
+            "gates": GatePlan(
+                policy="leave",
+                answers=[GateAnswer(card="consult_user", turn=0, picks=[_EMAIL])],
+            )
+        },
         {
             "provenance": CaseProvenance(
                 site="plasmodb",

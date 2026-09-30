@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from pathfinder.ai.agents._model_resolution import resolve_orchestrator_model_entry
+from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import get_smallest_model
+from pathfinder.tests._support.models import OPENAI_FLAGSHIP
 
 
 def test_resolve_with_explicit_id() -> None:
     entry = resolve_orchestrator_model_entry(
-        model_id="openai:gpt-4.1-mini",
+        model_id=OPENAI_FLAGSHIP,
         provider=None,
     )
-    assert "gpt" in entry.id.lower()
+    assert entry.id == OPENAI_FLAGSHIP
 
 
 def test_resolve_with_unknown_id_falls_back() -> None:
@@ -16,5 +19,4 @@ def test_resolve_with_unknown_id_falls_back() -> None:
         model_id="unknown:fake-model",
         provider=None,
     )
-    # A fallback to a smallest-of-default provider still names a model.
-    assert entry.id != ""
+    assert entry == get_smallest_model(get_settings().default_provider)

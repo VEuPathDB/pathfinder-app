@@ -25,6 +25,7 @@ from assistant_core.platform.db import async_session_factory
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.memory_candidates import collect_turn_memory_candidates
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.persistence.models import User
 
 
@@ -62,7 +63,9 @@ async def test_deleted_gene_set_memory_does_not_resurrect(
             store=store,
             tombstones=tombstones,
             user_id=state.user_id,
-            candidates=await collect_turn_memory_candidates(state),
+            candidates=await collect_turn_memory_candidates(
+                state, counts=BuiltCounts()
+            ),
         )
         assert written_first == 1
         stored = await store.list_all(user_id=user_id, kind="gene_set_note")
@@ -80,7 +83,9 @@ async def test_deleted_gene_set_memory_does_not_resurrect(
             store=store,
             tombstones=tombstones,
             user_id=state.user_id,
-            candidates=await collect_turn_memory_candidates(state),
+            candidates=await collect_turn_memory_candidates(
+                state, counts=BuiltCounts()
+            ),
         )
         assert written_second == 0, "tombstoned memory was re-added"
         assert await store.list_all(user_id=user_id, kind="gene_set_note") == []
@@ -124,7 +129,9 @@ async def test_tombstone_is_kind_scoped_not_global(
             store=store,
             tombstones=tombstones,
             user_id=gs_state.user_id,
-            candidates=await collect_turn_memory_candidates(gs_state),
+            candidates=await collect_turn_memory_candidates(
+                gs_state, counts=BuiltCounts()
+            ),
         )
         stored = (await store.list_all(user_id=user_id, kind="gene_set_note"))[0]
         await tombstones.tombstone(user_id=user_id, value=stored.value)

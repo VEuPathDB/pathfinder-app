@@ -236,6 +236,7 @@ def install_stub_api(monkeypatch: pytest.MonkeyPatch) -> StubAPI:
         monkeypatch.setattr(module, "reconcile_sync_state_with_wdk", _noop)
         monkeypatch.setattr(module, "sync_strategy_for_site", _fake_sync)
         monkeypatch.setattr(module, "persist_strategy_ast_to_conversation", _noop)
+        monkeypatch.setattr(module, "defer_the_gene_set_refresh", _noop)
     pin_validator(monkeypatch, _echo_parameters)
     monkeypatch.setattr(step_wdk_push, "_validate_plan_params", _no_plan_params)
     return api

@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.devtools import evals
 from pathfinder.domain.message_rating import Rating
-from pathfinder.evals.case import ExpectedOutcome
+from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.persistence.models import StrategyRevision, User
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -316,7 +316,11 @@ async def test_promotion_ends_the_message_handle_and_needs_an_expectation(
         await promote_staged_case(
             staging=staging,
             staging_id=staging_id,
-            edits=PromotionEdits(name="a-disliked-case", rationale="wrong operator"),
+            edits=PromotionEdits(
+                name="a-disliked-case",
+                rationale="wrong operator",
+                gates=GatePlan(policy="auto"),
+            ),
             directory=tmp_path,
         )
     await promote_staged_case(
@@ -326,6 +330,7 @@ async def test_promotion_ends_the_message_handle_and_needs_an_expectation(
             name="a-disliked-case",
             rationale="wrong operator",
             expected=ExpectedOutcome(builds_strategy=True, step_count=3),
+            gates=GatePlan(policy="auto"),
         ),
         directory=tmp_path,
     )

@@ -15,9 +15,10 @@ step is checked against the current source before it is filed.
 - [Findings](findings.md) - defects measured while writing these flows; fixed before UAT starts
 - [First run and navigation](flows-first-run.md) - `F1` to `F12`
 - [Building strategies, standard](flows-strategy-standard.md) - `S1` to `S16`
-- [Building strategies, non-standard and exceptions](flows-strategy-exceptions.md) - `N1` to `N13`
+- [Building strategies, non-standard and exceptions](flows-strategy-exceptions.md) - `N1` to `N14`
 - [Verification and evidence](flows-verification.md) - `V1` to `V7`
 - [Studies (EDA)](flows-eda.md) - `E1` to `E8`
+- [The researcher's own uploaded datasets](flows-user-datasets.md) - `UD1` to `UD4`, on plasmodb and vectorbase
 - [Memory and notes](flows-memory-notes.md) - `M1` to `M6`
 - [Composer](flows-composer.md) - `C1` to `C16`
 - [Settings and account](flows-settings-account.md) - `A1` to `A7`
@@ -26,6 +27,7 @@ step is checked against the current source before it is filed.
 - [Resilience](flows-resilience.md) - `R1` to `R8`
 - [Deployment checks](flows-deployment.md) - `D1` to `D11`
 - [Layout and access](flows-layout-access.md) - `L1` to `L5`
+- [The dry UAT investigations](flows-dry-uat.md) - `U1` to `U10`, one multi-turn conversation each on nine sites
 
 ## Exit criteria in ten lines
 
@@ -87,10 +89,12 @@ Result: `pass`, `fail`, `blocked` or `re-measure`. Bug ids: the tracker's, comma
 | S5 as X5 | veupathdb | | |
 | S3, S4, S6, S7, S8 | plasmodb | | |
 | S9 to S16 | plasmodb | | |
-| N1 to N13 | plasmodb (N9, N12 as stated) | | |
+| N1 to N14 | plasmodb (N9, N12 as stated) | | |
 | V1 | each site | | |
 | V2 to V7 | plasmodb | | |
 | E1 to E8 | plasmodb | | |
+| UD1 to UD4 | plasmodb | | |
+| UD1 to UD4 | vectorbase | | |
 | M1 to M6 | plasmodb | | |
 | C1 to C16 | plasmodb | | |
 | A1 to A7 | once | | |
@@ -150,6 +154,7 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | N11 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n11-plasmodb` | - |
 | N12 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n12-toxodb` | - |
 | N13 | `apps/web/e2e/uat/strategy-exceptions.spec.ts` | `uat-n13-plasmodb` | - |
+| N14 | `apps/web/e2e/uat/requirement-withdrawal.spec.ts` | - | - |
 | V1 | `apps/web/e2e/uat/verification.spec.ts` | - | `all-unclear` |
 | V2 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v2-plasmodb` | `repeat-control-test`, `unbacked-controls` |
 | V3 | `apps/web/e2e/uat/verification.spec.ts` | `uat-v3-plasmodb` | `sweep-without-controls` |
@@ -165,6 +170,10 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | E6 | none: a VDI upload installs on the site | - | - |
 | E7 | none: needs the E6 upload | - | - |
 | E8 | `apps/web/e2e/uat/eda.spec.ts` | `uat-e8-plasmodb` | the `eda-other-site` arc (FND-11) |
+| UD1 | `apps/web/e2e/uat/user-datasets.spec.ts` (the `user-dataset-deseq` arc, the stated cut in one message) | `uat-ud1-plasmodb`, `uat-ud1-vectorbase` | - |
+| UD2 | none: the export is a click in the study tab; `tests/integration/strategies/test_wdk_user_dataset_searches.py` holds that the export and the user-dataset search count the same genes | - | - |
+| UD3 | none on the mock stack | `uat-ud3-plasmodb` | - |
+| UD4 | none: the live test holds the count | - | - |
 | M1 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
 | M2 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
 | M3 | `apps/web/e2e/uat/memory-notes.spec.ts` | - | - |
@@ -228,6 +237,20 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | L3 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
 | L4 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
 | L5 | `apps/web/e2e/uat/layout-access.spec.ts` | - | - |
+| U1 | - | `uat-dry-a-toxodb` | - |
+| U2 | - | `uat-dry-a-cryptodb` | - |
+| U3 | - | `uat-dry-a-piroplasmadb` | - |
+| U4 | - | `uat-dry-b-tritrypdb` | - |
+| U5 | - | `uat-dry-b-giardiadb` | - |
+| U6 | - | `uat-dry-b-fungidb` | - |
+| U7 | - | `uat-dry-c-plasmodb` | - |
+| U8 | - | `uat-dry-d-vectorbase` | - |
+| U9 | - | `uat-dry-d-amoebadb` | - |
+| U10 | - | `uat-dry-d-veupathdb` | - |
+| UA-plasmodb | - | `uat-dry-a-plasmodb` | - |
+| UC-piroplasmadb | - | `uat-dry-c-piroplasmadb` | - |
+| UB4-giardiadb | - | `uat-dry4-b-giardiadb` | - |
+| UB4-tritrypdb | - | `uat-dry4-b-tritrypdb` | - |
 
 ## Coverage
 
@@ -264,7 +287,7 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 |---|---|
 | `run_control_tests_on_step` | V2, V4 step 6 |
 | `optimize_search_parameters` | V3 |
-| `run_eda_compute` | E2, E4, E6, F11 |
+| `run_eda_compute` | E2, E4, E6, F11, UD1, UD2 |
 | `separate_controls` | V4, V5 |
 
 ### Thread parts (`KnownDataPartKind`, 31)
@@ -320,9 +343,10 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 | A delete the tree cannot place | N5 |
 | An offer declined, then a bare yes | N7 |
 | A second build on a built conversation | N13 |
+| A requirement no search states, dropped on the card | N14 |
 | A provider refusing the researcher's key; keys off | A2, R3 |
 | The monthly allowance spent | R8 |
 | The worker stopped | R4 |
 | A VEuPathDB 4xx on a step | R2 |
 
-Gaps: none left open in the lists above. Flows marked "not measured" (A2, A7, F6 step 5, N9 step 2, N13, R3, R5, R8, V6, V7, D1 to D11) carry expectations from the code and are measured at UAT start.
+Gaps: none left open in the lists above. Flows marked "not measured" (A2, A7, F6 step 5, N9 step 2, N13, N14, R3, R5, R8, V6, V7, D1 to D11) carry expectations from the code and are measured at UAT start.

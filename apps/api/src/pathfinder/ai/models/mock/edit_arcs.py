@@ -6,18 +6,16 @@ from __future__ import annotations
 from assistant_core.models.scripted import scripted_call
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final
-from pathfinder.ai.models.mock.findings import findings
+from pathfinder.ai.models.mock.calls import classify, lead_final, narrated
 from pathfinder.ai.models.mock.lead_flow import (
     BUILD,
+    FACTS_BESIDE,
     build_classification,
     build_journey,
-    written_tail,
 )
 from pathfinder.ai.models.mock.message_words import named_after, turn_controls
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
-    built_count_sentence,
     built_root_wdk_step_id,
     control_set_id,
     last_return,
@@ -52,7 +50,13 @@ DELETED_PROSE = (
 _NO_STEP_PROSE = "The strategy holds no transmembrane domains step to remove."
 _PROPOSAL = {
     "question": "Add one more search to make this strategy more specific?",
-    "proposedChanges": ["Keep only the genes another search of the site returns"],
+    "proposedChanges": [
+        {
+            "kind": "add_criterion",
+            "sentence": "Keep only the genes another search of the site returns",
+            "searchName": "GenesByTransmembraneDomains",
+        }
+    ],
     "reply": "[mock] One change would make this strategy more specific.",
 }
 
@@ -100,7 +104,9 @@ def rename(messages: list[ModelMessage]) -> list[ToolCallPart]:
     return [
         classify("edit_strategy"),
         scripted_call(_RENAME, {"name": named_after("to") or _RENAMED_NAME}),
-        lead_final(_NOT_RENAMED_PROSE if answered is None else answered, "await_user"),
+        lead_final(
+            _NOT_RENAMED_PROSE if answered is None else narrated(answered), "await_user"
+        ),
     ]
 
 
@@ -147,10 +153,7 @@ def sweep(messages: list[ModelMessage]) -> list[ToolCallPart]:
         *journey[1:-2],
         _swept(built, messages),
         lead_final(
-            f"{_SWEEP_PROSE}{findings(messages)}"
-            f"{written_tail(messages, built_count_sentence(messages))}",
-            "await_user",
-            strategy_changed=True,
+            f"{_SWEEP_PROSE}{FACTS_BESIDE}", "await_user", strategy_changed=True
         ),
     ]
 

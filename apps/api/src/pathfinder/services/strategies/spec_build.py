@@ -21,7 +21,7 @@ from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     NodeResult,
     StepPushFailure,
-    citable_count,
+    built_counts,
     node_status,
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
@@ -36,6 +36,7 @@ from pathfinder.domain.strategy.spec_edit_guard import (
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
 from pathfinder.services.strategies.organism_params import tree_organism_parameters
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
@@ -59,21 +60,15 @@ def node_results(
     sync_state: WDKSyncState,
     outcome: BuildOutcome,
 ) -> list[NodeResult]:
-    """One result per node. A node WDK refused reports the refusal, not a count.
-
-    The WDK step a refused push leaves behind still runs the previous search,
-    so its measured size answers a search the node no longer states.
-    """
+    """One result per node, its status read at the counts the sync state holds."""
     failed = {f.step_id: f.error for f in outcome.failed_steps}
+    counts = built_counts(None, sync_state)
     return [
         NodeResult(
             node_id=node.id,
             search_name=wdk_search_name(node),
             wdk_step_id=sync_state.wdk_step_ids.get(node.id),
-            count=citable_count(node.id, counts=outcome.counts, refused=failed),
-            status=node_status(
-                count=outcome.counts.get(node.id), failed=node.id in failed
-            ),
+            status=node_status(count=counts.of(node.id), failed=node.id in failed),
             error=failed.get(node.id),
         )
         for node in nodes
@@ -265,9 +260,6 @@ async def build_strategy_from_spec(
         return outcome
 
     outcome.wdk_strategy_id = sync_result.wdk_strategy_id
-    outcome.wdk_url = sync_result.wdk_url
-    outcome.counts = {str(k): v for k, v in sync_result.counts.items()}
-    outcome.root_count = sync_result.root_count
     outcome.zero_step_ids = list(sync_result.zero_step_ids)
 
     outcome.node_results = node_results(nodes, sync_state, outcome)
@@ -276,6 +268,7 @@ async def build_strategy_from_spec(
         graph=graph,
         sync_result=sync_result,
     )
+    await defer_the_gene_set_refresh(deps)
     return outcome
 
 

@@ -26,6 +26,7 @@ import type {
   EvidenceCard,
   SiteRead,
   RequirementCheck,
+  ColumnFit,
   SampledGene,
   Citation,
   VerificationReview,
@@ -35,6 +36,15 @@ import type {
   SeparationOffer,
   SeparationReport,
   SkippedCriterion,
+  ControlResultFact,
+  ListedFact,
+  ListedRecord,
+  ParameterFact,
+  RetiredFact,
+  SavedSetFact,
+  SourceFact,
+  StepFact,
+  TurnFacts,
   GeneSet as GeneSetStreamPart,
   GeneSetResponse,
   GraphCleared,
@@ -83,6 +93,7 @@ import type {
   TurnFailedPayload,
   ConversationTitlePayload,
   ConversationResponse,
+  DeleteCascadePayload,
   TaskCompleted,
   TaskListItem,
   TaskListResponse,
@@ -269,6 +280,7 @@ export type {
   EvidenceCard,
   SiteRead,
   RequirementCheck,
+  ColumnFit,
   SampledGene,
   Citation,
   VerificationReview,
@@ -278,6 +290,15 @@ export type {
   SeparationOffer,
   SeparationReport,
   SkippedCriterion,
+  ControlResultFact,
+  ListedFact,
+  ListedRecord,
+  ParameterFact,
+  RetiredFact,
+  SavedSetFact,
+  SourceFact,
+  StepFact,
+  TurnFacts,
 };
 export type GeneSetPart = GeneSetStreamPart;
 export type TaskProgressChunk = TaskProgressStreamPart;
@@ -325,6 +346,7 @@ export type KnownDataPartKind =
   | "data-sub-agent-call"
   | "data-sub-agent-step"
   | "data-ledger-update"
+  | "data-facts"
   | "data-background-task-started"
   | "data-task-progress"
   | "data-task-completed"
@@ -340,6 +362,7 @@ export type KnownDataPartKind =
   | "data-memory-retrieved"
   | "data-gene-set"
   | "data-strategy-revision"
+  | "data-delete-cascade"
   | "data-user-question-answers"
   | "data-conversation-title"
   | "data-scratchpad-updated"
@@ -364,6 +387,7 @@ export interface DataPartPayloadMap {
   "data-sub-agent-call": DataSubAgentCallPayload;
   "data-sub-agent-step": DataSubAgentStepPayload;
   "data-ledger-update": InvestigationLedger;
+  "data-facts": TurnFacts;
   "data-background-task-started": BackgroundTaskStarted;
   "data-task-progress": TaskProgressStreamPart;
   "data-task-completed": TaskCompleted;
@@ -379,6 +403,7 @@ export interface DataPartPayloadMap {
   "data-memory-retrieved": RecalledMemoriesPayload;
   "data-gene-set": GeneSetStreamPart;
   "data-strategy-revision": StrategyRevisionPayload;
+  "data-delete-cascade": DeleteCascadePayload;
   "data-user-question-answers": UserQuestionAnswersPayload;
   "data-conversation-title": DataConversationTitlePayload;
   "data-scratchpad-updated": ScratchpadUpdatedPayload;

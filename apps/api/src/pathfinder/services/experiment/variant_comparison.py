@@ -18,9 +18,15 @@ import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from veupathdb.domain.parameters import ParamValue, wire_map
-from veupathdb.errors import WDKError
+from veupathdb.domain.strategy import StrategyAst, walk
+from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import WDKAnswer, WDKSearchConfig, get_wdk_client
-from veupathdb_mcp.wdk import extract_record_ids, view_filters_for
+from veupathdb_mcp.catalog import ParameterInfo, wdk_fetch_at
+from veupathdb_mcp.wdk import (
+    compute_plan_step_counts,
+    extract_record_ids,
+    view_filters_for,
+)
 
 _CONCURRENCY = 4
 _MAX_RECORDS = 50_000
@@ -55,12 +61,97 @@ class VariantResult(CamelModel):
     unique_count: int
     sample_unique_genes: list[str]
     error: str | None = None
+    # The strategy's result with this variant in place of the one step that
+    # runs its search; None when no single step runs it.
+    result_count: int | None = None
 
 
 class VariantComparison(CamelModel):
     variants: list[VariantResult]
     overlaps: list[PairwiseOverlap]
     truncated: bool = False
+    # The root step each ``result_count`` counts; None when none was counted.
+    result_step_id: str | None = None
+
+    def counts(self) -> frozenset[int]:
+        """Every count a variant that ran returned: its genes, its result, its
+        unique genes, and the genes each pair shares."""
+        ran = [v for v in self.variants if v.error is None]
+        return frozenset(
+            {
+                *(v.gene_count for v in ran),
+                *(v.unique_count for v in ran),
+                *(v.result_count for v in ran if v.result_count is not None),
+                *(o.shared for o in self.overlaps),
+            }
+        )
+
+
+async def search_parameters(
+    site_id: str, record_type: str, search_name: str, context: dict[str, str]
+) -> list[ParameterInfo]:
+    """The parameters the site's search takes, each with the vocabulary the
+    parent values in ``context`` give it."""
+    return await wdk_fetch_at(site_id, record_type, search_name)(context)
+
+
+def _in_place(ast: StrategyAst, step_id: str, spec: VariantSpec) -> StrategyAst:
+    """The strategy with the variant's values set on the step that runs its search."""
+    placed = ast.model_copy(deep=True)
+    node = next(node for node in walk(placed.root) if node.id == step_id)
+    node.parameters = {**node.parameters, **spec.parameters}
+    return placed
+
+
+async def _result_count(
+    site_id: str, ast: StrategyAst, step_id: str | None, spec: VariantSpec
+) -> int | None:
+    if step_id is None:
+        return None
+    try:
+        counts = await compute_plan_step_counts(_in_place(ast, step_id, spec), site_id)
+    except VEuPathDBError, httpx.HTTPError:
+        return None
+    return counts.get(ast.root.id)
+
+
+async def counted_in_place(
+    site_id: str,
+    comparison: VariantComparison,
+    specs: list[VariantSpec],
+    *,
+    strategy: StrategyAst,
+    steps: dict[str, str],
+) -> VariantComparison:
+    """The comparison with each variant counted at the strategy's result.
+
+    ``steps`` names, by variant label, the one step that runs its search; a
+    variant that failed or has no step keeps no result count.
+    """
+    ran = {v.label for v in comparison.variants if v.error is None}
+    counts = await asyncio.gather(
+        *(
+            _result_count(
+                site_id,
+                strategy,
+                steps.get(spec.label) if spec.label in ran else None,
+                spec,
+            )
+            for spec in specs
+        )
+    )
+    by_label = dict(zip((spec.label for spec in specs), counts, strict=True))
+    return comparison.model_copy(
+        update={
+            "variants": [
+                v.model_copy(update={"result_count": by_label.get(v.label)})
+                for v in comparison.variants
+            ],
+            "result_step_id": strategy.root.id
+            if any(c is not None for c in counts)
+            else None,
+        }
+    )
 
 
 async def run_variant_search(site_id: str, spec: VariantSpec) -> WDKAnswer:

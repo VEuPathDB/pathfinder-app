@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain import SearchContext
@@ -30,6 +30,7 @@ from pathfinder.ai.tools.standalone._qualifier_words import (
     the_one_search_naming,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.words import names_a_run_of
 
 _ROUND_TRIP = (
     " as a transform; to keep the source genes, state the round trip: the "
@@ -108,8 +109,15 @@ async def qualifiers_no_search_states(
     type names a parameter by, is not one of them.
     """
     reading = await _read(ctx, record_type, definition, stated)
+    phrased = _phrase_stems(params)
     left, unread = await _refuse_a_search_another_one_outstates(
-        ctx, record_type, definition, stated.id, reading
+        ctx,
+        record_type,
+        definition,
+        stated.id,
+        replace(
+            reading, unspoken=[q for q in reading.unspoken if q.stem not in phrased]
+        ),
     )
     _refuse_a_value_that_drops_a_qualifier(stated.id, definition, reading, params)
     valued = set().union(
@@ -120,6 +128,19 @@ async def qualifiers_no_search_states(
     )
 
 
+def _phrase_stems(params: ParamProposals) -> frozenset[str]:
+    """The stems of every value of two or more words: a phrase the binding
+    states whole, whose words no other search states for it."""
+    return frozenset().union(
+        *(
+            stems_of(v)
+            for value in params.values()
+            for v in proposal_values(value)
+            if len(stems_of(v)) > 1
+        )
+    )
+
+
 async def _read(
     ctx: RunContext[AgentDeps],
     record_type: str,
@@ -127,7 +148,9 @@ async def _read(
     stated: Criterion,
 ) -> _Reading:
     """The qualifiers of the text: the words exactly one search of the record
-    type names a parameter by, in the compound that parameter name puts them in.
+    type names a parameter by, in the compound that parameter name puts them in,
+    that the researcher's messages hold. A word only the plan's text holds is
+    never a requirement.
 
     A qualifier is held to a search only when the pass read the search that
     names it. A transform's text names the genes it maps, so a word the search
@@ -151,10 +174,13 @@ async def _read(
         *drafted,
         *_sibling_names(ctx, record_type, definition.url_segment),
     }
+    requested = ctx.deps.agent_state.request_messages
     qualifiers = [
         q
         for q in qualifiers_of(stated.text)
-        if q.stem in naming and naming[q.stem].names(q)
+        if q.stem in naming
+        and naming[q.stem].names(q)
+        and any(names_a_run_of(message, q.word) for message in requested)
     ]
     owners = {q.stem: naming[q.stem].search for q in qualifiers}
     held = frozenset(q.stem for q in qualifiers if owners[q.stem] in read)

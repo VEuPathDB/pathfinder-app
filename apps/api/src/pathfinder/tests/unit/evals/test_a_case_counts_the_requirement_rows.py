@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from pathfinder.domain.evidence import RequirementCheck
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.extract import EvalExtract, ExtractedVerification
 from pathfinder.evals.scoring import (
     ObservedOutcome,
@@ -41,6 +41,7 @@ def _case(*, met: int | None, unmet: int | None) -> EvalCase:
         expected=ExpectedOutcome(
             builds_strategy=True, met_requirements=met, unmet_requirements=unmet
         ),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",
@@ -55,6 +56,14 @@ def test_the_rows_are_counted_by_status() -> None:
     counts = requirement_counts([_MET, _UNMET, _UNEXPRESSED, _MET])
 
     assert counts == RequirementCounts(met=2, unmet=1, unexpressed=1)
+
+
+def test_a_met_row_no_record_judged_is_counted_apart() -> None:
+    unjudged = _MET.model_copy(update={"no_record_judged_it": True})
+
+    counts = requirement_counts([_MET, unjudged])
+
+    assert counts == RequirementCounts(met=1, unjudged=1)
 
 
 def test_a_run_whose_rows_disagree_is_named_on_each_count() -> None:

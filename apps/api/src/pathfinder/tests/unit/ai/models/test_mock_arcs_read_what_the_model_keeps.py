@@ -7,12 +7,12 @@ import pytest
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StepKind, StrategyStep
 
+from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, SUCCESS_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.tests.fixtures.builders import add_step_to_graph
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins
 from pathfinder.tests.unit.ai.models._mock_turns import (
-    LIVE_ROOT_COUNT,
     SHEET_ORGANISMS,
     Scene,
     args_of,
@@ -78,9 +78,7 @@ def test_the_controls_reply_on_a_built_thread_changes_nothing(site_id: str) -> N
     calls = play("lead", site_id, "Test it [[arc:controls-test]]", scene=scene)
 
     assert calls[-1].args_as_dict()["strategyChanged"] is False
-    assert calls[-1].args_as_dict()["prose"] == (
-        f"{_COUNTS} The strategy returns {LIVE_ROOT_COUNT:,} genes."
-    )
+    assert calls[-1].args_as_dict()["prose"] == f"{SUCCESS_PROSE}{FACTS_BESIDE}"
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -127,10 +125,7 @@ def test_a_sweep_that_builds_states_the_count_the_build_answered(site_id: str) -
 
     calls = play("lead", site_id, "[[arc:sweep]]", scene=unbuilt)
 
-    assert str(calls[-1].args_as_dict()["prose"]).endswith(
-        "- Predicted Signal Peptide, chosen for SignalP version\n\n"
-        "The strategy returns 12 genes."
-    )
+    assert str(calls[-1].args_as_dict()["prose"]).endswith(FACTS_BESIDE)
 
 
 # An organism name longer than the graph pin prints a parameter value.

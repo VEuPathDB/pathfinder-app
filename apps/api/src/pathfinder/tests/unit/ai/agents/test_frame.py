@@ -65,10 +65,34 @@ def test_frame_instructions_fill_the_vocabulary_half_of_a_radio_pair() -> None:
     # refused. A wildcard is a vocabulary read, not a value to type.
     assert (
         "the vocabulary half carries the criterion; pass `N/A` for the free-text "
-        "half; a wildcard you would have typed is a "
-        "`get_parameter_options(query=...)` over the vocabulary, then every entry "
-        "it covers. The halves are ORed, so a value in both widens the search, and "
-        "the vocabulary half cannot be switched off"
+        "half. The halves are ORed, so a value in both widens the search, and the "
+        "vocabulary half cannot be switched off"
+    ) in _normalized(_FRAME_INSTRUCTIONS)
+
+
+def test_frame_instructions_read_every_phrasing_of_a_concept() -> None:
+    # One substring misses "RNA-binding" and every family named another way,
+    # and a word alone matches entries that are not the concept.
+    text = _normalized(_FRAME_INSTRUCTIONS)
+    assert (
+        "a concept or a wildcard you would have typed is one "
+        "`get_parameter_options(query=[...])` over the vocabulary that lists every "
+        'phrasing of the concept, e.g. `["RNA binding", "RNA recognition", "KH"]`'
+    ) in text
+    assert (
+        "Bind the entries a phrase matched (`vocabLookup` reach `phrase` or "
+        "`every_word`); never bind the entries a single word matched (reach "
+        "`word`) without asking the user"
+    ) in text
+    assert "then every entry it covers" not in text
+
+
+def test_frame_instructions_read_a_typeahead_vocabulary_before_binding_it() -> None:
+    assert (
+        "A typeahead vocabulary (GO term, InterPro domain, EC number) is always read "
+        "this way before you bind it: the sheet's list is ranked by name and is not "
+        "the concept, so `set_criterion` refuses a new entry on it that no lookup of "
+        "this pass read, unless the request writes the entry out"
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 
@@ -124,18 +148,13 @@ def test_frame_instructions_select_every_matching_sample() -> None:
     )
 
 
-def test_frame_instructions_say_when_to_declare_an_assumption() -> None:
-    # A value the request does not state is recorded as a constraint the user
-    # can override, rather than being narrated once and lost.
+def test_frame_instructions_say_the_tool_records_who_set_each_value() -> None:
+    # The tool decides the source of a value, so the model states the reason.
     assert (
-        "Assumed values: when you choose a value the criterion text does not "
-        "state and that is not the sheet's default, declare it in `assumed` "
-        "with the parameter name, the value and one sentence of reason. Each "
-        "becomes a constraint the user reads and can override. A value the "
-        'request states is not an assumption: "top 10 percent" states the '
-        "minimum percentile 90. A half of a reference and comparison pair is "
-        "never assumed - state the group the request names, or leave it null "
-        "and ask."
+        "Chosen values: the tool records who set each value. A value whose "
+        "words the researcher's messages hold is theirs, the sheet's default "
+        "is the site's, and every other value is your choice, recorded with "
+        "the reason you give in `why`."
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 

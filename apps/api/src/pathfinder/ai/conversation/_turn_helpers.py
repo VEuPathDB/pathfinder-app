@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from assistant_core.graph.turn_state import DurableTaskResult, UserQuestionAnswer
+from assistant_core.platform.observability import current_trace_id
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.spec import TurnStart
 from pydantic import BaseModel, ValidationError
@@ -101,7 +102,7 @@ def build_turn_start(
         mode=incoming.mode,
         turn_message_id=turn_message_id,
         turn_start_event_id=turn_start_event_id,
-        turn_trace_id=str(uuid4()),
+        turn_trace_id=current_trace_id(),
         turn_created_at=datetime.now(UTC).isoformat(),
         is_resume=resume,
         user_message_id=None if resume else incoming.last_user_message_id,

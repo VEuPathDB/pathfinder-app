@@ -132,7 +132,7 @@ async def test_a_purge_from_another_application_destroys_nothing(
     assert survivor is not None
     assert survivor.dismissed_at is None
     assert gene_set_row is not None
-    assert gene_set.id in get_gene_set_store()._cache
+    assert await get_gene_set_store().get(gene_set.id) is not None
 
     owner = await api_client.request(
         "DELETE", "/api/v1/user/data", params={"siteId": "plasmodb"}
@@ -153,7 +153,7 @@ async def test_a_purge_from_another_application_destroys_nothing(
         assert purged is not None
         assert purged.dismissed_at is not None
         assert await verify.get(GeneSetRow, gene_set.id) is None
-    assert gene_set.id not in get_gene_set_store()._cache
+    assert await get_gene_set_store().get(gene_set.id) is None
 
 
 async def test_purge_respects_site_scope(

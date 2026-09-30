@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.scoring import (
     ObservedOutcome,
     final_count_below_every_input,
@@ -67,6 +67,7 @@ def _case(*, operator: str | None = "INTERSECT", below: bool | None = True) -> E
             root_operator=operator,
             final_count_below_every_input=below,
         ),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",

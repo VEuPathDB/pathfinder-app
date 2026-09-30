@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
 import { listScratchpadNotesQueryOptions } from "@pathfinder/shared/generated/hooks/useListScratchpadNotes";
 import { revertToMessage } from "@pathfinder/shared/generated/hooks/useRevertToMessage";
-import { submitProductAction } from "@pathfinder/shared/generated/hooks/useSubmitProductAction";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { refetchStrategy } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
 import { chatUrl } from "@/lib/routes";
@@ -64,12 +64,7 @@ export function EditComposerBranchOrRevert() {
     mutationFn: async () => {
       if (conversationId === null) throw new Error("No conversation");
       await revertToMessage(conversationId, { messageId });
-      void submitProductAction({
-        action: "undo_turn",
-        streamId: messageId,
-      }).catch((err: unknown) => {
-        console.warn("submitProductAction(undo_turn) failed", err);
-      });
+      recordProductEvent({ event: "turn_undone", messageId, conversationId });
     },
     onSuccess: async () => {
       if (conversationId === null) return;

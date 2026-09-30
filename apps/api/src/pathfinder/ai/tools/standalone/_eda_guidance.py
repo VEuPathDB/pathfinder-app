@@ -27,7 +27,8 @@ def opened_guidance(*, gene_problem: str | None, can_export: bool) -> str:
     if gene_problem is not None:
         lines.append(
             f"{gene_problem} This analysis cannot export rows into a strategy "
-            f"step; report the counts and the distributions instead."
+            f"step; its figures show the counts and the distributions, and the "
+            f"reply says what they mean."
         )
     elif not can_export:
         lines.append(

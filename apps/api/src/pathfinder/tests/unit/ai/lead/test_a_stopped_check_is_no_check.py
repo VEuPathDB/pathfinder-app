@@ -20,6 +20,7 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.ai.lead.verify_dispatch import run_verification, verification_stopped
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.run_context import run_context_for
@@ -108,9 +109,11 @@ async def test_a_stopped_check_leaves_the_turn_unchecked(
 
     assert state.turn_verdict == _EARLIER
     assert state.checked_verdict is None
-    assert record.caveats == ()
+    assert record.facts.stopped_check == _STOP.render()
     assert record.last_phase_stop == _STOP
-    assert [key for _, key in collect_memory_candidates(state)] == []
+    assert [
+        key for _, key in collect_memory_candidates(state, counts=BuiltCounts())
+    ] == []
 
 
 async def test_a_check_that_finishes_after_a_stopped_one_is_the_turns_finding(
@@ -125,9 +128,9 @@ async def test_a_check_that_finishes_after_a_stopped_one_is_the_turns_finding(
 
     assert isinstance(result, VerificationDelta)
     assert state.checked_verdict == result.digest
-    assert [key for _, key in collect_memory_candidates(state)] == [
-        f"knowledge:{state.conversation_id.hex}:0"
-    ]
+    assert [
+        key for _, key in collect_memory_candidates(state, counts=BuiltCounts())
+    ] == [f"knowledge:{state.conversation_id.hex}:0"]
 
 
 @pytest.mark.parametrize("serialized", [False, True])

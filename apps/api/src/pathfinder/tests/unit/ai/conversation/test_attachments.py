@@ -14,12 +14,13 @@ from pathfinder.ai.conversation.attachments import (
     ReadAttachment,
     read_attachments,
 )
-from pathfinder.ai.models.catalog import ModelEntry, get_model_entry
 from pathfinder.platform.errors import (
     AttachmentNotReadableError,
     AttachmentTooLargeError,
     ErrorCode,
 )
+from pathfinder.platform.model_catalog import ModelEntry, get_model_entry
+from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 
 _MIB = 1024 * 1024
 
@@ -30,8 +31,8 @@ def _model(model_id: str) -> ModelEntry:
     return entry
 
 
-LUNA = _model("openai:gpt-5.6-luna")
-SONNET = _model("anthropic:claude-sonnet-5")
+READER = _model(DEFAULT_MODEL)
+BLIND = _model(ANTHROPIC_SMALL)
 
 
 def _part(media_type: str, size: int, filename: str = "table.png") -> FileUIPart:
@@ -46,7 +47,7 @@ def _part(media_type: str, size: int, filename: str = "table.png") -> FileUIPart
 def test_an_image_and_a_pdf_within_the_caps_are_read() -> None:
     parts = [_part("image/png", 1000), _part("application/pdf", 2000, "paper.pdf")]
 
-    assert read_attachments(parts, LUNA) == [
+    assert read_attachments(parts, READER) == [
         ReadAttachment(filename="table.png", media_type="image/png", size=1000),
         ReadAttachment(filename="paper.pdf", media_type="application/pdf", size=2000),
     ]
@@ -54,7 +55,7 @@ def test_an_image_and_a_pdf_within_the_caps_are_read() -> None:
 
 def test_a_file_over_the_per_file_cap_is_refused_as_too_large() -> None:
     with pytest.raises(AttachmentTooLargeError) as refused:
-        read_attachments([_part("image/png", MAX_FILE_BYTES + 2 * _MIB)], LUNA)
+        read_attachments([_part("image/png", MAX_FILE_BYTES + 2 * _MIB)], READER)
 
     assert refused.value.status == 413
     assert refused.value.code == ErrorCode.ATTACHMENT_TOO_LARGE
@@ -68,7 +69,7 @@ def test_a_message_over_the_total_cap_is_refused_as_too_large() -> None:
     parts = [_part("image/png", 8 * _MIB, f"{n}.png") for n in range(3)]
 
     with pytest.raises(AttachmentTooLargeError) as refused:
-        read_attachments(parts, LUNA)
+        read_attachments(parts, READER)
 
     assert refused.value.detail == (
         "These attachments come to 24.0 MB; one message can carry at most 20 MB."
@@ -79,7 +80,7 @@ def test_more_attachments_than_the_cap_are_refused() -> None:
     parts = [_part("image/png", 10, f"{n}.png") for n in range(MAX_ATTACHMENTS + 1)]
 
     with pytest.raises(AttachmentTooLargeError) as refused:
-        read_attachments(parts, LUNA)
+        read_attachments(parts, READER)
 
     assert (
         refused.value.detail
@@ -89,28 +90,28 @@ def test_more_attachments_than_the_cap_are_refused() -> None:
 
 def test_an_image_is_refused_for_a_model_that_does_not_read_images() -> None:
     with pytest.raises(AttachmentNotReadableError) as refused:
-        read_attachments([_part("image/png", 10)], SONNET)
+        read_attachments([_part("image/png", 10)], BLIND)
 
     assert refused.value.status == 422
     assert refused.value.code == ErrorCode.ATTACHMENT_NOT_READABLE
     assert refused.value.detail is not None
     assert refused.value.detail.startswith(
-        "Claude Sonnet 5 does not read images; choose a model that does in Settings: "
+        f"{BLIND.name} does not read images; choose a model that does in Settings: "
     )
-    assert "GPT-5.6 Luna" in refused.value.detail
+    assert READER.name in refused.value.detail
 
 
 def test_a_pdf_is_refused_for_a_model_that_does_not_read_documents() -> None:
     with pytest.raises(AttachmentNotReadableError) as refused:
-        read_attachments([_part("application/pdf", 10, "paper.pdf")], SONNET)
+        read_attachments([_part("application/pdf", 10, "paper.pdf")], BLIND)
 
     assert refused.value.detail is not None
-    assert refused.value.detail.startswith("Claude Sonnet 5 does not read PDFs;")
+    assert refused.value.detail.startswith(f"{BLIND.name} does not read PDFs;")
 
 
 def test_a_kind_no_model_reads_here_is_refused() -> None:
     with pytest.raises(AttachmentNotReadableError) as refused:
-        read_attachments([_part("text/html", 10, "page.html")], LUNA)
+        read_attachments([_part("text/html", 10, "page.html")], READER)
 
     assert refused.value.detail == (
         "page.html is text/html; PathFinder reads PNG, JPEG, WebP and GIF images "
@@ -124,6 +125,6 @@ def test_a_file_that_is_not_inline_is_refused() -> None:
     )
 
     with pytest.raises(AttachmentNotReadableError) as refused:
-        read_attachments([linked], LUNA)
+        read_attachments([linked], READER)
 
     assert refused.value.detail == "far.png is a link; an attachment is sent inline."

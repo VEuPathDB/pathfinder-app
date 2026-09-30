@@ -23,7 +23,12 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import lead_proposal
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.derive import derive_ledger
-from pathfinder.ai.lead.proposal import PROPOSAL_TOOL, DeclinedProposal
+from pathfinder.ai.lead.proposal import (
+    PROPOSAL_TOOL,
+    AddCriterionChange,
+    DeclinedProposal,
+    ProposedChange,
+)
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.tests.unit.ai.graph._approval_turn import (
     CARD_REPLY,
@@ -45,13 +50,22 @@ QUESTION = (
     "Refine the strategy to enforce strict 3-hour specificity and require 1:1:1 "
     "syntenic orthologs?"
 )
-CHANGES = [
-    "Exclude genes highly expressed at the other post-blood-meal time points",
-    "Require 1:1:1 syntenic orthologs in Aedes aegypti and Culex quinquefasciatus",
+CHANGES: list[ProposedChange] = [
+    AddCriterionChange(
+        sentence="Exclude genes highly expressed at the other post-blood-meal time points",
+        search_name="GenesByRNASeqaaegLVP_AGWG_Akbari_Mosquito_Tissues_RSRC",
+    ),
+    AddCriterionChange(
+        sentence=(
+            "Require 1:1:1 syntenic orthologs in Aedes aegypti and Culex "
+            "quinquefasciatus"
+        ),
+        search_name="GenesOrthologousToAGivenGene",
+    ),
 ]
 PROPOSAL_ARGS: dict[str, Any] = {
     "question": QUESTION,
-    "proposedChanges": CHANGES,
+    "proposedChanges": [c.model_dump(by_alias=True, mode="json") for c in CHANGES],
     "reply": CARD_REPLY,
 }
 NOTE = "Use the Liverpool strain for Aedes."
@@ -159,7 +173,7 @@ async def test_no_ends_the_turn_without_a_model_call(
     ]
     summary = derive_ledger(deps.state, deps.intent).render_summary()
     assert "## Declined proposal" in summary
-    assert CHANGES[1] in summary
+    assert CHANGES[1].sentence in summary
 
 
 async def test_a_resumed_run_writes_the_card_it_answers_as_it_arrives(
@@ -219,8 +233,8 @@ async def test_yes_runs_the_cards_edit_and_the_lead_answers_once(
     assert edits[0]["reason"] == (
         f"The researcher accepted this proposal: {QUESTION}\n"
         "Make these changes:\n"
-        f"- {CHANGES[0]}\n"
-        f"- {CHANGES[1]}\n"
+        f"- {CHANGES[0].sentence} ({CHANGES[0].binding()})\n"
+        f"- {CHANGES[1].sentence} ({CHANGES[1].binding()})\n"
         f"The researcher's comment: {NOTE}"
     )
     assert capture.response is not None
@@ -251,7 +265,9 @@ async def test_a_typed_yes_accepts_the_card(
 
     capture = await drive_lead(state=state, deps=deps, writer=writer)
 
-    assert [edit["reason"].splitlines()[-1] for edit in edits] == [f"- {CHANGES[1]}"]
+    assert [edit["reason"].splitlines()[-1] for edit in edits] == [
+        f"- {CHANGES[1].sentence} ({CHANGES[1].binding()})"
+    ]
     assert capture.response is not None
 
 
@@ -279,7 +295,7 @@ async def test_yes_on_a_thread_with_no_strategy_asks_the_lead_to_build(
     ]
     assert len(retries) == 1
     assert "frame_problem" in retries[0]
-    assert CHANGES[0] in retries[0]
+    assert CHANGES[0].sentence in retries[0]
     assert capture.response is not None
 
 

@@ -16,10 +16,9 @@ src/
       (app)/conversation/       #     Thread, and its strategy / EDA panes
       (app)/saved/              #     Saved strategies
     api/v1/chat/                #   The one hand-written proxy route (chat POST)
-    api/telemetry/              #   Browser telemetry sink
     components/                 #   App-level shell components
     hooks/                      #   App-level hooks
-    providers/                  #   Client providers (query, theme, telemetry)
+    providers/                  #   Client providers (query string, toasts)
     layout.tsx page.tsx not-found.tsx
   components/                   # Vendored primitives, not written here
     ui/                         #   shadcn components (the `components.json` target)
@@ -55,7 +54,7 @@ src/
                                 #     errors.ts, veupathdb-auth.ts
     query/                      #   React Query client, keys, hooks, invalidation, test helpers
     components/                 #   Shared shells (QueryBoundary, Modal, spinners, charts)
-    color/ config/ eda/ errors/ hooks/ markdown/ models/ parameters/ sse/ telemetry/ types/ utils/
+    color/ config/ eda/ errors/ hooks/ markdown/ models/ parameters/ sse/ types/ utils/
   state/                        # Global state (Zustand stores)
     useSessionStore.ts          #   Chat session state
     useSettingsStore.ts         #   User preferences

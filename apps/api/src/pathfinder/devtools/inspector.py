@@ -126,7 +126,7 @@ def _part_line(part: dict[str, Any]) -> str | None:
 def render_llm(run_dir: Path, role: str | None) -> str:
     llm_dir = run_dir / "llm"
     if not llm_dir.is_dir():
-        return "No llm/ capture (run with --capture-llm)."
+        return "No llm/ capture in this run directory."
     blocks: list[str] = []
     for req_path in sorted(llm_dir.glob("*-request.json")):
         req = json.loads(req_path.read_text())

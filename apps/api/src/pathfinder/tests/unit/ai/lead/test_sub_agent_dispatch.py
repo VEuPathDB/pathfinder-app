@@ -27,7 +27,6 @@ from pathfinder.ai.lead.sub_agent_dispatch import build_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
     Criterion,
     OperationalSpec,
     SpecStructure,
@@ -35,6 +34,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -51,7 +51,9 @@ def _spec() -> OperationalSpec:
                 text="protease text",
                 search_name="GenesByText",
                 role="seed",
-                resolved_params={"organism": MultiPickValue(values=["Plasmodium"])},
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Plasmodium"])}
+                ),
             ),
             Criterion(id="step_go", text="proteolysis GO", search_name="GenesByGoTerm"),
         ],
@@ -77,19 +79,26 @@ def _spec_with_an_option() -> OperationalSpec:
                 id="gametocyte_expression",
                 text="upregulated in gametocytes",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={
-                    "organism": MultiPickValue(values=["Pf3D7"]),
-                    "dataset": StringValue(value="all_rnaseq"),
-                },
-                defaulted_params=["dataset"],
+                resolved_params=bound(
+                    {
+                        "organism": MultiPickValue(values=["Pf3D7"]),
+                        "dataset": StringValue(value="all_rnaseq"),
+                    },
+                    defaulted=["dataset"],
+                ),
             ),
             Criterion(
                 id="gametocyte_timecourse_option",
                 text="use the gametocyte timecourse dataset",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={
-                    "dataset": StringValue(value="pfal3D7_Gametocyte_Timecourse_rnaSeq")
-                },
+                resolved_params=bound(
+                    {
+                        "dataset": StringValue(
+                            value="pfal3D7_Gametocyte_Timecourse_rnaSeq"
+                        )
+                    },
+                    chosen={"dataset": "use the gametocyte timecourse dataset"},
+                ),
             ),
         ],
         structure=SpecStructure(
@@ -209,7 +218,7 @@ async def test_the_built_spec_is_re_keyed_on_the_step_ids(
         produced["secondary"],
     ]
     seed = next(c for c in spec.criteria if c.search_name == "GenesByText")
-    assert seed.resolved_params == {"organism": MultiPickValue(values=["Plasmodium"])}
+    assert seed.param_values == {"organism": MultiPickValue(values=["Plasmodium"])}
 
 
 async def test_the_build_pushes_the_option_a_criterion_states(
@@ -237,7 +246,7 @@ async def test_the_build_pushes_the_option_a_criterion_states(
     assert spec is not None
     (carrier,) = spec.criteria
     assert carrier.text == "upregulated in gametocytes"
-    assert [a.reason for a in carrier.assumptions] == [
+    assert [b.basis for b in carrier.set_by("chosen").values()] == [
         "use the gametocyte timecourse dataset"
     ]
 
@@ -295,9 +304,9 @@ def _option_criterion(search_name: str = "GenesByRNASeqEvidence") -> Criterion:
         id="gametocyte_timecourse_option",
         text="use the gametocyte timecourse dataset",
         search_name=search_name,
-        resolved_params={
-            "dataset": StringValue(value="pfal3D7_Gametocyte_Timecourse_rnaSeq")
-        },
+        resolved_params=bound(
+            {"dataset": StringValue(value="pfal3D7_Gametocyte_Timecourse_rnaSeq")}
+        ),
     )
 
 
@@ -398,7 +407,7 @@ def _spec_with_two_options(dataset: str) -> OperationalSpec:
             id="sexual_stage_option",
             text="use the sexual stage dataset",
             search_name="GenesByRNASeqEvidence",
-            resolved_params={"dataset": StringValue(value=dataset)},
+            resolved_params=bound({"dataset": StringValue(value=dataset)}),
         )
     )
     return spec
@@ -445,18 +454,14 @@ class TestTwoOptionsOnOneCarrier:
 def _spec_with_an_assumed_dataset() -> OperationalSpec:
     """The carrier's dataset is the model's guess, not a value its text states."""
     spec = _spec_with_an_option()
-    spec.criteria[0].defaulted_params = []
-    spec.criteria[0].assumptions = [
-        AssumedValue(
-            param_name="dataset",
-            value="all_rnaseq",
-            reason="the request names no dataset",
-        )
-    ]
+    spec.criteria[0].resolved_params = bound(
+        spec.criteria[0].param_values,
+        chosen={"dataset": "the request names no dataset"},
+    )
     return spec
 
 
-class TestAnOptionOverAnAssumedValue:
+class TestAnOptionOverAChosenValue:
     """A value FRAME chose is the model's, so the option the user states wins."""
 
     async def test_the_build_pushes_the_option(

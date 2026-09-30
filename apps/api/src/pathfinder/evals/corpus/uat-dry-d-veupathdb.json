@@ -1,0 +1,74 @@
+{
+  "name": "uat-dry-d-veupathdb",
+  "turns": [
+    "Across all VEuPathDB organisms, which genes have the GO term \"heme binding\" and are in the Plasmodium genus?",
+    "Thanks. Please narrow that to Plasmodium vivax P01 only.",
+    "OK. Now carry those 8 P. vivax P01 genes over to their orthologs in Plasmodium falciparum 3D7.",
+    "You said one of the 8 vivax genes probably has no falciparum ortholog. Which one is it? Can you check rather than guess?"
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "A genus-wide request on the portal is one step on the genus (429 genes); the vivax step carried to falciparum orthologs gives 7, no reply prints a search's internal name, and the reply names the vivax gene with no falciparum ortholog.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByOrthologs(GenesByGoTerm)",
+    "recordType": "transcript",
+    "stepCount": 2,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByOrthologs": {
+        "organism": "Plasmodium falciparum 3D7"
+      },
+      "GenesByGoTerm": {
+        "organism": "Plasmodium vivax P01",
+        "go_typeahead": "GO:0020037"
+      }
+    },
+    "replyMentions": [
+      "PVP01_0005540"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "0": [
+        "429"
+      ]
+    },
+    "turnReplyOmits": {
+      "2": [
+        "GenesByGoTerm"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 7,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u10",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

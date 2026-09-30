@@ -1,6 +1,5 @@
-"""The reply of a turn that checked the strategy names every requirement row the
-check found unmet or unexpressed, and states no sampled-gene count the check's
-sample does not hold."""
+"""A requirement row the check found unmet is a gap the facts part shows, and
+the reply names it in words and restates no sampled-gene count."""
 
 from __future__ import annotations
 
@@ -9,8 +8,7 @@ from uuid import uuid4
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import reconcile
-from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.caveats import check_gaps
 from pathfinder.domain.evidence import (
     EvidenceCard,
@@ -18,10 +16,17 @@ from pathfinder.domain.evidence import (
     SampledGene,
     VerificationReview,
 )
+from pathfinder.domain.strategy.constraints import (
+    ConstraintKind,
+    provisional_constraints,
+)
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import (
+    lead_deps,
+    pipeline_state,
+    requirement,
+)
 
 _UNMET = RequirementCheck(
     text="at least 2 transmembrane domains",
@@ -62,6 +67,14 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
         user_message_id=uuid4(),
     )
     review = VerificationReview(requirements=[_MET, _UNMET], sampled_genes=_SAMPLE)
+    state.domain.requirements = [
+        requirement(
+            ConstraintKind.OTHER,
+            "transmembrane domains",
+            "at least 2 transmembrane domains",
+        )
+    ]
+    held = provisional_constraints(state.domain.requirements)
     revision = strategy_revision(None)
     state.domain.record_verdict(
         VerificationDigest(
@@ -70,7 +83,7 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
             reason="one requirement unmet",
             success=False,
             review=review,
-            gaps=check_gaps(structure=None, words=[], review=review),
+            gaps=check_gaps(structure=None, words=[], review=review, requirements=held),
         ),
         revision=revision,
     )
@@ -89,49 +102,19 @@ def _checked(*, verified_this_turn: bool = True) -> LeadDeps:
     return lead_deps(state)
 
 
-def test_a_reply_silent_about_an_unmet_requirement_is_refused() -> None:
-    deps = _checked()
-    report = reply("The strategy returns the genes with a signal peptide.")
-
-    found = reconcile(report, turn_record(run_context_for(deps)))
-
-    assert [(m.kind, m.sentence) for m in found] == [
-        (
-            "unstated_gap",
-            (
-                "The check found what the strategy does not answer: 'at least 2 "
-                "transmembrane domains': nothing in the strategy answers it. Your "
-                "reply does not say so; state each with what is missing."
-            ),
-        )
+def test_the_unmet_requirement_is_a_gap_the_facts_part_shows() -> None:
+    assert [gap.sentence for gap in turn_facts(_checked()).gaps] == [
+        "'at least 2 transmembrane domains': nothing in the strategy answers it"
     ]
 
 
-def test_a_reply_that_names_the_unmet_requirement_stands() -> None:
-    report = reply(
-        "The strategy does not yet require at least 2 transmembrane domains."
-    )
+def test_a_reply_that_names_the_unmet_requirement_in_words_stands() -> None:
+    report = reply("The strategy does not yet require the transmembrane domains.")
 
     assert kinds(_checked(), report) == []
 
 
-def test_a_turn_that_did_not_check_owes_no_requirement() -> None:
-    report = reply("The strategy returns the genes with a signal peptide.")
+def test_a_reply_with_a_sample_size_the_facts_lack_is_refused() -> None:
+    report = reply("All 3 sampled genes fit the signal peptide.")
 
-    assert kinds(_checked(verified_this_turn=False), report) == []
-
-
-def test_a_sampled_gene_count_the_card_does_not_hold_is_refused() -> None:
-    deps = _checked()
-    report = reply(
-        "All 2 sampled genes fit, though at least 2 transmembrane domains is "
-        "not yet required."
-    )
-
-    found = reconcile(report, turn_record(run_context_for(deps)))
-
-    assert [m.kind for m in found] == ["unbacked_evidence"]
-    assert found[0].sentence.startswith(
-        "The reply says all 2 sampled genes fit; the check sampled 2 genes: 1 fit, "
-        "1 do not fit (`PF3D7_0100200`), 0 unclear."
-    )
+    assert kinds(_checked(), report) == ["fact_outside_the_block"]

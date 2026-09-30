@@ -40,7 +40,9 @@
     "curatorNote": "Needs --via-worker: the compute is a durable task."
   },
   "effort": "medium",
-  "gates": "auto",
+  "gates": {
+    "policy": "auto"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

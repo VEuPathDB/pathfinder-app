@@ -1,0 +1,77 @@
+{
+  "name": "uat-dry-c-piroplasmadb",
+  "turns": [
+    "Cytauxzoon felis Winnie genes with a predicted GPI anchor or a signal peptide."
+  ],
+  "siteId": "piroplasmadb",
+  "assistantId": "pathfinder",
+  "rationale": "The organism row that a text step and the signal peptide step both answer is not held to the records, so no organism gap stands while every sampled record is Cytauxzoon felis strain Winnie; the GPI anchor stand-in row holds no gap on records judged unclear. Counts 1, 288 and 289. A card label is never a requirement, so no facts part names 'Specify an alternative evidence type' as a gap.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByText UNION GenesWithSignalPeptide)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "289"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "UNION",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": 0,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {
+      "0": [
+        "'Specify an alternative evidence type'"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 289,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "piroplasmadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#uc-piroplasmadb",
+    "curatorNote": "Round-3 dry UAT, tester C, investigation 9, conversation 35b3b7f2-b125-4573-bcc2-f70b611a972a."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "consult_user",
+        "turn": 0,
+        "accept": true,
+        "picks": [
+          "Specify an alternative evidence type"
+        ]
+      },
+      {
+        "card": "consult_user",
+        "turn": 0,
+        "accept": true,
+        "picks": [
+          "Use a text search for GPI anchor in the gene product descriptions as the stand-in and keep it OR with the signal peptide"
+        ]
+      }
+    ]
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

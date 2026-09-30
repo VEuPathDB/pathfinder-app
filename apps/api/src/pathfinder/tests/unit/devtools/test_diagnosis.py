@@ -341,3 +341,76 @@ class TestZeroHandledInProse:
             assistant_text="Step s1 came back empty.",
         )
         assert not [a for a in anomalies if a.kind == "silent_zero"]
+
+
+_UNGROUNDABLE_ROW: JSONObject = {
+    "constraint": {
+        "kind": "percentile",
+        "requestedValue": "95th percentile",
+        "label": "percentile",
+        "source": "user_explicit",
+    },
+    "status": "ungroundable",
+    "note": "the requested share and direction could not be read",
+}
+_SUBSTITUTED_ROW: JSONObject = {
+    "constraint": {
+        "kind": "data_type",
+        "requestedValue": "RNA-Seq",
+        "label": "data type",
+        "source": "user_explicit",
+    },
+    "status": "substituted",
+    "realizedValue": "microarray",
+}
+
+
+def _verification_ledger(*rows: JSONObject) -> dict[str, JSONObject]:
+    return {
+        "verification": {
+            "constraints": {
+                "blocking": True,
+                "unmetCount": len(rows),
+                "grounded": list(rows),
+            }
+        }
+    }
+
+
+class TestAnUngroundableConstraintIsNotAViolation:
+    """A constraint nothing could be read against says nothing about whether
+    the strategy meets it, so it is its own line and never a violation."""
+
+    def test_it_is_its_own_line(self) -> None:
+        anomalies = diagnose(
+            [],
+            _verification_ledger(_UNGROUNDABLE_ROW),
+            RunSummary(status="ok"),
+            assistant_text="Done.",
+        )
+
+        assert [a.kind for a in anomalies] == ["ungroundable_constraint"]
+        assert anomalies[0].details == {
+            "phase": "verification",
+            "labels": ["percentile"],
+            "notes": ["the requested share and direction could not be read"],
+        }
+        assert anomalies[0].message == (
+            "1 user-explicit constraint(s) could not be read against the "
+            "strategy (percentile: the requested share and direction could not "
+            "be read) - whether the strategy meets them is not known."
+        )
+
+    def test_a_substituted_constraint_beside_it_is_still_a_violation(self) -> None:
+        anomalies = diagnose(
+            [],
+            _verification_ledger(_UNGROUNDABLE_ROW, _SUBSTITUTED_ROW),
+            RunSummary(status="ok"),
+            assistant_text="",
+        )
+
+        violation = next(
+            a for a in anomalies if a.kind == "silent_constraint_violation"
+        )
+        assert violation.details["labels"] == ["data type"]
+        assert violation.details["unmet_count"] == 1

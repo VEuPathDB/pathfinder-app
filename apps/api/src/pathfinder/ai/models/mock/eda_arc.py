@@ -7,6 +7,7 @@ the calls the arc made, and the filter sheet the Lead's instructions pin.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from assistant_core.models.scripted import (
@@ -17,9 +18,8 @@ from pydantic import Field, TypeAdapter
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import Script, history_free
-from pathfinder.ai.models.mock.calls import classify, lead_final
-from pathfinder.ai.models.mock.findings import findings
-from pathfinder.ai.models.mock.lead_flow import classified_this_turn
+from pathfinder.ai.models.mock.calls import classify, lead_final, narrated
+from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, classified_this_turn
 from pathfinder.ai.models.mock.message_words import message
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
@@ -51,6 +51,7 @@ _ALL_HERE = "Every study the search found is published on this site."
 
 class _Card(ToolAnswer):
     dataset_id: str
+    display_name: str = ""
     not_here: str | None = None
 
 
@@ -116,28 +117,37 @@ def _search() -> ToolCallPart:
     return scripted_call("search_eda_studies", {"query": message()})
 
 
-def _groups(
+type GroupChooser = Callable[
+    [list[ModelMessage], list[str]], EdaFilterSheetEntry | None
+]
+
+
+def group_variables(
     messages: list[ModelMessage], samples: list[str]
-) -> EdaFilterSheetEntry | None:
-    """The first single-valued string variable of a sample entity with two values."""
+) -> list[EdaFilterSheetEntry]:
+    """The single-valued string variables of a sample entity with two values or more."""
     lines = instructions_of(messages).splitlines()
     heads = [i for i, line in enumerate(lines) if line.startswith(_SHEET_HEAD)]
     if not heads or heads[-1] + 1 >= len(lines):
-        return None
-    return next(
-        (
-            e
-            for e in _SHEET.validate_json(lines[heads[-1] + 1])
-            if e.entity_id in samples
-            and e.filter_type == "stringSet"
-            and not e.is_multi_valued
-            and len(e.vocabulary) >= _TWO_GROUPS
-        ),
-        None,
-    )
+        return []
+    return [
+        e
+        for e in _SHEET.validate_json(lines[heads[-1] + 1])
+        if e.entity_id in samples
+        and e.filter_type == "stringSet"
+        and not e.is_multi_valued
+        and len(e.vocabulary) >= _TWO_GROUPS
+    ]
 
 
-def _applied(messages: list[ModelMessage]) -> _Filter | None:
+def _groups(
+    messages: list[ModelMessage], samples: list[str]
+) -> EdaFilterSheetEntry | None:
+    """The first of the group variables."""
+    return next(iter(group_variables(messages, samples)), None)
+
+
+def applied_filter(messages: list[ModelMessage]) -> _Filter | None:
     """The filter the arc applied: the comparator and its two labels."""
     for part in reversed(called_tool_parts(messages)):
         if part.tool_name == _FILTERS:
@@ -179,7 +189,7 @@ def _compute(gene: str, entity: _Described, chosen: _Filter) -> ToolCallPart:
 def _after_the_filter(
     messages: list[ModelMessage], study: _Study, ending: Script
 ) -> ToolCallPart:
-    chosen = _applied(messages)
+    chosen = applied_filter(messages)
     if chosen is None:
         return lead_final(_NO_GROUPS, "await_user")
     if text_return(messages, "preview_eda_subset") is None:
@@ -204,7 +214,7 @@ def _exported(messages: list[ModelMessage]) -> ToolCallPart:
     if text_return(messages, "verify_strategy") is None:
         return scripted_call("verify_strategy", {"reason": "check the exported step"})
     return lead_final(
-        f"{_EXPORTED_PROSE}{findings(messages)}", "complete", strategy_changed=True
+        f"{_EXPORTED_PROSE}{FACTS_BESIDE}", "complete", strategy_changed=True
     )
 
 
@@ -222,7 +232,11 @@ class _Study:
 
 
 def _here(messages: list[ModelMessage]) -> _Card | None:
-    return next((s for s in _studies(messages) or [] if s.not_here is None), None)
+    """The study this site opens that the message names, else the first one."""
+    here = [s for s in _studies(messages) or [] if s.not_here is None]
+    asked = message().lower()
+    named = [s for s in here if s.display_name and s.display_name.lower() in asked]
+    return next(iter(named or here), None)
 
 
 def _study(messages: list[ModelMessage]) -> _Study | None:
@@ -254,7 +268,10 @@ def _next_read(messages: list[ModelMessage]) -> ToolCallPart:
 
 
 def _analysis_call(
-    messages: list[ModelMessage], study: _Study, ending: Script
+    messages: list[ModelMessage],
+    study: _Study,
+    ending: Script,
+    choose: GroupChooser,
 ) -> ToolCallPart:
     """Open the analysis, read its sheet, filter two groups, then compare them."""
     if text_return(messages, "open_eda_analysis") is None:
@@ -267,14 +284,15 @@ def _analysis_call(
         return scripted_call(_FILTERS, {"dataset_id": study.dataset})
     if any(f.applied for f in filtered):
         return _after_the_filter(messages, study, ending)
-    groups = _groups(messages, study.tree.ancestors())
+    groups = choose(messages, study.tree.ancestors())
     if groups is None:
         return lead_final(_NO_GROUPS, "await_user")
     return _filter(study.dataset, groups)
 
 
-def _comparison(ending: Script) -> Script:
-    """Find a study, read it, filter two groups, compare them, then end."""
+def comparison(ending: Script, choose: GroupChooser = _groups) -> Script:
+    """Find a study, read it, filter the two groups ``choose`` names, compare
+    them, then end."""
 
     def script(messages: list[ModelMessage]) -> ToolCallPart:
         if not classified_this_turn(messages):
@@ -282,13 +300,13 @@ def _comparison(ending: Script) -> Script:
         study = _study(messages)
         if study is None:
             return _next_read(messages)
-        return _analysis_call(messages, study, ending)
+        return _analysis_call(messages, study, ending, choose)
 
     return script
 
 
-eda_compare = _comparison(_exported)
-eda_compare_no_step = _comparison(history_free(_compared))
+eda_compare = comparison(_exported)
+eda_compare_no_step = comparison(history_free(_compared))
 
 
 def eda_other_site(messages: list[ModelMessage]) -> ToolCallPart:
@@ -310,4 +328,4 @@ def eda_other_site(messages: list[ModelMessage]) -> ToolCallPart:
                 "purpose": "Study another site publishes",
             },
         )
-    return lead_final(elsewhere.not_here or refused, "await_user")
+    return lead_final(narrated(elsewhere.not_here or refused), "await_user")

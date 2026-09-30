@@ -42,7 +42,6 @@ const BUILD = {
   succeeded: true,
   nodeResults: [],
   wdkStrategyId: null,
-  wdkUrl: null,
 };
 
 const WIRE = {

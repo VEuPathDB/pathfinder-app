@@ -1,0 +1,78 @@
+{
+  "name": "uat-dry3-d-microsporidiadb",
+  "turns": [
+    "E. bieneusi H348 genes with a polar tube protein annotation.",
+    "Thanks. Only one gene is thinner than I expected. Would a domain search (InterPro or Pfam for the polar tube protein family) find more E. bieneusi H348 genes than this name search? Tell me how the two compare.",
+    "I only wanted the comparison, not a union added to my search. The phrase matches 3 genes when all text fields are searched, but only 1 in the product field. Which are the other two genes, and why were they left out?",
+    "Please undo those changes: search the exact phrase in the product field only and drop the domain steps. Then answer my question about the other two genes.",
+    "Keep the product-field search as my strategy. Separately, just to answer my question, run the exact phrase over the supported text fields and tell me which genes it matches beyond EBI_26400, without changing the strategy."
+  ],
+  "siteId": "microsporidiadb",
+  "assistantId": "pathfinder",
+  "rationale": "A comparison question is answered by the read-only comparison: the strategy stays one text step on the exact phrase in the product field (1 gene, EBI_26400) through every turn, no turn asks which search to proceed with, and the fifth turn ends on an answer, never on \"send the message again\".",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByText",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByText": {
+        "text_expression": "\"polar tube protein\"",
+        "text_fields": "[\"product\"]"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "0": [
+        "EBI_26400"
+      ]
+    },
+    "turnReplyOmits": {
+      "2": [
+        "Which search should we proceed with",
+        "verification is unavailable"
+      ],
+      "3": [
+        "not available in the current tool set"
+      ],
+      "4": [
+        "Send the message again",
+        "start over"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 1,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "microsporidiadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ud-microsporidiadb",
+    "curatorNote": "Round-3 dry UAT, tester D, investigation 10, conversation 19ddf66e-6080-4c2b-8434-a83880e82cf8. Turns 2 to 5 are the reports' quotes of the messages."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

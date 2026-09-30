@@ -1,0 +1,62 @@
+{
+  "name": "uat-dry4-a-toxodb",
+  "turns": [
+    "Toxoplasma gondii GT1 genes with a signal peptide that have no ortholog in Neospora caninum Liverpool.",
+    "The facts list shows the excluded species as Neospora caninum Liverpool, so I think that part is fine. Just a question, don't change anything: how many of the signal-peptide genes did the ortholog filter remove?"
+  ],
+  "siteId": "toxodb",
+  "assistantId": "pathfinder",
+  "rationale": "A count question is answered with its count: the signal peptide step holds 680 genes and the result 53, so the ortholog filter removed 627, and the reply says so without editing the strategy.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByOrthologPattern)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "1": [
+        "627"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "do not appear in the final intersection"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 53,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "toxodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ua4-toxodb",
+    "curatorNote": "Round-4 dry UAT, tester A, investigation 2, conversation 0ae50a3d-65d3-4924-9450-4dbb7c98f568."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -15,6 +15,7 @@ from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.domain.caveats import ControlsCaveat, WordGap
 from pathfinder.domain.evidence import (
     Citation,
+    ColumnFit,
     ControlSetEvidence,
     ControlTestEvidence,
     EvidenceCard,
@@ -35,6 +36,19 @@ _REVIEW = VerificationReview(
             how="search",
             status="met",
             note="GenesWithSignalPeptide",
+        )
+    ],
+    column_fits=[
+        ColumnFit(
+            criterion_id="c_tm",
+            criterion_text="the membranes ada@example.org named",
+            wdk_step_id=441031663,
+            column="tm_count",
+            display_name="# TM Domains",
+            bound_value="2 to 99",
+            total=840,
+            fitting=840,
+            fitting_at_most=840,
         )
     ],
     sampled_genes=[
@@ -121,10 +135,12 @@ def test_the_cards_review_is_redacted() -> None:
     review = verdict.evidence.review
     assert (
         review.requirements[0].text,
+        review.column_fits[0].criterion_text,
         review.sampled_genes[0].why,
         review.sources[0].url,
     ) == (
         "the genes [redacted-email] asked for",
+        "the membranes [redacted-email] named",
         "as [redacted-email] expects",
         "https://[redacted-credential]@example.org/page",
     )

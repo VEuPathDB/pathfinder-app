@@ -41,7 +41,9 @@
     "curatorNote": "The message is the /clear prefill; the card is left unanswered."
   },
   "effort": "medium",
-  "gates": "stop",
+  "gates": {
+    "policy": "stop"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

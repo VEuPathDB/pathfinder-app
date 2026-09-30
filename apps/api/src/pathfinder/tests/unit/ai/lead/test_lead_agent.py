@@ -27,6 +27,7 @@ from pathfinder.ai.lead.lead_agent import LEAD_MODEL, build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.tests._support.held_counts import session_holding
 from pathfinder.tests._support.instructions import pinned_instructions
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -60,6 +61,7 @@ LEAD_TOOL_NAMES = frozenset(
         "read_gene_ids_from_strategy",
         "read_gene_record",
         "read_ledger_section",
+        "read_step_ids",
         "recover_failed_steps",
         "remember",
         "rename_strategy",
@@ -181,11 +183,14 @@ def _nudge_deps(
     state = pipeline_state(user_prompt=_NUDGE_PROMPT, user_message_id=uuid4())
     state.turn_markers.intent_classified = True
     if built:
-        state.record_build(BuildOutcome(pushed_step_ids=["step_1"], root_count=1543))
+        state.record_build(BuildOutcome(pushed_step_ids=["step_1"]))
     state.turn_markers.verified = verified
     state.turn_markers.verification_dispatched = dispatched
     return lead_deps(
         state,
+        strategy_session=session_holding("plasmodb", "step_1", "GenesByText", 1543)
+        if built
+        else None,
         intent=user_intent(
             IntentClassification.EXTEND_STRATEGY,
             inferred_goal="export the subset",

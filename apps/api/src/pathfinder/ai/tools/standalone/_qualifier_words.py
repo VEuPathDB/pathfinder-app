@@ -80,6 +80,20 @@ def _modifier(word: str | None) -> str | None:
     return None
 
 
+# The modifier of a word that opens a compound after a word like "a": the
+# compound is the one it heads, so no parameter name that puts a word before
+# it states it.
+NO_COMPOUND = ""
+
+
+def _function_word(word: str | None) -> bool:
+    return bool(word) and word.isalpha() and len(word) < _MIN_STEM
+
+
+def _content_word(word: str | None) -> bool:
+    return _modifier(word) is not None
+
+
 @dataclass(frozen=True)
 class Qualifier:
     """A word of the criterion text as first written, the stem it is read by,
@@ -90,41 +104,75 @@ class Qualifier:
     modifiers: frozenset[str | None]
 
 
+@dataclass(frozen=True)
+class _Word:
+    word: str
+    before: str | None
+    negated: bool
+
+
+def _words(text: str) -> list[_Word]:
+    """Every word of the text, with the word directly before it, if any."""
+    lowered = text.casefold()
+    found: list[_Word] = []
+    previous = ""
+    before: str | None = None
+    end = 0
+    for match in _TOKEN.finditer(lowered):
+        token = match.group()
+        negated = (
+            token.startswith(_NEGATED_PREFIX)
+            or previous in _NEGATING
+            or token in _NEGATING
+        )
+        adjacent = _JOIN.fullmatch(lowered[end : match.start()]) is not None
+        previous, end = token, match.end()
+        parts = token.split("-")
+        befores = [before if adjacent else None, *parts[:-1]]
+        before = parts[-1]
+        found.extend(_Word(w, b, negated) for w, b in zip(parts, befores, strict=True))
+    return found
+
+
+def _text_modifier(word: _Word, after: _Word | None) -> str | None:
+    """The modifier the text puts before a word: a stem, ``NO_COMPOUND`` when a
+    function word opens the compound the word heads, or None when the text
+    states none it can read."""
+    opens = (
+        after is not None and after.before == word.word and _content_word(after.word)
+    )
+    if _function_word(word.before) and opens:
+        return NO_COMPOUND
+    return _modifier(word.before)
+
+
 def qualifiers_of(text: str) -> list[Qualifier]:
     """The words of the text that could narrow it, once each, in text order.
 
     A negated word states an absence, so it is not one of them.
     """
     found: dict[str, Qualifier] = {}
-    lowered = text.casefold()
-    previous = ""
-    before: str | None = None
-    end = 0
-    for match in _TOKEN.finditer(lowered):
-        token = match.group()
-        negated = token.startswith(_NEGATED_PREFIX) or previous in _NEGATING
-        adjacent = _JOIN.fullmatch(lowered[end : match.start()]) is not None
-        previous, end = token, match.end()
-        words = token.split("-")
-        modifiers = [before if adjacent else None, *words[:-1]]
-        before = words[-1]
-        if negated or token in _NEGATING:
+    words = _words(text)
+    for index, word in enumerate(words):
+        read = stem(word.word)
+        if word.negated or not word.word.isalpha() or len(read) < _MIN_STEM:
             continue
-        for word, modifier in zip(words, modifiers, strict=True):
-            read = stem(word)
-            if not word.isalpha() or len(read) < _MIN_STEM:
-                continue
-            first = found.setdefault(read, Qualifier(word, read, frozenset()))
-            found[read] = Qualifier(
-                first.word, read, first.modifiers | {_modifier(modifier)}
-            )
+        after = words[index + 1] if index + 1 < len(words) else None
+        first = found.setdefault(read, Qualifier(word.word, read, frozenset()))
+        found[read] = Qualifier(
+            first.word, read, first.modifiers | {_text_modifier(word, after)}
+        )
     return list(found.values())
 
 
 @dataclass(frozen=True)
 class Owner:
     """The one search whose parameter names carry a stem, and the modifier
-    each of those names puts directly before it."""
+    each of those names puts directly before it.
+
+    None on the owner is a name that puts the word first; None on a qualifier is
+    a text that states no modifier it can read. Either matches any modifier.
+    """
 
     search: str
     modifiers: frozenset[str | None]

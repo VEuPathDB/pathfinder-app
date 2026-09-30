@@ -20,6 +20,7 @@ from veupathdb.domain.strategy import (
     flatten_tree,
     subtree_ids,
 )
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -41,7 +42,6 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import conversation, strategy_edits
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
-from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -51,6 +51,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.operations.apply import apply_operation
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_diff import (
     CriterionChange,
@@ -61,7 +62,9 @@ from pathfinder.domain.strategy.spec_reconciliation import spec_the_strategy_hol
 from pathfinder.domain.strategy.stated_shape import criteria_with_steps, stated_shape
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.analysis_catalog import serve_the_catalog
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests._support.sheets import visible_sheet
 from pathfinder.tests.unit.ai.lead._disagreement_facts import StepFacts, graph_facts
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -127,7 +130,7 @@ def built_spec() -> OperationalSpec:
                 id=STAGE,
                 text="expressed in merozoites",
                 search_name=stage.search_name,
-                resolved_params=dict(stage.parameters),
+                resolved_params=bound(dict(stage.parameters)),
             ),
         ],
         structure=SpecStructure(
@@ -227,16 +230,14 @@ class DisagreementThread:
         async def _commit_one(**kwargs: Any) -> CommitResult:
             return await _commit(ops=[kwargs["op"]])
 
-        async def _sheets(**kwargs: Any) -> dict[str, frozenset[str]]:
+        async def _sheets(**kwargs: Any) -> dict[str, list[ParameterInfo]]:
             """The sheet of a search, taken from the steps that run it."""
+            steps = list(self.graph.steps.values())
             return {
-                name: frozenset(
-                    param
-                    for step in self.graph.steps.values()
-                    if step.search_name == name
-                    for param in step.parameters
+                n: visible_sheet(
+                    p for s in steps if s.search_name == n for p in s.parameters
                 )
-                for name in kwargs["search_names"]
+                for n in kwargs["search_names"]
             }
 
         async def _persisted(**_kwargs: object) -> None:
@@ -413,7 +414,7 @@ class DisagreementThread:
         *,
         declared: list[CriterionChange],
         disposition: FrameDisposition = "spec_ready",
-        asks: list[OpenQuestion] | None = None,
+        asks: list[SlotQuestion] | None = None,
         while_framing: Callable[[StrategyGraph], None] | None = None,
     ) -> None:
         """Make the next FRAME pass turn the workspace it finds into ``draft``.

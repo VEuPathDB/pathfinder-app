@@ -44,7 +44,8 @@ from pathfinder.tests.integration.eda._export_wiring import (
     thread,
 )
 
-pytestmark = pytest.mark.asyncio
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("open_job_queue")]
 
 __all__ = ["hermetic_wdk", "open_analysis", "thread"]
 

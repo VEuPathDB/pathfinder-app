@@ -17,7 +17,7 @@ from pathfinder.ai.agents.state import PinnedSheet, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
-from pathfinder.domain.strategy.build_outcome import citable_count
+from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.eda.export import exported_analysis
 
@@ -118,7 +118,7 @@ def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:
             line += f" | open: {slots}"
         lines.append(line)
         lines.extend(
-            f"    {name}={to_wire(value)}" for name, value in c.resolved_params.items()
+            f"    {name}={to_wire(value)}" for name, value in c.param_values.items()
         )
     if spec.dropped:
         lines.append("dropped: " + "; ".join(d.text for d in spec.dropped))
@@ -159,15 +159,7 @@ def _render_step_suffix(
     *,
     is_root: bool,
 ) -> str:
-    count = (
-        citable_count(
-            step_id,
-            counts=sync_state.step_counts,
-            refused=sync_state.wdk_push_errors,
-        )
-        if sync_state
-        else None
-    )
+    count = built_counts(None, sync_state).of(step_id)
     wdk_id = sync_state.wdk_step_ids.get(step_id) if sync_state else None
     push_error = sync_state.wdk_push_errors.get(step_id) if sync_state else None
     validation = sync_state.step_validations.get(step_id) if sync_state else None

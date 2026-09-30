@@ -20,11 +20,8 @@ from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import (
-    LeadResponse,
-    hold_the_turn_contract,
-)
-from pathfinder.domain.evidence import SourceReference
+from pathfinder.ai.lead.turn_facts import turn_facts
+from pathfinder.domain.turn_facts import SourceFact
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -114,25 +111,13 @@ async def test_a_priced_search_a_sub_agent_made_is_on_the_turns_bill(
     assert capture.tool_cost == _PRICE
 
 
-async def test_the_lead_may_cite_what_a_sub_agent_retrieved(
+async def test_the_facts_part_holds_what_a_sub_agent_retrieved(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The turn contract reads one record, so a sub-agent's read clears a citation."""
+    """The turn's record is one, so a sub-agent's read is a source the facts show."""
     _a_pass_that_reads_a_paper(monkeypatch)
     capture = _LeadRunCapture()
     deps = _turn(capture)
     await _dispatch(deps)
-    reply = LeadResponse(
-        prose="ROP18 is a rhoptry kinase.",
-        strategy_changed=False,
-        sources=[
-            SourceReference(
-                kind="literature", label="ROP18 is a rhoptry kinase", doi=_DOI
-            ),
-        ],
-    )
 
-    held = hold_the_turn_contract(run_context_for(deps), reply)
-
-    assert held is reply
-    assert deps.state.turn_markers.contract_refused is False
+    assert turn_facts(deps).sources == [SourceFact(url=_DOI)]

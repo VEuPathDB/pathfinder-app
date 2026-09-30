@@ -1,12 +1,12 @@
-"""Experiment store that serves an in-memory cache and writes every mutation
-through to the database."""
+"""The experiment store: every save writes the ``experiments`` table."""
 
 from datetime import UTC, datetime
 from functools import cache
 
-from assistant_core.platform.store import WriteThruStore
+from assistant_core.platform.db import async_session_factory
 
 from pathfinder.persistence.models import ExperimentRow
+from pathfinder.persistence.repositories.experiment import ExperimentRepository
 from pathfinder.services.experiment.types import (
     Experiment,
     experiment_to_json,
@@ -23,36 +23,27 @@ def _parse_created_at(iso_str: str) -> datetime:
     return dt
 
 
-def _row_from_experiment(exp: Experiment) -> dict[str, object]:
-    """Build the column values for an experiment row upsert."""
-    return {
-        "id": exp.id,
-        "site_id": exp.config.site_id,
-        "user_id": exp.user_id,
-        "application_id": exp.application_id,
-        "name": exp.config.name or "",
-        "status": exp.status,
-        "data": experiment_to_json(exp),
-        "created_at": _parse_created_at(exp.created_at),
-    }
+def _row_from_experiment(exp: Experiment) -> ExperimentRow:
+    return ExperimentRow(
+        id=exp.id,
+        site_id=exp.config.site_id,
+        user_id=exp.user_id,
+        application_id=exp.application_id,
+        name=exp.config.name or "",
+        status=exp.status,
+        data=experiment_to_json(exp),
+        created_at=_parse_created_at(exp.created_at),
+    )
 
 
-def _experiment_from_row(row: ExperimentRow) -> Experiment:
-    """Reconstruct an experiment from a database row.
+class ExperimentStore:
+    """Experiments, written to the database on every save."""
 
-    The column carries the application, not the serialized blob, so a row
-    written before the column existed reads as the application it belongs to.
-    """
-    experiment = Experiment.model_validate(row.data)
-    return experiment.model_copy(update={"application_id": row.application_id})
-
-
-class ExperimentStore(WriteThruStore[Experiment]):
-    """Experiment repository with an in-memory cache and database write-through."""
-
-    _model = ExperimentRow
-    _to_row = staticmethod(_row_from_experiment)
-    _from_row = staticmethod(_experiment_from_row)
+    async def save(self, experiment: Experiment) -> None:
+        """Write the experiment's row, durable before the call returns."""
+        async with async_session_factory() as session:
+            await ExperimentRepository(session).put(_row_from_experiment(experiment))
+            await session.commit()
 
 
 @cache

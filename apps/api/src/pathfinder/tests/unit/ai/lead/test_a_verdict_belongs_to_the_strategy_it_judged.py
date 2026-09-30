@@ -14,6 +14,7 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.ai.lead.turn_budget import budget_stop_report
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
@@ -139,7 +140,7 @@ def test_a_budget_stop_after_an_edit_reports_no_earlier_verdict() -> None:
 def test_an_earlier_verdict_writes_no_finding_after_an_edit() -> None:
     state, _ = _edited()
 
-    keys = [key for _, key in collect_memory_candidates(state)]
+    keys = [key for _, key in collect_memory_candidates(state, counts=BuiltCounts())]
 
     assert [key for key in keys if key.startswith("knowledge:")] == []
 

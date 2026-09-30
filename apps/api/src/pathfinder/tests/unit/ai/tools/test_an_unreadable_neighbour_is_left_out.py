@@ -84,7 +84,7 @@ def _break_the_bound_search(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _state() -> AgentToolState:
     """A pass whose ranked read answered the transform and three neighbours."""
-    state = AgentToolState()
+    state = AgentToolState(request_messages=[_TEXT])
     hits = [
         CatalogHit(name=_TRANSFORM, display_name="Transform by Orthology"),
         CatalogHit(name=_BROKEN, display_name="Antibody array"),

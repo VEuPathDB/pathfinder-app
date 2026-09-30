@@ -27,6 +27,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderNotConfiguredError
 from pathfinder.services.provider_keys import record_refusals, store_key
 from pathfinder.services.users import effective_monthly_limit_usd
+from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests.integration.http.conftest import (
     chat_body,
@@ -38,8 +39,8 @@ from pathfinder.transport.http.deps import require_turn_paid
 
 _OK = 200
 _TOO_MANY = 429
-_LUNA = "openai:gpt-5.6-luna"
-_OPUS = "anthropic:claude-opus-5"
+_OPENAI = DEFAULT_MODEL
+_ANTHROPIC = ANTHROPIC_SMALL
 _KEY = "sk-ant-sentinel-0123456789WXYZ"
 
 
@@ -139,7 +140,7 @@ async def test_a_spent_allowance_refuses_a_turn_the_deployment_pays_for(
     user = await _spent(db_session, 2.0, "2.0", 900)
 
     with pytest.raises(HTTPException) as caught:
-        await require_turn_paid(db_session, user.id, [_LUNA])
+        await require_turn_paid(db_session, user.id, [_OPENAI])
 
     assert caught.value.status_code == _TOO_MANY
     detail = TypeAdapter(dict[str, JsonValue]).validate_python(caught.value.detail)
@@ -160,7 +161,7 @@ async def test_a_user_inside_the_allowance_passes_the_gate(
     del patch_app_db_engine, db_cleaner
     user = await _spent(db_session, 2.0, "1.99", 10)
 
-    assert await require_turn_paid(db_session, user.id, [_LUNA]) == {
+    assert await require_turn_paid(db_session, user.id, [_OPENAI]) == {
         "openai": PaidBy.DEPLOYMENT
     }
 
@@ -176,11 +177,11 @@ async def test_a_spent_allowance_admits_a_turn_the_researchers_keys_pay_for(
     await store_key(db_session, user.id, "anthropic", SecretStr(_KEY))
     await db_session.commit()
 
-    assert await require_turn_paid(db_session, user.id, [_OPUS]) == {
+    assert await require_turn_paid(db_session, user.id, [_ANTHROPIC]) == {
         "anthropic": PaidBy.USER
     }
     with pytest.raises(HTTPException):
-        await require_turn_paid(db_session, user.id, [_OPUS, _LUNA])
+        await require_turn_paid(db_session, user.id, [_ANTHROPIC, _OPENAI])
 
 
 async def test_a_provider_nobody_pays_for_is_refused(
@@ -197,7 +198,7 @@ async def test_a_provider_nobody_pays_for_is_refused(
     user = await make_user(db_session)
 
     with pytest.raises(ProviderNotConfiguredError) as caught:
-        await require_turn_paid(db_session, user.id, [_LUNA, _OPUS])
+        await require_turn_paid(db_session, user.id, [_OPENAI, _ANTHROPIC])
 
     assert caught.value.status == 422
     assert caught.value.detail == (

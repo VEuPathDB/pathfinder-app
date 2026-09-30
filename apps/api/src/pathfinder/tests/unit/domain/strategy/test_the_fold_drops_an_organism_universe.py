@@ -7,6 +7,11 @@ from __future__ import annotations
 from veupathdb.domain.parameters import MultiPickValue, SinglePickValue, StringValue
 from veupathdb.domain.strategy import CombineOp
 
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -19,6 +24,7 @@ from pathfinder.domain.strategy.spec_fold import (
     fold_organism_universe,
 )
 from pathfinder.domain.strategy.step_rationale import SearchRationale
+from pathfinder.tests._support.bound_values import bound
 
 PEST = "Anopheles gambiae PEST"
 PF = "Plasmodium falciparum 3D7"
@@ -30,6 +36,9 @@ RECORD_WORDS = ("gene", "genes")
 PEST_GENES = 13_845
 PF_GENES = 5_720
 UNIVERSE: dict[tuple[str, ...], int] = {(PEST,): PEST_GENES, (PF,): PF_GENES}
+ASKED = (
+    "P. falciparum genes with a signal peptide that do not vary much between isolates."
+)
 
 
 def _pest_universe(text: str = f"{PEST} genes") -> Criterion:
@@ -38,12 +47,14 @@ def _pest_universe(text: str = f"{PEST} genes") -> Criterion:
         text=text,
         search_name="GenesByGeneModelChars",
         organism_param="organism_select_none",
-        resolved_params={
-            "organism_select_none": MultiPickValue(values=[PEST]),
-            "gene_or_transcript": SinglePickValue(value="Genes"),
-            "gene_model_char": StringValue(value='{"filters":[]}'),
-        },
-        defaulted_params=["gene_model_char", "gene_or_transcript"],
+        resolved_params=bound(
+            {
+                "organism_select_none": MultiPickValue(values=[PEST]),
+                "gene_or_transcript": SinglePickValue(value="Genes"),
+                "gene_model_char": StringValue(value='{"filters":[]}'),
+            },
+            defaulted=["gene_model_char", "gene_or_transcript"],
+        ),
     )
 
 
@@ -56,11 +67,13 @@ def _signal(
         text="proteins with a predicted signal peptide",
         search_name="GenesWithSignalPeptide",
         organism_param="organism",
-        resolved_params={
-            "organism": MultiPickValue(values=[organism]),
-            "signalp_version": SinglePickValue(value="SignalP-6.0"),
-        },
-        defaulted_params=["signalp_version"],
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=[organism]),
+                "signalp_version": SinglePickValue(value="SignalP-6.0"),
+            },
+            defaulted=["signalp_version"],
+        ),
         result_count=count,
     )
 
@@ -72,11 +85,13 @@ def _tm(organism: str = PEST) -> Criterion:
         text="proteins with 2 to 99 transmembrane domains",
         search_name="GenesByTransmembraneDomains",
         organism_param="organism",
-        resolved_params={
-            "organism": MultiPickValue(values=[organism]),
-            "min_tm": StringValue(value="2"),
-            "max_tm": StringValue(value="99"),
-        },
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=[organism]),
+                "min_tm": StringValue(value="2"),
+                "max_tm": StringValue(value="99"),
+            }
+        ),
         result_count=1_214,
     )
 
@@ -88,11 +103,13 @@ def _isolates(count: int | None = PF_GENES) -> Criterion:
         text="do not vary much between isolates",
         search_name="GenesByNgsSnps",
         organism_param="organismSinglePick",
-        resolved_params={
-            "organismSinglePick": MultiPickValue(values=[PF]),
-            "snp_stat": StringValue(value="density"),
-        },
-        defaulted_params=["snp_stat"],
+        resolved_params=bound(
+            {
+                "organismSinglePick": MultiPickValue(values=[PF]),
+                "snp_stat": StringValue(value="density"),
+            },
+            defaulted=["snp_stat"],
+        ),
         result_count=count,
     )
 
@@ -129,6 +146,8 @@ def _fold(
     *criteria: Criterion,
     live: tuple[str, ...] = (),
     counts: dict[str, int] | None = None,
+    requirements: tuple[Constraint, ...] = (),
+    asked: str = ASKED,
 ) -> FoldedStructure:
     tree = SpecStructure(root=root)
     spec = OperationalSpec(criteria=list(criteria), structure=tree)
@@ -139,7 +158,7 @@ def _fold(
         RECORD_WORDS,
         _counts(criteria) if counts is None else counts,
         live_step_ids=live,
-    )
+    ).holding_open(requirements, [asked])
 
 
 def test_a_leaf_that_names_only_the_organism_is_dropped_and_met() -> None:
@@ -159,7 +178,16 @@ def test_a_leaf_that_names_only_the_organism_is_dropped_and_met() -> None:
     )
 
 
-def test_a_binding_that_matches_its_organism_universe_is_dropped_unexpressed() -> None:
+def _stated(value: str, kind: ConstraintKind = ConstraintKind.OTHER) -> Constraint:
+    return Constraint(
+        kind=kind,
+        requested_value=value,
+        label=value,
+        source=ConstraintSource.USER_EXPLICIT,
+    )
+
+
+def test_a_binding_that_matches_its_organism_universe_holds_the_request_open() -> None:
     folded = _fold(
         _combine(CombineOp.INTERSECT, _leaf("c_signal"), _leaf("c_isolates")),
         _signal(PF),
@@ -168,12 +196,40 @@ def test_a_binding_that_matches_its_organism_universe_is_dropped_unexpressed() -
 
     assert folded.structure.root == _leaf("c_signal")
     assert [(d.criterion_id, d.met) for d in folded.dropped] == [("c_isolates", False)]
+    assert folded.dropped[0].requirement == _stated("do not vary much between isolates")
     assert folded.dropped[0].fate == (
         f"c_isolates ('do not vary much between isolates') is dropped: it matches "
         f"all 5,720 genes of {PF}, which c_signal already runs on, so it narrows "
-        f"nothing. 'do not vary much between isolates' is recorded unexpressed: "
-        f"bind a search whose values state it, or end with it as a gap."
+        f"nothing. 'do not vary much between isolates' stays open: bind a search whose "
+        f"values state it, or end with it as a gap."
     )
+
+
+def test_the_stated_requirement_the_dropped_text_restates_is_the_one_held_open() -> (
+    None
+):
+    varies = _stated("vary much between isolates")
+
+    folded = _fold(
+        _combine(CombineOp.INTERSECT, _leaf("c_signal"), _leaf("c_isolates")),
+        _signal(PF),
+        _isolates(),
+        requirements=(_stated(PF, ConstraintKind.ORGANISM), varies),
+    )
+
+    assert [d.requirement for d in folded.dropped] == [varies]
+
+
+def test_a_dropped_text_the_researcher_never_wrote_holds_nothing_open() -> None:
+    folded = _fold(
+        _combine(CombineOp.INTERSECT, _leaf("c_signal"), _leaf("c_isolates")),
+        _signal(PF),
+        _isolates(),
+        asked="Secreted proteins of P. falciparum.",
+    )
+
+    assert [d.requirement for d in folded.dropped] == [None]
+    assert folded.dropped[0].fate.endswith("so it narrows nothing.")
 
 
 def test_a_binding_that_sets_only_the_organism_and_narrows_it_is_kept() -> None:
@@ -259,8 +315,14 @@ def test_an_input_of_another_organism_is_kept() -> None:
 
 
 def test_a_leaf_that_states_more_than_the_organism_is_kept() -> None:
-    narrowed = _pest_universe(f"{PEST} genes on chromosome 2L").model_copy(
-        update={"defaulted_params": ["gene_or_transcript"], "result_count": PEST_GENES}
+    universe = _pest_universe(f"{PEST} genes on chromosome 2L")
+    narrowed = universe.model_copy(
+        update={
+            "resolved_params": bound(
+                universe.param_values, defaulted=["gene_or_transcript"]
+            ),
+            "result_count": PEST_GENES,
+        }
     )
 
     folded = _fold(
@@ -295,7 +357,7 @@ def test_a_transform_input_is_kept() -> None:
         search_name="GenesByOrthologs",
         role="transform",
         organism_param="organism",
-        resolved_params={"organism": MultiPickValue(values=[PEST])},
+        resolved_params=bound({"organism": MultiPickValue(values=[PEST])}),
     )
     root = _combine(
         CombineOp.INTERSECT,
@@ -371,7 +433,7 @@ def test_an_ortholog_transform_carries_the_organism_it_maps_to() -> None:
         search_name="GenesByOrthologs",
         role="transform",
         organism_param="organism",
-        resolved_params={"organism": MultiPickValue(values=[PEST])},
+        resolved_params=bound({"organism": MultiPickValue(values=[PEST])}),
     )
     root = _combine(
         CombineOp.INTERSECT,

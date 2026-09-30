@@ -23,7 +23,7 @@ export default defineConfig({
     pluginZod({
       output: { path: "zod" },
       typed: true,
-      dateType: "string",
+      dateType: "stringOffset",
       unknownType: "unknown",
       inferred: true,
       coercion: false,

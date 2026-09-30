@@ -22,7 +22,6 @@ from pathfinder.ai.models.mock.sheets import (
     alt_organism,
     contrast_values,
     outside_value,
-    richest_value,
     sheet_entries,
     workspace_criteria,
 )
@@ -56,9 +55,6 @@ class CriterionSpec:
     site_organism: str = ""
     # Whether that other organism shares the genus of ``site_organism``.
     alt_same_genus: bool = True
-    # A parameter valued with the sheet entry that counts the most records, for
-    # a value no seed of the site carries.
-    sheet_first: str | None = None
     # A parameter valued with the first of ``outside_choices`` its sheet does
     # not list, so the value is one the site does not reach.
     outside_param: str | None = None
@@ -93,6 +89,7 @@ class CriterionReply(ToolAnswer):
     params_template: dict[str, str | None] = Field(default_factory=dict)
     resolved_params: dict[str, Any] = Field(default_factory=dict)
     open_slots: list[OpenSlotReply] = Field(default_factory=list)
+    measurements: list[str] = Field(default_factory=list)
 
 
 def leaf(crit: CriterionSpec) -> StructureNode:
@@ -140,10 +137,6 @@ def proposal_args(
                 same_genus=crit.alt_same_genus,
             )
         ]
-    if crit.sheet_first is not None:
-        values[crit.sheet_first] = [
-            richest_value(instructions, crit.criterion_id, crit.sheet_first)
-        ]
     if crit.outside_param is not None:
         values[crit.outside_param] = [
             outside_value(
@@ -189,11 +182,7 @@ def _binding_args(
 
 def _sheet_is_readable(crit: CriterionSpec, instructions: str) -> bool:
     """Whether the pinned sheet lists the vocabulary the proposal copies from."""
-    needed = {
-        name
-        for name in (crit.alt_param, crit.sheet_first, crit.outside_param)
-        if name is not None
-    }
+    needed = {name for name in (crit.alt_param, crit.outside_param) if name is not None}
     listed = {
         entry.name
         for entry in sheet_entries(instructions, crit.criterion_id)
@@ -286,12 +275,22 @@ def frame_call(
             return call
     if "set_structure" not in already_called:
         return scripted_call("set_structure", set_structure_args(spec))
-    return scripted_call("final_result", frame_result(spec))
+    return scripted_call("final_result", frame_result(spec, replies))
 
 
-def frame_result(spec: SpecPlan) -> dict[str, Any]:
+def frame_result(spec: SpecPlan, replies: list[CriterionReply]) -> dict[str, Any]:
+    """The pass's result, naming what the newest binding of each criterion
+    measured."""
+    newest = {r.criterion_id: r for r in replies if r.resolved_params}
+    measured = [
+        clause
+        for crit in spec.criteria
+        if crit.criterion_id in newest
+        for clause in newest[crit.criterion_id].measurements
+    ]
+    summary = f"Framed {len(spec.criteria)} criterion(s) for {spec.title}."
     return {
-        "summary": f"Framed {len(spec.criteria)} criterion(s) for {spec.title}.",
+        "summary": " ".join([summary, *(f"{clause}." for clause in measured)]),
         "disposition": "spec_ready",
         "openQuestions": [],
     }

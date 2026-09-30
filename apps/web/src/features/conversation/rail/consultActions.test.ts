@@ -3,7 +3,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
-import { handleConsultSkip, withConsultAnswers } from "./consultActions";
+const recordProductEvent = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
+
+import {
+  handleAdoptionAnswer,
+  handleConsultSkip,
+  handleConsultSubmit,
+  handleProposalAnswer,
+  withConsultAnswers,
+} from "./consultActions";
+
+const CONVERSATION_ID = "conv-3";
 
 function respondedConsult(approved: boolean): UIMessage {
   return {
@@ -29,7 +41,10 @@ describe("a skipped consult", () => {
   it("declines the approval with no reason and records no answers", () => {
     const addToolApprovalResponse = vi.fn();
 
-    handleConsultSkip({ addToolApprovalResponse }, { approvalId: "approval-7" });
+    handleConsultSkip(
+      { id: CONVERSATION_ID, addToolApprovalResponse },
+      { approvalId: "approval-7" },
+    );
 
     expect(addToolApprovalResponse.mock.calls).toEqual([
       [{ id: "approval-7", approved: false }],
@@ -58,5 +73,85 @@ describe("a skipped consult", () => {
       type: "data-user-question-answers",
       data: { toolCallId: "call-7", answers: [answer] },
     });
+  });
+});
+
+describe("an answered card", () => {
+  beforeEach(() => {
+    recordProductEvent.mockClear();
+    useConsultAnswersStore.setState({ byApprovalId: {} });
+  });
+
+  const chat = { id: CONVERSATION_ID, addToolApprovalResponse: vi.fn() };
+
+  it("records a submitted consult as an approved consult_user", () => {
+    handleConsultSubmit(chat, { approvalId: "approval-1" }, []);
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "card_answered",
+          toolName: "consult_user",
+          approved: true,
+          conversationId: CONVERSATION_ID,
+        },
+      ],
+    ]);
+  });
+
+  it("records a skipped consult as a declined consult_user", () => {
+    handleConsultSkip(chat, { approvalId: "approval-2" });
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "card_answered",
+          toolName: "consult_user",
+          approved: false,
+          conversationId: CONVERSATION_ID,
+        },
+      ],
+    ]);
+  });
+
+  it("records a proposal yes and a proposal no under propose_changes", () => {
+    const pending = { approvalId: "approval-3", question: "Apply?" };
+
+    handleProposalAnswer(chat, pending, { accepted: true, note: "" });
+    handleProposalAnswer(chat, pending, { accepted: false, note: "not yet" });
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "card_answered",
+          toolName: "propose_changes",
+          approved: true,
+          conversationId: CONVERSATION_ID,
+        },
+      ],
+      [
+        {
+          event: "card_answered",
+          toolName: "propose_changes",
+          approved: false,
+          conversationId: CONVERSATION_ID,
+        },
+      ],
+    ]);
+  });
+
+  it("records an adoption answer under adopt_separating_strategy", () => {
+    handleAdoptionAnswer(chat, "approval-4", { accepted: true, note: "" });
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "card_answered",
+          toolName: "adopt_separating_strategy",
+          approved: true,
+          conversationId: CONVERSATION_ID,
+        },
+      ],
+    ]);
   });
 });

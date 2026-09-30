@@ -15,6 +15,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     flatten_tree,
 )
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
@@ -22,6 +23,7 @@ from pathfinder.ai.lead import answered_strategy, pre_turn
 from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.sheets import visible_sheet
 
 _RNASEQ = "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC"
 _FALCIPARUM = "Plasmodium falciparum 3D7"
@@ -58,11 +60,11 @@ def _session(seed: StrategyStepNode | None = None) -> StrategySession:
 
 @pytest.fixture
 def sheet(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _sheets(**_kwargs: Any) -> dict[str, frozenset[str]]:
+    async def _sheets(**_kwargs: Any) -> dict[str, list[ParameterInfo]]:
         return {
-            "GenesByTaxon": frozenset({"organism"}),
-            "GenesByText": frozenset({"text_expression", "text_search_organism"}),
-            _RNASEQ: frozenset({"profileset_generic"}),
+            "GenesByTaxon": visible_sheet(["organism"]),
+            "GenesByText": visible_sheet(["text_expression", "text_search_organism"]),
+            _RNASEQ: visible_sheet(["profileset_generic"]),
         }
 
     monkeypatch.setattr(pre_turn, "sheet_params_for_searches", _sheets)

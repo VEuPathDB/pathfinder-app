@@ -22,6 +22,8 @@ from pathfinder.domain.strategy.spec_hydration import (
     spec_stating_the_live_tree,
 )
 from pathfinder.domain.strategy.spec_replay import spec_replaying
+from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.sheets import visible_sheet
 
 from ._analysis import (
     COMPUTE_SEARCH,
@@ -89,7 +91,7 @@ def test_a_cut_moved_on_the_site_takes_a_fresh_binding() -> None:
         spec,
         outside_changes(answered, live),
         live,
-        sheet_params={COMPUTE_SEARCH: frozenset({"eda_analysis_spec"})},
+        sheet_params={COMPUTE_SEARCH: visible_sheet(["eda_analysis_spec"])},
         analyses={EXPORTED: binding(significance=0.01)},
     )
 
@@ -111,10 +113,12 @@ class TestTheOneTimeStatement:
                     id=EXPORTED,
                     text="Genes higher in 24h than in 18h",
                     search_name=COMPUTE_SEARCH,
-                    resolved_params={
-                        "eda_dataset_id": StringValue(value=DATASET),
-                        "eda_analysis_spec": document(),
-                    },
+                    resolved_params=bound(
+                        {
+                            "eda_dataset_id": StringValue(value=DATASET),
+                            "eda_analysis_spec": document(),
+                        }
+                    ),
                 )
             ],
             structure=SpecStructure(

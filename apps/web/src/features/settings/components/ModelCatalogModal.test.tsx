@@ -4,39 +4,40 @@ import { render, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { ModelCatalogModal } from "./ModelCatalogModal";
+import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 const BASE = "http://localhost:3000";
 
 const CATALOG = {
   models: [
     {
-      id: "openai:gpt-5.6-luna",
-      name: "GPT-5.6 Luna",
+      id: DEFAULT_MODEL.id,
+      name: DEFAULT_MODEL.name,
       description: "Default model",
       supportsReasoning: true,
       contextSize: 400000,
       inputPrice: 1.25,
       cachedInputPrice: 0.75,
       outputPrice: 10,
-      isProviderSmallest: false,
+      rank: "standard",
       provider: "openai",
-      modelName: "gpt-5.6-luna",
+      modelName: DEFAULT_MODEL.modelName,
       enabled: true,
       supportsImages: true,
       supportsDocuments: true,
     },
     {
-      id: "anthropic:claude-opus-5",
-      name: "Claude Opus 5",
+      id: ANTHROPIC_SMALL.id,
+      name: ANTHROPIC_SMALL.name,
       description: "Deep reasoning",
       supportsReasoning: true,
       contextSize: 200000,
       inputPrice: 15,
       cachedInputPrice: 1.5,
       outputPrice: 75,
-      isProviderSmallest: false,
+      rank: "small",
       provider: "anthropic",
-      modelName: "claude-opus-5",
+      modelName: ANTHROPIC_SMALL.modelName,
       enabled: false,
     },
   ],
@@ -87,27 +88,27 @@ describe("ModelCatalogModal payers", () => {
       payers: { openai: "deployment", anthropic: "user" },
     };
     render(<ModelCatalogModal open onOpenChange={() => {}} onSelect={() => {}} />);
-    await screen.findByText("Claude Opus 5");
+    await screen.findByText(ANTHROPIC_SMALL.name);
 
     expect(
-      await within(row("Claude Opus 5")).findByText("your key"),
+      await within(row(ANTHROPIC_SMALL.name)).findByText("your key"),
     ).toBeInTheDocument();
     expect(
-      within(row("Claude Opus 5")).getByRole("button", { name: /Select/ }),
+      within(row(ANTHROPIC_SMALL.name)).getByRole("button", { name: /Select/ }),
     ).toBeEnabled();
-    expect(within(row("GPT-5.6 Luna")).queryByText("your key")).toBeNull();
+    expect(within(row(DEFAULT_MODEL.name)).queryByText("your key")).toBeNull();
   });
 
   it("keeps the deployment's view for a reader with no payers", async () => {
     keys = new Response(null, { status: 401 });
     render(<ModelCatalogModal open onOpenChange={() => {}} onSelect={() => {}} />);
 
-    await screen.findByText("Claude Opus 5");
+    await screen.findByText(ANTHROPIC_SMALL.name);
     expect(
-      within(row("Claude Opus 5")).getByRole("button", { name: /Select/ }),
+      within(row(ANTHROPIC_SMALL.name)).getByRole("button", { name: /Select/ }),
     ).toBeDisabled();
     expect(
-      within(row("GPT-5.6 Luna")).getByRole("button", { name: /Select/ }),
+      within(row(DEFAULT_MODEL.name)).getByRole("button", { name: /Select/ }),
     ).toBeEnabled();
   });
 });
@@ -115,8 +116,8 @@ describe("ModelCatalogModal payers", () => {
 describe("ModelCatalogModal file support", () => {
   it("says which models read images and PDFs", async () => {
     render(<ModelCatalogModal open onOpenChange={() => {}} />);
-    const luna = (await screen.findByText("GPT-5.6 Luna")).closest("tr");
-    const opus = screen.getByText("Claude Opus 5").closest("tr");
+    const luna = (await screen.findByText(DEFAULT_MODEL.name)).closest("tr");
+    const opus = screen.getByText(ANTHROPIC_SMALL.name).closest("tr");
     if (luna === null || opus === null) throw new Error("no model rows");
     expect(within(luna).getByText("reads images and PDFs")).toBeInTheDocument();
     expect(within(opus).queryByText(/reads/)).toBeNull();

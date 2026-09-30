@@ -22,6 +22,10 @@ from assistant_core.graph.turn_state import (
     UserQuestionAnswer,
 )
 from assistant_core.memory.schemas import MemoryEntryDraft, MemoryValue
+from langgraph.checkpoint.serde.event_hooks import (
+    SerdeEvent,
+    register_serde_event_listener,
+)
 from pydantic_ai.ui.vercel_ai.request_types import (
     FileUIPart,
     TextUIPart,
@@ -32,7 +36,6 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
 from pathfinder.ai.graph.state import (
-    ConstraintCheck,
     FailureCause,
     PhaseDisposition,
     PipelineState,
@@ -41,6 +44,7 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.assistants.pathfinder_spec import PATHFINDER_CHECKPOINT_TYPES
+from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
@@ -51,7 +55,6 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
-    OpenQuestion,
 )
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -61,7 +64,9 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.separation import (
     ATTACHED_CONTROLS,
     TASK_ID,
@@ -127,13 +132,11 @@ def _outcome() -> BuildOutcome:
             StepPushFailure(step_id="s2", search_name="GenesByGoTerm", error="500"),
         ],
         wdk_strategy_id=330423363,
-        root_count=132,
         node_results=[
             NodeResult(
                 node_id="s1",
                 search_name="GenesByTaxon",
                 wdk_step_id=1,
-                count=132,
                 status="ok",
             ),
         ],
@@ -149,7 +152,7 @@ def _spec() -> OperationalSpec:
                 id="c1",
                 text="kinases",
                 search_name="GenesByGoTerm",
-                resolved_params={"go_term": StringValue(value="GO:0004672")},
+                resolved_params=bound({"go_term": StringValue(value="GO:0004672")}),
                 open_params=[OpenSlot(criterion_id="c1", param_name="evidence_code")],
             ),
             Criterion(id="c2", text="P. falciparum", search_name="GenesByTaxon"),
@@ -282,6 +285,7 @@ SAMPLES: dict[type, object] = {
     SearchOverview: _overview("transcript"),
     PhaseDisposition: PhaseDisposition.DONE,
     VerificationDigest: _digest(),
+    FailureCause: FailureCause.UNRESOLVED_SLOTS,
     IntentClassification: IntentClassification.NEW_STRATEGY,
     UserIntent: _intent(),
     BuildOutcome: _outcome(),
@@ -334,6 +338,7 @@ def test_the_pathfinder_spec_declares_its_state_types() -> None:
         SearchOverview,
         PhaseDisposition,
         VerificationDigest,
+        FailureCause,
         IntentClassification,
         UserIntent,
         BuildOutcome,
@@ -394,23 +399,28 @@ def test_a_populated_state_keeps_its_nested_types() -> None:
     assert isinstance(restored.discovered_searches["GenesByTaxon"], SearchOverview)
 
 
-def test_a_failed_digest_keeps_its_typed_cause_and_handoff() -> None:
-    """``FailureCause`` is on no allowlist, so it decodes as its raw value and
-    the digest that declares the field rebuilds it."""
+def test_a_failed_digest_keeps_its_typed_cause_with_no_blocked_type() -> None:
+    """A digest holding ``failure_cause`` decodes the enum itself; the
+    serializer blocks no type on the way."""
     digest = VerificationDigest(
         disposition=PhaseDisposition.HANDOFF,
-        prose="The build pushed two of four steps.",
-        reason="partial build",
+        prose="The check found no answer for two requirements.",
+        reason="unresolved slots",
         success=False,
-        handoff_to="build",
-        failure_cause=FailureCause.PARTIAL_BUILD,
+        handoff_to="frame",
+        failure_cause=FailureCause.UNRESOLVED_SLOTS,
     )
+    events: list[SerdeEvent] = []
+    unregister = register_serde_event_listener(events.append)
+    try:
+        restored = _strict_roundtrip(digest)
+    finally:
+        unregister()
 
-    restored = _strict_roundtrip(digest)
-
+    assert events == []
     assert restored == digest
     assert isinstance(restored, VerificationDigest)
-    assert restored.failure_cause is FailureCause.PARTIAL_BUILD
+    assert restored.failure_cause is FailureCause.UNRESOLVED_SLOTS
 
 
 def test_nested_state_container_survives_strict_roundtrip() -> None:

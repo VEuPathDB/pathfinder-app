@@ -19,6 +19,7 @@ from pathfinder.ai.tools.standalone.eda_compute import (
     run_eda_compute,
 )
 from pathfinder.ai.tools.standalone.eda_step import create_eda_step
+from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 
 
 def build_toolset() -> AbstractToolset[LeadDeps]:
@@ -45,4 +46,4 @@ def build_toolset() -> AbstractToolset[LeadDeps]:
             create_eda_step,
         ],
     )
-    return toolset
+    return RefusalMemoryToolset(wrapped=toolset)

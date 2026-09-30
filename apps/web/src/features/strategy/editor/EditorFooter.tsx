@@ -5,6 +5,7 @@ import { siteShortName } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { cn } from "@/lib/utils/cn";
 import { countNoun } from "@/lib/utils/countNoun";
 
@@ -21,8 +22,10 @@ interface EditorFooterProps {
   /** The step's record type. It sets the noun the count reads as. */
   recordType: string | null | undefined;
   wdkUrl: string | null;
+  wdkStrategyId: number | null;
   /** Site the strategy belongs to. The link names it. */
   siteId: string;
+  conversationId: string;
 }
 
 function SyncDot({ state }: { state: SyncState }) {
@@ -44,7 +47,9 @@ export function EditorFooter({
   count,
   recordType,
   wdkUrl,
+  wdkStrategyId,
   siteId,
+  conversationId,
 }: EditorFooterProps) {
   const hasChanges = changeCount > 0;
   const openLabel = `Open in ${siteId !== "" ? siteShortName(siteId) : "VEuPathDB"}`;
@@ -99,6 +104,14 @@ export function EditorFooter({
               rel="noopener noreferrer"
               aria-label={openLabel}
               className="inline-flex items-center gap-1 text-foreground hover:underline"
+              onClick={() =>
+                recordProductEvent({
+                  event: "strategy_opened",
+                  siteId,
+                  wdkStrategyId,
+                  conversationId,
+                })
+              }
             >
               {openLabel}
               <ExternalLink className="size-3" aria-hidden />

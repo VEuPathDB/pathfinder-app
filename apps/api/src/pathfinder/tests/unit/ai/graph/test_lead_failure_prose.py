@@ -1,8 +1,8 @@
 """What a turn that failed tells the user, and what it keeps out of the thread.
 
-The reply names the shape of the failure. A provider's response body, a header
-and a url with a query are the provider's, not the reader's, and the reply is
-persisted and read back on the next turn.
+The reply says the turn stopped and points at the refusal the facts part shows
+whole. A provider's response body never reaches the reply, which is persisted
+and read back on the next turn, and a link's query never reaches either.
 """
 
 from __future__ import annotations
@@ -12,17 +12,18 @@ from pydantic_ai.exceptions import ModelHTTPError
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph._lead_stops import (
-    MAX_FAILURE_CLAUSE_CHARS,
     fallback_prose,
     final_reply,
+    shown_refusal,
 )
 from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
 from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.tests._support.models import DEFAULT_MODEL, display_name
 
 _ORG = "org-abc123"
 _RATE_LIMIT = ModelHTTPError(
     status_code=429,
-    model_name="gpt-5.6-luna",
+    model_name=DEFAULT_MODEL.partition(":")[2],
     body={
         "error": {
             "message": f"Rate limit reached for {_ORG} on tokens",
@@ -33,8 +34,8 @@ _RATE_LIMIT = ModelHTTPError(
 )
 
 
-_CHOSEN_MODEL = "openai:gpt-5.6-luna"
-_CHOSEN_MODEL_NAME = "GPT-5.6 Luna"
+_CHOSEN_MODEL = DEFAULT_MODEL
+_CHOSEN_MODEL_NAME = display_name(DEFAULT_MODEL)
 
 
 def _failed(error: str) -> _LeadRunCapture:
@@ -69,55 +70,44 @@ def _stage_named(prose: str) -> str:
 
 
 def test_a_provider_error_names_its_status_and_not_its_body() -> None:
-    prose = fallback_prose(_failed(str(_RATE_LIMIT)), None)
+    prose = fallback_prose(_failed(str(_RATE_LIMIT)), None, changed=False)
 
     assert prose == (
-        "I stopped this turn on an error I could not recover from: the model "
-        "provider answered 429. Send the message again and I will start over "
-        "from it."
+        "I stopped this turn on an error I could not recover from; what it "
+        "answered is shown beside this reply. Send the message again and I "
+        "will start over from it."
     )
     assert _ORG not in prose
     assert "body" not in prose
 
 
 def test_a_transport_failure_still_names_what_happened() -> None:
-    prose = fallback_prose(_failed("peer closed connection"), None)
+    prose = fallback_prose(_failed("peer closed connection"), None, changed=False)
 
     assert prose == (
-        "I stopped this turn on an error I could not recover from: peer closed "
-        "connection. Send the message again and I will start over from it."
+        "I stopped this turn on an error I could not recover from; what it "
+        "answered is shown beside this reply. Send the message again and I "
+        "will start over from it."
     )
 
 
-def test_a_url_with_a_query_is_not_read_back_to_the_user() -> None:
-    prose = fallback_prose(
-        _failed("request to https://api.example/v1/chat?key=sk-live-9f2 failed"),
-        None,
-    )
-
-    assert "https://" not in prose
-    assert "sk-live-9f2" not in prose
-    assert "request to failed" in prose
-
-
-def test_a_failure_that_is_only_a_payload_still_says_the_run_failed() -> None:
-    prose = fallback_prose(_failed('{"error": {"message": "nope"}}'), None)
-
-    assert "nope" not in prose
-    assert "the run failed" in prose
-
-
-def test_a_long_failure_is_cut_to_one_clause() -> None:
+def test_the_refusal_is_shown_whole_without_a_link_s_query() -> None:
     words = " ".join(["overload"] * 60)
-    prose = fallback_prose(_failed(f"{words}\nsecond line"), None)
+    error = f"request to https://api.example/v1/chat?key=sk-live-9f2 failed {words}"
 
-    assert "second line" not in prose
-    assert len(prose) < len(words)
-    assert prose.count("overload") <= MAX_FAILURE_CLAUSE_CHARS // len("overload ") + 1
+    assert shown_refusal(error) == (
+        f"request to https://api.example/v1/chat failed {words}"
+    )
+
+
+def test_a_provider_refusal_is_shown_with_its_own_sentence() -> None:
+    assert "Rate limit reached for org-abc123 on tokens" in shown_refusal(
+        str(_RATE_LIMIT)
+    )
 
 
 def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(_LeadRunCapture(), None) == (
+    assert fallback_prose(_LeadRunCapture(), None, changed=False) == (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
     )
@@ -127,25 +117,29 @@ class TestTheModelTheTurnCouldNotReach:
     """A model that never answered is named, with the stage that chose it."""
 
     def test_the_reply_names_the_model_and_its_stage(self) -> None:
-        prose = fallback_prose(_never_answered("Connection error."), None)
+        prose = fallback_prose(
+            _never_answered("Connection error."), None, changed=False
+        )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: "
-            "Connection error. The Assistant stage of this turn runs "
-            "GPT-5.6 Luna, and it did not answer. Choose a different model for "
-            "that stage in Settings, or send the message again and I will "
-            "start over from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Assistant stage of this "
+            f"turn runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a "
+            "different "
+            "model for that stage in Settings, or send the message again and I "
+            "will start over from it."
         )
 
     def test_naming_the_model_brings_no_response_body_with_it(self) -> None:
-        prose = fallback_prose(_never_answered(str(_RATE_LIMIT)), None)
+        prose = fallback_prose(_never_answered(str(_RATE_LIMIT)), None, changed=False)
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: the "
-            "model provider answered 429. The Assistant stage of this turn "
-            "runs GPT-5.6 Luna, and it did not answer. Choose a different "
-            "model for that stage in Settings, or send the message again and "
-            "I will start over from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Assistant stage of this "
+            f"turn runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a "
+            "different "
+            "model for that stage in Settings, or send the message again and I "
+            "will start over from it."
         )
         assert _ORG not in prose
         assert "Rate limit reached" not in prose
@@ -157,13 +151,16 @@ class TestTheModelTheTurnCouldNotReach:
                 "request to https://api.example/v1/chat?key=sk-live-9f2 failed",
             ),
             None,
+            changed=False,
         )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: request "
-            "to failed. The Assistant stage of this turn runs GPT-5.6 Luna, "
-            "and it did not answer. Choose a different model for that stage in "
-            "Settings, or send the message again and I will start over from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Assistant stage of this "
+            f"turn runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a "
+            "different "
+            "model for that stage in Settings, or send the message again and I "
+            "will start over from it."
         )
         assert "sk-live-9f2" not in prose
 
@@ -171,10 +168,10 @@ class TestTheModelTheTurnCouldNotReach:
         capture = _never_answered("peer closed connection")
         capture.model_answered = True
 
-        assert fallback_prose(capture, None) == (
-            "I stopped this turn on an error I could not recover from: peer "
-            "closed connection. Send the message again and I will start over "
-            "from it."
+        assert fallback_prose(capture, None, changed=False) == (
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. Send the message again and I "
+            "will start over from it."
         )
 
     def test_a_model_no_researcher_could_have_chosen_keeps_the_terse_shape(
@@ -182,13 +179,13 @@ class TestTheModelTheTurnCouldNotReach:
     ) -> None:
         """The catalog is what a stage picker offers, so nothing else is a choice."""
         prose = fallback_prose(
-            _never_answered("Connection error.", model="mock:lead"), None
+            _never_answered("Connection error.", model="mock:lead"), None, changed=False
         )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: "
-            "Connection error. Send the message again and I will start over "
-            "from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. Send the message again and I "
+            "will start over from it."
         )
         assert _CHOSEN_MODEL_NAME not in prose
 
@@ -198,14 +195,17 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
 
     def test_the_reply_names_the_stage_the_dispatch_ran(self) -> None:
         prose = fallback_prose(
-            _after_the_lead_answered("Connection error."), _stage("frame")
+            _after_the_lead_answered("Connection error."),
+            _stage("frame"),
+            changed=False,
         )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: "
-            "Connection error. The Planning stage of this turn runs "
-            "GPT-5.6 Luna, and it did not answer. Choose a different model for "
-            "that stage in Settings, or send the message again and I will "
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Planning stage of this turn "
+            f"runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a different "
+            "model "
+            "for that stage in Settings, or send the message again and I will "
             "start over from it."
         )
 
@@ -213,7 +213,9 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
         named = [
             _stage_named(
                 fallback_prose(
-                    _after_the_lead_answered("Connection error."), _stage(role)
+                    _after_the_lead_answered("Connection error."),
+                    _stage(role),
+                    changed=False,
                 ),
             )
             for role in ("lead", "frame", "execution", "verification")
@@ -223,15 +225,18 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
 
     def test_naming_the_stage_brings_no_response_body_with_it(self) -> None:
         prose = fallback_prose(
-            _after_the_lead_answered(str(_RATE_LIMIT)), _stage("verification")
+            _after_the_lead_answered(str(_RATE_LIMIT)),
+            _stage("verification"),
+            changed=False,
         )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: the "
-            "model provider answered 429. The Checking stage of this turn "
-            "runs GPT-5.6 Luna, and it did not answer. Choose a different "
-            "model for that stage in Settings, or send the message again and "
-            "I will start over from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Checking stage of this turn "
+            f"runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a different "
+            "model "
+            "for that stage in Settings, or send the message again and I will "
+            "start over from it."
         )
         assert _ORG not in prose
         assert "Rate limit reached" not in prose
@@ -243,35 +248,41 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
                 "request to https://api.example/v1/chat?key=sk-live-9f2 failed",
             ),
             _stage("execution"),
+            changed=False,
         )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: request "
-            "to failed. The Building stage of this turn runs GPT-5.6 Luna, "
-            "and it did not answer. Choose a different model for that stage in "
-            "Settings, or send the message again and I will start over from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. The Building stage of this turn "
+            f"runs {_CHOSEN_MODEL_NAME}, and it did not answer. Choose a different "
+            "model "
+            "for that stage in Settings, or send the message again and I will "
+            "start over from it."
         )
         assert "sk-live-9f2" not in prose
 
     def test_a_failure_after_every_model_answered_keeps_the_terse_shape(self) -> None:
-        prose = fallback_prose(_after_the_lead_answered("peer closed connection"), None)
+        prose = fallback_prose(
+            _after_the_lead_answered("peer closed connection"), None, changed=False
+        )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: peer "
-            "closed connection. Send the message again and I will start over "
-            "from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. Send the message again and I "
+            "will start over from it."
         )
 
     def test_a_stage_model_outside_the_catalog_keeps_the_terse_shape(self) -> None:
         prose = fallback_prose(
             _after_the_lead_answered("Connection error."),
             _stage("frame", "mock:frame"),
+            changed=False,
         )
 
         assert prose == (
-            "I stopped this turn on an error I could not recover from: "
-            "Connection error. Send the message again and I will start over "
-            "from it."
+            "I stopped this turn on an error I could not recover from; what it "
+            "answered is shown beside this reply. Send the message again and I "
+            "will start over from it."
         )
         assert "Planning" not in prose
 
@@ -293,3 +304,41 @@ def test_a_turn_with_no_reply_at_all_gets_the_failure_reply() -> None:
     assert reply is not None
     assert reply.prose.startswith("I stopped this turn on an error")
     assert reply.strategy_changed is False
+
+
+class TestATurnWhoseChangeLanded:
+    """A change the facts show landed is never sent again from the start."""
+
+    def test_a_refusal_after_a_landed_delete_asks_for_the_check(self) -> None:
+        prose = fallback_prose(_failed(str(_RATE_LIMIT)), None, changed=True)
+
+        assert "Send the message again" not in prose
+        assert "start over" not in prose
+        assert prose.endswith(
+            "The change shown beside this reply landed and was not checked. "
+            "Ask me to check it and I will go on from there."
+        )
+
+    def test_a_model_that_did_not_answer_after_the_change_keeps_the_change(
+        self,
+    ) -> None:
+        prose = fallback_prose(_never_answered("Connection error."), None, changed=True)
+
+        assert "Choose a different model for that stage in Settings" in prose
+        assert "send the message again" not in prose
+        assert prose.endswith(
+            "then ask me to check the change shown beside this reply, which landed."
+        )
+
+    def test_a_run_with_no_reply_and_no_error_states_what_landed(self) -> None:
+        prose = fallback_prose(_LeadRunCapture(), None, changed=True)
+
+        assert "rephrase" not in prose
+        assert "The change shown beside this reply landed" in prose
+
+    def test_the_reply_the_turn_writes_carries_the_change(self) -> None:
+        reply = final_reply(_failed("peer closed connection"), None, changed=True)
+
+        assert reply is not None
+        assert reply.strategy_changed
+        assert "Send the message again" not in reply.prose

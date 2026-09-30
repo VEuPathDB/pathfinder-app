@@ -92,6 +92,7 @@ async def _save_controls(
                 source="chat",
             ),
             user_id=user_id,
+            conversation_id=None,
         )
         await session.commit()
     return created.id

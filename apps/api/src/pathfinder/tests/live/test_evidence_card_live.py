@@ -26,7 +26,7 @@ from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 from pathfinder.ai.lead.evidence_card import CardSources, assemble_evidence_card
 from pathfinder.ai.tools.standalone.experiment import control_test_run
 from pathfinder.domain.evidence import VerificationReview
-from pathfinder.domain.strategy.build_outcome import NodeResult
+from pathfinder.domain.strategy.build_outcome import BuiltCounts, NodeResult
 from pathfinder.services.strategies.site_counts import read_step_counts
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
@@ -97,10 +97,10 @@ async def test_the_card_holds_what_the_test_and_the_site_returned(
                     node_id="s1",
                     search_name="GenesByMolecularWeight",
                     wdk_step_id=step_id,
-                    count=site_size,
                     status="ok",
                 ),
             ),
+            counts=BuiltCounts(by_step={"s1": site_size}),
             spec=None,
             control_tests=(run,),
             pending_checks=[],

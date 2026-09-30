@@ -64,7 +64,7 @@ def _read(*names: str) -> CatalogRead:
 
 
 def _state(*names: str) -> AgentToolState:
-    state = AgentToolState()
+    state = AgentToolState(request_messages=[_TEXT])
     state.record_catalog_read(_read(*names))
     return state
 
@@ -166,8 +166,8 @@ async def test_the_transform_with_synteny_binds_on_its_parameter(
 
     [criterion] = state.operational_spec_draft.criteria
     assert criterion.search_name == _TRANSFORM
-    assert criterion.resolved_params["isSyntenic"] == SinglePickValue(value="yes")
-    assert criterion.resolved_params["organism"] == MultiPickValue(
+    assert criterion.param_values["isSyntenic"] == SinglePickValue(value="yes")
+    assert criterion.param_values["organism"] == MultiPickValue(
         values=["Plasmodium vivax P01"]
     )
     assert criterion.rationale is not None

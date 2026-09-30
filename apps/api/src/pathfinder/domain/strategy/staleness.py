@@ -1,15 +1,9 @@
-"""Detect that a recorded build no longer describes the live strategy.
-
-The Lead answers questions from the Ledger, whose counts come from the last
-``BuildOutcome``. Edits made outside the conversation - the graph editor, the
-WDK web UI - change the strategy without touching that outcome, so cached
-counts silently become wrong. Comparing recorded counts against a live read
-turns that silence into an explicit warning.
-"""
+"""Detect that the counts a thread holds no longer describe the live strategy:
+the counts the session's sync state holds, compared with the site's own."""
 
 from dataclasses import dataclass, field
 
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts
 
 __all__ = ["StaleBuild", "detect_build_staleness"]
 
@@ -26,7 +20,8 @@ class StaleBuild:
         lines = [
             (
                 "STALE: the strategy was edited outside this conversation, so the "
-                "build counts below are out of date. Call get_live_strategy_state "
+                "counts this conversation holds are out of date. Call "
+                "get_live_strategy_state "
                 "before quoting any number to the user."
             ),
         ]
@@ -45,18 +40,15 @@ class StaleBuild:
 
 def detect_build_staleness(
     outcome: BuildOutcome | None,
+    held: BuiltCounts,
     live_counts: dict[str, int | None],
 ) -> StaleBuild | None:
-    """Compare a recorded build against live per-node counts.
-
-    ``None`` counts on either side mean "unknown", never "changed" - a WDK
-    read that failed must not masquerade as a user edit. Returns ``None``
-    when nothing observable diverged.
-    """
+    """What differs between the counts the thread holds for its build and the
+    site's, or None. A count unknown on either side is no change."""
     if outcome is None or not live_counts:
         return None
 
-    recorded = {n.node_id: n.count for n in outcome.node_results}
+    recorded = dict(held.by_step)
 
     changed = [
         (node_id, count, live_counts[node_id])

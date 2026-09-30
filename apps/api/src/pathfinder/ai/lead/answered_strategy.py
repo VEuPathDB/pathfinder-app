@@ -19,7 +19,7 @@ from pathfinder.domain.strategy.ast_diff import nodes_of
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_hydration import Analyses
+from pathfinder.domain.strategy.spec_hydration import Analyses, Sheets
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
@@ -36,8 +36,6 @@ __all__ = [
     "the_strategy_now_answers_to",
     "the_thread_wrote_the_strategy",
 ]
-
-Sheets = Mapping[str, Collection[str]]
 
 
 def live_tree(graph: StrategyGraph | None) -> StrategyAst | None:

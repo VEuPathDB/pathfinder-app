@@ -15,7 +15,7 @@ from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.questions import OpenQuestion
 
 
 def _open_questions(
@@ -33,7 +33,8 @@ def _open_questions(
         return []
     asked: list[OpenQuestion] = []
     index_of: dict[str, int] = {}
-    for question in (*domain.open_questions, *response.asked_questions):
+    asked_now = (question.typed() for question in response.asked_questions)
+    for question in (*domain.open_questions, *asked_now):
         if question.question not in index_of:
             index_of[question.question] = len(asked)
             asked.append(question)

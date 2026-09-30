@@ -29,6 +29,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.organism_reads import serve_organism_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
@@ -377,7 +378,7 @@ def _signal_peptide(criterion_id: str, organism: str) -> Criterion:
         search_name="GenesWithSignalPeptide",
         role="seed",
         organism_param="organism",
-        resolved_params={"organism": MultiPickValue(values=[organism])},
+        resolved_params=bound({"organism": MultiPickValue(values=[organism])}),
     )
 
 
@@ -434,9 +435,9 @@ class TestAnIntersectOfTwoOrganismsIsRefusedBeforeTheBuild:
                 search_name="GenesByOrthologs",
                 role="transform",
                 organism_param="organism",
-                resolved_params={
-                    "organism": MultiPickValue(values=["Plasmodium vivax P01"])
-                },
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Plasmodium vivax P01"])}
+                ),
             )
         )
 

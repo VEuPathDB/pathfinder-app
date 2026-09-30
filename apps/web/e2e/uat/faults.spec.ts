@@ -10,13 +10,8 @@ import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/Ed
 import { test, expect } from "../fixtures/test";
 import { type ArcName, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
-import { LAYOUTS, ORTHOLOGS, layoutOf } from "../fixtures/arc-layouts";
-import {
-  controlsCaveat,
-  expectBuild,
-  expectEvidence,
-  openTrace,
-} from "../fixtures/build-checks";
+import { LAYOUTS, ORTHOLOGS } from "../fixtures/arc-layouts";
+import { expectBuild, expectEvidence, openTrace } from "../fixtures/build-checks";
 import {
   printed,
   readConversation,
@@ -29,7 +24,6 @@ import type { ChatPage } from "../pages/chat.page";
 type FaultName =
   | "syntenic-left-off"
   | "repeat-control-test"
-  | "transcript-count"
   | "all-unclear"
   | "sweep-without-controls"
   | "long-reason"
@@ -37,18 +31,11 @@ type FaultName =
   | "unlisted-search"
   | "value-as-term"
   | "off-vocabulary"
-  | "unbacked-controls"
-  | "misstated-count"
-  | "misnamed-deletion"
-  | "unstated-caveat"
-  | "unstated-gap"
-  | "misstated-control-list"
   | "organism-split"
+  | "unshown-count"
   | "open-value-in-prose";
 
 const TURN_BUDGET_MS = 600_000;
-/** The requirement the unstated-gap fault's check finds nothing answers. */
-const UNMET = "annotated as essential";
 /** The one value the consult arc's frame leaves open, as its card asks it. */
 const OPEN_QUESTION = "Which organism should the signal peptide search read?";
 const CONTRACT = /^This reply does not match what the turn did:/;
@@ -57,11 +44,7 @@ const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
 const S2_TEXT = (organism: string) =>
   `Find ${organism} genes with a predicted signal peptide and 2 to 99 transmembrane domains.`;
-
-/** `text` as a pattern that matches it literally. */
-function escaped(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+const GO_TEXT = (organism: string) => `Find ${organism} genes by their GO term.`;
 
 /** The arc's message with the fault token after the arc token. */
 function faulted(arcName: ArcName, fault: FaultName, text: string): string {
@@ -133,13 +116,13 @@ async function loggedRefusals(api: ApiClient, conversationId: string): Promise<s
     .join("\n");
 }
 
-/** The contract's correction is on the thread, as a "Final result" error row. */
+/** The contract's one correction is on the thread, as a "Final result" error row. */
 async function expectCorrection(page: Page): Promise<void> {
   await expect(
     errorRows(page, "Final result")
       .getByTestId("trace-row-summary")
       .filter({ hasText: CONTRACT }),
-  ).not.toHaveCount(0);
+  ).toHaveCount(1);
 }
 
 /** Every assistant reply of the conversation as the event log holds it, joined. */
@@ -159,40 +142,8 @@ function controlSet(siteId: string) {
   return chosen;
 }
 
-/** The body cells of the controls table on the one card that holds it. */
-async function controlRows(page: Page): Promise<string[][]> {
-  const card = page
-    .getByTestId("data-evidence-card")
-    .filter({ has: page.getByTestId("evidence-controls") });
-  await expect(card).toHaveCount(1, { timeout: TURN_BUDGET_MS });
-  return bodyCells(card.getByTestId("evidence-controls"));
-}
-
-/** The controls caveat the card's table measures, as the ledger words it. */
-function caveatOf(rows: readonly string[][]): string {
-  const cell = (label: string, index: number) =>
-    Number(
-      (rows.find((cells) => cells[0] === label)?.[index] ?? "0").replace(/,/g, ""),
-    );
-  return controlsCaveat(
-    cell("Positive", 2),
-    cell("Positive", 1),
-    cell("Negative", 2),
-    cell("Negative", 1),
-  );
-}
-
-/** A control set whose positives are not signal peptide genes, so a signal
- * peptide strategy misses some of them. */
-function otherControlSet(siteId: string) {
-  const other = siteControlSets(siteId).find(
-    (set) => !/signal peptide/i.test(set.name),
-  );
-  if (other === undefined) throw new Error(`the ${siteId} seeds carry one control set`);
-  return other;
-}
-
-function controlLines(siteId: string, set = controlSet(siteId)): string {
+function controlLines(siteId: string): string {
+  const set = controlSet(siteId);
   return [
     `Positive controls: ${set.positive_ids.join(" ")}`,
     `Negative controls: ${set.negative_ids.join(" ")}`,
@@ -286,19 +237,20 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    // The fourth refusal ends the pass before its row is drawn, so three show.
+    // Refused, failed without running, refused, refused: four error rows open
+    // with the refusal. The fifth identical call exceeds the retries and ends the pass.
     const refused = errorRows(page, "Choose a search");
-    await expect(refused).toHaveCount(3);
+    await expect(refused).toHaveCount(4);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       Array.from(
-        { length: 3 },
+        { length: 4 },
         () => /^tm_domains: the reason holds \d+ characters\. /,
       ),
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
   });
 
-  test("FND-5 - a gene count named in transcripts is corrected", async ({
+  test("A count the facts do not show is taken out of the reply", async ({
     chatPage,
     apiClient,
     page,
@@ -307,67 +259,55 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const id = await sendOn(
       chatPage,
       siteId,
-      faulted("single", "transcript-count", S1_TEXT(siteOrganism(siteId))),
+      faulted("single", "unshown-count", S1_TEXT(siteOrganism(siteId))),
     );
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+    await chatPage.expectRootCount(counts.root);
 
     await openTraces(chatPage);
     await expectCorrection(page);
-    const root = printed(counts.root);
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      `your reply writes ${root} transcripts. Write ${root} genes.`,
+    const refusals = await loggedRefusals(apiClient, id);
+    expect(refusals).toContain(
+      `Your reply prints \`\`${printed(counts.root + 1)}\`\`.`,
     );
+    expect(refusals).toContain("stand beside its replies");
     const reply = await replyText(apiClient, id);
-    expect(reply).toContain(`${root} genes`);
-    expect(reply).not.toMatch(/transcripts/);
+    expect(reply).toContain("shown beside this reply");
+    expect(reply).not.toMatch(/\d/);
   });
 
-  test("A count no step holds is corrected to the root", async ({
+  test("FND-6 - an unclear sampled gene is shown on the card and is no caveat", async ({
     chatPage,
     apiClient,
     page,
     siteId,
   }) => {
+    // A GO term criterion binds picks and no number, so no column shows it and the root is sampled.
     const id = await sendOn(
       chatPage,
       siteId,
-      faulted("single", "misstated-count", S1_TEXT(siteOrganism(siteId))),
+      faulted("go", "all-unclear", GO_TEXT(siteOrganism(siteId))),
     );
-    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-
-    await openTraces(chatPage);
-    await expectCorrection(page);
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      `Your reply states ${printed(2 * counts.root + 1)} genes for the strategy, and no step of it holds that count`,
-    );
-    const reply = await replyText(apiClient, id);
-    expect(reply).toContain(`returns ${printed(counts.root)} genes`);
-    expect(reply).not.toContain(`${printed(2 * counts.root + 1)} genes`);
-  });
-
-  test("FND-6 - every sampled gene unclear reads as unclear", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      faulted("single", "all-unclear", S1_TEXT(siteOrganism(siteId))),
-    );
-    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
+    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.go);
 
     const card = await expectEvidence(page, counts.root);
-    const sampled = card.getByTestId("evidence-sampled-genes");
-    const rows = await sampled.locator("tbody tr").count();
+    const fits = card.getByTestId("evidence-gene-fit");
+    const rows = await fits.count();
     expect(rows).toBeGreaterThan(0);
+    await expect(fits).toHaveText(new Array<string>(rows).fill("Unclear"));
     await expect(card.getByTestId("evidence-sample-count")).toHaveText(
       `${rows} of ${rows} sampled ${rows === 1 ? "gene" : "genes"} unclear`,
     );
-    expect(await replyText(apiClient, id)).toContain(
-      `${rows} of ${rows} sampled genes unclear`,
-    );
+    await chatPage.expectRootCount(counts.root);
+    const thread = chatPage.assistantMessages;
+    await expect(chatPage.factsCaveatsIn(thread, "sample")).toHaveCount(0);
+    await expect(
+      chatPage
+        .factsIn(thread)
+        .getByTestId("facts-caveat")
+        .filter({ hasText: /unclear/ }),
+    ).toHaveCount(0);
+    expect(await replyText(apiClient, id)).not.toContain("unclear");
   });
 
   test("FND-2 - a repeated control test is answered from the first", async ({
@@ -408,44 +348,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     const rows = await bodyCells(card.getByTestId("evidence-controls"));
     const positive = rows.find((cells) => cells[0] === "Positive") ?? [];
     expect(positive[1]).toBe(printed(controlSet(siteId).positive_ids.length));
-  });
-
-  test("A control count no test holds is corrected", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      prompt("single", S1_TEXT(siteOrganism(siteId))),
-    );
-    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-
-    await chatPage.sendAndSettle(
-      faulted(
-        "controls-test",
-        "unbacked-controls",
-        `Test this strategy against my controls.\n${controlLines(siteId)}`,
-      ),
-    );
-    await expect(
-      page
-        .getByTestId("data-evidence-card")
-        .filter({ has: page.getByTestId("evidence-controls") }),
-    ).toHaveCount(1, { timeout: TURN_BUDGET_MS });
-    await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
-
-    await openTraces(chatPage);
-    await expectCorrection(page);
-    const claimed = controlSet(siteId).positive_ids.length + 1;
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      `The reply says ${claimed} of ${claimed} positive controls returned`,
-    );
-    expect(await replyText(apiClient, id)).not.toContain(
-      `${claimed} of ${claimed} positive controls`,
-    );
   });
 
   test("FND-8 - a sweep that names no control set is refused before its card", async ({
@@ -519,46 +421,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
     await expect(chatPage.assistantReply(/One value decides the steps/)).toHaveCount(1);
     expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
-  });
-
-  test("FND-7 - a reply naming a step the delete left standing is corrected", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      prompt("intersect", S2_TEXT(siteOrganism(siteId))),
-    );
-    await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
-
-    await chatPage.send(
-      faulted(
-        "delete-step-card",
-        "misnamed-deletion",
-        "Remove the transmembrane domains step.",
-      ),
-    );
-    const approval = page.getByTestId("approval-card");
-    await expect(approval.getByTestId("approval-card-title")).toHaveText(
-      /^Delete step '.+' \(GenesByTransmembraneDomains, .+\)\?$/,
-      { timeout: 240_000 },
-    );
-    await approval.getByTestId("tool-approval-approve").click();
-    await expect(page.getByTestId("tool-approval-decision")).toContainText("Approved");
-    await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
-
-    await openTraces(chatPage);
-    await expectCorrection(page);
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      "Your reply says it removed the signal peptide step, and that step is still in the strategy.",
-    );
-    const reply = await replyText(apiClient, id);
-    expect(reply).toContain("Removed the transmembrane domains step");
-    expect(reply).not.toContain("Removed the signal peptide step");
-    expect(layoutOf(await readNodes(apiClient, id))).toEqual(LAYOUTS.single);
   });
 
   test("FND-4 - a cross-organism INTERSECT is refused before any step", async ({
@@ -675,105 +537,6 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
           .map((node) => String(node.parameters?.["isSyntenic"]?.value ?? "")),
       )
       .toEqual(["yes"]);
-  });
-
-  test("A reply silent about a caveat the check measured is corrected", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      prompt("single", S1_TEXT(siteOrganism(siteId))),
-    );
-    await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-
-    await chatPage.sendAndSettle(
-      faulted(
-        "controls-test",
-        "unstated-caveat",
-        `Test this strategy against my controls.\n${controlLines(siteId, otherControlSet(siteId))}`,
-      ),
-    );
-    const caveat = caveatOf(await controlRows(page));
-    expect(caveat, "the control set measures a shortfall").not.toBe("");
-    await expect(chatPage.sendButton).toBeVisible({ timeout: 240_000 });
-
-    await openTraces(chatPage);
-    await expectCorrection(page);
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      `The check measured ${caveat}. Your reply does not state it; give the numbers.`,
-    );
-    await expect(chatPage.assistantReply(new RegExp(escaped(caveat)))).toHaveCount(1);
-  });
-
-  test("A reply silent about a requirement nothing answers is corrected", async ({
-    chatPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    const id = await sendOn(
-      chatPage,
-      siteId,
-      faulted(
-        "single",
-        "unstated-gap",
-        `Find ${siteOrganism(siteId)} genes whose proteins have a predicted signal peptide and are ${UNMET}.`,
-      ),
-    );
-    const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
-
-    const row = (await expectEvidence(page, counts.root))
-      .getByTestId("evidence-requirements")
-      .getByRole("row")
-      .filter({ hasText: UNMET });
-    await expect(row.getByTestId("evidence-requirement-answer")).toHaveText(
-      "Nothing in the strategy answers it",
-    );
-    await openTraces(chatPage);
-    await expectCorrection(page);
-    const gap = `'${UNMET}': nothing in the strategy answers it`;
-    expect(await loggedRefusals(apiClient, id)).toContain(
-      `The check found what the strategy does not answer: ${gap}. Your reply does not say so; state each with what is missing.`,
-    );
-    const corrected = chatPage.assistantReply(new RegExp(escaped(gap)));
-    await expect(corrected).toHaveCount(1);
-    await expect(corrected).toContainText(/.+, chosen for /);
-  });
-
-  test("FND-29 - a separation card that misstates its list size is sent again", async ({
-    chatPage,
-    page,
-    siteId,
-  }) => {
-    await chatPage.startOn(siteId);
-    await chatPage.send(
-      faulted(
-        "separation",
-        "misstated-control-list",
-        `Find me a strategy that separates these controls, in exact mode.\n${controlLines(siteId)}`,
-      ),
-    );
-    const approval = page.getByTestId("approval-card");
-    await expect(approval.getByTestId("approval-card-title")).toHaveText(
-      /^Run the separation\?/,
-      { timeout: 240_000 },
-    );
-    await expect(approval).toHaveCount(1);
-    const set = controlSet(siteId);
-    const positives = set.positive_ids.length;
-    const negatives = set.negative_ids.length;
-    await expect(
-      chatPage.assistantReply(
-        new RegExp(`your ${positives} positive and ${negatives} negative controls`),
-      ),
-    ).toHaveCount(1);
-    await expect(
-      chatPage.assistantReply(new RegExp(`your ${positives - 2} positive and `)),
-    ).toHaveCount(0);
   });
 
   test("FND-32 - a classification that splits the organism is recorded whole", async ({

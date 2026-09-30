@@ -8,11 +8,12 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
+    BoundValue,
     Criterion,
     OperationalSpec,
     SpecStructure,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     NESTED_ROOT,
     PROTEOME,
@@ -78,7 +79,11 @@ def _percentile_on(step_id: str) -> Draft:
             if criterion.id == step_id:
                 criterion.resolved_params = {
                     **criterion.resolved_params,
-                    STAGE_PERCENTILE: NumberValue(value=90),
+                    **bound(
+                        {
+                            STAGE_PERCENTILE: NumberValue(value=90),
+                        }
+                    ),
                 }
         return found
 
@@ -177,14 +182,12 @@ def _carrying_the_ring_option() -> OperationalSpec:
     spec = built_spec()
     for criterion in spec.criteria:
         if criterion.id == STAGE:
-            criterion.assumptions = [
-                AssumedValue(
-                    param_name=STAGE_TIMEPOINT,
-                    value="40",
-                    reason="ring stage",
-                    carried_from=RING,
-                )
-            ]
+            criterion.resolved_params[STAGE_TIMEPOINT] = BoundValue(
+                value=NumberValue(value=40),
+                source="chosen",
+                basis="ring stage",
+                carried_from=RING,
+            )
     return spec
 
 
@@ -194,7 +197,7 @@ def _asking_for_the_ring_stage_again(found: OperationalSpec) -> OperationalSpec:
             id=RING,
             text="ring stage",
             search_name="GenesByRNASeqEvidence",
-            resolved_params={STAGE_TIMEPOINT: NumberValue(value=40)},
+            resolved_params=bound({STAGE_TIMEPOINT: NumberValue(value=40)}),
         )
     )
     return found
@@ -213,7 +216,12 @@ async def test_an_option_restating_the_value_the_canvas_replaced_is_pushed(
     await thread.next_turn()
     canvas_sets(thread.graph, STAGE, **{STAGE_TIMEPOINT: NumberValue(value=48)})
     await thread.next_turn()
-    assert [a.param_name for c in thread.spec.criteria for a in c.assumptions] == []
+    assert [
+        name
+        for c in thread.spec.criteria
+        for name, held in c.resolved_params.items()
+        if held.carried_from
+    ] == []
     thread.frames(_asking_for_the_ring_stage_again, declared=kept(SURFACE))
 
     delta = await thread.edit()
@@ -250,7 +258,7 @@ async def test_a_turn_that_resumes_with_no_parked_dispatch_replays_every_copy(
         "dispatch": domain.spec_before_dispatch,
     }
     timepoints = {
-        name: next(c for c in spec.criteria if c.id == STAGE).resolved_params[
+        name: next(c for c in spec.criteria if c.id == STAGE).param_values[
             STAGE_TIMEPOINT
         ]
         for name, spec in held.items()

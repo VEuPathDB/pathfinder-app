@@ -20,6 +20,7 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
     OperationalSpec,
 )
 from pathfinder.domain.strategy.spec_hydration import (
@@ -29,6 +30,7 @@ from pathfinder.domain.strategy.spec_hydration import (
 from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
 )
+from pathfinder.tests._support.sheets import visible_sheet
 
 
 def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
@@ -93,7 +95,7 @@ class TestTheValuesSurvive:
         spec = spec_from_ast(_three_leaf_ast(percentile=90), goal="find kinases")
 
         criterion = next(c for c in spec.criteria if c.id == "step_expr")
-        assert criterion.resolved_params["min_expression_percentile"] == NumberValue(
+        assert criterion.param_values["min_expression_percentile"] == NumberValue(
             value=90
         )
 
@@ -172,7 +174,7 @@ class TestTheReconstructionClaimsNothingItCannotKnow:
     def test_reconstruction_asserts_no_provenance(self) -> None:
         spec = spec_from_ast(_three_leaf_ast(), goal="g")
 
-        assert all(not c.defaulted_params for c in spec.criteria)
+        assert all(not c.defaulted() for c in spec.criteria)
         assert all(c.confidence == 0.0 for c in spec.criteria)
         assert all(not c.open_params for c in spec.criteria)
         assert spec.open_slots == []
@@ -229,15 +231,15 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
         spec = hidden_params_dropped(
             spec_from_ast(ast, goal="g"),
             sheet_params={
-                "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC": frozenset(
-                    {"profileset_generic"}
+                "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC": visible_sheet(
+                    ["profileset_generic"]
                 )
             },
         )
 
         criterion = spec.criteria[0]
         assert "dataset_url" not in criterion.resolved_params
-        assert criterion.resolved_params["profileset_generic"] == StringValue(
+        assert criterion.param_values["profileset_generic"] == StringValue(
             value="Pfal3D7 Su seven stages"
         )
 
@@ -247,14 +249,27 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
         )
 
         criterion = next(c for c in spec.criteria if c.id == "step_taxon")
-        assert criterion.resolved_params["organism"] == MultiPickValue(
+        assert criterion.param_values["organism"] == MultiPickValue(
             values=["Plasmodium"]
         )
 
     def test_the_hydrated_spec_is_left_alone(self) -> None:
         hydrated = spec_from_ast(_three_leaf_ast(), goal="g")
 
-        hidden_params_dropped(hydrated, sheet_params={"GenesByTaxon": frozenset()})
+        hidden_params_dropped(hydrated, sheet_params={"GenesByTaxon": []})
 
         criterion = next(c for c in hydrated.criteria if c.id == "step_taxon")
         assert "organism" in criterion.resolved_params
+
+
+def test_a_value_read_from_the_strategy_is_held_not_stated() -> None:
+    """The strategy holds the value; who set it is not on record."""
+    ast = StrategyAst(record_type="transcript", root=_text_leaf())
+
+    [criterion] = spec_from_ast(ast, goal="g").criteria
+
+    assert criterion.resolved_params == {
+        "text_expression": BoundValue(
+            value=StringValue(value="protease"), source="held"
+        )
+    }

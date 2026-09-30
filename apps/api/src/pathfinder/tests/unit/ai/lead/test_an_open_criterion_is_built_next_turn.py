@@ -34,6 +34,7 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _OPEN = "c_mass_spec"
@@ -62,7 +63,7 @@ def _built() -> tuple[OperationalSpec, StrategySession]:
                 id="c_stage",
                 text="expressed in merozoites",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={"organism": MultiPickValue(values=["Pf3D7"])},
+                resolved_params=bound({"organism": MultiPickValue(values=["Pf3D7"])}),
             ),
         ],
         structure=SpecStructure(
@@ -88,7 +89,9 @@ def _mass_spec(value: float | None = None) -> Criterion:
         id=_OPEN,
         text="detected in the merozoite proteome",
         search_name=_SEARCH,
-        resolved_params={} if value is None else {_PARAM: NumberValue(value=value)},
+        resolved_params=bound(
+            {} if value is None else {_PARAM: NumberValue(value=value)}
+        ),
         open_params=[]
         if value is not None
         else [OpenSlot(criterion_id=_OPEN, param_name=_PARAM)],

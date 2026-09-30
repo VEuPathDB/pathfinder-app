@@ -101,11 +101,16 @@ def _config(
     )
 
 
-def _computation(
+def compared_computation(
     job_id: str,
     config: EdaDifferentialExpressionConfig,
+    *,
+    effect_size_label: str,
 ) -> EdaDifferentialExpressionComputation:
-    """The comparison the analysis carries, with the volcano the step reads."""
+    """The comparison the analysis carries, with the volcano the step reads.
+
+    The volcano stores the label of the compute's effect size, so a step keeps its unit.
+    """
     descriptor = EdaDifferentialExpressionDescriptor(configuration=config)
     computation = EdaComputation(
         computation_id=job_id,
@@ -117,6 +122,7 @@ def _computation(
                     configuration=EdaVolcanoConfiguration(
                         effect_size_threshold=DEFAULT_VOLCANO_CUT.effect_size_threshold,
                         significance_threshold=DEFAULT_VOLCANO_CUT.significance_threshold,
+                        effect_size_label=effect_size_label,
                     ),
                 ),
             ),
@@ -243,10 +249,18 @@ async def _settled(
     return job
 
 
-def _refuse(job: EdaComputeJob) -> RuntimeError:
+def refusal_of(job: EdaComputeJob) -> RuntimeError:
+    """Why a job that did not complete yields no statistics.
+
+    The service lists no file for a failed job, so its cause is not known.
+    """
     match job.status:
         case "failed":
-            meaning = "the configuration is wrong for this study"
+            return RuntimeError(
+                f"The differential-expression job {job.job_id} is failed. The "
+                f"site's compute service publishes no reason for a failed job, "
+                f"so the cause is not known."
+            )
         case "expired":
             meaning = "the result is gone and the job needs a resubmit"
         case "no-such-job":
@@ -374,7 +388,7 @@ async def run_eda_compute_impl(
         progress=progress,
     )
     if job.status != "complete":
-        raise _refuse(job)
+        raise refusal_of(job)
 
     await progress.update(percent=0.9, message="Reading the statistics")
     statistics = await read_statistics(
@@ -393,7 +407,9 @@ async def run_eda_compute_impl(
         binding.site_id,
         analysis_id=binding.analysis_id,
         dataset_id=binding.dataset_id,
-        computation=_computation(job.job_id, config),
+        computation=compared_computation(
+            job.job_id, config, effect_size_label=statistics.effect_size_label
+        ),
     )
     await _announce_analysis(
         conversation_id=conversation_id,

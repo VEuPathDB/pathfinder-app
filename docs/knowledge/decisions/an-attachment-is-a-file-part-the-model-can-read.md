@@ -46,24 +46,23 @@ shows them, and the composer offers an image or a PDF only when the reader
 reads it and names the models that do otherwise. The values come from sending
 each cloud model one 1x1 PNG ("What colour is this image?") and one one-page
 PDF that prints one word ("What single word is printed in this document?")
-through pydantic-ai with the deployment's keys, on 2026-09-24:
+with the deployment's keys, through `python -m pathfinder.devtools.model_catalog
+probe <id>`, on 2026-09-28:
 
 | model | image (1x1 PNG) | PDF (one page) | PDF word read |
 |---|---|---|---|
-| `openai:gpt-5.6-sol` | accepted (200) | accepted (200) | yes |
-| `openai:gpt-5.6-terra` | accepted (200) | accepted (200) | yes |
+| `openai:gpt-6-sol` | accepted (200) | accepted (200) | yes |
 | `openai:gpt-5.6-luna` | accepted (200) | accepted (200) | yes |
-| `anthropic:claude-opus-5` | refused (400) | refused (400) | no |
-| `anthropic:claude-sonnet-5` | refused (400) | refused (400) | no |
-| `anthropic:claude-haiku-4-5` | refused (400) | refused (400) | no |
+| `openai:gpt-6-luna` | accepted (200) | accepted (200) | yes |
+| `anthropic:claude-haiku-4-5` | refused (400, no credit) | refused (400, no credit) | no |
 | `google:gemini-3.1-pro-preview` | accepted (200) | accepted (200) | yes |
-| `google:gemini-3.6-flash` | accepted (200) | accepted (200) | yes |
+| `google:gemini-3.8-flash` | accepted (200) | accepted (200) | yes |
 | `google:gemini-3.5-flash-lite` | accepted (200) | accepted (200) | yes |
 
-Every Anthropic 400 carried the body "Your credit balance is too low to access
-the Anthropic API", so the probe measured the account and not the model. The
-Anthropic entries stay `false` until the same probe, run on an account with
-credit, answers. The mock and every local model read no file.
+The Anthropic refusal is the account's low balance, so the probe measured the
+account and not the model. The Anthropic entry stays `false` until the same
+probe, run on an account with credit, answers. The mock and every local model
+read no file.
 
 # The model reads the file with the text
 

@@ -14,7 +14,7 @@ from veupathdb.domain.strategy import CombineOp, flatten_tree
 
 from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
+    BoundValue,
     Criterion,
     OperationalSpec,
     SpecStructure,
@@ -35,6 +35,7 @@ from pathfinder.domain.strategy.stated_shape import (
     criteria_with_steps,
     stated_shape,
 )
+from pathfinder.tests._support.bound_values import bound
 
 _EXPRESSION = "gametocyte_expression"
 _OPTION = "gametocyte_timecourse_option"
@@ -43,6 +44,13 @@ _DEFAULT_DATASET = "all_rnaseq"
 _TIMECOURSE = "pfal3D7_Gametocyte_Timecourse_rnaSeq"
 _SEXUAL_STAGE = "pfal3D7_Sexual_Stage_rnaSeq"
 _SEXUAL_STAGE_OPTION = "sexual_stage_option"
+_TIMECOURSE_REASON = "the request names the gametocyte timecourse"
+_CARRIED = BoundValue(
+    value=StringValue(value=_TIMECOURSE),
+    source="chosen",
+    basis=_TIMECOURSE_REASON,
+    carried_from=_OPTION,
+)
 
 
 def _framed() -> OperationalSpec:
@@ -59,28 +67,26 @@ def _framed() -> OperationalSpec:
                 id=_EXPRESSION,
                 text="upregulated in gametocytes",
                 search_name=_SEARCH,
-                resolved_params={
-                    "organism": MultiPickValue(values=["Pf3D7"]),
-                    "dataset": StringValue(value=_DEFAULT_DATASET),
-                },
-                defaulted_params=["dataset"],
+                resolved_params=bound(
+                    {
+                        "organism": MultiPickValue(values=["Pf3D7"]),
+                        "dataset": StringValue(value=_DEFAULT_DATASET),
+                    },
+                    defaulted=["dataset"],
+                ),
             ),
             Criterion(
                 id=_OPTION,
                 text="use the gametocyte timecourse dataset",
                 search_name=_SEARCH,
-                resolved_params={
-                    "organism": MultiPickValue(values=["Pfalciparum"]),
-                    "dataset": StringValue(value=_TIMECOURSE),
-                },
-                defaulted_params=["organism"],
-                assumptions=[
-                    AssumedValue(
-                        param_name="dataset",
-                        value=_TIMECOURSE,
-                        reason="the request names the gametocyte timecourse",
-                    ),
-                ],
+                resolved_params=bound(
+                    {
+                        "organism": MultiPickValue(values=["Pfalciparum"]),
+                        "dataset": StringValue(value=_TIMECOURSE),
+                    },
+                    defaulted=["organism"],
+                    chosen={"dataset": _TIMECOURSE_REASON},
+                ),
             ),
         ],
         structure=SpecStructure(
@@ -143,9 +149,8 @@ def test_the_folded_criterion_states_what_both_criteria_asked() -> None:
 
     (criterion,) = folded.spec.criteria
     assert criterion.id == _EXPRESSION
-    assert criterion.resolved_params["dataset"] == StringValue(value=_TIMECOURSE)
-    assert criterion.defaulted_params == []
-    assert [a.param_name for a in criterion.assumptions] == ["dataset"]
+    assert criterion.resolved_params["dataset"] == _CARRIED
+    assert criterion.defaulted() == []
 
 
 def test_a_structure_that_names_every_criterion_folds_nothing() -> None:
@@ -172,7 +177,7 @@ def test_a_criterion_of_another_search_is_left_where_it_is() -> None:
     folded = fold_option_criteria(spec)
 
     assert [c.id for c in folded.spec.criteria] == [_EXPRESSION, _OPTION]
-    assert folded.spec.criteria[0].resolved_params["dataset"] == StringValue(
+    assert folded.spec.criteria[0].param_values["dataset"] == StringValue(
         value=_DEFAULT_DATASET
     )
 
@@ -263,9 +268,9 @@ def test_an_edit_that_restates_the_option_value_is_not_refused() -> None:
     after = before.model_copy(deep=True)
     for criterion in after.criteria:
         if criterion.id == _OPTION:
-            criterion.resolved_params = {
-                "dataset": StringValue(value="gametocyte_timecourse")
-            }
+            criterion.resolved_params = bound(
+                {"dataset": StringValue(value="gametocyte_timecourse")}
+            )
 
     assert _plan(before, after, graph) == []
 
@@ -297,30 +302,24 @@ def test_a_refusal_names_no_criterion_that_can_have_no_step() -> None:
 def test_the_carrier_keeps_a_value_it_states_of_its_own() -> None:
     """The option fills what the carrier leaves open, never what it states."""
     spec = _framed()
-    spec.criteria[1].resolved_params["organism"] = MultiPickValue(values=["Pvivax"])
-    spec.criteria[1].defaulted_params = []
+    spec.criteria[1].resolved_params = bound(
+        {**spec.criteria[1].param_values, "organism": MultiPickValue(values=["Pvivax"])}
+    )
 
     (carrier,) = fold_option_criteria(spec).spec.criteria
 
-    assert carrier.resolved_params == {
+    assert carrier.param_values == {
         "organism": MultiPickValue(values=["Pf3D7"]),
         "dataset": StringValue(value=_TIMECOURSE),
     }
 
 
-def test_the_carrier_keeps_its_text_and_assumes_the_option() -> None:
-    """The step name stays the carrier's, and the option rides as a constraint."""
+def test_the_carrier_keeps_its_text_and_the_option_keeps_its_source() -> None:
+    """The step name stays the carrier's, and the carried value says who set it."""
     (carrier,) = fold_option_criteria(_framed()).spec.criteria
 
     assert carrier.text == "upregulated in gametocytes"
-    assert carrier.assumptions == [
-        AssumedValue(
-            param_name="dataset",
-            value=_TIMECOURSE,
-            reason="use the gametocyte timecourse dataset",
-            carried_from=_OPTION,
-        )
-    ]
+    assert carrier.set_by("chosen") == {"dataset": _CARRIED}
 
 
 def test_an_option_two_steps_could_carry_is_reported_unplaced() -> None:
@@ -341,7 +340,7 @@ def _second_option(dataset: str) -> Criterion:
         id=_SEXUAL_STAGE_OPTION,
         text="use the sexual stage dataset",
         search_name=_SEARCH,
-        resolved_params={"dataset": StringValue(value=dataset)},
+        resolved_params=bound({"dataset": StringValue(value=dataset)}),
     )
 
 
@@ -354,10 +353,7 @@ def test_two_options_that_state_one_value_fold_once() -> None:
 
     (carrier,) = folded.spec.criteria
     assert folded.unplaced == ()
-    assert carrier.resolved_params["dataset"] == StringValue(value=_TIMECOURSE)
-    assert [a.reason for a in carrier.assumptions] == [
-        "use the gametocyte timecourse dataset"
-    ]
+    assert carrier.resolved_params["dataset"] == _CARRIED
 
 
 def test_an_option_that_contradicts_a_carried_value_is_reported_unplaced() -> None:
@@ -369,22 +365,16 @@ def test_an_option_that_contradicts_a_carried_value_is_reported_unplaced() -> No
 
     assert folded.unplaced == (_SEXUAL_STAGE_OPTION,)
     assert [c.id for c in folded.spec.criteria] == [_EXPRESSION, _SEXUAL_STAGE_OPTION]
-    assert folded.spec.criteria[0].resolved_params["dataset"] == StringValue(
-        value=_TIMECOURSE
-    )
+    assert folded.spec.criteria[0].resolved_params["dataset"] == _CARRIED
 
 
 def _frame_assumed_carrier() -> OperationalSpec:
     """The carrier's dataset is a value the model chose, not one its text states."""
     spec = _framed()
-    spec.criteria[0].defaulted_params = []
-    spec.criteria[0].assumptions = [
-        AssumedValue(
-            param_name="dataset",
-            value=_DEFAULT_DATASET,
-            reason="the request names no dataset",
-        )
-    ]
+    spec.criteria[0].resolved_params = bound(
+        spec.criteria[0].param_values,
+        chosen={"dataset": "the request names no dataset"},
+    )
     return spec
 
 
@@ -394,31 +384,22 @@ def test_an_option_overrides_a_value_the_carrier_assumed() -> None:
 
     (carrier,) = folded.spec.criteria
     assert folded.unplaced == ()
-    assert carrier.resolved_params["dataset"] == StringValue(value=_TIMECOURSE)
-    assert carrier.assumptions == [
-        AssumedValue(
-            param_name="dataset",
-            value=_TIMECOURSE,
-            reason="use the gametocyte timecourse dataset",
-            carried_from=_OPTION,
-        )
-    ]
+    assert carrier.resolved_params["dataset"] == _CARRIED
 
 
-def test_an_assumption_the_option_does_not_name_stays() -> None:
+def test_a_chosen_value_the_option_does_not_name_stays() -> None:
     spec = _frame_assumed_carrier()
-    spec.criteria[0].assumptions.insert(
-        0,
-        AssumedValue(
-            param_name="organism",
-            value='["Pf3D7"]',
-            reason="the request names one strain",
-        ),
+    spec.criteria[0].resolved_params = bound(
+        spec.criteria[0].param_values,
+        chosen={
+            "organism": "the request names one strain",
+            "dataset": "the request names no dataset",
+        },
     )
 
     (carrier,) = fold_option_criteria(spec).spec.criteria
 
-    assert [(a.param_name, a.reason) for a in carrier.assumptions] == [
-        ("organism", "the request names one strain"),
-        ("dataset", "use the gametocyte timecourse dataset"),
-    ]
+    assert {n: b.basis for n, b in carrier.set_by("chosen").items()} == {
+        "organism": "the request names one strain",
+        "dataset": _TIMECOURSE_REASON,
+    }

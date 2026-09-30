@@ -24,8 +24,9 @@ async def published_on(
         assay="Phenotype",
         record_url=f"{get_site(site_id).web_base_url}/app/record/dataset/{dataset_id}",
     )
+    # A catalog load may already hold the site's card, so the seed replaces it.
     async with embedding_session() as session:
-        session.add(
+        await session.merge(
             ExperimentCardRow(
                 site_id=site_id,
                 dataset_id=dataset_id,

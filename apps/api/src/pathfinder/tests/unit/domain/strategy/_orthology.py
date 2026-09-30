@@ -12,6 +12,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.tests._support.bound_values import bound
 
 SOURCE = "Plasmodium falciparum 3D7"
 TARGET = "Plasmodium vivax P01"
@@ -34,10 +35,12 @@ def seed_criteria(signal_id: str = "c_signal", tm_id: str = "c_tm") -> list[Crit
             search_display_name="Predicted Signal Peptide",
             role="seed",
             organism_param="organism",
-            resolved_params={
-                "organism": organism,
-                "signalp_version": SinglePickValue(value="SignalP-6.0"),
-            },
+            resolved_params=bound(
+                {
+                    "organism": organism,
+                    "signalp_version": SinglePickValue(value="SignalP-6.0"),
+                }
+            ),
         ),
         Criterion(
             id=tm_id,
@@ -45,11 +48,13 @@ def seed_criteria(signal_id: str = "c_signal", tm_id: str = "c_tm") -> list[Crit
             search_name="GenesByTransmembraneDomains",
             search_display_name="Transmembrane Domain Count",
             organism_param="organism",
-            resolved_params={
-                "organism": organism,
-                "min_tm": StringValue(value="2"),
-                "max_tm": StringValue(value="99"),
-            },
+            resolved_params=bound(
+                {
+                    "organism": organism,
+                    "min_tm": StringValue(value="2"),
+                    "max_tm": StringValue(value="99"),
+                }
+            ),
         ),
     ]
 
@@ -62,10 +67,12 @@ def leg(criterion_id: str, organism: str, syntenic: str) -> Criterion:
         search_display_name="Transform by Orthology",
         role="transform",
         organism_param="organism",
-        resolved_params={
-            "organism": MultiPickValue(values=[organism]),
-            "isSyntenic": SinglePickValue(value=syntenic),
-        },
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=[organism]),
+                "isSyntenic": SinglePickValue(value=syntenic),
+            }
+        ),
     )
 
 

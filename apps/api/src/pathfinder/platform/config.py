@@ -26,10 +26,10 @@ from veupathdb_mcp.embeddings import EmbeddingSettings, use_embedding_settings_s
 from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
 
 from pathfinder.platform.identity import INTERNAL_STRATEGY_NAME_PREFIX
+from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
+from pathfinder.platform.paths import API_DIR, REPO_ROOT
 from pathfinder.platform.provider_key_cipher import SECRET_BYTES, ProviderKeyCipher
 
-_API_DIR = Path(__file__).resolve().parents[3]  # apps/api/
-_REPO_ROOT = _API_DIR.parents[1]  # repo root
 _MIN_API_SECRET_LENGTH = 32
 _PLACEHOLDER_SECRET_MARKERS = (
     "dev-only",
@@ -93,7 +93,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=(str(_REPO_ROOT / ".env"), str(_API_DIR / ".env")),
+        env_file=(str(REPO_ROOT / ".env"), str(API_DIR / ".env")),
     )
 
     # API
@@ -163,7 +163,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     # Prompt-injection screening, and the model one judgement runs on.
     input_screening_enabled: bool = True
-    input_screening_model: str = "openai:gpt-5.6-luna"
+    input_screening_model: str = DEFAULT_MODEL_ID
 
     # Background worker
     worker_concurrency: int = Field(
@@ -172,26 +172,13 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         description="Number of jobs the Procrastinate worker runs in parallel.",
     )
 
-    # Observability: SigNoz APM
-    signoz_otel_endpoint: str | None = Field(
-        default=None,
-        description="SigNoz OTel Collector gRPC endpoint (e.g. http://signoz-otel-collector:4317). Unset = disabled.",
-    )
-    signoz_trace_otel_http_endpoint: str | None = Field(
-        default=None,
-        description=(
-            "Optional SigNoz OTLP/HTTP traces endpoint "
-            "(e.g. http://signoz-otel-collector:4318/v1/traces). "
-            "When set, traces use HTTP while metrics/logs continue using SIGNOZ_OTEL_ENDPOINT."
-        ),
-    )
-
+    # The OTLP exporter reads the standard OTEL_EXPORTER_OTLP_* variables itself.
     otel_include_content: bool = Field(
         default=False,
         description="Export prompts, completions, and tool arguments in agent traces.",
     )
 
-    # Langfuse observability. All three values are needed together.
+    # The Langfuse project: the OTLP ingress header, scores and product events.
     langfuse_secret_key: str = Field(default="", repr=False)
     langfuse_public_key: str = Field(default="", repr=False)
     langfuse_host: str = ""
@@ -351,7 +338,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             env_settings,
             dotenv_settings,
             file_secret_settings,
-            TomlConfigSettingsSource(settings_cls, _API_DIR / "config.toml"),
+            TomlConfigSettingsSource(settings_cls, API_DIR / "config.toml"),
         )
 
 

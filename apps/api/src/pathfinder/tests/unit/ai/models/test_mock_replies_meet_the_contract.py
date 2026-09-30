@@ -1,7 +1,6 @@
-"""The first reply of every arc that builds or edits is one the real turn
-contract accepts: it names each added search beside its reason, and the count.
-A check of a built thread is accepted as a turn that wrote nothing, and every
-reply after a check states each gap and each caveat the check found."""
+"""The reply of every arc is one the real turn contract accepts: it prints no
+number, identifier or link, since the facts part beside it shows them. A check
+of a built thread is accepted as a turn that wrote nothing."""
 
 from __future__ import annotations
 
@@ -14,6 +13,7 @@ from pathfinder.ai.lead.build_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
 )
+from pathfinder.ai.lead.facts_in_prose import outside_the_facts
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
@@ -37,9 +37,9 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
     user_intent,
 )
-from pathfinder.tests.unit.ai.models._mock_findings import checked, holding
+from pathfinder.tests.unit.ai.models._mock_findings import checked
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins
-from pathfinder.tests.unit.ai.models._mock_turns import ADDED_SEARCH, Scene, names, play
+from pathfinder.tests.unit.ai.models._mock_turns import Scene, names, play
 
 SITES = ("plasmodb", "vectorbase")
 _WRITES = {"build_strategy", "edit_strategy"}
@@ -84,50 +84,27 @@ _REFUSALS = {
         )
     ),
 }
-# What the check of the recorded control test says it found.
 _TESTED = "7 of 10 positive controls recovered."
 
 
 @pytest.mark.parametrize("site_id", SITES)
 @pytest.mark.parametrize("framed", [False, True])
+@pytest.mark.parametrize("checked_with_findings", [False, True])
 @pytest.mark.parametrize("arc", sorted(ARCS))
-def test_a_reply_that_writes_the_strategy_meets_the_contract(
-    arc: str, site_id: str, framed: bool
+def test_every_reply_prints_no_fact_outside_the_block(
+    arc: str, site_id: str, framed: bool, checked_with_findings: bool
 ) -> None:
-    scene = Scene(instructions=framed_pins() if framed else "")
+    answers = {"verify_strategy": checked()} if checked_with_findings else {}
+    scene = Scene(instructions=framed_pins() if framed else "", answers=answers)
     calls = play("lead", site_id, f"Do it [[arc:{arc}]]", scene=scene)
-    if not _WRITES & set(names(calls)):
+    if names(calls)[-1] != "final_result":
         return
     report = LeadResponse.model_validate(calls[-1].args_as_dict())
     deps = building_deps() if report.strategy_changed else reading_deps()
-    if report.strategy_changed:
-        deps.state.turn_markers.added_searches = [ADDED_SEARCH]
 
     mismatches = reconcile(report, turn_record(run_context_for(deps)))
 
-    assert [(m.kind, m.sentence) for m in mismatches] == []
-
-
-@pytest.mark.parametrize("site_id", SITES)
-@pytest.mark.parametrize("framed", [False, True])
-@pytest.mark.parametrize("arc", sorted(ARCS))
-def test_a_reply_after_a_check_states_its_gaps_and_caveats(
-    arc: str, site_id: str, framed: bool
-) -> None:
-    scene = Scene(
-        instructions=framed_pins() if framed else "",
-        answers={"verify_strategy": checked()},
-    )
-    calls = play("lead", site_id, f"Do it [[arc:{arc}]]", scene=scene)
-    if "verify_strategy" not in names(calls):
-        return
-    report = LeadResponse.model_validate(calls[-1].args_as_dict())
-    deps = building_deps() if report.strategy_changed else reading_deps()
-    if _WRITES & set(names(calls)):
-        deps.state.turn_markers.added_searches = [ADDED_SEARCH]
-
-    mismatches = reconcile(report, holding(turn_record(run_context_for(deps))))
-
+    assert outside_the_facts(report.prose, "", ()) == []
     assert [(m.kind, m.sentence) for m in mismatches] == []
 
 
@@ -140,7 +117,7 @@ def test_a_check_of_a_built_thread_meets_the_contract_as_a_read(site_id: str) ->
 
     mismatches = reconcile(report, turn_record(run_context_for(control_test_deps())))
 
-    assert report.prose.startswith(_TESTED)
+    assert _TESTED not in report.prose
     assert not _WRITES & set(names(calls))
     assert [(m.kind, m.sentence) for m in mismatches] == []
 
@@ -169,11 +146,3 @@ def test_a_refused_build_is_stated_in_plain_words(
         False,
     )
     assert [(m.kind, m.sentence) for m in mismatches] == []
-
-
-def test_the_build_reply_names_the_search_beside_its_reason() -> None:
-    calls = play("lead", "plasmodb", "[[arc:intersect]]")
-
-    assert "- Predicted Signal Peptide, chosen for SignalP version" in str(
-        calls[-1].args_as_dict()["prose"]
-    )

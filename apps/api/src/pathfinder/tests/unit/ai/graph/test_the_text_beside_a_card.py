@@ -18,6 +18,7 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 
+from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
@@ -35,19 +36,25 @@ from pathfinder.tests.unit.ai.graph._approval_turn import (
 __all__ = ["writer"]
 
 SEARCH = "Orthology Phylogenetic Profile"
-LEAVES_IT_OUT = (
+RESTATES_A_COUNT = (
     "The strategy now returns 4 genes, and the check found two limitations. "
     "I can tighten both."
 )
-NAMES_IT = (
-    f"I added {SEARCH} for the three-species orthologs; the strategy returns 4 "
-    "genes, and the check found two limitations. I can tighten both."
+POINTS_AT_THE_FACTS = (
+    f"I added {SEARCH} for the syntenic orthologs, and the check found two "
+    "limitations; the counts are shown beside this reply. I can tighten both."
 )
 CARD = "call_card"
 DELETE = "call_delete"
 CARD_ARGS: dict[str, Any] = {
     "question": "Refine the strategy with the two checks?",
-    "proposedChanges": ["Require 1:1:1 syntenic orthologs in all three species"],
+    "proposedChanges": [
+        {
+            "kind": "add_criterion",
+            "sentence": "Require 1:1:1 syntenic orthologs in all three species",
+            "searchName": "GenesOrthologousToAGivenGene",
+        }
+    ],
 }
 
 
@@ -98,7 +105,7 @@ def _card_turn(replies: list[str], seen: list[list[ModelMessage]]) -> FunctionMo
 
 def _built_state() -> PipelineState:
     state = lead_state()
-    state.record_build(BuildOutcome(pushed_step_ids=["s1", "s2"], root_count=4))
+    state.record_build(BuildOutcome(pushed_step_ids=["s1", "s2"]))
     state.turn_markers.verified = True
     state.turn_markers.record_added_searches(
         [
@@ -126,7 +133,7 @@ async def _built_turn_ending_on_a_card(
     return seen, capture
 
 
-DELETE_REPLY = "I remove the step s1 you named; the rest of the strategy stays."
+DELETE_REPLY = "I remove the step you named; the rest of the strategy stays."
 
 
 def _card_beside_a_delete(reply: str, seen: list[list[ModelMessage]]) -> FunctionModel:
@@ -176,11 +183,11 @@ def _cards_on_the_wire(writer: Collector) -> list[str]:
     ]
 
 
-async def test_a_card_whose_reply_leaves_out_the_added_search_is_asked_once(
+async def test_a_card_whose_reply_restates_a_count_is_asked_once(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen, capture = await _built_turn_ending_on_a_card(
-        monkeypatch, writer, [LEAVES_IT_OUT, NAMES_IT]
+        monkeypatch, writer, [RESTATES_A_COUNT, POINTS_AT_THE_FACTS]
     )
 
     assert len(seen) == 2
@@ -194,10 +201,10 @@ async def test_a_card_whose_reply_leaves_out_the_added_search_is_asked_once(
     assert len(denials) == 1
     denial = denials[0]
     assert "This reply does not match what the turn did:" in denial
-    assert SEARCH in denial
+    assert "``4``" in denial
     assert capture.pending_approval is not None
     assert capture.pending_approval.tool_call_id == "call_card_1"
-    assert _written_text(writer) == NAMES_IT
+    assert _written_text(writer) == POINTS_AT_THE_FACTS
     assert _cards_on_the_wire(writer) == ["call_card_1"]
     assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
         "call_card_1"
@@ -208,12 +215,14 @@ async def test_a_card_whose_reply_leaves_out_the_added_search_is_asked_once(
 async def test_a_card_whose_reply_matches_the_turn_parks_in_one_run(
     writer: Collector, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    seen, capture = await _built_turn_ending_on_a_card(monkeypatch, writer, [NAMES_IT])
+    seen, capture = await _built_turn_ending_on_a_card(
+        monkeypatch, writer, [POINTS_AT_THE_FACTS]
+    )
 
     assert len(seen) == 1
     assert capture.pending_approval is not None
     assert capture.pending_approval.tool_call_id == "call_card_0"
-    assert _written_text(writer) == NAMES_IT
+    assert _written_text(writer) == POINTS_AT_THE_FACTS
     assert _cards_on_the_wire(writer) == ["call_card_0"]
     assert [c["toolCallId"] for c in writer.chunks_of("tool-approval-request")] == [
         "call_card_0"
@@ -257,7 +266,9 @@ async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
 ) -> None:
     seen: list[list[ModelMessage]] = []
     monkeypatch.setattr(
-        _lead_model, "get_mock_model", lambda: _card_beside_a_delete(NAMES_IT, seen)
+        _lead_model,
+        "get_mock_model",
+        lambda: _card_beside_a_delete(POINTS_AT_THE_FACTS, seen),
     )
     state = _built_state()
 
@@ -275,7 +286,7 @@ async def test_a_delete_beside_a_card_is_a_card_written_after_its_reply(
         < wire.index(f"tool-input-start:{DELETE}")
         < wire.index(f"tool-approval-request:{DELETE}")
     )
-    assert _written_text(writer) == NAMES_IT + DELETE_REPLY
+    assert _written_text(writer) == POINTS_AT_THE_FACTS + DELETE_REPLY
 
 
 async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
@@ -285,7 +296,7 @@ async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
     monkeypatch.setattr(
         _lead_model,
         "get_mock_model",
-        lambda: _card_beside_a_delete(LEAVES_IT_OUT, seen),
+        lambda: _card_beside_a_delete(RESTATES_A_COUNT, seen),
     )
     state = _built_state()
 
@@ -295,8 +306,33 @@ async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
     for call_id in (CARD, DELETE):
         correction = _returns_to(seen[1], call_id)
         assert len(correction) == 1
-        assert SEARCH in correction[0]
+        assert "``4``" in correction[0]
     on_the_wire = {call_id for _, call_id in _calls_on_the_wire(writer)}
     assert on_the_wire.isdisjoint({CARD, DELETE})
     assert _written_text(writer) == ""
     assert capture.pending_approval is None
+
+
+async def test_the_facts_are_written_once_before_the_reply_the_card_carries(
+    writer: Collector, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[list[ModelMessage]] = []
+    monkeypatch.setattr(
+        _lead_model,
+        "get_mock_model",
+        lambda: _card_turn([POINTS_AT_THE_FACTS], seen),
+    )
+    state = _built_state()
+    state.turn_markers.record_gene_set(
+        CreatedGeneSet(id="gs-1", name="orthologs draft", gene_count=4)
+    )
+
+    await drive_lead(state=state, deps=lead_deps(state), writer=writer)
+
+    wire = _wire(writer)
+    assert wire.count("data-facts:") == 1
+    assert wire.index("data-facts:") < wire.index("text-start:")
+    (facts,) = writer.chunks_of("data-facts")
+    assert facts["data"]["saved"] == [
+        {"kind": "gene_set", "name": "orthologs draft", "count": 4}
+    ]

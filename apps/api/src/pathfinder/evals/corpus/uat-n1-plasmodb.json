@@ -40,13 +40,17 @@
     "curatorNote": ""
   },
   "effort": "medium",
-  "gates": [
-    {
-      "accept": true,
-      "comment": null,
-      "picks": []
-    }
-  ],
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "consult_user",
+        "turn": 0,
+        "accept": true,
+        "picks": []
+      }
+    ]
+  },
   "attachments": {},
   "newConversationBefore": []
 }

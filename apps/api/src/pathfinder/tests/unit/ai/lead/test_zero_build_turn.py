@@ -75,7 +75,7 @@ class _VerifyingSubAgent:
 def _zero_build_deps() -> LeadDeps:
     """A turn whose build pushed one step and read nothing at the root."""
     state = pipeline_state(user_prompt=_ZERO_PROMPT, user_message_id=uuid4())
-    state.record_build(BuildOutcome(pushed_step_ids=["step_a"], root_count=0))
+    state.record_build(BuildOutcome(pushed_step_ids=["step_a"]))
     return lead_deps(state, strategy_session=session_with_one_step())
 
 

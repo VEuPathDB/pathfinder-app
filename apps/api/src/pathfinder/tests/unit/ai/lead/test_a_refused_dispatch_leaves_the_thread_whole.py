@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     canvas_sets,
@@ -110,7 +111,7 @@ def _an_option_no_criterion_runs() -> Draft:
                 id=_STRANGER,
                 text="from a search nothing here runs",
                 search_name="GenesByChromosome",
-                resolved_params={"chromosome": StringValue(value="6")},
+                resolved_params=bound({"chromosome": StringValue(value="6")}),
             )
         )
         return found

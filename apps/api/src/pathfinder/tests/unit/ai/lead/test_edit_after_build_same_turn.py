@@ -27,6 +27,7 @@ from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.operations.apply import ApplyError, apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -45,10 +46,12 @@ def _annotation_spec() -> OperationalSpec:
                 text="odorant binding protein annotation",
                 search_name="GenesByText",
                 role="seed",
-                resolved_params={
-                    "text_search_organism": MultiPickValue(values=["Anopheles"]),
-                    "text_expression": StringValue(value="odorant binding protein"),
-                },
+                resolved_params=bound(
+                    {
+                        "text_search_organism": MultiPickValue(values=["Anopheles"]),
+                        "text_expression": StringValue(value="odorant binding protein"),
+                    }
+                ),
             )
         ],
         structure=SpecStructure(
@@ -129,7 +132,7 @@ def _draft_that_adds(deps: LeadDeps, criterion_id: str) -> OperationalSpec:
             text="representative species ortholog screen",
             search_name="GenesByOrthologPattern",
             role="filter",
-            resolved_params={"organism": MultiPickValue(values=["Anopheles"])},
+            resolved_params=bound({"organism": MultiPickValue(values=["Anopheles"])}),
         )
     )
     inputs = [

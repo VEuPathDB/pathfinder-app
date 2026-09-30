@@ -35,6 +35,10 @@ class DuplicateDrop(CamelModel):
         return True
 
     @property
+    def requirement(self) -> None:
+        """The sibling meets the text, so the drop holds no requirement open."""
+
+    @property
     def fate(self) -> str:
         return (
             f"{self.criterion_id} ('{self.text}') is dropped: it runs "
@@ -92,7 +96,7 @@ class _DuplicateReading:
         c = self.by_id.get(node.criterion_id or "")
         if c is None or not c.search_name or c.open_params or c.analysis is not None:
             return ["criterion", node.criterion_id or ""]
-        values = {name: to_wire(value) for name, value in c.resolved_params.items()}
+        values = {name: to_wire(value) for name, value in c.param_values.items()}
         return [node.kind, c.search_name, values, below]
 
     def folded(self, node: StructureNode) -> StructureNode:

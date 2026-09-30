@@ -98,3 +98,39 @@ async def test_the_organism_decides_when_nothing_else_is_set(
     assert [c.organism_param for c in state.operational_spec_draft.criteria] == [
         "organism"
     ]
+
+
+def _radio_off_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
+    return [
+        param_info(
+            "organism",
+            "multi-pick-vocabulary",
+            display_name="Organism",
+            vocab_leaves=ORGANISMS,
+            organism_param=True,
+        ),
+        param_info(
+            "domain_accession",
+            display_name="Accession",
+            required=False,
+            default_value="",
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_a_placeholder_is_no_value_set_beside_the_organism(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, _radio_off_sheet)
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, SIGNAL)
+
+    result = await choose(
+        state,
+        _organism_parameter(),
+        params={"organism": [PF], "domain_accession": "N/A"},
+    )
+
+    assert result.rationale is not None
+    assert (result.rationale.basis, result.rationale.term) == ("parameter", "Organism")

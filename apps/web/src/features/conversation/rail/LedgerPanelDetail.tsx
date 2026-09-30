@@ -1,6 +1,7 @@
 "use client";
 
 import type { EvidenceCard } from "@pathfinder/shared";
+import type { BoundValue } from "@pathfinder/shared/generated/types/BoundValue";
 import type { Criterion } from "@pathfinder/shared/generated/types/Criterion";
 import type { InvestigationLedger } from "@pathfinder/shared/generated/types/InvestigationLedger";
 import type { NodeResult } from "@pathfinder/shared/generated/types/NodeResult";
@@ -27,9 +28,33 @@ function runsLabel(crit: Criterion): string {
   return "(unbound)";
 }
 
+// A value the request did not state shows who set it: the site or the assistant.
+function SourceMark({ bound }: { bound: BoundValue }) {
+  if (bound.source === "default") {
+    return (
+      <span
+        title="The site's default, not a value you stated"
+        className="ml-1 rounded-sm bg-warning/15 px-1 text-warning"
+      >
+        site default
+      </span>
+    );
+  }
+  if (bound.source === "chosen") {
+    return (
+      <span
+        title={`Chosen by the assistant, not a value you stated: ${bound.basis ?? ""}`}
+        className="ml-1 rounded-sm bg-warning/15 px-1 text-warning"
+      >
+        chosen
+      </span>
+    );
+  }
+  return null;
+}
+
 function CriterionCard({ crit }: { crit: Criterion }) {
   const params = Object.entries(crit.resolvedParams ?? {});
-  const defaulted = new Set(crit.defaultedParams ?? []);
   const selects = crit.analysis?.words;
   return (
     <div className="min-w-0 rounded-md border border-border bg-muted/20 p-2">
@@ -62,19 +87,12 @@ function CriterionCard({ crit }: { crit: Criterion }) {
       )}
       {params.length > 0 && (
         <div className="mt-1.5 space-y-0.5">
-          {params.map(([key, value]) => (
+          {params.map(([key, bound]) => (
             <div key={key} className="break-all font-mono text-[10px] leading-relaxed">
               <span className="text-muted-foreground">{key}</span>
               <span className="text-muted-foreground">: </span>
-              <span className="text-foreground">{formatParamValue(value)}</span>
-              {defaulted.has(key) && (
-                <span
-                  title="Assumed: the search's own default, not a value you stated"
-                  className="ml-1 rounded-sm bg-warning/15 px-1 text-warning"
-                >
-                  assumed
-                </span>
-              )}
+              <span className="text-foreground">{formatParamValue(bound.value)}</span>
+              <SourceMark bound={bound} />
             </div>
           ))}
         </div>
@@ -134,13 +152,6 @@ function NodeResultRow({ node }: { node: NodeResult }) {
           {node.searchName === "__combine__" ? "Combine" : node.searchName}
         </span>
         <div className="flex shrink-0 items-center gap-1.5">
-          {node.count != null && (
-            // A later edit moves the live count and not this one, so the
-            // number says when it was true.
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {node.count.toLocaleString()} genes at build
-            </span>
-          )}
           <StatusPill text={node.status} tone={NODE_STATUS_TONE[node.status]} />
         </div>
       </div>
@@ -153,9 +164,11 @@ function NodeResultRow({ node }: { node: NodeResult }) {
   );
 }
 
+/** The build's per-step rows. The strategy's live link and counts are the
+ * facts part's, beside each reply, so the ledger holds neither. */
 export function BuildDetail({ build }: { build: InvestigationLedger["build"] }) {
   const nodeResults = build.nodeResults;
-  if (nodeResults.length === 0 && build.wdkUrl == null) return null;
+  if (nodeResults.length === 0) return null;
   return (
     <div className="mt-2 min-w-0 space-y-2 border-t border-border pt-2">
       <div className="space-y-1.5">
@@ -163,16 +176,6 @@ export function BuildDetail({ build }: { build: InvestigationLedger["build"] }) 
           <NodeResultRow key={node.nodeId} node={node} />
         ))}
       </div>
-      {build.wdkUrl != null && (
-        <a
-          href={build.wdkUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-block break-all text-[10px] text-primary underline underline-offset-2"
-        >
-          Open strategy{build.wdkStrategyId != null ? ` #${build.wdkStrategyId}` : ""}
-        </a>
-      )}
     </div>
   );
 }

@@ -55,6 +55,7 @@ class GeneSetListItem(CamelModel):
     source: GeneSetSource
     search_name: str | None = None
     has_wdk_step: bool = False
+    saved_here: bool = False
 
 
 class GeneSetListResponse(CamelModel):

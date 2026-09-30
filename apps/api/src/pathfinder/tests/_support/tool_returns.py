@@ -22,20 +22,6 @@ def returned[T](result: ToolReturn[Any], shape: type[T]) -> T:
         raise AssertionError(msg) from error
 
 
-def summary_text(result: ToolReturn[Any]) -> str:
-    """Read the summary line a tool writes beside its return value.
-
-    `ToolReturn.content` is a wide union, so a test that asserts on the line
-    binds the text here first.
-    """
-    try:
-        return TypeAdapter(str).validate_python(result.content)
-    except ValidationError as error:
-        actual = type(result.content).__name__
-        msg = f"the tool wrote {actual} as its summary, not text"
-        raise AssertionError(msg) from error
-
-
 def wire_size[T](result: ToolReturn[T], tool_name: str) -> int:
     """The bytes the model reads, as the tool return part serializes them."""
     part = ToolReturnPart(tool_name=tool_name, content=result.return_value)

@@ -9,7 +9,13 @@ import pytest
 from pydantic import ValidationError
 
 from pathfinder.ai.lead.intent_gate import DECLINED_OFFER_REFUSAL
-from pathfinder.evals.case import CaseProvenance, EvalCase, GateAnswer, RecordedCount
+from pathfinder.evals.case import (
+    CaseProvenance,
+    EvalCase,
+    GateAnswer,
+    GatePlan,
+    RecordedCount,
+)
 from pathfinder.evals.store import (
     ATTACHMENTS_DIR,
     attachment_paths,
@@ -33,23 +39,26 @@ def _raw(**overrides: object) -> dict[str, object]:
             "addedAt": "2026-09-25",
             "reference": "uat/flows-composer.md#c12",
         },
+        "gates": {"policy": "stop"},
     }
     raw.update(overrides)
     return raw
 
 
-def test_a_case_runs_at_the_tier_effort_answers_every_gate_and_attaches_nothing() -> (
-    None
-):
+def test_a_case_runs_at_the_tier_effort_and_attaches_nothing() -> None:
     case = EvalCase.model_validate(_raw())
 
-    assert (case.effort, case.gates, case.attachments) == (None, "auto", {})
+    assert (case.effort, case.gates, case.attachments) == (
+        None,
+        GatePlan(policy="stop"),
+        {},
+    )
 
 
 def test_the_fields_read_from_the_corpus_json() -> None:
     raw = _raw(
         effort="high",
-        gates="stop",
+        gates={"policy": "stop"},
         attachments={"0": ["controls.csv"]},
         expected={
             "buildsStrategy": True,
@@ -67,7 +76,7 @@ def test_the_fields_read_from_the_corpus_json() -> None:
 
     assert (case.effort, case.gates, case.attachments) == (
         "high",
-        "stop",
+        GatePlan(policy="stop"),
         {0: ["controls.csv"]},
     )
     assert (
@@ -93,7 +102,7 @@ def test_a_shipped_case_holds_the_count_unit_and_forbids_no_bare_word(
 def test_the_shipped_cases_that_hold_the_count_unit() -> None:
     held = [c.name for c in load_corpus() if c.expected.counts_in_genes is True]
 
-    assert len(held) == 24
+    assert len(held) == 51
     assert [name for name in held if not name.startswith("uat-")] == []
 
 
@@ -145,40 +154,9 @@ def test_every_uat_case_is_named_for_its_flow_and_its_site() -> None:
     assert misnamed == []
 
 
-def test_a_case_can_answer_each_gate_in_order() -> None:
-    raw = _raw(
-        gates=[
-            {"accept": True},
-            {"accept": False, "comment": "Too broad for a vaccine screen."},
-        ],
-    )
-
-    case = EvalCase.model_validate_json(json.dumps(raw))
-
-    assert (case.gates, case.gate_answers()) == (
-        [
-            GateAnswer(accept=True),
-            GateAnswer(accept=False, comment="Too broad for a vaccine screen."),
-        ],
-        [
-            GateAnswer(accept=True),
-            GateAnswer(accept=False, comment="Too broad for a vaccine screen."),
-        ],
-    )
-
-
-def test_a_gate_policy_gives_no_explicit_answers() -> None:
-    answers = [
-        EvalCase.model_validate(_raw(gates=policy)).gate_answers()
-        for policy in ("auto", "stop")
-    ]
-
-    assert answers == [[], []]
-
-
 def test_a_comment_goes_with_a_no_only() -> None:
     with pytest.raises(ValidationError, match="comment"):
-        GateAnswer(accept=True, comment="looks right")
+        GateAnswer(card="propose_changes", turn=0, accept=True, comment="looks right")
 
 
 def test_the_v5_case_says_yes_to_the_run_and_no_to_the_offer() -> None:
@@ -186,17 +164,25 @@ def test_the_v5_case_says_yes_to_the_run_and_no_to_the_offer() -> None:
 
     assert (
         [turn.splitlines()[0] for turn in case.turns],
-        case.gate_answers(),
+        case.gates,
         case.expected.builds_strategy,
     ) == (
         [
             "Find me a strategy that separates these controls, in exact mode.",
             "What did you offer me?",
         ],
-        [
-            GateAnswer(accept=True),
-            GateAnswer(accept=False, comment="Too broad for a vaccine screen."),
-        ],
+        GatePlan(
+            policy="leave",
+            answers=[
+                GateAnswer(card="separate_controls", turn=0),
+                GateAnswer(
+                    card="adopt_separating_strategy",
+                    turn=0,
+                    accept=False,
+                    comment="Too broad for a vaccine screen.",
+                ),
+            ],
+        ),
         False,
     )
 
@@ -209,11 +195,17 @@ def test_a_recorded_count_names_a_real_date() -> None:
 
 
 def test_a_question_card_answer_picks_options_and_says_nothing_else() -> None:
-    picked = GateAnswer(picks=["portal"])
+    picked = GateAnswer(card="consult_user", turn=0, picks=["portal"])
     refused: list[str] = []
     for raw in (
-        {"picks": ["portal"], "accept": False},
-        {"picks": ["portal"], "accept": False, "comment": "no"},
+        {"card": "consult_user", "turn": 0, "picks": ["portal"], "accept": False},
+        {
+            "card": "consult_user",
+            "turn": 0,
+            "picks": ["portal"],
+            "accept": False,
+            "comment": "no",
+        },
     ):
         try:
             GateAnswer.model_validate(raw)
@@ -225,7 +217,11 @@ def test_a_question_card_answer_picks_options_and_says_nothing_else() -> None:
 
 def test_a_turn_can_open_a_new_conversation_for_the_same_researcher() -> None:
     case = EvalCase.model_validate(
-        _raw(turns=["remember this", "what do I prefer?"], newConversationBefore=[1])
+        _raw(
+            turns=["remember this", "what do I prefer?"],
+            newConversationBefore=[1],
+            gates={"policy": "leave"},
+        )
     )
 
     assert case.new_conversation_before == [1]
@@ -238,6 +234,7 @@ def test_a_new_conversation_starts_before_a_later_turn_of_the_case(turn: int) ->
             _raw(
                 turns=["remember this", "what do I prefer?"],
                 newConversationBefore=[turn],
+                gates={"policy": "leave"},
             )
         )
 
@@ -245,10 +242,12 @@ def test_a_new_conversation_starts_before_a_later_turn_of_the_case(turn: int) ->
 def test_the_n7_case_declines_the_offer_then_sends_a_bare_yes() -> None:
     case = load_case("uat-n7-plasmodb")
 
-    assert (case.turns[-1], case.gate_answers()) == (
+    assert (case.turns[-1], case.gates.answers) == (
         "yes",
         [
             GateAnswer(
+                card="propose_changes",
+                turn=1,
                 accept=False,
                 comment="Not now: a kinase filter is too narrow for what I need.",
             )
@@ -260,8 +259,8 @@ def test_the_n8_case_picks_the_portal_and_the_m6_case_asks_in_a_new_thread() -> 
     n8 = load_case("uat-n8-plasmodb")
     m6 = load_case("uat-m6-plasmodb")
 
-    assert (n8.gate_answers(), m6.new_conversation_before) == (
-        [GateAnswer(picks=["portal"])],
+    assert (n8.gates.answers, m6.new_conversation_before) == (
+        [GateAnswer(card="consult_user", turn=1, picks=["portal"])],
         [1],
     )
 
@@ -306,7 +305,9 @@ def test_a_uat_case_asserts_no_prose_the_model_words_its_own_way() -> None:
     phrases = {
         case.name: case.expected.reply_mentions
         for case in load_corpus()
-        if case.name.startswith("uat-") and case.expected.reply_mentions
+        if case.name.startswith("uat-")
+        and not case.name.startswith("uat-dry-")
+        and case.expected.reply_mentions
     }
 
     assert phrases == {
@@ -333,8 +334,12 @@ def test_a_uat_case_holds_the_check_to_zero_unmet_rows_not_a_met_count() -> None
     }
 
     assert counted == {
-        f"uat-s2-{site}": (None, 0)
-        for site in ("fungidb", "plasmodb", "toxodb", "vectorbase", "veupathdb")
+        **{
+            f"uat-s2-{site}": (None, 0)
+            for site in ("fungidb", "plasmodb", "toxodb", "vectorbase", "veupathdb")
+        },
+        "uat-dry-a-plasmodb": (None, 0),
+        "uat-dry-c-piroplasmadb": (None, 0),
     }
 
 
@@ -367,7 +372,7 @@ def test_the_v4_case_stops_at_the_run_approval_on_its_first_message() -> None:
     ) == (
         1,
         "Find me a strategy that separates these controls, in exact mode.",
-        "stop",
+        GatePlan(policy="stop"),
         "approval",
         False,
     )
@@ -402,14 +407,14 @@ def test_the_n1_case_answers_the_card_and_builds_the_three_criteria() -> None:
     expected = case.expected
 
     assert (
-        case.gate_answers(),
+        case.gates.answers,
         expected.builds_strategy,
         expected.root_operator,
         expected.step_count,
         expected.parameters,
         expected.verified,
     ) == (
-        [GateAnswer(picks=[])],
+        [GateAnswer(card="consult_user", turn=0, picks=[])],
         True,
         "INTERSECT",
         5,

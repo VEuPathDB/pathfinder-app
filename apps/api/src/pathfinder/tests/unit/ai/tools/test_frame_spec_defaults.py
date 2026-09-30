@@ -152,4 +152,4 @@ class TestTheSpecRemembers:
         await _bind(monkeypatch, state)
 
         criterion = state.operational_spec_draft.criteria[0]
-        assert criterion.defaulted_params == ["min_expression_percentile"]
+        assert criterion.defaulted() == ["min_expression_percentile"]

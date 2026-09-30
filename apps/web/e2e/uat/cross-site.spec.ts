@@ -20,12 +20,12 @@ import {
   traceRows,
 } from "../fixtures/build-checks";
 import {
-  countPattern,
   readNodes,
   type SiteCounts,
   siteGeneIdPrefix,
   siteOrganism,
   storedNodes,
+  strategyCaption,
 } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
@@ -59,6 +59,11 @@ function paramText(node: AstNode, name: string): string {
   if (param === undefined) return "";
   if (param.values !== undefined) return param.values.map(String).join(",");
   return String(param.value ?? "");
+}
+
+/** `text` as a pattern that matches it literally. */
+function escaped(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** The ids of every site the api serves. */
@@ -144,7 +149,7 @@ async function expectOrthologs(
   expect(paramText(transform, "isSyntenic")).toBe("no");
   expect(paramText(transform, "organism")).not.toBe("");
   expect(paramText(transform, "organism")).not.toContain(siteOrganism(siteId));
-  await expect(chatPage.assistantReply(countPattern(counts.root))).not.toHaveCount(0);
+  await chatPage.expectRootCount(counts.root);
 
   const card = await expectEvidence(page, counts.root);
   const genes = await sampledGeneIds(card);
@@ -182,7 +187,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     const layout = layoutOf(await readNodes(apiClient, id));
     const counts = await expectBuild(page, apiClient, id, "vectorbase", layout);
     await expectOwnSearches(apiClient, "vectorbase", id);
-    const reply = chatPage.assistantReply(countPattern(counts.root));
+    const reply = chatPage.replyCounting(counts.root);
     await expect(reply).not.toHaveCount(0);
     await expectFindSearches(reply, "vectorbase", served);
 
@@ -244,7 +249,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     for (const siteId of comparedSites()) {
       const { id, counts } = await buildS2(chatPage, apiClient, page, siteId);
       await expectOwnSearches(apiClient, siteId, id);
-      const reply = chatPage.assistantReply(countPattern(counts.root));
+      const reply = chatPage.replyCounting(counts.root);
       await expectFindSearches(reply, siteId, served);
     }
   });
@@ -285,7 +290,9 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     const portal = "veupathdb";
     const { id, counts } = await buildS2(chatPage, apiClient, page, portal);
 
-    const branch = await chatPage.branchFromAssistantReply(countPattern(counts.root));
+    const branch = await chatPage.branchFromAssistantReply(
+      new RegExp(escaped(strategyCaption(LAYOUTS.intersect.steps, counts.root))),
+    );
     await chatPage.sendAndSettle(prompt("syntenic-orthologs", SYNTENIC_TEXT));
     const empty = await expectBuild(page, apiClient, branch, portal, LAYOUTS.orthologs);
     expect(empty.root).toBe(0);
@@ -293,11 +300,11 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     expect(paramText(syntenic, "isSyntenic")).toBe("yes");
     await expectEvidence(page, 0);
     await expect(
-      chatPage.assistantReply(
-        /The build pushed \d+ steps?, failed 0, skipped 0 and left 1 empty/,
-      ),
+      chatPage.factsCaveatsIn(chatPage.replyCounting(0), "build").filter({
+        hasText: /^The build pushed \d+ steps?, failed 0, skipped 0 and left 1 empty$/,
+      }),
     ).not.toHaveCount(0);
-    await expect(chatPage.assistantReply(countPattern(0))).not.toHaveCount(0);
+    await chatPage.expectRootCount(0);
 
     await page.goto(`/${portal}/conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });

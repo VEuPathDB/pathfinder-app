@@ -40,7 +40,9 @@
     "curatorNote": "Steps 2 to 4 of the flow read the model and effort in the usage label; the case pins the result at the Fast preset's effort."
   },
   "effort": "low",
-  "gates": "auto",
+  "gates": {
+    "policy": "auto"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

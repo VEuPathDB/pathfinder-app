@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents.verification import _VERIFICATION_INSTRUCTIONS
-from pathfinder.ai.lead import lead_tools
+from pathfinder.ai.lead import classification_gate
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
@@ -62,7 +62,7 @@ def _recorded_organisms(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _organisms(site_id: str) -> list[str]:
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(lead_tools, "list_organisms", _organisms)
+    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
 
 
 def _intent(operator: str) -> UserIntent:
@@ -186,10 +186,10 @@ async def test_a_second_classification_that_changes_nothing_is_refused() -> None
     ctx = run_context_for(lead_deps(state), tool_call_id="call_classify")
     await classify_user_intent(ctx, _intent("AND"))
 
-    with pytest.raises(ModelRetry) as refused:
+    with pytest.raises(ToolFailed) as refused:
         await classify_user_intent(ctx, _intent("AND"))
 
-    assert "already classified as new_strategy" in str(refused.value)
+    assert "already classified as new_strategy" in refused.value.message
     assert len(state.domain.requirements) == 1
 
 

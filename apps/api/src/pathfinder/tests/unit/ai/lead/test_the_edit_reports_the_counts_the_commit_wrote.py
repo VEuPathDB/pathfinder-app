@@ -12,12 +12,15 @@ from typing import Any
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.domain.strategy import flatten_tree
+from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.edit_dispatch import run_edit
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_facts import turn_facts
+from pathfinder.domain.strategy.build_outcome import BuiltCounts, built_counts
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -29,8 +32,9 @@ from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )
-from pathfinder.services.strategies.commit import CommitResult
+from pathfinder.services.strategies.commit import CommitResult, live_strategy_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _SEARCH = "GenesByRNASeqEvidence"
@@ -43,11 +47,13 @@ def _carrier() -> Criterion:
         id=_CRITERION,
         text="upregulated in gametocytes",
         search_name=_SEARCH,
-        resolved_params={
-            "organism": MultiPickValue(values=["Pf3D7"]),
-            "dataset": StringValue(value="all_rnaseq"),
-        },
-        defaulted_params=["dataset"],
+        resolved_params=bound(
+            {
+                "organism": MultiPickValue(values=["Pf3D7"]),
+                "dataset": StringValue(value="all_rnaseq"),
+            },
+            defaulted=["dataset"],
+        ),
     )
 
 
@@ -56,7 +62,9 @@ def _option() -> Criterion:
         id="sexual_stage_option",
         text="use the sexual stage dataset",
         search_name=_SEARCH,
-        resolved_params={"dataset": StringValue(value="pfal3D7_Sexual_Stage_rnaSeq")},
+        resolved_params=bound(
+            {"dataset": StringValue(value="pfal3D7_Sexual_Stage_rnaSeq")}
+        ),
     )
 
 
@@ -80,12 +88,14 @@ def _built() -> tuple[OperationalSpec, StrategySession]:
         wdk_step_ids={step_id: 11},
         step_counts={step_id: _WRITTEN_THROUGH},
         wdk_strategy_id=900,
+        wdk_step_tree=WDKStepTree(step_id=11),
     )
     return renumber_criteria(spec, tree.step_id_by_criterion), session
 
 
-async def _edited_outcome(monkeypatch: pytest.MonkeyPatch) -> BuildOutcome:
-    """Run one edit whose commit is a capture, and return the build it records."""
+async def _edited(monkeypatch: pytest.MonkeyPatch, *, arrived: int = 0) -> LeadDeps:
+    """Run one edit whose commit is a capture, on a message that found the
+    root at ``arrived`` genes."""
     before, session = _built()
     after = before.model_copy(deep=True)
     after.criteria.append(_option())
@@ -95,6 +105,8 @@ async def _edited_outcome(monkeypatch: pytest.MonkeyPatch) -> BuildOutcome:
     )
     state.domain.spec_before_turn = before
     deps = lead_deps(state, strategy_session=session)
+    root = next(iter(session.graph.steps)) if session.graph is not None else ""
+    deps.state.turn_markers.record_arrival(root, {root: arrived})
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
@@ -108,24 +120,53 @@ async def _edited_outcome(monkeypatch: pytest.MonkeyPatch) -> BuildOutcome:
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _p: None)
 
     await run_edit(deps=deps, parent_tool_call_id="t1", reason="new dataset")
-    outcome = deps.state.domain.last_build_outcome
-    assert outcome is not None
-    return outcome
+    return deps
+
+
+async def _edited_counts(monkeypatch: pytest.MonkeyPatch) -> BuiltCounts:
+    """The counts the session holds after the edit, once the edit recorded its build."""
+    deps = await _edited(monkeypatch)
+    session = deps.runtime.strategy_session
+    assert deps.state.domain.last_build_outcome is not None
+    return built_counts(session.graph, session.sync_state)
 
 
 @pytest.mark.asyncio
 async def test_the_reported_count_is_the_one_the_commit_wrote(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    outcome = await _edited_outcome(monkeypatch)
+    counts = await _edited_counts(monkeypatch)
 
-    assert set(outcome.counts.values()) == {_WRITTEN_THROUGH}
+    assert set(counts.by_step.values()) == {_WRITTEN_THROUGH}
 
 
 @pytest.mark.asyncio
 async def test_the_root_reports_that_count_too(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    outcome = await _edited_outcome(monkeypatch)
+    counts = await _edited_counts(monkeypatch)
 
-    assert outcome.root_count == _WRITTEN_THROUGH
+    assert counts.root_count == _WRITTEN_THROUGH
+
+
+@pytest.mark.asyncio
+async def test_an_edit_that_leaves_the_tree_in_place_keeps_the_strategy_link(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    deps = await _edited(monkeypatch)
+
+    assert live_strategy_url("plasmodb", deps.runtime.strategy_session.sync_state) == (
+        "https://plasmodb.org/plasmo/app/workspace/strategies/900/11"
+    )
+
+
+@pytest.mark.asyncio
+async def test_the_root_s_count_before_the_edit_is_its_count_at_arrival(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The edit records no count of its own; the facts read the strategy the
+    message found."""
+    deps = await _edited(monkeypatch, arrived=80)
+
+    facts = turn_facts(deps)
+    assert (facts.root_count, facts.root_count_before) == (_WRITTEN_THROUGH, 80)

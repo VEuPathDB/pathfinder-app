@@ -42,7 +42,7 @@ def _constructed_without_validation(outcome: object) -> PipelineState:
 def test_a_record_left_as_a_mapping_is_rebuilt_as_its_model() -> None:
     state = rebuilt_state(_constructed_without_validation(_outcome_mapping()))
     assert isinstance(state.domain.last_build_outcome, BuildOutcome)
-    assert state.domain.last_build_outcome.root_count == 87
+    assert state.domain.last_build_outcome.wdk_strategy_id == 330642473
 
 
 def test_a_value_this_build_cannot_read_ends_the_turn_with_a_sentence() -> None:

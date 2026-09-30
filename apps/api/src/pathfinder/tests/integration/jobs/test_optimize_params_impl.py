@@ -191,6 +191,7 @@ def run_impl(
                     source="paste",
                 ),
                 user_id=user_id,
+                conversation_id=None,
             )
             await session.commit()
 
@@ -380,6 +381,7 @@ async def test_a_saved_control_set_is_read_whole_on_the_worker(
                 source="paste",
             ),
             user_id=user_id,
+            conversation_id=None,
         )
         await session.commit()
 

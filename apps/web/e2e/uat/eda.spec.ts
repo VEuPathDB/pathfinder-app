@@ -22,6 +22,7 @@ import {
   groupsLine,
   openAnalysis,
   browseStudies,
+  ownDatasets,
   ownStudy,
   railStudyLine,
   readAnalysis,
@@ -243,6 +244,13 @@ test.describe("Studies", () => {
     ).toBeVisible({
       timeout: 60_000,
     });
+    // The account holds uploads on this site (uat/sites-and-accounts.md).
+    const uploads = await ownDatasets(apiClient, siteId);
+    expect(uploads.length, `uploads on ${siteId}`).toBeGreaterThan(0);
+    const rows = datasets.getByTestId(/^eda-own-dataset-/);
+    await expect(rows).toHaveCount(uploads.length);
+    await expect(rows).toContainText(uploads.map((upload) => upload.name));
+    await expect(datasets.getByText(/^No datasets of yours on /)).toHaveCount(0);
     const search = tab.getByPlaceholder("Search studies...");
     await expect(search).toBeVisible();
 

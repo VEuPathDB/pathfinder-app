@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A criterion says why its search was chosen
-description: FRAME passes a typed why (basis, term, one line of reason) on the binding call; set_criterion checks it against the catalog read it recorded and writes the searches that read answered beside the bound one, with their similarity and the call id. The record rides StepWords to the canvas, the step editor, the rail, the ledger and addedSearches, and unnamed_search refuses once a reply that names a search without its term beside it. Prompting for verbosity, a free-text rationale with no alternatives, and a reason rendered in the reply only were rejected.
+description: FRAME passes a typed why (basis, term, one line of reason) on the binding call; set_criterion checks it against the catalog read it recorded and writes the searches that read answered beside the bound one, with their similarity and the call id. The record rides StepWords to the canvas, the step editor, the rail, the ledger and addedSearches, and the facts part beside the reply shows each step by its search. Prompting for verbosity, a free-text rationale with no alternatives, and a reason rendered in the reply only were rejected.
 tags: [frame, turn-contract, catalog, strategy-graph, naming]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-27T00:00:00Z }
@@ -29,8 +29,12 @@ search, when a new binding carries no `why`, when the reason names a site search
 the read did not answer (a search name, or a display name of two or more words),
 when the data the call holds does not back the basis, when the reason is longer
 than one line, and when a cited reference is not one this turn retrieved. A
-value edit on the search the criterion already runs keeps its reason; a
-re-binding replaces it.
+value edit on the search the criterion already runs keeps its reason while the
+reason names no value the edit replaces; a reason that names one (a held pick
+the edit drops, read whole in the sentence) is never kept: the edit's `why` is
+checked and recorded against the catalog read the kept reason came from, with
+its own sources, and a call with no `why` is refused naming the value. A
+re-binding replaces the reason.
 
 **The term is composed, not required in the reason.** The record holds the term
 beside the reason, so `SearchRationale.sentence` (`"{term}: {reason}"`) is the
@@ -64,11 +68,11 @@ The case memory records the basis and the searches it was chosen over, never the
 free-text reason. The eval extract carries the reasons and redacts them with the
 researcher's stored words.
 
-**The reply gives the reason beside the name.** `unnamed_search`
-(`ai/lead/search_reasons.py`) refuses, once, a reply that names an added search
-with a recorded reason and does not hold the reason's term in the same paragraph
-or list item. The correction hands over the recorded line, so the retry quotes
-the grounded record.
+**The reply explains the reason; the facts show the search.** The facts part
+beside the reply shows each step by its search's display name with its values
+and count, and the Lead's instruction asks the reply to say why each added
+search stands for the words it was chosen for. A reply that prints a search's
+url segment is refused by `fact_outside_the_block`.
 
 # What was rejected
 

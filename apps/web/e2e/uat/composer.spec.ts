@@ -32,13 +32,13 @@ import {
   toast,
 } from "../fixtures/composer";
 import {
-  countPattern,
   readAst,
   readConversation,
   readNodes,
   siteControlSets,
   siteOrganism,
 } from "../fixtures/site-reads";
+import { RECAP_REPLY } from "../fixtures/strategy-builds";
 import type { ChatPage } from "../pages/chat.page";
 import { waitForDraftChatRoute } from "../pages/navigation";
 
@@ -514,20 +514,12 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
     const { id, counts } = await buildIntersect(page, chatPage, apiClient, siteId);
     const stepsBefore = await wdkStepIds(apiClient, id);
     const figures = await page.getByTestId("data-graph-snapshot").count();
-    const repliesBefore = await chatPage.assistantMessages.count();
 
     await runSlash(page, chatPage, "/summarize");
     await expect(chatPage.userMessages).toHaveCount(1);
     await sendPrefill(chatPage, SUMMARIZE_PROMPT, "recap");
 
-    // The reply paints in pieces, so the read retries until the count is in.
-    await expect
-      .poll(async () =>
-        (await repliesAfter(chatPage, repliesBefore))
-          .map((reply) => reply.prose)
-          .join("\n"),
-      )
-      .toMatch(countPattern(counts.root));
+    await chatPage.expectRootCount(counts.root);
     await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(figures);
     expect(await wdkStepIds(apiClient, id)).toEqual(stepsBefore);
   });
@@ -560,17 +552,14 @@ test.describe("Slash commands on a built strategy", { tag: "@turn" }, () => {
     expect(empty).toHaveLength(1);
     const stepName = empty.map((node) => node.displayName ?? "").join("");
     expect(stepName).not.toBe("");
-    const repliesBefore = await chatPage.assistantMessages.count();
 
     await runSlash(page, chatPage, "/diagnose");
     await sendPrefill(chatPage, DIAGNOSE_PROMPT, "recap");
-    await expect
-      .poll(async () =>
-        (await repliesAfter(chatPage, repliesBefore))
-          .map((reply) => reply.prose)
-          .join("\n"),
-      )
-      .toContain(stepName);
+    await expect(
+      chatPage
+        .factsStepIn(chatPage.assistantReply(RECAP_REPLY), stepName)
+        .locator('[data-testid="facts-step-count"][data-count="0"]'),
+    ).not.toHaveCount(0, { timeout: 60_000 });
 
     await runSlash(page, chatPage, "/explain");
     const hint = page.getByTestId("slash-param-text-stepHint");

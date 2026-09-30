@@ -7,11 +7,11 @@ and the bound parameter values, so the spec is derived rather than re-asked.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Mapping, Sequence
 from typing import NamedTuple
 
-from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.ast_diff import nodes_of
@@ -21,22 +21,28 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
+    bind_values,
     structure_criteria,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.domain.strategy.step_words import StepWords
+from pathfinder.domain.strategy.value_source import is_placeholder
 
 __all__ = [
+    "Sheets",
     "analysis_criteria_stated",
     "criterion_analysing",
     "hidden_params_dropped",
     "root_join_operator",
     "sheet_bound",
+    "sheet_marked",
     "spec_from_ast",
     "spec_stating_the_live_tree",
 ]
 
 Analyses = Mapping[str, AnalysisBinding]
+# The parameters each search's sheet shows, by search name.
+Sheets = Mapping[str, Sequence[ParameterInfo]]
 _NO_ANALYSES: Analyses = {}
 _SYMMETRIC = frozenset({CombineOp.INTERSECT, CombineOp.UNION})
 
@@ -69,7 +75,7 @@ def spec_stating_the_live_tree(
     spec: OperationalSpec,
     ast: StrategyAst,
     *,
-    sheet_params: Mapping[str, Collection[str]],
+    sheet_params: Sheets,
     analyses: Analyses = _NO_ANALYSES,
     shape_moved: bool = False,
     may_leave_out: Collection[str] = (),
@@ -203,7 +209,7 @@ def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
         ),
         search_name=node.search_name,
         role=_role_of(node.id, kind, reading.seed_id),
-        resolved_params=dict(node.parameters),
+        resolved_params=bind_values(node.parameters, "held"),
         rationale=reading.words.rationale_of(node.id, node.search_name),
     )
     binding = reading.analyses.get(node.id)
@@ -226,7 +232,7 @@ def _role_of(node_id: str, kind: str, seed_id: str) -> CriterionRole:
 
 
 def hidden_params_dropped(
-    spec: OperationalSpec, *, sheet_params: Mapping[str, Collection[str]]
+    spec: OperationalSpec, *, sheet_params: Sheets
 ) -> OperationalSpec:
     """A copy of the spec where each criterion states only the sheet's parameters.
 
@@ -239,28 +245,48 @@ def hidden_params_dropped(
     return spec.model_copy(update={"criteria": criteria})
 
 
-def _sheet_stated(
-    criterion: Criterion, sheet_params: Mapping[str, Collection[str]]
-) -> Criterion:
+def _sheet_stated(criterion: Criterion, sheet_params: Sheets) -> Criterion:
     """The criterion stating only the parameters its search's sheet shows."""
-    if criterion.search_name not in sheet_params:
+    sheet = sheet_params.get(criterion.search_name)
+    if sheet is None:
         return criterion
+    stated = criterion.model_copy(
+        update={"resolved_params": sheet_bound(criterion.resolved_params, sheet)}
+    )
+    return sheet_marked(stated, sheet)
+
+
+def sheet_marked(criterion: Criterion, sheet: Sequence[ParameterInfo]) -> Criterion:
+    """The criterion with each value its sheet names a placeholder marked, and
+    each parameter known by the sheet's display name."""
+    by_name = {info.name: info for info in sheet}
+    held = [name for name in criterion.resolved_params if name in by_name]
     return criterion.model_copy(
         update={
-            "resolved_params": sheet_bound(
-                criterion.resolved_params, sheet_params[criterion.search_name]
-            )
+            "resolved_params": {
+                name: bound.model_copy(
+                    update={"placeholder": is_placeholder(bound.value, by_name[name])}
+                )
+                if name in by_name
+                else bound
+                for name, bound in criterion.resolved_params.items()
+            },
+            "param_display_names": {
+                **criterion.param_display_names,
+                **{name: by_name[name].display_name for name in held},
+            },
         }
     )
 
 
-def sheet_bound(
-    params: Mapping[str, ParamValue], sheet: Collection[str] | None
-) -> dict[str, ParamValue]:
+def sheet_bound[V](
+    params: Mapping[str, V], sheet: Sequence[ParameterInfo] | None
+) -> dict[str, V]:
     """The values a search's sheet shows. An unread sheet keeps them all."""
     if sheet is None:
         return dict(params)
-    return {name: value for name, value in params.items() if name in sheet}
+    shown = {info.name for info in sheet}
+    return {name: value for name, value in params.items() if name in shown}
 
 
 def criterion_analysing(
@@ -278,9 +304,8 @@ def criterion_analysing(
             "analysis": binding,
             "needs_analysis_on": None,
             "resolved_params": {},
-            "defaulted_params": [],
+            "measurements": [],
             "open_params": [],
-            "assumptions": [],
             "alternatives": [],
             "result_count": None,
             "rationale": None,

@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.site_organisms import serve_recorded_organisms
 
 PartFor = Callable[[list[ModelMessage]], ToolCallPart | list[ToolCallPart]]
 
@@ -281,3 +282,9 @@ class RetryRecordingScript:
             return ModelResponse(parts=[self._part])
 
         return FunctionModel(_fn, model_name="scripted")
+
+
+@pytest.fixture
+def recorded_site_organisms(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """The classification gate reads each site's recorded organisms."""
+    return serve_recorded_organisms(monkeypatch)

@@ -40,6 +40,7 @@ from pathfinder.services.strategies.commit import (
     apply_and_commit,
     apply_operations_and_commit,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.tool_returns import returned
 
 from ._strategy_edit_stubs import (
@@ -241,9 +242,11 @@ class TestABatchTheSpecContradicts:
             if c.id == "step_k1"
         )
         criterion.text = "the kinase PF3D7_1133400"
-        criterion.resolved_params = {
-            "gene_id": StringValue(value="PF3D7_1133400"),
-        }
+        criterion.resolved_params = bound(
+            {
+                "gene_id": StringValue(value="PF3D7_1133400"),
+            }
+        )
         graph = deps.strategy_session.graph
         assert graph is not None
         revision = strategy_revision(graph.to_strategy_ast())

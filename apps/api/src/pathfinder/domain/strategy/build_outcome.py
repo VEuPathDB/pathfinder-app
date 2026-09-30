@@ -7,6 +7,8 @@ from typing import Literal
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.orthology import OrganismChange
+from pathfinder.domain.strategy.session import StrategyGraph, strategy_root_id
+from pathfinder.domain.strategy.types import SyncStateProtocol
 
 NodeStatus = Literal["ok", "zero", "failed"]
 
@@ -28,6 +30,45 @@ def citable_count(
     return counts.get(step_id)
 
 
+@dataclass(frozen=True)
+class BuiltCounts:
+    """The count each built step may be cited with, and the root the strategy
+    is cited at, as the session's sync state holds them now."""
+
+    by_step: Mapping[str, int | None] = field(default_factory=dict)
+    root_id: str | None = None
+
+    def of(self, step_id: str | None) -> int | None:
+        return None if step_id is None else self.by_step.get(step_id)
+
+    @property
+    def root_count(self) -> int | None:
+        return self.of(self.root_id)
+
+    @property
+    def zero_step_ids(self) -> list[str]:
+        return [step_id for step_id, count in self.by_step.items() if count == 0]
+
+
+def built_counts(
+    graph: StrategyGraph | None, sync_state: SyncStateProtocol | None
+) -> BuiltCounts:
+    """The counts of the strategy the graph and its sync state hold now."""
+    if sync_state is None:
+        return BuiltCounts()
+    return BuiltCounts(
+        by_step={
+            step_id: citable_count(
+                step_id,
+                counts=sync_state.step_counts,
+                refused=sync_state.wdk_push_errors,
+            )
+            for step_id in sync_state.step_counts
+        },
+        root_id=None if graph is None else strategy_root_id(graph, sync_state),
+    )
+
+
 def node_status(*, count: int | None, failed: bool) -> NodeStatus:
     if failed:
         return "failed"
@@ -37,12 +78,11 @@ def node_status(*, count: int | None, failed: bool) -> NodeStatus:
 
 
 class NodeResult(CamelModel):
-    """Per-node build result surfaced to the Ledger/UI (BUILD's count feedback)."""
+    """Per-node build result surfaced to the Ledger/UI."""
 
     node_id: str
     search_name: str
     wdk_step_id: int | None = None
-    count: int | None = None
     status: NodeStatus
     error: str | None = None
 
@@ -66,15 +106,13 @@ class StepPushFailure:
 
 @dataclass
 class BuildOutcome:
-    """Structured result of a declarative strategy build."""
+    """Structured result of a declarative strategy build. It holds no count:
+    every count is read from the session's sync state through ``built_counts``."""
 
     pushed_step_ids: list[str] = field(default_factory=list)
     failed_steps: list[StepPushFailure] = field(default_factory=list)
     skipped_step_ids: list[str] = field(default_factory=list)
     wdk_strategy_id: int | None = None
-    wdk_url: str | None = None
-    counts: dict[str, int | None] = field(default_factory=dict)
-    root_count: int | None = None
     zero_step_ids: list[str] = field(default_factory=list)
     node_results: list[NodeResult] = field(default_factory=list)
     # Set when the records belong to another organism than the seed searched.

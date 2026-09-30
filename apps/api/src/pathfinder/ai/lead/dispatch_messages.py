@@ -14,12 +14,12 @@ from veupathdb.domain.parameters import to_wire
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
-from pathfinder.domain.strategy.constraints import OpenQuestion
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     structure_criteria,
 )
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.spec_fold import (
     carried_values,
@@ -237,48 +237,6 @@ def frame_claimed_more_than_it_bound(summary: str) -> str:
     )
 
 
-# How many of the pass's questions the refusal prints back to it.
-_ASKED_WINDOW = 4
-
-
-def _holds_an_open_slot(spec: OperationalSpec) -> bool:
-    return bool(spec.open_slots) or any(c.open_params for c in spec.criteria)
-
-
-def questions_that_bind_to_nothing(
-    questions: Sequence[OpenQuestion],
-    draft: OperationalSpec,
-    found: OperationalSpec | None,
-) -> str:
-    """Why a pass that stops on the user asks about nothing it recorded.
-
-    An answer lands in an open slot, so a pass that leaves no slot gives the
-    next turn nothing to bind the answer into. Returns an empty string when the
-    draft holds a slot the questions can be about.
-    """
-    if not questions:
-        return ""
-    if found is not None and draft == found:
-        reason = "the spec is exactly as this dispatch found it"
-    elif not _holds_an_open_slot(draft):
-        reason = "no criterion of the spec holds an open slot"
-    else:
-        return ""
-    asked = "; ".join(q.question for q in questions[:_ASKED_WINDOW])
-    return (
-        f"FRAME ended needs_user with {len(questions)} question(s) ({asked}) and "
-        f"{reason}, so an answer has nowhere to land and the next turn reads no "
-        f"criterion to bind it into. Call set_criterion for the criterion each "
-        f"question is about, with its search, the values you already have, and "
-        f"null for every parameter the user must decide, which records that "
-        f"parameter as an open slot. A question about which strategy the user "
-        f"saved is recorded the same way: call set_criterion with "
-        f"saved_strategy set to the name the user gave, which records the "
-        f"saved_strategy slot with the names the listing holds. Then end "
-        f"needs_user with the same questions."
-    )
-
-
 def frame_bound_nothing_result() -> FrameResult:
     """Report a second pass that claimed a ready spec and bound nothing."""
     return FrameResult(
@@ -409,12 +367,13 @@ def _unplaced_option(option: Criterion, carriers: Sequence[Criterion]) -> str:
 def _contradicted_option(option: Criterion, carrier: Criterion) -> str:
     """Why an option one criterion runs the search for is still unplaced."""
     carried = carried_values(carrier)
-    defaulted = set(option.defaulted_params)
     clashes = [
-        f"{name}={to_wire(value)} where {carrier.id} already carries "
+        f"{name}={to_wire(bound.value)} where {carrier.id} already carries "
         f"{name}={carried[name]}"
-        for name, value in option.resolved_params.items()
-        if name not in defaulted and name in carried and carried[name] != to_wire(value)
+        for name, bound in option.resolved_params.items()
+        if bound.source != "default"
+        and name in carried
+        and carried[name] != to_wire(bound.value)
     ]
     return (
         f"{option.id} ({option.text[:80]}) states "

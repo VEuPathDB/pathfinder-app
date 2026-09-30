@@ -1,0 +1,59 @@
+{
+  "name": "uat-dry3-d-sides-microsporidiadb",
+  "turns": [
+    "E. bieneusi H348 genes with a polar tube protein annotation.",
+    "Thanks. Only one gene is thinner than I expected. Would a domain search (InterPro or Pfam for the polar tube protein family) find more E. bieneusi H348 genes than this name search? Tell me how the two compare."
+  ],
+  "siteId": "microsporidiadb",
+  "assistantId": "pathfinder",
+  "rationale": "A comparison question compares its sides and states none of them as a requirement: the strategy stays the one text step (1 gene, EBI_26400), and no facts part names 'polar tube protein family' or 'InterPro OR Pfam' as a requirement of the researcher.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByText",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {
+      "1": [
+        "'polar tube protein family'",
+        "'InterPro OR Pfam'"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 1,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "microsporidiadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ud-microsporidiadb",
+    "curatorNote": "Round-3 dry UAT, tester D, investigation 10, conversation 19ddf66e-6080-4c2b-8434-a83880e82cf8, turns 1 and 2. Round 3 recorded both sides as requirements and built UNION(UNION(text, IPR031507), PF17022) on the question."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

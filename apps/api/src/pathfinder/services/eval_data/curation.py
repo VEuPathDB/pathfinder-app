@@ -14,7 +14,7 @@ from uuid import UUID
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome
+from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.extract import EvalExtract
 from pathfinder.evals.store import write_case
 from pathfinder.persistence.models import EvalStagedCase
@@ -22,12 +22,14 @@ from pathfinder.persistence.repositories.eval_staging import EvalStagingReposito
 
 
 class PromotionEdits(CamelModel):
-    """What the curator decides. The turns and the expectation are theirs."""
+    """What the curator decides. The turns, the expectation and how the case
+    meets its cards are theirs."""
 
     model_config = ConfigDict(frozen=True)
 
     name: str
     rationale: str
+    gates: GatePlan
     turns: list[str] | None = None
     expected: ExpectedOutcome | None = None
     curator_note: str = ""
@@ -79,6 +81,7 @@ def build_case(
         assistant_id=row.assistant_id,
         rationale=edits.rationale,
         expected=edits.expected or default_expectation(row),
+        gates=edits.gates,
         provenance=CaseProvenance(
             site=row.site_id,
             assistant=row.assistant_id,

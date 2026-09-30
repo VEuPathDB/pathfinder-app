@@ -15,7 +15,7 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from pathfinder.ai.lead import lead_tools
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, UNCLASSIFIED_TOOLS
-from pathfinder.ai.lead.lead_agent import build_lead_agent
+from pathfinder.ai.lead.lead_agent import build_lead_agent, build_lead_toolset
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -28,9 +28,10 @@ from pathfinder.ai.tools.toolsets import execution
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.export.service import ExportResult
 from pathfinder.services.gene_records import read
-from pathfinder.services.gene_records.read import GeneRecordSummary
+from pathfinder.services.gene_records.read import GeneRecordSummary, OrthologRow
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.gene_set_store import keep_saved
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.sub_agents import toolset_tool_names
 from pathfinder.tests._support.tool_returns import returned
@@ -39,6 +40,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
     session_with_one_step,
 )
+from pathfinder.tests.unit.ai.tools.conftest import unwrap_function_toolset
 
 _REAL_MESSAGE = "Find the gametocyte proteases."
 
@@ -86,14 +88,17 @@ def test_research_is_reachable_before_the_turn_is_classified() -> None:
 def test_the_classifier_takes_no_message_text_from_the_model() -> None:
     """The classified message is the turn's own, so no text is passed in."""
     assert sorted(UserIntent.model_fields) == [
+        "asks",
         "classification",
         "differential_sides",
+        "edit_direction",
         "explicit_constraints",
         "inferred_goal",
         "is_differential",
         "named_controls",
+        "named_gene_ids",
         "referenced_step_ids",
-        "referenced_strategy_ids",
+        "withdrawn_requirements",
     ]
 
 
@@ -150,7 +155,7 @@ def test_the_classifier_is_told_to_capture_a_stated_share() -> None:
 
 
 def test_the_lead_registers_the_clear_tool_behind_an_approval() -> None:
-    tools = build_lead_agent()._function_toolset.tools
+    tools = unwrap_function_toolset(build_lead_toolset()).tools
 
     assert "clear_strategy" in tools
     assert tools["clear_strategy"].requires_approval is True
@@ -214,7 +219,7 @@ async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_tools
 ) -> None:
     """The scripted turn runs on the real Lead and its real registrations."""
     saved: list[GeneSet] = []
-    monkeypatch.setattr(gene_sets, "store_gene_set", saved.append)
+    monkeypatch.setattr(gene_sets, "store_gene_set", keep_saved(saved))
     monkeypatch.setattr(gene_sets, "step_gene_ids", AsyncMock(return_value=_ROOT_GENES))
     monkeypatch.setattr(
         gene_sets, "visible_parameter_names", AsyncMock(return_value=set())
@@ -243,6 +248,7 @@ _CONTEXT_STATEMENT = (
 )
 
 
+@pytest.mark.usefixtures("recorded_site_organisms")
 async def test_a_scripted_turn_classifies_the_message_once_and_replies() -> None:
     """The mock script classifies without a message text and answers once."""
     deps = lead_deps(pipeline_state(user_prompt=_CONTEXT_STATEMENT))
@@ -311,10 +317,11 @@ def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.usefixtures("_exportable_gene_set")
-async def test_an_export_request_reaches_the_export_tool_and_answers_with_the_link() -> (
+async def test_an_export_request_reaches_the_export_tool_and_points_at_the_file() -> (
     None
 ):
-    """A saved set is exported without a strategy, so the Lead exports it."""
+    """A saved set is exported without a strategy, so the Lead exports it; the
+    download is the file part the tool writes, never a link in the reply."""
     deps = lead_deps(pipeline_state(user_prompt=_EXPORT_REQUEST))
     bind_scripted_scope("plasmodb", _EXPORT_REQUEST)
 
@@ -326,8 +333,9 @@ async def test_an_export_request_reaches_the_export_tool_and_answers_with_the_li
 
     assert isinstance(result.output, LeadResponse)
     assert result.output.prose == (
-        f"The file is ready. Download it here: {_EXPORT_URL}"
+        "The file is ready; its download is shown beside this reply."
     )
+    assert _EXPORT_URL not in result.output.prose
 
 
 def test_the_export_tool_is_offered_before_the_turn_is_classified() -> None:
@@ -339,7 +347,7 @@ def test_the_export_tool_is_offered_before_the_turn_is_classified() -> None:
 def test_the_lead_offers_no_download_it_has_no_id_for() -> None:
     """A WDK step id is not a name the Lead can read, so it takes none."""
     assert "get_download_url" not in UNCLASSIFIED_TOOLS
-    assert "get_download_url" not in build_lead_agent()._function_toolset.tools
+    assert "get_download_url" not in unwrap_function_toolset(build_lead_toolset()).tools
 
 
 def _summary_lines(result: ToolReturn[Any]) -> list[str]:
@@ -364,6 +372,10 @@ _TOXO_RECORD = GeneRecordSummary(
     chromosome="VIII",
     exon_count=1,
     transcript_count=1,
+    orthologs=[
+        OrthologRow(organism=f"Ortholog organism {i}", gene_id=f"OGS_{i:03d}")
+        for i in range(14)
+    ],
     ortholog_count=14,
 )
 
@@ -373,7 +385,10 @@ def the_record(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, str]]:
     """The record read the tool reaches, and what it was asked for."""
     asked: list[tuple[str, str]] = []
 
-    async def _read(site_id: str, gene_id: str) -> GeneRecordSummary:
+    async def _read(
+        site_id: str, gene_id: str, *, ortholog_organism: str | None = None
+    ) -> GeneRecordSummary:
+        del ortholog_organism
         asked.append((site_id, gene_id))
         return _TOXO_RECORD
 

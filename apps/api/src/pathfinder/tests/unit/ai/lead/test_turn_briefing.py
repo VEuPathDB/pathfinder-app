@@ -208,3 +208,26 @@ def test_the_worst_case_briefing_stays_bounded() -> None:
     )
 
     assert len(briefing.render()) < 1200
+
+
+def test_a_step_moved_onto_an_rna_seq_upload_keeps_the_rna_seq_grounding() -> None:
+    requirement = Constraint(
+        kind=ConstraintKind.DATA_TYPE,
+        requested_value="RNA-Seq",
+        label="RNA-Seq dataset",
+        source=ConstraintSource.USER_EXPLICIT,
+    )
+    on_the_upload = StrategyAst(
+        record_type="transcript",
+        root=StrategyStepNode(id="step_expr", search_name="GenesByDESeqUserDataset"),
+    )
+
+    briefing = compose_turn_briefing(
+        ThreadActivity(),
+        requirements=[requirement],
+        answered=_expression_ast(90),
+        live=on_the_upload,
+        upload_types={"step_expr": "rnaseqrc"},
+    )
+
+    assert briefing.constraints == []

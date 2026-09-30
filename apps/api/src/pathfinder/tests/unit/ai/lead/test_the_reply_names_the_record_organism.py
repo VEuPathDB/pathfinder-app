@@ -25,9 +25,7 @@ def _built(change: OrganismChange | None) -> LeadDeps:
         user_message_id=uuid4(),
     )
     state.record_build(
-        BuildOutcome(
-            pushed_step_ids=["s1", "s2"], root_count=67, organism_change=change
-        )
+        BuildOutcome(pushed_step_ids=["s1", "s2"], organism_change=change)
     )
     state.turn_markers.verified = True
     return lead_deps(state)
@@ -40,7 +38,7 @@ def test_a_count_without_the_organism_is_refused_with_the_organism() -> None:
     deps = _built(_CARRIED)
 
     mismatches = reconcile(
-        reply("The strategy now holds 67 genes.", changed=True),
+        reply("The strategy now holds the genes.", changed=True),
         turn_record(run_context_for(deps)),
     )
 
@@ -49,7 +47,7 @@ def test_a_count_without_the_organism_is_refused_with_the_organism() -> None:
         (
             "The strategy's records are genes of Plasmodium vivax P01, and the seed "
             "searched Plasmodium falciparum 3D7. Your reply does not say whose "
-            "genes these are. Name Plasmodium vivax P01 beside the count, in full "
+            "genes these are. Name Plasmodium vivax P01 in the reply, in full "
             "or with the genus abbreviated."
         )
     ]
@@ -59,7 +57,7 @@ def test_the_abbreviated_genus_names_the_organism() -> None:
     deps = _built(_CARRIED)
 
     found = kinds(
-        deps, reply("The strategy now holds 67 P. vivax P01 genes.", changed=True)
+        deps, reply("The strategy now holds the P. vivax P01 genes.", changed=True)
     )
 
     assert "unnamed_record_organism" not in found
@@ -67,7 +65,7 @@ def test_the_abbreviated_genus_names_the_organism() -> None:
 
 def test_the_full_name_names_the_organism() -> None:
     deps = _built(_CARRIED)
-    prose = f"The strategy now holds 67 genes of {_TARGET}."
+    prose = f"The strategy now holds the genes of {_TARGET}."
 
     assert "unnamed_record_organism" not in kinds(deps, reply(prose, changed=True))
 
@@ -75,7 +73,7 @@ def test_the_full_name_names_the_organism() -> None:
 def test_a_round_trip_asks_nothing() -> None:
     deps = _built(None)
 
-    found = kinds(deps, reply("The strategy now holds 67 genes.", changed=True))
+    found = kinds(deps, reply("The strategy now holds the genes.", changed=True))
 
     assert "unnamed_record_organism" not in found
 
@@ -84,7 +82,7 @@ def test_a_turn_that_changed_nothing_asks_nothing() -> None:
     deps = _built(_CARRIED)
     deps.state.turn_markers.built = False
 
-    found = kinds(deps, reply("The strategy holds 67 genes.", changed=False))
+    found = kinds(deps, reply("The strategy holds the genes.", changed=False))
 
     assert "unnamed_record_organism" not in found
 

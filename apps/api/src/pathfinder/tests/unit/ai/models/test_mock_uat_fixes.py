@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from veupathdb.domain.parameters import VocabOption
-from veupathdb_mcp.catalog import SheetEntry
 
-from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.agents.strategy_instructions import pinned_frame_sheets
 from pathfinder.ai.models.mock.growths import orthologs_criterion
-from pathfinder.ai.models.mock.sheets import richest_value
+from pathfinder.ai.models.mock.lead_flow import FACTS_BESIDE, SUCCESS_PROSE
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.ai.models.mock.specs import CriterionReply, criterion_call
 from pathfinder.ai.models.mock.strategy_specs import intersect_spec
@@ -19,7 +15,6 @@ from pathfinder.tests.unit.ai.models._mock_pins import (
     unframed_pins,
 )
 from pathfinder.tests.unit.ai.models._mock_turns import (
-    LIVE_ROOT_COUNT,
     OWN_EXPERIMENT_SEARCH,
     SAVED_GENE_COUNT,
     SHEET_ORGANISMS,
@@ -29,7 +24,6 @@ from pathfinder.tests.unit.ai.models._mock_turns import (
     play,
     verify_order,
 )
-from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 SITES = ("plasmodb", "vectorbase")
 _ORDER = "Frame work order: mock frame"
@@ -114,16 +108,14 @@ def test_an_open_slot_is_answered_with_its_first_option(site_id: str) -> None:
 
 
 @pytest.mark.parametrize("site_id", SITES)
-def test_the_saved_gene_set_reply_states_its_count(site_id: str) -> None:
+def test_the_saved_gene_set_reply_names_the_set_and_no_count(site_id: str) -> None:
     text = "Save these as a gene set named UAT G1. [[arc:save-gene-set]]"
 
     calls = play("lead", site_id, text)
 
-    assert (
-        calls[-1]
-        .args_as_dict()["prose"]
-        .startswith(f"Saved as the gene set UAT G1 with {SAVED_GENE_COUNT} genes.")
-    )
+    prose = str(calls[-1].args_as_dict()["prose"])
+    assert prose.startswith("Saved as the gene set UAT G1.")
+    assert str(SAVED_GENE_COUNT) not in prose
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -132,8 +124,10 @@ def test_a_search_no_site_search_states_is_named(site_id: str) -> None:
 
     calls = play("frame", site_id, text, work_order=_ORDER)
 
-    assert calls[-1].args_as_dict()["summary"] == (
-        f"No search on {site_id} states: Find genes with a predicted GPI anchor."
+    answer = calls[-1].args_as_dict()
+    assert (answer["summary"], answer["unstated"]) == (
+        f"No search on {site_id} states: a predicted GPI anchor.",
+        ["a predicted GPI anchor"],
     )
 
 
@@ -220,26 +214,6 @@ def test_the_portal_route_names_a_portal_organism_the_sheet_does_not_reach(
     assert organism[0] not in SHEET_ORGANISMS[site_id]
 
 
-def test_a_sheet_value_is_the_term_the_site_annotates_most() -> None:
-    state = AgentToolState()
-    labels = {
-        "GO:0047316": "GO:0047316 : transaminase activity : 7",
-        "GO:0004672": "GO:0004672 : protein kinase activity : 143",
-        "GO:0016301": "GO:0016301 : kinase activity : 12",
-    }
-    entry = SheetEntry(
-        name="go_typeahead",
-        display_name="GO term",
-        type="multi-pick-vocabulary",
-        required=True,
-        vocabulary=[VocabOption(value=v, display=d) for v, d in labels.items()],
-    )
-    state.pin_sheet("go_genes", "GenesByGoTerm", [entry], what_runs="GO")
-    pinned = pinned_frame_sheets(agent_run_context(agent_state=state)) or ""
-
-    assert richest_value(pinned, "go_genes", "go_typeahead") == "GO:0004672"
-
-
 _EMPTY_STEP = {"stepId": "step_tm", "displayName": "Transmembrane Domain Count"}
 
 
@@ -256,14 +230,7 @@ def test_the_recap_names_each_step_that_returns_nothing(site_id: str) -> None:
 
     calls = play("lead", site_id, "Diagnose it [[arc:recap]]", scene=scene)
 
-    assert (
-        calls[-1]
-        .args_as_dict()["prose"]
-        .endswith(
-            "The strategy returns 0 genes. "
-            "The step 'Transmembrane Domain Count' returns 0 genes."
-        )
-    )
+    assert "returns" not in str(calls[-1].args_as_dict()["prose"])
 
 
 @pytest.mark.parametrize("site_id", SITES)
@@ -314,9 +281,7 @@ def test_the_controls_reply_is_the_check_prose(site_id: str) -> None:
 
     calls = play("lead", site_id, "Test it [[arc:controls-test]]", scene=scene)
 
-    assert calls[-1].args_as_dict()["prose"] == (
-        f"3 of 4 positive controls recovered. The strategy returns {LIVE_ROOT_COUNT:,} genes."
-    )
+    assert calls[-1].args_as_dict()["prose"] == f"{SUCCESS_PROSE}{FACTS_BESIDE}"
 
 
 @pytest.mark.parametrize("site_id", SITES)

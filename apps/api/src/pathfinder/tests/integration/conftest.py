@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from testcontainers.community.postgres import PostgresContainer
 
 from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.completion import open_completion_turn
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.runtime import build_worker_context
@@ -105,3 +106,15 @@ def worker_seams() -> Iterator[None]:
         reset_worker_context()
         reset_completion_turn()
         reset_assistant_registry()
+
+
+@pytest.fixture(autouse=True)
+async def open_job_queue(patch_app_db_engine: None) -> AsyncGenerator[None]:
+    """Hold the test database's job queue open, as every served process does.
+
+    A strategy write defers a job, so a test that commits without the queue
+    fails with the queue closed rather than on what it tests.
+    """
+    del patch_app_db_engine
+    async with procrastinate_app.open_async():
+        yield

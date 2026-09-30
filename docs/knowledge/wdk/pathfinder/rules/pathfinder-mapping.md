@@ -333,6 +333,11 @@ ordinary tree. The same module refuses a round trip without the INTERSECT, a
 copy that differs from the subtree it restates, and two legs that differ in
 anything but the organism each maps to; `set_structure`, the build and the edit
 each read it.
+An edit the researcher asked to tighten or loosen keeps the organism the held
+root answers, so an edit whose tree would answer another organism's genes (a
+one-way transform) is refused with the round trip above
+(`domain/strategy/orthology.py:organism_move_refusal`, read by the edit
+dispatch).
 
 Measured on plasmodb on 2026-09-24, on the seed of the cataloged thread
 (`GenesWithSignalPeptide` SignalP-6.0 INTERSECT `GenesByTransmembraneDomains` 2

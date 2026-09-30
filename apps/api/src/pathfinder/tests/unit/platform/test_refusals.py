@@ -39,8 +39,7 @@ from pathfinder.platform.refusals import (
 )
 from pathfinder.services.control_sets import ControlSetService
 from pathfinder.services.gene_sets.operations import GeneSetService
-from pathfinder.services.gene_sets.store import GeneSetStore
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 from pathfinder.tests._support.sub_agents import agent_tool_names
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -260,17 +259,10 @@ async def test_the_control_set_service_refusal_names_its_listing_tool(
 
 
 @pytest.mark.asyncio
-async def test_the_gene_set_service_refusal_names_its_listing_tool(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_the_gene_set_service_refusal_names_its_listing_tool() -> None:
     """The refusal the service raises, not a copy of it, carries the id."""
 
-    async def _no_row(self: GeneSetStore, entity_id: str) -> GeneSet | None:
-        del self, entity_id
-        return None
-
-    monkeypatch.setattr(GeneSetStore, "_load", _no_row)
-    service = GeneSetService(GeneSetStore())
+    service = GeneSetService(InMemoryGeneSetStore())
 
     with pytest.raises(NotFoundError) as refused:
         await service.get_for_user(uuid4(), _MISSING_GENE_SET)

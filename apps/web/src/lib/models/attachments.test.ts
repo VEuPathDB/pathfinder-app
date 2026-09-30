@@ -13,6 +13,11 @@ import {
   notAcceptedSentence,
   readsLabel,
 } from "./attachments";
+import {
+  ANTHROPIC_SMALL,
+  DEFAULT_MODEL,
+  GOOGLE_STANDARD,
+} from "@/lib/models/__fixtures__/models";
 
 function model(id: string, name: string, reads: boolean): ModelCatalogEntry {
   const [provider = "", modelName = ""] = id.split(":");
@@ -20,6 +25,7 @@ function model(id: string, name: string, reads: boolean): ModelCatalogEntry {
     id,
     name,
     modelName,
+    rank: "standard",
     provider: provider as ModelCatalogEntry["provider"],
     enabled: true,
     supportsImages: reads,
@@ -27,10 +33,10 @@ function model(id: string, name: string, reads: boolean): ModelCatalogEntry {
   };
 }
 
-const LUNA = model("openai:gpt-5.6-luna", "GPT-5.6 Luna", true);
-const FLASH = model("google:gemini-3.6-flash", "Gemini 3.6 Flash", true);
-const SONNET = model("anthropic:claude-sonnet-5", "Claude Sonnet 5", false);
-const CATALOG = [LUNA, FLASH, SONNET];
+const READER = model(DEFAULT_MODEL.id, DEFAULT_MODEL.name, true);
+const FLASH = model(GOOGLE_STANDARD.id, GOOGLE_STANDARD.name, true);
+const BLIND = model(ANTHROPIC_SMALL.id, ANTHROPIC_SMALL.name, false);
+const CATALOG = [READER, FLASH, BLIND];
 const MIB = 1024 * 1024;
 
 function file(
@@ -60,11 +66,11 @@ describe("attachmentKind", () => {
 
 describe("acceptFor", () => {
   it("offers images and PDFs only to a model that reads them", () => {
-    expect(acceptFor(LUNA)).toBe(
+    expect(acceptFor(READER)).toBe(
       ".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain," +
         "image/png,image/jpeg,image/webp,image/gif,application/pdf",
     );
-    expect(acceptFor(SONNET)).toBe(
+    expect(acceptFor(BLIND)).toBe(
       ".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain",
     );
   });
@@ -101,11 +107,13 @@ describe("messageRefusal", () => {
 });
 
 describe("readerModel", () => {
-  const defaults = { lead: SONNET.id, frame: LUNA.id, site_help: FLASH.id };
+  const defaults = { lead: BLIND.id, frame: READER.id, site_help: FLASH.id };
 
   it("reads the Lead's model for a PathFinder thread", () => {
-    expect(readerModel("pathfinder", {}, defaults, CATALOG)).toBe(SONNET);
-    expect(readerModel("pathfinder", { lead: LUNA.id }, defaults, CATALOG)).toBe(LUNA);
+    expect(readerModel("pathfinder", {}, defaults, CATALOG)).toBe(BLIND);
+    expect(readerModel("pathfinder", { lead: READER.id }, defaults, CATALOG)).toBe(
+      READER,
+    );
   });
 
   it("reads the one agent's model for a site help thread", () => {
@@ -119,32 +127,32 @@ describe("readerModel", () => {
 
 describe("attachLabel and attachHint", () => {
   it("name what the reader takes", () => {
-    expect(attachLabel(LUNA)).toBe("Attach a gene-ID list, an image or a PDF");
-    expect(attachHint(LUNA)).toBe(null);
+    expect(attachLabel(READER)).toBe("Attach a gene-ID list, an image or a PDF");
+    expect(attachHint(READER)).toBe(null);
   });
 
   it("say why a reader that reads no file is offered gene-ID lists alone", () => {
-    expect(attachLabel(SONNET)).toBe("Attach a gene-ID list");
-    expect(attachHint(SONNET)).toBe(
-      "Claude Sonnet 5 does not read images or PDFs; choose a model that does in Settings.",
+    expect(attachLabel(BLIND)).toBe("Attach a gene-ID list");
+    expect(attachHint(BLIND)).toBe(
+      `${ANTHROPIC_SMALL.name} does not read images or PDFs; choose a model that does in Settings.`,
     );
   });
 });
 
 describe("readsLabel", () => {
   it("names the kinds a model reads", () => {
-    expect(readsLabel(LUNA)).toBe("reads images and PDFs");
-    expect(readsLabel({ ...LUNA, supportsDocuments: false })).toBe("reads images");
-    expect(readsLabel(SONNET)).toBe(null);
+    expect(readsLabel(READER)).toBe("reads images and PDFs");
+    expect(readsLabel({ ...READER, supportsDocuments: false })).toBe("reads images");
+    expect(readsLabel(BLIND)).toBe(null);
   });
 });
 
 describe("notAcceptedSentence", () => {
   it("says why a reader takes no image, else which kinds are read", () => {
-    expect(notAcceptedSentence(SONNET)).toBe(
-      "Claude Sonnet 5 does not read images or PDFs; choose a model that does in Settings.",
+    expect(notAcceptedSentence(BLIND)).toBe(
+      `${ANTHROPIC_SMALL.name} does not read images or PDFs; choose a model that does in Settings.`,
     );
-    expect(notAcceptedSentence(LUNA)).toBe(
+    expect(notAcceptedSentence(READER)).toBe(
       "PathFinder reads gene-ID lists (.csv, .tsv, .txt), images (PNG, JPEG, WebP, GIF) and PDFs.",
     );
   });

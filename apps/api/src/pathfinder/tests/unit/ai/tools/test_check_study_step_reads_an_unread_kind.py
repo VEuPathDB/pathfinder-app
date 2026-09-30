@@ -16,13 +16,12 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.lead import pre_turn
-from pathfinder.ai.tools.standalone import strategy_graph
+from pathfinder.ai.tools.standalone import study_step
 from pathfinder.ai.tools.standalone.strategy_graph import (
     StrategySummaryResponse,
-    StudyStepCheck,
-    check_study_step,
     get_strategy,
 )
+from pathfinder.ai.tools.standalone.study_step import StudyStepCheck, check_study_step
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_words import StampedKind
@@ -68,7 +67,7 @@ async def test_an_unread_compute_step_is_read_and_answers_its_cut(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     read = serve_the_catalog(monkeypatch)
-    monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", phenotype_study)
+    monkeypatch.setattr(study_step, "get_study_detail_for_dataset", phenotype_study)
     session = _session(COMPUTE_QUERY)
 
     answer = await check_study_step(

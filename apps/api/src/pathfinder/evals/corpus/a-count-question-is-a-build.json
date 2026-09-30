@@ -25,5 +25,8 @@
     "stagingId": "",
     "reference": "log.md#2026-09-15",
     "curatorNote": "The prompt is the phrasing the classifier rule names."
+  },
+  "gates": {
+    "policy": "auto"
   }
 }

@@ -25,6 +25,7 @@ from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tool_sources import RESEARCH_MCP_SOURCE_ID
 from pathfinder.services.wdk_identity import require_registered_wdk_login
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 
 def test_the_registry_serves_pathfinder_by_default() -> None:
@@ -93,7 +94,7 @@ async def test_its_turn_context_is_the_product_context(
         user_id=uuid4(),
         memory_store=None,
         cancel_event=asyncio.Event(),
-        phase_models={"lead": "openai:gpt-5.6-luna"},
+        phase_models={"lead": DEFAULT_MODEL},
         phase_reasoning={},
         tool_sources=sources,
     )
@@ -103,7 +104,7 @@ async def test_its_turn_context_is_the_product_context(
     assert isinstance(context, Context)
     assert context.site_id == "plasmodb"
     assert context.strategy_session is not None
-    assert context.phase_models == {"lead": "openai:gpt-5.6-luna"}
+    assert context.phase_models == {"lead": DEFAULT_MODEL}
     assert context.tool_sources == sources
 
 

@@ -15,6 +15,7 @@ import { formatCost, formatTokens } from "@/features/conversation/usageFormat";
 import recordedTurn from "./__fixtures__/recordedTurn.json";
 
 import { turnUsageOf } from "./thread/TraceAnchor";
+import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn(), message: vi.fn() },
@@ -63,7 +64,7 @@ function secondTurnParts(): MessagePart[] {
       subAgent: "build_strategy",
       phase: "execution",
       state: "completed",
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: 1_200,
       costUsd: "0.01",
     }),
@@ -72,12 +73,12 @@ function secondTurnParts(): MessagePart[] {
       subAgent: "verify_strategy",
       phase: "verification",
       state: "completed",
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: 800,
       costUsd: "0.004",
     }),
     leadUsagePart({
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: 3_000,
       costUsd: "0.05",
     }),
@@ -95,12 +96,12 @@ function budgetStoppedParts(): MessagePart[] {
       subAgent: "frame_problem",
       phase: "frame",
       state: "started",
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: 7_000,
       costUsd: "0.003",
     }),
     leadUsagePart({
-      modelId: "openai:gpt-5.6-luna",
+      modelId: DEFAULT_MODEL.id,
       tokens: RECORDED_LEAD_TOKENS,
       costUsd: String(RECORDED_LEAD_COST),
     }),

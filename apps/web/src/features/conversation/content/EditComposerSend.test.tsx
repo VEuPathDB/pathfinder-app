@@ -44,9 +44,9 @@ vi.mock("@pathfinder/shared/generated/hooks/useRevertToMessage", () => ({
   revertToMessage: vi.fn(() => Promise.resolve({})),
 }));
 
-vi.mock("@pathfinder/shared/generated/hooks/useSubmitProductAction", () => ({
-  submitProductAction: vi.fn(() => Promise.resolve({})),
-}));
+const recordProductEvent = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
@@ -136,5 +136,20 @@ describe("EditComposerBranchOrRevert", () => {
     fireEvent.click(screen.getByTestId("edit-revert-button"));
 
     await waitFor(() => expect(qc.getQueryState(notes)?.isInvalidated).toBe(true));
+  });
+
+  it("a revert records turn_undone for the edited message", async () => {
+    render(<EditComposerBranchOrRevert />);
+
+    fireEvent.click(screen.getByTestId("edit-composer-branch-or-revert"));
+    fireEvent.click(screen.getByTestId("edit-revert-button"));
+
+    await waitFor(() => {
+      expect(recordProductEvent).toHaveBeenCalledWith({
+        event: "turn_undone",
+        messageId: "msg-5",
+        conversationId: "conv-2",
+      });
+    });
   });
 });

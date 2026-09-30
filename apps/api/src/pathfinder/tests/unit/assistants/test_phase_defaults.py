@@ -13,6 +13,14 @@ from pathfinder.assistants.registry import (
 from pathfinder.assistants.site_help.agent import SITE_HELP_MODEL
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID, SITE_HELP_ASSISTANT_ID
+from pathfinder.tests._support.models import (
+    ANTHROPIC_SMALL,
+    DEFAULT_MODEL,
+    GOOGLE_FLAGSHIP,
+    GOOGLE_STANDARD,
+    OPENAI_SMALL,
+    OPENAI_STANDARD,
+)
 
 
 def test_a_split_tier_answers_the_model_of_each_role() -> None:
@@ -20,26 +28,26 @@ def test_a_split_tier_answers_the_model_of_each_role() -> None:
     defaults = installed_phase_defaults("openai", "balanced")
 
     assert defaults == {
-        "lead": "openai:gpt-5.6-terra",
-        "frame": "openai:gpt-5.6-terra",
-        "execution": "openai:gpt-5.6-luna",
-        "verification": "openai:gpt-5.6-terra",
-        SITE_HELP_ASSISTANT_ID: "openai:gpt-5.6-luna",
+        "lead": OPENAI_STANDARD,
+        "frame": OPENAI_STANDARD,
+        "execution": OPENAI_SMALL,
+        "verification": OPENAI_SMALL,
+        SITE_HELP_ASSISTANT_ID: OPENAI_SMALL,
     }
 
 
 def test_a_uniform_tier_answers_one_model_for_every_role() -> None:
-    defaults = installed_phase_defaults("openai", "default")
+    defaults = installed_phase_defaults("openai", "fast")
 
-    assert set(defaults.values()) == {"openai:gpt-5.6-luna"}
+    assert set(defaults.values()) == {OPENAI_SMALL}
     assert set(defaults) == set(phase_defaults()) | {SITE_HELP_ASSISTANT_ID}
 
 
 def test_another_provider_answers_that_provider_models() -> None:
-    defaults = installed_phase_defaults("anthropic", "quality")
+    defaults = installed_phase_defaults("google", "quality")
 
-    assert defaults["lead"] == "anthropic:claude-opus-5"
-    assert defaults["execution"] == "anthropic:claude-sonnet-5"
+    assert defaults["lead"] == GOOGLE_FLAGSHIP
+    assert defaults["execution"] == GOOGLE_STANDARD
 
 
 def test_a_role_no_tier_names_keeps_its_compile_time_model() -> None:
@@ -64,14 +72,14 @@ def test_one_assistant_runs_each_of_its_roles_on_the_pick_or_the_default(
 
     roles = assistant_role_models(
         PATHFINDER_ASSISTANT_ID,
-        {"lead": "anthropic:claude-opus-5", SITE_HELP_ASSISTANT_ID: "google:x"},
+        {"lead": ANTHROPIC_SMALL, SITE_HELP_ASSISTANT_ID: "google:x"},
     )
 
     assert roles == {
-        "lead": "anthropic:claude-opus-5",
-        "frame": "openai:gpt-5.6-luna",
-        "execution": "openai:gpt-5.6-luna",
-        "verification": "openai:gpt-5.6-luna",
+        "lead": ANTHROPIC_SMALL,
+        "frame": DEFAULT_MODEL,
+        "execution": OPENAI_SMALL,
+        "verification": OPENAI_SMALL,
     }
 
 
@@ -83,7 +91,7 @@ def test_the_one_agent_assistant_has_one_role(
     monkeypatch.setattr(settings, "default_tier", "fast")
 
     assert assistant_role_models(SITE_HELP_ASSISTANT_ID, {}) == {
-        SITE_HELP_ASSISTANT_ID: "anthropic:claude-haiku-4-5"
+        SITE_HELP_ASSISTANT_ID: ANTHROPIC_SMALL
     }
 
 
@@ -94,14 +102,14 @@ def test_the_lead_reads_the_message_of_a_pathfinder_turn(
     monkeypatch.setattr(settings, "default_provider", "openai")
     monkeypatch.setattr(settings, "default_tier", "balanced")
 
-    assert prompt_reader_model(PATHFINDER_ASSISTANT_ID, {}) == "openai:gpt-5.6-terra"
+    assert prompt_reader_model(PATHFINDER_ASSISTANT_ID, {}) == OPENAI_STANDARD
     assert (
         prompt_reader_model(PATHFINDER_ASSISTANT_ID, {"frame": "google:x"})
-        == "openai:gpt-5.6-terra"
+        == OPENAI_STANDARD
     )
     assert (
-        prompt_reader_model(PATHFINDER_ASSISTANT_ID, {"lead": "openai:gpt-5.6-luna"})
-        == "openai:gpt-5.6-luna"
+        prompt_reader_model(PATHFINDER_ASSISTANT_ID, {"lead": OPENAI_SMALL})
+        == OPENAI_SMALL
     )
 
 
@@ -112,6 +120,4 @@ def test_the_one_agent_reads_the_message_of_a_site_help_turn(
     monkeypatch.setattr(settings, "default_provider", "anthropic")
     monkeypatch.setattr(settings, "default_tier", "fast")
 
-    assert (
-        prompt_reader_model(SITE_HELP_ASSISTANT_ID, {}) == "anthropic:claude-haiku-4-5"
-    )
+    assert prompt_reader_model(SITE_HELP_ASSISTANT_ID, {}) == ANTHROPIC_SMALL

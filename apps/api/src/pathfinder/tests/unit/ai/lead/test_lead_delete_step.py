@@ -11,6 +11,11 @@ from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.lead.lead_tools import delete_step
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -428,3 +433,25 @@ async def test_the_cited_root_decides_when_it_is_not_the_largest(
     payload = returned(answer, dict[str, JsonValue])
     assert payload["deleted"] == ["step_c9", "step_k8", "step_k9"]
     assert sorted(_graph(ctx).steps) == ["step_main"]
+
+
+async def test_an_approved_delete_withdraws_what_only_its_step_stated(
+    stub_api: StubAPI,
+) -> None:
+    ctx = _ctx()
+    domain = ctx.deps.state.domain
+    blood = Constraint(
+        kind=ConstraintKind.OTHER,
+        requested_value="blood stages",
+        label="stage",
+        source=ConstraintSource.USER_EXPLICIT,
+    )
+    kinase = blood.model_copy(update={"requested_value": "kinase domain"})
+    domain.requirements = [kinase, blood]
+
+    await delete_step(ctx, step_id="step_k2", reply=_REPLY)
+
+    assert (
+        domain.requirements,
+        [r.constraint for r in domain.retired_requirements],
+    ) == ([kinase], [blood])

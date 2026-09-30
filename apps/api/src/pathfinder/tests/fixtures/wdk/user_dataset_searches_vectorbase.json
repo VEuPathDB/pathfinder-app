@@ -1,0 +1,331 @@
+[
+ {
+  "urlSegment": "GenesByDESeqUserDataset",
+  "displayName": "RNA-Seq Differential Expression (User Datasets)",
+  "shortDisplayName": "UD RNA-Seq (de)",
+  "fullName": "GeneQuestions.GenesByDESeqUserDataset",
+  "queryName": "GenesByDESeqUserDataset",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "eda_dataset_id",
+   "eda_analysis_spec"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "eda_dataset_id",
+     "eda_analysis_spec"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "FILL"
+   ],
+   "userDatasetType": [
+    "rnaseqrc"
+   ],
+   "edaNotebookType": [
+    "differentialExpressionNotebook"
+   ],
+   "specificAttribution": [],
+   "displayCategory": [
+    "Differential Expression"
+   ]
+  },
+  "parameters": [
+   {
+    "displayName": "RNA-Seq Raw Counts User Dataset",
+    "minSelectedCount": 1,
+    "maxSelectedCount": 1,
+    "isVisible": true,
+    "type": "single-pick-vocabulary",
+    "help": "A public RNA-Seq Raw Counts User Dataset, or a private one you have imported into your workspace, and that is installed in this website",
+    "dependentParams": [],
+    "displayType": "select",
+    "isReadOnly": false,
+    "vocabulary": [
+     [
+      "EDAUD_9kZ5ohRotJ04g",
+      "pathfinder-uat-deseq",
+      null
+     ]
+    ],
+    "allowEmptyValue": false,
+    "name": "eda_dataset_id",
+    "initialDisplayValue": "EDAUD_9kZ5ohRotJ04g",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   },
+   {
+    "displayName": "Filter genes based on the data below",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": true,
+    "type": "string",
+    "help": "Filter genes based on the data below, and then click Get Answer to see your list of genes.",
+    "visibleHelp": "Specify your set of genes by clicking on one or more variables in the panel at left;\n                            then interact with the variable display on the right to subset on the selected variable.<br>\n                            After subsetting, click <strong>Get Answer</strong> to get the specified set of genes.",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": true,
+    "name": "eda_analysis_spec",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": false
+ },
+ {
+  "urlSegment": "GenesByUserDatasetGeneList",
+  "displayName": "Gene List (User Datasets)",
+  "shortDisplayName": "UD Gene List",
+  "fullName": "GeneQuestions.GenesByUserDatasetGeneList",
+  "queryName": "GenesByUserDatasetGeneList",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "geneListUserDataset"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "geneListUserDataset"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "FILL"
+   ],
+   "specificAttribution": [],
+   "userDatasetType": [
+    "genelist"
+   ]
+  },
+  "parameters": [
+   {
+    "displayName": "Gene List User Dataset",
+    "minSelectedCount": 1,
+    "maxSelectedCount": 1,
+    "isVisible": true,
+    "type": "single-pick-vocabulary",
+    "help": "A public Gene List User Dataset, or a private one you have imported into your workspace, and that is installed in this website",
+    "dependentParams": [],
+    "displayType": "select",
+    "isReadOnly": false,
+    "vocabulary": [
+     [
+      "bla",
+      "Choose a public or private Gene List User Dataset, or Upload one first",
+      null
+     ],
+     [
+      "54Z5sURsoM04A",
+      "pathfinder-uat-genelist",
+      null
+     ]
+    ],
+    "allowEmptyValue": false,
+    "name": "geneListUserDataset",
+    "initialDisplayValue": "bla",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": false
+ },
+ {
+  "urlSegment": "GenesByPhenotypeUserDataset",
+  "displayName": "Phenotype (User Datasets)",
+  "shortDisplayName": "UD Phenotype",
+  "fullName": "GeneQuestions.GenesByPhenotypeUserDataset",
+  "queryName": "GenesByPhenotypeUserDataset",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "eda_dataset_id",
+   "eda_analysis_spec"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "eda_dataset_id",
+     "eda_analysis_spec"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "FILL"
+   ],
+   "specificAttribution": [],
+   "userDatasetType": [
+    "phenotype"
+   ]
+  },
+  "parameters": [
+   {
+    "displayName": "Phenotype User Dataset",
+    "minSelectedCount": 1,
+    "maxSelectedCount": 1,
+    "isVisible": true,
+    "type": "single-pick-vocabulary",
+    "help": "A public Phenotype User Dataset, or a private one you have imported into your workspace, and that is installed in this website",
+    "dependentParams": [],
+    "displayType": "select",
+    "isReadOnly": false,
+    "vocabulary": [
+     [
+      "EDAUD_wEZ5YwRptR040",
+      "pathfinder-uat-phenotype",
+      null
+     ]
+    ],
+    "allowEmptyValue": false,
+    "name": "eda_dataset_id",
+    "initialDisplayValue": "EDAUD_wEZ5YwRptR040",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   },
+   {
+    "displayName": "Filter genes based on the data below",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": true,
+    "type": "string",
+    "help": "Filter genes based on the data below, and then click Get Answer to see your list of genes.",
+    "visibleHelp": "Specify your set of genes by clicking on one or more variables in the panel at left;\n                            then interact with the variable display on the right to subset on the selected variable.<br>\n                            After subsetting, click <strong>Get Answer</strong> to get the specified set of genes.",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": true,
+    "name": "eda_analysis_spec",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": false
+ },
+ {
+  "urlSegment": "GenesByEdaVizWithCompute",
+  "displayName": "Gene Dataset Filtering",
+  "shortDisplayName": "Gene Dataset",
+  "fullName": "GeneQuestions.GenesByEdaVizWithCompute",
+  "queryName": "GenesByEdaVizWithCompute",
+  "outputRecordClassName": "transcript",
+  "paramNames": [
+   "eda_dataset_id",
+   "eda_analysis_spec"
+  ],
+  "groups": [
+   {
+    "displayType": "empty",
+    "displayName": "",
+    "name": "empty",
+    "description": "",
+    "isVisible": true,
+    "parameters": [
+     "eda_dataset_id",
+     "eda_analysis_spec"
+    ]
+   }
+  ],
+  "properties": {
+   "organisms": [
+    "FILL"
+   ],
+   "specificAttribution": []
+  },
+  "parameters": [
+   {
+    "displayName": "EDA Dataset ID",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": false,
+    "type": "string",
+    "help": "EDA Dataset ID",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": false,
+    "name": "eda_dataset_id",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   },
+   {
+    "displayName": "Filter genes based on the data below",
+    "length": 0,
+    "isVisible": true,
+    "isMultiLine": true,
+    "type": "string",
+    "help": "Filter genes based on the data below, and then click Get Answer to see your list of genes.",
+    "visibleHelp": "Specify your set of genes by clicking on one or more variables in the panel at left;\n                            then interact with the variable display on the right to subset on the selected variable.<br>\n                            After subsetting, click <strong>Get Answer</strong> to get the specified set of genes.",
+    "dependentParams": [],
+    "isReadOnly": false,
+    "isNumber": false,
+    "allowEmptyValue": false,
+    "name": "eda_analysis_spec",
+    "initialDisplayValue": "",
+    "properties": {
+     "organisms": [
+      "FILL"
+     ],
+     "specificAttribution": []
+    },
+    "group": "empty"
+   }
+  ],
+  "isAnalyzable": true,
+  "isCacheable": true
+ }
+]

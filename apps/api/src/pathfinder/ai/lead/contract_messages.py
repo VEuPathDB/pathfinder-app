@@ -9,16 +9,14 @@ from collections.abc import Sequence
 
 from assistant_core.graph.tool_summary import count_noun
 
-from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.turn_records import CreatedControlSet, NamedStep
+from pathfinder.ai.lead.facts_in_prose import AlteredRecordText, MisattributedSource
 from pathfinder.ai.lead.phase_stop import PhaseStop
-from pathfinder.domain.caveats import Caveat, Gap
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operational_spec import Criterion, ValueSource
 from pathfinder.domain.strategy.orthology import OrganismChange
 from pathfinder.domain.strategy.spec_diff import SpecDiff
-from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.domain.turn_facts import TurnFacts
 
 
 def unrecorded_offer_message() -> str:
@@ -31,16 +29,6 @@ def unrecorded_offer_message() -> str:
         "sentence and each concrete change a yes makes. When it asks the user "
         "for a value, record the question in ``asked_questions`` with the value "
         "you recommend. Otherwise end the reply without a question."
-    )
-
-
-def misnamed_deletion_message(claimed: str, deleted: Sequence[NamedStep]) -> str:
-    """Why a reply that names a step the turn did not delete is refused."""
-    removed = ", ".join(step.described() for step in deleted)
-    return (
-        f"Your reply says it removed the {claimed} step, and that step is still "
-        f"in the strategy. This turn deleted {removed}. Name the step that was "
-        f"deleted, by its title."
     )
 
 
@@ -75,14 +63,13 @@ def blamed_the_site_message(blame: str, stop: PhaseStop | None) -> str:
     )
 
 
-def unverified_build_message(outcome: BuildOutcome | None) -> str:
+def unverified_build_message(outcome: BuildOutcome | None, root: int | None) -> str:
     """Why a turn that built something is asked to verify before it answers.
 
-    The check is asked for once. A second answer that still declines is the
-    model's to give: only it knows whether a check is possible right now.
+    ``root`` is the count the facts show for the strategy. The check is asked
+    for once: only the model knows whether a check is possible right now.
     """
     pushed = len(outcome.pushed_step_ids) if outcome is not None else 0
-    root = outcome.root_count if outcome is not None else None
     count = "unknown" if root is None else str(root)
     return (
         f"This turn changed the strategy - {pushed} step(s) on VEuPathDB, root "
@@ -91,14 +78,13 @@ def unverified_build_message(outcome: BuildOutcome | None) -> str:
     )
 
 
-def claimed_change_message(outcome: BuildOutcome | None) -> str:
+def claimed_change_message(outcome: BuildOutcome | None, root: int | None) -> str:
     """Why a reply that reports a change this turn never made is refused.
 
-    The turn's own record of what it wrote is the only evidence. It is asked
-    once per turn.
+    The turn's own record of what it wrote is the only evidence, and ``root``
+    is the count the facts show. It is asked once per turn.
     """
     pushed = len(outcome.pushed_step_ids) if outcome is not None else 0
-    root = outcome.root_count if outcome is not None else None
     count = "unknown" if root is None else str(root)
     return (
         f"This reply says the strategy changed, but this turn ran no build, "
@@ -147,40 +133,25 @@ def eda_criterion_not_built_message(waiting: Criterion) -> str:
     )
 
 
-def unreported_change_message() -> str:
-    """Why a reply that leaves out the change this turn made is refused."""
-    return (
-        "This turn changed the strategy (a build, edit, delete, clear or "
-        "export ran). Set strategy_changed to true and state what changed "
-        "and the new counts."
-    )
+def unreported_change_message(outcome: BuildOutcome | None, facts: TurnFacts) -> str:
+    """Why a reply that leaves out the change this turn made is refused.
 
-
-def _mislabelled_save_message(claimed: str, saves_it: str, instead: str) -> str:
-    """Why a reply that reports an artifact this turn never saved is refused.
-
-    A control set and a gene set are reached from different controls in the
-    Evaluate panel, so the wrong noun sends the reader to the wrong place.
+    The steps this turn pushed are named, so the reply cannot describe them as
+    a strategy an earlier turn left.
     """
-    return (
-        f"Your reply says this turn saved {claimed}, and this turn saved none: "
-        f"{saves_it} is the only tool that saves one, and reading a result "
-        f"saves nothing.{instead} A control set and a gene set are reached from "
-        f"different controls in the Evaluate panel, so name what this turn "
-        f"actually saved, or call {saves_it} and answer again."
+    pushed = set(outcome.pushed_step_ids) if outcome is not None else set()
+    built = [step.display_name for step in facts.steps if step.step_id in pushed]
+    what = f": it built {', '.join(built)}" if built else ""
+    count = (
+        "an unknown count"
+        if facts.root_count is None
+        else count_noun(facts.root_count, facts.record_noun)
     )
-
-
-def control_set_not_written_message(saved: Sequence[CreatedGeneSet]) -> str:
-    """Why a reply that reports a control set this turn never wrote is refused."""
-    return _mislabelled_save_message(
-        "a control set",
-        "build_control_set",
-        "".join(
-            f" This turn saved the workbench gene set {created.name!r}, "
-            f"{created.gene_count} genes."
-            for created in saved[:1]
-        ),
+    return (
+        f"This turn changed the strategy (a build, edit, delete, clear or "
+        f"export ran){what}. The root holds {count}. Set strategy_changed to "
+        f"true and say what this turn built or changed, never that nothing "
+        f"changed; the counts are shown beside the reply."
     )
 
 
@@ -204,31 +175,6 @@ def unsaved_controls_message(positives: int, negatives: int) -> str:
     )
 
 
-def gene_set_not_saved_message(saved: Sequence[CreatedControlSet]) -> str:
-    """Why a reply that reports a gene set this turn never saved is refused."""
-    return _mislabelled_save_message(
-        "a gene set",
-        "save_gene_set",
-        "".join(
-            f" This turn saved the control set {created.name!r}."
-            for created in saved[:1]
-        ),
-    )
-
-
-def unretrieved_source_message(absent: Sequence[str]) -> str:
-    """Why a reply that cites a reference this turn never read is refused."""
-    named = ", ".join(absent)
-    return (
-        f"Your reply lists {named} under ``sources``, and no read of this turn "
-        f"returned it: this is a reference this turn did not retrieve, so the "
-        f"user cannot check it. Either drop it, or retrieve it first - "
-        f"``read_gene_record`` for a fact about a gene, "
-        f"``research_literature_search`` for a paper, ``research_web_search`` "
-        f"for a page - and list what came back."
-    )
-
-
 _COPY_THE_CARD = (
     "Control counts and control gene ids are read from the control tests, the "
     "scored comparisons and the sweeps this turn ran, from the evidence card "
@@ -237,21 +183,6 @@ _COPY_THE_CARD = (
     "sample the check judged. Copy them; never restate one from memory. When "
     "none of them holds a result, report no result."
 )
-
-
-def unbacked_evidence_message(found: Sequence[str]) -> str:
-    """Why a reply that states a result no check of this turn holds is refused."""
-    return " ".join(
-        [
-            *found,
-            _COPY_THE_CARD,
-            (
-                "Return the same reply with every control count, control gene id "
-                "and sampled-gene count taken from the evidence card, or leave out "
-                "what the card does not hold."
-            ),
-        ]
-    )
 
 
 def unread_gene_sentence(gene_id: str) -> str:
@@ -341,52 +272,6 @@ def unstated_stop_message(stop: PhaseStop) -> str:
     )
 
 
-def machine_words_message(found: Sequence[str]) -> str:
-    """Why a reply about a failed turn that prints an internal name is refused."""
-    named = ", ".join(found)
-    return (
-        f"This turn ends with work undone and your reply prints {named}. The "
-        f"user holds no tool name, no step id and no error code, so none of "
-        f"them says what went wrong. {THE_PLAIN_SENTENCE} Then ask the one "
-        f"question that unblocks it, or stop."
-    )
-
-
-def unnamed_search_message(
-    missing: Sequence[AddedSearch], unreasoned: Sequence[AddedSearch] = ()
-) -> str:
-    """Why a reply that does not name a search this turn added, or names it
-    without the reason it was chosen, is refused.
-
-    The step runs the search, not the words it was chosen for, so a reply in
-    the request's words alone can say the strategy holds a filter it lacks.
-    """
-    sentences: list[str] = []
-    if missing:
-        listed = "; ".join(
-            f"{added.search_display_name} (for: {added.criterion_text})"
-            for added in missing
-        )
-        sentences.append(
-            f"This turn added steps your reply does not name by the search they "
-            f"run: {listed}. Name each search as written here, and say what it "
-            f"finds; when it is not what the request asked for, say so."
-        )
-    reasoned = [(a, a.rationale) for a in unreasoned if a.rationale is not None]
-    if reasoned:
-        listed = "; ".join(
-            f"{added.search_display_name} (for: {added.criterion_text}) - "
-            f"{rationale.line()}"
-            for added, rationale in reasoned
-        )
-        sentences.append(
-            f"These are named without the reason they were chosen: {listed}. "
-            f"Give each reason beside its name, in the same paragraph or list "
-            f"item, as written here or in your words, keeping the term."
-        )
-    return " ".join(sentences)
-
-
 def unnamed_record_organism_message(change: OrganismChange) -> str:
     """Why a reply about records another organism holds, not naming it, is refused.
 
@@ -397,43 +282,71 @@ def unnamed_record_organism_message(change: OrganismChange) -> str:
     return (
         f"The strategy's records are genes of {records}, and the seed searched "
         f"{', '.join(change.seed)}. Your reply does not say whose genes these "
-        f"are. Name {records} beside the count, in full or with the genus "
+        f"are. Name {records} in the reply, in full or with the genus "
         f"abbreviated."
     )
 
 
-def unstated_gap_message(gaps: Sequence[Gap]) -> str:
-    """Why a reply silent about what the strategy does not answer is refused.
+def fact_outside_the_block_message(found: Sequence[str]) -> str:
+    """Why a reply that prints a number, a name or a link no fact holds is refused.
 
-    A reply that names only what the strategy answers reads as a strategy that
-    answers everything the researcher asked.
+    A fact is what a facts part of the conversation shows, what the researcher
+    wrote, a count this turn measured or compared, or the difference of two
+    such counts. Nothing else is held.
     """
-    listed = "; ".join(gap.sentence for gap in gaps)
+    printed = ", ".join(f"``{token}``" for token in found)
     return (
-        f"The check found what the strategy does not answer: {listed}. Your "
-        f"reply does not say so; state each with what is missing."
+        f"Your reply prints {printed}, and no fact holds it. The facts this "
+        f"conversation showed - each step with its values and count, the caveats "
+        f"and gaps, the link, the saved sets, the control results and the records "
+        f"this turn read - stand beside its replies, with the options this reply "
+        f"offers. A count a comparison of this "
+        f"turn returned, and the difference of two counts the facts show, are "
+        f"facts too. Take out only {printed} and keep every other part of the "
+        f"reply as it is, every count the facts show included. Do not say where "
+        f"a fact is shown."
     )
 
 
-def unstated_caveat_message(caveats: Sequence[Caveat]) -> str:
-    """Why a reply that leaves out a shortfall the check measured is refused."""
-    listed = "; ".join(caveat.sentence for caveat in caveats)
+_SOURCE_NAMES: dict[ValueSource, str] = {
+    "stated": "stated in the request",
+    "card": "answered on a card",
+    "default": "the site's default",
+    "chosen": "chosen",
+    "held": "held by the strategy",
+}
+
+
+def misattributed_source_message(found: MisattributedSource) -> str:
+    """Why a reply that says a value was set by another source than its row's
+    is refused."""
+    shown = " or ".join(sorted(_SOURCE_NAMES[s] for s in found.shown))
     return (
-        f"The check measured {listed}. Your reply does not state it; give the numbers."
+        f"Your reply says ``{found.phrase}``, and the facts row of that value "
+        f"shows it as {shown}, not as {_SOURCE_NAMES[found.claimed]}. Say who "
+        f"set each value as its facts row does, and keep every other part of the "
+        f"reply as it is."
     )
 
 
-def counted_in_the_wrong_unit_message(
-    record_type: str, noun: str, counts: Sequence[int]
-) -> str:
-    """Why a reply that names a step count in the record type's own noun is refused.
-
-    The site counts a transcript strategy in genes, so "145 transcripts" reads
-    as more transcripts than genes and misstates the count.
-    """
-    written = " and ".join(f"{count:,} {record_type}s" for count in counts)
-    wanted = " and ".join(f"{count:,} {noun}s" for count in counts)
+def altered_record_text_message(found: Sequence[AlteredRecordText]) -> str:
+    """Why a reply that writes a record's product another way is refused."""
+    words = "; ".join(
+        f"``{a.written}`` where the record of {a.record_id} writes ``{a.recorded}``"
+        for a in found
+    )
     return (
-        f"The strategy holds {record_type} records, and the site counts them in "
-        f"{noun}s: your reply writes {written}. Write {wanted}."
+        f"Your reply writes {words}. A record's text is the site's: copy it as "
+        f"the record writes it or leave it out, and keep every other part of the "
+        f"reply as it is."
+    )
+
+
+def failed_check_message(reason: str) -> str:
+    """Why a reply over a failed check that states nothing of it is refused."""
+    return (
+        f"The last check of this strategy failed: {reason} Nothing has changed "
+        "since, so the reply states that verdict: name each requirement the "
+        "check found unanswered, or quote its reason. Or ask the researcher how "
+        "to go on, recorded in ``asked_questions`` or on a card."
     )

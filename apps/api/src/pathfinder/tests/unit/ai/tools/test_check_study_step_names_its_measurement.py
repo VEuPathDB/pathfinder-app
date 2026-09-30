@@ -13,8 +13,8 @@ from veupathdb.eda import (
     EdaStudyDetail,
 )
 
-from pathfinder.ai.tools.standalone import strategy_graph
-from pathfinder.ai.tools.standalone.strategy_graph import (
+from pathfinder.ai.tools.standalone import study_step
+from pathfinder.ai.tools.standalone.study_step import (
     StudyStepCheck,
     check_study_step,
 )
@@ -82,10 +82,12 @@ def _serve_the_study(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
         return permission_entry(), _counts_study()
 
-    monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", _detail)
+    monkeypatch.setattr(study_step, "get_study_detail_for_dataset", _detail)
 
 
-async def _check(value_variable: str) -> tuple[StudyStepCheck, str]:
+async def _check(
+    value_variable: str, requested_fold_change: float = 2
+) -> tuple[StudyStepCheck, str]:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph("g1", "Heat shock DHC", "plasmodb")
     graph.record_type = "transcript"
@@ -99,7 +101,7 @@ async def _check(value_variable: str) -> tuple[StudyStepCheck, str]:
     answer = await check_study_step(
         agent_run_context(strategy_session=session),
         E2_STEP,
-        requested_fold_change=2,
+        requested_fold_change=requested_fold_change,
         requested_significance=0.05,
     )
     return returned(answer, StudyStepCheck), str(summary_of(answer).data["summary"])
@@ -143,8 +145,20 @@ async def test_a_study_the_check_cannot_read_states_the_variable_id(
     ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
         raise refusal
 
-    monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", _refuse)
+    monkeypatch.setattr(study_step, "get_study_detail_for_dataset", _refuse)
 
     check, _summary = await _check(SENSE_COUNT)
 
     assert (check.method, check.value_variable) == ("DESeq", SENSE_COUNT)
+
+
+async def test_a_value_the_step_was_not_built_at_leads_the_summary() -> None:
+    check, summary = await _check(SENSE_COUNT, requested_fold_change=1.5)
+
+    assert [(c.label, c.honored) for c in check.checks] == [
+        ("fold change", False),
+        ("significance", True),
+    ]
+    assert summary.startswith(
+        "Not met: fold change asked 1.5, built 2. 201 records at 2-fold and p 0.05"
+    )

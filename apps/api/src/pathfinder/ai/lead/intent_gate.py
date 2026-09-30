@@ -50,6 +50,7 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "remember",
         "save_gene_set",
         "list_gene_sets",
+        "read_step_ids",
         "export_gene_set",
     }
 )
@@ -93,15 +94,18 @@ def turn_is_off_topic(deps: LeadDeps) -> bool:
 def turn_builds(deps: LeadDeps) -> bool:
     """Whether the intent governing this turn asks for a build.
 
-    A researcher who accepts a proposal asks for the work the card names.
+    A researcher who accepts a proposal asks for the work the card names. A
+    turn that built stays a building turn, so its check stays reachable.
     """
     intent = deps.intent
+    markers = deps.state.turn_markers
     return (
         turn_is_classified(deps)
         and intent is not None
         and (
             intent.classification in BUILDING_INTENTS
-            or deps.state.turn_markers.accepted_proposal
+            or markers.accepted_proposal
+            or markers.built
         )
     )
 

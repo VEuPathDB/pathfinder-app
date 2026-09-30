@@ -20,6 +20,7 @@ from veupathdb import JSONObject, get_logger
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
 __all__ = [
+    "answer_revision",
     "parse_strategy_ast",
     "strategy_revision",
     "strategy_revision_of_raw",
@@ -74,6 +75,16 @@ def strategy_revision(ast: StrategyAst | None) -> str:
     )
     digest = hashlib.sha256(canonical.encode()).hexdigest()
     return digest[:_REVISION_LENGTH]
+
+
+def answer_revision(ast: StrategyAst | None) -> str:
+    """Fingerprint what the strategy's root computes, ``""`` if absent.
+
+    A step not yet combined is not in the root's answer, so it moves nothing.
+    """
+    if ast is None:
+        return ""
+    return strategy_revision(ast.model_copy(update={"detached_roots": []}))
 
 
 def parse_strategy_ast(raw: JSONObject | None) -> StrategyAst | None:

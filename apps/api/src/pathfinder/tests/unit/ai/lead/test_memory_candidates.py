@@ -15,6 +15,7 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
@@ -50,7 +51,7 @@ def _intent_state(classification: IntentClassification | None) -> PipelineState:
 def _strategy_keys(state: PipelineState) -> list[str]:
     return [
         key
-        for value, key in collect_memory_candidates(state)
+        for value, key in collect_memory_candidates(state, counts=BuiltCounts())
         if value.kind == "strategy"
     ]
 
@@ -113,7 +114,7 @@ def _digest(remember: list[MemoryEntryDraft]) -> VerificationDigest:
 def _knowledge(state: PipelineState) -> list[MemoryValue]:
     return [
         value
-        for value, _key in collect_memory_candidates(state)
+        for value, _key in collect_memory_candidates(state, counts=BuiltCounts())
         if value.kind == "knowledge"
     ]
 
@@ -174,7 +175,7 @@ def test_multiple_drafts_get_distinct_keys() -> None:
 
     keys = [
         key
-        for value, key in collect_memory_candidates(state)
+        for value, key in collect_memory_candidates(state, counts=BuiltCounts())
         if value.kind == "knowledge"
     ]
 

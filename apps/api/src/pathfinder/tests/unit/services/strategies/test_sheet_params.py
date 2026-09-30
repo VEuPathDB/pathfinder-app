@@ -1,4 +1,4 @@
-"""The parameter names a search's sheet shows, read from the catalog."""
+"""The parameters a search's sheet shows, read from the catalog."""
 
 from __future__ import annotations
 
@@ -59,7 +59,9 @@ async def test_the_sheet_names_the_visible_parameters_only() -> None:
         site_id="plasmodb", record_type="transcript", search_names=[_SEARCH]
     )
 
-    assert sheets == {_SEARCH: frozenset({"profileset_generic"})}
+    assert {name: [i.name for i in infos] for name, infos in sheets.items()} == {
+        _SEARCH: ["profileset_generic"]
+    }
 
 
 async def test_a_search_the_catalog_cannot_read_is_left_out(

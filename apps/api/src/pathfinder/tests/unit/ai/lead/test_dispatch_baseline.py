@@ -9,6 +9,7 @@ from pydantic_ai.tools import DeferredToolResults
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.dispatch_context import (
     record_the_spec_the_dispatch_found,
+    refuse_and_keep_what_it_bound,
     refuse_and_restore,
 )
 from pathfinder.ai.lead.sub_agent_stream import SubAgentResume
@@ -88,3 +89,27 @@ def test_a_refusal_puts_back_the_spec_the_dispatch_found() -> None:
     assert restored is not None
     assert [c.id for c in restored.criteria] == ["step_k1"]
     assert restored is not deps.state.domain.spec_before_dispatch
+
+
+def test_a_refusal_of_what_a_pass_asks_keeps_the_criteria_it_bound() -> None:
+    """A criterion the dispatch found goes back as found; a new bound one stays."""
+    deps = _deps(_spec("step_k1"))
+    record_the_spec_the_dispatch_found(deps, resume=None)
+    deps.state.domain.operational_spec = OperationalSpec(
+        goal="essential kinases",
+        criteria=[
+            Criterion(id="step_k1", text="changed by the pass"),
+            Criterion(id="step_k2", text="blood stages", search_name="GenesByText"),
+            Criterion(id="step_k3", text="not bound yet"),
+        ],
+    )
+
+    with pytest.raises(ModelRetry, match="ask again"):
+        refuse_and_keep_what_it_bound(deps, "ask again")
+
+    kept = deps.state.domain.operational_spec
+    assert kept is not None
+    assert [(c.id, c.text) for c in kept.criteria] == [
+        ("step_k1", "step_k1"),
+        ("step_k2", "blood stages"),
+    ]

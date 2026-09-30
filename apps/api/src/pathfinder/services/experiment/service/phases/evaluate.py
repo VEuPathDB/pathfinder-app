@@ -12,4 +12,4 @@ async def phase_evaluate(pctx: PhaseContext) -> None:
     config, experiment = pctx.config, pctx.experiment
     result = await run_single_step_controls(config)
     await apply_control_result(config, experiment, result)
-    pctx.store.save(experiment)
+    await pctx.store.save(experiment)

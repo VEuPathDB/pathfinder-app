@@ -14,9 +14,7 @@
     "verified": null,
     "stepIdsUnchanged": null,
     "replyMentions": [],
-    "replyOmits": [
-      "Verified end-to-end"
-    ]
+    "replyOmits": []
   },
   "provenance": {
     "site": "plasmodb",
@@ -26,5 +24,8 @@
     "stagingId": "",
     "reference": "log.md#2026-08-30",
     "curatorNote": "Reworded so it carries no build keyword of the deterministic provider."
+  },
+  "gates": {
+    "policy": "decline-offers"
   }
 }

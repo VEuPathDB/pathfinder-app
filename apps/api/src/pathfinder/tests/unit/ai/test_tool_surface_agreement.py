@@ -81,6 +81,8 @@ _TOOL_NAME_TOKENS = frozenset(
         "get_strategy",
         "list_gene_sets",
         "optimize_search_parameters",
+        "read_step_columns",
+        "read_step_ids",
         "run_control_tests_on_search",
         "run_control_tests_on_step",
         "save_gene_set",

@@ -77,7 +77,9 @@ async def _finalize(
     async def _no_turn_message(**kwargs: Any) -> None:
         del kwargs
 
-    async def _one_candidate(_: PipelineState) -> Sequence[tuple[MemoryValue, str]]:
+    async def _one_candidate(
+        _: PipelineState, **_kwargs: object
+    ) -> Sequence[tuple[MemoryValue, str]]:
         return [
             (
                 MemoryValue(

@@ -6,8 +6,8 @@ import math
 
 from veupathdb_mcp.separation import hypergeometric_log_sf
 
+from pathfinder.domain.control_enrichment import ControlEnrichment
 from pathfinder.domain.evidence import (
-    ControlEnrichment,
     ControlSetEvidence,
     ControlTestEvidence,
 )

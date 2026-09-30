@@ -15,11 +15,11 @@ Settings opens from the nav rail (`Settings`, gear) or on the `Model` tab from `
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Model` | Read | `Strategy builder runs each stage below on its own model. ...`; stage rows `Assistant`, `Planning`, `Building`, `Checking`; `Preset` with `Quality`, `Balanced`, `Default`, `Fast`; each unpinned row `Default: <model id>` (the deployment's default; `openai:gpt-5.6-luna` in the measurements) |
-| 2 | `Preset` | `Fast`; close Settings; send the S1 prompt in a new conversation | The trace header's usage reads `gpt-5.6-luna (low) - <tokens>, <cost>` |
+| 1 | Settings, `Model` | Read | `Strategy builder runs each stage below on its own model. ...`; stage rows `Assistant`, `Planning`, `Building`, `Checking`; `Preset` with `Quality`, `Balanced`, `Default`, `Fast`; each unpinned row `Default: <model id>`: on the default preset `openai:gpt-5.6-luna` for `Assistant` and `Planning`, `openai:gpt-6-luna` for `Building` and `Checking`. Site help's one row runs `openai:gpt-6-luna` on every OpenAI preset but `Quality`, where it runs `openai:gpt-5.6-luna` |
+| 2 | `Preset` | `Fast`; close Settings; send the S1 prompt in a new conversation | The trace header's usage reads `gpt-6-luna (low) - <tokens>, <cost>` |
 | 3 | `Preset` | `Default`; send the S1 prompt again | `gpt-5.6-luna (medium) - <tokens>, <cost>` |
-| 4 | `Preset` | `Quality`; send the S1 prompt | `gpt-5.6-sol (high) - ...`; the S1 result is the same 479 genes |
-| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-5.6 Terra`, `Select`; set its effort to `High` | The preset reads `Custom - phases below don't match a preset`; the next turn's usage names `gpt-5.6-terra (high)` |
+| 4 | `Preset` | `Quality`; send the S1 prompt | `gpt-6-sol (high) - ...`; in Settings, `Assistant` and `Planning` run GPT-6 Sol at `High`, `Building` and `Checking` GPT-5.6 Luna at `Medium`; the S1 result is the same 479 genes |
+| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom - phases below don't match a preset`; the next turn's usage names `gpt-6-luna (high)` |
 | 6 | Model Catalog | Read | Columns `Model`, `Context`, `Input $/MTok`, `Output $/MTok`, `Cached $/MTok`, `Best For`; GPT-5.6 Luna `$0.20` input, `$1.20` output; tag `reads images and PDFs` on the three OpenAI models |
 | 7 | Settings, `Advanced` | `Reset all local settings`, confirm | The page reloads with the default preset |
 

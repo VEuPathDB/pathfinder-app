@@ -9,13 +9,14 @@ from uuid import uuid4
 import pytest
 from pydantic_ai import RunContext, Tool
 from pydantic_ai.toolsets.function import FunctionToolset
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import answered_strategy, sub_agent_dispatch, sub_agent_tools
 from pathfinder.ai.lead.deltas import RecoveryDelta
 from pathfinder.ai.lead.sub_agent_dispatch import run_recovery
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.build_outcome import BuildOutcome
+from pathfinder.domain.strategy.build_outcome import BuildOutcome, built_counts
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -47,7 +48,6 @@ def _deps(session: StrategySession) -> LeadDeps:
     state = pipeline_state(user_prompt="Recover it.", user_message_id=uuid4())
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["step_a"],
-        root_count=0,
     )
     return lead_deps(state, strategy_session=session)
 
@@ -66,13 +66,15 @@ def _sync_result() -> SyncResult:
 
 @pytest.fixture
 def quiet_sync(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The re-sync reads counts and puts no step on VEuPathDB."""
+    """The re-sync reads counts into the sync state and puts no step on VEuPathDB."""
 
-    async def _sync(**_kwargs: object) -> SyncResult:
-        return _sync_result()
+    async def _sync(**kwargs: Any) -> SyncResult:
+        synced = _sync_result()
+        kwargs["sync_state"].step_counts = dict(synced.counts)
+        return synced
 
-    async def _sheets(**kwargs: Any) -> dict[str, frozenset[str]]:
-        return {name: frozenset() for name in kwargs["search_names"]}
+    async def _sheets(**kwargs: Any) -> dict[str, list[ParameterInfo]]:
+        return {name: [] for name in kwargs["search_names"]}
 
     monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)
@@ -155,8 +157,9 @@ async def test_a_recovery_that_wrote_nothing_still_takes_the_fresh_counts() -> N
     await _recover(deps)
 
     outcome = deps.state.domain.last_build_outcome
+    session = deps.runtime.strategy_session
     assert outcome is not None
-    assert outcome.root_count == _ROOT_COUNT
+    assert built_counts(session.graph, session.sync_state).root_count == _ROOT_COUNT
     assert outcome.wdk_strategy_id == 901
 
 
@@ -214,8 +217,8 @@ async def test_a_recovery_whose_resync_pushed_a_step_marks_the_turn(
         ensure_sync_state(session).wdk_step_ids["step_a"] = 5001
         return _sync_result()
 
-    async def _sheets(**kwargs: Any) -> dict[str, frozenset[str]]:
-        return {name: frozenset() for name in kwargs["search_names"]}
+    async def _sheets(**kwargs: Any) -> dict[str, list[ParameterInfo]]:
+        return {name: [] for name in kwargs["search_names"]}
 
     monkeypatch.setattr(sub_agent_dispatch, "sync_strategy_for_site", _sync)
     monkeypatch.setattr(answered_strategy, "sheet_params_for_searches", _sheets)

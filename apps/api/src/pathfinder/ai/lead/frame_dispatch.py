@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic_ai import RunContext
 
 from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
     framing_goal,
     record_the_spec_the_dispatch_found,
+    refuse_and_keep_what_it_bound,
     refuse_and_restore,
     the_edit_the_strategy_owes,
 )
@@ -20,12 +24,13 @@ from pathfinder.ai.lead.dispatch_messages import (
     frame_bound_nothing_result,
     frame_claimed_more_than_it_bound,
     frame_result_from_draft,
-    questions_that_bind_to_nothing,
     stopped_pass_work_order,
     undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
+from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
 from pathfinder.ai.lead.intent import IntentClassification
+from pathfinder.ai.lead.lead_consult import card_questions
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
@@ -38,7 +43,17 @@ from pathfinder.ai.lead.sub_agent_tools import (
     apply_agent_state,
     criteria_floor,
 )
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintSource,
+    ConstraintStatus,
+    message_states,
+)
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.questions import (
+    unanswered_questions,
+    with_withdrawals,
+)
 from pathfinder.domain.strategy.spec_diff import diff_specs
 
 
@@ -148,7 +163,10 @@ async def run_frame(
     """Run FRAME and record the questions its result leaves for the user.
 
     A refused pass raises before the record, so every question the thread holds
-    is one the result the Lead is given asks.
+    is one the result the Lead is given asks. The card offers to withdraw each
+    requirement the researcher stated that no search states, and asks no
+    question the researcher answered or whose only option binds a value the
+    spec already holds.
     """
     record_the_spec_the_dispatch_found(deps, resume=resume)
     result = await _run_frame(
@@ -159,8 +177,41 @@ async def run_frame(
         resume=resume,
     )
     if isinstance(result, FrameResult):
-        deps.state.domain.record_questions(result.open_questions)
+        domain = deps.state.domain
+        asked = unanswered_questions(
+            with_withdrawals(
+                result.questions(domain.operational_spec),
+                _unstated_requirements(deps, result.unstated),
+            ),
+            answered=[q.question for q in domain.answered_questions],
+        )
+        deps.state.domain.record_questions(asked)
+        deps.state.turn_markers.unstated_requirements = list(result.unstated)
+        return result.model_copy(update={"card_questions": card_questions(asked)})
     return result
+
+
+def _unstated_requirements(deps: LeadDeps, named: Sequence[str]) -> list[Constraint]:
+    """The held requirements the researcher stated that no search of the spec
+    states: each one the ledger lists as ungroundable, and each one the pass
+    names in ``unstated``."""
+    held = {c.key for c in deps.state.domain.requirements}
+    return [
+        g.constraint
+        for g in derive_ledger(deps.state, deps.intent).constraints.grounded
+        if g.constraint.source is ConstraintSource.USER_EXPLICIT
+        and g.constraint.key in held
+        and (
+            g.status is ConstraintStatus.UNGROUNDABLE
+            or any(_names_the_requirement(text, g.constraint) for text in named)
+        )
+    ]
+
+
+def _names_the_requirement(text: str, requirement: Constraint) -> bool:
+    """Whether the words carry each other: one requirement, in either phrasing."""
+    value = requirement.requested_value
+    return message_states(text, value) or message_states(value, text)
 
 
 async def _run_frame(
@@ -220,6 +271,8 @@ def _accepted(
 ) -> FrameResult:
     """The result the Lead reads from a pass that answered, or a refusal.
 
+    A refusal of undeclared changes puts back the spec the dispatch found; a
+    refusal of what the pass asks keeps each criterion it bound.
     A conversation stays on its site, so a pass the organism refusal sent to
     the portal and that changed nothing asks nothing: it answers with the
     portal's sentence. A pass that changed something carries the sentence
@@ -237,14 +290,34 @@ def _accepted(
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
-    _refuse_questions_that_bind_to_nothing(deps, delta, draft)
     if found is not None and found.criteria:
         problem = undeclared_spec_changes(
             diff_specs(found, draft), delta.changes, found
         )
         if problem:
             refuse_and_restore(deps, problem)
+    _refuse_questions_that_bind_to_nothing(deps, delta, draft)
+    _refuse_an_unstated_requirement_the_researcher_did_not_write(deps, delta)
     return delta
+
+
+def _refuse_an_unstated_requirement_the_researcher_did_not_write(
+    deps: LeadDeps, delta: FrameResult
+) -> None:
+    """Refuse a pass that names a requirement no message of the researcher states."""
+    messages = deps.state.researcher_messages()
+    unwritten = [
+        text
+        for text in delta.unstated
+        if not any(message_states(message, text) for message in messages)
+    ]
+    if unwritten:
+        refuse_and_keep_what_it_bound(
+            deps,
+            f"unstated names {unwritten}, which no message of the researcher "
+            f"states. Name each requirement no search states in the words the "
+            f"researcher wrote it in.",
+        )
 
 
 def _refuse_questions_that_bind_to_nothing(
@@ -253,16 +326,16 @@ def _refuse_questions_that_bind_to_nothing(
     """Refuse once a pass that asks about a criterion its draft does not hold.
 
     The answer to such a question lands nowhere, so the turn that follows has
-    nothing to build from it.
+    nothing to build from it. The retry keeps what the pass bound.
     """
     if delta.disposition != "needs_user" or deps.unbound_questions_reported:
         return
     unbound = questions_that_bind_to_nothing(
-        delta.open_questions, draft, deps.state.domain.spec_before_dispatch
+        delta, draft, deps.state.domain.spec_before_dispatch
     )
     if unbound:
         deps.unbound_questions_reported = True
-        refuse_and_restore(deps, unbound)
+        refuse_and_keep_what_it_bound(deps, unbound)
 
 
 async def frame_problem(

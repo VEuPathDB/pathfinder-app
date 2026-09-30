@@ -327,9 +327,6 @@ async def _resync_outcome(agent_deps: AgentDeps, prior: BuildOutcome) -> BuildOu
     fresh = BuildOutcome(
         pushed_step_ids=list(prior.pushed_step_ids),
         wdk_strategy_id=sync_result.wdk_strategy_id,
-        wdk_url=sync_result.wdk_url,
-        counts={str(k): v for k, v in sync_result.counts.items()},
-        root_count=sync_result.root_count,
         zero_step_ids=list(sync_result.zero_step_ids),
         organism_change=_records_organism(graph, sync_state),
     )

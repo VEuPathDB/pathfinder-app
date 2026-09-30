@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A rating is a fact about one message, kept in a table of its own and consulted on every later memory write
-description: A like or a dislike is a row in `message_ratings`, one per message per user, and the latest rating wins. It gates the case memories that message wrote (a dislike takes them out of the store and keeps their values on the row, a like pins them), stages a disliked message as one eval case cut at that message, and reports the rating with the turn's usage. The runtime's `messages` row, a memory kind, a flag, a tombstone and a global weight were all rejected.
+description: A like or a dislike is a row in `message_ratings`, one per message per user, and the latest rating wins. It gates the case memories that message wrote (a dislike takes them out of the store and keeps their values on the row, a like pins them), stages a disliked message as one eval case cut at that message, and reports the rating as a score on the turn's trace, with the turn's usage. The runtime's `messages` row, a memory kind, a flag, a tombstone and a global weight were all rejected.
 tags: [memory, evals, feedback, persistence, telemetry, chat]
 generated: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-24T00:00:00Z }
@@ -62,9 +62,11 @@ continuation's finalize, which writes the same message.
   deletes the staged row. The default expectation of a rated row compares
   nothing, and promotion without an explicit expectation is refused, because
   the recorded run is the one the researcher said was wrong.
-- **The rating is reported** as the `product.message_rated` event through the
-  existing product-action channel, emitted by the server after the commit, with
-  the rating (or `cleared`), the message id, the turn's trace id, its tokens and
+- **The rating is reported** as a Langfuse score named `rating` (1 for like, -1
+  for dislike, 0 when cleared) on the trace of the turn that wrote the message,
+  or on the conversation's session when the turn has no trace. The server writes
+  it after the commit, under one score id per message so the latest rating
+  replaces the earlier one, with the site, the assistant, the turn's tokens and
   its cost read from the message row.
 
 # What was rejected

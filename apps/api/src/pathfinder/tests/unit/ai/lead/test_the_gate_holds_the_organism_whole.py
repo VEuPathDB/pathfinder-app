@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pathfinder.ai.lead import lead_tools
+from pathfinder.ai.lead import classification_gate
 from pathfinder.ai.lead.intent import ClassifiedIntent, IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.domain.strategy.constraints import ConstraintKind
@@ -97,7 +97,7 @@ def sites_read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         read.append(site_id)
         return recorded_organisms(site_id)
 
-    monkeypatch.setattr(lead_tools, "list_organisms", _organisms)
+    monkeypatch.setattr(classification_gate, "list_organisms", _organisms)
     return read
 
 

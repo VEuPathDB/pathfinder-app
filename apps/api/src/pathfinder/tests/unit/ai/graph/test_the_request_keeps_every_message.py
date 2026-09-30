@@ -18,6 +18,7 @@ from pathfinder.domain.evidence import (
     SampledGene,
     VerificationReview,
 )
+from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.tests._support.separation import ATTACHED_CONTROLS, recorded_offer
 
 _ASKED = "P. falciparum 3D7 genes with a signal peptide"
@@ -125,3 +126,59 @@ def test_a_digest_carries_its_review_through_the_checkpoint() -> None:
     assert isinstance(restored, StrategyDomainState)
     assert restored.verification_digest is not None
     assert restored.verification_digest.review == review
+
+
+_COMPARE = (
+    "run the same ankyrin repeat search on Assemblage A isolate WB and tell me "
+    "how the two counts compare?"
+)
+_WOULD_REMAIN = (
+    "Let's compare both first. How many of the 227 would remain if the minimum "
+    "were 3 TM domains instead of 2? Then I'll decide."
+)
+
+
+def test_the_gate_keeps_what_each_message_asks() -> None:
+    domain = StrategyDomainState()
+    extend = UserIntent(
+        classification=IntentClassification.EXTEND_STRATEGY,
+        inferred_goal="ankyrin repeat genes of isolate WB",
+        asks=["tell me how the two counts compare"],
+    )
+
+    domain.record_intent(extend, request_text=_COMPARE)
+    domain.record_intent(
+        _intent(IntentClassification.FOLLOW_UP_QUESTION), request_text=_WOULD_REMAIN
+    )
+
+    assert domain.researcher_asks == [
+        ResearcherAsk(message=_COMPARE, text="tell me how the two counts compare"),
+        ResearcherAsk(message=_WOULD_REMAIN, text=_WOULD_REMAIN, question=True),
+    ]
+
+
+def test_a_message_classified_again_keeps_only_its_last_asks() -> None:
+    domain = StrategyDomainState()
+    domain.record_intent(
+        _intent(IntentClassification.FOLLOW_UP_QUESTION), request_text=_COMPARE
+    )
+
+    domain.record_intent(
+        _intent(IntentClassification.EXTEND_STRATEGY), request_text=_COMPARE
+    )
+
+    assert domain.researcher_asks == []
+
+
+def test_the_asks_leave_with_the_request_and_survive_the_checkpoint() -> None:
+    serde = build_checkpoint_serde(PATHFINDER_CHECKPOINT_TYPES)
+    domain = StrategyDomainState()
+    domain.record_intent(
+        _intent(IntentClassification.FOLLOW_UP_QUESTION), request_text=_WOULD_REMAIN
+    )
+
+    restored = serde.loads_typed(serde.dumps_typed(domain))
+    assert restored.researcher_asks == domain.researcher_asks
+
+    domain.set_the_request_aside()
+    assert domain.researcher_asks == []

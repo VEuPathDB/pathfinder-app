@@ -1,7 +1,8 @@
 """Stream parts PathFinder emits: graph, strategy, gene sets, control tests,
-comparisons, the evidence card, a separation run's result, the ledger, the
-recalled memories and this assistant's agent topology, and the proposal a card
-carries as its tool input."""
+comparisons, the evidence card, a separation run's result, a delete card's
+cascade, the ledger, the
+facts beside a reply, the recalled memories and this assistant's agent
+topology, and the proposal a card carries as its tool input."""
 
 from assistant_core.conversation.stream_parts.agent_topology import (
     register_agent_topology_stream_parts,
@@ -11,6 +12,7 @@ from assistant_core.conversation.stream_parts.registry import (
 )
 
 from pathfinder.ai.graph.stream_events import (
+    DeleteCascadePayload,
     RecalledMemoriesPayload,
     StrategyRevisionPayload,
 )
@@ -26,6 +28,7 @@ from pathfinder.ai.stream_part_payloads import (
 )
 from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.separation import SeparationReport
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
 from pathfinder.services.experiment.variant_comparison import VariantComparison
 
@@ -43,6 +46,8 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-variant-comparison", VariantComparison)
     registry.register("data-scored-comparison", ScoredComparison)
     registry.register("data-ledger-update", InvestigationLedger)
+    registry.register("data-facts", TurnFacts)
     registry.register("data-memory-retrieved", RecalledMemoriesPayload)
+    registry.register("data-delete-cascade", DeleteCascadePayload)
     registry.register_schema_only("proposal", Proposal)
     register_agent_topology_stream_parts(registry)

@@ -32,8 +32,8 @@ from pathfinder.ai.lead import evidence_card, sub_agent_stream, sub_agent_tools
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import run_verification
-from pathfinder.ai.tools.standalone import strategy_graph
-from pathfinder.ai.tools.standalone.strategy_graph import StudyStepCheck
+from pathfinder.ai.tools.standalone import study_step
+from pathfinder.ai.tools.standalone.study_step import StudyStepCheck
 from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
@@ -109,7 +109,7 @@ _ANALYSIS_SPEC = json.dumps(
 )
 
 
-def _session() -> StrategySession:
+def _session(analysis_spec: str = _ANALYSIS_SPEC) -> StrategySession:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph("graph-1", "Heat shock", "plasmodb")
     graph.record_type = "transcript"
@@ -122,7 +122,7 @@ def _session() -> StrategySession:
             display_name="Febrile vs normal",
             parameters={
                 "eda_dataset_id": StringValue(value=_DATASET_ID),
-                "eda_analysis_spec": StringValue(value=_ANALYSIS_SPEC),
+                "eda_analysis_spec": StringValue(value=analysis_spec),
             },
         ),
     )
@@ -180,7 +180,7 @@ def _returned(messages: list[ModelMessage], tool_name: str) -> object | None:
     return None
 
 
-def _digest_from(check: StudyStepCheck) -> dict[str, Any]:
+def _digest_from(check: StudyStepCheck, *, overrules: bool) -> dict[str, Any]:
     fold = check.fold_change_threshold
     significance = check.thresholds.significance_threshold if check.thresholds else None
     return {
@@ -191,15 +191,26 @@ def _digest_from(check: StudyStepCheck) -> dict[str, Any]:
                 f"{fold:g}-fold and adjusted p {significance:g}."
             ),
             "reason": "The step's thresholds answer the request.",
-            "success": all(entry.honored for entry in check.checks),
-            "constraintReport": [
-                entry.model_dump(by_alias=True, mode="json") for entry in check.checks
-            ],
+            "success": overrules or all(entry.honored for entry in check.checks),
+            **(
+                {
+                    "constraintReport": [
+                        {
+                            "label": "fold-change cutoff",
+                            "requested": "1.5-fold",
+                            "realized": "effect-size threshold 1.5",
+                            "honored": True,
+                        }
+                    ]
+                }
+                if overrules
+                else {}
+            ),
         },
     }
 
 
-def _scripted(*, requested_fold_change: float) -> FunctionModel:
+def _scripted(*, requested_fold_change: float, overrules: bool) -> FunctionModel:
     """Read the strategy by its VEuPathDB id, check the step, then answer."""
 
     def _part(messages: list[ModelMessage]) -> ToolCallPart:
@@ -225,7 +236,7 @@ def _scripted(*, requested_fold_change: float) -> FunctionModel:
         )
         return ToolCallPart(
             tool_name="final_result",
-            args=_digest_from(check),
+            args=_digest_from(check, overrules=overrules),
             tool_call_id="call_final",
         )
 
@@ -281,20 +292,24 @@ def _serve_the_study(monkeypatch: pytest.MonkeyPatch) -> None:
         }
         return permission_entry(), study_of([counts], entity_id="ENT_fd574cd6")
 
-    monkeypatch.setattr(strategy_graph, "get_study_detail_for_dataset", _detail)
+    monkeypatch.setattr(study_step, "get_study_detail_for_dataset", _detail)
 
 
 async def _verify(
     monkeypatch: pytest.MonkeyPatch,
     *,
     requested_fold_change: float,
+    analysis_spec: str = _ANALYSIS_SPEC,
+    overrules: bool = False,
 ) -> VerificationDelta:
     monkeypatch.setattr(
         sub_agent_tools,
         "get_mock_model",
-        lambda: _scripted(requested_fold_change=requested_fold_change),
+        lambda: _scripted(
+            requested_fold_change=requested_fold_change, overrules=overrules
+        ),
     )
-    deps = _deps(_session())
+    deps = _deps(_session(analysis_spec))
     with pinned_sub_agent(
         monkeypatch,
         "verification",
@@ -337,4 +352,59 @@ async def test_a_threshold_the_step_does_not_meet_fails_the_digest(
     unmet = [c for c in delta.digest.constraint_report if not c.honored]
     assert [(c.label, c.requested, c.realized) for c in unmet] == [
         ("fold change", "4", "2"),
+    ]
+
+
+async def test_the_checkers_honored_never_replaces_the_computed_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    delta = await _verify(
+        monkeypatch,
+        requested_fold_change=1.5,
+        analysis_spec=_ANALYSIS_SPEC.replace(
+            '"effectSizeThreshold": 1,', '"effectSizeThreshold": 1.5,'
+        ),
+        overrules=True,
+    )
+
+    assert [
+        (c.step_id, c.label, c.requested, c.realized, c.honored)
+        for c in delta.digest.constraint_report
+    ] == [
+        (_STEP_ID, "fold change", "1.5", "2.82843", False),
+        (_STEP_ID, "significance", "0.05", "0.05", True),
+    ]
+    assert delta.digest.success is False
+
+
+async def test_a_cut_written_at_the_bounds_precision_meets_the_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    delta = await _verify(
+        monkeypatch,
+        requested_fold_change=1.5,
+        analysis_spec=_ANALYSIS_SPEC.replace(
+            '"effectSizeThreshold": 1,', '"effectSizeThreshold": 0.585,'
+        ),
+    )
+
+    assert [
+        (c.label, c.realized, c.honored) for c in delta.digest.constraint_report
+    ] == [("fold change", "1.50004", True), ("significance", "0.05", True)]
+    assert delta.digest.success is True
+
+
+async def test_a_cut_short_of_the_request_is_a_gap_of_the_digest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    delta = await _verify(
+        monkeypatch,
+        requested_fold_change=1.5,
+        analysis_spec=_ANALYSIS_SPEC.replace(
+            '"effectSizeThreshold": 1,', '"effectSizeThreshold": 1.5,'
+        ),
+    )
+
+    assert [gap.sentence for gap in delta.digest.gaps] == [
+        "Not met: fold change asked 1.5, built 2.82843"
     ]

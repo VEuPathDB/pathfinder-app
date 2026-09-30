@@ -26,13 +26,20 @@ from pathfinder.tests.unit.ai.graph._approval_turn import (
 __all__ = ["writer"]
 
 ANALYSIS = (
-    "The strategy is one INTERSECT of the signal peptide search and the 2 to 99 "
-    "transmembrane domain search. The 2 to 99 range is the weak spot: it keeps "
-    "single-pass and many-pass proteins alike."
+    "The strategy is one INTERSECT of the signal peptide search and the "
+    "transmembrane domain search. The transmembrane range is the weak spot: it "
+    "keeps single-pass and many-pass proteins alike."
 )
 PROPOSAL: dict[str, Any] = {
     "question": "Narrow the transmembrane range to one domain?",
-    "proposedChanges": ["Set the transmembrane domain range to 1 to 1."],
+    "proposedChanges": [
+        {
+            "kind": "set_values",
+            "sentence": "Set the transmembrane domain range to 1 to 1.",
+            "criterionId": "c_tm",
+            "params": {"min_tm": "1", "max_tm": "1"},
+        }
+    ],
 }
 
 

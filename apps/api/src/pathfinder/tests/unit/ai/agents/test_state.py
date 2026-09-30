@@ -6,10 +6,16 @@ from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
+    VocabOption,
 )
 from veupathdb.domain.strategy import CombineOp
+from veupathdb_mcp.catalog import ParameterInfo, VocabLookup
 
-from pathfinder.ai.agents.state import AgentToolState, SearchOverview
+from pathfinder.ai.agents.state import (
+    AgentToolState,
+    ParamVocabSnapshot,
+    SearchOverview,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -17,6 +23,8 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.services.strategies.cut_picks import OptionsRead
+from pathfinder.tests._support.bound_values import bound
 
 
 def _ov(
@@ -71,7 +79,7 @@ def test_param_read_key_is_stable_and_context_sensitive() -> None:
     assert AgentToolState.param_read_key(
         "S", "p", context_values=ctx_a
     ) != AgentToolState.param_read_key("S", "p", context_values=ctx_b)
-    assert AgentToolState.param_read_key("S", "p", query="x") != k1
+    assert AgentToolState.param_read_key("S", "p", terms=("x",)) != k1
 
 
 def test_mark_and_was_param_read() -> None:
@@ -87,10 +95,12 @@ def _derisi_criterion() -> Criterion:
         id="timecourse",
         text="trophozoite stage expression",
         search_name="GenesByMicroarrayDerisi",
-        resolved_params={
-            "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed"),
-            "channel": SinglePickValue(value="Channel 1"),
-        },
+        resolved_params=bound(
+            {
+                "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed"),
+                "channel": SinglePickValue(value="Channel 1"),
+            }
+        ),
     )
 
 
@@ -121,9 +131,11 @@ class TestResolvedParamsFor:
                 id="domain",
                 text="kinase domain",
                 search_name="GenesByInterproDomain",
-                resolved_params={
-                    "domain_database": SinglePickValue(value="PFAM"),
-                },
+                resolved_params=bound(
+                    {
+                        "domain_database": SinglePickValue(value="PFAM"),
+                    }
+                ),
             )
         )
 
@@ -140,9 +152,9 @@ class TestResolvedParamsFor:
                 id="up",
                 text="induced",
                 search_name="GenesByMicroarrayDerisi",
-                resolved_params={
-                    "profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")
-                },
+                resolved_params=bound(
+                    {"profileset_generic": SinglePickValue(value="DeRisi 3D7 Smoothed")}
+                ),
             )
         )
         state.frame_set_criterion(
@@ -150,7 +162,7 @@ class TestResolvedParamsFor:
                 id="down",
                 text="repressed",
                 search_name="GenesByMicroarrayDerisi",
-                resolved_params={"channel": SinglePickValue(value="Channel 2")},
+                resolved_params=bound({"channel": SinglePickValue(value="Channel 2")}),
             )
         )
 
@@ -173,9 +185,9 @@ class TestResolvedParamsFor:
                 id="c",
                 text="t",
                 search_name="S",
-                resolved_params={
-                    "samples": MultiPickValue(values=["20 Hour", "21 Hour"])
-                },
+                resolved_params=bound(
+                    {"samples": MultiPickValue(values=["20 Hour", "21 Hour"])}
+                ),
             )
         )
 
@@ -296,3 +308,50 @@ def test_a_transform_whose_step_left_collapses_to_its_input() -> None:
     assert spec.structure is not None
     assert spec.structure.root.kind == "leaf"
     assert spec.structure.root.criterion_id == "step_3fa0e628"
+
+
+def _cut_info() -> ParameterInfo:
+    return ParameterInfo(
+        name="domain_typeahead",
+        display_name="Specific Domain(s)",
+        type="multi-pick-vocabulary",
+        required=True,
+        is_visible=True,
+        help="",
+        value_format="",
+        allowed_values=[VocabOption(value="PF00001", display="PF00001 : Peptidase")],
+        allowed_values_total=66,
+        vocab_lookup=VocabLookup(terms=["peptidase"]),
+    )
+
+
+def test_a_snapshot_keeps_the_total_a_cut_list_came_from() -> None:
+    snapshot = ParamVocabSnapshot.model_validate(_cut_info(), from_attributes=True)
+
+    assert snapshot.options_read("domain_typeahead") == OptionsRead(
+        param="domain_typeahead",
+        shown=frozenset({"PF00001"}),
+        total=66,
+        lookup=VocabLookup(terms=["peptidase"]),
+    )
+
+
+def test_a_snapshot_of_a_whole_list_no_lookup_narrowed_has_no_read() -> None:
+    whole = _cut_info().model_copy(
+        update={"allowed_values_total": None, "vocab_lookup": None}
+    )
+    snapshot = ParamVocabSnapshot.model_validate(whole, from_attributes=True)
+
+    assert snapshot.options_read("domain_typeahead") is None
+
+
+def test_a_snapshot_of_a_whole_lookup_keeps_the_lookup() -> None:
+    whole = _cut_info().model_copy(update={"allowed_values_total": None})
+    snapshot = ParamVocabSnapshot.model_validate(whole, from_attributes=True)
+
+    assert snapshot.options_read("domain_typeahead") == OptionsRead(
+        param="domain_typeahead",
+        shown=frozenset({"PF00001"}),
+        total=None,
+        lookup=VocabLookup(terms=["peptidase"]),
+    )

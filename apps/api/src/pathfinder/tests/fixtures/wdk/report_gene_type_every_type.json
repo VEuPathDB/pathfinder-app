@@ -1,0 +1,30 @@
+{
+ "provenance": {
+  "site": "plasmodb",
+  "method": "POST",
+  "url": "https://plasmodb.org/plasmo/service/record-types/transcript/searches/GenesByGeneType/reports/standard",
+  "status": 200,
+  "content_type": "application/json",
+  "recorded_at": "2026-09-29",
+  "reads": "every option: GenesByGeneType organism=[Plasmodium falciparum 3D7], geneType=[misc RNA, protein coding, pseudogene], includePseudogenes=No"
+ },
+ "body": {
+  "records": [],
+  "meta": {
+   "displayViewTotalCount": 5562,
+   "tables": [],
+   "pagination": {
+    "offset": 0,
+    "numRecords": 0
+   },
+   "cachePreviouslyExisted": true,
+   "viewTotalCount": 5633,
+   "sorting": [],
+   "recordClassName": "transcript",
+   "responseCount": 0,
+   "attributes": [],
+   "totalCount": 5633,
+   "displayTotalCount": 5562
+  }
+ }
+}

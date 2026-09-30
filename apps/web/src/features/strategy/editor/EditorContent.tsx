@@ -62,7 +62,9 @@ export function EditorContent({
   const saveSubstrategy = useSaveSubstrategyMutation({ conversationId, siteId });
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const stepNumber = useStepNumber(conversationId, step.id);
-  const wdkUrl = useStrategyData(conversationId)?.wdkUrl ?? null;
+  const strategyData = useStrategyData(conversationId);
+  const wdkUrl = strategyData?.wdkUrl ?? null;
+  const wdkStrategyId = strategyData?.wdkStrategyId ?? null;
   const snapshot = useStepSnapshot(step);
 
   const persistence = useStepDraftPersistence({
@@ -246,7 +248,9 @@ export function EditorContent({
     count: snapshot.estimatedSize,
     recordType: step.recordType,
     wdkUrl,
+    wdkStrategyId,
     siteId,
+    conversationId,
   };
 
   return (

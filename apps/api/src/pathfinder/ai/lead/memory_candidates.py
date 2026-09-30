@@ -23,6 +23,7 @@ from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.case_memory import collect_case_candidates
 from pathfinder.ai.lead.intent import BUILDING_INTENTS
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 
 __all__ = [
     "collect_memory_candidates",
@@ -42,8 +43,11 @@ def _asked_to_build(domain: StrategyDomainState) -> bool:
     return intent is None or intent.classification in BUILDING_INTENTS
 
 
-def collect_memory_candidates(state: PipelineState) -> list[MemoryCandidate]:
-    """The strategies, gene sets and verification findings of one turn."""
+def collect_memory_candidates(
+    state: PipelineState, *, counts: BuiltCounts
+) -> list[MemoryCandidate]:
+    """The strategies, gene sets and verification findings of one turn, at the
+    counts the session holds for its strategy."""
     domain = state.domain
     candidates: list[MemoryCandidate] = []
     if (
@@ -70,18 +74,19 @@ def collect_memory_candidates(state: PipelineState) -> list[MemoryCandidate]:
                     f"knowledge:{state.conversation_id.hex}:{idx}",
                 )
             )
-    candidates.extend(collect_case_candidates(state))
+    candidates.extend(collect_case_candidates(state, counts=counts))
     return candidates
 
 
 async def collect_turn_memory_candidates(
     state: PipelineState,
     *,
+    counts: BuiltCounts,
     session_factory: SessionFactory = async_session_factory,
 ) -> list[MemoryCandidate]:
     """Every candidate of one turn, including the site preference the user
     earns after enough successful verifications."""
-    candidates = collect_memory_candidates(state)
+    candidates = collect_memory_candidates(state, counts=counts)
     if not state.site_id:
         return candidates
     earned = await _has_min_successful_verifications(

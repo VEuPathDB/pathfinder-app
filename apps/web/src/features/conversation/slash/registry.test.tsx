@@ -3,9 +3,12 @@
  */
 import { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { chatRoot } from "@/lib/routes";
+
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
 import { SlashPopover } from "./SlashPopover";
 import { matchCommandName } from "./parser";
@@ -107,6 +110,36 @@ describe("the slash registry", () => {
       type: "error",
       message: "This conversation has no strategy yet.",
     });
+  });
+
+  it("/export records export_requested with the chosen kind", async () => {
+    const exportCommand = command("export");
+    if (exportCommand.kind !== "deterministic") throw new Error("not deterministic");
+    recordProductEvent.mockClear();
+
+    await exportCommand.run({ what: "strategy-json" }, ctx());
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [
+        {
+          event: "export_requested",
+          exportKind: "strategy-json",
+          conversationId: "c1",
+        },
+      ],
+    ]);
+  });
+
+  it("/export on a draft chat records the kind with no conversation", async () => {
+    const exportCommand = command("export");
+    if (exportCommand.kind !== "deterministic") throw new Error("not deterministic");
+    recordProductEvent.mockClear();
+
+    await exportCommand.run({ what: "chat-md" }, ctx({ conversationExists: false }));
+
+    expect(recordProductEvent.mock.calls).toEqual([
+      [{ event: "export_requested", exportKind: "chat-md", conversationId: null }],
+    ]);
   });
 
   it("/export refuses the transcript of a chat that has not started", async () => {

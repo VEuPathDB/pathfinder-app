@@ -1,5 +1,484 @@
 # Log
 
+## 2026-09-30
+
+* **a19 round 5, lane 8: a count question gets its count, and a row shows what a
+  researcher checks.** A reply holds each count the turn measured and the difference
+  of any two (`TurnFacts.counts`, `VariantComparison.counts` for gene, result, unique
+  and shared, `TurnRecord.held_counts`), so "66 ... 9 ... 57" and "680 ... 53 ... 627"
+  stand and "628" does not. The refusal names only the refused tokens and keeps every
+  shown count. A source word must fit the value's row (`TurnFacts.sources_named`), and
+  a record's product is written as the record writes it (`altered_record_text`);
+  `TurnRecord.prose_refusal` owns the three checks. A read keeps only the orthologs of
+  the organism it asked for (`ReadRecord.asked_orthologs`), a hidden parameter with no
+  entries draws no row (`Criterion.hidden_params`), and a counted value shows no
+  not-measurable clause. Corpus: `uat-dry4-a-toxodb`, `uat-dry4-d-microsporidiadb`;
+  mock arc `derived-count`.
+
+* **a19 round 5, lane 9: unset is read at the published value, and a label
+  may be one letter off.** `_frame_measure.infos_under` keeps each
+  parameter's published initial value on a sheet read under the bound values,
+  because WDK answers every sent value as its `initialDisplayValue`; the
+  giardiadb G. muris text "cysteine-rich protein" is a text query again and
+  shows "as the phrase "cysteine-rich protein": 0 genes" beside 4,497, and a
+  pick's site default is counted at the published default. `PhraseCaveat` says
+  an unquoted text matches any of its words ("protein" alone counts 4,497). Each
+  measurement clause reaches FRAME once. A letters-only word of six letters or
+  more may be one letter off when the words still name one entry, so
+  "Roberts-Thompson" states "Giardia muris strain Roberts-Thomson"; a word with
+  a digit never is. A text that leaves out the words a requirement phrase writes
+  before it is chosen and counted at that phrase ("erythrocyte surface antigen"
+  under "variant erythrocyte surface antigen annotation").
+
+* **A text row no record judged is unjudged, and a verdict counts only for the
+  requirement it names.** `held_to_the_records` marks a met row that only a text
+  query answers `no_record_judged_it` when no record shows it and none shows it
+  missing, so the GPI stand-in row of the piroplasmadb check (8 records, all
+  `unclear` on the signal peptide) reads "no sampled record judged it" and not
+  met. A record judged `no` holds a text row only when its `why` states the
+  row's text query: CF001077 ("does not contain the requested 'GPI anchor'
+  phrase") holds the GPI row, a record judged `no` on its organism does not. A
+  strategy read back from the site marks each placeholder its sheet names and
+  names each parameter by the sheet's display name: `sheet_params_for_searches`
+  returns the visible `ParameterInfo`, and a `GenesByLocation` step holding
+  "(Example: Pf3D7_04_v3)" shows "Genomic sequence ID: not set (site
+  placeholder)", where it showed "sequenceId: (Example: Pf3D7_04_v3)".
+
+* **a19 round 4, lanes 4 and 6 verified.** A subset export PathFinder writes
+  states its words, and so its reason, in the study's names ("genotype is one of
+  wild type"); `AnalysisBinding.meaning` leaves the words out, so the read-back
+  document is still the same analysis. A number in scientific notation is its
+  decimal value to the prose guard ("1e-5" holds where the facts show "1e-05").
+  A count of options is written with its thousands separator in a reading, a
+  clause and a caveat ("all 2,441 options", "2,424 options not taken", "took 50
+  of the 2,441 entries"). Each id a listing shows links to its record page
+  (`ListedRecord`, `gene_record_url`). `read_step_ids` with a limit reads the
+  offsets `get_sample_records` reads at that limit, so the hostdb "same five
+  genes" from either tool is one five; with no limit it keeps the site's order.
+
+* **The phrase reading of a text keeps its operator words outside the quotes.**
+  `TextExpression.phrase_reading` quotes each operand of several words and
+  leaves `AND`, `OR`, `NOT` and a wildcard word as written, so
+  `variant-specific surface protein OR VSP` (giardiadb, product and Products,
+  7,131 genes as words anywhere) is measured as
+  `"variant-specific surface protein" OR VSP`, 261 genes, not as one quoted
+  string that counts 0.
+
+* **a19 round 4, lane 1: one test decides an unset value, and the site sets
+  first.** `value_source.is_unset` is the one test for a value that states
+  nothing: a site placeholder (the radio-off `N/A`, "(Example: chr22)") or the
+  sheet's initial value. The text queries and the measurements read it through
+  `parameter_rules.text_query`, so the `N/A` plasmodb writes into the InterPro
+  free-text half (sheet default `''`, recorded as
+  `search_genes_by_interpro_domain`) is neither a text query nor measured. A
+  `site_fixed` parameter carries the source rule `site`, so a read-only
+  `document_type` "gene" is the site default whatever a message holds. A pick at
+  its default shown as one word is stated only beside a word of its display name,
+  so "in any P. knowlesi expression dataset" leaves `any_or_all` the site's
+  (1,366 at any, 560 at all). A label is stated without its last word when no
+  other entry shares the rest ("Homo sapiens" states `hsap`), and a run matches
+  with its punctuation left out ("C57BL/6J" states "C57BL6J"). A row is held to
+  the records only when a text value states it and every criterion answering it
+  binds a text query (`TextQuery`), and only a record judged `no`, or a column
+  some record falls outside, makes it a gap: an `unclear` fit is no absence.
+  Cases `uat-dry-a-plasmodb` (144, 2,795, 142) and `uat-dry-c-piroplasmadb`
+  (1, 288, 289); arcs `radio-off-domain` and `text-beside-organism`
+  (`ai/models/mock/unset_value_arcs.py`).
+
+* **a19 round 4, lane 2: a requirement's lifecycle and the cards.** `with_requirements`
+  returns the combination a newer one displaces as `replaced(by)`, so "make it AND
+  instead of OR" retires the OR and its two fragments are no gaps (the round-3 facts
+  held `retired: []`). A differential question (`follow_up_question`) drops every
+  constraint that is a compared side, so "InterPro or Pfam for the polar tube protein
+  family" records the organism alone and no OR forces a UNION. A build keeps its sides:
+  an edit from chromosome 17 to 19 keeps "chromosome 19", and a request for genes up at
+  37 against 30 degrees keeps its comparator. A withdrawal with no successor is a plain
+  removal; the refusal names only the key at fault, and a successor the thread already
+  holds is refused ("TREU927 is replaced by DAL972" was recorded for a removal). A
+  review row that names no held requirement is no gap. `FreeText` is gone: an option
+  label is never a requirement, a question that binds no slot is answered in the
+  researcher's words, and a Lead card of its own offers no option or the drop and keep
+  options of a held requirement. A FRAME question about a requirement it names
+  unstated binds through its drop and keep options, and a refusal of what a pass asks
+  keeps the criteria it bound (the 288-gene signal peptide bind survived no refusal
+  before). A slot question on an open vocabulary offers its values. The held
+  dimensions of a card come from the spec's parameters, so the cryptodb widen card
+  ("Minimum expression percentile: 0", "Protein Coding Only: all") is refused.
+  `ZeroCombineCaveat` states an empty combine over inputs that hold records ("the 1
+  gene of 'Text' is not among the 288 of 'Predicted Signal Peptide'").
+  `referenced_strategy_ids` is deleted. Cases `uat-dry3-d-sides-microsporidiadb`,
+  `uat-dry3-a-cryptodb` and a card-label row in `uat-dry-c-piroplasmadb`; arcs
+  `comparison-sides` and `widen-card` (`ai/models/mock/requirement_arcs.py`).
+  Only an "include" verb states an OR ("also include", "broaden ... to include",
+  "add ... as an alternative"); "in addition to" and a trailing "as well" state
+  neither operator, so "a signal peptide in addition to a GPI anchor" is never
+  recorded as an OR.
+
+* **a19 round 4, lane 3: the turn's control flow.** No tool sets `ToolReturn.content`,
+  which pydantic-ai sends to the model as a separate user prompt part: the comparison's
+  "Summarize the trade-off ... (no scoring - no controls)" reached the Lead as the
+  researcher's message. A structural test walks the package. What the Lead does with a
+  comparison, a scored comparison and a consult's answers is in its instructions. A
+  repeated classification fails as `ToolFailed`, where the fourth `ModelRetry` ended the
+  turn on "exceeded max retries count of 3"; a new classification after the turn changed
+  the strategy is refused, a turn that built keeps `verify_strategy`, and the refusal of a
+  reply that leaves out the change names the steps the turn pushed. A count comparison is
+  a `follow_up_question` answered by `compare_search_variants`; "one step per organism"
+  is gone from the instructions. A turn whose change landed never asks for the message
+  again; it says the change landed and asks for the check. `ReadOnceToolset` answers each
+  listed read once per run (the portal turn read five records 43 times), and a check's
+  record refusals are `ToolFailed` naming the sampled id. A comparison variant takes the
+  entries its vocabulary holds, read under its parent values: "notes" runs as `Notes`,
+  `gene_name` is refused with the nearest entries, and an empty pick is refused with the
+  26 entries. A FRAME parameter term is one name of an open sheet in the bind schema.
+  `set_structure` refuses a UNION that joins a step the strategy holds to an arm the
+  turn adds unless a stated OR covers both arms (`combination_check.unstated_union`); a
+  UNION of held steps only, and a first build, are the researcher's own shape.
+  Cases: `uat-dry3-d-microsporidiadb`, `uat-dry3-b-tritrypdb`, `uat-dry3-d-veupathdb`.
+
+* **a19 round 4, lane 5: the tool server's vocabulary read and the devtool's artifacts.**
+  `veupathdb-mcp` 0.2.0a34 (unreleased until the lead tags it) shows a query-narrowed
+  vocabulary whole up to 300 entries and names the total a cut list came from
+  (`ParameterInfo.allowed_values_total`): the N. fowleri "peptidase" read shows 66 of 66,
+  where it showed 50. A query is one phrase or several phrasings, read with hyphen and
+  space alike and in any word order, and `ParameterInfo.vocab_lookup` names the phrasings
+  that matched. `ParameterInfo.is_placeholder` decides the radio off value and a site's
+  "(Example: ...)" prompt. The devtool shows a record under the step it was read from,
+  records a turn's own call output from its event and moves a worker turn's model
+  requests into any run directory, reads loops by one rule (`diagnosis.loops`, which
+  also counts 5 or more completed calls that repeat an earlier call's arguments), and
+  prints `summary.assumed` apart from the ledger rows the Lead marked assumed.
+  `--capture-llm` is gone: every run records `llm/`.
+  After the pin moved to 0.2.0a34: `get_parameter_options` takes one phrase or the
+  list of a concept's phrasings, and FRAME is told to bind the entries a phrase
+  matched and never those a single word matched without asking. Its summary reads
+  "300 of 340 options shown" when the list was cut. `ParamVocabSnapshot` keeps
+  `allowed_values_total` and `vocab_lookup`, and a bind whose multi-pick is all
+  shown entries of a cut read records `picked_from_a_cut_list`
+  (`services/strategies/cut_picks.py`); the facts row says "took 50 of the 66
+  entries that match 'peptidase'", whoever set the value. The placeholder rule
+  is `ParameterInfo.is_placeholder`, read by `value_source.is_placeholder(value,
+  info)`, and the bind records it on `BoundValue.placeholder`; the host's own
+  regex copy is gone.
+  `veupathdb-mcp` 0.2.0a35 (untagged until the lead tags it) leaves a prompt entry
+  out of every vocabulary list (a label that asks for a choice, "Choose chromosome",
+  or names none, "--None--"), names it in `ParameterInfo.prompt_values`, and
+  `is_placeholder` is true for it, so an open slot's card no longer offers
+  "Choose chromosome"; the backlog card for it leaves with this entry.
+
+* **a19 round 4, lane 6: a failed EDA compute says the site gives no reason.**
+  The failed job's message was a fixed guess that the configuration was wrong
+  for the study. The compute service lists no file for a failed job and its
+  status carries no message, so `jobs/impls/eda_compute_impl.py::refusal_of`
+  says the site publishes no reason and the cause is not known. Two cards: a
+  dataset search's organism as a catalog mark (an INTERSECT of the C. hominis
+  TU502 percentile search with a UKMEL1 search is 0 by construction and is not
+  refused), and a label comparator on a continuous variable refused before
+  submit.
+
+* **a19: the live private-dataset check uploads again when the site's plugin faults.**
+  VDI ends an import `failed` when the plugin exits with a status other than 0 or 99,
+  and `invalid` when the plugin refuses the data. The heat shock upload failed with exit
+  255 on bytes that installed twice more; the fixture now makes up to three uploads and
+  stops at once on an `invalid` import. The researcher fixture holds the job queue open,
+  as every served process does, because the export defers the gene set refresh, and the
+  check expects the export of an upload on `GenesByDESeqUserDataset`.
+
+* **a19 round 4, lane 4: the facts hold what the page shows.** The pre-turn records the
+  root and every step's count once when the message arrives (`TurnMarkers.at_arrival`), and
+  every count before an edit derives from it: the ME49 step a turn created shows no "6,123
+  before", an unchanged leaf shows none, and a delete shows the root's count before it
+  (`rootCountBefore` was null). The two call-site recordings in `edit_dispatch` and
+  `eda_step` are gone. Every id a listing or a sample returned is a `ListedFact` row under
+  its step, a record's gene name, chromosome and orthologs are shown on its source row, and
+  the prose guard holds only what the facts parts drew plus the researcher's messages
+  (`TurnFacts.held_lines`, `TurnRecord.held_facts`): a record's own number is held only
+  beside its word, "37C" and "37°C" read as 37, and number words from "three" up are read.
+  A reason records the values it was derived from (`SearchRationale.derived_from`) and an
+  edit that changes one records its own why or is refused. A measurement a row shows is no
+  caveat as well, and a long pick is named by its size in clauses and caveats. An EDA
+  export names its filters and measured variable as the study does and shows each chosen
+  cut beside the compute's count at its other reading (`CutTallies`). A sample is seeded by
+  the step and the revision of what it computes, so the same sample request a turn later
+  answers the same genes. Cases `uat-dry3-a-toxodb`, `uat-dry3-b-fungidb`,
+  `uat-dry3-d-hostdb`; arc `list-ids` (`ai/models/mock/facts_arcs.py`).
+
+* **a19 round 4, lane 7: the corpus defects and the corpus as a signal.** A bind
+  is counted before it is recorded: a count the site refuses with an error status
+  (the Ganter proteome search answers 500 at its own defaults) refuses the bind
+  with that status and records nothing, and a count that expires keeps the bind
+  with no count. A pick the site labels obsolete binds when the site counts
+  records for it (fungidb GO:0031225, 82 genes live) and is refused only when it
+  counts 0, with the ontology's mark and no count it did not read; a term the
+  researcher named is replaced only through a card. An edit asked to tighten or
+  loosen whose tree answers another organism's genes than the held root (a one-way
+  transform, 67 P. vivax records for 67 P. falciparum genes) is refused with the
+  round trip. A request classification of a message that states nothing outside
+  its questions ("Did my change to ME49-only go through? What is the count now?")
+  is refused as a follow-up question. An EDA-backed search never waits under a
+  criterion id the draft binds to another search. The corpus: every case states
+  its gate policy, an answer names its card and its turn, a case that must build
+  nothing never accepts an offer, the omit checks read the reply alone, and the
+  cases that pinned a cataloged bug or a phrase only the scripted Lead writes are
+  rewritten or retired (`failed-verification-is-not-reported-as-success`).
+
+## 2026-09-29
+
+* **a19: the hermetic tier holds with no credential after the third round.**
+  The SSE golden fixture carried the ledger's `wdkUrl`, which the ledger no
+  longer holds, and `test_separation_resume` let the check's read of each bound
+  search's sheet (`services/strategies/text_queries.py::search_definitions`)
+  reach plasmodb. The fixture lost the field; the test serves an empty set of
+  recorded definitions, so the site publishes no sheet and no criterion binds a
+  text query. Whole tier: 8,761 passed, 139 skipped, on a database created for
+  the run.
+
+* **a19: a delete card lists its cascade beside the question.** The question
+  is one summary line cut at 120 characters, so a cascade written into it lost
+  its last steps. The question names the deleted step only, and the other steps
+  ride `data-delete-cascade`, drawn under the title
+  ([a-card-option-is-a-binding](decisions/a-card-option-is-a-binding.md)).
+
+* **a19: a date-time with an offset parses on the web.** The generated Zod
+  schemas accept an RFC 3339 offset (`dateType: "stringOffset"`), so the
+  researcher's upload listing, whose VDI time carries the site's offset, no
+  longer fails its response validation.
+
+* **a19: a data-type requirement is grounded by what the step runs on.** The
+  check reads the upload each step runs on before the checker runs, and the
+  grounding reads the upload's VDI type, so "RNA-Seq" on a DESeq step over an
+  `rnaseqrc` upload is grounded, not "no expression search"; a curated step
+  is still read by its expression search
+  ([verify-reviews-the-intent-the-genes-and-the-sources](decisions/verify-reviews-the-intent-the-genes-and-the-sources.md)).
+
+* **a19: a record a replaced step listed is no source.** The facts show a
+  record only under a step the live strategy holds; a record read by id with
+  no listing still shows at the end
+  ([the-product-renders-the-facts-the-reply-narrates](decisions/the-product-renders-the-facts-the-reply-narrates.md)).
+
+* **a19: the build outcome holds no count.** `BuildOutcome.counts`,
+  `BuildOutcome.root_count` and `NodeResult.count` are deleted; every reader
+  takes its counts from `built_counts(graph, sync_state)`, the sync state the
+  facts link reads, so no reader cites a count copied at the last build. The
+  staleness check compares those counts with the site's, and the ledger's
+  build section shows no count
+  ([verify-reviews-the-intent-the-genes-and-the-sources](decisions/verify-reviews-the-intent-the-genes-and-the-sources.md)).
+
+* **a19: a DESeq user-dataset step read from the site is a compute.**
+  `veupathdb-mcp` 0.2.0a33 reads a search's kind from its definition: a
+  search that reads the spec runs a compute when it opens an EDA notebook or
+  is the generic compute export. An imported or saved
+  `GenesByDESeqUserDataset` step now takes the compute kind and its binding
+  reads the volcano cut; `GenesByPhenotypeUserDataset` stays a subset. The
+  user-dataset export route reads the same flag
+  (`services/strategies/user_dataset_searches.py::export_search_for`).
+
+* **a19: a user-dataset request is a site search.** A search that declares a
+  `userDatasetType` reads the researcher's uploads of that VDI type. A gene
+  list the researcher uploaded binds `GenesByUserDatasetGeneList` with the
+  upload's id, checked against the vocabulary their own token reads (the
+  catalog's cached sheet held another account's list); a DESeq2 cut or a
+  phenotype subset of an upload is exported on `GenesByDESeqUserDataset` or
+  `GenesByPhenotypeUserDataset`, the same two parameters and the same genes
+  as the generic export (39 and 16 on both sites), in the site's notebook.
+  The dev account holds three `pathfinder-uat-*` uploads on plasmodb and
+  vectorbase for flows UD1 to UD4
+  ([a-user-dataset-request-is-a-site-search](decisions/a-user-dataset-request-is-a-site-search.md)).
+
+* **a19: a value binds in the site's unit, from the researcher's words.** A
+  fold the researcher wrote for a log2 parameter binds at its log2, in
+  `set_criterion` and in `create_eda_step`: "loosen to 1.5-fold" on a log2
+  compute writes 0.585, not 1.5 (2.83-fold), so the loosened cut keeps more
+  genes (33 to 50 on the recorded volcano's up side, where 1.5 keeps 23). The
+  value is stated and its row reads "log2(Fold Change): 0.585 (1.5-fold)". An
+  ordinal states its number ("95th percentile" states 95, and parses as the
+  top 5 percent), an organism is stated by its label without a rank word
+  ("Babesia microti RI" states "Babesia microti strain RI") unless the same
+  words name another entry, and a phyletic code by its tree label. A bind
+  whose count did not arrive takes its built step's count in the facts
+  ([an-assumed-value-is-recorded-not-narrated](decisions/an-assumed-value-is-recorded-not-narrated.md)).
+
+* **a19: an analysis cut is named in its unit, and a refused option is silent.**
+  The compute stores its effect-size label in the analysis document's volcano,
+  the step carries it, and the facts row reads "log2(Fold Change): 1.5" with
+  "1.5 on the log2 scale is 2.83-fold" beside it. Another option of a pick or
+  a filter whose count the site refuses (plasmodb answers 500 for a second
+  channel) records nothing, so it makes no "not measured" line; the
+  `other_option` measurement kind is gone
+  ([an-assumed-value-is-recorded-not-narrated](decisions/an-assumed-value-is-recorded-not-narrated.md)).
+
+* **a19: the strategy's gene set refreshes in a job.** A rename, an operator
+  change or an added step on a vectorbase UNION root of 4456 genes waited 29 to
+  94 s for the auto-imported set to be read again inside the request. The
+  write now defers one `strategy:refresh_gene_set` job per thread under a
+  refresh lock of its own, so a chat turn never waits behind it; the job reads
+  the stored root when it runs and skips a set whose `answer_revision` already
+  names it
+  ([the-strategy-gene-set-refreshes-in-a-job](decisions/the-strategy-gene-set-refreshes-in-a-job.md)).
+  The canvas no longer sends a plan whose record type it guessed: with no
+  record type on the strategy or a step, it sends no plan and polls no count.
+
+* **What the a19 e2e run found before a tester did.** Eight of 301 tests failed
+  on the assembled tree, all deterministic, all from a19's own lanes. A call
+  that failed without running (`ToolFailed`) was drawn in the trace as a
+  success row; it is an error row. A requirement no search states had no
+  typed record when FRAME bound nothing, so the facts part showed no gap:
+  `FrameResult.unstated` holds the researcher's phrase, refused unless a
+  message holds it, and `check_gaps` turns it into a gap. The gene-set and
+  experiment stores kept a per-process cache that won over the database while
+  the worker wrote the same rows; both read the database now, since Postgres is
+  the only broker. The mock's GO term for a site whose seeds hold none had no
+  genes on vectorbase; it binds the ribosome term, counted live on both sites.
+
+* **What the a19 dry UAT found, and what it closed.** Twelve fresh investigations
+  on twelve sites, 38 real-model turns: every count in every facts part matched
+  the site, `assumed` read 0 wherever the bind counted, withdrawn requirements
+  showed as retired, deletes named their steps, identical re-sends after a
+  refusal ended as failed, and two sites were clean end to end. The 36 verified
+  findings collapse into coverage holes of the new invariants, a few
+  regressions and five new classes, and each is now data: every WDK parameter
+  kind has a measurement rule or an explicit not-measurable state, a label rule
+  and a source rule, enumerated by a totality test (a vocabulary pick is counted
+  at the site default and names the options not taken; a hidden parameter with a
+  vocabulary is settable, and the tool server now says which parameter is
+  read-only, `veupathdb-mcp` v0.2.0a32; a bind whose count did not arrive says so
+  for every default; a value is stated only when one message holds the whole of
+  it, with number words as digits; phyletic codes carry their organism). A card
+  binds or is not offered: the Lead's card over a parameter the spec holds is
+  refused, no card has one option, a requirement no search states asks Drop or
+  Keep, an accepted proposal's typed changes are the researcher's requirements,
+  and a requirement is named by its key in every row. The facts link and the
+  counts VERIFY compares are the live strategy's after a delete or an edit; a
+  computed check is never overwritten by the model's verdict; an edit the
+  researcher called loosen whose count fell is a caveat with both counts; a log2
+  value shows its fold value; values compare at the parameter's precision; a term
+  whose site label says obsolete is refused; an unquoted phrase is counted as a
+  phrase and as words; a text requirement is met only by records that show it; a
+  sample spreads its offsets; a read past the budget is a refusal the memory
+  sees. A finished reply is never replaced by a stop message; the intent gate
+  reads the site's organisms and gene ids rather than grammar; a number the facts
+  hold may appear in the prose. The devtool writes `assumed`, the facts part and
+  every tool's whole return.
+
+* **The second a19 dry UAT, and what it closed.** Twelve more fresh
+  investigations, 41 turns: every count matched the site again and `assumed`
+  read 0, and the 29 verified problems were mostly the first round's rules
+  applied too narrowly or at the wrong place. Three lessons became data. The
+  facts are the thread's, not the turn's: the prose rule reads every facts part
+  the thread showed and every value a tool returned this turn, every edit records
+  the root's count before it, sources sit under the step they were read from
+  with their fit, and a gene id the gate resolved is a fact. An invariant lives
+  on the type: the one-option and bind-nothing refusals are validators on the
+  question types every card path constructs, the ledger holds no strategy link
+  or count of its own but derives them from the live state, and whether a value
+  is a text query is read from the parameter-kind table, so a placeholder
+  default or a vocabulary term is never a requirement gap. A value binds in the
+  site's unit from the researcher's words: a fold value on a log2 parameter
+  converts at bind and shows both readings, "95th percentile" is a stated bound,
+  an organism's site label states it, a bind count that did not arrive takes the
+  built step's count. Also: a delete card lists the cascade computed before it, an
+  edit FRAME cannot bind ends as a refusal row, one check has one sample, a
+  comparison is counted in the result, a cut ortholog list says so, a finished
+  reply is never replaced, and the devtool follows a parked turn to its
+  completion turn. A request that names an uploaded dataset the researcher owns
+  is framed on the site's own user-dataset search (`GenesByDESeqUserDataset`,
+  `GenesByUserDatasetGeneList`, `GenesByPhenotypeUserDataset`) when the site
+  offers it, with UAT flows UD1 to UD4 and live tests on the registered
+  account's uploads (`uat/flows-user-datasets.md`).
+
+## 2026-09-28
+
+* **a19: the product holds the facts.** A dry UAT of a18 (four testers, ten
+  investigations, 55 real-model turns on eight sites) found 37 verified issues,
+  24 of them the product's, and most were the same shape as findings already
+  closed: a fact the product held, restated wrongly by the model and caught, or
+  not, by a prose rule written for the previous instance. a19 moves each
+  invariant onto data. Every bound value carries who set it
+  (`BoundValue.source`: stated, chosen, default, card or held) and the
+  measurements the bind took at the site (the count at the loosest bound, the
+  wildcard and site-search counts of a quoted phrase, the any-strain and
+  all-strains counts of a phyletic group, the vocabulary label), so a default
+  that narrows the result is a typed caveat with both counts and never a
+  sentence the model chose to write. Every requirement carries a lifecycle
+  (open, bound, withdrawn, replaced), and a withdrawn one can never be a gap.
+  Every card option is a binding: a picked value is written into the spec with
+  no model in between, a withdrawal retires its requirement, and a card whose
+  options bind nothing is refused at construction
+  ([a-card-option-is-a-binding](decisions/a-card-option-is-a-binding.md)).
+  The reply's facts are rendered by the product: a `data-facts` part built from
+  the strategy, the spec and the ledger (steps in tree order with each value,
+  its source and its measurements, the counts, the caveats, the gaps, the
+  retired requirements, the strategy link, the sets this conversation saved,
+  the control results, a stopped check, a provider refusal shown whole) is
+  written before the Lead's prose, and one rule, `fact_outside_the_block`,
+  replaces twelve: the prose holds no number, identifier or link the facts do
+  not show ([the-product-renders-the-facts-the-reply-narrates](decisions/the-product-renders-the-facts-the-reply-narrates.md)).
+  VERIFY reads WDK column histograms over the whole step instead of eight gene
+  records, so a bound threshold is checked against every gene in one call and
+  a search with no column says so as a state
+  ([verify-reviews-the-intent-the-genes-and-the-sources](decisions/verify-reviews-the-intent-the-genes-and-the-sources.md)).
+  The sets a turn lists are this conversation's first, marked `savedHere`; the
+  auto-imported set refreshes on every commit that changes the root, and step
+  ids are read by a read-only tool, so nothing is saved as a read. A refusal is
+  a correction or names the exact alternative: the parameter names a criterion
+  may set are in the tool's schema per step (`Tool.prepare`), a display-name
+  variant or a value passed as a term is corrected and recorded, a hidden
+  parameter at the site's value is left to the site, and an identical call
+  re-sent after a refusal is `ToolFailed` without a retry spent
+  ([build-retry-must-be-actionable](decisions/build-retry-must-be-actionable.md)).
+  The report gains `assumed=N`, the count of values applied that the request
+  did not state and the facts part did not carry, and ten cases recorded from
+  the dry UAT join the corpus (`uat-dry-<tester>-<site>`, flows U1 to U10 in
+  `uat/flows-dry-uat.md`).
+
+* **Every model id lives in one file.** `platform/model_catalog.py` holds each
+  cloud entry with its rank (flagship, standard, small), its prices as of
+  `PRICES_AS_OF` and its measured attachment flags, and refuses a lineup with
+  two entries at one rank or without a default at import; the tiers derive from
+  the ranks, the role constants and the injection judge read `DEFAULT_MODEL_ID`,
+  and the tests name ids through one fixture module. The lineup is GPT-6 Sol,
+  GPT-5.6 Luna (the default) and GPT-6 Luna (the small entry, so the title, the
+  note compactor, the key check, site help and VERIFY run on it), Gemini 3.1
+  Pro, 3.8 Flash and 3.5 Flash-Lite, and Claude Haiku 4.5. GPT-5.6 Sol and
+  Terra, Opus 5, Sonnet 5 and Gemini 3.6 Flash are gone. The spend meter now
+  prices every cloud entry (genai-prices 0.1.9; the GPT-6 models and Gemini 3.8
+  cost $0 before). `python -m pathfinder.devtools.model_catalog check` lists
+  what each provider serves against the catalog
+  (`conventions/refreshing-the-model-catalog.md`). Measured on the dry UAT's
+  65 turns: the Lead spent 37% of the tokens, FRAME 38%, VERIFY 25%, BUILD
+  none, $4.28 in all; on the same note sets the compactor kept more facts on
+  GPT-6 Luna than on 5.6 Luna (60% against 55%) at 56% of the cost.
+
+* **A compaction keeps every identifier.** The note compactor had never fired
+  on a real conversation, and on trigger-sized real inputs both models dropped
+  about half the gene ids and step ids. An output validator now refuses a
+  compaction that loses an identifier the input notes carry, one instruction
+  line states the rule, and first-attempt retention went from 32 to 52% to 93
+  to 100%; a compaction over the token ceiling is refused whole by the runtime
+  rather than trimmed
+  ([a-compaction-keeps-every-identifier](decisions/a-compaction-keeps-every-identifier.md)).
+
+* **Traces reach Langfuse from the worker.** Tracing was installed only in the
+  API process, where no model runs, so no turn was ever traced. The runtime now
+  owns the tracer (assistant-core 0.3.0a21, standard `OTEL_EXPORTER_OTLP_*`
+  variables only), both processes install it, each turn is one trace with the
+  conversation as the session and the researcher as the user, and the message's
+  `traceId` is that trace's id. Langfuse runs on the deployment's own host as
+  six units; SigNoz, the browser telemetry and the Langfuse prompt, dataset and
+  scoring modules are deleted; a rating is a Langfuse score and the UI's
+  product events (a card answered, a strategy opened, an export, a site switch)
+  reach `POST /api/v1/product-events`; `python -m pathfinder.devtools.usage
+  report` prints cost per conversation, researcher and day from this database
+  ([traces-go-to-langfuse-over-plain-otlp](decisions/traces-go-to-langfuse-over-plain-otlp.md),
+  `conventions/observability.md`). Proven on one real turn: 150 observations,
+  prompts present, Langfuse's cost within $0.00005 of the persisted one.
+
+* **The cedar install purges checkpoints.** The a19 spec shapes do not load
+  from a pre-a19 checkpoint, so the install truncates the checkpoint tables
+  before the units start; no UAT data exists yet. The filter-label backlog
+  card is closed without a library release: filter clauses take their labels
+  from `ParameterInfo.filter_fields`.
+
 ## 2026-09-27
 
 * **The verdict moves to the Lead.** The evidence card no longer grades the

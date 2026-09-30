@@ -21,7 +21,6 @@ const EMPTY_BUILD = {
   succeeded: false,
   nodeResults: [],
   wdkStrategyId: null,
-  wdkUrl: null,
 };
 
 function makeLedger(overrides: Partial<InvestigationLedger> = {}): InvestigationLedger {
@@ -55,7 +54,6 @@ function makeLedger(overrides: Partial<InvestigationLedger> = {}): Investigation
       succeeded: true,
       nodeResults: [],
       wdkStrategyId: null,
-      wdkUrl: null,
     },
     verification: { complete: false, successful: false },
     constraints: { grounded: [], unmetCount: 0, blocking: false },

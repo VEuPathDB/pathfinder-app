@@ -3,7 +3,9 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from pathfinder.persistence.models import User
 from pathfinder.services.experiment.control_sourcing import (
     control_ids_from_saved_gene_set,
     validate_control_ids,
@@ -79,10 +81,14 @@ async def test_validate_control_ids_dedups_and_preserves_order(
 
 async def test_control_ids_from_saved_gene_set_round_trips(
     wdk_builder: BuildAndRead,
+    session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     _, kinase_ids = await step_gene_ids(await wdk_builder(text_leaf("kinase")))
     ids = sorted(kinase_ids)
     user_id = uuid4()
+    async with session_maker() as session:
+        session.add(User(id=user_id))
+        await session.commit()
     svc = GeneSetService(get_gene_set_store())
     gs = await svc.create(
         user_id=user_id,

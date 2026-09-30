@@ -11,61 +11,35 @@ from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.graph.turn_records import normalized_reference
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS
 from pathfinder.ai.lead.contract_messages import (
     blamed_the_site_message,
     claimed_change_message,
     claimed_frame_message,
-    control_set_not_written_message,
-    counted_in_the_wrong_unit_message,
     eda_criterion_not_built_message,
-    gene_set_not_saved_message,
-    machine_words_message,
-    misnamed_deletion_message,
+    failed_check_message,
+    fact_outside_the_block_message,
     off_topic_essay_message,
-    unbacked_evidence_message,
     unclassified_turn_message,
     unfinished_work_message,
     unnamed_record_organism_message,
     unrecorded_offer_message,
     unreported_change_message,
-    unretrieved_source_message,
     unsaved_controls_message,
     unverified_build_message,
 )
-from pathfinder.ai.lead.count_claims import misstated_count_message, misstated_counts
-from pathfinder.ai.lead.deleted_steps import misnamed_removal
-from pathfinder.ai.lead.evidence_claims import (
-    control_claims,
-    sample_claims,
-    unbacked_claims,
-    unbacked_sample_claims,
-)
+from pathfinder.ai.lead.facts_in_prose import outside_the_facts
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
-    SAVED_A_CONTROL_SET,
-    SAVED_A_GENE_SET,
     claims,
-    counts_in_the_wrong_unit,
     ends_with_a_question,
-    machine_words,
     names_an_organism,
 )
-from pathfinder.ai.lead.search_reasons import unnamed_search
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
-from pathfinder.ai.lead.verdict_claims import (
-    misstated_control_list,
-    open_value_in_prose,
-    unstated_caveat,
-    unstated_gap,
-    unstated_stop,
-)
-from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
-from pathfinder.domain.evidence import SourceReference
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
+from pathfinder.domain.strategy.questions import AskedQuestion
 
 LeadTurnState = Literal["await_user", "complete"]
 
@@ -101,7 +75,7 @@ class LeadResponse(CamelModel):
             "wrote."
         ),
     )
-    asked_questions: list[OpenQuestion] = Field(
+    asked_questions: list[AskedQuestion] = Field(
         default_factory=list,
         max_length=8,
         description=(
@@ -111,44 +85,24 @@ class LeadResponse(CamelModel):
             "turn has to ask again."
         ),
     )
-    sources: list[SourceReference] = Field(
-        default_factory=list,
-        max_length=20,
-        description=(
-            "One entry per reference this reply names: a gene record you read, "
-            "a paper, or a page. Every url, DOI and PMID here must be one a "
-            "read of THIS turn returned; a reference you did not retrieve is "
-            "one the user cannot check."
-        ),
-    )
 
 
 MismatchKind = Literal[
     "unverified_build",
     "misreported_change",
     "claimed_frame",
-    "unwritten_control_set",
-    "unwritten_gene_set",
     "unbuilt_eda_criterion",
     "blamed_the_site",
     "open_value_in_prose",
     "unrecorded_question",
     "unfinished_work",
     "stopped_check",
-    "machine_words",
-    "off_topic_essay",
-    "unretrieved_source",
-    "unnamed_search",
-    "unnamed_record_organism",
-    "unstated_gap",
-    "unstated_caveat",
-    "unbacked_evidence",
-    "misstated_control_list",
-    "misnamed_deletion",
-    "counted_in_the_wrong_unit",
-    "misstated_count",
     "unclassified_turn",
     "unsaved_controls",
+    "off_topic_essay",
+    "unnamed_record_organism",
+    "fact_outside_the_block",
+    "failed_check",
 ]
 
 
@@ -166,7 +120,7 @@ def _unverified_build(report: LeadResponse, record: TurnRecord) -> str | None:
     del report
     if not record.build_unverified:
         return None
-    return unverified_build_message(record.build_outcome)
+    return unverified_build_message(record.build_outcome, record.facts.root_count)
 
 
 def _misreported_change(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -174,8 +128,8 @@ def _misreported_change(report: LeadResponse, record: TurnRecord) -> str | None:
     if report.strategy_changed == record.changed_strategy:
         return None
     if record.changed_strategy:
-        return unreported_change_message()
-    return claimed_change_message(record.build_outcome)
+        return unreported_change_message(record.build_outcome, record.facts)
+    return claimed_change_message(record.build_outcome, record.facts.root_count)
 
 
 def _claimed_frame(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -186,20 +140,6 @@ def _claimed_frame(report: LeadResponse, record: TurnRecord) -> str | None:
     if not claims(report.prose, CLAIMED_A_FRAME):
         return None
     return claimed_frame_message(diff)
-
-
-def _unwritten_control_set(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A durable artifact the reply reports is one this turn wrote."""
-    if record.created_control_sets or not claims(report.prose, SAVED_A_CONTROL_SET):
-        return None
-    return control_set_not_written_message(record.created_gene_sets)
-
-
-def _unwritten_gene_set(report: LeadResponse, record: TurnRecord) -> str | None:
-    """The same rule for the other artifact a reply can put the wrong name on."""
-    if record.created_gene_sets or not claims(report.prose, SAVED_A_GENE_SET):
-        return None
-    return gene_set_not_saved_message(record.created_control_sets)
 
 
 def _unbuilt_eda_criterion(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -281,34 +221,13 @@ def _unclassified_turn(report: LeadResponse, record: TurnRecord) -> str | None:
 def _unsaved_controls(report: LeadResponse, record: TurnRecord) -> str | None:
     """Controls the message names are saved as a control set, or asked about."""
     named = record.named_controls
-    if named is None or record.created_control_sets:
+    if named is None or not (named.positive_ids or named.negative_ids):
+        return None
+    if record.created_control_sets:
         return None
     if report.asked_questions or record.ends_on_a_card:
         return None
     return unsaved_controls_message(len(named.positive_ids), len(named.negative_ids))
-
-
-def _machine_words(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A reply about work that did not run says so in the user's own words.
-
-    A tool name, a minted step id and an error code name nothing the
-    researcher holds, so the reply that reports a failure carries none of them.
-    """
-    if not _work_did_not_run(record):
-        return None
-    found = machine_words(report.prose)
-    if not found:
-        return None
-    return machine_words_message(found)
-
-
-def _work_did_not_run(record: TurnRecord) -> bool:
-    """Whether a pass of this turn was refused, stopped, or lost a step."""
-    return bool(
-        record.refused_dispatches
-        or record.last_phase_stop is not None
-        or record.build_section.failed_count
-    )
 
 
 def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -319,25 +238,6 @@ def _off_topic_essay(report: LeadResponse, record: TurnRecord) -> str | None:
     if _CODE_FENCE not in prose and len(prose) <= OFF_TOPIC_REPLY_MAX_CHARS:
         return None
     return off_topic_essay_message(OFF_TOPIC_REPLY_MAX_CHARS)
-
-
-def _unretrieved_source(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A reference the reply lists is one a read of this turn returned."""
-    retrieved = {normalized_reference(found) for found in record.retrieved_sources}
-    absent = [
-        reference
-        for source in report.sources
-        for reference in source.references()
-        if normalized_reference(reference) not in retrieved
-    ]
-    if not absent:
-        return None
-    return unretrieved_source_message(absent)
-
-
-def _unnamed_search(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A step this turn added is named by its search, beside its reason."""
-    return unnamed_search(report.prose, record.added_searches)
 
 
 def _unnamed_record_organism(report: LeadResponse, record: TurnRecord) -> str | None:
@@ -351,67 +251,25 @@ def _unnamed_record_organism(report: LeadResponse, record: TurnRecord) -> str | 
     return unnamed_record_organism_message(change)
 
 
-def _unstated_gap(report: LeadResponse, record: TurnRecord) -> str | None:
-    """Every gap of the turn is named with what is missing."""
-    return unstated_gap(report.prose, record)
+def _fact_outside_the_block(report: LeadResponse, record: TurnRecord) -> str | None:
+    """The prose holds a count, a name or a link only when the thread showed it,
+    this turn read it, or a question of the reply offers it as a choice."""
+    offered = [option for q in report.asked_questions for option in q.options]
+    held = "\n".join([record.held_facts(), *offered])
+    found = outside_the_facts(report.prose, held, record.machine_names)
+    return fact_outside_the_block_message(found) if found else None
 
 
-def _unstated_caveat(report: LeadResponse, record: TurnRecord) -> str | None:
-    """Every caveat of the turn's check is stated with its numbers."""
-    return unstated_caveat(report.prose, record)
-
-
-def _unbacked_evidence(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A control result or a sampled-gene count the reply states is one this
-    turn or its last check holds."""
-    found = [
-        *unbacked_claims(control_claims(report.prose), record.control_results),
-        *unbacked_sample_claims(sample_claims(report.prose), record.sampled_genes),
-    ]
-    return unbacked_evidence_message(found) if found else None
-
-
-def _misstated_control_list(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A control list size the reply states is one the turn holds."""
-    return misstated_control_list(report.prose, record)
-
-
-def _misnamed_deletion(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A removal the reply claims names a step this turn deleted."""
-    if not record.deleted_steps:
+def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A check that failed on the strategy as it stands is stated or asked about."""
+    digest = record.verification_section.digest
+    if digest is None or digest.success:
         return None
-    claimed = misnamed_removal(
-        report.prose, record.deleted_steps, record.standing_steps
-    )
-    if claimed is None:
+    if report.asked_questions or record.ends_on_a_card:
         return None
-    return misnamed_deletion_message(claimed, record.deleted_steps)
-
-
-def _counted_in_the_wrong_unit(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A step count is named in the noun the site counts the strategy in."""
-    wrong = counts_in_the_wrong_unit(
-        report.prose, record.record_type, record.step_counts
-    )
-    if not wrong:
+    if ends_with_a_question(report.prose) or digest.failure_stated_in(report.prose):
         return None
-    noun = counted_noun(record.record_type)
-    return counted_in_the_wrong_unit_message(record.record_type, noun, wrong)
-
-
-def _misstated_count(report: LeadResponse, record: TurnRecord) -> str | None:
-    """A count the reply states for the strategy is one a step of it holds, or
-    held when the message arrived."""
-    if not record.record_type or not record.step_counts:
-        return None
-    noun = counted_noun(record.record_type)
-    stated = misstated_counts(
-        report.prose,
-        noun=noun,
-        record_type=record.record_type,
-        held=(*record.step_counts, *record.counts_at_arrival),
-    )
-    return misstated_count_message(noun, stated, record.step_counts) if stated else None
+    return failed_check_message(digest.reason)
 
 
 _RULES: tuple[
@@ -420,8 +278,6 @@ _RULES: tuple[
     ("unverified_build", _unverified_build),
     ("misreported_change", _misreported_change),
     ("claimed_frame", _claimed_frame),
-    ("unwritten_control_set", _unwritten_control_set),
-    ("unwritten_gene_set", _unwritten_gene_set),
     ("unbuilt_eda_criterion", _unbuilt_eda_criterion),
     ("blamed_the_site", _blamed_the_site),
     ("open_value_in_prose", _open_value_in_prose),
@@ -430,18 +286,10 @@ _RULES: tuple[
     ("stopped_check", _stopped_check),
     ("unclassified_turn", _unclassified_turn),
     ("unsaved_controls", _unsaved_controls),
-    ("machine_words", _machine_words),
     ("off_topic_essay", _off_topic_essay),
-    ("unretrieved_source", _unretrieved_source),
-    ("unnamed_search", _unnamed_search),
     ("unnamed_record_organism", _unnamed_record_organism),
-    ("unstated_gap", _unstated_gap),
-    ("unstated_caveat", _unstated_caveat),
-    ("unbacked_evidence", _unbacked_evidence),
-    ("misstated_control_list", _misstated_control_list),
-    ("misnamed_deletion", _misnamed_deletion),
-    ("counted_in_the_wrong_unit", _counted_in_the_wrong_unit),
-    ("misstated_count", _misstated_count),
+    ("fact_outside_the_block", _fact_outside_the_block),
+    ("failed_check", _failed_check),
 )
 
 
@@ -455,24 +303,45 @@ def reconcile(report: LeadResponse, record: TurnRecord) -> list[Mismatch]:
     return found
 
 
+def to_correct(
+    ctx: RunContext[LeadDeps], report: LeadResponse, record: TurnRecord, part: str
+) -> list[Mismatch]:
+    """The mismatches one text part of the turn is corrected for, and the record
+    that it was.
+
+    The message's first correction carries every mismatch; after it, each text
+    part a run writes is still held to the facts once.
+    """
+    markers = ctx.deps.state.turn_markers
+    key = f"{ctx.run_id}:{part}"
+    if key in markers.facts_corrected:
+        return []
+    found = reconcile(report, record)
+    if markers.contract_refused:
+        found = [m for m in found if m.kind == "fact_outside_the_block"]
+    if not found:
+        return []
+    markers.contract_refused = True
+    if any(m.kind == "fact_outside_the_block" for m in found):
+        markers.facts_corrected.append(key)
+    return found
+
+
 def hold_the_turn_contract(
     ctx: RunContext[LeadDeps],
     output: LeadResponse | DeferredToolRequests,
 ) -> LeadResponse | DeferredToolRequests:
-    """Refuse the first answer of a turn that does not match the turn's record.
+    """Refuse an answer of a turn that does not match the turn's record.
 
     One correction carries every mismatch, and it is asked once per turn, so a
-    second answer reaches the user whatever it says.
+    second answer reaches the user whatever else it says. A reply a later run
+    of the message writes is still held to the facts once.
     """
     if not isinstance(output, LeadResponse):
         return output
-    markers = ctx.deps.state.turn_markers
-    if markers.contract_refused:
-        return output
-    mismatches = reconcile(output, turn_record(ctx))
+    mismatches = to_correct(ctx, output, turn_record(ctx), "reply")
     if not mismatches:
         return output
-    markers.contract_refused = True
     raise ModelRetry(correction_for(mismatches))
 
 

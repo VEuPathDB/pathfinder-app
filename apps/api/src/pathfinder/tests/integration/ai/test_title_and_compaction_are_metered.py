@@ -1,8 +1,8 @@
 """The thread title and the notes compaction each write a usage row for their payer.
 
 The title runs on the deployment's key when the researcher holds none, and the
-compaction on the researcher's key when theirs pays for its provider. Only the
-model is a double; the quota rows are read back from Postgres.
+compaction on the researcher's key when theirs pays for its provider. A refused
+compaction keeps the notes and is still charged. Only the model is a double.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.model_keys import attach_keyring
+from pathfinder.platform.model_keys import ProviderBuilder, attach_keyring
 from pathfinder.tests._support.provider_wire import allow_requests_to_the_wire
 
 pytestmark = pytest.mark.asyncio
@@ -113,9 +113,9 @@ async def test_a_title_writes_its_usage_on_the_deployments_row(
     assert (await _spent(user_id, PaidBy.USER)).tokens == 0
 
 
-def _compaction_answer(model: str) -> dict[str, Any]:
+def _compaction_answer(model: str, body: str) -> dict[str, Any]:
     """One finished Responses answer that calls the compactor's output tool."""
-    notes = {"notes": [{"title": "kinases", "summary": "merged", "body": "merged"}]}
+    notes = {"notes": [{"title": "kinases", "summary": "merged", "body": body}]}
     return Response.model_validate(
         {
             "id": "resp_compaction",
@@ -147,22 +147,25 @@ def _compaction_answer(model: str) -> dict[str, Any]:
     ).model_dump(mode="json", exclude_none=True)
 
 
-def _compaction_provider(name: KeyableProvider, key: SecretStr) -> Provider[Any]:
-    assert name == "openai"
+def _answering(body: str) -> ProviderBuilder:
+    def build(name: KeyableProvider, key: SecretStr) -> Provider[Any]:
+        assert name == "openai"
 
-    def answer(request: httpx2.Request) -> httpx2.Response:
-        model = json.loads(request.content)["model"]
-        return httpx2.Response(200, json=_compaction_answer(model))
+        def answer(request: httpx2.Request) -> httpx2.Response:
+            model = json.loads(request.content)["model"]
+            return httpx2.Response(200, json=_compaction_answer(model, body))
 
-    client = httpx2.AsyncClient(transport=httpx2.MockTransport(answer))
-    return OpenAIProvider(api_key=key.get_secret_value(), http_client=client)
+        client = httpx2.AsyncClient(transport=httpx2.MockTransport(answer))
+        return OpenAIProvider(api_key=key.get_secret_value(), http_client=client)
+
+    return build
 
 
-async def _fill_the_notebook(conversation_id: UUID) -> None:
+async def _fill_the_notebook(conversation_id: UUID, body: str = "a finding") -> None:
     notebook = ScratchpadNotebook(db.async_session_factory, conversation_id)
     for index in range(COMPACT_COUNT_THRESHOLD + 1):
         await notebook.create(
-            NoteCreate(title=f"note {index}", summary="a finding", body="a finding")
+            NoteCreate(title=f"note {index}", summary="a finding", body=body)
         )
 
 
@@ -188,21 +191,8 @@ def _checked_turn(conversation_id: UUID, user_id: UUID) -> PipelineState:
     return state
 
 
-async def test_a_compaction_on_the_researchers_key_writes_their_row(
-    patch_app_db_engine: None,
-    db_cleaner: None,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    del patch_app_db_engine, db_cleaner
-    allow_requests_to_the_wire(monkeypatch)
-    settings = get_settings()
-    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
-    monkeypatch.setattr(settings, "default_provider", "openai")
-    monkeypatch.setattr(settings, "openai_api_key", "sk-deployment-sentinel-0000")
-    conversation_id, user_id = await _seed_thread()
-    await _fill_the_notebook(conversation_id)
-    chunks: list[Any] = []
-    runtime: Runtime[Context] = Runtime(
+def _runtime(user_id: UUID, chunks: list[Any]) -> Runtime[Context]:
+    return Runtime(
         context=Context(
             site_id="plasmodb",
             user_id=user_id,
@@ -212,11 +202,39 @@ async def test_a_compaction_on_the_researchers_key_writes_their_row(
         ),
         stream_writer=chunks.append,
     )
-    keyring = ProviderKeyring(active={"openai": SecretStr("sk-user-sentinel-1111")})
 
-    with attach_keyring(keyring, build=_compaction_provider):
+
+def _on_the_researchers_key(monkeypatch: pytest.MonkeyPatch) -> ProviderKeyring:
+    allow_requests_to_the_wire(monkeypatch)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "default_provider", "openai")
+    monkeypatch.setattr(settings, "openai_api_key", "sk-deployment-sentinel-0000")
+    return ProviderKeyring(active={"openai": SecretStr("sk-user-sentinel-1111")})
+
+
+def _usage_totals(chunks: list[Any]) -> list[int]:
+    return [
+        c["chunk"]["data"]["totalTokens"]
+        for c in chunks
+        if c["chunk"]["type"] == "data-turn-usage"
+    ]
+
+
+async def test_a_compaction_on_the_researchers_key_writes_their_row(
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del patch_app_db_engine, db_cleaner
+    keyring = _on_the_researchers_key(monkeypatch)
+    conversation_id, user_id = await _seed_thread()
+    await _fill_the_notebook(conversation_id)
+    chunks: list[Any] = []
+
+    with attach_keyring(keyring, build=_answering("merged")):
         command = await nodes.finalize_turn_node(
-            _checked_turn(conversation_id, user_id), runtime
+            _checked_turn(conversation_id, user_id), _runtime(user_id, chunks)
         )
 
     compaction_tokens = _COMPACTION_INPUT_TOKENS + _COMPACTION_OUTPUT_TOKENS
@@ -224,11 +242,37 @@ async def test_a_compaction_on_the_researchers_key_writes_their_row(
     assert researcher.tokens == compaction_tokens
     assert researcher.cost_usd > 0
     assert (await _spent(user_id, PaidBy.DEPLOYMENT)).tokens == 0
-    usage = [
-        c["chunk"]["data"] for c in chunks if c["chunk"]["type"] == "data-turn-usage"
+    assert _usage_totals(chunks) == [_TURN_TOKENS + compaction_tokens]
+    assert [c["chunk"]["type"] for c in chunks] == [
+        "data-scratchpad-updated",
+        "data-turn-usage",
     ]
-    assert [u["totalTokens"] for u in usage] == [_TURN_TOKENS + compaction_tokens]
     assert command.update == {
         "turn_total_tokens": _TURN_TOKENS + compaction_tokens,
         "turn_total_cost_usd": Decimal("0.01") + researcher.cost_usd,
     }
+
+
+async def test_a_compaction_that_drops_a_gene_id_keeps_the_notes_and_is_charged(
+    patch_app_db_engine: None,
+    db_cleaner: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del patch_app_db_engine, db_cleaner
+    keyring = _on_the_researchers_key(monkeypatch)
+    conversation_id, user_id = await _seed_thread()
+    await _fill_the_notebook(conversation_id, body="PF3D7_0102300 is a kinase")
+    chunks: list[Any] = []
+
+    with attach_keyring(keyring, build=_answering("a kinase")):
+        await nodes.finalize_turn_node(
+            _checked_turn(conversation_id, user_id), _runtime(user_id, chunks)
+        )
+
+    notebook = ScratchpadNotebook(db.async_session_factory, conversation_id)
+    totals = await notebook.compaction_totals()
+    assert totals.compactable_count == COMPACT_COUNT_THRESHOLD + 1
+    three_attempts = 3 * (_COMPACTION_INPUT_TOKENS + _COMPACTION_OUTPUT_TOKENS)
+    assert (await _spent(user_id, PaidBy.USER)).tokens == three_attempts
+    assert _usage_totals(chunks) == [_TURN_TOKENS + three_attempts]
+    assert [c["chunk"]["type"] for c in chunks] == ["data-turn-usage"]

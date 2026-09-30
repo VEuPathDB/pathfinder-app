@@ -130,7 +130,7 @@ The integration tier must pass with no VEuPathDB credential and no provider key,
 ```
 D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
 H=$(mktemp -d); mv .env "$H/api.env"; mv ../../.env "$H/root.env"; mv ../../ollama_models.yaml "$H/"; \
-env VEUPATHDB_AUTH_TOKEN= WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= \
+env VEUPATHDB_AUTH_TOKEN= WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST_TOKEN= \
   OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= PATHFINDER_RESEARCH_MCP_URL= \
   API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx PATHFINDER_CHAT_PROVIDER=mock \
   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/$D \
@@ -168,6 +168,19 @@ summary JSON carries it as `refusedTools` per case and `refusals` for the run.
 It counts each Lead or sub-agent call that came back as a retry prompt or as
 the repetition guard's text. The column is read on a `pass` too: a rule that
 fires on a passing case shows only there.
+
+What a release's acceptance reads from a corpus run is the triage of every
+`fail`, not a pass count. Each failure is classed: fixed by the change under
+test, a product defect, model variance the expectation is too rigid for, or a
+wrong expectation. The acceptance holds when no failure is a product defect,
+every case states its own gate policy (the loader refuses one that does not),
+and the run reads `assumed=0`. A failure of the last two classes is a defect of
+the case, fixed in the same change: an expectation that pins a cataloged bug's
+output, a phrase only the scripted model writes, a later turn scripted on an
+earlier turn's recorded count, or a card answered by position. The cases share
+one registered account and one PathFinder user, so gene sets, memories and
+cases from earlier runs are visible to later ones; an expectation never reads a
+phrase such state can satisfy.
 
 ## The science verifies in two lanes
 
@@ -232,7 +245,7 @@ the site named in `siteId`. Without `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` the run
 is unauthenticated, the catalog reads answer 403 and the case reports
 `builtStrategy: expected 'true', got 'false'`.
 
-**A run always drives the configured provider.** The scripted provider routes on a token a Playwright spec writes into its message, so a corpus prompt reaches it unmarked and settles nothing; what the script proves belongs to the e2e suite and the unit tier. A case states how it runs: `effort` (the level the flow was measured at; `--effort` on the command line wins), `gates` (`auto` answers every card with its recommendation, `stop` leaves the last gate unanswered, or a list of per-gate answers with a comment), and `attachments` per turn. `--via-worker` runs the turns through the worker so a durable tool executes.
+**A run always drives the configured provider.** The scripted provider routes on a token a Playwright spec writes into its message, so a corpus prompt reaches it unmarked and settles nothing; what the script proves belongs to the e2e suite and the unit tier. A case states how it runs: `effort` (the level the flow was measured at; `--effort` on the command line wins), `gates`, and `attachments` per turn. `gates` is required: its `answers` name each card they answer by the card's tool and the turn whose message raised it (a yes, a no with a comment, or the picks of a question card), and its `policy` answers every card no answer names: `auto` says yes to every approval and offer and takes each question's recommendation, `stop` does the same but leaves the last turn's card unanswered, `decline-offers` says no to an offer, yes to any other approval and leaves a question unanswered, and `leave` answers nothing. An answer for a card that never came blocks no later answer. A case that must build nothing may not use a policy that accepts an offer. Each answer writes its own run directory under its turn's (`turn-N/answer-K`). `replyMentions` and `turnReplyMentions` read what the turn showed, the facts part and the reply; `replyOmits` and `turnReplyOmits` read the reply alone, since the facts part shows a vocabulary term beside its label by design; each difference names the text it read. `--via-worker` runs the turns through the worker so a durable tool executes.
 
 **A recorded count is judged against the site build.** A case that carries `root_count` (the count, the build it held on, the date read) gets one of three verdicts from `pathfinder.evals.drift.classify`: `fail` for any difference that is not the count, or the count off on the same build; `pass` for the count off on a new build within `max(5, 10 %)`; `re-measure` for the count off on a new build outside that band. The run writes `EvalRunSummary`: harness, provider, assistant, per-case verdict and named differences, with `re_measure` counted beside passed and failed. It is the logic layer's feed into the observability contract, and the pre-release report reads it.
 

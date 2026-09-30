@@ -1,0 +1,60 @@
+{
+  "name": "uat-dry4-c-vectorbase",
+  "turns": [
+    "Aedes aegypti LVP_AGWG odorant-binding protein genes on chromosome 3."
+  ],
+  "siteId": "vectorbase",
+  "assistantId": "pathfinder",
+  "rationale": "A typeahead domain pick binds only after a lookup of its parameter: the pinned list of 200 of 8,027 entries is ranked by name and never reaches the OBP family, so the pick from it is refused, the lookup of the concept's phrasings reaches PF01395 (PBP/GOBP family), and the facts row names that lookup and its matches.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByInterproDomain INTERSECT GenesByLocation)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByInterproDomain": {
+        "domain_typeahead": "PF01395"
+      },
+      "GenesByLocation": {
+        "chromosomeOptional": "3"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 39,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "vectorbase",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#uc4-vectorbase",
+    "curatorNote": "Round-4 dry UAT, tester C, investigation 7, conversation 8d38697c-79cc-40af-8045-98ba22917a86. Turn 1 only: the later turns follow the wrong family the first bind took."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -102,11 +102,14 @@ def test_a_dispatch_refused_then_run_leaves_no_unfinished_work(
 
     monkeypatch.setattr(edit_dispatch, "run_edit", _refused_once)
 
+    reasons = ["tighten", "tighten and drop the unused filter"]
+
     def _part(messages: list[ModelMessage]) -> ToolCallPart:
-        if _calls(messages, "edit_strategy") < 2:
+        made = _calls(messages, "edit_strategy")
+        if made < len(reasons):
             return ToolCallPart(
                 tool_name="edit_strategy",
-                args={"reason": "tighten"},
+                args={"reason": reasons[made]},
                 tool_call_id=uuid4().hex,
             )
         return final_result_part(_A_FINISHED_REPLY)
@@ -119,7 +122,7 @@ def test_a_dispatch_refused_then_run_leaves_no_unfinished_work(
     )
 
     assert isinstance(result.output, LeadResponse)
-    assert len(attempts) == 2
+    assert attempts == reasons
     assert [
         text
         for text in _retry_prompts(result.all_messages())

@@ -90,9 +90,7 @@ def _pending_line(
         moved = ", ".join(
             f"{name}={value}" for name, value in change.changed_params.items()
         )
-        was = {
-            name: to_wire(value) for name, value in held[cid].resolved_params.items()
-        }
+        was = {name: to_wire(value) for name, value in held[cid].param_values.items()}
         running = ", ".join(
             f"{name}={was.get(name, '(unset)')}" for name in change.changed_params
         )
@@ -152,7 +150,7 @@ def edit_work_order(
         )
         lines.extend(
             f"    {name}={to_wire(value)}"
-            for name, value in criterion.resolved_params.items()
+            for name, value in criterion.param_values.items()
         )
     lines.extend(pending_lines(pending, before, answered))
     lines.extend(

@@ -1,0 +1,24 @@
+[Unit]
+Description=Pathfinder Langfuse MinIO, the raw event and media store
+
+[Container]
+ContainerName=pathfinder-langfuse-minio
+# The publisher tags only latest, so the image is pinned by digest.
+Image=cgr.dev/chainguard/minio@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b
+Network=pathfinder.network
+Volume=pathfinder-langfuse-minio-data.volume:/data
+# MINIO_ROOT_USER and MINIO_ROOT_PASSWORD.
+EnvironmentFile=%h/.config/pathfinder/langfuse.env
+# The bucket Langfuse writes to exists before the server starts.
+PodmanArgs=--entrypoint=sh
+Exec=-c 'mkdir -p /data/langfuse && exec minio server --address :9000 --console-address :9001 /data'
+HealthCmd=mc ready local
+HealthInterval=5s
+HealthTimeout=5s
+HealthRetries=10
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

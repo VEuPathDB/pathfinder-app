@@ -1,16 +1,21 @@
-# Observability wiring for production/staging deployments.
+# Tracing wiring for a deployment that runs Langfuse elsewhere.
 #
-# This overlay does not start local observability infrastructure. It only
-# passes external SigNoz / Langfuse settings into the API container.
+# The api and the worker export every trace over OTLP/HTTP to the endpoint named
+# here; the worker runs every model call, so both need it. The Authorization
+# header Langfuse reads is built from the two project keys.
 #
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 
+x-tracing: &tracing
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  OTEL_INCLUDE_CONTENT: ${OTEL_INCLUDE_CONTENT:-false}
+  LANGFUSE_HOST: ${LANGFUSE_HOST:-}
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+
 services:
   api:
-    environment:
-      SIGNOZ_OTEL_ENDPOINT: ${SIGNOZ_OTEL_ENDPOINT:-}
-      SIGNOZ_TRACE_OTEL_HTTP_ENDPOINT: ${SIGNOZ_TRACE_OTEL_HTTP_ENDPOINT:-}
-      LANGFUSE_HOST: ${LANGFUSE_HOST:-}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+    environment: *tracing
+  worker:
+    environment: *tracing

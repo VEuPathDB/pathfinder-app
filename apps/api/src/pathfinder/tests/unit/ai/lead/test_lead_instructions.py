@@ -35,8 +35,9 @@ def test_the_instructions_send_a_comparison_to_the_compute_not_to_a_sample_subse
 
 def test_the_instructions_make_a_question_a_search_answers_a_build() -> None:
     assert "A question a search answers is a build" in LEAD_INSTRUCTIONS
-    assert "how many genes" in LEAD_INSTRUCTIONS
+    assert "How many genes" in LEAD_INSTRUCTIONS
     assert "size of the step" in LEAD_INSTRUCTIONS
+    assert "the count is shown beside the reply" in _flat(LEAD_INSTRUCTIONS)
 
 
 def test_the_instructions_ask_for_a_stated_premise_to_be_checked() -> None:
@@ -49,9 +50,9 @@ def test_the_instructions_say_when_eda_beats_a_classic_search() -> None:
     assert "eda_analysis_spec" in LEAD_INSTRUCTIONS
 
 
-def test_the_instructions_forbid_quoting_a_count_before_a_preview() -> None:
+def test_the_instructions_forbid_describing_a_subset_before_a_preview() -> None:
     assert "preview_eda_subset" in LEAD_INSTRUCTIONS
-    assert "before you state a count" in LEAD_INSTRUCTIONS
+    assert "before you describe the subset" in LEAD_INSTRUCTIONS
 
 
 def test_the_instructions_say_the_compute_runs_before_the_step() -> None:
@@ -189,13 +190,24 @@ def test_the_lead_removes_a_step_with_the_delete_tool() -> None:
     assert "Never dispatch a framing or building pass to remove a step" in instructions
 
 
-def test_the_instructions_name_the_three_fields_the_contract_reads() -> None:
+def test_the_instructions_name_the_two_fields_the_contract_reads() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert "``strategy_changed`` against every write the turn made" in instructions
     assert "``asked_questions``" in instructions
-    assert "``sources``" in instructions
+    assert "``sources``" not in instructions
     assert "a single correction listing every mismatch" in instructions
+
+
+def test_the_reply_explains_and_prints_no_fact_the_product_lacks() -> None:
+    instructions = _flat(LEAD_INSTRUCTIONS)
+
+    assert "**The facts are shown beside the reply.**" in instructions
+    assert "The reply explains, recommends and asks" in instructions
+    assert (
+        "It prints no number, name or link the facts do not show; the runtime "
+        "refuses such a reply once."
+    ) in instructions
 
 
 def test_a_fact_about_a_gene_is_read_from_its_record() -> None:
@@ -235,7 +247,7 @@ def test_a_criterion_with_no_choices_line_is_reported_as_holding_none() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert "A criterion with no CHOICES line holds no other value" in instructions
-    assert "name the parameter and its size and ask which one" in instructions
+    assert "name the parameter and ask which one" in instructions
 
 
 def test_the_ledger_read_tool_names_the_frame_section() -> None:
@@ -273,10 +285,7 @@ def test_a_control_result_is_stated_as_the_card_holds_it() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
     assert "Each finished check leaves an evidence card under it" in instructions
-    assert (
-        "State a control count or a control gene id only as a control test of "
-        "this turn filed it"
-    ) in instructions
+    assert "restate no control count and no control gene id" in instructions
 
 
 def test_an_enrichment_request_is_answered_with_the_site_link() -> None:
@@ -353,10 +362,10 @@ def test_the_delete_paragraph_says_what_a_combine_delete_takes() -> None:
     assert "no delete does that" in instructions
 
 
-def test_the_instructions_state_each_caveat_in_the_ledgers_own_sentence() -> None:
+def test_the_instructions_say_the_caveats_are_shown_beside_the_reply() -> None:
     assert (
-        "State each ``caveat`` the Verification section lists in its own sentence, "
-        "word for word"
+        "the gaps and caveats the Verification section lists are shown beside "
+        "your reply"
     ) in _flat(LEAD_INSTRUCTIONS)
 
 

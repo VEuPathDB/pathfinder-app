@@ -24,7 +24,11 @@ from pathfinder.domain.evidence import (
     CriterionCitations,
     VerificationReview,
 )
-from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
+from pathfinder.domain.strategy.build_outcome import (
+    BuildOutcome,
+    BuiltCounts,
+    NodeResult,
+)
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.step_rationale import SearchRationale
@@ -95,17 +99,16 @@ _BASE = CardSources(
             node_id="s1",
             search_name="GenesByText",
             wdk_step_id=_LEAF,
-            count=212,
             status="ok",
         ),
         NodeResult(
             node_id="gone",
             search_name="GenesWithSignalPeptide",
             wdk_step_id=440299001,
-            count=1143,
             status="ok",
         ),
     ),
+    counts=BuiltCounts(by_step={"s1": 212}),
     spec=_spec(),
     control_tests=(_test_run(_LEAF), _test_run(440299001, call="call_old")),
     pending_checks=[],
@@ -223,7 +226,6 @@ def _checked_deps() -> LeadDeps:
                 node_id="s1",
                 search_name="GenesByText",
                 wdk_step_id=_LEAF,
-                count=212,
                 status="ok",
             )
         ],

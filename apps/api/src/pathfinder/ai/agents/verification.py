@@ -41,6 +41,7 @@ from pathfinder.ai.lead.evidence_claims import (
     unbacked_sample_claims,
 )
 from pathfinder.ai.tools.toolsets.verification import build_toolset
+from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.refusals import agent_capabilities
 from pathfinder.services.gene_records.read import gene_record_url
 
@@ -52,11 +53,18 @@ strategy and verify that it correctly answers the user's biological question.
 ## Tool Reference
 
 ### Inspection
-- ``get_strategy(graph_id?, summary_only?)`` - Read-only graph inspection. \
+- ``get_strategy(summary_only?)`` - Read-only graph inspection. \
 ``graph_id`` takes PathFinder's graph id or the VEuPathDB strategy id.
 - ``get_estimated_size(wdk_step_id, wdk_strategy_id?)`` - Result count for a \
 built step.
-- ``get_sample_records(wdk_step_id, limit?)`` - Sample records.
+- ``read_step_columns(wdk_step_id)`` - The columns a search step \
+shows for the values its criterion binds, each read over the whole step: how \
+many of its genes hold a value inside the bound.
+- ``get_sample_records(wdk_step_id, limit?)`` - Records read at offsets \
+spread over a step, at most 100.
+- ``read_step_ids(wdk_step_id, limit?)`` - The gene ids a built step holds. \
+Read-only: it answers which genes are in a step and saves nothing. With a \
+limit it reads the genes ``get_sample_records`` reads at that limit.
 - ``get_download_url(wdk_step_id, output_format?, attributes?)`` - Direct \
 download URL.
 - ``check_study_step(step_id, requested_fold_change?, \
@@ -68,7 +76,9 @@ one sentence per filter. Those filters ARE the subset's cut, so confirm them \
 against what the user asked for and never call the cut missing. A compute \
 step's ``significance_threshold`` IS its significance filter: a request for \
 significant genes is met by it, so never report that step as lacking one. \
-Each requested value comes back as a ``constraint_report`` entry. \
+Each requested value comes back in ``checks`` with ``honored`` computed by \
+the tool; the runtime records those checks as the digest's report, and one \
+not honored fails the check whatever the digest says. \
 ``get_strategy`` states each study step by what it selects, under ``analyses``. \
 A step under ``unread_analyses`` is a study step whose analysis the site did \
 not describe: set ``success`` from the other checks; the runtime lists that \
@@ -76,7 +86,7 @@ step as pending, never as passed or missing.
 
 ### Controls
 - ``list_control_sets()`` - The control sets attached to this conversation: \
-name, id and sizes.
+name, id and sizes, the ones this conversation saved first and marked ``savedHere``.
 - ``run_control_tests_on_step(wdk_step_id, control_set_id)`` - Test a saved \
 control set against a built strategy step.
 - ``run_control_tests_on_search(record_type, target_search_name, \
@@ -95,12 +105,13 @@ lists each control id it filed. State a control count or a control gene id in \
 the runtime refuses any other once.
 
 ### Gene sets
-- ``list_gene_sets()`` - List the gene sets the user saved.
+- ``list_gene_sets()`` - List the gene sets the user saved, the ones this \
+conversation saved first and marked ``savedHere``.
 - ``export_gene_set(gene_set_id, output_format?)`` - Export gene set as \
 CSV/TXT.
-- ``save_gene_set(name, step_id?, gene_ids?)`` - Save a gene set. Name \
-a step to save that step's genes; pass ``gene_ids`` only for a list of ids no step \
-holds. Do NOT call after a successful build - sets are auto-created.
+- ``save_gene_set(name, step_id?, gene_ids?)`` - Save a gene set the user asked \
+for. Name a step to save that step's genes; pass ``gene_ids`` only for a list of \
+ids no step holds. A save is never a read: ``read_step_ids`` reads a step's ids.
 
 GO, pathway and word enrichment are analyses the site runs on a step, from its \
 result page; the evidence card links it. They are not checks you run.
@@ -112,9 +123,11 @@ A gene the request names by name has a VEuPathDB **gene ID** (e.g. \
 gene IDs.
 
 ### One gene's record
-``read_gene_record(gene_id)`` reads one gene's record on this site: its \
-product, organism, chromosome, orthologs and the site's expression summary. It \
-is how a sampled gene is judged, and it records the read the card cites.
+``read_gene_record(gene_id)`` reads the record of one gene your sample \
+returned: its product, organism, chromosome, orthologs and the site's \
+expression summary. It records the read the card cites, and it refuses a gene \
+no sample of this turn returned and every control. A record this check already \
+read, or a read past the eighth, is refused naming the records already read.
 
 ### Expression evidence for one gene
 ``get_ai_expression_summary(gene_id)`` reads the summary the VEuPathDB site \
@@ -151,17 +164,27 @@ Write one ``review.requirements`` row per requirement those messages state: \
 each search, value, organism, threshold and record type, and each way the \
 researcher joined requirements ("and", "or", "but not", "except", "only \
 those"). Never add a requirement no message states. A later message that \
-replaces a value replaces its row.
+replaces a value replaces its row. A question the researcher asks ("what was \
+it before?") is answered in the reply and is never a row; the runtime drops \
+one.
 - ``text``: the requirement in the researcher's words. ``turn``: the number \
 the request block gives the message that stated it.
 - ``answered_by``: the criterion ids or step ids that state it, read from the \
 ledger's Frame section and ``get_strategy``.
 - ``how``: ``search``, ``parameter``, ``structure``, ``transform`` or \
 ``analysis``.
-- ``status``: ``met`` when a step states it; ``unmet`` when the strategy \
-could state it and does not; ``unexpressed`` when no search states it.
+- ``status``: ``met`` when a step states it, whatever the sampled records \
+show; ``unmet`` when the strategy could state it and no step does, with \
+``answered_by`` empty; ``unexpressed`` when no search states it. An ``unmet`` \
+row that names a step is refused, except a combine row whose steps the \
+strategy joins another way.
 - ``note``: one line: the parameter and its value, or the combine and its \
 operator ("INTERSECT of step_a and step_b"), or why nothing states it.
+- ``shown_by``: the sampled gene ids whose records show the requirement, or \
+the columns whose fit shows it. A text value matches words, not the thing the \
+words name, so a requirement a text value answers is met only when a record \
+you judged ``yes`` or a column fit names it here; the runtime marks it \
+``unmet`` otherwise. Sample the step that holds such a value.
 Each combinator row names the combine that answers it and its operator. The \
 request block lists each word no search states and each combination the \
 structure breaks: each is a row with that status, and the runtime adds the \
@@ -169,24 +192,30 @@ row when you leave it out. Any ``unmet`` row makes ``success`` false.
 
 ### 2. The genes themselves (required when the turn changed the strategy)
 
-Sample the root step: ``get_sample_records`` with the root's ``wdk_step_id`` \
-and ``limit`` 8, as the work order names them, fewer when the result is \
-smaller. Each sampled record carries the attributes the strategy's searches \
-select on, such as ``tm_count`` or ``signalp_60_probability``, as the site \
-states them. Then call ``read_gene_record`` once per sampled gene, at most 8 reads. \
+Read the columns first: call ``read_step_columns`` for each search step the \
+work order names. Each column is one report over the whole step against the \
+bound its criterion sets ("840 of 840 genes fit # TM Domains (2 to 99)"), so \
+it states how many genes fit, never a guess from a few records. The runtime \
+records each fit on the evidence card and states every column that falls \
+short of all genes, or that the site does not show, as a caveat; you write no \
+column row yourself.
+
+Sample only where no column shows: when ``read_step_columns`` answers with a \
+note that no column shows a step's bound values, call ``get_sample_records`` with \
+the root's ``wdk_step_id`` and ``limit`` 8, as the work order names them, \
+fewer when the result is smaller. Then call ``read_gene_record`` once per \
+sampled gene, at most 8 reads. \
 Never read a control gene's record: a control test reads the saved set by \
 its id. \
 A transcript id (``PF3D7_0102200.1``) names its gene without the suffix. Write \
 one ``review.sampled_genes`` entry per gene you read: ``gene_id``, ``product`` \
 and ``organism`` as the record states them, ``fits`` (``yes``, ``no`` or \
 ``unclear``) against the request, and ``why``: one line naming the evidence \
-you read (a sampled value such as ``tm_count`` 3, the product, a GO term, an \
-expression value). Judge a gene from its sampled values and its record, never \
-from its id. Membership in the strategy is not evidence of fit: a \
-gene fits only when its record shows what the request names, and is \
-``unclear`` when the record does not show it. The runtime counts the genes \
-that are unclear or do not fit ("2 of 8 sampled genes unclear") from your \
-entries. A gene whose record no read of this turn returned is refused.
+you read (the product, a GO term, an expression value). Judge a gene from its \
+record, never from its id. Membership in the strategy is not evidence of fit: \
+a gene fits only when its record shows what the request names, and is \
+``unclear`` when the record does not show it. A gene whose record no read of \
+this turn returned is refused.
 
 ### 3. Literature and the web (your choice)
 
@@ -200,24 +229,24 @@ with its url, DOI or PMID exactly as the search returned it and one line of \
 
 ### Counts, controls and exports
 
-1. **Inspect results**: Use `get_sample_records` and `get_estimated_size` \
+1. **Inspect results**: Use `read_step_columns` and `get_estimated_size` \
 to check that the results are reasonable (not empty, not millions).
 
 2. **Export**: Use `export_gene_set` and `save_gene_set` to \
 make results available for downstream analysis.
 
 3. **Reconcile constraints**: For each constraint in the ledger's \
-Constraints section, emit one ``constraint_report`` entry (``label``, \
-``requested``, ``realized``, ``honored``, ``note``). If any user-explicit \
+Constraints section, write its requirement row. If any user-explicit \
 constraint is not honored - a substituted data type, a dropped statistical \
-threshold - set ``success=False``, ``honored=False`` on its entry, and its \
-requirement row ``unmet``. \
+threshold - set ``success=False`` and its requirement row ``unmet``. \
 Never report success while a user-explicit constraint is unmet. \
-A numeric parameter is restated ONLY from its ``constraint_report`` entry. \
-Write the bound value and the realized reading that entry carries; never add \
-an interpretation of your own next to a number ("80 (top 10%)"). An entry \
-whose status is substituted is a deviation: report the realized reading and \
-set ``honored=False``. \
+A numeric parameter is restated ONLY from the tool result that read it: \
+``check_study_step``'s ``checks``, a column fit, or the parameters \
+``get_strategy`` returns. Write the bound value and the realized reading that \
+result carries; never add an interpretation of your own next to a number \
+("80 (top 10%)"). A value that was substituted is a deviation: report the \
+realized reading and the step that holds it in the note, and mark its row \
+``unmet`` with ``answered_by`` empty. \
 A combination constraint is honored when the built root operator matches the \
 researcher's connective; an INTERSECT count is at most its smallest input and \
 a UNION count at least its largest, so a final count above the smallest input \
@@ -256,7 +285,8 @@ Return exactly one ``VerificationDelta`` wrapping a ``VerificationDigest``:
 - ``digest.key_findings`` (optional, <=10): bullet-style facts the user \
   should walk away with.
 - ``digest.review`` (required): ``requirements``, ``sampled_genes`` and \
-  ``sources``, as the three parts above describe. The evidence card shows \
+  ``sources``, as the three parts above describe; the runtime fills \
+  ``column_fits`` from your column reads. The evidence card shows \
   all three to the researcher.
 - ``digest.remember`` (optional, <=5): durable knowledge memories to \
   autowrite. Only stable, reusable facts. Each needs ``name``, \
@@ -280,7 +310,7 @@ Ledger.
 """
 )
 
-VERIFICATION_MODEL = "openai:gpt-5.6-luna"
+VERIFICATION_MODEL = DEFAULT_MODEL_ID
 
 VerificationAgent = Agent[AgentDeps, VerificationDelta | DeferredToolRequests]
 

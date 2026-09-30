@@ -6,12 +6,12 @@ from dataclasses import dataclass
 
 from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai import RunContext
+from veupathdb.domain.strategy import StepKind
 
-from pathfinder.ai.agents.tool_vocabulary import build_verification_repetition_guard
+from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.runtime import VerificationScope
 from pathfinder.ai.graph.state import (
     FailureCause,
-    PipelineState,
     VerificationDigest,
 )
 from pathfinder.ai.lead.answered_strategy import live_tree
@@ -54,34 +54,44 @@ from pathfinder.domain.caveats import (
     check_gaps,
     measured_caveats,
 )
+from pathfinder.domain.constraint_check import ConstraintCheck, shortfalls
 from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT, VerificationReview
+from pathfinder.domain.question_rows import without_questions
 from pathfinder.domain.separation import AttachedControls
+from pathfinder.domain.shown_requirements import (
+    answered_by_uploads,
+    held_to_the_records,
+)
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
 from pathfinder.services.gene_records.read import gene_record_url
-
-
-def request_messages(state: PipelineState) -> list[str]:
-    """Every message the researcher wrote for the request, oldest first, once each."""
-    domain = state.domain
-    found = [domain.original_request, *domain.request_messages, state.user_prompt]
-    return list(dict.fromkeys(text for text in found if text))
+from pathfinder.services.strategies.bound_uploads import uploads_the_spec_runs_on
+from pathfinder.services.strategies.text_queries import (
+    search_definitions,
+    text_query_criteria,
+)
 
 
 def review_record(deps: LeadDeps, messages: list[str]) -> ReviewRecord:
     """What this turn holds that the check's review is held to."""
+    live = frozenset(live_wdk_step_ids(deps.runtime.strategy_session))
     return ReviewRecord(
         messages=messages,
         requirements=deps.state.domain.requirements,
         spec=deps.state.domain.operational_spec,
         read_as=deps.state.turn_markers.retrieved_as,
         record_url=lambda gene_id: gene_record_url(deps.runtime.site_id, gene_id),
+        column_fits=[
+            fit
+            for fit in deps.state.turn_markers.column_fits
+            if fit.wdk_step_id in live
+        ],
     )
 
 
 def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
     """The request this turn answers and the check that answers it, as VERIFY reads them."""
-    messages = request_messages(deps.state)
+    messages = deps.state.researcher_messages()
     spec = deps.state.domain.operational_spec
     ledger = derive_ledger(deps.state, deps.intent)
     return VerificationScope(
@@ -100,29 +110,63 @@ def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
 
 
 @dataclass(frozen=True)
+class SearchStep:
+    """A step that runs a search, whose columns a check reads."""
+
+    step_id: str
+    wdk_step_id: int
+
+
+@dataclass(frozen=True)
 class RootSample:
-    """The step a check samples its genes from, and how many records it holds."""
+    """The steps a check reads: each search step's columns, and the root it
+    samples for a criterion no column shows."""
 
     step_id: str
     wdk_step_id: int
     count: int | None
+    search_steps: tuple[SearchStep, ...] = ()
 
 
 def root_sample(deps: LeadDeps) -> RootSample | None:
     """The strategy's root on the site, or None before a push."""
-    sync = deps.runtime.strategy_session.sync_state
+    session = deps.runtime.strategy_session
+    sync, graph = session.sync_state, session.get_graph(None)
     root = None if sync is None else sync.wdk_root_step_id
     if sync is None or root is None:
         return None
     step_id = next((s for s, w in sync.wdk_step_ids.items() if w == root), None)
     if step_id is None:
         return None
-    outcome = deps.state.domain.last_build_outcome
+    searched = (
+        []
+        if graph is None
+        else [
+            SearchStep(step_id=sid, wdk_step_id=sync.wdk_step_ids[sid])
+            for sid, step in graph.steps.items()
+            if step.kind is not StepKind.COMBINE
+            and step.search_name
+            and sid in sync.wdk_step_ids
+        ]
+    )
     return RootSample(
         step_id=step_id,
         wdk_step_id=root,
-        count=None if outcome is None else outcome.root_count,
+        count=sync.step_counts.get(step_id),
+        search_steps=tuple(searched),
     )
+
+
+def _columns_line(root: RootSample) -> str | None:
+    """The search steps whose columns the check reads first, or None when
+    there is none or the root holds no gene."""
+    if not root.search_steps or root.count == 0:
+        return None
+    calls = "; ".join(
+        f"read_step_columns(wdk_step_id={s.wdk_step_id}) for {s.step_id}"
+        for s in root.search_steps
+    )
+    return f"Read the columns of each search step first: {calls}."
 
 
 def _sample_line(root: RootSample) -> str:
@@ -137,8 +181,8 @@ def _sample_line(root: RootSample) -> str:
         else min(SAMPLED_GENE_LIMIT, root.count)
     )
     return (
-        f"{named}. Sample it with get_sample_records("
-        f"wdk_step_id={root.wdk_step_id}, limit={limit})."
+        f"{named}. For a criterion whose step shows no column, sample it with "
+        f"get_sample_records(wdk_step_id={root.wdk_step_id}, limit={limit})."
     )
 
 
@@ -152,7 +196,8 @@ def work_order(
         "Inspect the built strategy. Return a VerificationDelta.",
     ]
     if root is not None:
-        lines.append(_sample_line(root))
+        columns = _columns_line(root)
+        lines.extend([*([] if columns is None else [columns]), _sample_line(root)])
     if controls is not None:
         lines.append(
             "The strategy was adopted from a separation run. Run "
@@ -178,7 +223,12 @@ async def run_verification(
     agent_deps = agent_deps_for(deps)
     scope = verification_scope(deps, check_id=parent_tool_call_id)
     agent_deps.verification_scope = scope
-    agent_deps.tool_repetition_guard = build_verification_repetition_guard()
+    agent_deps.tool_repetition_guard = build_tool_repetition_guard()
+    domain = deps.state.domain
+    site_id = deps.runtime.site_id
+    sheets = await search_definitions(site_id, domain.operational_spec)
+    uploads = await uploads_the_spec_runs_on(site_id, domain.operational_spec, sheets)
+    domain.upload_types = {c: u.type_name for c, u in uploads.items()}
     delta = await stream_sub_agent(
         run=PhaseRun(
             "verification", work_order(reason, scope.controls, root_sample(deps))
@@ -198,14 +248,25 @@ async def run_verification(
     graph = deps.runtime.strategy_session.get_graph(None)
     # The pending checks are the strategy's to state, never the checker's.
     pending = [] if graph is None else unread_analyses(graph)
-    review = review_held_to_the_turn(
-        delta.digest.review, review_record(deps, scope.messages)
+    review = held_to_the_records(
+        answered_by_uploads(
+            review_held_to_the_turn(
+                without_questions(
+                    delta.digest.review, scope.messages, domain.researcher_asks
+                ),
+                review_record(deps, scope.messages),
+            ),
+            {c: u.name for c, u in uploads.items()},
+        ),
+        text_query_criteria(domain.operational_spec, sheets),
     )
-    findings = _findings(deps, review)
+    computed = _study_checks(deps)
+    findings = _findings(deps, review, computed)
     digest = _held(
         delta.digest.model_copy(
             update={
                 "pending_checks": pending,
+                "constraint_report": computed,
                 "review": review,
                 "gaps": findings.gaps,
                 "caveats": _caveats(deps, review, findings.build),
@@ -250,7 +311,7 @@ class _Findings:
         """Every finding in one clause, or None when there is none."""
         found = [
             *([] if self.build is None else [self.build.sentence]),
-            *(gap.sentence for gap in self.gaps),
+            *(gap.sentence for gap in self.gaps if gap.fails_the_check),
         ]
         return "; ".join(found) if found else None
 
@@ -259,16 +320,36 @@ class _Findings:
         return FailureCause.STRUCTURE_VIOLATION if breaks_structure else None
 
 
-def _findings(deps: LeadDeps, review: VerificationReview) -> _Findings:
+def _study_checks(deps: LeadDeps) -> list[ConstraintCheck]:
+    """The study-step checks this turn computed, for the steps the strategy holds."""
+    graph = deps.runtime.strategy_session.get_graph(None)
+    held = {} if graph is None else graph.steps
+    return [
+        check
+        for step_id, checks in deps.state.turn_markers.study_checks.items()
+        if step_id in held
+        for check in checks
+    ]
+
+
+def _findings(
+    deps: LeadDeps, review: VerificationReview, computed: list[ConstraintCheck]
+) -> _Findings:
     """The build's counts when it does not support a success, and every gap."""
     ledger = derive_ledger(deps.state, deps.intent)
     spec = deps.state.domain.operational_spec
+    retired = [r.grounded() for r in deps.state.domain.retired_requirements]
     return _Findings(
-        gaps=check_gaps(
-            structure=structure_contradiction(deps.state.domain.requirements, spec),
-            words=unexpressed_words(spec),
-            review=review,
-        ),
+        gaps=[
+            *check_gaps(
+                structure=structure_contradiction(deps.state.domain.requirements, spec),
+                words=unexpressed_words(spec),
+                review=review,
+                requirements=[*ledger.constraints.grounded, *retired],
+                asked=[q.question for q in deps.state.domain.answered_questions],
+            ),
+            *shortfalls(computed),
+        ],
         build=build_contradiction(
             ledger.build,
             built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
@@ -287,7 +368,7 @@ def _caveats(
             deps.state.turn_markers.control_tests,
             frozenset(live_wdk_step_ids(session)),
         ),
-        genes=review.sampled_genes,
+        column_fits=review.column_fits,
     )
 
 

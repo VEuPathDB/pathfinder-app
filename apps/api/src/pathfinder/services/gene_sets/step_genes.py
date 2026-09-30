@@ -1,5 +1,9 @@
 """The gene ids a WDK step holds."""
 
+from collections.abc import Callable
+
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict
 from veupathdb.domain.search import SearchContext
 from veupathdb.wdk import StrategyAPI, WDKRecordInstance, get_strategy_api
 from veupathdb_mcp.catalog import get_search_parameters
@@ -9,6 +13,54 @@ from pathfinder.services.gene_sets.operations import dedup_ordered
 
 # A transcript record names its gene beside its own id. A set holds the gene id.
 _GENE_ID_PARTS = ("gene_source_id", "source_id")
+
+
+class StepIds(CamelModel):
+    """The first gene ids of a step's result, and how many genes it holds."""
+
+    model_config = ConfigDict(frozen=True)
+
+    gene_ids: list[str]
+    total: int
+
+
+async def first_step_gene_ids(
+    site_id: str, step_id: int, *, limit: int, page_size: int = 1000
+) -> StepIds:
+    """The first ``limit`` gene ids of a step, read by primary key alone."""
+    api = get_strategy_api(site_id)
+    view_filters = await step_view_filters(api, step_id)
+    ids: list[str] = []
+    offset = total = 0
+    while offset < limit:
+        answer = await api.get_step_records(
+            step_id,
+            attributes=["primary_key"],
+            pagination={"offset": offset, "numRecords": min(page_size, limit - offset)},
+            view_filters=view_filters,
+        )
+        total = answer.meta.records_returned()
+        ids.extend(gene_id for r in answer.records if (gene_id := extract_gene_id(r)))
+        offset += len(answer.records)
+        if not answer.records or offset >= total:
+            break
+    return StepIds(gene_ids=dedup_ordered(ids), total=total)
+
+
+async def step_gene_ids_at(
+    site_id: str, step_id: int, order: Callable[[int], list[int]]
+) -> StepIds:
+    """The gene ids at the offsets ``order`` places over the step's total, in
+    that order."""
+    counted = await first_step_gene_ids(site_id, step_id, limit=1)
+    offsets = order(counted.total)
+    if not offsets:
+        return StepIds(gene_ids=[], total=counted.total)
+    read = await first_step_gene_ids(site_id, step_id, limit=max(offsets) + 1)
+    held = read.gene_ids
+    return StepIds(
+        gene_ids=[held[o] for o in offsets if o < len(held)], total=read.total
+    )
 
 
 async def step_gene_ids(site_id: str, step_id: int) -> list[str]:

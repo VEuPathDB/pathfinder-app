@@ -10,14 +10,19 @@ from pathfinder.ai.lead.intent_gate import (
     DECLINED_OFFER_REFUSAL,
     bare_assent_refusal,
 )
-from pathfinder.ai.lead.proposal import DeclinedProposal
+from pathfinder.ai.lead.proposal import AddCriterionChange, DeclinedProposal
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _DECLINED = DeclinedProposal(
     question="Refine the strategy to require 1:1:1 syntenic orthologs?",
-    proposed_changes=["Require 1:1:1 syntenic orthologs in Aedes aegypti"],
+    proposed_changes=[
+        AddCriterionChange(
+            sentence="Require 1:1:1 syntenic orthologs in Aedes aegypti",
+            search_name="GenesOrthologousToAGivenGene",
+        )
+    ],
 )
 
 

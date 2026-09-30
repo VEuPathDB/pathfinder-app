@@ -37,7 +37,9 @@
     "curatorNote": "Not measured in the flow tables; the case pins only that a strategy remains."
   },
   "effort": "medium",
-  "gates": "stop",
+  "gates": {
+    "policy": "stop"
+  },
   "attachments": {},
   "newConversationBefore": []
 }

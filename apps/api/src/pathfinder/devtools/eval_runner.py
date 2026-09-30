@@ -20,13 +20,10 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
 from uuid import UUID, uuid4
 
-from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import ReasoningEffort
-from langchain_core.runnables import RunnableConfig
 from pydantic import TypeAdapter
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
@@ -36,19 +33,21 @@ from pathfinder.ai.conversation.gene_list_marker import gene_list_marker
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.reply_claims import counts_in_the_wrong_unit
-from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.devtools.capture import RunCapture
+from pathfinder.devtools.capture import RunCapture, unshown_assumed_values
 from pathfinder.devtools.chat import (
     RespondArgs,
     RunArgs,
+    checkpoint_values,
     drive_respond,
     drive_run,
-    resolve_run_assistant,
 )
 from pathfinder.devtools.gates import Gate
-from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd
+from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
+from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import tree_from_ast
 from pathfinder.evals.drift import DriftVerdict, classify, count_difference
+from pathfinder.evals.phrases import shown
 from pathfinder.evals.scoring import (
     ObservedOutcome,
     RequirementCounts,
@@ -72,6 +71,8 @@ HARNESS = "pydantic-evals"
 _GENE_LIST_SUFFIXES = frozenset({".csv", ".tsv", ".txt"})
 _GENE_ID_HEADER = re.compile(r"^gene.?id$", re.IGNORECASE)
 _VERDICT: TypeAdapter[DriftVerdict] = TypeAdapter(DriftVerdict)
+# The cards one turn answers before it is left as it stands.
+_MAX_ANSWERS = 8
 
 
 def checkpointed_verdict(values: Mapping[str, object]) -> bool | None:
@@ -88,18 +89,9 @@ def checkpointed_requirements(
     return None if verdict is None else requirement_counts(verdict.review.requirements)
 
 
-async def _checkpoint_values(conversation_id: UUID) -> Mapping[str, object]:
-    """The state the thread's last turn left in the checkpoint."""
-    registry = get_assistant_registry()
-    spec = await resolve_run_assistant(conversation_id)
-    async with lifespan_checkpointer(
-        get_settings().database_url,
-        checkpoint_types=registry.checkpoint_types(),
-    ) as saver:
-        graph = spec.build_graph(saver)
-        config: RunnableConfig = {"configurable": {"thread_id": str(conversation_id)}}
-        snapshot = await graph.aget_state(config)
-    return snapshot.values
+def facts_text(facts: TurnFacts | None) -> str:
+    """The facts part a turn showed, one line each; empty when it showed none."""
+    return "" if facts is None else "\n".join(facts.lines())
 
 
 async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
@@ -132,20 +124,35 @@ def counts_in_genes(reply_text: str, ast: StrategyAst) -> bool:
     return not counts_in_the_wrong_unit(reply_text, ast.record_type, held)
 
 
+@dataclass(frozen=True)
+class TurnsShown:
+    """What the case's turns showed: each reply, the facts part beside each,
+    and the last facts part any turn showed."""
+
+    replies: list[str]
+    facts: list[str]
+    last_facts: TurnFacts | None = None
+
+
 async def observe(
     conversation_id: UUID,
-    reply_text: str,
+    turns: TurnsShown,
     *,
     step_ids_unchanged: bool | None = None,
     ends_on: GateEnd | None = None,
     refused_tools: list[str],
 ) -> ObservedOutcome:
-    """What the finished turn left behind, as the scorer reads it."""
+    """What the finished turns left behind, as the scorer reads it.
+
+    The last turn is the one scored.
+    """
+    reply_text = turns.replies[-1] if turns.replies else ""
+    last_facts = turns.facts[-1] if turns.facts else ""
     async with async_session_factory() as session:
         strategy = await ConversationRepository(session).get_strategy(conversation_id)
     built = bool(strategy.strategy_ast)
     ast = StrategyAst.model_validate(strategy.strategy_ast) if built else None
-    checkpointed = await _checkpoint_values(conversation_id)
+    checkpointed = await checkpoint_values(conversation_id)
     return ObservedOutcome(
         built_strategy=built,
         structure=structure_signature(ast) if ast is not None else None,
@@ -158,7 +165,14 @@ async def observe(
         step_titles=step_titles(ast) if ast is not None else [],
         step_reasons=step_reasons(ast) if ast is not None else [],
         reply_text=reply_text,
-        counts_in_genes=counts_in_genes(reply_text, ast) if ast is not None else None,
+        facts_text=last_facts,
+        turn_replies=turns.replies,
+        turn_facts=turns.facts,
+        counts_in_genes=(
+            counts_in_genes(shown(last_facts, reply_text), ast)
+            if ast is not None
+            else None
+        ),
         root_operator=root_operator(ast) if ast is not None else None,
         final_count_below_every_input=(
             final_count_below_every_input(ast) if ast is not None else None
@@ -166,6 +180,7 @@ async def observe(
         root_count=root_count(ast) if ast is not None else None,
         ends_on=ends_on,
         refused_tools=refused_tools,
+        assumed=unshown_assumed_values(checkpointed, turns.last_facts),
     )
 
 
@@ -187,24 +202,17 @@ def _turn_message(case: EvalCase, index: int) -> tuple[str, list[Path]]:
     return text, inline
 
 
-def _approve(case: EvalCase, index: int) -> Literal["auto", "prompt"]:
-    """How a turn meets its gates: answered by the policy, or left for the case."""
-    match case.gates:
-        case "auto":
-            return "auto"
-        case "stop":
-            return "prompt" if index == len(case.turns) - 1 else "auto"
-        case _:
-            return "prompt"
-
-
 def _question_answers(gate: Gate, picks: list[str]) -> list[str]:
     """Each question's answer as ``respond --answer`` takes it: ``QID=VALUE``."""
     wanted = [pick.casefold() for pick in picks]
     answers: list[str] = []
     for question in gate.consult_questions:
         if question.kind == "free_text":
-            answers.append(f"{question.id}={'; '.join(picks)}")
+            # A free-text question with no pick takes the note the debugger's
+            # own automatic answer sends.
+            answers.append(
+                f"{question.id}={'; '.join(picks) or 'proceed with defaults'}"
+            )
             continue
         labels = [o.label for o in question.options]
         picked = [
@@ -216,21 +224,31 @@ def _question_answers(gate: Gate, picks: list[str]) -> list[str]:
     return answers
 
 
-def _answers_the_gate(answer: GateAnswer, gate: Gate) -> bool:
-    """A yes or a no answers an approval or offer card; picks answer questions."""
-    match gate.kind:
-        case "approval":
-            return answer.picks is None
-        case "consult":
-            return answer.picks is not None
-        case _:
-            return False
+class _CardAnswers:
+    """The answer each card of one case gets: the answer the case names for the
+    card's tool and turn, else its policy's. A named answer is given once."""
+
+    def __init__(self, plan: GatePlan) -> None:
+        self._plan = plan
+        self._named = list(plan.answers)
+
+    def reply(self, gate: Gate, *, turn: int, final: bool) -> GateAnswer | None:
+        if gate.kind not in {"approval", "consult"} or gate.tool is None:
+            return None
+        for answer in self._named:
+            if answer.card == gate.tool and answer.turn == turn:
+                self._named.remove(answer)
+                return answer
+        return self._plan.default_answer(
+            gate.tool, turn=turn, offer=gate.tool in OFFER_TOOLS, final=final
+        )
 
 
 async def _answer(
     args: RunArgs,
     answer: GateAnswer,
     gate: Gate,
+    run_dir: Path,
 ) -> tuple[RunCapture, Gate] | None:
     """Answer the turn's pending card as ``respond`` does, from the case's answer."""
     picks = answer.picks
@@ -238,7 +256,7 @@ async def _answer(
         RespondArgs(
             site=args.site,
             conversation_id=args.conversation_id,
-            run_dir=args.run_dir,
+            run_dir=run_dir,
             approve="prompt",
             via_worker=args.via_worker,
             quiet=True,
@@ -263,16 +281,19 @@ async def run_one_case(
 
     The step ids are read on both sides of the last turn. A thread that held
     none before it observes nothing, because there was nothing to keep. The
-    effort the run names wins over the case's. The case's own answers go to
-    its cards in order.
+    effort the run names wins over the case's. Each card gets the answer the
+    case names for its tool and turn, else the case's policy's, and each
+    answer writes its own run directory under the turn's.
     """
     conversation_id = uuid4()
     last = len(case.turns) - 1
     before: set[int] = set()
-    reply = ""
+    replies: list[str] = []
+    shown_facts: list[str] = []
+    last_facts: TurnFacts | None = None
     ended = Gate(kind="none")
     refused: list[str] = []
-    answers = case.gate_answers()
+    cards = _CardAnswers(case.gates)
     for index in range(len(case.turns)):
         prompt, inline = _turn_message(case, index)
         if index in case.new_conversation_before:
@@ -284,7 +305,7 @@ async def run_one_case(
             site=case.site_id,
             conversation_id=conversation_id,
             run_dir=run_root / case.name / f"turn-{index + 1}",
-            approve=_approve(case, index),
+            approve="prompt",
             via_worker=via_worker,
             quiet=True,
             assistant=case.assistant_id,
@@ -293,18 +314,27 @@ async def run_one_case(
         )
         capture, ended = await drive_run(args)
         refused.extend(capture.refused_tools())
-        while answers and _answers_the_gate(answers[0], ended):
-            answered = await _answer(args, answers.pop(0), ended)
+        facts = capture.turn_facts()
+        for given in range(1, _MAX_ANSWERS + 1):
+            answer = cards.reply(ended, turn=index, final=index == last)
+            if answer is None:
+                break
+            answered = await _answer(
+                args, answer, ended, args.run_dir / f"answer-{given}"
+            )
             if answered is None:
                 ended = Gate(kind="none")
                 break
             capture, ended = answered
             refused.extend(capture.refused_tools())
-        reply = capture.assistant_text()
+            facts = capture.turn_facts() or facts
+        last_facts = facts or last_facts
+        replies.append(capture.assistant_text())
+        shown_facts.append(facts_text(facts))
     after = await persisted_wdk_step_ids(conversation_id)
     return await observe(
         conversation_id,
-        reply,
+        TurnsShown(replies=replies, facts=shown_facts, last_facts=last_facts),
         step_ids_unchanged=(before == after) if before else None,
         ends_on=gate_end(ended),
         refused_tools=refused,
@@ -331,10 +361,24 @@ class CaseVerdict(Evaluator[EvalCase, ObservedOutcome, None]):
         return verdict
 
 
+def assumed_label(assumed: int | None) -> str:
+    """The count of applied values the request did not state, or a dash when uncounted."""
+    return f"assumed={'-' if assumed is None else assumed}"
+
+
 def refusals_label(refused_tools: list[str]) -> str:
     """The refusal count, and the refused tools in order when there are any."""
     named = f" ({', '.join(refused_tools)})" if refused_tools else ""
     return f"refusals={len(refused_tools)}{named}"
+
+
+def _difference_line(difference: CaseDifference) -> str:
+    """One difference as the progress line prints it, with the text it read."""
+    line = (
+        f"{difference.field}: expected {difference.expected!r}, "
+        f"got {difference.actual!r}"
+    )
+    return f"{line} (read {difference.read})" if difference.read else line
 
 
 def _progress_line(
@@ -342,22 +386,18 @@ def _progress_line(
     verdict: DriftVerdict,
     build: str,
 ) -> str:
-    """One case's verdict, time, root count, refusals and first difference."""
+    """One case's verdict, time, root count, assumed values, refusals and first difference."""
     drift = count_difference(ctx.inputs, ctx.output, build)
     named = [
         *score_case(ctx.inputs, ctx.output).differences,
         *([] if drift is None else [drift]),
     ]
     count = "-" if ctx.output.root_count is None else str(ctx.output.root_count)
-    first = (
-        "-"
-        if not named
-        else f"{named[0].field}: expected {named[0].expected!r}, got {named[0].actual!r}"
-    )
+    first = "-" if not named else _difference_line(named[0])
     refusals = refusals_label(ctx.output.refused_tools)
     return (
         f"{verdict} {ctx.inputs.name} {round(ctx.duration, 3)}s "
-        f"count={count} {refusals}  {first}"
+        f"count={count} {assumed_label(ctx.output.assumed)} {refusals}  {first}"
     )
 
 
@@ -416,6 +456,7 @@ async def run_corpus(
                 ),
                 duration_seconds=round(reported.task_duration, 3),
                 refused_tools=reported.output.refused_tools,
+                assumed=reported.output.assumed,
             ),
         )
     results.extend(
@@ -433,8 +474,11 @@ async def run_corpus(
 
 __all__ = [
     "HARNESS",
+    "TurnsShown",
+    "assumed_label",
     "build_dataset",
     "counts_in_genes",
+    "facts_text",
     "gate_end",
     "observe",
     "persisted_wdk_step_ids",

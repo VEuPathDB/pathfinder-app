@@ -12,9 +12,15 @@ from pathfinder.ai.lead.ledger_sections import (
     VerificationSection,
     render_structure,
 )
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.caveats import Caveat, ControlsCaveat
 from pathfinder.domain.evidence import NamedControlSet, VerificationReview
-from pathfinder.domain.strategy.operational_spec import Criterion, OpenSlot
+from pathfinder.domain.strategy.measurement_clauses import measurement_clauses
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OpenSlot,
+    plain_value,
+)
 
 # The choices of one open slot the ledger prints.
 _OPTION_WINDOW = 8
@@ -46,15 +52,16 @@ def render_frame_full(section: FrameSection) -> str:
         "## Frame (full)",
         f"- goal: {spec.goal}",
         f"- interpreted_goal: {spec.interpreted_goal}",
-        f"- record_type: {spec.record_type}",
+        f"- records: {counted_noun(spec.record_type)}s",
         f"- organism_scope: {spec.organism_scope or 'any'}",
         f"- title: {spec.title}",
         f"- ready_to_build: {spec.ready_to_build}",
         "",
         f"### Criteria ({len(spec.criteria)})",
     ]
+    noun = counted_noun(spec.record_type)
     for crit in spec.criteria:
-        parts.extend(_render_criterion(crit))
+        parts.extend(_render_criterion(crit, noun))
     if spec.structure is not None:
         parts.append("\n### Structure")
         parts.append(render_structure(spec.structure.root, spec))
@@ -88,7 +95,7 @@ def _search_label(crit: Criterion) -> str:
     return "(unbound)"
 
 
-def _render_criterion(crit: Criterion) -> list[str]:
+def _render_criterion(crit: Criterion, noun: str) -> list[str]:
     out = [
         (
             f"- `{crit.id}` [{crit.role}] {crit.text} -> "
@@ -100,7 +107,14 @@ def _render_criterion(crit: Criterion) -> list[str]:
     reason = crit.step_rationale
     if reason is not None:
         out.append(f"    WHY {reason.line()}")
-    out.extend(f"    {name}={value!r}" for name, value in crit.resolved_params.items())
+    out.extend(
+        f"    {crit.display_name_of(name)} ({name}) = {plain_value(bound.value)} "
+        f"({bound.source})"
+        for name, bound in crit.resolved_params.items()
+    )
+    out.extend(
+        f"    MEASURED {clause}" for clause in measurement_clauses(crit, noun=noun)
+    )
     out.extend(f"    OPEN {s.param_name}: {_asked(s)}" for s in crit.open_params)
     out.extend(
         f"    CHOICES {a.param_name}: holds {a.bound}, "
@@ -122,7 +136,6 @@ def render_build_full(section: BuildSection) -> str:
         f"- skipped: {len(o.skipped_step_ids)}",
         f"- zero_result_steps: {o.zero_step_ids}",
         f"- wdk_strategy_id: {o.wdk_strategy_id}",
-        f"- root_count: {o.root_count}",
     ]
     if o.organism_change is not None:
         parts.append(f"- records: {o.organism_change.line()}")
@@ -160,9 +173,9 @@ def render_verification_full(section: VerificationSection) -> str:
     if d.gaps:
         parts.append("\n### Gaps")
         parts.extend(f"- {gap.sentence}" for gap in d.gaps)
-    if d.caveats:
+    if section.caveats:
         parts.append("\n### Caveats")
-        parts.extend(_caveat_line(caveat) for caveat in d.caveats)
+        parts.extend(_caveat_line(caveat) for caveat in section.caveats)
     parts.extend(_review_lines(d.review))
     return "\n".join(parts)
 
@@ -177,14 +190,21 @@ def _caveat_line(caveat: Caveat) -> str:
 
 
 def _review_lines(review: VerificationReview) -> list[str]:
-    """Each requirement row, each sampled gene and each source of the check."""
+    """Each requirement row, each column, each sampled gene and each source of
+    the check."""
     lines: list[str] = []
     if review.requirements:
         lines.append("\n### Requirements")
         lines.extend(
-            f"- [{row.status}] {row.text} (message {row.turn}, {row.how}; answered "
+            f"- [{row.shown_status}] {row.text} (message {row.turn}, {row.how}; answered "
             f"by {', '.join(row.answered_by) or 'nothing'}): {row.note}"
             for row in review.requirements
+        )
+    if review.column_fits:
+        lines.append("\n### Columns")
+        lines.extend(
+            f"- [{fit.fits}] {fit.criterion_id}: {fit.sentence}"
+            for fit in review.column_fits
         )
     if review.sampled_genes:
         lines.append("\n### Sampled genes")

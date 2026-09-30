@@ -464,7 +464,7 @@ async def test_the_derived_pattern_is_stated_and_is_no_open_slot(
     assert result.open_slots == []
     assert "profile_pattern" not in result.defaulted_params
     criterion = st.operational_spec_draft.criteria[0]
-    assert to_wire(criterion.resolved_params["profile_pattern"]) == "%pfal:Y%"
+    assert to_wire(criterion.param_values["profile_pattern"]) == "%pfal:Y%"
 
 
 @pytest.mark.asyncio

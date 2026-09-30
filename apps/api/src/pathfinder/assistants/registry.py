@@ -77,6 +77,17 @@ def assistant_role_models(
     return {role: picks.get(role) or default for role, default in defaults.items()}
 
 
+def turn_trace_labels(assistant_id: str, picks: Mapping[str, str]) -> dict[str, str]:
+    """The provider, the tier and each role's model, as one turn's trace labels."""
+    settings = get_settings()
+    models = assistant_role_models(assistant_id, picks)
+    return {
+        "provider": settings.default_provider,
+        "tier": settings.default_tier,
+        **{f"model_{role}": model for role, model in models.items()},
+    }
+
+
 def prompt_reader_model(assistant_id: str, picks: Mapping[str, str]) -> str:
     """The model that reads the user's message this turn."""
     return assistant_role_models(assistant_id, picks)[_PROMPT_ROLES[assistant_id]]
@@ -87,4 +98,5 @@ __all__ = [
     "get_assistant_registry",
     "installed_phase_defaults",
     "prompt_reader_model",
+    "turn_trace_labels",
 ]

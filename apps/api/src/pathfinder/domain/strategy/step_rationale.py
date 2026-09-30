@@ -4,7 +4,7 @@ catalog's answer, or the compute an analysis step's document holds."""
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import computed
@@ -89,6 +89,8 @@ class SearchRationale(CamelModel):
     tool_call_id: str
     # The urls, DOIs and PMIDs this turn retrieved that FRAME cites for it.
     sources: list[str] = Field(default_factory=list)
+    # The wire value of each parameter the reason was derived from.
+    derived_from: dict[str, str] = Field(default_factory=dict)
     # The label every surface shows, always derived from the basis and the term.
     short: str = Field(default="", validate_default=True)
 
@@ -114,6 +116,18 @@ class SearchRationale(CamelModel):
     def texts(self) -> list[str]:
         """Every text a model or a researcher wrote into this reason."""
         return [self.reason, self.term, self.query, *self.sources]
+
+    def changed_by(self, values: Mapping[str, str]) -> list[str]:
+        """The parameters it was derived from whose wire value ``values`` changes.
+
+        A reason that recorded no values was derived from none it can compare,
+        so every value changes it.
+        """
+        if not self.derived_from:
+            return sorted(values)
+        return [
+            name for name, wire in self.derived_from.items() if values.get(name) != wire
+        ]
 
     def redacted(self, redact: Callable[[str], str]) -> SearchRationale:
         """This reason with every written text redacted, the label derived again."""

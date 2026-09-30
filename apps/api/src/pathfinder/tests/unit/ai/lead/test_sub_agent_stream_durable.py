@@ -174,7 +174,6 @@ def _state() -> PipelineState:
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1", "s2"],
         failed_steps=[],
-        root_count=132,
     )
     state.domain.attach_control_set(SAVED_SET)
     return state

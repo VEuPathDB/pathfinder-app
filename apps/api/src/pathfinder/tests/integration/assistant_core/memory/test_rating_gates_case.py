@@ -36,13 +36,14 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import MessageRating, MessageRatingView, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.message_ratings import (
     clear_message_rating,
     rate_message,
 )
+from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.held_counts import session_holding
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
@@ -67,7 +68,7 @@ def _state(thread: _Thread, message_id: UUID, *, verified: bool) -> PipelineStat
                 text="kinase domain",
                 search_name="GenesByGoTerm",
                 role="seed",
-                resolved_params={"go_term": StringValue(value="GO:0004672")},
+                resolved_params=bound({"go_term": StringValue(value="GO:0004672")}),
             ),
         ],
         structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="s1")),
@@ -85,13 +86,10 @@ def _state(thread: _Thread, message_id: UUID, *, verified: bool) -> PipelineStat
             last_build_outcome=BuildOutcome(
                 pushed_step_ids=["s1"],
                 wdk_strategy_id=330423363,
-                counts={"s1": 142},
-                root_count=142,
                 node_results=[
                     NodeResult(
                         node_id="s1",
                         search_name="GenesByGoTerm",
-                        count=142,
                         status="ok",
                     ),
                 ],
@@ -140,7 +138,7 @@ async def _run_turn(
     context = Context(
         site_id="plasmodb",
         user_id=thread.user_id,
-        strategy_session=StrategySession(site_id="plasmodb"),
+        strategy_session=session_holding("plasmodb", "s1", "GenesByGoTerm", 142),
         db_session_factory=async_session_factory,
         cancel_event=asyncio.Event(),
         memory_store=thread.raw,

@@ -8,19 +8,27 @@ step's parameters are WDK's own.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Sequence
 from typing import NamedTuple
 
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.ast_diff import StepChange, nodes_of
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    ValueSource,
+    bind_values,
+)
 from pathfinder.domain.strategy.outside_changes import OutsideChanges
 from pathfinder.domain.strategy.spec_hydration import (
     Analyses,
+    Sheets,
     criterion_analysing,
     sheet_bound,
+    sheet_marked,
     spec_stating_the_live_tree,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
@@ -29,23 +37,27 @@ __all__ = ["criterion_rebound", "criterion_restated", "spec_replaying"]
 
 
 def criterion_restated(
-    criterion: Criterion, name: str, value: ParamValue | None
+    criterion: Criterion,
+    name: str,
+    value: ParamValue | None,
+    *,
+    source: ValueSource = "held",
+    basis: str = "",
 ) -> Criterion:
     """The criterion stating this value, and saying nothing else about the name.
 
-    A value the strategy holds is decided, so the slot that asked for it, the
-    default it stood in for, the assumption that explained it and the options
-    it was chosen from all go with the old value.
+    A decided value takes the place of the slot that asked for it, the counts
+    measured around the old value and the options it was chosen from. The
+    value is the strategy's unless ``source`` names who set it.
     """
     params = {n: v for n, v in criterion.resolved_params.items() if n != name}
     if value is not None:
-        params[name] = value
+        params |= bind_values({name: value}, source, basis)
     return criterion.model_copy(
         update={
             "resolved_params": params,
-            "defaulted_params": [p for p in criterion.defaulted_params if p != name],
+            "measurements": [m for m in criterion.measurements if m.param != name],
             "open_params": [s for s in criterion.open_params if s.param_name != name],
-            "assumptions": [a for a in criterion.assumptions if a.param_name != name],
             "alternatives": [a for a in criterion.alternatives if a.param_name != name],
             "result_count": None,
         }
@@ -55,27 +67,27 @@ def criterion_restated(
 def criterion_rebound(
     criterion: Criterion,
     node: StrategyStepNode,
-    sheet: Collection[str] | None,
+    sheet: Sequence[ParameterInfo] | None,
 ) -> Criterion:
     """The criterion on the search its step now runs, stating its whole binding.
 
     A search shares no values with the one it replaces, so nothing the
     criterion said about the old binding survives it.
     """
-    return criterion.model_copy(
+    rebound = criterion.model_copy(
         update={
             "search_name": node.search_name,
             "saved_strategy_ref": None,
             "analysis": None,
-            "resolved_params": sheet_bound(node.parameters, sheet),
-            "defaulted_params": [],
+            "resolved_params": bind_values(sheet_bound(node.parameters, sheet), "held"),
+            "measurements": [],
             "open_params": [],
-            "assumptions": [],
             "alternatives": [],
             "result_count": None,
             "rationale": None,
         }
     )
+    return rebound if sheet is None else sheet_marked(rebound, sheet)
 
 
 def spec_replaying(
@@ -83,7 +95,7 @@ def spec_replaying(
     changes: OutsideChanges,
     live: StrategyAst | None,
     *,
-    sheet_params: Mapping[str, Collection[str]],
+    sheet_params: Sheets,
     analyses: Analyses,
     may_leave_out: Collection[str] = (),
 ) -> OperationalSpec:
@@ -114,7 +126,7 @@ def spec_replaying(
 class _StepReading(NamedTuple):
     """How a replay reads a live step: its sheet, or the analysis it exports."""
 
-    sheet_params: Mapping[str, Collection[str]]
+    sheet_params: Sheets
     analyses: Analyses
 
 
@@ -171,12 +183,9 @@ def _criterion_the_step_states(
     if change.search_after is not None:
         closed.update((criterion.id, slot.param_name) for slot in criterion.open_params)
         return criterion_rebound(criterion, node, sheet)
+    shown = sheet_bound({p.name: p for p in change.params}, sheet)
     restated = criterion
-    for param in change.params:
-        if sheet is not None and param.name not in sheet:
-            continue
-        restated = criterion_restated(
-            restated, param.name, node.parameters.get(param.name)
-        )
-        closed.add((criterion.id, param.name))
-    return restated
+    for name in shown:
+        restated = criterion_restated(restated, name, node.parameters.get(name))
+        closed.add((criterion.id, name))
+    return restated if sheet is None else sheet_marked(restated, sheet)

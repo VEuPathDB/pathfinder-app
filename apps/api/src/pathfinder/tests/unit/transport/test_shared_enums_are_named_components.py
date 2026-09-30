@@ -45,6 +45,7 @@ class _Properties(BaseModel):
 
 _EXPECTED_VALUES: dict[str, list[str]] = {
     "ModelProvider": ["openai", "anthropic", "google", "ollama", "mock"],
+    "ModelRank": ["flagship", "standard", "small"],
     "ReasoningEffort": ["none", "low", "medium", "high"],
     "Rating": ["like", "dislike"],
     "SiteRead": ["read", "not_answered", "not_read"],
@@ -82,6 +83,11 @@ def test_the_enum_carries_its_wire_values(
             "ModelCatalogEntryResponse",
             "provider",
             {"$ref": "#/components/schemas/ModelProvider"},
+        ),
+        (
+            "ModelCatalogEntryResponse",
+            "rank",
+            {"$ref": "#/components/schemas/ModelRank"},
         ),
         (
             "PhaseTierConfig",

@@ -18,12 +18,15 @@ from assistant_core.tasks.names import (
     MAINTENANCE_QUEUE,
     RELEASE_STALLED_JOBS_TASK,
 )
+from pydantic import JsonValue
 from veupathdb_mcp.embeddings import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
+from pathfinder.jobs.impls.gene_set_refresh_impl import refresh_strategy_gene_set
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
+from pathfinder.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
 
 # A vector nothing names is kept for a week: a rebuilt index reuses it.
 ORPHAN_VECTOR_GRACE = timedelta(days=7)
@@ -48,6 +51,13 @@ async def echo_task(message: str) -> str:
 @procrastinate_app.task(queue=CHAT_TURN_QUEUE, name=CHAT_TURN_TASK)
 async def run_chat_turn_job(payload: dict[str, Any]) -> None:
     await run_chat_turn(payload)
+
+
+# The deferring write names the thread as the lock, so the job never runs
+# beside one of the thread's turns.
+@procrastinate_app.task(queue=DEFAULT_QUEUE, name=GENE_SET_REFRESH_TASK)
+async def refresh_strategy_gene_set_job(payload: dict[str, JsonValue]) -> None:
+    await refresh_strategy_gene_set(payload)
 
 
 # The sweep settles work no job lock protects, so the lock keeps two runs of

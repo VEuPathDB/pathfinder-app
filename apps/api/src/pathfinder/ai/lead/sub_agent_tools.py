@@ -41,9 +41,11 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
 )
 from pathfinder.domain.strategy.orthology import restate_copies
+from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tiers import PhaseTierConfig, resolve_phase_tier_config
+from pathfinder.services.strategies.measurements import TurnCounts
 
 # Binding one criterion costs up to ten calls: find a search, read it, read its
 # vocabularies (several reads on a vocabulary-heavy site), set the criterion.
@@ -331,6 +333,8 @@ class LeadDeps:
     # The workbench gene sets this turn created. Every agent of the turn writes
     # into this one list, and the Lead's node folds it into the domain.
     created_gene_sets: list[CreatedGeneSet] = field(default_factory=list)
+    # The counts every pass of the turn reads for other readings of a value.
+    turn_counts: TurnCounts = field(default_factory=TurnCounts)
     # The last classification the gate refused, cleared when one is accepted.
     refused_classification: RefusedClassification | None = None
 
@@ -353,6 +357,11 @@ class LeadDeps:
     def turn_markers(self) -> TurnMarkers:
         """What this turn has done so far, which every sub-agent shares."""
         return self.state.turn_markers
+
+    @property
+    def strategy_session(self) -> StrategySession:
+        """The strategy this thread holds, as the turn's runtime loaded it."""
+        return self.runtime.strategy_session
 
     @property
     def step_count(self) -> int:

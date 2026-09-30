@@ -90,6 +90,7 @@ class _AmainRun:
     heartbeat_kwargs: dict[str, Any]
     marks: list[str]
     ran: bool
+    observability: list[str]
 
 
 def _record(marks: list[str]) -> Callable[[], None]:
@@ -116,6 +117,7 @@ async def _run_amain(
     built: dict[str, Any] = {}
     heartbeat_built: dict[str, Any] = {}
     marks = [] if marks is None else marks
+    observability: list[str] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
         built.update(kwargs)
@@ -134,6 +136,18 @@ async def _run_amain(
     with (
         patch("pathfinder.jobs.worker.procrastinate_app", app),
         patch("pathfinder.jobs.worker.setup_logging"),
+        patch(
+            "pathfinder.jobs.worker.setup_observability",
+            side_effect=lambda **kw: observability.append(f"on:{kw['service_name']}"),
+        ),
+        patch(
+            "pathfinder.jobs.worker.shutdown_observability",
+            side_effect=lambda: observability.append("off"),
+        ),
+        patch(
+            "pathfinder.jobs.worker.shutdown_langfuse",
+            side_effect=lambda: observability.append("langfuse-off"),
+        ),
         patch("pathfinder.jobs.worker.install_procrastinate_redaction"),
         patch("pathfinder.jobs.worker.register_all_tools"),
         patch("pathfinder.jobs.worker.install_admitted_sources"),
@@ -161,6 +175,7 @@ async def _run_amain(
         heartbeat_kwargs=heartbeat_built,
         marks=marks,
         ran=True,
+        observability=observability,
     )
 
 
@@ -229,3 +244,10 @@ class TestTheWorkerBuildsTheJudgeBeforeItConsumesAJob:
         run = await _run_amain(screening=False, build_judge=fail_build)
 
         assert run.marks == ["start", "run", "stop"]
+
+
+async def test_amain_traces_the_turns_it_runs_and_flushes_on_exit() -> None:
+    """The worker runs every model call, so it installs the tracer before any job."""
+    run = await _run_amain()
+
+    assert run.observability == ["on:pathfinder-worker", "off", "langfuse-off"]

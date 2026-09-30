@@ -104,8 +104,8 @@ def _step_state(
     result: ToolReturnPart | RetryPromptPart,
 ) -> Literal["completed", "failed", "denied"]:
     """Terminal state of one inner tool call. A denial is the user's decision,
-    not a failure."""
-    if isinstance(result, RetryPromptPart):
+    not a failure; a call that failed without running is a failure."""
+    if isinstance(result, RetryPromptPart) or result.outcome == "failed":
         return "failed"
     if result.outcome == "denied":
         return "denied"

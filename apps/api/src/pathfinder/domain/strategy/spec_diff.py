@@ -172,4 +172,4 @@ def _meaning(criterion: Criterion) -> AnalysisBinding | None:
 
 
 def _wire(criterion: Criterion) -> dict[str, str]:
-    return {name: to_wire(value) for name, value in criterion.resolved_params.items()}
+    return {name: to_wire(value) for name, value in criterion.param_values.items()}

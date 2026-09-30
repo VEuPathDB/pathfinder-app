@@ -40,7 +40,6 @@ from pydantic_ai import AgentRunResultEvent
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, UserContent
 from pydantic_ai.tools import DeferredToolRequests
-from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, ErrorChunk
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.graph._lead_capture import (
@@ -57,10 +56,11 @@ from pathfinder.ai.graph._lead_durable import (
     durable_resume_hints,
     pending_durable_call,
 )
+from pathfinder.ai.graph._lead_emit import emit_each, release_the_cards
 from pathfinder.ai.graph._lead_events import (
     handle_sub_agent_event,
-    is_suppressed_sub_agent_chunk,
 )
+from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
@@ -171,33 +171,6 @@ async def _ask_about_what_it_parks(
     output = event.result.output
     if isinstance(output, DeferredToolRequests):
         await ask_about_the_removals(deps, output, writer)
-
-
-def _emit_unless_suppressed(
-    writer: Any,
-    chunk: BaseChunk,
-    sub_agent_tool_calls: dict[str, str],
-    capture: _LeadRunCapture,
-) -> None:
-    """Write one chunk, unless a sub-agent already renders that call itself.
-
-    The error chunk that ends a run is kept, so the turn's reply can name it.
-    """
-    if isinstance(chunk, ErrorChunk):
-        capture.run_error = chunk.error_text
-    if is_suppressed_sub_agent_chunk(chunk, sub_agent_tool_calls):
-        return
-    emit_chunk(writer, chunk)
-
-
-def _emit_each(
-    writer: Any,
-    chunks: list[BaseChunk],
-    sub_agent_tool_calls: dict[str, str],
-    capture: _LeadRunCapture,
-) -> None:
-    for chunk in chunks:
-        _emit_unless_suppressed(writer, chunk, sub_agent_tool_calls, capture)
 
 
 def _stream_ends_after(
@@ -341,8 +314,8 @@ async def _drive_lead_stream(
     try:
         with lead_model.override:
             async for v6_chunk in emitter.chunks(_agent_events()):
-                _emit_each(writer, hold.admit(v6_chunk), sub_agent_tool_calls, capture)
-            _emit_each(writer, hold.release(), sub_agent_tool_calls, capture)
+                emit_each(writer, hold.admit(v6_chunk), sub_agent_tool_calls, capture)
+            release_the_cards(writer, hold, deps, capture, sub_agent_tool_calls)
     # The emitter re-raises the graph's control-flow signal and answers every
     # other exception of the run with an error chunk, so these two handlers see
     # that signal and a failure of the loop that writes the chunks.
@@ -409,6 +382,8 @@ async def _run_lead_turn(
         changed=deps.state.turn_markers.changed_strategy,
     )
 
+    if capture.response is not None:
+        show_the_facts(writer, deps, capture)
     _emit_residual_prose(writer, capture, message_id=message_id)
     residual_tokens, residual_cost = capture.residual_totals(state)
     await _persist_residual_quota(runtime.context, state, capture)

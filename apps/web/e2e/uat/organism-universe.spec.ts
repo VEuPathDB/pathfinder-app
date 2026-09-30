@@ -9,7 +9,7 @@ import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import { LAYOUTS, SIGNAL_PEPTIDE } from "../fixtures/arc-layouts";
 import { expectBuild, openTrace, traceRows } from "../fixtures/build-checks";
-import { countPattern, readNodes, siteOrganism } from "../fixtures/site-reads";
+import { readNodes, siteOrganism } from "../fixtures/site-reads";
 import { buildOn, nodeBySearch, paramText } from "../fixtures/strategy-builds";
 
 const SITE = "vectorbase";
@@ -36,7 +36,7 @@ test.describe("An organism named alone", { tag: "@named-site" }, () => {
     const leaf = nodeBySearch(await readNodes(apiClient, id), SIGNAL_PEPTIDE);
     expect(paramText(leaf, "organism")).toContain(organism);
 
-    const reply = chatPage.assistantReply(countPattern(counts.root));
+    const reply = chatPage.replyCounting(counts.root);
     await expect(reply).not.toHaveCount(0);
     await openTrace(reply);
     await expect(

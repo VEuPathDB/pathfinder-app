@@ -13,6 +13,7 @@ from pathfinder.ai.lead.ledger_sections import (
     unexpressed_constraints,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.domain.caveats import caveats_for
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
     StepPushFailure,
@@ -122,7 +123,9 @@ def _derive_constraint_section(
     state: PipelineState, intent: UserIntent | None
 ) -> ConstraintSection:
     spec = state.domain.operational_spec
-    provisional = list(spec.constraints) if spec else []
+    # A retired requirement stays retired whatever the spec still says of it.
+    retired = {r.constraint.key for r in state.domain.retired_requirements}
+    provisional = [c for c in spec.constraints if c.key not in retired] if spec else []
     requirements = _thread_requirements(state, intent)
     merged = merge_constraints(provisional, requirements)
     kept = {(c.kind, c.requested_value) for c in merged}
@@ -132,7 +135,10 @@ def _derive_constraint_section(
         c for c in requirements if c.source is not ConstraintSource.USER_EXPLICIT
     ]
     carried = _carried_requirements(state, intent)
-    assumed = [*assumption_constraints(spec), *unexpressed_constraints(spec)]
+    unexpressed = [
+        g for g in unexpressed_constraints(spec) if g.constraint.key not in retired
+    ]
+    assumed = [*assumption_constraints(spec), *unexpressed]
     if not merged:
         return ConstraintSection(
             grounded=assumed,
@@ -147,9 +153,16 @@ def _derive_constraint_section(
             carried=carried,
             composed=composed,
         )
+    held_open = {g.constraint.key for g in unexpressed}
     return ConstraintSection(
         grounded=[
-            *ground_against_spec(merged, spec),
+            *(
+                g
+                for g in ground_against_spec(
+                    merged, spec, upload_types=state.domain.upload_types
+                )
+                if g.constraint.key not in held_open
+            ),
             *assumed,
         ],
         recommended=recommended,
@@ -200,4 +213,10 @@ def _classify_failure(failure: StepPushFailure) -> RecoveryKind:
 
 
 def _derive_verification_section(state: PipelineState) -> VerificationSection:
-    return VerificationSection(digest=state.turn_verdict)
+    digest = state.turn_verdict
+    if digest is None:
+        return VerificationSection()
+    return VerificationSection(
+        digest=digest,
+        caveats=caveats_for(state.domain.operational_spec, digest.caveats),
+    )

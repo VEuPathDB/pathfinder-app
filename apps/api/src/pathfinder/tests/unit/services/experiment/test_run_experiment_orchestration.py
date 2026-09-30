@@ -34,7 +34,7 @@ class _Store:
     def __init__(self) -> None:
         self.saved: list[Experiment] = []
 
-    def save(self, experiment: Experiment) -> None:
+    async def save(self, experiment: Experiment) -> None:
         self.saved.append(experiment.model_copy(deep=True))
 
 

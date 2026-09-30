@@ -172,7 +172,7 @@ class TestCheckpointsFromEarlierBuilds:
     def test_a_dropped_field_is_discarded_and_the_records_rebuilt(self) -> None:
         state = PipelineState.model_validate(self._earlier_shape())
         assert isinstance(state.domain.last_build_outcome, BuildOutcome)
-        assert state.domain.last_build_outcome.root_count == 87
+        assert state.domain.last_build_outcome.wdk_strategy_id == 330642473
         assert state.user_prompt == "gametocyte upregulated genes"
 
     def test_a_value_this_build_cannot_read_is_refused(self) -> None:

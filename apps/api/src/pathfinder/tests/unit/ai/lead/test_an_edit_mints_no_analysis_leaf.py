@@ -16,6 +16,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
 )
 from pathfinder.domain.strategy.operations import AddLeafOp
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._analysis_thread import WAITING, bare_thread
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     declared,
@@ -41,7 +42,7 @@ async def test_an_edit_beside_both_analysis_criteria_mints_only_the_search(
                 id="c_kinase",
                 text="protein kinases",
                 search_name="GenesByText",
-                resolved_params={"text_expression": StringValue(value="kinase")},
+                resolved_params=bound({"text_expression": StringValue(value="kinase")}),
             )
         )
         found.structure = SpecStructure(

@@ -7,8 +7,9 @@ from typing import Any
 
 import pytest
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
+from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKStepTree
+from veupathdb.wdk import WDKSearch, WDKStepTree
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import evidence_card, verify_dispatch
@@ -16,18 +17,23 @@ from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_dispatch import (
     RootSample,
+    SearchStep,
     run_verification,
     verification_scope,
     work_order,
 )
 from pathfinder.domain.caveats import RequirementGap, SampleCaveat
 from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
+from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, NodeResult
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies import text_queries
 from pathfinder.services.strategies.site_counts import SiteCounts
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.column_fits import tm_fit
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
     lead_deps,
@@ -65,13 +71,11 @@ def _deps(*, unexpressed: list[str] | None = None) -> LeadDeps:
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=["s1"],
         wdk_strategy_id=_STRATEGY,
-        root_count=5,
         node_results=[
             NodeResult(
                 node_id="s1",
                 search_name="GenesWithSignalPeptide",
                 wdk_step_id=_ROOT,
-                count=5,
                 status="ok",
             )
         ],
@@ -111,15 +115,34 @@ def test_the_scope_lists_each_word_no_search_states() -> None:
     assert scope.unexpressed == ["'exported' in [s1] genes with a signal peptide"]
 
 
-def test_the_work_order_names_the_root_to_sample() -> None:
-    root = RootSample(step_id="s1", wdk_step_id=_ROOT, count=5)
+def test_the_work_order_names_each_search_step_then_the_root_to_sample() -> None:
+    root = RootSample(
+        step_id="s3",
+        wdk_step_id=_ROOT,
+        count=5,
+        search_steps=(
+            SearchStep(step_id="s1", wdk_step_id=11),
+            SearchStep(step_id="s2", wdk_step_id=12),
+        ),
+    )
 
     assert work_order("check it", None, root) == (
         "Verification work order: check it\n"
         "Inspect the built strategy. Return a VerificationDelta.\n"
-        f"The root is s1, step {_ROOT} on the site, 5 records. Sample it with "
+        "Read the columns of each search step first: "
+        "read_step_columns(wdk_step_id=11) for s1; "
+        "read_step_columns(wdk_step_id=12) for s2.\n"
+        f"The root is s3, step {_ROOT} on the site, 5 records. For a criterion "
+        "whose step shows no column, sample it with "
         f"get_sample_records(wdk_step_id={_ROOT}, limit=5)."
     )
+
+
+def test_the_dispatch_names_the_strategys_search_steps() -> None:
+    root = verify_dispatch.root_sample(_deps())
+
+    assert root is not None
+    assert root.search_steps == (SearchStep(step_id="s1", wdk_step_id=_ROOT),)
 
 
 def test_an_empty_root_is_not_sampled() -> None:
@@ -200,7 +223,15 @@ _UNMET = {
 async def test_an_unmet_requirement_refuses_the_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    delta, _dispatch = await _run(monkeypatch, _deps(), {"requirements": [_UNMET]})
+    deps = _deps()
+    deps.state.domain.requirements.append(
+        requirement(
+            ConstraintKind.OTHER,
+            "transmembrane domains",
+            "at least 2 transmembrane domains",
+        )
+    )
+    delta, _dispatch = await _run(monkeypatch, deps, {"requirements": [_UNMET]})
 
     assert (delta.digest.success, delta.digest.gaps) == (
         False,
@@ -218,10 +249,14 @@ def _gene(gene_id: str, fits: str) -> dict[str, str]:
     }
 
 
-async def test_genes_that_do_not_fit_are_counted_in_the_caveats(
+async def test_the_columns_this_turn_read_are_the_cards_and_the_caveats(
     monkeypatch: pytest.MonkeyPatch, collector: ChunkCollector
 ) -> None:
     deps = _deps()
+    short = tm_fit(3, 5, wdk_step_id=_ROOT)
+    deps.state.turn_markers.record_column_fits(
+        [short, tm_fit(9, 9, wdk_step_id=_ROOT + 1)]
+    )
     for gene_id in ("PF3D7_0100100", "PF3D7_0100200"):
         deps.state.turn_markers.record_retrieved_source(_RECORD.format(gene_id))
 
@@ -237,39 +272,138 @@ async def test_genes_that_do_not_fit_are_counted_in_the_caveats(
         },
     )
 
-    assert delta.digest.caveats == [SampleCaveat(unclear=0, misfit=1, total=2)]
+    assert delta.digest.caveats == [SampleCaveat(fit=short)]
     card = deps.state.domain.last_evidence_card
     assert card is not None
-    assert [gene.gene_id for gene in card.review.sampled_genes] == [
-        "PF3D7_0100100",
-        "PF3D7_0100200",
-    ]
     assert (
-        collector.data_of("data-evidence-card")[0]["review"]["sampledGenes"][1]["fits"]
-        == "no"
+        card.review.column_fits,
+        [gene.gene_id for gene in card.review.sampled_genes],
+    ) == ([short], ["PF3D7_0100100", "PF3D7_0100200"])
+    streamed = collector.data_of("data-evidence-card")[0]["review"]
+    assert (streamed["columnFits"][0]["fits"], streamed["sampledGenes"][1]["fits"]) == (
+        "some",
+        "no",
     )
 
 
-async def test_the_check_reads_at_most_eight_gene_records(
+async def test_the_checks_guard_leaves_record_reads_to_the_reading_tool(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _delta, dispatch = await _run(monkeypatch, _deps(), {})
 
     assert dispatch.agent_deps is not None
     guard: ToolRepetitionGuard = dispatch.agent_deps.tool_repetition_guard
-    allowed = [
+    reads = [
         guard.check("read_gene_record", {"gene_id": f"PF3D7_{i:07d}"}, run_step=i + 1)
-        for i in range(SAMPLED_GENE_LIMIT)
+        for i in range(SAMPLED_GENE_LIMIT + 1)
     ]
-    refused = guard.check(
-        "read_gene_record",
-        {"gene_id": "PF3D7_0000009"},
-        run_step=SAMPLED_GENE_LIMIT + 1,
-    )
 
-    assert allowed == [None] * SAMPLED_GENE_LIMIT
-    assert refused is not None
-    assert refused.rule == "call_cap"
+    assert reads == [None] * (SAMPLED_GENE_LIMIT + 1)
     assert dispatch.work_order.endswith(
         f"get_sample_records(wdk_step_id={_ROOT}, limit=5)."
     )
+
+
+def _string_search(search_name: str, param: str, initial: str) -> WDKSearch:
+    return WDKSearch.model_validate(
+        {
+            "urlSegment": search_name,
+            "displayName": search_name,
+            "shortDisplayName": search_name,
+            "parameters": [
+                {
+                    "name": param,
+                    "displayName": param,
+                    "type": "string",
+                    "isVisible": True,
+                    "initialDisplayValue": initial,
+                }
+            ],
+        }
+    )
+
+
+_SHEETS = {
+    "GenesByGoTerm": _string_search("GenesByGoTerm", "go_term", "N/A"),
+    "GenesByText": _string_search("GenesByText", "text_expression", ""),
+}
+_COMPARE = "Also search trans-sialidase and tell me how the two counts compare."
+
+
+def _met(text: str, criterion: str, turn: int = 1) -> dict[str, Any]:
+    return {
+        "text": text,
+        "turn": turn,
+        "answeredBy": [criterion],
+        "how": "parameter",
+        "status": "met",
+        "note": "the step binds it",
+    }
+
+
+async def test_only_a_text_query_is_held_to_the_records_and_an_ask_files_no_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def record_type(_site: str, _search: str, given: str | None) -> str:
+        return given or "transcript"
+
+    async def definition(_site: str, _record_type: str, search: str) -> WDKSearch:
+        return _SHEETS[search]
+
+    monkeypatch.setattr(text_queries, "resolve_search_record_type", record_type)
+    monkeypatch.setattr(text_queries, "read_search_definition", definition)
+    deps = _deps()
+    deps.state.user_prompt = _COMPARE
+    deps.state.domain.researcher_asks = [
+        ResearcherAsk(message=_COMPARE, text="tell me how the two counts compare")
+    ]
+    deps.state.domain.operational_spec = OperationalSpec(
+        goal=_ASKED,
+        criteria=[
+            Criterion(
+                id="c_go",
+                text="protein kinase activity",
+                search_name="GenesByGoTerm",
+                resolved_params=bound(
+                    {
+                        "go_typeahead": MultiPickValue(values=["GO:0004672"]),
+                        "go_term": StringValue(value="N/A"),
+                    },
+                    defaulted=("go_term",),
+                ),
+            ),
+            Criterion(
+                id="c_text",
+                text="trans-sialidase",
+                search_name="GenesByText",
+                resolved_params=bound(
+                    {"text_expression": StringValue(value="trans-sialidase")}
+                ),
+            ),
+        ],
+    )
+
+    deps.state.turn_markers.record_retrieved_source(_RECORD.format("PF3D7_0100200"))
+
+    delta, _dispatch = await _run(
+        monkeypatch,
+        deps,
+        {
+            "requirements": [
+                _met("protein kinase activity", "c_go"),
+                _met("trans-sialidase", "c_text", turn=2),
+                _met("tell me how the two counts compare", "c_text", turn=2),
+            ],
+            "sampledGenes": [
+                {
+                    **_gene("PF3D7_0100200", "no"),
+                    "why": "the product names no trans-sialidase",
+                }
+            ],
+        },
+    )
+
+    assert [(row.text, row.status) for row in delta.digest.review.requirements] == [
+        ("protein kinase activity", "met"),
+        ("trans-sialidase", "unmet"),
+    ]

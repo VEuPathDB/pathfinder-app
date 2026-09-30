@@ -279,7 +279,7 @@ class InvestigationLedger(CamelModel):
             return []
         return [
             *(f"- gap: {gap.sentence}" for gap in digest.gaps),
-            *(f"- caveat: {caveat.sentence}" for caveat in digest.caveats),
+            *(f"- caveat: {caveat.sentence}" for caveat in self.verification.caveats),
         ]
 
     def _open_analysis_lines(self) -> list[str]:
@@ -308,7 +308,7 @@ class InvestigationLedger(CamelModel):
             "",
             "## Declined proposal",
             f"- asked: {declined.question}",
-            *(f"  - {change}" for change in declined.proposed_changes),
+            *(f"  - {change.sentence}" for change in declined.proposed_changes),
             *(
                 [f"- the researcher's comment: {declined.note}"]
                 if declined.note

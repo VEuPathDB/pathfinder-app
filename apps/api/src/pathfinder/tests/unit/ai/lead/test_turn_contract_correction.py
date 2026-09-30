@@ -19,9 +19,7 @@ from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     ASKING_REPLY,
     CLEAN_REPLY,
-    CONTROL_SET_CLAIM,
     WITH_CODE,
-    control_source_deps,
     control_test_deps,
     framing_deps,
     off_topic_deps,
@@ -109,22 +107,8 @@ class TestTheOneCorrection:
 
         assert isinstance(result.output, LeadResponse)
         assert len(script.retries) == 1
-        assert "7 of 10 positive controls returned" in script.retries[0]
-
-    def test_a_claimed_control_set_is_re_asked_once_and_the_turn_answers(self) -> None:
-        script = _scripted_answer(CONTROL_SET_CLAIM)
-
-        result = asyncio.run(
-            build_lead_agent().run(
-                "Build a positive control set from the rhoptry step.",
-                deps=control_source_deps(),
-                model=script.model(),
-            ),
-        )
-
-        assert isinstance(result.output, LeadResponse)
-        assert len(script.retries) == 1
-        assert "build_control_set" in script.retries[0]
+        assert "Your reply prints ``8``." in script.retries[0]
+        assert "stand beside its replies" in script.retries[0]
 
     def test_an_out_of_scope_essay_is_re_asked_once_and_the_turn_answers(self) -> None:
         """The latch is the contract's, so every rule reaches the model once."""

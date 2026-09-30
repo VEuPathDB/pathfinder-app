@@ -8,20 +8,21 @@ from uuid import UUID
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import BaseModel, ConfigDict, Field, GetJsonSchemaHandler
+from pydantic import ConfigDict, Field, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema, PydanticOmit
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
+from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import (
-    AnsweredQuestions,
     TurnMarkers,
     ZeroResultStep,
 )
 from pathfinder.ai.lead.intent import REQUEST_INTENTS, UserIntent
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.caveats import Caveat, Gap
+from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import (
     EdaAnalysisFacts,
@@ -32,15 +33,12 @@ from pathfinder.domain.evidence import (
     NamedControlSet,
     VerificationReview,
 )
+from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
-from pathfinder.domain.strategy.constraints import (
-    Constraint,
-    OpenQuestion,
-    standing_recommendations,
-)
+from pathfinder.domain.strategy.constraints import message_states
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -50,7 +48,7 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.staleness import StaleBuild
-from pathfinder.domain.strategy.stated_requirements import attributed, with_requirements
+from pathfinder.domain.strategy.stated_requirements import attributed
 
 PhaseName = Literal[
     "frame",
@@ -75,14 +73,6 @@ class FailureCause(StrEnum):
     UNRESOLVED_SLOTS = "unresolved_slots"
     TRANSIENT_ERROR = "transient_error"
     STRUCTURE_VIOLATION = "structure_violation"
-
-
-class ConstraintCheck(CamelModel):
-    label: str
-    requested: str
-    realized: str
-    honored: bool
-    note: str = ""
 
 
 class OmittedFromInput:
@@ -137,8 +127,9 @@ class VerificationDigest(CamelModel):
             "replaces anything written here."
         ),
     )
-    constraint_report: list[ConstraintCheck] = Field(
-        default_factory=list, max_length=12
+    # The study-step checks this turn computed; the runtime sets it.
+    constraint_report: Annotated[list[ConstraintCheck], OmittedFromInput] = Field(
+        default_factory=list
     )
     review: VerificationReview = Field(default_factory=VerificationReview)
     remember: list[MemoryEntryDraft] = Field(
@@ -157,8 +148,14 @@ class VerificationDigest(CamelModel):
         """True when the check succeeded and no step's check is pending."""
         return self.success and not self.pending_checks
 
+    def failure_stated_in(self, prose: str) -> bool:
+        """Whether the prose carries the words of each gap that fails the
+        check, or of the reason when no gap does."""
+        texts = [t for g in self.gaps if g.fails_the_check for t in g.texts()]
+        return all(message_states(prose, t) for t in texts or [self.reason])
 
-class StrategyDomainState(BaseModel):
+
+class StrategyDomainState(ThreadRequirements):
     """What the investigation knows: the framed spec, the searches it saw,
     the last build and its verification."""
 
@@ -167,7 +164,6 @@ class StrategyDomainState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
 
     user_intent: UserIntent | None = None
-    turn_markers: TurnMarkers = Field(default_factory=TurnMarkers)
     lead_next_state: Literal["await_user", "complete"] | None = None
     operational_spec: OperationalSpec | None = None
     # The last spec the strategy was made to answer to, and the tree it held at
@@ -203,19 +199,12 @@ class StrategyDomainState(BaseModel):
     # The analysis the thread holds open, read from the binding at turn entry.
     # Never persisted: another surface can close or replace it between turns.
     open_eda_analysis: OpenEdaAnalysis | None = None
-    # Every requirement the thread has stated, oldest first. A clarification
-    # adds to this list; only a message that abandons the request clears it.
-    requirements: list[Constraint] = Field(default_factory=list)
-    # What the thread asked the user and has not heard back on, with the value
-    # each question recommended.
-    open_questions: list[OpenQuestion] = Field(default_factory=list)
-    # The recommended values the thread's requirements leave standing. A
-    # requirement on the same dimension replaces one.
-    recommendations: list[Constraint] = Field(default_factory=list)
     # The request the thread is answering, as the user wrote it.
     original_request: str = ""
     # Every message the researcher wrote for that request, oldest first.
     request_messages: list[str] = Field(default_factory=list)
+    # The parts of those messages the intent gate read as asking for an answer.
+    researcher_asks: list[ResearcherAsk] = Field(default_factory=list)
     # What moved on the thread since its last answer, as the pre-turn hook
     # rendered it. Empty when nothing moved.
     turn_briefing: str = ""
@@ -234,6 +223,16 @@ class StrategyDomainState(BaseModel):
     # The saved control sets attached to this conversation. A control test,
     # a sweep or a scored comparison runs on no other set.
     control_sets: list[NamedControlSet] = Field(default_factory=list)
+    # Every line a facts part of this thread showed, oldest first, once each. A
+    # reply may restate any of them.
+    facts_shown: list[str] = Field(default_factory=list)
+    # The type of the upload each criterion runs on, by criterion id, as the
+    # last check read it from the site.
+    upload_types: dict[str, str] = Field(default_factory=dict)
+
+    def record_facts_shown(self, lines: Iterable[str]) -> None:
+        """Keep each line a facts part showed, once."""
+        self.facts_shown = list(dict.fromkeys([*self.facts_shown, *lines]))
 
     def attach_control_set(self, attached: NamedControlSet) -> None:
         """Attach a saved control set; a set attached before is held once."""
@@ -244,10 +243,13 @@ class StrategyDomainState(BaseModel):
         """Forget the request the thread answered and everything stated for it."""
         self.operational_spec = None
         self.requirements = []
+        self.retired_requirements = []
+        self.answered_questions = []
         self.recommendations = []
         self.open_questions = []
         self.original_request = ""
         self.request_messages = []
+        self.researcher_asks = []
         self.last_build_outcome = None
         self.stale_build = None
         self.separation_offers = {}
@@ -271,76 +273,32 @@ class StrategyDomainState(BaseModel):
             self.set_the_request_aside()
 
     def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
-        """Take this turn's requirements and the request they belong to."""
+        """Take this turn's requirements, the ones it retires, and the request."""
         held = list(self.requirements)
         self.record_requirements(
-            attributed(intent.explicit_constraints, request_text, held),
+            attributed(
+                intent.explicit_constraints,
+                [request_text, self.original_request, *self.request_messages],
+                held,
+            ),
         )
+        self.retire_requirements(intent.withdrawn_requirements)
         self.turn_markers.requirements_added.extend(
             c for c in self.requirements if c not in held
         )
         self.record_recommendations()
-        if request_text and request_text not in self.request_messages:
-            self.request_messages.append(request_text)
+        self.record_request_text(request_text)
+        self.researcher_asks = [
+            *(ask for ask in self.researcher_asks if ask.message != request_text),
+            *intent.researcher_asks(request_text),
+        ]
         if not self.original_request and intent.classification in REQUEST_INTENTS:
             self.original_request = request_text
 
-    def answer_open_questions(self, answer: str, *, on_card: bool = False) -> None:
-        """Close every question open now, whatever the answer says.
-
-        A card answers the questions a pass asked under this same message.
-        """
-        self._answer(self.open_questions, answer, on_card=on_card)
-
-    def answer_the_questions_at_arrival(self, answer: str) -> None:
-        """Close the questions this message found open, and no later one."""
-        arrived = set(self.turn_markers.questions_at_arrival)
-        self._answer([q for q in self.open_questions if q.question in arrived], answer)
-
-    def _answer(
-        self, questions: list[OpenQuestion], answer: str, *, on_card: bool = False
-    ) -> None:
-        # A later answer under the same message replaces the record, because
-        # the draft already holds what the earlier one decided.
-        if not questions:
-            return
-        self.turn_markers.answered = AnsweredQuestions(
-            questions=questions, answer=answer, on_card=on_card
-        )
-        self.open_questions = [q for q in self.open_questions if q not in questions]
-
-    def record_questions(self, questions: Iterable[OpenQuestion]) -> None:
-        """Add each question the thread has not asked already."""
-        for question in questions:
-            if question.question not in {q.question for q in self.open_questions}:
-                self.open_questions.append(question)
-
-    def record_recommendations(self) -> None:
-        """Keep the recommendations the thread's requirements leave standing.
-
-        An accepted recommendation is recorded once, so a later reply that asks
-        something else does not drop it.
-        """
-        replaced = {c.kind for c in self.requirements}
-        held = [c for c in self.recommendations if c.kind not in replaced]
-        seen = {(c.kind, c.requested_value) for c in held}
-        for offered in standing_recommendations(self.open_questions, self.requirements):
-            key = (offered.kind, offered.requested_value)
-            if key in seen:
-                continue
-            seen.add(key)
-            held.append(offered)
-        self.recommendations = held
-
-    def withdraw_this_messages_requirements(self) -> None:
-        """Drop what this message asked for, once the researcher said no to it."""
-        added = self.turn_markers.requirements_added
-        self.requirements = [c for c in self.requirements if c not in added]
-        self.turn_markers.requirements_added = []
-
-    def record_requirements(self, constraints: Iterable[Constraint]) -> None:
-        """Add each requirement the thread has not stated already."""
-        self.requirements = with_requirements(self.requirements, constraints)
+    def record_request_text(self, text: str) -> None:
+        """Keep words the researcher wrote for the request, once."""
+        if text and text not in self.request_messages:
+            self.request_messages.append(text)
 
     def markers_for(self, message_id: UUID | None) -> TurnMarkers:
         """This turn's markers. The record rotates on a new user message."""
@@ -483,6 +441,12 @@ class PipelineState(TurnState):
     def request_the_thread_answers(self) -> str:
         """The request the thread answers, or this message when none is recorded."""
         return self.domain.original_request or self.user_prompt
+
+    def researcher_messages(self) -> list[str]:
+        """Every message the researcher wrote for the request, oldest first, once each."""
+        domain = self.domain
+        found = [domain.original_request, *domain.request_messages, self.user_prompt]
+        return list(dict.fromkeys(text for text in found if text))
 
     def record_resync(self, outcome: BuildOutcome) -> None:
         """Take the counts a sync read, and the searches it found empty.

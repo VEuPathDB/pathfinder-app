@@ -13,6 +13,7 @@ from pydantic_ai import Tool
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import flatten_tree
 
 from pathfinder.ai.tools.standalone.strategy import apply_operations, build_strategy
 from pathfinder.ai.tools.toolsets.execution import build_toolset
@@ -37,7 +38,7 @@ Build = Callable[..., Awaitable[BuildOutcome]]
 
 
 def _outcome() -> BuildOutcome:
-    return BuildOutcome(wdk_strategy_id=1, root_count=0)
+    return BuildOutcome(wdk_strategy_id=1)
 
 
 def _pin_build(monkeypatch: pytest.MonkeyPatch, build: Build) -> None:
@@ -244,6 +245,11 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         async def _build(**kwargs: object) -> BuildOutcome:
             del kwargs
+            graph.steps = flatten_tree(leaf("step_a"))
+            graph.recompute_roots()
+            ctx.deps.strategy_session.sync_state = WDKSyncState(
+                wdk_step_ids={"step_a": 901}, step_counts={"step_a": 0}
+            )
             return _outcome()
 
         _pin_build(monkeypatch, _build)
@@ -255,7 +261,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
             for chunk in returned.metadata
             if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary"
         ]
-        assert summaries == [("0 steps, 0 records", "empty")]
+        assert summaries == [("1 step, 0 records", "empty")]
 
     async def test_a_build_nobody_measured_says_the_count_is_not_available(
         self, monkeypatch: pytest.MonkeyPatch
@@ -266,7 +272,7 @@ class TestBuildStrategyNoLongerClobbersSilently:
 
         async def _build(**kwargs: object) -> BuildOutcome:
             del kwargs
-            return BuildOutcome(wdk_strategy_id=1, root_count=None)
+            return BuildOutcome(wdk_strategy_id=1)
 
         _pin_build(monkeypatch, _build)
 

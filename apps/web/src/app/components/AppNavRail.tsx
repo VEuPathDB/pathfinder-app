@@ -35,8 +35,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SiteIcon } from "@/features/sites/components/SiteIcon";
+import { recordProductEvent } from "@/lib/api/productEvents";
 import { sitesOptions } from "@/lib/api/sites";
 import { siteIsDown } from "@/lib/sites/availability";
+import { conversationIdFromPath } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
 interface AppNavRailProps {
@@ -172,6 +174,7 @@ function SiteSwitcherButton({
 }) {
   const { data: sites } = useSuspenseQuery(sitesOptions());
   const setSelectedSite = useSessionStore((s) => s.setSelectedSite);
+  const pathname = usePathname();
 
   const components = sites.filter((s) => !s.isPortal);
   const portal = sites.filter((s) => s.isPortal);
@@ -179,6 +182,14 @@ function SiteSwitcherButton({
   const unreachable = `${CANNOT_REACH} ${siteShortName(siteId)}`;
 
   const pick = (id: string) => {
+    if (id !== siteId) {
+      recordProductEvent({
+        event: "site_switched",
+        fromSite: siteId,
+        toSite: id,
+        conversationId: conversationIdFromPath(pathname),
+      });
+    }
     setSelectedSite(id);
     onChange(id);
   };

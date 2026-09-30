@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable
 
 from assistant_core.models.scripted import (
@@ -15,9 +14,8 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 
 from pathfinder.ai.models.mock.arc import history_free
 from pathfinder.ai.models.mock.history import head_work_order
-from pathfinder.ai.models.mock.message_words import turn_controls
 from pathfinder.ai.models.mock.reads import instructions_of
-from pathfinder.ai.models.mock.sheets import workspace_criteria
+from pathfinder.ai.models.mock.sheets import sheet_entries, workspace_criteria
 from pathfinder.ai.models.mock.specs import criterion_replies
 from pathfinder.domain.evidence import VerificationReview
 
@@ -31,8 +29,6 @@ DELETE = "delete_step"
 UNLISTED_SEARCH = "GenesByNoSuchSearch"
 UNLISTED_ORGANISM = "Organismus fictus"
 SHORT_REPLY = "[mock] Two"
-# The step the delete card's removal leaves standing.
-MISNAMED_DELETION = "Removed the signal peptide step."
 # A reason over the 160-character cap that names no parameter.
 LONG_REASON = (
     "Chosen because the catalog ranked it first for this part of the request, "
@@ -41,7 +37,6 @@ LONG_REASON = (
 )
 # The line the order of a pass that continues a stopped pass carries.
 _CONTINUATION = "are bound already and stay exactly as they are"
-_STRATEGY_COUNT = re.compile(r"(?P<count>\d[\d,]*) genes\b")
 
 # The wrong call made in place of the call the arc was about to make, or None.
 CallFault = Callable[[ToolCallPart], ToolCallPart | None]
@@ -102,6 +97,38 @@ def _value_as_term(intended: ToolCallPart) -> ToolCallPart | None:
             return _criterion(binding.model_copy(update={"why": why}))
         case _:
             return None
+
+
+class _Criterion(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    criterion_id: str = ""
+
+
+def display_name_term(messages: list[ModelMessage]) -> CallFault:
+    """The arc's binding with its parameter term written as the parameter's
+    display name in another punctuation, which ``set_criterion`` corrects."""
+    instructions = instructions_of(messages)
+
+    def fault(intended: ToolCallPart) -> ToolCallPart | None:
+        binding = _binding(intended)
+        if binding is None or binding.why is None:
+            return None
+        criterion_id = _Criterion.model_validate(intended.args_as_dict()).criterion_id
+        shown = next(
+            (
+                e.display_name
+                for e in sheet_entries(instructions, criterion_id)
+                if binding.why.term in (e.name, e.display_name)
+            ),
+            None,
+        )
+        if shown is None:
+            return None
+        why = binding.why.model_copy(update={"term": f"{shown.rstrip(':')}:"})
+        return _criterion(binding.model_copy(update={"why": why}))
+
+    return fault
 
 
 def _off_vocabulary(intended: ToolCallPart) -> ToolCallPart | None:
@@ -207,71 +234,6 @@ def _all_unclear(intended: ToolCallPart) -> ToolCallPart | None:
     return scripted_call(ANSWER, dumped.model_dump(by_alias=True, mode="json"))
 
 
-class _LeadAnswer(BaseModel):
-    model_config = ConfigDict(extra="allow")
-
-    prose: str
-
-
-def _restated(intended: ToolCallPart, prose: str) -> ToolCallPart:
-    return scripted_call(ANSWER, {**intended.args_as_dict(), "prose": prose})
-
-
-def _stated_count(intended: ToolCallPart) -> re.Match[str] | None:
-    if intended.tool_name != ANSWER:
-        return None
-    return _STRATEGY_COUNT.search(
-        _LeadAnswer.model_validate(intended.args_as_dict()).prose
-    )
-
-
-def _transcript_count(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's reply with its gene count named in transcripts."""
-    stated = _stated_count(intended)
-    if stated is None:
-        return None
-    prose = stated.string
-    wrong = f"{stated['count']} transcripts"
-    return _restated(
-        intended, f"{prose[: stated.start()]}{wrong}{prose[stated.end() :]}"
-    )
-
-
-def _misstated_count(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's reply with a gene count no step holds: twice the root, plus one."""
-    stated = _stated_count(intended)
-    if stated is None:
-        return None
-    root = int(stated["count"].replace(",", ""))
-    prose = stated.string
-    wrong = f"{2 * root + 1:,} genes"
-    return _restated(
-        intended, f"{prose[: stated.start()]}{wrong}{prose[stated.end() :]}"
-    )
-
-
-def misnamed_deletion(messages: list[ModelMessage]) -> CallFault:
-    """Once the delete card answered, a reply naming the step that stays."""
-    deleted = any(part.tool_name == DELETE for part in tool_return_parts(messages))
-
-    def fault(intended: ToolCallPart) -> ToolCallPart | None:
-        if not deleted or intended.tool_name != ANSWER:
-            return None
-        return _restated(intended, MISNAMED_DELETION)
-
-    return fault
-
-
-def _unbacked_controls(intended: ToolCallPart) -> ToolCallPart | None:
-    """The arc's reply claiming every positive control of a set one larger."""
-    if intended.tool_name != ANSWER:
-        return None
-    total = len(turn_controls()[0]) + 1
-    prose = _LeadAnswer.model_validate(intended.args_as_dict()).prose
-    claim = f"It returned {total} of {total} positive controls."
-    return _restated(intended, f"{prose} {claim}")
-
-
 def _sweep_without_controls(intended: ToolCallPart) -> ToolCallPart | None:
     """The arc's sweep with no control set."""
     if intended.tool_name != SWEEP:
@@ -294,8 +256,5 @@ value_as_term: WrongCall = history_free(lambda: _value_as_term)
 off_vocabulary: WrongCall = history_free(lambda: _off_vocabulary)
 syntenic_left_off: WrongCall = history_free(lambda: _syntenic_left_off)
 all_unclear: WrongCall = history_free(lambda: _all_unclear)
-transcript_count: WrongCall = history_free(lambda: _transcript_count)
-misstated_count: WrongCall = history_free(lambda: _misstated_count)
-unbacked_controls: WrongCall = history_free(lambda: _unbacked_controls)
 sweep_without_controls: WrongCall = history_free(lambda: _sweep_without_controls)
 short_card_reply: WrongCall = history_free(lambda: _short_card_reply)

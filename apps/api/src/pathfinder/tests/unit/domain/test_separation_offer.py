@@ -9,8 +9,8 @@ import pytest
 from veupathdb.domain.parameters import StringValue
 from veupathdb_mcp.separation import hypergeometric_log_sf
 
+from pathfinder.domain.control_enrichment import ControlEnrichment
 from pathfinder.domain.evidence import (
-    ControlEnrichment,
     ControlSetEvidence,
     ControlTestEvidence,
 )
@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.step_rationale import ControlsRationale
+from pathfinder.tests._support.bound_values import bound
 
 _DOI = "https://doi.org/10.1016/j.cell.2008.01.001"
 _CHOSEN = ControlsRationale(
@@ -78,7 +79,7 @@ def _offer(
         search_name="GenesByText",
         search_display_name="Text (product name, notes, etc.)",
         role="seed",
-        resolved_params={"text_expression": StringValue(value="exported")},
+        resolved_params=bound({"text_expression": StringValue(value="exported")}),
         rationale=_CHOSEN,
     )
     return SeparationOffer(

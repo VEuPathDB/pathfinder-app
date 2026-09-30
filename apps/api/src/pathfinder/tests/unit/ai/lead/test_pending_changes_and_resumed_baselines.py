@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.operations import (
 )
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     CANVAS,
     CANVAS_ROOT,
@@ -150,7 +151,7 @@ def _restating_the_stage_and_dropping_the_question(
             id=STAGE,
             text="expressed in merozoites",
             search_name=held.search_name,
-            resolved_params=dict(held.parameters),
+            resolved_params=bound(dict(held.parameters)),
         )
     )
     found.structure = SpecStructure(
@@ -224,14 +225,18 @@ def _an_option_on_the_stage(value: float, *, carrier: float | None = None) -> Dr
                 if criterion.id == STAGE:
                     criterion.resolved_params = {
                         **criterion.resolved_params,
-                        STAGE_TIMEPOINT: NumberValue(value=carrier),
+                        **bound(
+                            {
+                                STAGE_TIMEPOINT: NumberValue(value=carrier),
+                            }
+                        ),
                     }
         found.criteria.append(
             Criterion(
                 id="c_timepoint",
                 text="at that hour",
                 search_name=held.search_name,
-                resolved_params={STAGE_TIMEPOINT: NumberValue(value=value)},
+                resolved_params=bound({STAGE_TIMEPOINT: NumberValue(value=value)}),
             )
         )
         return found

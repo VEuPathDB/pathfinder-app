@@ -9,7 +9,7 @@ root, and an exclusion is subtracted from a branch.
 from __future__ import annotations
 
 import re
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
 from typing import NamedTuple
 
 from veupathdb.domain.strategy import CombineOp
@@ -339,17 +339,13 @@ def combination_violation(
     return None if breach is None else breach.message
 
 
-def first_combination_violation(
-    requirements: Iterable[Constraint],
-    criteria: Sequence[Criterion],
-    structure: SpecStructure,
-) -> CombinationBreach | None:
-    """The first combination the user stated that this tree contradicts, or None.
+def _stated_requests(
+    requirements: Iterable[Constraint], criteria: Sequence[Criterion]
+) -> Iterator[tuple[CombinationRequest, TermMatch]]:
+    """Each combination the user stated whose terms name criteria of this spec.
 
-    Only a user statement gates a tree: a value the assistant recommended is a
-    hint until the user states it. The check abstains on a requirement it
-    cannot read: one that states no single operator, or whose terms name no
-    distinct criteria of this spec.
+    A value the assistant recommended is a hint until the user states it, and a
+    statement with no single operator or no distinct members is not read.
     """
     for requirement in combination_requirements_from(list(requirements)):
         if requirement.source is not ConstraintSource.USER_EXPLICIT:
@@ -358,9 +354,55 @@ def first_combination_violation(
         if request is None:
             continue
         matched = match_terms(request.terms, criteria)
-        if matched is None or not enough_members(matched):
-            continue
+        if matched is not None and enough_members(matched):
+            yield request, matched
+
+
+def first_combination_violation(
+    requirements: Iterable[Constraint],
+    criteria: Sequence[Criterion],
+    structure: SpecStructure,
+) -> CombinationBreach | None:
+    """The first combination the user stated that this tree contradicts, or None."""
+    for request, matched in _stated_requests(requirements, criteria):
         breach = combination_breach(request, matched.members.values(), structure)
         if breach is not None:
             return breach
+    return None
+
+
+class UnstatedUnion(NamedTuple):
+    """A UNION that joins held criteria to an arm this turn added."""
+
+    held: tuple[str, ...]
+    added: tuple[str, ...]
+
+
+def unstated_union(
+    structure: SpecStructure,
+    held: Collection[str],
+    requirements: Iterable[Constraint],
+    criteria: Sequence[Criterion],
+) -> UnstatedUnion | None:
+    """The first UNION that joins a held criterion to an arm none of whose
+    criteria was held, unless a stated OR names a member of every input."""
+    held_ids = frozenset(held)
+    covering = [
+        frozenset(matched.members.values())
+        for request, matched in _stated_requests(requirements, criteria)
+        if request.operator == "OR"
+    ]
+    for node in _nodes(structure.root):
+        if node.operator is not CombineOp.UNION:
+            continue
+        arms = [criteria_under(child) for child in node.inputs]
+        added = [arm for arm in arms if arm and not arm & held_ids]
+        if not added or not any(arm & held_ids for arm in arms):
+            continue
+        if any(all(arm & members for arm in arms) for members in covering):
+            continue
+        return UnstatedUnion(
+            held=tuple(sorted(frozenset[str]().union(*arms) & held_ids)),
+            added=tuple(sorted(frozenset[str]().union(*added))),
+        )
     return None

@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import MessageRating, StrategyRevision
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.langfuse import actions
+from pathfinder.platform.langfuse import scores
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 
 
@@ -138,26 +138,31 @@ async def test_a_delete_of_a_message_never_rated_is_204_and_writes_nothing(
     assert rows == 0
 
 
-async def test_a_rating_is_reported_with_the_turn_s_usage(
+async def test_a_rating_is_scored_with_the_turn_s_usage(
     client: httpx.AsyncClient,
     owner: _Thread,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     langfuse = MagicMock()
-    monkeypatch.setattr(actions, "get_langfuse", lambda: langfuse)
+    monkeypatch.setattr(scores, "get_langfuse", lambda: langfuse)
 
     await client.put(_rating_url(owner, owner.reply_id), json={"rating": "dislike"})
     await client.delete(_rating_url(owner, owner.reply_id))
 
-    reported = [
-        call.kwargs["metadata"] for call in langfuse.create_event.call_args_list
+    scored = [call.kwargs for call in langfuse.create_score.call_args_list]
+    assert [(s["value"], s["comment"]) for s in scored] == [
+        (-1, "dislike"),
+        (0, "cleared"),
     ]
-    assert [event["rating"] for event in reported] == ["dislike", "cleared"]
-    assert reported[0]["messageId"] == str(owner.reply_id)
-    assert reported[0]["conversationId"] == str(owner.conversation_id)
-    assert reported[0]["totalTokens"] == 18342
-    assert reported[0]["costUsd"] == 0.0412
-    assert reported[0]["siteId"] == "plasmodb"
+    assert {s["score_id"] for s in scored} == {f"rating-{owner.reply_id}"}
+    assert scored[0]["session_id"] == str(owner.conversation_id)
+    assert scored[0]["metadata"] == {
+        "message_id": str(owner.reply_id),
+        "site_id": "plasmodb",
+        "assistant_id": PATHFINDER_ASSISTANT_ID,
+        "total_tokens": 18342,
+        "cost_usd": 0.0412,
+    }
 
 
 async def test_a_user_message_cannot_be_rated(

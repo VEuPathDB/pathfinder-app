@@ -21,7 +21,7 @@ from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.intent_gate import DECLINED_OFFER_REFUSAL
-from pathfinder.ai.lead.proposal import DeclinedProposal
+from pathfinder.ai.lead.proposal import AddCriterionChange, DeclinedProposal
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.tests.unit.ai.graph._approval_turn import (
     CARD_REPLY,
@@ -174,7 +174,12 @@ async def test_a_bare_yes_after_a_declined_offer_ends_on_the_refusal(
     state.user_prompt = "yes, do it"
     state.domain.declined_proposal = DeclinedProposal(
         question="Refine the strategy to require 1:1:1 syntenic orthologs?",
-        proposed_changes=["Require 1:1:1 syntenic orthologs in Aedes aegypti"],
+        proposed_changes=[
+            AddCriterionChange(
+                sentence="Require 1:1:1 syntenic orthologs in Aedes aegypti",
+                search_name="GenesOrthologousToAGivenGene",
+            )
+        ],
     )
 
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)

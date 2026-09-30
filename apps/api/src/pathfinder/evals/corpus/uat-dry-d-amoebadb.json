@@ -1,0 +1,74 @@
+{
+  "name": "uat-dry-d-amoebadb",
+  "turns": [
+    "Entamoeba histolytica HM-1:IMSS cysteine proteases with a predicted signal peptide.",
+    "Good. Can you also require that they are expressed in trophozoites (minimum expression percentile 1), if AmoebaDB has an expression dataset for that?",
+    "Thanks. Now please delete the signal peptide step from the strategy.",
+    "What was the count right before you deleted the signal peptide step, and what is it after?"
+  ],
+  "siteId": "amoebadb",
+  "assistantId": "pathfinder",
+  "rationale": "The trophozoite step binds the floor the message states (percentile 1), not the site's 80th-percentile default; the deletion is approved on its card, and the reply states the count it recorded before the deletion (17) and the count after (68).",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesByGoTerm INTERSECT GenesByRNASeqehisHM1IMSS_Trophozoite_transcriptome_ebi_rnaSeq_RSRCPercentile)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByGoTerm": {
+        "go_typeahead": "GO:0008234"
+      }
+    },
+    "replyMentions": [
+      "17",
+      "68"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "1": [
+        "17"
+      ]
+    },
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 68,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "amoebadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u9",
+    "curatorNote": "The second message states the definition, so no card is needed before the deletion card."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "delete_step",
+        "turn": 2,
+        "accept": true
+      }
+    ]
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

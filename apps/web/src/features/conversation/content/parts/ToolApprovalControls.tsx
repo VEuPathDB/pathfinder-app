@@ -3,8 +3,10 @@
 import { getToolName, isToolUIPart, type ToolUIPart, type UIMessage } from "ai";
 import type { ReactElement } from "react";
 import { toast } from "sonner";
+import { deleteCascadePayloadSchema } from "@pathfinder/shared/generated/zod/deleteCascadePayloadSchema";
 import { toolSummaryPayloadSchema } from "@pathfinder/shared/generated/zod/toolSummaryPayloadSchema";
 
+import { recordProductEvent } from "@/lib/api/productEvents";
 import {
   ApprovalCard,
   type ApprovalDecision,
@@ -36,6 +38,8 @@ export interface ToolApprovalView {
   decision: ApprovalDecision;
   /** The first line the thread holds for this call: the one written when it asked. */
   asked: string | null;
+  /** Each other step the call removes, as the api named it when it asked. */
+  removes: string[];
 }
 
 function decisionOf(
@@ -59,6 +63,19 @@ function firstSummaryLine(messages: UIMessage[], toolCallId: string): string | n
   return null;
 }
 
+function removedSteps(messages: UIMessage[], toolCallId: string): string[] {
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "data-delete-cascade") continue;
+      const parsed = deleteCascadePayloadSchema.safeParse(part.data);
+      if (parsed.success && parsed.data.toolCallId === toolCallId) {
+        return parsed.data.removes;
+      }
+    }
+  }
+  return [];
+}
+
 /** The approval carried by one tool call, across every message in the thread. */
 export function findToolApproval(
   messages: UIMessage[],
@@ -75,6 +92,7 @@ export function findToolApproval(
         input: part.input,
         decision: decisionOf(part.state, approval.approved),
         asked: firstSummaryLine(messages, toolCallId),
+        removes: removedSteps(messages, toolCallId),
       };
     }
   }
@@ -97,6 +115,12 @@ export function ToolApprovalControls({
     ).catch(() => {
       toast.error("Approval could not be sent");
     });
+    recordProductEvent({
+      event: "card_answered",
+      toolName: approval.toolName,
+      approved,
+      conversationId: chat.id,
+    });
   };
 
   return (
@@ -108,6 +132,7 @@ export function ToolApprovalControls({
       onDeny={() => respond(false)}
       decision={approval.decision}
       subject={approvalSubjectFor(approval.toolName, approval.asked)}
+      removes={approval.removes}
     />
   );
 }

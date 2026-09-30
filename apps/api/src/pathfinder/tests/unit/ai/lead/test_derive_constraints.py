@@ -5,7 +5,6 @@ from __future__ import annotations
 from veupathdb.domain.parameters import NumberValue, SinglePickValue
 
 from pathfinder.ai.graph.state import (
-    ConstraintCheck,
     PhaseDisposition,
     PipelineState,
     StrategyDomainState,
@@ -14,6 +13,7 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger_render import render_constraints_full
+from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -21,10 +21,10 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
 )
 from pathfinder.domain.strategy.operational_spec import (
-    AssumedValue,
     Criterion,
     OperationalSpec,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 _MICROARRAY_SEARCH = (
@@ -56,7 +56,7 @@ def _microarray_spec(constraints: list[Constraint]) -> OperationalSpec:
                 id="c1",
                 text="microarray fold change",
                 search_name=_MICROARRAY_SEARCH,
-                resolved_params={"fold_change": NumberValue(value=2.0)},
+                resolved_params=bound({"fold_change": NumberValue(value=2.0)}),
             ),
         ],
     )
@@ -189,7 +189,7 @@ def test_operational_spec_carries_typed_constraints() -> None:
     assert round_trip.constraints[0].source is ConstraintSource.USER_EXPLICIT
 
 
-def _percentile_state(bound: float) -> PipelineState:
+def _percentile_state(percentile: float) -> PipelineState:
     spec = OperationalSpec(
         goal="top 10 percent of trophozoite expression",
         interpreted_goal="top 10 percent of trophozoite expression",
@@ -206,7 +206,9 @@ def _percentile_state(bound: float) -> PipelineState:
                 id="c1",
                 text="top 10 percent of trophozoite expression",
                 search_name=_DERISI_PERCENTILE,
-                resolved_params={"min_expression_percentile": NumberValue(value=bound)},
+                resolved_params=bound(
+                    {"min_expression_percentile": NumberValue(value=percentile)}
+                ),
             )
         ],
     )
@@ -239,16 +241,10 @@ def _assumption_state() -> PipelineState:
                 id="c1",
                 text="trophozoite expression",
                 search_name=_DERISI,
-                resolved_params={
-                    "samples_percentile_generic": SinglePickValue(value="17-30h")
-                },
-                assumptions=[
-                    AssumedValue(
-                        param_name="samples_percentile_generic",
-                        value="17-30h",
-                        reason=_ASSUMPTION_REASON,
-                    )
-                ],
+                resolved_params=bound(
+                    {"samples_percentile_generic": SinglePickValue(value="17-30h")},
+                    chosen={"samples_percentile_generic": _ASSUMPTION_REASON},
+                ),
             )
         ],
     )

@@ -13,7 +13,8 @@ from pathfinder.ai.lead.deltas import (
     VerificationDelta,
 )
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.questions import SlotQuestion
 
 
 def test_frame_result_disposition_default_spec_ready() -> None:
@@ -28,7 +29,7 @@ def test_frame_result_needs_user_carries_questions() -> None:
         summary="one open slot",
         disposition="needs_user",
         open_questions=[
-            OpenQuestion(
+            SlotQuestion(
                 question="Which RNA-seq dataset?",
                 dimension=ConstraintKind.DATA_TYPE,
             )
@@ -41,9 +42,9 @@ def test_frame_result_needs_user_carries_questions() -> None:
 
 
 def test_execute_delta_carries_outcome() -> None:
-    outcome = BuildOutcome(pushed_step_ids=["s1"], wdk_strategy_id=42, root_count=152)
+    outcome = BuildOutcome(pushed_step_ids=["s1"], wdk_strategy_id=42)
     delta = ExecuteDelta(outcome=outcome)
-    assert delta.outcome.root_count == 152
+    assert delta.outcome.wdk_strategy_id == 42
 
 
 def test_recovery_delta_is_light() -> None:
@@ -69,7 +70,7 @@ def test_a_pass_that_stops_on_the_user_refuses_a_dimensionless_question() -> Non
         FrameResult(
             summary="one open slot",
             disposition="needs_user",
-            open_questions=[OpenQuestion(question="Which RNA-seq dataset?")],
+            open_questions=[SlotQuestion(question="Which RNA-seq dataset?")],
         )
 
     assert "dimension" in str(refused.value)
@@ -79,7 +80,7 @@ def test_a_pass_that_asks_nothing_takes_any_question_list() -> None:
     """The refusal is about a pass that stops on the user, and only that."""
     result = FrameResult(
         summary="bound them all",
-        open_questions=[OpenQuestion(question="Which RNA-seq dataset?")],
+        open_questions=[SlotQuestion(question="Which RNA-seq dataset?")],
     )
 
     assert result.disposition == "spec_ready"

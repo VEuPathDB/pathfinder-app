@@ -14,9 +14,10 @@ from pathfinder.ai.lead.sub_agent_tools import SubAgentRunUsage
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_keys import attach_keyring
+from pathfinder.tests._support.models import ANTHROPIC_SMALL
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
-_PICK = "anthropic:claude-opus-5"
+_PICK = ANTHROPIC_SMALL
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +40,7 @@ def _stopped_pass(keyring: ProviderKeyring) -> SubAgentRunUsage:
 def test_a_stopped_pass_is_priced_on_the_pick() -> None:
     stopped = _stopped_pass(ProviderKeyring())
 
-    assert (stopped.provider_name, stopped.model_name) == ("anthropic", "claude-opus-5")
+    assert (stopped.provider_name, stopped.model_name) == tuple(_PICK.split(":", 1))
     assert stopped.paid_by is PaidBy.DEPLOYMENT
 
 

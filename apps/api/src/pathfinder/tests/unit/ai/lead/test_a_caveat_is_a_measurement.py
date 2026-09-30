@@ -1,12 +1,10 @@
-"""A caveat is a typed measurement: one sentence carries its numbers, and a
-reply states it only when it gives those numbers."""
+"""A caveat is a typed measurement, and one sentence carries its numbers."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from pathfinder.ai.lead.verdict_claims import caveat_stated
 from pathfinder.domain.caveats import (
     BuildCaveat,
     Caveat,
@@ -18,10 +16,9 @@ from pathfinder.domain.caveats import (
 from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
-    GeneFit,
     NamedControlSet,
-    SampledGene,
 )
+from pathfinder.tests._support.column_fits import tm_fit
 
 
 def _ids(prefix: str, count: int) -> list[str]:
@@ -47,17 +44,6 @@ def _test(
             returned=neg[:neg_found], not_returned=neg[neg_found:]
         ),
     )
-
-
-def _genes(*fits: GeneFit) -> list[SampledGene]:
-    return [
-        SampledGene(
-            gene_id=f"PF3D7_02{index:05d}",
-            fits=fit,
-            why="the product names a secreted protein",
-        )
-        for index, fit in enumerate(fits)
-    ]
 
 
 V2_CONTROLS = ControlsCaveat(
@@ -97,46 +83,15 @@ def test_a_missed_positive_alone_names_only_the_positives() -> None:
     assert caveat.sentence == "79 of 80 positive controls returned"
 
 
-def test_a_reply_states_the_control_caveat_only_with_both_counts() -> None:
-    assert caveat_stated(
-        "52 of the 80 positives were returned, and 2 of 40 negative controls "
-        "came back too.",
-        V2_CONTROLS,
-    )
-    assert not caveat_stated(
-        "Most positive controls were returned, and 2 of 40 negative controls too.",
-        V2_CONTROLS,
-    )
+def test_a_column_short_of_every_gene_is_a_sample_caveat() -> None:
+    caveat = SampleCaveat(fit=tm_fit(12, 40))
+
+    assert sample_caveat(tm_fit(12, 40)) == caveat
+    assert caveat.sentence == "12 of 40 genes fit # TM Domains (2 to 99)"
 
 
-def test_two_unclear_genes_of_eight_are_a_sample_caveat() -> None:
-    caveat = SampleCaveat(unclear=2, misfit=0, total=8)
-
-    assert (
-        sample_caveat(
-            _genes("yes", "yes", "unclear", "yes", "yes", "unclear", "yes", "yes")
-        )
-        == caveat
-    )
-    assert caveat.sentence == "2 of 8 sampled genes unclear"
-    assert caveat_stated(
-        "Of the genes I sampled, 2 of 8 sampled genes are unclear.", caveat
-    )
-    assert not caveat_stated("The sampled genes look right.", caveat)
-
-
-def test_a_misfit_and_an_unclear_gene_are_both_counted() -> None:
-    caveat = sample_caveat(_genes("yes", "no", "unclear", "yes"))
-
-    assert caveat is not None
-    assert caveat.sentence == (
-        "1 of 4 sampled genes unclear; 1 of 4 sampled genes do not fit"
-    )
-    assert not caveat_stated("1 of 4 sampled genes do not fit.", caveat)
-
-
-def test_a_sample_where_every_gene_fits_is_no_caveat() -> None:
-    assert [sample_caveat(_genes("yes", "yes", "yes"))] == [None]
+def test_a_column_every_gene_fits_is_no_caveat() -> None:
+    assert [sample_caveat(tm_fit(40, 40))] == [None]
 
 
 def test_a_caveat_is_never_a_text_the_checker_wrote() -> None:
@@ -159,5 +114,3 @@ def test_a_build_that_failed_a_step_names_its_counts() -> None:
     assert caveat.sentence == (
         "The build pushed 3 steps, failed 1, skipped 0 and left 1 empty"
     )
-    assert caveat_stated("1 step failed and 1 step returned no genes.", caveat)
-    assert not caveat_stated("One step failed and another came back empty.", caveat)

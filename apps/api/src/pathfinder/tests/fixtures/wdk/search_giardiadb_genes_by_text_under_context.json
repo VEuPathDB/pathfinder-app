@@ -1,0 +1,554 @@
+{
+  "provenance": {
+    "site": "giardiadb",
+    "method": "POST",
+    "url": "https://giardiadb.org/giardiadb/service/record-types/transcript/searches/GenesByText?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-09-30",
+    "reads": "WDK-MAP-009"
+  },
+  "body": {
+    "searchData": {
+      "summary": "Find genes with a text search against their product name, notes, GO, EC, Domains, NRDB, or metabolic pathways.",
+      "urlSegment": "GenesByText",
+      "dynamicAttributes": [
+        {
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "max_score-histogram",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Score",
+          "name": "max_score",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "align": "center",
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "G. lamblia"
+            ],
+            "specificAttribution": []
+          }
+        },
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {
+            "organisms": [
+              "G. lamblia"
+            ],
+            "specificAttribution": []
+          }
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "organism",
+          "direction": "ASC"
+        },
+        {
+          "attributeName": "gene_location_text",
+          "direction": "ASC"
+        }
+      ],
+      "isAnalyzable": true,
+      "displayName": "Text (product name, notes, etc.)",
+      "fullName": "GeneQuestions.GenesByText",
+      "description": "Find genes by searching text annotations.  The search compares your term against the text in the fields you specify, \n          returning genes that have a match. <br><br>\n          Select the Organism(s) you wish to query and enter your text term.  Surround your text term with quotation marks to find exact phrase matches. For example, searching <b>\"ABC transporter\"</b> will match the exact phrase 'ABC transporter', whereas searching <b>ABC transporter</b> will match <b>ABC</b> and/or <b>transporter</b>.  Use an asterisk (*) as a wild card character when looking for plural or compound words. For example, to find all compound words that start with phospho (ie. phosphodiesterase), type phospho<b>*</b> in the search window.<br><br>\n\n          <u><i>Hints</i></u>:  The search is similar to Google -- if you enter multiple words, genes that match more of those words will have a better score than those that match fewer of the words.  If the words are found close together, that also improves the score.  Higher scores appear at the top of your result list. <br><br> \n\n          <u><i>Looking for a list of genes?</i></u>:  If you need to query for a list of gene and you have each gene's ID, use the <a href=\"/a/app/search/transcript/GeneByLocusTag\">Identify Genes based on List of IDs</a> search categorized under Genes, Annotation curation and identifiers, List of IDs. <br><br> \n          \n          <u><i>Note about non-relevant results</i></u>:  \n          Depending on how you configure it, this text search may return \"non-relevant\" genes (false positives).  The search mechanically matches the term you supply against the Fields that you choose. The presence of your term in that field does not necessarily mean that the term <i>actually describes the gene</i>.  The term may be mentioned in that field for less relevant reasons.  To work around this, please carefully choose the Fields you want to search, and then, before drawing any conclusions, review the reference \n          to your term in all matched fields in the gene page to confirm the meaning of its mention. The \"Gene product\" field is the most stringent and is unlikely to return false positives.",
+      "defaultAttributes": [
+        "primary_key",
+        "organism",
+        "gene_location_text",
+        "gene_product",
+        "max_score"
+      ],
+      "groups": [
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "text_search_organism",
+            "text_expression",
+            "text_fields"
+          ]
+        },
+        {
+          "displayType": "hidden",
+          "displayName": "",
+          "name": "_hidden",
+          "description": "",
+          "isVisible": false,
+          "parameters": [
+            "document_type"
+          ]
+        }
+      ],
+      "filters": [
+        {
+          "isViewOnly": false,
+          "name": "organismFilter"
+        },
+        {
+          "displayName": "Transcripts",
+          "isViewOnly": false,
+          "name": "matched_transcript_filter_array"
+        },
+        {
+          "isViewOnly": false,
+          "name": "genesByPathway"
+        }
+      ],
+      "shortDisplayName": "Text",
+      "paramNames": [
+        "text_search_organism",
+        "text_expression",
+        "document_type",
+        "text_fields"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "transcript",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "GenesByText",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Organism",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Select the organism(s) you wish to query against. Click the [+] to expand taxon groupings.",
+          "depthExpanded": 0,
+          "dependentParams": [],
+          "displayType": "treeBox",
+          "isReadOnly": false,
+          "vocabulary": {
+            "data": {
+              "display": "@@fake@@",
+              "term": "@@fake@@"
+            },
+            "children": [
+              {
+                "data": {
+                  "display": "Fornicata",
+                  "term": "Fornicata"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Giardia",
+                      "term": "Giardia"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Giardia Assemblage A",
+                          "term": "Giardia Assemblage A"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage A2 isolate DH",
+                              "term": "Giardia Assemblage A2 isolate DH"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage A isolate WB",
+                              "term": "Giardia Assemblage A isolate WB"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage A isolate WB 2019",
+                              "term": "Giardia Assemblage A isolate WB 2019"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Giardia Assemblage B",
+                          "term": "Giardia Assemblage B"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage B isolate BAH15c1",
+                              "term": "Giardia Assemblage B isolate BAH15c1"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage B isolate GS",
+                              "term": "Giardia Assemblage B isolate GS"
+                            },
+                            "children": []
+                          },
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage B isolate GS_B",
+                              "term": "Giardia Assemblage B isolate GS_B"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Giardia Assemblage E",
+                          "term": "Giardia Assemblage E"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Giardia Assemblage E isolate P15",
+                              "term": "Giardia Assemblage E isolate P15"
+                            },
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "data": {
+                          "display": "Giardia muris",
+                          "term": "Giardia muris"
+                        },
+                        "children": [
+                          {
+                            "data": {
+                              "display": "Giardia muris strain Roberts-Thomson",
+                              "term": "Giardia muris strain Roberts-Thomson"
+                            },
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "data": {
+                      "display": "Spironucleus",
+                      "term": "Spironucleus"
+                    },
+                    "children": [
+                      {
+                        "data": {
+                          "display": "Spironucleus salmonicida ATCC50377",
+                          "term": "Spironucleus salmonicida ATCC50377"
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "data": {
+                  "display": "Preaxostyla",
+                  "term": "Preaxostyla"
+                },
+                "children": [
+                  {
+                    "data": {
+                      "display": "Monocercomonoides exilis PA203",
+                      "term": "Monocercomonoides exilis PA203"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          "allowEmptyValue": false,
+          "name": "text_search_organism",
+          "countOnlyLeaves": true,
+          "initialDisplayValue": "[\"Giardia muris strain Roberts-Thomson\"]",
+          "properties": {
+            "organisms": [
+              "G. lamblia"
+            ],
+            "maxRecommendedMsg": [
+              "<p>\n          You are selecting more than five organisms.\n        </p>\n        <p>\n          Selecting a large number of organisms may impact performance and make results harder to interpret.\n        </p>\n        <p>\n          <b>Please select five or fewer organisms where possible.</b>\n        </p>\n        <p>\n          For the best experience, use <i>My Organism Preferences</i> in the page header to focus on the organisms you care about most.\n        </p>"
+            ],
+            "specificAttribution": [],
+            "organismProperties": [
+              "pruneNodesWithSingleExtendingChild",
+              "showOnlyPreferredOrganisms",
+              "highlightReferenceOrganisms"
+            ],
+            "maxRecommended": [
+              "5"
+            ]
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "Text term (use * as wildcard)",
+          "length": 1000,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Enter the word or phrase that you wish to query. Genes returned by the search will contain\n        this word or phrase in their annotations. Use an asterisk as a wildcard to match partial words.\n        Use quotation marks around multiple words to match the exact phrase.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": false,
+          "allowEmptyValue": false,
+          "name": "text_expression",
+          "initialDisplayValue": "cysteine-rich protein",
+          "properties": {
+            "organisms": [
+              "G. lamblia"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        },
+        {
+          "displayName": "document_type",
+          "length": 0,
+          "isVisible": false,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "document_type",
+          "dependentParams": [
+            "text_fields"
+          ],
+          "isReadOnly": true,
+          "isNumber": false,
+          "allowEmptyValue": false,
+          "name": "document_type",
+          "initialDisplayValue": "gene",
+          "properties": {
+            "organisms": [
+              "G. lamblia"
+            ],
+            "specificAttribution": []
+          },
+          "group": "_hidden"
+        },
+        {
+          "displayName": "Fields",
+          "minSelectedCount": 1,
+          "maxSelectedCount": -1,
+          "isVisible": true,
+          "type": "multi-pick-vocabulary",
+          "help": "Choose which text fields to search.",
+          "dependentParams": [],
+          "displayType": "checkBox",
+          "isReadOnly": false,
+          "vocabulary": [
+            [
+              "apolloCommentContent",
+              "Apollo Annotations",
+              null
+            ],
+            [
+              "CellularLocalization",
+              "Cellular localization",
+              null
+            ],
+            [
+              "ECNumbers",
+              "EC descriptions and numbers",
+              null
+            ],
+            [
+              "Epitopes",
+              "Epitopes from IEDB",
+              null
+            ],
+            [
+              "GeneLinkouts",
+              "External links",
+              null
+            ],
+            [
+              "primary_key",
+              "Gene ID",
+              null
+            ],
+            [
+              "name",
+              "Gene name or symbol",
+              null
+            ],
+            [
+              "gene_type",
+              "Gene type",
+              null
+            ],
+            [
+              "GeneModelCharacteristics",
+              "GeneModel Characteristics",
+              null
+            ],
+            [
+              "sequence_id",
+              "Genomic sequence ID",
+              null
+            ],
+            [
+              "GOTerms",
+              "GO terms",
+              null
+            ],
+            [
+              "InterPro",
+              "InterPro domains",
+              null
+            ],
+            [
+              "MetabolicPathways",
+              "Metabolic pathways",
+              null
+            ],
+            [
+              "Alias",
+              "Names, IDs, and aliases",
+              null
+            ],
+            [
+              "Notes",
+              "Notes from annotators",
+              null
+            ],
+            [
+              "organism_full",
+              "Organism",
+              null
+            ],
+            [
+              "orthomcl_name",
+              "Ortholog group",
+              null
+            ],
+            [
+              "Orthologs",
+              "Orthologs",
+              null
+            ],
+            [
+              "PdbSimilarities",
+              "PDB chains",
+              null
+            ],
+            [
+              "PhenotypeCategoricalValues",
+              "Phenotype values",
+              null
+            ],
+            [
+              "product",
+              "Product description",
+              null
+            ],
+            [
+              "Products",
+              "Product descriptions (all)",
+              null
+            ],
+            [
+              "PubMed",
+              "PubMed",
+              null
+            ],
+            [
+              "so_id",
+              "Sequence Ontology ID",
+              null
+            ],
+            [
+              "so_term_name",
+              "Sequence Ontology term",
+              null
+            ],
+            [
+              "GeneTranscripts",
+              "Transcripts",
+              null
+            ],
+            [
+              "UserCommentContent",
+              "User comments",
+              null
+            ]
+          ],
+          "allowEmptyValue": false,
+          "name": "text_fields",
+          "initialDisplayValue": "[\"product\",\"Products\",\"Notes\"]",
+          "properties": {
+            "organisms": [
+              "G. lamblia"
+            ],
+            "specificAttribution": []
+          },
+          "group": "empty"
+        }
+      ],
+      "properties": {
+        "organisms": [
+          "G. lamblia"
+        ],
+        "specificAttribution": []
+      },
+      "summaryViewPlugins": [
+        {
+          "displayName": "Gene Results",
+          "name": "_default",
+          "description": "View transcripts."
+        },
+        {
+          "displayName": "Genome View",
+          "name": "genomic-view",
+          "description": "View your hits mapped to their corresponding largest assembled genomic DNA segment, often a chromosome, but\n sometimes a contig or scaffold."
+        }
+      ]
+    },
+    "validation": {
+      "level": "SEMANTIC",
+      "isValid": true
+    }
+  }
+}

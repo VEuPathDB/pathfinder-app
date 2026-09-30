@@ -32,7 +32,6 @@ from veupathdb_mcp.catalog import (
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.ai.tools.standalone._frame_proposals import DeclaredAssumption
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_drop import drop_criterion
@@ -46,6 +45,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests._support.catalog_reads import listing
+from pathfinder.tests._support.recorded_counts import no_measurements
 from pathfinder.tests._support.recorded_searches import no_count, serve_qualifier_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
@@ -190,6 +190,7 @@ def serve_search(
     serve_definition(monkeypatch)
     no_validation(monkeypatch)
     no_count(monkeypatch)
+    no_measurements(monkeypatch)
     serve_site_listing(monkeypatch, [])
     return serve_catalog(monkeypatch, catalog or [], properties, **fields)
 
@@ -219,8 +220,13 @@ async def set_criterion_as_read(
     search_name: str,
     params: Proposals,
 ) -> ToolReturn[SetCriterionResult]:
-    """``set_criterion`` after a listing that names the search, with a reason it backs."""
-    ctx.deps.agent_state.record_catalog_read(listing([search_name]))
+    """``set_criterion`` after a listing that names the search, with a reason it backs.
+
+    The researcher's message is the criterion text unless the state holds one.
+    """
+    state = ctx.deps.agent_state
+    state.record_catalog_read(listing([search_name]))
+    state.request_messages = state.request_messages or [text]
     return await set_criterion(
         ctx,
         criterion_id=criterion_id,
@@ -238,10 +244,13 @@ async def bind(
     *,
     criterion_id: str = "c1",
     text: str = "kinases",
-    assumed: list[DeclaredAssumption] | None = None,
 ) -> SetCriterionResult:
-    """Bind after a listing that names the search, with a reason it backs."""
+    """Bind after a listing that names the search, with a reason it backs.
+
+    The researcher's message is the criterion text unless the state holds one.
+    """
     state.record_catalog_read(listing([search_name]))
+    state.request_messages = state.request_messages or [text]
     return returned(
         await set_criterion(
             frame_ctx(state),
@@ -249,7 +258,6 @@ async def bind(
             text=text,
             search_name=search_name,
             params=params,
-            assumed=assumed,
             why=None if params is None else default_why(search_name, params),
         ),
         SetCriterionResult,

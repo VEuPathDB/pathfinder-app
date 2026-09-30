@@ -26,6 +26,7 @@ from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )
+from pathfinder.tests._support.bound_values import bound
 
 _PF = MultiPickValue(values=["Plasmodium falciparum 3D7"])
 
@@ -36,7 +37,7 @@ def _step_tree(spec: OperationalSpec) -> StrategyStepNode:
 
 def _bound(cid: str, search: str) -> Criterion:
     return Criterion(
-        id=cid, text="t", search_name=search, resolved_params={"organism": _PF}
+        id=cid, text="t", search_name=search, resolved_params=bound({"organism": _PF})
     )
 
 
@@ -280,7 +281,9 @@ def _protease_spec() -> OperationalSpec:
                 text="protease text",
                 search_name="GenesByText",
                 role="seed",
-                resolved_params={"organism": MultiPickValue(values=["Plasmodium"])},
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Plasmodium"])}
+                ),
             ),
             Criterion(id="c2_go", text="proteolysis GO", search_name="GenesByGoTerm"),
             Criterion(
@@ -345,9 +348,7 @@ class TestCriterionIdsBecomeStepIds:
 
         seed = renumbered.criteria[0]
         assert seed.search_name == "GenesByText"
-        assert seed.resolved_params == {
-            "organism": MultiPickValue(values=["Plasmodium"])
-        }
+        assert seed.param_values == {"organism": MultiPickValue(values=["Plasmodium"])}
 
     def test_a_criterion_the_build_did_not_place_keeps_its_id(self) -> None:
         spec = _protease_spec()

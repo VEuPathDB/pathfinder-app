@@ -171,4 +171,4 @@ def committed_facts(ops: list[GraphOperation]) -> list[OpFacts]:
 
 def spec_facts(spec: OperationalSpec) -> dict[str, dict[str, str]]:
     """Every criterion's bound values, keyed by criterion id."""
-    return {c.id: wire(c.resolved_params) for c in spec.criteria}
+    return {c.id: wire(c.param_values) for c in spec.criteria}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from assistant_core.models.settings import build_model_settings
 
-from pathfinder.ai.models.catalog import get_model_catalog
+from pathfinder.platform.model_catalog import get_model_catalog
 
 
 class TestEveryCatalogEntryResolvesToSettings:

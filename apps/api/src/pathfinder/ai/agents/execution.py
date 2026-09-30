@@ -26,6 +26,7 @@ from pathfinder.ai.capabilities.resilience import ToolResilience
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import RecoveryDelta
 from pathfinder.ai.tools.toolsets.execution import build_toolset
+from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.refusals import agent_capabilities
 
 _EXECUTION_INSTRUCTIONS = with_vocabulary(
@@ -69,7 +70,7 @@ graph empty.
 - ``rename_strategy(new_name, description)`` - Rename the current strategy.
 
 ### Read-only inspection
-- ``get_strategy(graph_id?, summary_only?)`` - Inspect the current strategy. \
+- ``get_strategy(summary_only?)`` - Inspect the current strategy. \
 Use after a build to confirm step ids before edits.
 
 ## Graph Integrity Rules (must-follow)
@@ -191,7 +192,7 @@ voice from your typed delta + the resulting Ledger.
 """
 )
 
-EXECUTION_MODEL = "openai:gpt-5.6-luna"
+EXECUTION_MODEL = DEFAULT_MODEL_ID
 
 ExecutionAgent = Agent[AgentDeps, RecoveryDelta | DeferredToolRequests]
 

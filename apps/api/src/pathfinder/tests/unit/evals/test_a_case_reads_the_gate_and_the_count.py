@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
-from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GateEnd
+from pathfinder.evals.case import (
+    CaseProvenance,
+    EvalCase,
+    ExpectedOutcome,
+    GateEnd,
+    GatePlan,
+)
 from pathfinder.evals.scoring import ObservedOutcome, root_count, score_case
 
 
@@ -18,6 +24,7 @@ def _case(ends_on: GateEnd | None) -> EvalCase:
         assistant_id="pathfinder",
         rationale="pins the card",
         expected=ExpectedOutcome(builds_strategy=None, ends_on=ends_on),
+        gates=GatePlan(policy="leave"),
         provenance=CaseProvenance(
             site="plasmodb",
             assistant="pathfinder",

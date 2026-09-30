@@ -16,6 +16,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
     PROTEOME_PARAM,
@@ -61,7 +62,7 @@ def _plan_spec() -> OperationalSpec:
             id=_FRESH_B,
             text="expressed in merozoites",
             search_name="GenesByRNASeqEvidence",
-            resolved_params={STAGE_PERCENTILE: NumberValue(value=80)},
+            resolved_params=bound({STAGE_PERCENTILE: NumberValue(value=80)}),
         ),
     ]
     spec.structure = SpecStructure(
@@ -94,13 +95,13 @@ def _fresh_pair() -> Draft:
                 text="phosphatase domain",
                 search_name="GenesByPfam",
                 role="seed",
-                resolved_params={"pfam_id": NumberValue(value=2)},
+                resolved_params=bound({"pfam_id": NumberValue(value=2)}),
             ),
             Criterion(
                 id=_FRESH_B,
                 text="ring stage expression",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={STAGE_PERCENTILE: NumberValue(value=70)},
+                resolved_params=bound({STAGE_PERCENTILE: NumberValue(value=70)}),
             ),
         ]
         found.structure = SpecStructure(

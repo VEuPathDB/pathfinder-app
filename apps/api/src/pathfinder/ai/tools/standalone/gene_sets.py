@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from assistant_core.graph.tool_summary import with_summary
+from assistant_core.graph.tool_summary import count_noun, with_summary
 from assistant_core.platform.logging import get_logger
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
@@ -14,6 +14,7 @@ from veupathdb.errors import ValidationError
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._saved_here import saved_here
 from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedResponse,
     GeneSetCreatedSummary,
@@ -139,7 +140,8 @@ async def save_gene_set(
     This is the save the user asks for when they say "save these genes as a
     gene set": the set appears in the conversation, and it returns the id the export
     tools take. ``remember`` stores a note and creates nothing. Controls are
-    saved with ``build_control_set``, never as a gene set.
+    saved with ``build_control_set``, never as a gene set. A save is never a
+    read: ``read_step_ids`` answers which genes a step holds.
 
     Args:
         name: Human-readable name for the gene set (e.g. 'Upregulated in gametocytes').
@@ -178,8 +180,9 @@ async def save_gene_set(
         search_name=src.search_name,
         record_type=record_type,
         parameters=src.parameters,
+        conversation_id=deps.conversation_id,
     )
-    store_gene_set(gs)
+    await store_gene_set(gs)
     created = CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))
     # The note the turn writes later reads one record; the turn's reply is
     # held against the other.
@@ -223,26 +226,29 @@ async def list_gene_sets(
 ) -> ToolReturn[GeneSetListResponse]:
     """List the gene sets the user saved on this site.
 
-    Returns a summary of each gene set including name, gene count,
-    source, and ID.
+    The sets this conversation saved come first, each marked ``savedHere``.
+    Every row names its gene count, source and id.
     """
     deps = ctx.deps
-    sets = await list_stored_gene_sets(site_id=deps.site_id, user_id=deps.user_id)
+    stored = await list_stored_gene_sets(site_id=deps.site_id, user_id=deps.user_id)
+    rows = [
+        GeneSetListItem(
+            id=gs.id,
+            name=gs.name,
+            gene_count=len(gs.gene_ids),
+            source=gs.source,
+            search_name=gs.search_name,
+            has_wdk_step=gs.wdk_step_id is not None,
+            saved_here=saved_here(gs.conversation_id, deps.conversation_id),
+        )
+        for gs in stored
+    ]
+    here = sum(row.saved_here for row in rows)
     return with_summary(
         GeneSetListResponse(
-            gene_sets=[
-                GeneSetListItem(
-                    id=gs.id,
-                    name=gs.name,
-                    gene_count=len(gs.gene_ids),
-                    source=gs.source,
-                    search_name=gs.search_name,
-                    has_wdk_step=gs.wdk_step_id is not None,
-                )
-                for gs in sets
-            ],
-            total_sets=len(sets),
+            gene_sets=sorted(rows, key=lambda row: not row.saved_here),
+            total_sets=len(rows),
         ),
-        f"{len(sets)} gene sets",
+        f"{count_noun(len(rows), 'gene set')}, {here} saved in this conversation",
         ctx=ctx,
     )

@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel
 from pydantic_ai.messages import ToolReturn
 
-from pathfinder.tests._support.tool_returns import returned, summary_text
+from pathfinder.tests._support.tool_returns import returned
 
 
 class Outcome(BaseModel):
@@ -45,20 +45,3 @@ def test_another_shape_names_the_type_the_tool_returned() -> None:
 
     with pytest.raises(AssertionError, match="OtherOutcome"):
         returned(result, Outcome)
-
-
-def test_a_text_content_reads_back_as_the_summary_line() -> None:
-    """A tool that writes a summary line hands that line to the test."""
-    result: ToolReturn[Outcome] = ToolReturn(
-        return_value=Outcome(criteria_combined=2), content="Winner: b"
-    )
-
-    assert summary_text(result) == "Winner: b"
-
-
-def test_content_that_is_not_text_names_what_the_tool_wrote() -> None:
-    """A tool return with no summary line fails the test and says so."""
-    result: ToolReturn[Outcome] = ToolReturn(return_value=Outcome(criteria_combined=2))
-
-    with pytest.raises(AssertionError, match="NoneType"):
-        summary_text(result)

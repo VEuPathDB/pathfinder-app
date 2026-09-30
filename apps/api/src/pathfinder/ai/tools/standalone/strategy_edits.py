@@ -19,6 +19,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead._delete_rules import (
     DeleteSurface,
     delete_resolution,
+    refuse_a_delete_the_card_did_not_list,
     refuse_a_delete_the_graph_cannot_place,
 )
 from pathfinder.ai.tools.standalone._spec_edit_checks import (
@@ -262,6 +263,9 @@ async def delete_the_step(
         )
         raise ModelRetry(msg)
     refuse_a_delete_the_graph_cannot_place(graph, session.sync_state, step_id, surface)
+    refuse_a_delete_the_card_did_not_list(
+        deps.turn_markers, ctx.tool_call_id, graph, session.sync_state, step_id
+    )
     resolution = delete_resolution(graph, session.sync_state, step_id)
 
     result = await _commit_or_retry(

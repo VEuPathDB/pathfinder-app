@@ -13,13 +13,14 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.ui.vercel_ai.request_types import ToolApprovalResponded
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.graph import _lead_model
 from pathfinder.ai.graph._lead_stops import final_reply
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead import lead_adoption
 from pathfinder.ai.lead.deltas import ExecuteDelta
-from pathfinder.ai.lead.proposal import ADOPT_TOOL, DeclinedProposal
+from pathfinder.ai.lead.proposal import ADOPT_TOOL, AddCriterionChange
 from pathfinder.ai.lead.sub_agent_dispatch import MintedSpec
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.separation import AttachedControls
@@ -122,20 +123,28 @@ async def test_no_ends_the_turn_without_a_model_call_and_keeps_the_offer(
     assert len(calls) == 1
     assert final_reply(capture, None, changed=False) is None
     assert deps.state.domain.separation_offers == {str(TASK_ID): offer}
-    assert deps.state.domain.declined_proposal == DeclinedProposal(
-        question=offer.question,
-        proposed_changes=[
-            "GO Term: GO:0044217 other organism part (seed)",
-            (
-                "Gene Lists from PlasmoAP motif for protein export to the "
-                "apicoplast. (seed)"
-            ),
-            (
-                "GO Term: GO:0051701 biological process involved in interaction "
-                "with host (seed)"
-            ),
-        ],
-    )
+    declined = deps.state.domain.declined_proposal
+    assert declined is not None
+    assert declined.question == offer.question
+    assert declined.proposed_changes == [
+        AddCriterionChange(
+            sentence=f"{criterion.text} ({criterion.role})",
+            search_name=criterion.search_name,
+            params={
+                name: to_wire(bound.value)
+                for name, bound in criterion.resolved_params.items()
+            },
+        )
+        for criterion in offer.spec.criteria
+    ]
+    assert [c.sentence for c in declined.proposed_changes] == [
+        "GO Term: GO:0044217 other organism part (seed)",
+        "Gene Lists from PlasmoAP motif for protein export to the apicoplast. (seed)",
+        (
+            "GO Term: GO:0051701 biological process involved in interaction "
+            "with host (seed)"
+        ),
+    ]
 
 
 async def test_yes_builds_the_offer_and_the_lead_answers_once(
@@ -149,9 +158,13 @@ async def test_yes_builds_the_offer_and_the_lead_answers_once(
         return ExecuteDelta(outcome=BuildOutcome(pushed_step_ids=["c4"]))
 
     async def _created(
-        session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+        session: AsyncSession,
+        spec: NewControlSet,
+        *,
+        user_id: UUID,
+        conversation_id: UUID | None,
     ) -> ControlSetResponse:
-        del session
+        del session, conversation_id
         return ControlSetResponse(
             id="control-set-1",
             name=spec.name,

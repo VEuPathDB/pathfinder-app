@@ -30,8 +30,8 @@ Check on the S1, S2 and S5 builds of [standard flows](flows-strategy-standard.md
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Figure `Evidence` under the reply | Read the caption | `8 of 8 sampled genes fit, <n> steps counted on the site.` when every sampled gene fits; otherwise the sample clause counts each fit word (`5 fit, 3 unclear`) |
-| 2 | Card and reply | Read | The card carries no verdict line; the reply states each gap with what is missing and each caveat with its numbers (`2 of 8 sampled genes unclear`) |
+| 1 | Figure `Evidence` under the reply | Read the caption | The check reads each search step's columns first. A step whose bound values the site shows as a column is not sampled, and a caption with no sampled step reads `<n> steps counted on the site.`. When a step shows no column, the root is sampled: `8 of 8 sampled genes fit, <n> steps counted on the site.` when every sampled gene fits; otherwise the sample clause counts each fit word (`5 fit, 3 unclear`) |
+| 2 | Card and the facts beside the reply | Read | The card carries no verdict line. The counts are read from the facts part beside the reply (`Result: <n> genes`, one count per step), with each gap and what is missing, and each caveat with its numbers; the reply prose states no count. A sampled gene the check judges `Unclear` is shown on the card in `Fits` and is no caveat |
 | 3 | Step table | Read | One row per step: `Step`, `Recorded at the build`, `On the site at the check`; the two counts equal; no `(changed on the site)` |
 | 4 | Requirement table | Read | `Requirement`, `Answered by`, `How`; one row per stated requirement with `Message 1` beneath; a row nothing answers reads `Nothing in the strategy answers it` in `Answered by`, and a row no search states reads `No search on this site states it` |
 | 5 | Sampled genes | Read | `Gene`, `Product`, `Fits`, `Why`; genes of the requested organism; `Why` cites a record value (S1: `signalp_60_probability=...`) |
@@ -40,7 +40,7 @@ Check on the S1, S2 and S5 builds of [standard flows](flows-strategy-standard.md
 | 8 | Right rail `Progress`, `Checking` tab | Read | The same card, with `complete yes`, the gaps and caveats lists, and no `successful` row |
 | 9 | Composer | Change a parameter (S9), then reopen the older card in the rail | `Superseded: the strategy changed after this check.`; the older answer carries `Superseded - strategy changed since this answer` |
 
-A reply that leaves out the sample count when every gene is `Unclear` is FND-6 (major): the card's line reads `8 of 8 sampled genes unclear`, and the reply states it.
+When every sampled gene is `Unclear` (FND-6), the card's line reads `8 of 8 sampled genes unclear`, and the facts beside the reply list no caveat for it.
 
 ## V2 - Control tests on a step - core on plasmodb
 
@@ -50,7 +50,7 @@ A reply that leaves out the sample count when every gene is `Unclear` is FND-6 (
 | 2 | `Control tests` table | Read | Caption `Table <n>. Control tests on Predicted Signal Peptide: target 479 records, 52 positive controls recovered (recall 0.65), 2 negative controls returned (false-positive rate 0.05).`; rows `Positive` 80 / 52 and `Negative` 40 / 2 |
 | 3 | Evidence card | Read | No verdict line; control table `Positive` 80, 52 returned, 28 not returned, `0.65`; `Negative` 40, 2 returned, 38 not returned, `0.05`; `Negatives returned: PF3D7_0508800, PF3D7_1215900` |
 | 4 | Right rail `Tasks` | Read | `Run control tests`, status `complete` |
-| 5 | Reply | Read | `52 of 80 positive controls returned; 2 of 40 negative controls returned`, the two negatives named |
+| 5 | Facts beside the reply | Read | `<tested step>: 52 of 80 positive controls returned; 2 of 40 negative controls returned`, and the same numbers as a caveat |
 
 Measured today: the reply was right (52 of 80, 38 of 40 excluded, the two negatives named), but the check ran 52 control tests (52 task rows, 521 s) and the card kept only the last partial one: `Negative`, 16 controls, 1 returned, no `Positive` row (FND-2, blocker). $0.031.
 

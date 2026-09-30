@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+
+const recordProductEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
 import { EditorFooter } from "./EditorFooter";
 
@@ -13,6 +16,8 @@ const props = {
   count: 132,
   recordType: "transcript",
   wdkUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/1",
+  wdkStrategyId: 1,
+  conversationId: "conv-1",
 };
 
 describe("the link to the host site", () => {
@@ -26,6 +31,19 @@ describe("the link to the host site", () => {
     const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
     expect(link).toHaveAttribute("aria-label", "Open in PlasmoDB");
     expect(link.textContent).toBe("Open in PlasmoDB");
+  });
+
+  it("records strategy_opened with the site and WDK strategy id on click", () => {
+    render(<EditorFooter {...props} siteId="plasmodb" />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open in PlasmoDB" }));
+
+    expect(recordProductEvent).toHaveBeenCalledWith({
+      event: "strategy_opened",
+      siteId: "plasmodb",
+      wdkStrategyId: 1,
+      conversationId: "conv-1",
+    });
   });
 
   it("names a different site when the strategy is on one", () => {

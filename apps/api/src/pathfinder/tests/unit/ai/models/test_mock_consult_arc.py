@@ -22,7 +22,7 @@ def _answered(organism: str) -> str:
     return (
         "FRAME work order: the previous pass ended with a question the "
         f"researcher has now answered.\nQuestion asked: {_QUESTION}\n"
-        f'Answer: "{_QUESTION}" -> {organism}'
+        f'Answer: "{_QUESTION}" -> Organism {organism} (sets organism to "{organism}")'
     )
 
 
@@ -48,6 +48,8 @@ def test_the_first_pass_leaves_the_organism_open_and_asks_it(site_id: str) -> No
                 "question": _QUESTION,
                 "dimension": "organism",
                 "recommendedValue": SiteValues.for_site(site_id).organism,
+                "criterionId": "signal_peptide",
+                "paramName": "organism",
                 "options": [
                     SiteValues.for_site(site_id).organism,
                     *(

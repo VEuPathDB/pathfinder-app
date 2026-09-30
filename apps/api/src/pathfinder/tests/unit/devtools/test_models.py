@@ -7,6 +7,7 @@ from pathfinder.devtools.models import (
     sub_agent_call_data,
     sub_agent_step_data,
 )
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 PYDANTIC_FAILURE = """9 validation errors:
 ```json
@@ -87,7 +88,7 @@ def test_sub_agent_call_data_parses() -> None:
             "subAgent": "scope_problem",
             "tokens": 5215,
             "costUsd": "0.0024",
-            "modelId": "openai:gpt-4.1-mini",
+            "modelId": DEFAULT_MODEL,
             "toolCallId": "call_dj",
         }
     )

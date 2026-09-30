@@ -1,0 +1,51 @@
+{
+  "name": "uat-ud1-plasmodb",
+  "turns": [
+    "On my uploaded RNA-Seq dataset 'pathfinder-uat-deseq', find the genes differentially expressed between the treated and the control samples with DESeq2, at the default cutoffs.",
+    "Set the thresholds for a few tens of up-regulated genes (none down-regulated): log2 fold change > 5 and p-value < 1e-10."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A differential-expression cut on the researcher's own counts upload runs the site's user-dataset DESeq search, and a stated cut binds as stated.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByDESeqUserDataset",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "rootCount": {
+      "count": 16,
+      "build": "71",
+      "measuredOn": "2026-09-29"
+    },
+    "endsOn": null,
+    "assumedStated": 0
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-29",
+    "stagingId": "",
+    "reference": "uat/flows-user-datasets.md#ud1",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "auto"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

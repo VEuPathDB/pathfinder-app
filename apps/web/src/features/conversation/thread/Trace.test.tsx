@@ -12,6 +12,7 @@ import {
 
 import { Trace, type TraceRunView } from "./Trace";
 import type { TraceGroupView, TraceRowView } from "./traceTypes";
+import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 function row(patch: Partial<TraceRowView>): TraceRowView {
   return {
@@ -288,11 +289,11 @@ describe("Trace", () => {
         showRaw={false}
         showUsage
         nameFor={(name) => name}
-        usage={{ model: "gpt-5.6-luna", tokens: 54100, costUsd: "0.0171" }}
+        usage={{ model: DEFAULT_MODEL.modelName, tokens: 54100, costUsd: "0.0171" }}
       />,
     );
     const line = view.getByTestId("trace-usage");
-    expect(line).toHaveTextContent("gpt-5.6-luna - 54.1K, $0.02");
+    expect(line).toHaveTextContent(`${DEFAULT_MODEL.modelName} - 54.1K, $0.02`);
     expect(line).toHaveAttribute("title", "This turn");
     expect(view.getByTestId("turn-trace-toggle").contains(line)).toBe(true);
   });
@@ -304,7 +305,7 @@ describe("Trace", () => {
         showRaw={false}
         showUsage={false}
         nameFor={(name) => name}
-        usage={{ model: "gpt-5.6-luna", tokens: 54100, costUsd: "0.0171" }}
+        usage={{ model: DEFAULT_MODEL.modelName, tokens: 54100, costUsd: "0.0171" }}
       />,
     );
     expect(view.queryAllByTestId("trace-usage")).toHaveLength(0);

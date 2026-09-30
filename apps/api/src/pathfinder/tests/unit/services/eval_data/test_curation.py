@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from pathfinder.evals.case import ExpectedOutcome
+from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.evals.extract import (
     EvalExtract,
     ExtractedStrategy,
@@ -22,6 +22,7 @@ from pathfinder.services.eval_data.curation import (
 )
 
 STAGING_ID = uuid4()
+_AUTO = GatePlan(policy="auto")
 
 
 def _extract(*, built: bool = True) -> EvalExtract:
@@ -104,7 +105,7 @@ def test_a_run_that_built_nothing_defaults_to_forbidding_a_build() -> None:
 def test_the_case_takes_the_requests_of_the_staged_thread_in_order() -> None:
     case = build_case(
         _row(),
-        PromotionEdits(name="a-case", rationale="pins the build"),
+        PromotionEdits(name="a-case", rationale="pins the build", gates=_AUTO),
         today="2026-08-23",
     )
 
@@ -123,18 +124,20 @@ def test_the_curator_can_replace_the_turns_and_the_expectation() -> None:
             rationale="the run built a decoy; the case forbids it",
             turns=["remember my preferred dataset"],
             expected=ExpectedOutcome(builds_strategy=False),
+            gates=GatePlan(policy="decline-offers"),
         ),
         today="2026-08-23",
     )
 
     assert case.turns == ["remember my preferred dataset"]
     assert not case.expected.builds_strategy
+    assert case.gates == GatePlan(policy="decline-offers")
 
 
 def test_a_case_built_from_a_staged_row_names_no_user() -> None:
     case = build_case(
         _row(),
-        PromotionEdits(name="a-case", rationale="pins the build"),
+        PromotionEdits(name="a-case", rationale="pins the build", gates=_AUTO),
         today="2026-08-23",
     )
 
@@ -155,7 +158,7 @@ def test_a_disliked_row_is_not_promoted_without_an_expectation() -> None:
     with pytest.raises(ValueError, match="state what the case expects"):
         build_case(
             _row(rated=True),
-            PromotionEdits(name="a-case", rationale="the reply was wrong"),
+            PromotionEdits(name="a-case", rationale="the reply was wrong", gates=_AUTO),
             today="2026-09-24",
         )
 
@@ -167,6 +170,7 @@ def test_a_disliked_row_promotes_with_the_curator_s_expectation() -> None:
             name="a-case",
             rationale="the build intersected where the request said OR",
             expected=ExpectedOutcome(builds_strategy=True, structure="(A UNION B)"),
+            gates=_AUTO,
         ),
         today="2026-09-24",
     )

@@ -2,7 +2,6 @@
 
 from uuid import UUID, uuid4
 
-from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import ValidationError
 from veupathdb_mcp.wdk import GeneSetWdkContext, resolve_wdk_context
@@ -57,21 +56,16 @@ class GeneSetService:
     def __init__(self, store: GeneSetStore) -> None:
         self._store = store
 
-    async def flush(self, gene_set_id: str) -> None:
-        """Write a gene set to the database now.
-
-        The default save path is fire-and-forget, so the row may not exist yet.
-        """
-        entity = self._store.get(gene_set_id)
-        if entity is not None:
-            await self._store._persist(entity)
+    async def save(self, gene_set: GeneSet) -> None:
+        """Write every field of the set, durable before the call returns."""
+        await self._store.save(gene_set)
 
     async def get_for_user(self, user_id: UUID, gene_set_id: str) -> GeneSet:
         """Retrieve a gene set owned by this user under this application.
 
         :raises NotFoundError: If it is missing or held by anyone else.
         """
-        gs = await self._store.aget(gene_set_id)
+        gs = await self._store.get(gene_set_id)
         if gs is None or gs.user_id != user_id:
             msg = f"Gene set not found: {gene_set_id}"
             raise NotFoundError(detail=msg)
@@ -106,7 +100,7 @@ class GeneSetService:
             user_id=user_id,
         )
         gs.take_wdk_context(ctx, step_count=step_count)
-        self._store.save(gs)
+        await self._store.save(gs)
         logger.info(
             "Gene set created",
             gene_set_id=gs.id,
@@ -116,7 +110,12 @@ class GeneSetService:
         return gs
 
     async def resync_strategy(
-        self, gene_set_id: str, *, wdk_strategy_id: int, site_id: str
+        self,
+        gene_set_id: str,
+        *,
+        wdk_strategy_id: int,
+        site_id: str,
+        answer_revision: str,
     ) -> GeneSet | None:
         """Replace a gene set snapshot with the current WDK strategy result.
 
@@ -124,10 +123,11 @@ class GeneSetService:
         can give the same strategy ID a new root step, so the set takes the
         whole resolved context and not only its genes. A resolution that reads
         no genes has learnt nothing about the strategy, so it writes nothing.
+        ``answer_revision`` names the stored root the caller read before WDK.
 
         :raises EmptyResyncError: If the strategy resolves to zero genes.
         """
-        gs = await self._store.aget(gene_set_id)
+        gs = await self._store.get(gene_set_id)
         if gs is None:
             return None
         gene_ids, ctx, step_count = await resolve_wdk_context(
@@ -142,7 +142,8 @@ class GeneSetService:
             raise EmptyResyncError(gs.name)
         gs.gene_ids = fresh_gene_ids
         gs.take_wdk_context(ctx, step_count=step_count)
-        self._store.save(gs)
+        gs.answer_revision = answer_revision
+        await self._store.save(gs)
         logger.info(
             "Re-synced strategy gene set",
             gene_set_id=gs.id,
@@ -152,9 +153,8 @@ class GeneSetService:
 
     async def rename(self, gene_set: GeneSet, name: str) -> None:
         """Write a new name on the set, durable before the call returns."""
+        await self._store.rename(gene_set.id, name)
         gene_set.name = name
-        self._store.save(gene_set)
-        await self.flush(gene_set.id)
 
     async def record_vdi_publication(
         self, gene_set: GeneSet, vdi_id: str | None
@@ -163,9 +163,8 @@ class GeneSetService:
 
         The pointer must be durable before the caller reports the publication.
         """
+        await self._store.set_vdi_id(gene_set.id, vdi_id)
         gene_set.vdi_id = vdi_id
-        self._store.save(gene_set)
-        await self.flush(gene_set.id)
 
     async def list_for_user(
         self,
@@ -174,26 +173,22 @@ class GeneSetService:
         site_id: str | None = None,
     ) -> list[GeneSet]:
         """List gene sets for a user, filtered by site when one is given."""
-        return await self._store.alist_for_user(user_id, site_id=site_id)
+        return await self._store.list_for_user(user_id, site_id=site_id)
 
-    def find_by_wdk_strategy(
+    async def find_strategy_import(
         self, user_id: UUID, wdk_strategy_id: int
     ) -> GeneSet | None:
-        """Find a cached gene set for a WDK strategy."""
-        application_id = calling_application()
-        for gs in self._store._cache.values():
-            if (
-                gs.user_id == user_id
-                and gs.application_id == application_id
-                and gs.wdk_strategy_id == wdk_strategy_id
-            ):
-                return gs
-        return None
+        """Find the set a strategy import made for this WDK strategy.
+
+        An import takes the strategy's result in no thread. A set saved in a
+        thread, or with another source, is the researcher's and never matches.
+        """
+        return await self._store.find_strategy_import(user_id, wdk_strategy_id)
 
     async def delete(self, user_id: UUID, gene_set_id: str) -> None:
         """Delete a gene set. Raise NotFoundError if it is missing or owned by another user."""
         await self.get_for_user(user_id, gene_set_id)
-        if not self._store.delete(gene_set_id):
+        if not await self._store.delete(gene_set_id):
             msg = f"Gene set not found: {gene_set_id}"
             raise NotFoundError(detail=msg)
         logger.info("Gene set deleted", gene_set_id=gene_set_id)

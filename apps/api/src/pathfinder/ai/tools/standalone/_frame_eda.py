@@ -95,18 +95,27 @@ def _named_dataset(params: ParamProposals | None) -> str | None:
             return None
 
 
-def _refuse_another_dataset(
+def _refuse_what_the_id_holds(
     state: AgentToolState, criterion_id: str, search_name: str, dataset: str
 ) -> None:
-    """A waiting criterion keeps the dataset its analysis workflow opened."""
-    waited_on = next(
-        (
-            c.needs_analysis_on
-            for c in state.operational_spec_draft.criteria
-            if c.id == criterion_id and c.pending_analysis
-        ),
+    """The waiting record goes only where it replaces nothing the draft holds.
+
+    A bound criterion keeps its search, and a waiting criterion keeps the
+    dataset its analysis workflow opened.
+    """
+    held = next(
+        (c for c in state.operational_spec_draft.criteria if c.id == criterion_id),
         None,
     )
+    if held is not None and held.bound:
+        msg = (
+            f"{criterion_id} is bound to {held.search_name or 'a saved strategy'}, "
+            f"and {search_name} can only wait for the analysis workflow; nothing "
+            f"was recorded and {criterion_id} stays as it is. Name a new criterion "
+            f"id for the comparison on {dataset}."
+        )
+        raise ModelRetry(msg)
+    waited_on = None if held is None else held.needs_analysis_on
     if waited_on is None or waited_on == dataset:
         return
     msg = (
@@ -124,16 +133,13 @@ def _refuse_an_eda_backed_search(
     criterion: Criterion,
     named_dataset: str | None,
 ) -> None:
-    """A criterion never binds to a search whose subset is an EDA analysis.
-
-    The analysis-spec parameter carries a whole analysis document, so no value
-    a parameter sheet can propose realizes the criterion. It waits in the draft
-    under its own id for the analysis workflow on its dataset instead.
-    """
+    """A criterion never binds to a search whose subset is an EDA analysis: it
+    waits for the analysis workflow on the dataset the call names, else on the
+    one the search starts with."""
     described = eda_backed_search(definition)
     if described is None:
         return
-    dataset = described.default_dataset_id or named_dataset
+    dataset = named_dataset or described.default_dataset_id
     if dataset is None:
         msg = (
             f"{described.search_name} is EDA-backed and names no dataset, so "
@@ -142,7 +148,7 @@ def _refuse_an_eda_backed_search(
             f'id>"}} and nothing else, naming the dataset the comparison runs on.'
         )
         raise ModelRetry(msg)
-    _refuse_another_dataset(state, criterion.id, described.search_name, dataset)
+    _refuse_what_the_id_holds(state, criterion.id, described.search_name, dataset)
     state.frame_set_criterion(
         Criterion(
             id=criterion.id,

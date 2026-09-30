@@ -31,10 +31,15 @@ import { ProposalCard } from "./ProposalCard";
 const CALL_ID = "call_propose_changes";
 const QUESTION =
   "Refine the strategy to enforce strict 3-hour specificity and require 1:1:1 syntenic orthologs?";
-const CHANGES = [
+const SENTENCES = [
   "Exclude genes highly expressed at the other post-blood-meal time points",
   "Require 1:1:1 syntenic orthologs in Aedes aegypti and Culex quinquefasciatus",
 ];
+const CHANGES = SENTENCES.map((sentence) => ({
+  kind: "add_criterion",
+  sentence,
+  searchName: "GenesOrthologousToAGivenGene",
+}));
 
 type Part = UIMessage["parts"][number];
 
@@ -128,7 +133,7 @@ describe("the proposal card shows the offer", () => {
     const changes = within(screen.getByRole("list", { name: "Proposed changes" }))
       .getAllByRole("listitem")
       .map((item) => item.textContent);
-    expect(changes).toEqual(CHANGES);
+    expect(changes).toEqual(SENTENCES);
     expect(screen.getByRole("button", { name: "Yes" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "No" })).toBeEnabled();
     expect(screen.getByRole("textbox", { name: "Add a comment" })).toBeInTheDocument();
@@ -136,7 +141,12 @@ describe("the proposal card shows the offer", () => {
 
   it("renders two identical changes as two items under distinct keys", () => {
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-    const change = "Require 1:1:1 syntenic orthologs in all three species";
+    const sentence = "Require 1:1:1 syntenic orthologs in all three species";
+    const change = {
+      kind: "add_criterion",
+      sentence,
+      searchName: "GenesOrthologousToAGivenGene",
+    };
     renderCard({
       ...PENDING,
       input: { question: QUESTION, proposedChanges: [change, change] },
@@ -144,7 +154,7 @@ describe("the proposal card shows the offer", () => {
     const changes = within(screen.getByRole("list", { name: "Proposed changes" }))
       .getAllByRole("listitem")
       .map((item) => item.textContent);
-    expect(changes).toEqual([change, change]);
+    expect(changes).toEqual([sentence, sentence]);
     expect(logged.mock.calls.flat().join(" ")).not.toContain("same key");
   });
 

@@ -141,6 +141,11 @@ URLs, and single-gene detail.
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: pathfinder.ai.tools.standalone.step_download
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: pathfinder.ai.tools.standalone.gene
    :members:
    :undoc-members:

@@ -1,0 +1,78 @@
+{
+  "name": "uat-dry-a-toxodb",
+  "turns": [
+    "I'm studying Toxoplasma gondii ME49 secreted effectors. Which genes encode proteins with a signal peptide but no transmembrane domain, and are expressed in tachyzoites?",
+    "The 80th percentile cutoff for tachyzoite expression feels too strict; plenty of secreted effectors are moderately expressed. Can you loosen it to the 50th percentile and above and tell me what changes?",
+    "Thanks. Just to be sure before I go on: how many genes does the signal peptide plus no-transmembrane step return on its own, before the expression filter, and is that number still current after the change?",
+    "Good. Now drop the tachyzoite expression requirement entirely; I'll look at expression myself later. What's the count without it?",
+    "Good, 461 it is. Why do you still mention a 50th percentile verification gap when I removed that requirement? Anyway, please save these 461 genes as a gene set named \"ME49 signal peptide, no transmembrane domain\"."
+  ],
+  "siteId": "toxodb",
+  "assistantId": "pathfinder",
+  "rationale": "A requirement a later message withdrew yields no gap: after the expression step is deleted the check leaves no row that no search states, the strategy is the signal peptide and zero-transmembrane intersection, and the reply names the gene set it saved.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByTransmembraneDomains": {
+        "min_tm": "0",
+        "max_tm": "0"
+      }
+    },
+    "replyMentions": [
+      "ME49 signal peptide, no transmembrane domain"
+    ],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": 0,
+    "turnReplyMentions": {
+      "1": [
+        "259"
+      ],
+      "2": [
+        "461"
+      ]
+    },
+    "turnReplyOmits": {},
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 461,
+      "build": "71",
+      "measuredOn": "2026-09-28"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "toxodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-28",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#u1",
+    "curatorNote": ""
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "delete_step",
+        "turn": 3,
+        "accept": true
+      }
+    ]
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

@@ -23,6 +23,7 @@ from pathfinder.ai.capabilities.security import scan_user_input
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.errors import AssistantMismatchError
+from pathfinder.platform.langfuse.events import ProductEvent, record_product_event
 from pathfinder.services.conversations.begin import begin_conversation
 
 
@@ -57,6 +58,15 @@ async def dispatch(
         raise AssistantMismatchError(
             requested=spec.assistant_id,
             existing=begun.conversation.assistant_id,
+        )
+    if begun.is_new:
+        record_product_event(
+            ProductEvent(
+                name="conversation_created",
+                user_id=user_id,
+                conversation_id=body.conversation_id,
+                attributes={"assistant_id": spec.assistant_id, "site_id": body.site_id},
+            ),
         )
 
     if not body.is_approval_resume:

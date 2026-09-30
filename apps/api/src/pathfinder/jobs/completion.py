@@ -10,6 +10,7 @@ from assistant_core.tasks.completion_turn import CompletionTurn
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
+from pathfinder.assistants.registry import turn_trace_labels
 from pathfinder.jobs.turn_keys import turn_keys
 
 
@@ -31,6 +32,9 @@ async def open_completion_turn(turn: CompletionTurn) -> None:
                 user_id=turn.user_id,
                 durable_result=turn.durable_result,
                 durable_results=turn.durable_results,
+                trace_labels=turn_trace_labels(
+                    turn.spec.assistant_id, body.phase_models
+                ),
             ),
             spec=turn.spec,
             compiled_graph=turn.compiled_graph,

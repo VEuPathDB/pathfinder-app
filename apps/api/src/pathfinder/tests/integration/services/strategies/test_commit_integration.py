@@ -51,6 +51,9 @@ from pathfinder.tests.integration.services.strategies._commit_wire import (
     seed_conversation,
 )
 
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = pytest.mark.usefixtures("open_job_queue")
+
 
 @pytest.fixture
 def pushes() -> RecordedPushes:

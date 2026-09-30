@@ -20,9 +20,9 @@ from pydantic_ai.exceptions import AgentRunError, UserError
 from pydantic_ai.usage import UsageLimits
 
 from pathfinder.ai.capabilities.metering import SpendMeter, charge_spend
-from pathfinder.ai.models.catalog import get_smallest_model
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderKeyError
+from pathfinder.platform.model_catalog import get_smallest_model
 from pathfinder.platform.model_keys import keyed_model
 
 MAX_TITLE_WORDS = 7

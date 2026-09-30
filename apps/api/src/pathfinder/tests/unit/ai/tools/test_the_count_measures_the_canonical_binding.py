@@ -90,7 +90,7 @@ async def test_the_criterion_keeps_the_term_the_request_named(
 
     result = await bind(state, "GenesByText", KINASE_PARAMS)
 
-    stored = state.operational_spec_draft.criteria[0].resolved_params
+    stored = state.operational_spec_draft.criteria[0].param_values
     assert to_wire(stored["text_search_organism"]) == f'["{_BRANCH}"]'
     assert result.resolved_params["text_search_organism"] == f'["{_BRANCH}"]'
 
@@ -106,4 +106,4 @@ async def test_a_binding_with_no_branch_to_expand_counts_what_it_recorded(
 
     await bind(state, "GenesByText", KINASE_PARAMS)
 
-    assert asked[0] == state.operational_spec_draft.criteria[0].resolved_params
+    assert asked[0] == state.operational_spec_draft.criteria[0].param_values

@@ -2,7 +2,7 @@
 
 Every sink a turn writes is read back for the key: the chunk log, the graph
 checkpoints, the job payload, the message metadata, the process log, and the
-spans the tracing exporter and the Langfuse filter receive.
+spans the tracing exporter receives.
 """
 
 from __future__ import annotations
@@ -36,10 +36,10 @@ from pathfinder.jobs import turn_keys
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.langfuse.client import _should_export_span
 from pathfinder.platform.model_keys import attach_keyring, keyed_model
 from pathfinder.platform.security import create_user_token
 from pathfinder.services.provider_keys import load_keyring, store_key
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests._support.provider_keys import sealed_provider_keys
 from pathfinder.tests._support.provider_wire import (
     ANSWER_TEXT,
@@ -197,7 +197,7 @@ async def _keyed_run(
             tracer_provider=tracer_provider, include_content=True
         )
         agent = Agent(
-            keyed_model("openai:gpt-5.6-luna"),
+            keyed_model(DEFAULT_MODEL),
             capabilities=[Instrumentation(settings=settings)],
         )
         emitter = PhaseStreamEmitter(message_id=str(uuid4()))
@@ -235,7 +235,6 @@ async def test_an_answered_keyed_run_leaves_the_key_in_no_row_and_no_span(
     assert spans != []
     assert _SENTINEL not in stored
     assert _SENTINEL not in _span_text(spans)
-    assert _SENTINEL not in _span_text([s for s in spans if _should_export_span(s)])
 
 
 @pytest.mark.usefixtures("_keyed_cloud")

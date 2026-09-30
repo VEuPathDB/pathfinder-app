@@ -35,6 +35,7 @@ from pathfinder.ai.tools.toolsets._dynamic import (
     EnumOverrides,
     live_step_ids,
 )
+from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 
 _MAX_CONSECUTIVE_GET_STRATEGY = 2
 
@@ -119,7 +120,9 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             remember,
         ],
     )
-    return DynamicEnumToolset(
-        wrapped=PreparedToolset(wrapped=base, prepare_func=_prepare),
-        build_overrides=_execution_enum_overrides,
+    return RefusalMemoryToolset(
+        wrapped=DynamicEnumToolset(
+            wrapped=PreparedToolset(wrapped=base, prepare_func=_prepare),
+            build_overrides=_execution_enum_overrides,
+        )
     )

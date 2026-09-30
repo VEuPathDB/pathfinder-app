@@ -65,16 +65,21 @@ DOMAIN_FIELDS = {
     "eda_analysis",
     "open_eda_analysis",
     "requirements",
+    "retired_requirements",
+    "answered_questions",
     "open_questions",
     "recommendations",
     "original_request",
     "request_messages",
+    "researcher_asks",
     "turn_briefing",
     "zero_result_history",
     "declined_proposal",
     "separation_offers",
     "attached_controls",
     "control_sets",
+    "facts_shown",
+    "upload_types",
 }
 
 STRATEGY_RESOURCES = {

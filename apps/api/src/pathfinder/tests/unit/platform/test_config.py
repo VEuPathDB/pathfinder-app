@@ -6,6 +6,7 @@ from pydantic_settings import SettingsConfigDict
 
 from pathfinder.platform.config import Settings, TomlConfigSettingsSource
 from pathfinder.platform.provider_key_cipher import ProviderKeyCipher
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 
 class _EnvOnlySettings(Settings):
@@ -40,7 +41,16 @@ def test_input_screening_defaults_on(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = make_settings()
 
     assert settings.input_screening_enabled is True
-    assert settings.input_screening_model == "openai:gpt-5.6-luna"
+    assert settings.input_screening_model == DEFAULT_MODEL
+
+
+def test_an_empty_screening_model_reads_as_the_catalog_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Compose passes the variable through empty when the deployment sets none."""
+    monkeypatch.setenv("INPUT_SCREENING_MODEL", "")
+
+    assert make_settings().input_screening_model == DEFAULT_MODEL
 
 
 def test_input_screening_can_be_disabled_via_env(

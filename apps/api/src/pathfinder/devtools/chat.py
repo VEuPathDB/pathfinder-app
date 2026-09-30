@@ -6,14 +6,18 @@ import json
 import os
 import sys
 import time
+from collections.abc import Mapping
 from contextlib import AsyncExitStack
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 from uuid import UUID, uuid4
 
 import structlog
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
-from assistant_core.conversation.event_stream import latest_turn_boundary
+from assistant_core.conversation.event_stream import (
+    fetch_chunks_after,
+    latest_turn_boundary,
+)
 from assistant_core.graph.turn_state import (
     PendingApproval,
     PendingDurableCall,
@@ -22,7 +26,6 @@ from assistant_core.graph.turn_state import (
 from assistant_core.mcp.admission import install_admitted_sources
 from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.models.capture import capture_llm
-from assistant_core.persistence.models import ConversationEvent
 from assistant_core.persistence.repositories.background_tasks import (
     BackgroundTaskRepository,
 )
@@ -35,7 +38,6 @@ from assistant_core.tasks.job_context import install_durable_job_context
 from assistant_core.tasks.scope import attach_user_id
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from veupathdb.devtools import capture_wdk
 from veupathdb.wdk import password_login
 
@@ -43,7 +45,14 @@ from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools import inspector
-from pathfinder.devtools.capture import RunCapture, capture_tracebacks, reset_run_dir
+from pathfinder.devtools.capture import (
+    RunCapture,
+    capture_tracebacks,
+    collect_worker_llm,
+    local_run_root,
+    reset_run_dir,
+    worker_llm_dir,
+)
 from pathfinder.devtools.gates import (
     BodyCtx,
     Gate,
@@ -54,6 +63,8 @@ from pathfinder.devtools.gates import (
     detect_gate,
     user_body,
 )
+from pathfinder.devtools.models import Chunk
+from pathfinder.devtools.turn_arc import TurnArc, read_arc
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application, attach_wdk_auth
 from pathfinder.jobs.job_context import WdkJobContext
@@ -82,7 +93,6 @@ class RunArgs(BaseModel):
     mock: bool = False
     approve: Literal["prompt", "auto", "deny"] = "prompt"
     capture_wdk: bool = False
-    capture_llm: bool = False
     via_worker: bool = False
     quiet: bool = False
     email: str | None = None
@@ -154,7 +164,6 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--mock", action="store_true")
     run.add_argument("--approve", choices=["prompt", "auto", "deny"], default="prompt")
     run.add_argument("--capture-wdk", action="store_true")
-    run.add_argument("--capture-llm", action="store_true")
     run.add_argument(
         "--via-worker",
         action="store_true",
@@ -199,7 +208,6 @@ def _build_parser() -> argparse.ArgumentParser:
     resp.add_argument("--mock", action="store_true")
     resp.add_argument("--approve", choices=["prompt", "auto", "deny"], default="prompt")
     resp.add_argument("--capture-wdk", action="store_true")
-    resp.add_argument("--capture-llm", action="store_true")
     resp.add_argument("--via-worker", action="store_true")
     resp.add_argument("--quiet", action="store_true")
     resp.add_argument("--email", default=None)
@@ -255,7 +263,6 @@ def parse_run_args(argv: list[str]) -> RunArgs:
             "mock": ns.mock,
             "approve": ns.approve,
             "capture_wdk": ns.capture_wdk,
-            "capture_llm": ns.capture_llm,
             "via_worker": ns.via_worker,
             "quiet": ns.quiet,
             "email": ns.email,
@@ -280,7 +287,6 @@ def parse_respond_args(argv: list[str]) -> RespondArgs:
             "mock": ns.mock,
             "approve": ns.approve,
             "capture_wdk": ns.capture_wdk,
-            "capture_llm": ns.capture_llm,
             "via_worker": ns.via_worker,
             "quiet": ns.quiet,
             "email": ns.email,
@@ -365,6 +371,20 @@ async def resolve_run_assistant(
         conversation_id=conversation_id,
         requested_id=requested_id,
     )
+
+
+async def checkpoint_values(conversation_id: UUID) -> Mapping[str, object]:
+    """The state the thread's last turn left in the checkpoint."""
+    registry = get_assistant_registry()
+    spec = await resolve_run_assistant(conversation_id)
+    async with lifespan_checkpointer(
+        get_settings().database_url,
+        checkpoint_types=registry.checkpoint_types(),
+    ) as saver:
+        graph = spec.build_graph(saver)
+        config: RunnableConfig = {"configurable": {"thread_id": str(conversation_id)}}
+        snapshot = await graph.aget_state(config)
+    return snapshot.values
 
 
 async def _gate_from_checkpoint(
@@ -470,13 +490,14 @@ async def _exec_one(
     async with AsyncExitStack() as stack:
         if args.capture_wdk:
             await stack.enter_async_context(capture_wdk(capture.run_dir))
-        if args.capture_llm:
-            stack.enter_context(capture_llm(capture.run_dir))
+        stack.enter_context(capture_llm(capture.run_dir))
         await stack.enter_async_context(attach_wdk_auth(wdk_token))
         await stack.enter_async_context(attach_user_id(DEV_USER_ID))
         # This process consumes no job, so a durable call is declined in
         # writing and the turn reaches its artifacts.
         stack.enter_context(no_durable_worker())
+        # A strategy write defers the gene-set refresh onto the queue a worker reads.
+        await stack.enter_async_context(procrastinate_app.open_async())
         # The debugger drives the turn itself, so it admits what the worker does.
         install_admitted_sources(admitted_tool_sources())
         install_durable_job_context(WdkJobContext())
@@ -522,7 +543,7 @@ async def _worker_payload(
         user_id=DEV_USER_ID,
         turn_id=capture.turn_id,
         veupathdb_auth_token=wdk_token,
-        capture_dir=str(args.run_dir),
+        capture_dir=str(worker_llm_dir(capture.turn_id)),
         assistant_id=spec.assistant_id,
     )
 
@@ -530,43 +551,49 @@ async def _worker_payload(
 async def _exec_via_worker(
     args: RunArgs, capture: RunCapture, body: ChatRequestBody, *, wdk_token: str | None
 ) -> None:
-    """Defers a real chat turn job to the worker, reports task progress while it runs,
-    then replays the persisted events."""
+    """Defers a real chat turn job to the worker and follows the thread's log until
+    the turn ends, through every completion turn a parked durable task opens."""
     before = await latest_turn_boundary(args.conversation_id)
     payload = await _worker_payload(args, capture, body, wdk_token=wdk_token)
     await _defer_chat_turn(payload)
-    if not args.quiet:
-        print("deferred to worker; waiting...")
+    _say(args, "deferred to worker; waiting...")
 
     repo = BackgroundTaskRepository(session_factory=async_session_factory)
     deadline = time.monotonic() + _VIA_WORKER_TIMEOUT_S
-    seen_progress: set[str] = set()
-    while time.monotonic() < deadline:
+    seen: set[str] = set()
+    cursor = before
+    chunks: list[dict[str, Any]] = []
+    arc = TurnArc()
+    while arc.state != "ended" and time.monotonic() < deadline:
         await asyncio.sleep(_VIA_WORKER_POLL_S)
-        boundary = await latest_turn_boundary(args.conversation_id)
+        cursor, fresh = await fetch_chunks_after(args.conversation_id, cursor)
+        chunks += fresh
+        arc = read_arc(Chunk.model_validate(chunk) for chunk in chunks)
         active = await repo.list_active_for_conversation(
             conversation_id=args.conversation_id
         )
-        if not args.quiet:
-            for task in active:
-                line = f"  ⏳ task {task.tool_name} [{task.status}]"
-                if line not in seen_progress:
-                    seen_progress.add(line)
-                    print(line)
-        if boundary > before and not active:
-            break
-
-    async with async_session_factory() as session:
-        rows = await session.scalars(
-            select(ConversationEvent)
-            .where(
-                ConversationEvent.conversation_id == args.conversation_id,
-                ConversationEvent.id > before,
-            )
-            .order_by(ConversationEvent.id),
+        lines = [f"  task {task.tool_name} [{task.status}]" for task in active]
+        if arc.state == "parked":
+            lines.append(f"turn parked on {', '.join(arc.parked_on)}")
+        for line in lines:
+            if line not in seen:
+                seen.add(line)
+                _say(args, line)
+    if arc.state != "ended":
+        _say(args, f"timed out after {_VIA_WORKER_TIMEOUT_S}s; the turn is {arc.state}")
+    for chunk in chunks:
+        await capture.write(chunk)
+    if not collect_worker_llm(local_run_root(), capture.turn_id, args.run_dir):
+        print(
+            f"the worker's model requests did not reach {local_run_root()}; "
+            "tools/*.json holds no output for a sub-agent's calls",
+            file=sys.stderr,
         )
-        for row in rows:
-            await capture.write(row.chunk)
+
+
+def _say(args: RunArgs, line: str) -> None:
+    if not args.quiet:
+        print(line)
 
 
 async def _drive_conversation(
@@ -665,6 +692,7 @@ async def drive_run(args: RunArgs) -> tuple[RunCapture, Gate]:
                 wdk_token=wdk_token,
             )
 
+        capture.note_checkpoint(await checkpoint_values(args.conversation_id))
         capture.flush()
         _write_gate(args.run_dir, gate)
         return capture, gate
@@ -774,6 +802,7 @@ async def drive_respond(args: RespondArgs) -> tuple[RunCapture, Gate] | None:
                 wdk_token=wdk_token,
             )
 
+        capture.note_checkpoint(await checkpoint_values(args.conversation_id))
         capture.flush()
         _write_gate(args.run_dir, final_gate)
         return capture, final_gate
@@ -796,7 +825,7 @@ def _report(capture: RunCapture, gate: Gate) -> None:
         f"─── summary ───  status={summary.status}  tokens={summary.tokens}  "
         f"cost=${summary.cost_usd:.3f}  toolcalls={summary.tool_calls}  "
         f"failures={summary.failures}  loop={str(summary.loop_detected).lower()}  "
-        f"anomalies={len(anomalies)}"
+        f"assumed={summary.assumed}  anomalies={len(anomalies)}"
     )
     for anomaly in anomalies:
         print(f"  ⚑ [{anomaly.severity}] {anomaly.kind}: {anomaly.message}")

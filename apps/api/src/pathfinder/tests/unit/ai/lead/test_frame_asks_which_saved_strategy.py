@@ -11,12 +11,13 @@ import pytest
 
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.tools.standalone._frame_saved import SAVED_STRATEGY_SLOT
-from pathfinder.domain.strategy.constraints import ConstraintKind, OpenQuestion
+from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
     OperationalSpec,
 )
+from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     ROOT,
     STAGE,
@@ -31,7 +32,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
 )
 
 SAVED = "c_saved"
-WHICH_ONE = OpenQuestion(
+WHICH_ONE = SlotQuestion(
     question="Which saved strategy: 'kinase panel', 'surfaceome v2'?",
     dimension=ConstraintKind.OTHER,
     recommended_value="surfaceome v2",

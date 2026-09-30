@@ -16,11 +16,12 @@ import { expectBuild } from "./build-checks";
 import { type SiteCounts, siteControlSets, siteOrganism } from "./site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { SettingsPage } from "../pages/settings.page";
+import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 export const MIB = 1024 * 1024;
 
 /** The model every attachment flow reads the message with. */
-export const IMAGE_READER = { name: "GPT-5.6 Luna", id: "openai:gpt-5.6-luna" };
+export const IMAGE_READER = DEFAULT_MODEL;
 
 /** The toast that reads exactly `text`. */
 export function toast(page: Page, text: string | RegExp): Locator {

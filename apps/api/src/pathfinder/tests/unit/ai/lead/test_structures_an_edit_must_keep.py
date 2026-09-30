@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.operations.resolutions import compute_delete_choices
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     NESTED_ROOT,
     PROTEOME,
@@ -82,9 +83,9 @@ def _with_the_option(value: str | None) -> Draft:
                 id=_OPTION,
                 text="read the 2019 dataset",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={}
-                if value is None
-                else {"dataset": StringValue(value=value)},
+                resolved_params=bound(
+                    {} if value is None else {"dataset": StringValue(value=value)}
+                ),
                 open_params=[]
                 if value is not None
                 else [OpenSlot(criterion_id=_OPTION, param_name="dataset")],
@@ -268,7 +269,9 @@ def _transform_thread(monkeypatch: pytest.MonkeyPatch) -> DisagreementThread:
             text="P. vivax orthologs",
             search_name="GenesByOrthologs",
             role="transform",
-            resolved_params={_ORTH_PARAM: MultiPickValue(values=["P. vivax P01"])},
+            resolved_params=bound(
+                {_ORTH_PARAM: MultiPickValue(values=["P. vivax P01"])}
+            ),
         )
     )
     spec.structure = SpecStructure(
@@ -296,9 +299,9 @@ async def test_a_transforms_own_parameter_moves_without_touching_its_input(
     def _draft(found: OperationalSpec) -> OperationalSpec:
         for criterion in found.criteria:
             if criterion.id == _ORTH:
-                criterion.resolved_params = {
-                    _ORTH_PARAM: MultiPickValue(values=["P. berghei ANKA"])
-                }
+                criterion.resolved_params = bound(
+                    {_ORTH_PARAM: MultiPickValue(values=["P. berghei ANKA"])}
+                )
         return found
 
     thread.frames(_draft, declared=[*kept(SURFACE, STAGE), *declared("changed", _ORTH)])

@@ -104,4 +104,33 @@ def repeated_control_test(
     return None
 
 
-__all__ = ["RepeatedControlTest", "merged_control_tests", "repeated_control_test"]
+def _returned(held: ControlSetEvidence, kind: str) -> str:
+    return f"{held.returned_count} of {held.controls_count} {kind} controls returned"
+
+
+def every_step_tested(markers: TurnMarkers) -> str:
+    """Each step this message tested, with what its controls returned."""
+    lines: list[str] = []
+    for tested in merged_control_tests(
+        run.evidence for run in markers.control_tests if run.origin == "control_test"
+    ):
+        sets = []
+        if tested.positive is not None:
+            sets.append(
+                f"{_returned(tested.positive, 'positive')}, recall "
+                f"{tested.positive.rate:.2f}"
+            )
+        if tested.negative is not None:
+            sets.append(_returned(tested.negative, "negative"))
+        lines.append(
+            f"{tested.tested_label} (step {tested.wdk_step_id}): {'; '.join(sets)}"
+        )
+    return ". ".join(lines)
+
+
+__all__ = [
+    "RepeatedControlTest",
+    "every_step_tested",
+    "merged_control_tests",
+    "repeated_control_test",
+]

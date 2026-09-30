@@ -3,6 +3,11 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetAllPersistedSettings, useSettingsStore } from "./useSettingsStore";
+import {
+  ANTHROPIC_SMALL,
+  OPENAI_FLAGSHIP,
+  OPENAI_SMALL,
+} from "@/lib/models/__fixtures__/models";
 
 beforeEach(() => {
   useSettingsStore.getState().resetToDefaults();
@@ -34,18 +39,18 @@ describe("state/useSettingsStore", () => {
   });
 
   it("setPhaseModel sets and clears per-phase model id", () => {
-    useSettingsStore.getState().setPhaseModel("lead", "openai:gpt-5.4");
+    useSettingsStore.getState().setPhaseModel("lead", OPENAI_FLAGSHIP.id);
     expect(useSettingsStore.getState().phaseModels).toEqual({
-      lead: "openai:gpt-5.4",
+      lead: OPENAI_FLAGSHIP.id,
     });
-    useSettingsStore.getState().setPhaseModel("frame", "anthropic:claude-sonnet-4-6");
+    useSettingsStore.getState().setPhaseModel("frame", ANTHROPIC_SMALL.id);
     expect(useSettingsStore.getState().phaseModels).toEqual({
-      lead: "openai:gpt-5.4",
-      frame: "anthropic:claude-sonnet-4-6",
+      lead: OPENAI_FLAGSHIP.id,
+      frame: ANTHROPIC_SMALL.id,
     });
     useSettingsStore.getState().setPhaseModel("lead", null);
     expect(useSettingsStore.getState().phaseModels).toEqual({
-      frame: "anthropic:claude-sonnet-4-6",
+      frame: ANTHROPIC_SMALL.id,
     });
   });
 
@@ -59,7 +64,7 @@ describe("state/useSettingsStore", () => {
   it("resetToDefaults clears every map", () => {
     const store = useSettingsStore;
     store.getState().setShowRawToolCalls(true);
-    store.getState().setPhaseModel("lead", "openai:gpt-5");
+    store.getState().setPhaseModel("lead", OPENAI_SMALL.id);
     store.getState().setPhaseReasoning("verification", "low");
     store.getState().resetToDefaults();
     const s = store.getState();
@@ -69,9 +74,9 @@ describe("state/useSettingsStore", () => {
   });
 
   it("resetAllPersistedSettings removes the stored model picks", () => {
-    useSettingsStore.getState().setPhaseModel("lead", "openai:gpt-5.4");
+    useSettingsStore.getState().setPhaseModel("lead", OPENAI_FLAGSHIP.id);
     expect(window.localStorage.getItem("pathfinder-settings-20260625")).toContain(
-      "openai:gpt-5.4",
+      OPENAI_FLAGSHIP.id,
     );
 
     resetAllPersistedSettings();

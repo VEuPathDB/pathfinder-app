@@ -54,8 +54,9 @@ runs on both `set_criterion` calls:
 - A word no search of the pass states, and one search of the record type names a
   parameter by, is recorded on `Criterion.unexpressed_qualifiers`. The ledger
   grounds it as a user-explicit hard constraint that is `ungroundable`, VERIFY's
-  success is held while it stands (`ai/lead/verify_dispatch.py`), and the turn
-  contract's `unstated_gap` refuses once a reply that does not name it.
+  success is held while it stands (`ai/lead/verify_dispatch.py`), and the facts
+  part beside the reply shows it as a gap on every turn that framed or changed
+  the strategy.
 
 The second measured case is "pseudogenes": Gene Type states it through "Include
 Pseudogenes", and its neighbour Organism cannot. Across the unit suite 139

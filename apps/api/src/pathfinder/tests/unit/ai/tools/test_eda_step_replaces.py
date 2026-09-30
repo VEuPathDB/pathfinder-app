@@ -10,7 +10,9 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import ValidationError
 
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -21,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
@@ -336,3 +339,31 @@ async def test_replacing_a_step_the_spec_does_not_state_states_the_export(
     assert spec is not None
     assert [c.id for c in spec.criteria] == ["step_k1", exported]
     assert structure_criteria(spec.structure) == {"step_k1", exported}
+
+
+async def test_a_replacement_keeps_the_count_the_replaced_step_held(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The export stands where the old step stood, so the old count is its before."""
+    install_stub_api(monkeypatch)
+    ctx = _lead_ctx_over(combine("step_c1", leaf("step_k1"), leaf("step_k2")))
+    ctx.deps.state.domain.operational_spec = _two_kinase_criteria()
+    counts = {"step_k1": 4200, "step_k2": 1535, "step_c1": 900}
+    ensure_sync_state(ctx.deps.runtime.strategy_session).step_counts = dict(counts)
+    ctx.deps.state.turn_markers.record_arrival("step_c1", counts)
+    _wire(monkeypatch)
+
+    answer = await eda_step.create_eda_step(ctx, replace_step_id="step_k2")
+
+    exported = returned(answer, eda_step.EdaStepCreated).step_id
+    ensure_sync_state(ctx.deps.runtime.strategy_session).step_counts[exported] = 1249
+    ctx.deps.intent = UserIntent(
+        classification=IntentClassification.EDIT_STRATEGY,
+        inferred_goal="loosen the cut to 1.5-fold",
+        edit_direction="loosen",
+    )
+    facts = turn_facts(ctx.deps)
+    [step] = [s for s in facts.steps if s.step_id == exported]
+    [moved] = [c for c in facts.caveats if c.kind == "edit_direction"]
+    assert (step.count_before, facts.root_count_before) == (1535, 900)
+    assert moved.sentence.endswith("its count fell from 1,535 genes to 1,249 genes")

@@ -1,5 +1,4 @@
-"""Purges user data from the database and the in-memory caches, and optionally
-from WDK."""
+"""Purges user data from the database, and optionally from WDK."""
 
 import asyncio
 from collections.abc import Sequence
@@ -29,7 +28,6 @@ from pathfinder.persistence.models import (
 )
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
-from pathfinder.services.gene_sets.store import get_gene_set_store
 
 logger = get_logger(__name__)
 
@@ -168,7 +166,6 @@ async def purge_user_data(
     await session.commit()
 
     memories = 0 if site_id else await _purge_memories(memory_store, session, user_id)
-    _clear_gene_set_cache(user_id, site_id)
 
     strategies_handled = hard_deleted_count + dismissed_count
     logger.info(
@@ -438,25 +435,3 @@ async def _purge_related_data(
     pg_control_sets = cr.rowcount or 0
 
     return pg_gene_sets, pg_experiments, pg_control_sets
-
-
-def _clear_gene_set_cache(user_id: UUID, site_id: str | None) -> None:
-    """Clear the calling application's in-memory gene set cache entries."""
-    application_id = calling_application()
-    try:
-        cache = get_gene_set_store()
-        to_evict = [
-            gid
-            for gid, gs in cache._cache.items()
-            if gs.user_id == user_id
-            and gs.application_id == application_id
-            and (site_id is None or gs.site_id == site_id)
-        ]
-        for gid in to_evict:
-            cache._cache.pop(gid, None)
-    except (RuntimeError, KeyError) as exc:
-        logger.warning(
-            "Failed to clear gene set cache during user data purge",
-            user_id=str(user_id),
-            error=str(exc),
-        )

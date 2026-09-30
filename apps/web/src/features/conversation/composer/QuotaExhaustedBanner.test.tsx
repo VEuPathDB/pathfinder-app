@@ -19,11 +19,12 @@ import {
   RefusedKeyBanner,
   useComposerBlock,
 } from "./QuotaExhaustedBanner";
+import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
 const BASE = "http://localhost:3000";
 const CONVERSATION = "c0ffee00-0000-4000-8000-000000000001";
-const LUNA = "openai:gpt-5.6-luna";
-const OPUS = "anthropic:claude-opus-5";
+const OPENAI = DEFAULT_MODEL.id;
+const ANTHROPIC = ANTHROPIC_SMALL.id;
 const ROLES = ["lead", "frame", "execution", "verification"];
 
 function preset(modelId: string) {
@@ -57,7 +58,7 @@ beforeEach(() => {
     http.get(`${BASE}/api/v1/me/provider-keys`, () => HttpResponse.json(keys)),
     http.get(`${BASE}/api/v1/tiers`, () =>
       HttpResponse.json({
-        presets: { pathfinder: { openai: { default: preset(LUNA) } } },
+        presets: { pathfinder: { openai: { default: preset(OPENAI) } } },
       }),
     ),
     http.get(`${BASE}/api/v1/models`, () =>
@@ -65,7 +66,7 @@ beforeEach(() => {
         models: [],
         defaultProvider: "openai",
         defaultTier: "default",
-        phaseDefaults: Object.fromEntries(ROLES.map((role) => [role, LUNA])),
+        phaseDefaults: Object.fromEntries(ROLES.map((role) => [role, OPENAI])),
       }),
     ),
   );
@@ -119,7 +120,7 @@ describe("the composer's payment block", () => {
     };
     useSettingsStore
       .getState()
-      .applyPhasePreset(Object.fromEntries(ROLES.map((role) => [role, OPUS])), {});
+      .applyPhasePreset(Object.fromEntries(ROLES.map((role) => [role, ANTHROPIC])), {});
     await renderProbe();
 
     expect(screen.getByTestId("blocked")).toHaveTextContent("false");

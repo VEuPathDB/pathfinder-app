@@ -27,6 +27,7 @@ class Chunk(BaseModel):
     output: Any = None
     data: dict[str, Any] | None = None
     transient: bool = False
+    finish_reason: str | None = Field(default=None, alias="finishReason")
 
 
 class SubAgentCallData(BaseModel):
@@ -82,19 +83,26 @@ class ConstraintProbe(BaseModel):
     label: str = ""
     requested_value: str = Field(default="", alias="requestedValue")
     source: str = ""
+    hard: bool = True
 
 
 class GroundedConstraintProbe(BaseModel):
     model_config = ConfigDict(extra="ignore")
     constraint: ConstraintProbe = Field(default_factory=ConstraintProbe)
     status: str = ""
+    note: str = ""
 
 
 class LedgerConstraintsProbe(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    blocking: bool = False
-    unmet_count: int = Field(default=0, alias="unmetCount")
     grounded: list[GroundedConstraintProbe] = Field(default_factory=list)
+
+
+class LedgerProbe(BaseModel):
+    """The constraints section of one ledger update, when it carries one."""
+
+    model_config = ConfigDict(extra="ignore")
+    constraints: LedgerConstraintsProbe | None = None
 
 
 class DecodedError(BaseModel):
@@ -115,10 +123,43 @@ class CapturedToolCall(BaseModel):
     args: dict[str, Any] | None = None
     status: ToolStatus = "started"
     result: str | None = None
+    # The whole value the tool returned, as the model read it in its next request.
+    output: Any = None
     errors: list[DecodedError] = Field(default_factory=list)
     started_ms: float | None = None
     ended_ms: float | None = None
     duration_ms: float | None = None
+
+
+class _MessagePart(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    part_kind: str = ""
+    tool_call_id: str = ""
+    content: Any = None
+
+
+class _CapturedMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    parts: list[_MessagePart] = Field(default_factory=list)
+
+
+class CapturedModelRequest(BaseModel):
+    """One ``llm/*-request.json`` file: the messages a model request carried."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    messages: list[_CapturedMessage] = Field(default_factory=list)
+
+    def tool_returns(self) -> dict[str, Any]:
+        """Each tool return the request carries, by its call id."""
+        return {
+            part.tool_call_id: part.content
+            for message in self.messages
+            for part in message.parts
+            if part.part_kind == "tool-return"
+        }
 
 
 class SpanNode(BaseModel):
@@ -158,6 +199,9 @@ class RunSummary(BaseModel):
     conversation_id: str = ""
     turn_id: str = ""
     run_dir: str = ""
+    # Narrowing values the request did not state that the last facts part does
+    # not carry; None when the run read no checkpoint.
+    assumed: int | None = None
 
 
 _PYDANTIC_TYPE_MAP: dict[str, ErrorKind] = {

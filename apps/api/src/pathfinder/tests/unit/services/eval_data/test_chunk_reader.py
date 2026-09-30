@@ -11,8 +11,9 @@ from assistant_core.platform.types import JSONObject
 from pydantic_ai.ui.vercel_ai.response_types import TextDeltaChunk
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
-from pathfinder.ai.graph.stream_events import ledger_update_event
+from pathfinder.ai.graph.stream_events import facts_event, ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
+from pathfinder.domain.turn_facts import SavedSetFact, StepFact, TurnFacts
 from pathfinder.services.eval_data.chunk_reader import (
     LoggedChunk,
     read_turns,
@@ -183,3 +184,44 @@ def test_an_envelope_with_no_id_still_opens_a_turn() -> None:
     )
 
     assert [t.request for t in turns] == [""]
+
+
+def _facts(facts: TurnFacts) -> JSONObject:
+    return facts_event(facts).model_dump(by_alias=True, mode="json", exclude_none=True)
+
+
+def test_the_facts_part_of_a_turn_is_read_beside_its_reply() -> None:
+    shown = TurnFacts(
+        steps=[StepFact(step_id="c_go", display_name="GO Term", count=74)],
+        root_count=74,
+    )
+
+    (turn,) = read_turns(
+        _log(_user("peptidases"), _facts(shown), _delta("The count is beside."))
+    )
+
+    assert (turn.reply, turn.facts) == ("The count is beside.", shown)
+
+
+def test_a_turn_that_showed_no_facts_part_reads_none() -> None:
+    first, second = read_turns(
+        _log(
+            _user("peptidases"),
+            _facts(TurnFacts(root_count=74, steps=[])),
+            _user("thanks", _SECOND_ID),
+            _delta("You are welcome."),
+        )
+    )
+
+    assert (first.facts is not None, second.facts) == (True, None)
+
+
+def test_the_facts_part_is_redacted_like_every_text() -> None:
+    shown = TurnFacts(
+        saved=[SavedSetFact(kind="gene_set", name="alice@example.org genes")]
+    )
+
+    (turn,) = read_turns(_log(_user("save them"), _facts(shown)))
+
+    assert turn.facts is not None
+    assert "alice@example.org" not in turn.facts.lines()[0]

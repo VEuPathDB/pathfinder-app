@@ -43,6 +43,19 @@ from veupathdb.model import CamelModel
 from pathfinder.domain.message_rating import Rating, WithheldCase
 
 
+def saved_in_column(table: str) -> Mapped[UUID | None]:
+    """The thread a set was saved in. A set outlives its thread."""
+    return mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "conversations.id",
+            name=f"fk_{table}_conversation_id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+
+
 class User(Base):
     """User model for tracking strategies."""
 
@@ -92,6 +105,7 @@ class ControlSet(Base):
     provenance_notes: Mapped[str | None] = mapped_column(Text)
     version: Mapped[int] = mapped_column(Integer, default=1)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+    conversation_id: Mapped[UUID | None] = saved_in_column("control_sets")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -99,6 +113,7 @@ class ControlSet(Base):
     __table_args__ = (
         Index("ix_control_sets_site_app", "site_id", "application_id"),
         Index("ix_control_sets_user_id", "user_id"),
+        Index("ix_control_sets_conversation_id", "conversation_id"),
     )
 
 
@@ -150,6 +165,8 @@ class GeneSetRow(Base):
     parameters: Mapped[JSONObject | None] = mapped_column(JSON, nullable=True)
     step_count: Mapped[int] = mapped_column(Integer, default=1)
     vdi_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    conversation_id: Mapped[UUID | None] = saved_in_column("gene_sets")
+    answer_revision: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -158,6 +175,7 @@ class GeneSetRow(Base):
         Index("ix_gene_sets_user_id", "user_id"),
         Index("ix_gene_sets_site_id", "site_id"),
         Index("ix_gene_sets_user_app_site", "user_id", "application_id", "site_id"),
+        Index("ix_gene_sets_conversation_id", "conversation_id"),
     )
 
 

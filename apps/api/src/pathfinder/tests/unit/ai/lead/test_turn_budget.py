@@ -25,12 +25,13 @@ from pathfinder.ai.lead.turn_budget import (
     lead_usage_limits,
     off_topic_budget_stop,
 )
-from pathfinder.domain.strategy.constraints import OpenQuestion
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.domain.strategy.step_words import AddedSearch
 from pathfinder.platform.config import get_settings
+from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     ADDED,
     ADDED_LINE,
@@ -47,6 +48,7 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     URL,
     WORDS,
     built,
+    built_outcome,
     built_session,
     objection,
 )
@@ -301,11 +303,24 @@ def test_an_objection_that_names_a_step_id_is_reported_without_it() -> None:
 
 
 def test_a_budget_stop_before_the_step_reached_the_site_cites_no_count() -> None:
-    report = _report(BuildSection(), None, built_session())
+    session = built_session()
+    session.sync_state = None
+
+    report = _report(BuildSection(), None, session)
 
     assert report.split("\n\n")[0] == (
         f'The strategy holds 1 step; the final step is "{TITLE}".'
     )
+
+
+def test_a_budget_stop_links_the_root_the_strategy_holds_now() -> None:
+    outcome = built_outcome()
+
+    report = _report(
+        BuildSection(outcome=outcome, pushed_count=1), None, built_session()
+    )
+
+    assert report.split("\n\n")[0] == STRATEGY_LINE
 
 
 def test_a_split_strategy_names_no_final_step() -> None:
@@ -315,11 +330,12 @@ def test_a_split_strategy_names_no_final_step() -> None:
         flatten_tree(StrategyStepNode(id=_SECOND_ROOT, search_name="GenesByText"))
     )
     session.graph.recompute_roots()
+    ensure_sync_state(session).wdk_step_tree = None
 
     report = _report(built(), None, session)
 
     assert report.split("\n\n")[0] == (
-        f"The strategy holds 2 steps. It is on VEuPathDB at {URL}."
+        f"The strategy holds 2 steps. It is on VEuPathDB at {URL.rsplit('/', 1)[0]}."
     )
 
 
@@ -344,6 +360,7 @@ def test_a_split_strategy_out_of_date_cites_no_link() -> None:
         flatten_tree(StrategyStepNode(id=_SECOND_ROOT, search_name="GenesByText"))
     )
     session.graph.recompute_roots()
+    ensure_sync_state(session).wdk_step_tree = None
     stale = built().model_copy(
         update={"stale_build": StaleBuild(added_nodes=[_SECOND_ROOT])}
     )

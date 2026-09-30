@@ -39,7 +39,9 @@
     "curatorNote": "The question runs in a new conversation of the same researcher."
   },
   "effort": "medium",
-  "gates": "auto",
+  "gates": {
+    "policy": "decline-offers"
+  },
   "attachments": {},
   "newConversationBefore": [
     1

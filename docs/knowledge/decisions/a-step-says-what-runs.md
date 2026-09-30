@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A step says what runs
-description: A search or transform step is titled by the search it runs, with the researcher's words beneath it; set_criterion and the pinned sheet show the bound search's name and summary; the catalog says when no search states the query closely; the Lead's reply names every search the turn added. A similarity threshold that refuses a binding in set_criterion was rejected because the number cannot tell a near miss from a close synonym.
+description: A search or transform step is titled by the search it runs, with the researcher's words beneath it; set_criterion and the pinned sheet show the bound search's name and summary; the catalog says when no search states the query closely; the facts part beside the Lead's reply shows every search the turn added. A similarity threshold that refuses a binding in set_criterion was rejected because the number cannot tell a near miss from a close synonym.
 tags: [strategy-graph, naming, frame, turn-contract, catalog]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
@@ -50,10 +50,11 @@ way, and the reply rule asks for no reason it cannot have. An analysis step
 keeps its reason, because it is read from the document the step carries (see
 [a criterion says why its search was chosen](a-criterion-says-why-its-search-was-chosen.md)).
 
-**The reply names what the turn added.** A build and an edit record the searches
+**The facts show what the turn added.** A build and an edit record the searches
 of the steps they added on `TurnMarkers.added_searches` and return them as
-`addedSearches`. The turn contract refuses, once, a reply that does not name
-each by its display name, and lists them as "<name> (for: <words>)".
+`addedSearches`. The facts part beside the reply shows every step by its
+search's display name, so the reply says why each stands for the words it was
+chosen for and names no search by its url segment.
 
 # What was rejected
 

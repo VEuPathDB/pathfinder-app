@@ -42,6 +42,9 @@ from pathfinder.services.strategies import (
 from pathfinder.services.strategies.insert_saved import ClonedSavedStrategy
 from pathfinder.tests._support import wdk_write_stubs
 
+# A strategy write defers the gene-set refresh onto the job queue.
+pytestmark = pytest.mark.usefixtures("open_job_queue")
+
 # The push one writer is held inside while the other writer arrives. Local
 # Postgres and a stubbed WDK answer in well under a millisecond, so the
 # second writer either reads a stale AST or waits for the lock long before

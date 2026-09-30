@@ -18,6 +18,7 @@ from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun, stream_sub_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.platform.config import get_settings
+from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     called_tool_names,
@@ -30,8 +31,8 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 pytestmark = pytest.mark.usefixtures("collector")
 
 _UNREACHABLE = "Connection error."
-_DEFAULT_MODEL = "openai:gpt-5.6-luna"
-_PICKED_MODEL = "anthropic:claude-haiku-4-5"
+_DEFAULT_MODEL = DEFAULT_MODEL
+_PICKED_MODEL = ANTHROPIC_SMALL
 
 
 @pytest.fixture(autouse=True)

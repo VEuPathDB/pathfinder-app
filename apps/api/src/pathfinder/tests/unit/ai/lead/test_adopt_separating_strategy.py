@@ -62,9 +62,13 @@ def writes(monkeypatch: pytest.MonkeyPatch) -> _Writes:
         return BuildOutcome(pushed_step_ids=[kwargs["root"].id])
 
     async def _created(
-        session: AsyncSession, spec: NewControlSet, *, user_id: UUID
+        session: AsyncSession,
+        spec: NewControlSet,
+        *,
+        user_id: UUID,
+        conversation_id: UUID | None,
     ) -> ControlSetResponse:
-        del session
+        del session, conversation_id
         seen.control_sets.append(spec)
         return ControlSetResponse(
             id=_CONTROL_SET_ID,

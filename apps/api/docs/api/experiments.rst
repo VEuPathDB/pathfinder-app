@@ -38,7 +38,8 @@ Experiments are stored in the **experiments** table (see
 :py:class:`pathfinder.persistence.models.ExperimentRow`): id, site_id,
 name, status, data (full JSON), created_at, updated_at.
 The experiment store (:py:mod:`pathfinder.services.experiment.store`)
-keeps an in-memory cache and persists every mutation to PostgreSQL.
+writes the row on every save, before the save returns. The api and the worker
+both write experiments, so no process keeps a copy.
 
 Control Sets
 ------------

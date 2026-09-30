@@ -22,6 +22,7 @@ from fastapi import FastAPI
 from langchain_core.runnables import RunnableConfig
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
+from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb_mcp.separation import (
     SeparationProgress,
@@ -31,7 +32,7 @@ from veupathdb_mcp.separation import (
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import sub_agent_dispatch
-from pathfinder.ai.lead.proposal import DeclinedProposal
+from pathfinder.ai.lead.proposal import AddCriterionChange, DeclinedProposal
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.separation import SeparationOffer
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
@@ -43,6 +44,7 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.evidence import separation
 from pathfinder.services.experiment.seed.catalog import get_seeds_for_site
 from pathfinder.services.strategies.sync_state import ensure_sync_state
+from pathfinder.tests._support.recorded_searches import serve_recorded_definitions
 from pathfinder.tests._support.separation import SIGNAL_PEPTIDE, recorded_separation
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -71,6 +73,13 @@ _WDK_STEP = 440589000
 pytestmark = pytest.mark.usefixtures(
     "patch_app_db_engine", "db_cleaner", "signed_in_to_veupathdb", "worker_seams"
 )
+
+
+@pytest.fixture(autouse=True)
+def no_published_sheets(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The check reads the sheet of each search the adopted spec binds; the site
+    publishes none of them here, so no criterion binds a text query."""
+    serve_recorded_definitions(monkeypatch, [])
 
 
 @pytest.fixture
@@ -255,7 +264,7 @@ async def test_a_yes_builds_the_measured_spec_and_attaches_its_controls(
     assert [c for c in await _rows(conversation_id) if c["type"] == "error"] == []
     leaves = [s for s in flatten_tree(pushed[0]).values() if not s.input_ids()]
     assert [(s.search_name, s.parameters) for s in leaves] == [
-        (c.search_name, c.resolved_params) for c in offer.spec.criteria
+        (c.search_name, c.param_values) for c in offer.spec.criteria
     ]
     async with async_session_factory() as session:
         saved = list(await session.scalars(select(ControlSet)))
@@ -301,7 +310,15 @@ async def test_a_no_keeps_the_offer_and_builds_nothing(
     assert domain.declined_proposal == DeclinedProposal(
         question=offer.question,
         proposed_changes=[
-            f"{criterion.text} ({criterion.role})" for criterion in offer.spec.criteria
+            AddCriterionChange(
+                sentence=f"{criterion.text} ({criterion.role})",
+                search_name=criterion.search_name,
+                params={
+                    name: to_wire(bound.value)
+                    for name, bound in criterion.resolved_params.items()
+                },
+            )
+            for criterion in offer.spec.criteria
         ],
         note="",
     )

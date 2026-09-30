@@ -5,7 +5,7 @@ says why."""
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from assistant_core.models.scripted import (
     current_scope_id,
@@ -22,6 +22,7 @@ from pathfinder.ai.models.mock.edit_frame import (
 )
 from pathfinder.ai.models.mock.growths import portal_only_criterion
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
+from pathfinder.ai.models.mock.lookup_arcs import lookup_the_refused_pick
 from pathfinder.ai.models.mock.message_words import message
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
@@ -52,19 +53,26 @@ def _site() -> SiteValues:
     return SiteValues.for_site(current_scope_id.get())
 
 
-def _unbound(summary: str) -> ToolCallPart:
+def _unbound(summary: str, unstated: Sequence[str] = ()) -> ToolCallPart:
     return scripted_call(
         "final_result",
-        {"summary": summary, "disposition": "needs_research", "openQuestions": []},
+        {
+            "summary": summary,
+            "disposition": "needs_research",
+            "openQuestions": [],
+            "unstated": list(unstated),
+        },
     )
 
 
 def spec_frame(spec: Callable[[SiteValues], SpecPlan]) -> Script:
-    """Bind ``spec`` on the site's values, less what ``set_structure`` dropped."""
+    """Bind ``spec`` on the site's values, less what ``set_structure`` dropped,
+    reading the options a refusal asks for first."""
 
     def script(messages: list[ModelMessage]) -> ToolCallPart:
-        return frame_call(
-            without_dropped(spec(_site()), structure_dropped(messages)),
+        plan = without_dropped(spec(_site()), structure_dropped(messages))
+        return lookup_the_refused_pick(plan, messages) or frame_call(
+            plan,
             acted_tool_names(messages),
             criterion_replies(messages),
             instructions_of(messages),
@@ -96,14 +104,14 @@ def loop_frame() -> ToolCallPart:
 
 def no_search_frame(messages: list[ModelMessage]) -> ToolCallPart:
     """Rank and list the searches, find none that states the request, and name
-    what it asked for, binding nothing."""
+    the requirement after its last "with" as unstated, binding nothing."""
     called = acted_tool_names(messages)
     if "search_for_searches" not in called:
         return scripted_call("search_for_searches", {"query": message()})
     if "list_searches" not in called:
         return scripted_call("list_searches", {"record_type": "transcript"})
-    asked = message().rstrip(".")
-    return _unbound(f"No search on {current_scope_id.get()} states: {asked}.")
+    asked = message().rstrip(".").rpartition(" with ")[2]
+    return _unbound(f"No search on {current_scope_id.get()} states: {asked}.", [asked])
 
 
 class _Experiment(ToolAnswer):

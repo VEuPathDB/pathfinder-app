@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import lead_run_context
 
 
@@ -56,7 +57,7 @@ def _criterion(cid: str, search: str, params: dict[str, ParamValue]) -> Criterio
         text=f"{search} genes",
         search_name=search,
         role="filter",
-        resolved_params=params,
+        resolved_params=bound(params),
     )
 
 

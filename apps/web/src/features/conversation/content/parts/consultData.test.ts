@@ -116,6 +116,12 @@ describe("findConsultRecap", () => {
   });
 });
 
+const KEEP_ONLY = {
+  kind: "add_criterion",
+  sentence: "Keep only the genes another search of the site returns",
+  searchName: "GenesByTransmembraneDomains",
+} as const;
+
 describe("findProposal", () => {
   it("reads the card off the arguments propose_changes advertises", () => {
     // pydantic-ai flattens the one model argument, so the fields sit at the top.
@@ -128,7 +134,7 @@ describe("findProposal", () => {
         input: {
           reply: "One change would make this strategy more specific.",
           question: "Add one more search to make this strategy more specific?",
-          proposedChanges: ["Keep only the genes another search of the site returns"],
+          proposedChanges: [KEEP_ONLY],
         },
       },
     ]);
@@ -136,7 +142,7 @@ describe("findProposal", () => {
     expect(findProposal(message, "call-7")).toEqual({
       proposal: {
         question: "Add one more search to make this strategy more specific?",
-        proposedChanges: ["Keep only the genes another search of the site returns"],
+        proposedChanges: [KEEP_ONLY],
       },
       decision: "pending",
       approvalId: "appr-7",

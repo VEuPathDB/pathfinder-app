@@ -1,15 +1,13 @@
 AI & Models
 ===========
 
-Model catalog, per-provider settings, pricing, and prompt loading. This is
-what decides which LLM each phase runs on and what a run costs; the tier
-presets that back it are in :doc:`platform`.
+Per-provider settings, pricing, and prompt loading. This is
+what decides which LLM each phase runs on and what a run costs; the model
+catalog and the tier presets that back it are in :doc:`platform`.
 
 Overview
 --------
 
-- **Model Catalog** — Model metadata, provider mappings, reasoning-effort
-  config. Populates the model picker; enforces sampling constraints.
 - **Model Resolution** — Pick the catalog entry a run uses from the request
   override, the persisted conversation state, or the role default.
 - **Model Settings** — Per-provider ``ModelSettings`` for pydantic-ai.
@@ -21,20 +19,6 @@ Overview
    Each phase role carries its own default model
    (:py:func:`pathfinder.ai.agents.registry.phase_defaults`). A request may
    override the model per phase; the conversation remembers the last choice.
-
-Model Catalog
--------------
-
-**Purpose:** The catalog of selectable models: cloud entries plus local
-entries read from YAML. Records which models support reasoning and which
-sampling parameters they refuse.
-
-**Key functions:** :py:func:`get_model_entry`, :py:func:`get_model_catalog`
-
-.. automodule:: pathfinder.ai.models.catalog
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Model Resolution
 ----------------

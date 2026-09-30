@@ -22,7 +22,6 @@ from veupathdb.observability.otel import OpenTelemetryObserver
 import pathfinder.jobs.app
 from pathfinder import main
 from pathfinder.jobs import logging_filters
-from pathfinder.platform.langfuse import prompts
 from pathfinder.platform.readiness import (
     SubsystemStatus,
     get_readiness,
@@ -104,7 +103,6 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         logging_filters, "install_procrastinate_redaction", lambda: None
     )
-    monkeypatch.setattr(prompts, "seed_prompts", lambda: None)
     monkeypatch.setattr(pathfinder.jobs.app, "procrastinate_app", _ProcrastinateApp())
     monkeypatch.setattr(sweeper, "run_sweeper_loop", _sweeper_loop)
 

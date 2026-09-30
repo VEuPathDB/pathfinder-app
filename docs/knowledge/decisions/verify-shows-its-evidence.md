@@ -44,9 +44,11 @@ says the target returned it or not. A count names controls ("positive controls",
 "negatives"), and the clause's verb says which list it is read from; a clause with no verb may
 name either. A claim is backed when a control result of this message holds it (a control test,
 a scored comparison variant, a sweep setting) or the last check's card does, while the
-strategy is the one that check judged. The Lead's reply is held by the `unbacked_evidence` rule of the turn contract; VERIFY's
-digest (prose, key findings) by an output validator on the verification agent, once
-per check (`TurnMarkers.refused_digests`, keyed by the dispatch). Each is refused once, with the recorded values in the correction, like an unrecorded question.
+strategy is the one that check judged. VERIFY's digest (prose, key findings) is held by an
+output validator on the verification agent, once per check (`TurnMarkers.refused_digests`,
+keyed by the dispatch), refused once with the recorded values in the correction. The Lead's
+reply states no control result at all: the facts part beside it shows each result of the turn,
+and `fact_outside_the_block` refuses a reply that restates a count or a gene id.
 
 ## The workbench
 

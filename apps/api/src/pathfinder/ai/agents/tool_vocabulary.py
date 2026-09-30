@@ -9,15 +9,13 @@ from __future__ import annotations
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
 
-from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
-
 __all__ = [
+    "CHECK_READS",
     "DISCOVERY_CALL_CAPS",
     "READ_ONLY_TOOLS",
+    "RECORD_READS",
     "SEARCH_LOOKUP_TOOLS",
-    "VERIFICATION_CALL_CAPS",
     "build_tool_repetition_guard",
-    "build_verification_repetition_guard",
 ]
 
 # Inspectors: the same call with the same arguments returns the same answer,
@@ -43,8 +41,10 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         # Strategy inspection
         "get_strategy",
         "get_estimated_size",
+        "read_step_columns",
         "get_sample_records",
         "get_download_url",
+        "read_step_ids",
         # Gene set reads
         "list_gene_sets",
         # Research, served by the research tool source
@@ -57,6 +57,8 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_live_strategy_state",
         "list_control_sets",
         "read_control_set",
+        # A repeat under one message answers from the first test.
+        "run_control_tests_on_step",
     }
 )
 
@@ -68,6 +70,27 @@ SEARCH_LOOKUP_TOOLS: frozenset[str] = frozenset(
         "get_parameter_options",
     }
 )
+
+
+# Reads whose answer, for one set of arguments, no call of a run changes. A
+# repeat of one in the same run is refused and names the call that answered it.
+RECORD_READS: frozenset[str] = frozenset(
+    {
+        "read_gene_record",
+        "lookup_gene_records",
+        "get_ai_expression_summary",
+        "resolve_gene_ids_to_records",
+    }
+)
+
+# A check writes no step, so its reads of the strategy are stable for its run too.
+CHECK_READS: frozenset[str] = RECORD_READS | {
+    "get_sample_records",
+    "get_strategy",
+    "read_step_ids",
+    "read_step_columns",
+    "get_estimated_size",
+}
 
 
 # A catalog tool answers from a fixed catalog, so a run that keeps rephrasing
@@ -84,24 +107,9 @@ DISCOVERY_CALL_CAPS: dict[str, int] = {
 }
 
 
-# A check reads the record of each gene it samples, and no more.
-VERIFICATION_CALL_CAPS: dict[str, int] = {
-    **DISCOVERY_CALL_CAPS,
-    "read_gene_record": SAMPLED_GENE_LIMIT,
-}
-
-
 def build_tool_repetition_guard() -> ToolRepetitionGuard:
     """A repetition guard that watches PathFinder's read-only tools."""
     return ToolRepetitionGuard(
         read_only_tools=READ_ONLY_TOOLS,
         call_caps=DISCOVERY_CALL_CAPS,
-    )
-
-
-def build_verification_repetition_guard() -> ToolRepetitionGuard:
-    """The guard of one check, which also caps its gene record reads."""
-    return ToolRepetitionGuard(
-        read_only_tools=READ_ONLY_TOOLS,
-        call_caps=VERIFICATION_CALL_CAPS,
     )

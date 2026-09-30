@@ -24,7 +24,11 @@ from pathfinder.domain.evidence import (
     SiteRead,
     VerificationReview,
 )
-from pathfinder.domain.strategy.build_outcome import NodeResult
+from pathfinder.domain.strategy.build_outcome import (
+    BuiltCounts,
+    NodeResult,
+    built_counts,
+)
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.services.evidence.control_enrichment import with_enrichment
 from pathfinder.services.strategies.site_counts import SiteCounts, read_step_counts
@@ -44,6 +48,8 @@ class CardSources:
     # The root the strategy was pushed with, for a site that does not answer.
     root_wdk_step_id: int | None
     node_results: Sequence[NodeResult]
+    # The counts the session holds for the judged strategy.
+    counts: BuiltCounts
     spec: OperationalSpec | None
     control_tests: Sequence[ControlTestRun]
     # The study steps the site did not describe, by label.
@@ -66,7 +72,7 @@ def _steps(sources: CardSources, site: SiteCounts | None) -> list[CheckedStepCou
             step_id=result.node_id,
             wdk_step_id=result.wdk_step_id,
             title=sources.labels.get(result.node_id, result.search_name),
-            recorded_count=result.count,
+            recorded_count=sources.counts.of(result.node_id),
             site_count=None if site is None else site.counts.get(result.wdk_step_id),
         )
         for result in sources.node_results
@@ -157,6 +163,7 @@ def _sources(
         wdk_strategy_id=None if sync is None else sync.wdk_strategy_id,
         root_wdk_step_id=None if sync is None else sync.wdk_root_step_id,
         node_results=derive_ledger(deps.state, deps.intent).build.node_results,
+        counts=built_counts(graph, sync),
         spec=deps.state.domain.operational_spec,
         control_tests=deps.state.turn_markers.control_tests,
         pending_checks=pending_checks,

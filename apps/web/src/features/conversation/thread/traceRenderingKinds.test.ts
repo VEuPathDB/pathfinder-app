@@ -37,6 +37,7 @@ describe("traceRenderingKinds", () => {
       "data-scratchpad-updated",
       "data-ledger-update",
       "data-strategy-revision",
+      "data-delete-cascade",
       "data-user-question-answers",
     ]) {
       expect(kinds.has(kind)).toBe(false);

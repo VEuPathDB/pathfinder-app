@@ -37,6 +37,7 @@ from pathfinder.ai.graph.state import (
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
 from pathfinder.domain.memory import MEMORY_KINDS
 from pathfinder.domain.message_rating import pinned
+from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 
 FOREIGN_PACKAGES = (
@@ -130,7 +131,7 @@ def test_the_product_turns_a_verified_turn_into_its_candidates() -> None:
 
     state.turn_markers.verification_dispatched = True
 
-    candidates = collect_memory_candidates(state)
+    candidates = collect_memory_candidates(state, counts=BuiltCounts())
 
     assert [(value.kind, key) for value, key in candidates] == [
         ("gene_set_note", "gene_set_note:gs-1"),

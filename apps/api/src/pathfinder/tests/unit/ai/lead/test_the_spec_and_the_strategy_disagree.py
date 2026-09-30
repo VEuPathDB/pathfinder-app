@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
 )
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     CANVAS,
     PROTEOME,
@@ -181,9 +182,9 @@ def _with_the_option(value: str | None) -> Draft:
                 id=_OPTION,
                 text="read the 2019 dataset",
                 search_name="GenesByRNASeqEvidence",
-                resolved_params={}
-                if value is None
-                else {"dataset": StringValue(value=value)},
+                resolved_params=bound(
+                    {} if value is None else {"dataset": StringValue(value=value)}
+                ),
                 open_params=[]
                 if value is not None
                 else [OpenSlot(criterion_id=_OPTION, param_name="dataset")],

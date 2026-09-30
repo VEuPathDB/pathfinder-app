@@ -9,6 +9,7 @@ import { ApprovalCard } from "./ApprovalCard";
 const INPUT = { wdkStepId: 132, searchName: "GenesByText" };
 
 function draw(patch: {
+  removes?: string[];
   showRaw?: boolean;
   decision?: "pending" | "approved" | "denied";
   onApprove?: () => void;
@@ -22,6 +23,7 @@ function draw(patch: {
       onApprove={patch.onApprove ?? (() => {})}
       onDeny={patch.onDeny ?? (() => {})}
       decision={patch.decision ?? "pending"}
+      removes={patch.removes ?? []}
     />,
   );
 }
@@ -31,6 +33,16 @@ describe("ApprovalCard", () => {
     draw({});
     expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
       "Optimize parameters needs your approval before it runs.",
+    );
+  });
+
+  it("keeps the title a question and lists what else goes beneath it", () => {
+    draw({ removes: ["'Minus' (363 genes)", "'Intersect' (116 genes)"] });
+    expect(screen.getByTestId("approval-card-title")).toHaveTextContent(
+      "Optimize parameters needs your approval before it runs.",
+    );
+    expect(screen.getByTestId("approval-card-cascade")).toHaveTextContent(
+      "It also removes:'Minus' (363 genes)'Intersect' (116 genes)",
     );
   });
 

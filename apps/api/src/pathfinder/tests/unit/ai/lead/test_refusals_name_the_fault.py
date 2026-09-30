@@ -37,6 +37,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
+from pathfinder.tests._support.bound_values import bound
 
 # What no refusal of an edit or a build may offer as a way out.
 _REBUILD_WORDS = ("rebuild", "replace", "from scratch", "start over")
@@ -118,9 +119,9 @@ def _spec_with_an_unplaced_option() -> OperationalSpec:
                 id="c_option",
                 text="restrict to Anopheles gambiae",
                 search_name="GenesByTaxon",
-                resolved_params={
-                    "organism": MultiPickValue(values=["Anopheles gambiae PEST"])
-                },
+                resolved_params=bound(
+                    {"organism": MultiPickValue(values=["Anopheles gambiae PEST"])}
+                ),
             ),
         ],
         structure=SpecStructure(root=StructureNode(kind="leaf", criterion_id="c_text")),

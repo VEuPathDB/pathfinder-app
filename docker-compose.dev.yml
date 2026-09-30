@@ -53,13 +53,10 @@ services:
       target: dev
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:8000}
-        NEXT_PUBLIC_TELEMETRY_ENABLED: ${NEXT_PUBLIC_TELEMETRY_ENABLED:-true}
         NEXT_PUBLIC_DEPLOYMENT_ENV: ${NEXT_PUBLIC_DEPLOYMENT_ENV:-development}
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:8000}
-      NEXT_PUBLIC_TELEMETRY_ENABLED: ${NEXT_PUBLIC_TELEMETRY_ENABLED:-true}
       NEXT_PUBLIC_DEPLOYMENT_ENV: ${NEXT_PUBLIC_DEPLOYMENT_ENV:-development}
-      SIGNOZ_OTEL_COLLECTOR_HTTP: ${SIGNOZ_OTEL_COLLECTOR_HTTP:-http://signoz-otel-collector:4318}
     develop:
       watch:
         - action: sync

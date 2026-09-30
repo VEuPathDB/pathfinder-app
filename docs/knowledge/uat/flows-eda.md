@@ -67,7 +67,9 @@ Measured: exactly the numbers above, 146 s, $0.070 (through the worker). The evi
 
 ## E6 - Your own uploaded dataset - plasmodb
 
-Needs a counts file the site accepts: an RNA-Seq count matrix with a sample-details file and no sample column named `label` (the site's importer fails on it). The live check used a stranded matrix of 5,720 genes by 12 samples (545 KB).
+The same comparison on an upload the account already holds, exported on the site's user-dataset search, is [UD2](flows-user-datasets.md#ud2---the-same-comparison-through-the-analysis-view).
+
+Needs a counts file the site accepts: an RNA-Seq count matrix with a sample-details file. The live check used a stranded matrix of 5,720 genes by 12 samples (545 KB). The site's importer can end `import: failed` with exit 255 on a file it installs the next time; upload the same files again. An `import: invalid` names what is wrong with the file.
 
 | Step | Where | Do | Expect |
 |---|---|---|---|

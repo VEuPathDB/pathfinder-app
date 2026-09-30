@@ -77,10 +77,10 @@ is; the confirm read covers only the whole tree.
 and each criterion's, the informative and skipped counts, and the task id. It
 names no gene. The whole report rides the `data-separation-result` part.
 
-**Claims.** A reply may cite the offer's read and each leaf's own counts: the
-turn contract backs a control count with the offer the turn's card carries and
-the offer the thread adopted (`AttachedControls.task_id`), beside the turn's
-control tests and the last check's card. An earlier offer backs nothing.
+**Claims.** The card shows the offer's read and each leaf's own counts, and the
+facts part beside the reply shows the control results of the turn; the reply
+restates none of them, and the turn contract's `fact_outside_the_block` refuses
+one that does.
 
 # What was rejected
 

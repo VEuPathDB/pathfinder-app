@@ -8,7 +8,6 @@ graded distance beside the verdict.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -19,15 +18,16 @@ from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.step_rationale import said_beside
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.case import EvalCase, GateEnd
+from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import (
     ComparisonNode,
     StrategyDistance,
     strategy_distance,
     tree_from_signature,
 )
+from pathfinder.evals.phrases import PhraseTexts, phrase_differences, shown
 
 NO_STRATEGY = "(none)"
-_SPACING = re.compile(r"[\s-]+")
 
 
 def _node_signature(node: StrategyStepNode, inputs: list[str]) -> str:
@@ -101,15 +101,17 @@ class RequirementCounts(CamelModel):
     met: int = 0
     unmet: int = 0
     unexpressed: int = 0
+    unjudged: int = 0
 
 
 def requirement_counts(rows: Sequence[RequirementCheck]) -> RequirementCounts:
-    """The check's requirement rows, counted by status."""
-    statuses = [row.status for row in rows]
+    """The check's requirement rows, counted by the status a reader is shown."""
+    statuses = [row.shown_status for row in rows]
     return RequirementCounts(
         met=statuses.count("met"),
         unmet=statuses.count("unmet"),
         unexpressed=statuses.count("unexpressed"),
+        unjudged=statuses.count("unjudged"),
     )
 
 
@@ -129,6 +131,12 @@ class ObservedOutcome(CamelModel):
     # The title and the recorded term of each step that says why it runs.
     step_reasons: list[tuple[str, str]] = Field(default_factory=list)
     reply_text: str = ""
+    # The facts part the last turn showed beside its reply, one line each.
+    facts_text: str = ""
+    # The reply each turn ended on, in turn order; the last is ``reply_text``.
+    turn_replies: list[str] = Field(default_factory=list)
+    # The facts part each turn showed, in turn order; empty where it showed none.
+    turn_facts: list[str] = Field(default_factory=list)
     # None when no strategy was built, so no step holds a count.
     counts_in_genes: bool | None = None
     root_operator: str | None = None
@@ -141,16 +149,8 @@ class ObservedOutcome(CamelModel):
     ends_on: GateEnd | None = None
     # The tool of each refused call over every turn of the case, in order.
     refused_tools: list[str] = Field(default_factory=list)
-
-
-class CaseDifference(CamelModel):
-    """One named disagreement between the expectation and the run."""
-
-    model_config = ConfigDict(frozen=True)
-
-    field: str
-    expected: str
-    actual: str
+    # Applied values the request did not state, or None when nothing counted them.
+    assumed: int | None = None
 
 
 class CaseScore(CamelModel):
@@ -202,51 +202,45 @@ def _value_differences(
         ("countsInGenes", expected.counts_in_genes, observed.counts_in_genes),
         ("endsOn", expected.ends_on, observed.ends_on),
     )
-    return [
+    differences = [
         CaseDifference(field=field, expected=str(want), actual=str(got))
         for field, want, got in compared
         if want is not None and want != got
     ]
-
-
-def _phrase_form(text: str) -> str:
-    """Text as a phrase is matched: no case, a hyphen reads as a space, one space."""
-    return _SPACING.sub(" ", text.casefold())
+    # A run that counted no assumed values says nothing about them.
+    stated, assumed = expected.assumed_stated, observed.assumed
+    if stated is not None and assumed is not None and stated != assumed:
+        differences.append(
+            CaseDifference(
+                field="assumedStated", expected=str(stated), actual=str(assumed)
+            ),
+        )
+    return differences
 
 
 def _phrase_differences(
     case: EvalCase,
     observed: ObservedOutcome,
 ) -> list[CaseDifference]:
-    reply = _phrase_form(observed.reply_text)
-    missing = [p for p in case.expected.reply_mentions if _phrase_form(p) not in reply]
-    present = [p for p in case.expected.reply_omits if _phrase_form(p) in reply]
-    differences: list[CaseDifference] = []
-    if missing:
-        differences.append(
-            CaseDifference(
-                field="replyMentions",
-                expected=", ".join(missing),
-                actual=observed.reply_text[:200],
-            ),
-        )
-    if present:
-        differences.append(
-            CaseDifference(
-                field="replyOmits",
-                expected=", ".join(present),
-                actual=observed.reply_text[:200],
-            ),
-        )
-    return differences
+    return phrase_differences(
+        case.expected,
+        PhraseTexts(
+            reply=observed.reply_text,
+            facts=observed.facts_text,
+            turn_replies=observed.turn_replies,
+            turn_facts=observed.turn_facts,
+        ),
+    )
 
 
 def _title_differences(
     case: EvalCase,
     observed: ObservedOutcome,
 ) -> list[CaseDifference]:
-    """The reply names what runs, and no step is titled by the forbidden words."""
-    reply = observed.reply_text.casefold()
+    """What the turn showed names what runs, and no step is titled by the
+    forbidden words."""
+    text = shown(observed.facts_text, observed.reply_text)
+    reply = text.casefold()
     differences: list[CaseDifference] = []
     if case.expected.reply_names_its_searches:
         unnamed = [t for t in observed.step_titles if t.casefold() not in reply]
@@ -261,7 +255,7 @@ def _title_differences(
     unreasoned = [
         title
         for title, term in observed.step_reasons
-        if not said_beside(observed.reply_text, title, term)
+        if not said_beside(text, title, term)
     ]
     if case.expected.reply_gives_its_reasons and unreasoned:
         differences.append(
@@ -304,6 +298,11 @@ def _requirement_differences(
             "unmetRequirements",
             case.expected.unmet_requirements,
             None if counted is None else counted.unmet,
+        ),
+        (
+            "unexpressedRequirements",
+            case.expected.unexpressed_requirements,
+            None if counted is None else counted.unexpressed,
         ),
     )
     return [
@@ -412,7 +411,6 @@ def score_case(case: EvalCase, observed: ObservedOutcome) -> CaseScore:
 
 __all__ = [
     "NO_STRATEGY",
-    "CaseDifference",
     "CaseScore",
     "ObservedOutcome",
     "RequirementCounts",

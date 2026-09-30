@@ -1,0 +1,23 @@
+[Unit]
+Description=Pathfinder Langfuse ClickHouse, the trace and observation store
+
+[Container]
+ContainerName=pathfinder-langfuse-clickhouse
+Image=docker.io/clickhouse/clickhouse-server:25.12
+Network=pathfinder.network
+User=101:101
+Volume=pathfinder-langfuse-clickhouse-data.volume:/var/lib/clickhouse
+Volume=pathfinder-langfuse-clickhouse-logs.volume:/var/log/clickhouse-server
+# CLICKHOUSE_USER and CLICKHOUSE_PASSWORD, which Langfuse reads too.
+EnvironmentFile=%h/.config/pathfinder/langfuse.env
+Environment=CLICKHOUSE_DB=default
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8123/ping
+HealthInterval=5s
+HealthTimeout=5s
+HealthRetries=10
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

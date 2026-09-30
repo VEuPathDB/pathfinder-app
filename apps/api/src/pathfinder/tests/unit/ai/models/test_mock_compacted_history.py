@@ -38,6 +38,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff
+from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.tool_exchange import tool_exchange
 
 _PF = "Plasmodium falciparum 3D7"
@@ -85,10 +86,12 @@ def _edit_order() -> str:
                 text=f"{_PF} genes with 2 to 99 transmembrane domains",
                 search_name="GenesByTransmembraneDomains",
                 role="seed",
-                resolved_params={
-                    "organism": MultiPickValue(values=[_PF]),
-                    "min_tm": StringValue(value="2"),
-                },
+                resolved_params=bound(
+                    {
+                        "organism": MultiPickValue(values=[_PF]),
+                        "min_tm": StringValue(value="2"),
+                    }
+                ),
             )
         ],
         structure=SpecStructure(

@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.operations import (
     AddLeafOp,
     UpdateStepParamsOp,
 )
+from pathfinder.tests._support.bound_values import bound
 
 from ._builders import (
     graph_of,
@@ -44,7 +45,9 @@ def _unbuilt(value: float | None = None) -> Criterion:
         id=_UNBUILT,
         text="two or more transmembrane domains",
         search_name=_SEARCH,
-        resolved_params={} if value is None else {_PARAM: NumberValue(value=value)},
+        resolved_params=bound(
+            {} if value is None else {_PARAM: NumberValue(value=value)}
+        ),
         open_params=[]
         if value is not None
         else [OpenSlot(criterion_id=_UNBUILT, param_name=_PARAM)],
@@ -105,9 +108,9 @@ def test_a_built_criterion_beside_it_is_changed_on_its_live_step() -> None:
     after = _answered(before)
     for criterion in after.criteria:
         if criterion.id == "step_expr":
-            criterion.resolved_params = {
-                "min_expression_percentile": NumberValue(value=75)
-            }
+            criterion.resolved_params = bound(
+                {"min_expression_percentile": NumberValue(value=75)}
+            )
 
     ops = plan(before, after, graph_of(root))
 
