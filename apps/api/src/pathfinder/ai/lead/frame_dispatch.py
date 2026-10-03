@@ -106,7 +106,9 @@ def _continues_the_draft(deps: LeadDeps, spec: OperationalSpec) -> bool:
 
 
 # A repeated call is a loop the guard ended, so it is never continued.
-_CONTINUED_STOPS = frozenset({PhaseStopReason.BUDGET, PhaseStopReason.TOOL_RETRIES})
+_CONTINUED_STOPS = frozenset(
+    {PhaseStopReason.BUDGET, PhaseStopReason.TOOL_RETRIES, PhaseStopReason.PROVIDER}
+)
 
 
 def _stop_to_continue(
@@ -117,12 +119,18 @@ def _stop_to_continue(
     A budget stop, or a tool that refused every attempt, after the pass bound
     a criterion it did not start with has work left to continue, and the
     continuation is the system's to run. A pass that bound nothing repeats
-    itself, so the Lead hears about it instead.
+    itself, so the Lead hears about it instead. A request the provider did not
+    complete is no fault of the pass, so it is continued whatever it bound.
     """
     stop = deps.last_phase_stop
     if stop is None or stop.reason not in _CONTINUED_STOPS:
         return None
-    if deps.frame_retried_after_stop or _bound_count(draft) <= bound_before:
+    if deps.frame_retried_after_stop:
+        return None
+    if (
+        stop.reason is not PhaseStopReason.PROVIDER
+        and _bound_count(draft) <= bound_before
+    ):
         return None
     return stop
 

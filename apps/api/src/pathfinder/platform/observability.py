@@ -26,9 +26,13 @@ def langfuse_ingress_headers(settings: Settings) -> dict[str, str]:
 def trace_routes(app: FastAPI) -> None:
     """Open one server span per request on the process's tracer.
 
-    The spans are no-ops until ``setup_observability`` installs a provider.
+    The spans are no-ops until ``setup_observability`` installs a provider. A
+    streamed response sends one message per chunk, so the per-message spans
+    are left out and the request is one span.
     """
-    FastAPIInstrumentor.instrument_app(app, excluded_urls="health")
+    FastAPIInstrumentor.instrument_app(
+        app, excluded_urls="health", exclude_spans=["receive", "send"]
+    )
 
 
 def setup_observability(

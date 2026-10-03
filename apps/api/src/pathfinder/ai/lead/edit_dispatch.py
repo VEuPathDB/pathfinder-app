@@ -152,15 +152,22 @@ async def run_edit(
     planned = spec_without_pending_analyses(after)
     diff = diff_specs(before, planned)
     if frame.disposition != "spec_ready":
+        # Nothing is pushed before the answer, so the delta carries no diff: a
+        # row that read "changed" would state a change the strategy does not hold.
         asked = {q.prompt for q in frame.card_questions}
         return EditDelta(
-            diff=diff,
+            diff=SpecDiff(),
             disposition="needs_user",
             summary=frame.summary,
             open_questions=[
                 q for q in deps.state.domain.open_questions if q.question in asked
             ],
             card_questions=frame.card_questions,
+            pending_step_ids=[
+                c.criterion_id
+                for c in diff.changes
+                if c.disposition in {"added", "changed"}
+            ],
         )
     _refuse_a_removal_the_card_owns(deps, diff, graph)
     moved = organism_move_refusal(
@@ -416,8 +423,11 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     from it, and ``added_step_ids`` names the criteria it built a step for. A
     criterion framed on an earlier turn and built here reads as added in both.
     A claim about what the whole turn did to the spec it started from is read
-    from ``ledger.frame.diff`` instead. Disposition ``unbound`` ends the edit:
-    nothing was applied, and the reply names what could not be bound.
+    from ``ledger.frame.diff`` instead. Disposition ``needs_user`` pushed
+    nothing: its ``diff`` is empty and ``pending_step_ids`` names the criteria
+    the plan moved, which the strategy does not hold until the answer. Disposition
+    ``unbound`` ends the edit: nothing was applied, and the reply names what
+    could not be bound.
     """
     tool_call_id = dispatch_call_id(ctx)
     try:

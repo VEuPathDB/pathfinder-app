@@ -98,7 +98,12 @@ order and the restore target of a refusal stay `spec_before_dispatch`, the plan
 the dispatch found. A pass that ends `needs_user` leaves both answered facts
 alone, so the value it moved on a built criterion and the criterion it framed
 are still this edit's to push when the follow-up answers the question. The
-planning diff is the delta the reply is read from, so
+facts part reads a built step's rows from `answered_spec`
+(`ai/lead/turn_facts.py`), so a value the pass moved and no push wrote is
+never shown beside the count the step still answers. A `needs_user` delta
+carries no diff and names the criteria the plan moved in `pending_step_ids`,
+so no reply read from it calls a value changed before the push. The
+planning diff of a pushed edit is the delta the reply is read from, so
 `diff.added_count == len(added_step_ids)`; a disagreement is refused with the
 repair, never asserted.
 

@@ -14,12 +14,14 @@ from pathfinder.domain.strategy.words import words_of
 
 class PhaseStopReason(StrEnum):
     """What ended the run: its call budget, one call it kept repeating, one
-    tool called past its own budget, or a tool that refused every attempt."""
+    tool called past its own budget, a tool that refused every attempt, or a
+    model request the provider did not complete."""
 
     BUDGET = "budget"
     REPEATED_CALL = "repeated_call"
     CALL_CAP = "call_cap"
     TOOL_RETRIES = "tool_retries"
+    PROVIDER = "provider"
 
 
 _REASON_PHRASE: dict[PhaseStopReason, str] = {
@@ -27,6 +29,7 @@ _REASON_PHRASE: dict[PhaseStopReason, str] = {
     PhaseStopReason.REPEATED_CALL: "stopped after repeating one call",
     PhaseStopReason.CALL_CAP: "stopped past its call budget for {tool}",
     PhaseStopReason.TOOL_RETRIES: "stopped on a call one tool kept refusing",
+    PhaseStopReason.PROVIDER: "stopped on a model request the provider did not complete",
 }
 
 _PASS_NAME: dict[PhaseRole, str] = {

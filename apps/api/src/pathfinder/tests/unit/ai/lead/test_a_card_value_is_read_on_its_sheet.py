@@ -112,5 +112,5 @@ async def test_a_picked_term_shows_the_label_its_sheet_gives_it(
     assert (read, fact.value, fact.label) == (
         [[_SEARCH]],
         "PF00069",
-        "PF00069 : Protein kinase domain",
+        "Protein kinase domain",
     )

@@ -327,6 +327,7 @@ class LeadDeps:
     unanswered_stage: UnansweredStage | None = None
     # A budget stop that bound something is dispatched again once per turn.
     frame_retried_after_stop: bool = False
+    verify_retried_after_stop: bool = False
     # A FRAME pass that asked the user about a criterion its draft does not
     # hold is refused once. The next one reaches the Lead whatever it asks.
     unbound_questions_reported: bool = False

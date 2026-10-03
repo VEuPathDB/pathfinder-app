@@ -83,6 +83,12 @@ class StrategyGraph:
             key=lambda sid: (self.subtree_size(sid), -ordered.index(sid)),
         )
 
+    def steps_in_tree_order(self, root_id: str) -> list[StrategyStep]:
+        """The steps under the root, each after the inputs it reads."""
+        step = self.steps[root_id]
+        inputs = [s for sid in step.input_ids() for s in self.steps_in_tree_order(sid)]
+        return [*inputs, step]
+
     def subtree_size(self, step_id: str) -> int:
         return len(subtree_ids(step_id, self.steps))
 

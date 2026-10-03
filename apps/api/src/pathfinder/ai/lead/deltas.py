@@ -142,6 +142,14 @@ class EditDelta(CamelModel):
     )
     preserved_step_ids: list[str] = Field(default_factory=list)
     dropped_step_ids: list[str] = Field(default_factory=list)
+    pending_step_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The criteria a pass that ended in a question moved in the plan and "
+            "no push wrote: the strategy still runs their earlier values, so no "
+            "sentence calls them changed."
+        ),
+    )
     failed_step_ids: list[str] = Field(default_factory=list)
 
 

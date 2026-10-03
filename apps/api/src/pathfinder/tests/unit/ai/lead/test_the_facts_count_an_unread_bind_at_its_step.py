@@ -6,7 +6,6 @@ from __future__ import annotations
 from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
-from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
@@ -16,7 +15,11 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import (
+    domain_answering,
+    lead_deps,
+    pipeline_state,
+)
 
 _STEP = "c_ortholog_agam_pest"
 _SEARCH = "GenesByOrthologPattern"
@@ -59,9 +62,7 @@ def _session(count: int | None) -> StrategySession:
 
 
 def _facts(count: int | None) -> tuple[list[str], list[str]]:
-    state = pipeline_state(
-        "vectorbase", domain=StrategyDomainState(operational_spec=_spec())
-    )
+    state = pipeline_state("vectorbase", domain=domain_answering(_spec()))
     facts = turn_facts(lead_deps(state, strategy_session=_session(count)))
     [step] = facts.steps
     [row] = step.parameters

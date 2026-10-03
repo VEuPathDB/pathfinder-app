@@ -15,11 +15,11 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import evidence_card, verify_dispatch
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.ai.lead.verify_dispatch import (
     RootSample,
     SearchStep,
     run_verification,
-    verification_scope,
     work_order,
 )
 from pathfinder.domain.caveats import RequirementGap, SampleCaveat
@@ -409,3 +409,25 @@ async def test_only_a_text_query_is_held_to_the_records_and_an_ask_files_no_row(
         ("protein kinase activity", "met"),
         ("trans-sialidase", "unshown"),
     ]
+
+
+def test_the_scope_lists_each_count_the_edit_moved() -> None:
+    deps = _deps()
+    deps.state.turn_markers.record_arrival("s1", {"s1": 823})
+    deps.state.turn_markers.edited = True
+    session = deps.runtime.strategy_session
+    assert session.sync_state is not None
+    session.sync_state.step_counts["s1"] = 410
+
+    scope = verification_scope(deps, check_id="call_verify")
+
+    assert scope.before == [
+        "[s1] GenesWithSignalPeptide: 823 before this turn's edit, 410 now"
+    ]
+
+
+def test_a_turn_that_wrote_nothing_lists_no_count_before() -> None:
+    deps = _deps()
+    deps.state.turn_markers.record_arrival("s1", {"s1": 823})
+
+    assert verification_scope(deps, check_id="call_verify").before == []

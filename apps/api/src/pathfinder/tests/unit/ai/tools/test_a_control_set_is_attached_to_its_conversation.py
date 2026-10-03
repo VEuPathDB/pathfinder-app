@@ -10,7 +10,7 @@ from assistant_core.platform.db import DBSessionFactory
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from pathfinder.ai.lead.verify_dispatch import verification_scope
+from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.ai.tools.standalone import (
     control_sets,
     experiment,

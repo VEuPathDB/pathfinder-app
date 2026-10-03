@@ -317,7 +317,9 @@ async def set_criterion(
         PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset(),
         state,
     )
-    refuse_what_the_words_decide(definition, call, infos, state.request_messages)
+    refuse_what_the_words_decide(
+        definition, call, infos, state.request_messages, state.stated_requirements
+    )
     refuse_a_pick_no_lookup_read(state, definition, call, infos)
     # A null proposal states no value, so it leaves the param to resolution.
     # The derived pattern replaces the two lists it was derived from.

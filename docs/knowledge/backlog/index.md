@@ -26,9 +26,7 @@ what left.
 18. [The retired row names the dropped criterion's requirement](the-retired-row-names-the-dropped-criterions-requirement.md) - a MINUS arm's delete prints `'kinase AND no TM' is withdrawn` while the kinase step runs.
 19. [A card holds one change per stated part](a-card-holds-one-change-per-stated-part.md) - a two-arm request gets a one-change card called focused; the card is held to the classifier's asks and unique genes show products.
 21. [A count question about a catalog search is answered read-only](a-count-question-about-a-catalog-search-is-answered-read-only.md) - four guessed search names refused, the reply claims the search is absent; a read-only catalog count.
-22. [The check reads the counts before the edit](the-check-reads-the-counts-before-the-edit.md) - VERIFY fails a correct percentile edit for want of the before count the facts show; the scope carries the turn's before counts.
 24. [A genus the message names is stated on its species](a-genus-the-message-names-is-stated-on-its-species.md) - "Cryptosporidium" binds as 30 chosen species with a stale took-0-of-0 row; the parent the message names is stated.
-25. [A mid-stream provider error retries the stage once](a-mid-stream-provider-error-retries-the-stage-once.md) - a provider error inside a model stream ends the turn with a stop reply that suggests a model change; the stage's request is re-sent once.
 27. [A carry to orthologs is one transform](a-carry-to-orthologs-is-one-transform.md) - "carry these to their orthologs in X" is built as a round trip that keeps the source organism; the words choose the shape.
 28. [A lookup ranks the request's own words first](a-lookup-ranks-the-requests-own-words-first.md) - a capped lookup list hides the entries that carry the request's words behind the pass's synonyms; the library's `read_options` ranks them first.
 

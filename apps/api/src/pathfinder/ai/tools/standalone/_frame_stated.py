@@ -3,7 +3,7 @@ the organism entry it names, and a text term it asks for as a phrase."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from pydantic_ai import ModelRetry
@@ -17,6 +17,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
+from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
 from pathfinder.domain.strategy.text_expression import (
     TextExpression,
@@ -79,27 +80,37 @@ def _organism_tree(definition: WDKSearch, name: str) -> _OrganismTree:
     return tree
 
 
+def _entries_stated(texts: Sequence[str], displays: Mapping[str, str]) -> list[str]:
+    """The vocabulary values the texts state whole, in the order stated."""
+    return [
+        displays[s.entry]
+        for text in texts
+        for s in stated_organisms(text, list(displays))
+    ]
+
+
 def _refuse_an_organism_the_request_does_not_name(
     definition: WDKSearch,
     call: CriterionCall,
     info: ParameterInfo,
-    messages: Sequence[str],
+    requirements: Sequence[Constraint],
 ) -> None:
     """Refuse a bind that holds a sibling or an ancestor of an organism entry
     the request names whole, in place of that entry.
 
-    A named entry is covered by itself and by any entry under it. An entry of
-    another lineage belongs to another criterion and is never refused.
+    The request names the organisms its live requirements state: a value a
+    later message replaced or withdrew is no longer named. A named entry is
+    covered by itself and by any entry under it. An entry of another lineage
+    belongs to another criterion and is never refused.
     """
     options = info.vocabulary()
     proposed = proposal_values(call.params.get(info.name))
     bound = [term for v in proposed if (term := match_exact_option(options, v))]
     displays = {option.display: option.value for option in options}
-    named = [
-        displays[s.entry]
-        for message in messages
-        for s in stated_organisms(message, list(displays))
-    ]
+    named = _entries_stated(
+        [c.requested_value for c in requirements if c.kind is ConstraintKind.ORGANISM],
+        displays,
+    )
     tree = _organism_tree(definition, info.name)
     substituted = [
         n
@@ -109,7 +120,7 @@ def _refuse_an_organism_the_request_does_not_name(
     ]
     if substituted:
         msg = (
-            f"{info.display_name} on {call.search_name} holds {proposed}, and the "
+            f"{info.display_name} on {call.search_name} binds {proposed}, and the "
             f"request names {substituted[0]!r}, an entry of this vocabulary. Bind "
             "the entry the request names, or ask the researcher which one they mean."
         )
@@ -140,16 +151,19 @@ def refuse_what_the_words_decide(
     call: CriterionCall,
     infos: Sequence[ParameterInfo],
     messages: Sequence[str],
+    requirements: Sequence[Constraint],
 ) -> None:
     """Refuse an organism bind that leaves out the entry the request names, and
     an unquoted text term the request asks for as a phrase.
 
-    A dependent organism parameter is checked once its parents are bound.
+    ``requirements`` are the ones the thread holds live, which decide the
+    organism; ``messages`` decide the phrase. A dependent organism parameter is
+    checked once its parents are bound.
     """
     for info in infos:
         if info.organism_param and not info.vocab_depends_on:
             _refuse_an_organism_the_request_does_not_name(
-                definition, call, info, messages
+                definition, call, info, requirements
             )
         if parameter_class(info) == "string":
             _refuse_an_unquoted_phrase(call, info, messages)

@@ -92,8 +92,11 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
 class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSettings):
     """Application settings loaded from environment variables."""
 
+    # A key declared with no value is the default, so an env file may name
+    # every key its example declares.
     model_config = SettingsConfigDict(
         env_file=(str(REPO_ROOT / ".env"), str(API_DIR / ".env")),
+        env_ignore_empty=True,
     )
 
     # API

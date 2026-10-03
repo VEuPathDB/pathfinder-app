@@ -32,7 +32,7 @@ Environment=REDIS_HOST=pathfinder-langfuse-redis
 Environment=REDIS_PORT=6379
 Environment=REDIS_TLS_ENABLED=false
 Environment=HOSTNAME=0.0.0.0
-HealthCmd=wget --spider -q http://localhost:3000/api/public/health
+HealthCmd=wget --spider -q http://127.0.0.1:3000/api/public/health
 HealthInterval=10s
 HealthTimeout=5s
 HealthStartPeriod=120s

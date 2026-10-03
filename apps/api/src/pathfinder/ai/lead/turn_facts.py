@@ -123,13 +123,6 @@ def _reason(criterion: Criterion | None) -> str:
     return criterion.rationale.line()
 
 
-def _in_tree_order(root_id: str, graph: StrategyGraph) -> list[StrategyStep]:
-    """The steps under the root, each after the inputs it reads."""
-    step = graph.steps[root_id]
-    inputs = [s for sid in step.input_ids() for s in _in_tree_order(sid, graph)]
-    return [*inputs, step]
-
-
 def _step_fact(
     step: StrategyStep,
     criteria: Mapping[str, Criterion],
@@ -178,7 +171,7 @@ def _built_steps(
         _step_fact(
             step, criteria, counts, errors, counted_noun(graph.record_type), said
         )
-        for step in _in_tree_order(root_id, graph)
+        for step in graph.steps_in_tree_order(root_id)
     ]
 
 
@@ -303,11 +296,14 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     domain = state.domain
     session = deps.runtime.strategy_session
     spec = _counted_live(domain.operational_spec, session.sync_state)
+    # A built step runs the values the strategy answers to; a draft a pass
+    # bound and no push wrote is the plan, not the step.
+    answered = _counted_live(domain.answered_spec, session.sync_state)
     graph = session.get_graph(None)
     ledger = derive_ledger(state, deps.intent)
     said = state.researcher_messages()
     built = with_counts_before(
-        _built_steps(graph, spec, session.sync_state, ledger.build.outcome, said),
+        _built_steps(graph, answered, session.sync_state, ledger.build.outcome, said),
         markers,
     )
     verdict = state.turn_verdict

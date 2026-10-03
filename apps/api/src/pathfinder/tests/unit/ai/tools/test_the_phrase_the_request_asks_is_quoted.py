@@ -26,7 +26,9 @@ def _bind(message: str, term: str) -> str:
         text="polar tube protein in the product field",
         params={"text_expression": term, "text_fields": ["product"]},
     )
-    refuse_what_the_words_decide(_TEXT, call, _INFOS, ["Polar tube protein.", message])
+    refuse_what_the_words_decide(
+        _TEXT, call, _INFOS, ["Polar tube protein.", message], []
+    )
     return term
 
 

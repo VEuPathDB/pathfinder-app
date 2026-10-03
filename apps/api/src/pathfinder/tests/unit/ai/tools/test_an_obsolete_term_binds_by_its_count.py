@@ -29,7 +29,7 @@ from pathfinder.tests.unit.services.strategies.test_an_obsolete_term_is_named_at
 
 _INFOS = format_param_info_typed([_GO_TYPEAHEAD])
 _OBSOLETE = "GO:0009296"
-_LABEL = "GO:0009296 : obsolete flagellum assembly : 0"
+_LABEL = "obsolete flagellum assembly"
 
 
 async def _fetch(_context: dict[str, str]) -> list[ParameterInfo]:

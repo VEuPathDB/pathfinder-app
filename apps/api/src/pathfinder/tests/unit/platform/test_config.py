@@ -327,3 +327,18 @@ def test_the_provider_key_secret_never_prints() -> None:
     encoded = base64.urlsafe_b64encode(bytes(range(32))).decode()
 
     assert repr(make_settings(provider_key_encryption_key=encoded)).count(encoded) == 0
+
+
+def test_a_key_declared_with_no_value_reads_as_the_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An env file may name every key its example declares and leave one empty."""
+    monkeypatch.setenv("LEAD_TURN_TOKEN_LIMIT", "")
+    monkeypatch.setenv("CORS_ORIGIN_REGEX", "")
+
+    settings = make_settings()
+
+    assert (settings.lead_turn_token_limit, settings.cors_origin_regex) == (
+        Settings.model_fields["lead_turn_token_limit"].default,
+        Settings.model_fields["cors_origin_regex"].default,
+    )

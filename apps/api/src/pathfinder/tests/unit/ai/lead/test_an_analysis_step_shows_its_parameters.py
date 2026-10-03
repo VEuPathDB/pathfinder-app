@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from veupathdb.domain.strategy import flatten_tree
 
-from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, CutTallies
@@ -15,7 +14,11 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import ParameterFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import (
+    domain_answering,
+    lead_deps,
+    pipeline_state,
+)
 from pathfinder.tests.unit.domain.strategy._analysis import (
     EXPORTED,
     analysed,
@@ -38,9 +41,7 @@ def _deps(prompt: str, bound: AnalysisBinding | None = None) -> LeadDeps:
         "plasmodb",
         user_prompt=prompt,
         user_message_id=uuid4(),
-        domain=StrategyDomainState(
-            operational_spec=OperationalSpec(criteria=[analysed(bound=bound)])
-        ),
+        domain=domain_answering(OperationalSpec(criteria=[analysed(bound=bound)])),
     )
     return lead_deps(state, strategy_session=session)
 

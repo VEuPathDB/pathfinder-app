@@ -17,7 +17,7 @@ in the turn stated the cause, so the reply invented one and told the
 researcher to wait for VEuPathDB.
 
 **The stop is typed data.** `PhaseStop` names the pass, the reason
-(`budget`, `repeated_call` or `tool_retries`), the calls it spent, and the criteria it bound
+(`budget`, `repeated_call`, `tool_retries` or `provider`), the calls it spent, and the criteria it bound
 against the count it was sized for. `stream_sub_agent` records it on
 `LeadDeps.last_phase_stop` on both stop paths and clears it when the next
 dispatch starts, so a later clean pass never inherits an earlier stop. The
@@ -38,6 +38,18 @@ criterion the turn began with; the continuation carries the question and the
 answer the edit's message closed, and every change an earlier pass stated and
 no push applied (`dispatch_context.py::the_edit_the_strategy_owes`), which the
 continuation owes a disposition too.
+
+**A request the provider did not complete is a stop the system retries once,
+whatever the pass bound.** A provider error raised inside a model stream, or a
+server status from the provider, is no fault of the pass: `stream_sub_agent`
+records it as a `provider` stop and keeps the draft, `run_frame` dispatches the
+continuation without the bound-criterion condition, and `run_verification`
+sends the check once more (`verify_retried_after_stop`). A status below 500 is
+the request's own fault and is raised as before. A second provider stop reaches
+the Lead as the typed stop, so the reply says the provider did not complete the
+stage and never advises a model change. Retrying inside the model wrapper was
+rejected: the stream's first events have reached the consumer by the time the
+error arrives, so only the pass can be sent again whole.
 
 **An answered question continues the frame from the recorded spec.** While the
 spec holds a bound criterion and the site holds no step of this thread,

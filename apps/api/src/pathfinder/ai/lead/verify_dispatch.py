@@ -9,7 +9,6 @@ from pydantic_ai import RunContext
 from veupathdb.domain.strategy import StepKind
 
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
-from pathfinder.ai.graph.runtime import VerificationScope
 from pathfinder.ai.graph.state import (
     FailureCause,
     VerificationDigest,
@@ -34,7 +33,7 @@ from pathfinder.ai.lead.ledger import (
     structure_contradiction,
 )
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
-from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -42,9 +41,8 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
+from pathfinder.ai.lead.verification_scope import review_record, verification_scope
 from pathfinder.ai.lead.verify_review import (
-    ReviewRecord,
-    breached_rows,
     review_held_to_the_turn,
 )
 from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
@@ -65,49 +63,11 @@ from pathfinder.domain.shown_requirements import (
 )
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
-from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.strategies.bound_uploads import uploads_the_spec_runs_on
 from pathfinder.services.strategies.text_queries import (
     search_definitions,
     text_query_criteria,
 )
-
-
-def review_record(deps: LeadDeps, messages: list[str]) -> ReviewRecord:
-    """What this turn holds that the check's review is held to."""
-    live = frozenset(live_wdk_step_ids(deps.runtime.strategy_session))
-    return ReviewRecord(
-        messages=messages,
-        requirements=deps.state.domain.requirements,
-        spec=deps.state.domain.operational_spec,
-        read_as=deps.state.turn_markers.retrieved_as,
-        record_url=lambda gene_id: gene_record_url(deps.runtime.site_id, gene_id),
-        column_fits=[
-            fit
-            for fit in deps.state.turn_markers.column_fits
-            if fit.wdk_step_id in live
-        ],
-    )
-
-
-def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
-    """The request this turn answers and the check that answers it, as VERIFY reads them."""
-    messages = deps.state.researcher_messages()
-    spec = deps.state.domain.operational_spec
-    ledger = derive_ledger(deps.state, deps.intent)
-    return VerificationScope(
-        messages=messages,
-        stated=[line.removeprefix("- ") for line in ledger.constraints.render_stated()],
-        unexpressed=[
-            f"'{text.word}' in [{text.criterion_id or 'dropped'}] {text.stated_in}"
-            for text in (spec.unexpressed() if spec is not None else [])
-        ],
-        breaches=[row.note for row in breached_rows(review_record(deps, messages))],
-        check_id=check_id,
-        last_card=deps.state.domain.card_of_the_strategy(),
-        controls=deps.state.domain.attached_controls,
-        control_sets=list(deps.state.domain.control_sets),
-    )
 
 
 @dataclass(frozen=True)
@@ -230,16 +190,27 @@ async def run_verification(
     sheets = await search_definitions(site_id, domain.operational_spec)
     uploads = await uploads_the_spec_runs_on(site_id, domain.operational_spec, sheets)
     domain.upload_types = {c: u.type_name for c, u in uploads.items()}
+    run = PhaseRun(
+        "verification", work_order(reason, scope.controls, root_sample(deps))
+    )
     delta = await stream_sub_agent(
-        run=PhaseRun(
-            "verification", work_order(reason, scope.controls, root_sample(deps))
-        ),
+        run=run,
         agent_deps=agent_deps,
         parent_tool_call_id=parent_tool_call_id,
         expected_output_type=VerificationDelta,
         deps=deps,
         resume=resume,
     )
+    if delta is None and _stopped_by_the_provider(deps):
+        # The request, not the check, failed, so the system sends it once more.
+        deps.verify_retried_after_stop = True
+        delta = await stream_sub_agent(
+            run=run,
+            agent_deps=agent_deps,
+            parent_tool_call_id=parent_tool_call_id,
+            expected_output_type=VerificationDelta,
+            deps=deps,
+        )
     if isinstance(delta, SubAgentApprovalWait):
         return delta
     apply_agent_state(deps, agent_deps)
@@ -286,6 +257,15 @@ async def run_verification(
         review=digest.review,
     )
     return VerificationDelta(digest=digest)
+
+
+def _stopped_by_the_provider(deps: LeadDeps) -> bool:
+    stop = deps.last_phase_stop
+    return (
+        stop is not None
+        and stop.reason is PhaseStopReason.PROVIDER
+        and not deps.verify_retried_after_stop
+    )
 
 
 def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:

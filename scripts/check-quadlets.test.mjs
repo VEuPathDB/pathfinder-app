@@ -1,5 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { collect, offencesIn, parseUnit, TAG_PLACEHOLDER } from "./check-quadlets.mjs";
 
@@ -356,4 +360,30 @@ test("the trace store UI on every interface is rejected", () => {
     only(withUnit("pathfinder-langfuse.container", open)),
     "pathfinder-langfuse.container: publishes 3110:3000, expected 127.0.0.1:3110:3000",
   );
+});
+
+
+// The installer refuses an env file that lacks a key its example declares.
+const missingEnvKeys = (example, actual) => {
+  const dir = mkdtempSync(join(tmpdir(), "pf-env-"));
+  writeFileSync(join(dir, "example.env"), example);
+  writeFileSync(join(dir, "actual.env"), actual);
+  const run = spawnSync(
+    "bash",
+    ["-c", `source "$1"; missing_env_keys "$2" "$3"`, "bash", "deploy/cedar/install.sh", join(dir, "example.env"), join(dir, "actual.env")],
+    { encoding: "utf8", env: { ...process.env, PATHFINDER_TAG: "v0.0.0-test" } },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  return run.stdout.split("\n").filter(Boolean);
+};
+
+test("a key the example declares and the file lacks is named", () => {
+  assert.deepEqual(
+    missingEnvKeys("A=1\nOTEL_EXPORTER_OTLP_ENDPOINT=\n# c\nB=x\n", "A=2\n"),
+    ["B", "OTEL_EXPORTER_OTLP_ENDPOINT"],
+  );
+});
+
+test("a key with an empty value counts as declared", () => {
+  assert.deepEqual(missingEnvKeys("A=1\nB=\n", "A=\nB=\nEXTRA=1\n"), []);
 });

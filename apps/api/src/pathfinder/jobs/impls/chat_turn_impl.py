@@ -18,6 +18,7 @@ from pathfinder.ai.conversation.turn_failure import turn_closed_on_failure
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry, turn_trace_labels
 from pathfinder.jobs.auth_context import attach_wdk_auth
+from pathfinder.jobs.log_context import turn_log_context
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.turn_keys import turn_keys
 from pathfinder.platform.config import get_settings
@@ -44,47 +45,48 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
         turn_id=parsed.turn_id,
     )
     settings = get_settings()
-    async with (
-        attach_wdk_auth(parsed.veupathdb_auth_token),
-        attach_user_id(parsed.user_id),
-        attach_conversation_application(body.conversation_id),
-        contextlib.AsyncExitStack() as stores,
-    ):
-        async with turn_closed_on_failure(writer):
-            saver = await stores.enter_async_context(
-                lifespan_checkpointer(
-                    settings.database_url,
-                    checkpoint_types=registry.checkpoint_types(),
-                ),
-            )
-            store = await stores.enter_async_context(
-                lifespan_memory_store(settings.database_url),
-            )
-            graph = spec.build_graph(saver)
-        capture = (
-            capture_llm(parsed.capture_dir) if parsed.capture_dir else nullcontext()
-        )
-        with capture:
-            async with turn_keys(
-                user_id=parsed.user_id, spec=spec, body=body, writer=writer
-            ):
-                await run_turn(
-                    request=TurnRequest(
-                        body=body,
-                        user_id=parsed.user_id,
-                        trace_labels=turn_trace_labels(
-                            spec.assistant_id, body.phase_models
-                        ),
+    with turn_log_context(conversation_id=body.conversation_id, turn_id=parsed.turn_id):
+        async with (
+            attach_wdk_auth(parsed.veupathdb_auth_token),
+            attach_user_id(parsed.user_id),
+            attach_conversation_application(body.conversation_id),
+            contextlib.AsyncExitStack() as stores,
+        ):
+            async with turn_closed_on_failure(writer):
+                saver = await stores.enter_async_context(
+                    lifespan_checkpointer(
+                        settings.database_url,
+                        checkpoint_types=registry.checkpoint_types(),
                     ),
-                    spec=spec,
-                    compiled_graph=graph,
-                    memory_store=store,
-                    writer=writer,
                 )
-    logger.info(
-        "chat turn completed",
-        conversation_id=str(body.conversation_id),
-        turn_id=str(parsed.turn_id),
-        assistant_id=spec.assistant_id,
-        has_veupathdb_auth=parsed.veupathdb_auth_token is not None,
-    )
+                store = await stores.enter_async_context(
+                    lifespan_memory_store(settings.database_url),
+                )
+                graph = spec.build_graph(saver)
+
+            capture = (
+                capture_llm(parsed.capture_dir) if parsed.capture_dir else nullcontext()
+            )
+            with capture:
+                async with turn_keys(
+                    user_id=parsed.user_id, spec=spec, body=body, writer=writer
+                ):
+                    await run_turn(
+                        request=TurnRequest(
+                            body=body,
+                            user_id=parsed.user_id,
+                            trace_labels=turn_trace_labels(
+                                spec.assistant_id, body.phase_models
+                            ),
+                        ),
+                        spec=spec,
+                        compiled_graph=graph,
+                        memory_store=store,
+                        writer=writer,
+                    )
+
+        logger.info(
+            "chat turn completed",
+            assistant_id=spec.assistant_id,
+            has_veupathdb_auth=parsed.veupathdb_auth_token is not None,
+        )

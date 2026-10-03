@@ -1,0 +1,40 @@
+{
+ "name": "an-edit-to-a-sibling-strain-binds-it",
+ "turns": [
+  "Toxoplasma gondii ME49 genes with a protein kinase domain (Pfam) that are also expressed higher in bradyzoites than tachyzoites.",
+  "Switch the organism to Toxoplasma gondii GT1 on both steps."
+ ],
+ "siteId": "toxodb",
+ "assistantId": "pathfinder",
+ "rationale": "An edit that names a sibling strain of the one the first turn named binds that strain: the earlier name is a requirement the later message replaced, so no guard holds the bind to it. The domain search carries the new strain, the expression search keeps its direction and threshold, and the intersection keeps its shape.",
+ "expected": {
+  "buildsStrategy": true,
+  "structure": null,
+  "recordType": null,
+  "stepCount": 3,
+  "verified": null,
+  "stepIdsUnchanged": null,
+  "parameters": {
+   "GenesByInterproDomain": {
+    "organism": "Toxoplasma gondii GT1",
+    "domain_typeahead": "PF00069"
+   }
+  },
+  "replyMentions": [],
+  "replyOmits": [],
+  "rootOperator": "INTERSECT"
+ },
+ "provenance": {
+  "site": "toxodb",
+  "assistant": "pathfinder",
+  "origin": "cataloged-failure",
+  "addedAt": "2026-10-03",
+  "stagingId": "",
+  "reference": "decisions/the-strategy-answers-to-a-spec.md",
+  "curatorNote": "Two turns on one thread: the first builds an intersection of a Pfam domain search and a bradyzoite-versus-tachyzoite fold-change search on one strain, the second switches both to a sibling strain of the same species. The second turn's organism replaces the first turn's as the requirement the thread holds, and the domain search binds it."
+ },
+ "gates": {
+  "policy": "leave",
+  "answers": []
+ }
+}

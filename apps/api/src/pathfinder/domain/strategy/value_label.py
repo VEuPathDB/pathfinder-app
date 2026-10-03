@@ -50,14 +50,16 @@ def _tree_labels(
         [],
     )
     displays = {option.value: option.display for option in tree}
-    return [(c, displays[c]) for c in species_codes(value) if c in displays]
+    return [
+        (c, label_term(c, displays[c])) for c in species_codes(value) if c in displays
+    ]
 
 
 def _pick_labels(terms: Sequence[str], info: ParameterInfo) -> list[tuple[str, str]]:
     options = info.vocabulary()
     displays = {option.value: option.display for option in options}
     return [
-        (term, displays[match])
+        (term, label_term(term, displays[match]))
         for term in terms
         if (match := match_exact_option(options, term)) is not None
     ]

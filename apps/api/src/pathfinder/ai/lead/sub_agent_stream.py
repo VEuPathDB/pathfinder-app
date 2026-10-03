@@ -12,7 +12,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any
 
-from assistant_core.capabilities.repetition_guard import BlockRule, RepetitionGuard
+from assistant_core.capabilities.repetition_guard import RepetitionGuard
 from assistant_core.graph.emit import emit_chunk
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.graph.turn_state import (
@@ -25,21 +25,23 @@ from assistant_core.platform.logging import get_logger
 from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 from pydantic_ai import Agent, AgentRunResultEvent
-from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
+from pydantic_ai.exceptions import (
+    ModelAPIError,
+    UnexpectedModelBehavior,
+    UsageLimitExceeded,
+)
 from pydantic_ai.messages import (
     AgentStreamEvent,
     FunctionToolResultEvent,
     ModelMessage,
     ModelMessagesTypeAdapter,
     PartStartEvent,
-    RetryPromptPart,
 )
 from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_events import (
     _announce_approval,
@@ -52,6 +54,15 @@ from pathfinder.ai.lead.sub_agent_progress import (
     emit_running_usage,
     record_stopped_usage,
     run_usage,
+)
+from pathfinder.ai.lead.sub_agent_stops import (
+    GUARD_STOP_REASON,
+    Stopping,
+    ToolRefusal,
+    early_stop,
+    phase_stop,
+    refusal_of,
+    stopped,
 )
 from pathfinder.ai.lead.sub_agent_tools import (
     BUILD_SUB_AGENT_BY_ROLE,
@@ -73,11 +84,6 @@ _PHASE_STATUS_LABELS: dict[PhaseRole, str] = {
     "verification": "Verifying the strategy...",
 }
 
-_GUARD_STOP_REASON: dict[BlockRule, PhaseStopReason] = {
-    "identical_arguments": PhaseStopReason.REPEATED_CALL,
-    "call_cap": PhaseStopReason.CALL_CAP,
-}
-
 
 @dataclass(frozen=True)
 class PhaseRun:
@@ -94,50 +100,6 @@ class SubAgentResume:
 
     messages: list[ModelMessage]
     results: DeferredToolResults
-
-
-@dataclass(frozen=True)
-class _ToolRefusal:
-    """One tool call the run sent back to the model, and the words it sent."""
-
-    tool_name: str
-    text: str
-
-
-def _refusal_of(event: FunctionToolResultEvent) -> _ToolRefusal | None:
-    """The refusal one tool result carries, or nothing when it succeeded.
-
-    A validator's refusal arrives as error details rather than a sentence, so
-    the messages are joined; the library's own retry instruction and its JSON
-    dump stay out of what a reply quotes.
-    """
-    part = event.part
-    if not isinstance(part, RetryPromptPart) or part.tool_name is None:
-        return None
-    content = part.content
-    return _ToolRefusal(
-        tool_name=part.tool_name,
-        text=content
-        if isinstance(content, str)
-        else "; ".join(detail["msg"] for detail in content),
-    )
-
-
-def _exhausted_its_retries(
-    exc: UnexpectedModelBehavior,
-    refusal: _ToolRefusal | None,
-) -> _ToolRefusal | None:
-    """The refusal the library says ran out of retries, or nothing.
-
-    The exception class also carries token limits, output-retry ceilings and
-    streaming faults, so the raised message is the discriminator: it names the
-    tool and the count the tool passed.
-    """
-    if refusal is None:
-        return None
-    if not exc.message.startswith(f"Tool {refusal.tool_name!r} exceeded max retries"):
-        return None
-    return refusal
 
 
 @dataclass(frozen=True)
@@ -299,14 +261,21 @@ async def stream_sub_agent[OutputT: BaseModel](
     agent, override_ctx = _phase_agent(deps, role)
     writer = get_stream_writer()
     inner_calls: dict[str, str] = {}
-    answered: frozenset[str] = (
-        frozenset(resume.results.approvals) if resume is not None else frozenset()
-    )
+    inputs = _RunInputs.of(run, resume)
+    answered = inputs.answered
     output: OutputT | None = None
     wait: SubAgentApprovalWait | None = None
-    refusal: _ToolRefusal | None = None
+    refusal: ToolRefusal | None = None
     usage = RunUsage()
     usage_recorded = False
+    stopping = Stopping(
+        deps=deps,
+        role=role,
+        declared_criteria=run.declared_criteria,
+        agent_deps=agent_deps,
+        usage=usage,
+        parent_tool_call_id=parent_tool_call_id,
+    )
     context_meter = ContextMeter(model_id=phase_model_id(deps.runtime, role))
     # A pass that continues a stopped one runs on its own budget, so its card
     # adds what the dispatch already spent.
@@ -325,10 +294,10 @@ async def stream_sub_agent[OutputT: BaseModel](
     with override_ctx, _name_the_stage_that_did_not_answer(deps, role) as answer:
         try:
             async with agent.run_stream_events(
-                run.work_order if resume is None else None,
+                inputs.prompt,
                 deps=agent_deps,
-                message_history=resume.messages if resume is not None else None,
-                deferred_tool_results=resume.results if resume is not None else None,
+                message_history=inputs.message_history,
+                deferred_tool_results=inputs.deferred_tool_results,
                 capabilities=[RepetitionGuard(guard=guard)],
                 usage_limits=phase_usage_limits(run.declared_criteria),
                 usage=usage,
@@ -354,98 +323,85 @@ async def stream_sub_agent[OutputT: BaseModel](
                         event=event,
                     )
                     if isinstance(event, FunctionToolResultEvent):
-                        refusal = _refusal_of(event) or refusal
-                        _close_answered_approval(writer, event, answered)
-                        emit_live_ledger(writer, deps, agent_deps)
-                        emit_running_usage(
-                            writer,
-                            role,
-                            parent_tool_call_id,
-                            usage,
-                            context_meter,
+                        refusal = refusal_of(event) or refusal
+                        if _after_tool_result(
+                            event,
+                            stopping,
+                            writer=writer,
+                            answered=answered,
+                            context_meter=context_meter,
                             baseline=baseline,
-                        )
-                        stopped_by = guard.stopped_rule
-                        if (
-                            stopped_by is not None
-                            and event.tool_call_id == guard.stopped_call_id
                         ):
-                            # The guard ended the run. The draft holds whatever
-                            # the pass bound, as with a budget.
-                            logger.warning(
-                                "sub-agent stopped by the guard; keeping partial progress",
-                                role=role,
-                                rule=stopped_by,
-                                blocked=guard.total_blocked,
-                            )
-                            deps.last_phase_stop = _phase_stop(
-                                _GUARD_STOP_REASON[stopped_by],
-                                run=run,
-                                agent_deps=agent_deps,
-                                usage=usage,
-                                tool_name=event.part.tool_name or "",
-                            )
                             break
-        except UsageLimitExceeded as exc:
-            # A usage ceiling is a budget, not a correctness failure. The
-            # sub-agent writes each result into the shared draft as it goes,
-            # so the Lead reads the partial draft.
-            logger.warning(
-                "sub-agent hit its usage ceiling; keeping partial progress",
-                role=role,
-                error=str(exc),
-            )
-            deps.last_phase_stop = _phase_stop(
-                PhaseStopReason.BUDGET,
-                run=run,
-                agent_deps=agent_deps,
-                usage=usage,
-            )
-            record_stopped_usage(deps, role, parent_tool_call_id, usage)
-            return None
-        except UnexpectedModelBehavior as exc:
-            exhausted = _exhausted_its_retries(exc, refusal)
-            if exhausted is None:
+        except (UsageLimitExceeded, ModelAPIError, UnexpectedModelBehavior) as exc:
+            stop = early_stop(exc, refusal)
+            if stop is None:
                 raise
-            # One tool refused every attempt it was given. The refusal is the
-            # pass's own account of the stop, and the draft holds what it bound.
-            logger.warning(
-                "sub-agent exhausted a tool's retries; keeping partial progress",
-                role=role,
-                tool=exhausted.tool_name,
-                error=str(exc),
-            )
-            deps.last_phase_stop = _phase_stop(
-                PhaseStopReason.TOOL_RETRIES,
-                run=run,
-                agent_deps=agent_deps,
-                usage=usage,
-                refusal=exhausted,
-            )
-            record_stopped_usage(deps, role, parent_tool_call_id, usage)
+            logger.warning(stop.event, role=role, **stop.fields)
+            stopped(stop.reason, stopping, refusal=stop.refusal)
             return None
     if not usage_recorded:
         record_stopped_usage(deps, role, parent_tool_call_id, usage)
     return wait if wait is not None else output
 
 
-def _phase_stop(
-    reason: PhaseStopReason,
+@dataclass(frozen=True)
+class _RunInputs:
+    """What one run is started on: a fresh work order, or the parked run's
+    messages with the answers it waited for."""
+
+    prompt: str | None
+    message_history: list[ModelMessage] | None
+    deferred_tool_results: DeferredToolResults | None
+    answered: frozenset[str]
+
+    @classmethod
+    def of(cls, run: PhaseRun, resume: SubAgentResume | None) -> _RunInputs:
+        if resume is None:
+            return cls(run.work_order, None, None, frozenset())
+        return cls(
+            None,
+            resume.messages,
+            resume.results,
+            frozenset(resume.results.approvals),
+        )
+
+
+def _after_tool_result(
+    event: FunctionToolResultEvent,
+    stopping: Stopping,
     *,
-    run: PhaseRun,
-    agent_deps: AgentDeps,
-    usage: RunUsage,
-    refusal: _ToolRefusal | None = None,
-    tool_name: str = "",
-) -> PhaseStop:
-    """The stop this run reports, sized by what it spent and what it bound."""
-    draft = agent_deps.agent_state.operational_spec_draft
-    return PhaseStop(
-        role=run.role,
-        reason=reason,
-        tool_calls=usage.tool_calls,
-        criteria_bound=sum(1 for c in draft.criteria if c.bound),
-        criteria_declared=run.declared_criteria,
-        tool_name=tool_name if refusal is None else refusal.tool_name,
-        refusal="" if refusal is None else refusal.text,
+    writer: Any,
+    answered: frozenset[str],
+    context_meter: ContextMeter,
+    baseline: SubAgentCallUsage,
+) -> bool:
+    """Show the result's progress, and whether the guard ended the run on it.
+
+    A guard stop keeps the draft as a budget stop does.
+    """
+    deps, agent_deps, role = stopping.deps, stopping.agent_deps, stopping.role
+    _close_answered_approval(writer, event, answered)
+    emit_live_ledger(writer, deps, agent_deps)
+    emit_running_usage(
+        writer,
+        role,
+        stopping.parent_tool_call_id,
+        stopping.usage,
+        context_meter,
+        baseline=baseline,
     )
+    guard = agent_deps.tool_repetition_guard
+    stopped_by = guard.stopped_rule
+    if stopped_by is None or event.tool_call_id != guard.stopped_call_id:
+        return False
+    logger.warning(
+        "sub-agent stopped by the guard; keeping partial progress",
+        role=role,
+        rule=stopped_by,
+        blocked=guard.total_blocked,
+    )
+    deps.last_phase_stop = phase_stop(
+        GUARD_STOP_REASON[stopped_by], stopping, tool_name=event.part.tool_name or ""
+    )
+    return True

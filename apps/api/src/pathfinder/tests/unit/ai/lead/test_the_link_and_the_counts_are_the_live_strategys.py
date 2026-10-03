@@ -12,7 +12,6 @@ from veupathdb.domain.parameters import StringValue
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKStepTree, WDKStrategyDetails
 
-from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import delete_step
@@ -29,7 +28,11 @@ from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.run_context import lead_run_context
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import (
+    domain_answering,
+    lead_deps,
+    pipeline_state,
+)
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -81,9 +84,7 @@ def _after_the_delete() -> StrategySession:
 
 
 def _deps_after_the_delete() -> LeadDeps:
-    state = pipeline_state(
-        "cryptodb", domain=StrategyDomainState(operational_spec=_spec(_ROOT))
-    )
+    state = pipeline_state("cryptodb", domain=domain_answering(_spec(_ROOT)))
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=[_ROOT],
         wdk_strategy_id=_STRATEGY,
@@ -102,9 +103,7 @@ def test_after_a_delete_the_link_names_the_root_the_strategy_holds() -> None:
 
 def test_after_a_value_only_edit_the_link_is_still_shown() -> None:
     step = "step_a556a9eb"
-    state = pipeline_state(
-        "piroplasmadb", domain=StrategyDomainState(operational_spec=_spec(step))
-    )
+    state = pipeline_state("piroplasmadb", domain=domain_answering(_spec(step)))
     state.domain.last_build_outcome = BuildOutcome(
         pushed_step_ids=[step], wdk_strategy_id=_STRATEGY
     )
@@ -125,9 +124,7 @@ def test_the_work_order_after_a_delete_names_the_live_root_count() -> None:
 
 def _loosened(direction: EditDirection) -> LeadDeps:
     step = "step_ae885aac"
-    state = pipeline_state(
-        "toxodb", domain=StrategyDomainState(operational_spec=_spec(step))
-    )
+    state = pipeline_state("toxodb", domain=domain_answering(_spec(step)))
     state.turn_markers.record_arrival(step, {step: 1535})
     state.turn_markers.edited = True
     intent = UserIntent(
@@ -170,7 +167,7 @@ def test_a_log2_parameter_shows_its_fold_beside_the_value() -> None:
             )
         ],
     )
-    state = pipeline_state("toxodb", domain=StrategyDomainState(operational_spec=spec))
+    state = pipeline_state("toxodb", domain=domain_answering(spec))
     deps = lead_deps(state, strategy_session=_session("toxodb", step, 5, 1249))
 
     [row] = turn_facts(deps).steps[0].parameters

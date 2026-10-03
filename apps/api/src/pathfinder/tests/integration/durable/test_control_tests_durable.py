@@ -31,7 +31,7 @@ from veupathdb_mcp.controls import (
 from veupathdb_mcp.tool_payloads import ControlOutcome, DownloadLinks
 
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
-from pathfinder.ai.lead.verify_dispatch import verification_scope
+from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.ai.tools.standalone.control_sets import use_control_set
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.ai.tools.standalone.saved_control_sets import (

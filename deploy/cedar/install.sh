@@ -46,6 +46,28 @@ shared_changed=0
 rendered=""
 
 # Writes $2 to $1 when the content differs. Returns 1 when it wrote nothing.
+# The keys a committed example declares that the operator's file does not,
+# one per line. A key with an empty value is declared.
+missing_env_keys() {
+  local example="$1" actual="$2"
+  comm -23 \
+    <(grep -o '^[A-Z_][A-Z0-9_]*=' "$example" | sort -u) \
+    <(grep -o '^[A-Z_][A-Z0-9_]*=' "$actual" | sort -u) \
+    | tr -d '='
+}
+
+# Refuses an env file that lacks a key its example declares: a setting the
+# units read and the file does not name is a feature silently off.
+check_env_keys() {
+  local example="$1" actual="$2" missing
+  missing="$(missing_env_keys "$example" "$actual")"
+  if [ -n "$missing" ]; then
+    echo "$actual lacks keys $example declares; add them (an empty value is allowed):" >&2
+    echo "$missing" | sed 's/^/  /' >&2
+    exit 1
+  fi
+}
+
 install_file() {
   local destination="$1" source="$2"
   if [ -f "$destination" ] && cmp -s "$source" "$destination"; then
@@ -167,6 +189,8 @@ main() {
     echo "no $APP_DIR/langfuse.env: copy deploy/cedar/langfuse.env.example there and fill it in" >&2
     exit 1
   fi
+  check_env_keys "$REPO_ROOT/deploy/cedar/env.example" "$APP_DIR/.env"
+  check_env_keys "$REPO_ROOT/deploy/cedar/langfuse.env.example" "$APP_DIR/langfuse.env"
 
   install_units
 
@@ -184,4 +208,7 @@ main() {
   systemctl --user --no-pager status "${SERVICES[@]}" || true
 }
 
-main "$@"
+# Sourcing the file defines its functions and runs nothing.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main "$@"
+fi

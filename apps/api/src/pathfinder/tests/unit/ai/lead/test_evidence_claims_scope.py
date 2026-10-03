@@ -14,7 +14,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.ai.lead.verify_dispatch import verification_scope
+from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.ai.tools.standalone import scored_comparison
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
 from pathfinder.domain.evidence import (

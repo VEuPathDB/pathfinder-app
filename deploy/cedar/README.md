@@ -55,7 +55,8 @@ exports the same variable for its own pulls.
 
 Write the environment file. `deploy/cedar/env.example` names every variable the
 units read and nothing else; fill the values in on the host, and keep the file
-private:
+private. The installer refuses a file that lacks a key the example declares; a
+key left empty reads as the default, so name every key:
 
 ```bash
 cp ~/pathfinder/deploy/cedar/env.example ~/.config/pathfinder/.env

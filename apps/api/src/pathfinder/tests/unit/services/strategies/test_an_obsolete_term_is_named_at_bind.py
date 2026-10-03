@@ -52,7 +52,7 @@ def test_a_term_the_site_labels_obsolete_is_named_with_the_current_entries() -> 
         ObsoletePick(
             param="go_typeahead",
             term="GO:0009296",
-            label="GO:0009296 : obsolete flagellum assembly : 0",
+            label="obsolete flagellum assembly",
             nearest=[
                 "GO:0060271 : cilium assembly : 7",
                 "GO:0044458 : motile cilium assembly : 8",

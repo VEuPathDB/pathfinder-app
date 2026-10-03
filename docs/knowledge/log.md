@@ -2,6 +2,56 @@
 
 ## 2026-10-03
 
+* **A bound value's label names its term alone, and a turn's log lines name
+  the turn.** A vocabulary label that leads with the value (`PF00069 : Protein
+  kinase domain`) labels the bound value with the term alone, so a rendered
+  value never repeats itself (`domain/strategy/value_label.py`). Every log line
+  the worker writes while a chat turn runs carries `conversation_id` and
+  `turn_id` (`jobs/log_context.py`), so a reported conversation finds its lines
+  by one key.
+
+* **The request names the organisms its live requirements state.** The
+  organism guard (`ai/tools/standalone/_frame_stated.py`) reads the thread's
+  live requirements, the lifecycle that already records a replacement or a
+  withdrawal, and no longer scans the messages; a swap from one strain to its
+  sibling binds, and the replaced strain is refused in its place. The refusal
+  says the call "binds" an entry, never that the parameter "holds" it, because
+  a holding is a state and the call is a proposal. A built step's facts rows
+  read the spec the strategy answers to, so a draft a stopped pass left is not
+  shown beside the count the step still answers.
+
+* **A pass that ends in a question pushed nothing.** Its `EditDelta` carries
+  no diff and names the criteria the plan moved in `pending_step_ids`
+  (`ai/lead/edit_dispatch.py`), so a reply read from it states no change the
+  strategy does not hold.
+
+* **A request the provider did not complete is a stop the system retries
+  once.** `stream_sub_agent` records it as a `provider` stop and keeps the
+  draft; the framing pass is continued whatever it bound and the check is sent
+  once more. A status below 500 is raised as before. See
+  [a budget stop is retried by the system](decisions/a-budget-stop-is-retried-by-the-system.md).
+
+* **The check reads the counts the edit moved.** `VerificationScope.before`
+  lists each step whose count this turn's write moved, the count the message
+  found and the count now, so an ask about the count before the edit is met
+  from the scope and not denied beside a facts part that shows it.
+
+* **A route is one span.** The FastAPI instrumentation leaves out the
+  per-message `send` and `receive` spans, so a streamed turn's request is one
+  span in the trace store instead of one per chunk. The cedar installer
+  refuses an env file that lacks a key its committed example declares
+  (`deploy/cedar/install.sh::check_env_keys`), since a setting the units read
+  and the file does not name is a feature silently off. A key declared with no
+  value reads as the setting's default (`Settings.model_config`,
+  `env_ignore_empty`), so a file copied from the example starts.
+
+* **The Langfuse unit's health probe reads the IPv4 loopback.** The image's wget
+  resolves `localhost` to `::1` first and the server listens on IPv4, so the probe
+  reported the unit unhealthy while the ingress answered. The probe now names
+  `127.0.0.1`. A deployment exports traces only when its env sets
+  `OTEL_EXPORTER_OTLP_ENDPOINT` as `deploy/cedar/env.example` does; without it the
+  product events arrive and no turn trace does.
+
 * **The eval runner reads what the researcher reads.** `eval_runner.facts_text`
   renders a turn's facts with the transcript's renderer, so a mention check sees the
   source label beside each value; the counts of the latest review stand until a later

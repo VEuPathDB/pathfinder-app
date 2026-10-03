@@ -16,7 +16,7 @@ from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent, clear_strategy
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import budget_stop_report
-from pathfinder.ai.lead.verify_dispatch import verification_scope
+from pathfinder.ai.lead.verification_scope import verification_scope
 from pathfinder.ai.tools.standalone import conversation
 from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, BuiltCounts

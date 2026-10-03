@@ -14,7 +14,6 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.ai.agents.state import CreatedGeneSet
-from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
@@ -36,7 +35,11 @@ from pathfinder.domain.strategy.step_rationale import SearchRationale, said_besi
 from pathfinder.domain.turn_facts import ParameterFact, RetiredFact, SavedSetFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
+from pathfinder.tests.unit.ai.lead.conftest import (
+    domain_answering,
+    lead_deps,
+    pipeline_state,
+)
 
 _PERCENTILE = "min_expression_percentile"
 
@@ -101,7 +104,7 @@ def _deps(*, built: bool = True) -> LeadDeps:
         "amoebadb",
         user_prompt="Peptidases expressed in trophozoites.",
         user_message_id=uuid4(),
-        domain=StrategyDomainState(operational_spec=_spec()),
+        domain=domain_answering(_spec()),
     )
     return lead_deps(state, strategy_session=_session() if built else None)
 

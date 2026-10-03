@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from pathfinder.ai.graph.state import StrategyDomainState
-from pathfinder.ai.lead.verify_dispatch import verification_scope, work_order
+from pathfinder.ai.lead.verification_scope import verification_scope
+from pathfinder.ai.lead.verify_dispatch import work_order
 from pathfinder.tests._support.separation import ATTACHED_CONTROLS
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 

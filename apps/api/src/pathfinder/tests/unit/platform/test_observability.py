@@ -6,6 +6,8 @@ import base64
 from typing import Any
 
 import pytest
+from fastapi import FastAPI
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from pathfinder import __version__
 from pathfinder.platform import observability
@@ -73,3 +75,25 @@ def test_without_langfuse_keys_no_header_is_added(
     observability.setup_observability(service_name="pathfinder-api")
 
     assert [call["exporter_headers"] for call in calls] == [{}]
+
+
+def test_a_route_is_one_span_without_its_stream_messages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A streamed route sends one message per chunk; the request stays one span."""
+    seen: dict[str, Any] = {}
+
+    def _instrument(app: FastAPI, **kwargs: Any) -> None:
+        seen["app"] = app
+        seen.update(kwargs)
+
+    monkeypatch.setattr(FastAPIInstrumentor, "instrument_app", _instrument)
+    app = FastAPI()
+
+    observability.trace_routes(app)
+
+    assert seen == {
+        "app": app,
+        "excluded_urls": "health",
+        "exclude_spans": ["receive", "send"],
+    }

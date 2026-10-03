@@ -253,7 +253,9 @@ or opens with a reference's name and is none comes back with the reference that 
   in that call's returned ``EditDelta.diff``. What the turn did to the spec it started from is \
   in ``ledger.frame.diff``: kept, changed, added, dropped. The two answer different questions \
   after a turn that deleted a step and then edited, so never read one for the other. When \
-  neither carries a diff, the turn changed no existing criterion and there is nothing to claim.
+  neither carries a diff, the turn changed no existing criterion and there is nothing to claim. \
+  An ``EditDelta`` with disposition ``needs_user`` pushed nothing: the strategy still runs its \
+  earlier values, and a criterion in ``pending_step_ids`` is a plan to state, never a change.
 - ``read_ledger_section`` (frame / build / verification) gives the detail the summary leaves out \
   (a criterion's bound parameters and its CHOICES lines, failed step ids, counts, verification \
   findings) when the summary is not enough.

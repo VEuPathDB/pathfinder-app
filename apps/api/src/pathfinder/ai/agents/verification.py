@@ -321,6 +321,12 @@ VERIFICATION_MODEL = DEFAULT_MODEL_ID
 VerificationAgent = Agent[AgentDeps, VerificationDelta | DeferredToolRequests]
 
 
+_BEFORE_HEADING = (
+    "Counts this turn's edit moved; an ask about the count before the edit is "
+    "met from these"
+)
+
+
 def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
     """Every message of the request in the researcher's own words, numbered, and
     the rows the check cannot omit."""
@@ -339,6 +345,7 @@ def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
         ("Requirements the ledger holds as the researcher's own", scope.stated),
         ("Words no search states: each is an ``unexpressed`` row", scope.unexpressed),
         ("Combinations the structure breaks: each is an ``unmet`` row", scope.breaches),
+        (_BEFORE_HEADING, scope.before),
     ):
         if items:
             lines += ["", f"### {heading}", *(f"- {item}" for item in items)]

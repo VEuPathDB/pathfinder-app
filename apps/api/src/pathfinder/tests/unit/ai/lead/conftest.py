@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.site_organisms import serve_recorded_organisms
@@ -93,6 +94,11 @@ def lead_deps(
     if record_usage is not None:
         deps.record_sub_agent_usage = record_usage
     return deps
+
+
+def domain_answering(spec: OperationalSpec) -> StrategyDomainState:
+    """The thread of a built strategy: the plan and the answer are one spec."""
+    return StrategyDomainState(operational_spec=spec, answered_spec=spec)
 
 
 def session_with_one_step(

@@ -180,3 +180,17 @@ def test_the_bound_label_joins_the_label_of_each_term() -> None:
             for name in bound
         }
         assert joined == {name: held.label for name, held in bound.items()}
+
+
+def test_a_pick_label_that_leads_with_the_value_names_the_term_alone() -> None:
+    """A typeahead label writes the accession before the term; the bound
+    value's label is the term, so the value is never shown twice."""
+    search = suite_search("search_genes_by_interpro_domain")
+    sheet = format_param_info_typed(list(search.parameters or []))
+    params: dict[str, ParamValue] = {
+        "domain_typeahead": MultiPickValue(values=["PF00400"]),
+    }
+
+    bound = bind_values(params, "stated", sheet)
+
+    assert bound["domain_typeahead"].label == "WD domain, G-beta repeat"
