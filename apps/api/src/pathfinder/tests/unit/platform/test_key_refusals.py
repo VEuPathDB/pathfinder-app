@@ -7,12 +7,17 @@ provider's error reference, whose URL the fixture names.
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
+from pydantic import SecretStr
 
 from pathfinder.devtools.provider_refusals import (
+    CASES,
     ProviderRefusal,
     every_refusal,
     load_refusal,
+    record_case,
 )
 from pathfinder.domain.provider_keys import (
     KEYABLE_PROVIDERS,
@@ -20,6 +25,10 @@ from pathfinder.domain.provider_keys import (
     KeyRefusal,
 )
 from pathfinder.platform.key_refusals import classify_refusal
+from pathfinder.tests._support.provider_wire import (
+    ProviderWire,
+    allow_requests_to_the_wire,
+)
 
 _FIXTURES = every_refusal()
 
@@ -48,6 +57,7 @@ def test_the_fixtures_name_what_was_recorded_and_what_was_documented() -> None:
         "openai-invalid-key": ("recorded", 401, KeyRefusal.INVALID),
         "openai-no-credit": ("documented", 429, KeyRefusal.NO_CREDIT),
         "openai-no-credit-quota": ("documented", 429, KeyRefusal.NO_CREDIT),
+        "openai-no-credit-stream": ("recorded", None, KeyRefusal.NO_CREDIT),
     }
 
 
@@ -144,6 +154,33 @@ def test_a_google_bad_request_about_the_prompt_is_not_a_refusal() -> None:
     ] == [None, KeyRefusal.INVALID]
 
 
+def test_a_streamed_openai_error_is_a_refusal_only_when_it_is_about_billing() -> None:
+    """A streamed error carries the body and no status."""
+    rate_limit = {
+        "message": "Rate limit reached for requests",
+        "type": "requests",
+        "code": "rate_limit_exceeded",
+    }
+
+    assert [
+        classify_refusal("openai", None, load_refusal("openai-no-credit-stream").body),
+        classify_refusal("openai", None, load_refusal("openai-no-credit-quota").body),
+        classify_refusal("openai", None, rate_limit),
+        classify_refusal("openai", None, load_refusal("openai-invalid-key").body),
+    ] == [KeyRefusal.NO_CREDIT, KeyRefusal.NO_CREDIT, None, None]
+
+
+@pytest.mark.parametrize("provider", ["anthropic", "google"])
+def test_a_body_without_a_status_is_no_refusal_of_the_other_providers(
+    provider: KeyableProvider,
+) -> None:
+    bodies = [one.body for one in _FIXTURES.values() if one.provider == provider]
+
+    assert [classify_refusal(provider, None, body) for body in bodies] == [
+        None for _ in bodies
+    ]
+
+
 def test_a_body_of_another_shape_is_not_a_refusal() -> None:
     bodies: list[object] = [None, "upstream connect error", ["x"]]
 
@@ -161,3 +198,21 @@ def test_one_provider_body_does_not_classify_another_provider() -> None:
         classify_refusal("anthropic", 401, openai),
         classify_refusal("openai", 401, openai),
     ] == [None, KeyRefusal.INVALID]
+
+
+async def test_a_streamed_case_records_the_body_and_no_status(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    allow_requests_to_the_wire(monkeypatch)
+    wire = ProviderWire(fails_mid_stream="openai-no-credit-stream")
+    case = dataclasses.replace(
+        CASES["openai-no-credit-stream"], key=lambda: SecretStr("sk-test-0000")
+    )
+
+    recorded = await record_case(case, build=wire.build)
+
+    assert (recorded.status, recorded.body, recorded.provenance) == (
+        None,
+        load_refusal("openai-no-credit-stream").body,
+        "recorded",
+    )

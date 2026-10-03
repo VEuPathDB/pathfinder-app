@@ -6,11 +6,19 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import pytest
+from pydantic_ai import Tool
 from veupathdb.wdk import WDKAnswer, WDKFilterValue, WDKSortSpec
+from veupathdb_mcp.wdk import SampleRecordsResult
 
-from pathfinder.ai.tools.standalone import results
+from pathfinder.ai.tools.standalone import results, step_ids
+from pathfinder.ai.tools.standalone._result_models import MAX_SAMPLE_LIMIT
+from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _GENE_TOTAL = 840
+_STEP = 42
 
 
 class _Step:
@@ -119,3 +127,55 @@ def test_a_hundred_records_sampled_at_eight_give_eight_offsets_across_the_step()
 
 def test_an_empty_step_has_no_offset() -> None:
     assert results.spread_offsets(0, 8, seed="m:42") == []
+
+
+def _built_step() -> StrategySession:
+    session = StrategySession(site_id="vectorbase")
+    graph = StrategyGraph(graph_id="g1", name="P450s", site_id="vectorbase")
+    graph.record_type = "transcript"
+    session.graph = graph
+    session.sync_state = WDKSyncState(wdk_step_ids={"step_p450": _STEP})
+    return session
+
+
+async def test_the_id_read_and_the_sample_answer_the_same_genes_in_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    step = _Step()
+    monkeypatch.setattr(results, "get_strategy_api", lambda site_id: step)
+
+    async def no_selected(site_id: str, record_type: str, graph: object) -> list[str]:
+        del site_id, record_type, graph
+        return []
+
+    monkeypatch.setattr(results, "sample_attributes", no_selected)
+    session = _built_step()
+
+    ids = returned(
+        await step_ids.read_step_ids(
+            agent_run_context(site_id="vectorbase", strategy_session=session),
+            _STEP,
+            limit=8,
+        ),
+        step_ids.StepGeneIds,
+    )
+    sample = returned(
+        await results.get_sample_records(
+            agent_run_context(site_id="vectorbase", strategy_session=session),
+            _STEP,
+            limit=8,
+        ),
+        SampleRecordsResult,
+    )
+
+    assert (ids.total, ids.complete) == (_GENE_TOTAL, False)
+    assert ids.gene_ids == [str(r["id"]).removesuffix("-RA") for r in sample.records]
+
+
+def test_a_limited_id_read_takes_no_more_ids_than_a_sample() -> None:
+    """A limited read sends one request for each id, as the sample does."""
+    schema = Tool(step_ids.read_step_ids).tool_def.parameters_json_schema
+
+    [limited, _] = schema["properties"]["limit"]["anyOf"]
+
+    assert (limited["minimum"], limited["maximum"]) == (1, MAX_SAMPLE_LIMIT)

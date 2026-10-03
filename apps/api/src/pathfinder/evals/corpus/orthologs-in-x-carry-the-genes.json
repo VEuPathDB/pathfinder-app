@@ -6,7 +6,7 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "A request for the orthologs in another organism asks for that organism's genes: one orthology transform over the seed, and a reply that says the records are P. vivax P01 genes. The cataloged thread's correction built this transform, which answered 67 P. vivax P01 records, and nothing held its reply to say whose genes those were.",
+  "rationale": "A request for the orthologs in another organism asks for that organism's genes: one orthology transform over the seed, and a reply that says the records are P. vivax P01 genes. That transform answers 67 P. vivax P01 records, and the reply must say whose genes those are.",
   "expected": {
     "buildsStrategy": true,
     "structure": "GenesByOrthologs((GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains))",

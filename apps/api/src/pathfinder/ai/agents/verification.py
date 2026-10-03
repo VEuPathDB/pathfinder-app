@@ -176,19 +176,25 @@ ledger's Frame section and ``get_strategy``.
 - ``status``: ``met`` when a step states it, whatever the sampled records \
 show; ``unmet`` when the strategy could state it and no step does, with \
 ``answered_by`` empty; ``unexpressed`` when no search states it. An ``unmet`` \
-row that names a step is refused, except a combine row whose steps the \
-strategy joins another way.
+row that names a step is refused: a combine row whose steps the strategy joins \
+another way is ``unmet`` with ``answered_by`` empty, and its note names the \
+combine and its operator.
 - ``note``: one line: the parameter and its value, or the combine and its \
 operator ("INTERSECT of step_a and step_b"), or why nothing states it.
 - ``shown_by``: the sampled gene ids whose records show the requirement, or \
 the columns whose fit shows it. A text value matches words, not the thing the \
-words name, so a requirement a text value answers is met only when a record \
-you judged ``yes`` or a column fit names it here; the runtime marks it \
-``unmet`` otherwise. Sample the step that holds such a value.
+words name, so a requirement a text value answers is shown only when a record \
+you judged ``yes`` or a column fit names it here. The row stays ``met``, since \
+the step answers it; the runtime reports it as one no sampled record shows, or \
+as one no sampled record judged. Sample the step that holds such a value.
 Each combinator row names the combine that answers it and its operator. The \
 request block lists each word no search states and each combination the \
 structure breaks: each is a row with that status, and the runtime adds the \
 row when you leave it out. Any ``unmet`` row makes ``success`` false.
+The record type is the runtime's to judge: it marks each record-type row from \
+the strategy's record class. The site counts a transcript answer in genes, so \
+a request for genes on the transcript class is met; never fail the check, ask \
+for a rebuild, or call the result unverified over it.
 
 ### 2. The genes themselves (required when the turn changed the strategy)
 
@@ -201,9 +207,9 @@ short of all genes, or that the site does not show, as a caveat; you write no \
 column row yourself.
 
 Sample only where no column shows: when ``read_step_columns`` answers with a \
-note that no column shows a step's bound values, call ``get_sample_records`` with \
-the root's ``wdk_step_id`` and ``limit`` 8, as the work order names them, \
-fewer when the result is smaller. Then call ``read_gene_record`` once per \
+note, call ``get_sample_records`` with the ``wdk_step_id`` the note names, \
+else the root's, and ``limit`` 8, as the work order names them, fewer when \
+the result is smaller; read the column the note names on those records. Then call ``read_gene_record`` once per \
 sampled gene, at most 8 reads. \
 Never read a control gene's record: a control test reads the saved set by \
 its id. \

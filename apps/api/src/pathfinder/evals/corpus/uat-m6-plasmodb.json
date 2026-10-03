@@ -36,7 +36,7 @@
     "addedAt": "2026-09-25",
     "stagingId": "",
     "reference": "uat/flows-memory-notes.md#m6",
-    "curatorNote": "The question runs in a new conversation of the same researcher."
+    "curatorNote": "The question runs in a new thread of the same researcher."
   },
   "effort": "medium",
   "gates": {

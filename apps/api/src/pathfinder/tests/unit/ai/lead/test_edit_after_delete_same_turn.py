@@ -21,7 +21,6 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.operations import GraphOperation
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
@@ -98,7 +97,6 @@ def _frame_adds_one_leaf(monkeypatch: pytest.MonkeyPatch) -> None:
         return FrameResult(
             disposition="spec_ready",
             summary="added the filter",
-            changes=[CriterionChange(criterion_id=_KEPT, disposition="kept")],
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _stream)

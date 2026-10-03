@@ -11,19 +11,21 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 
+from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.ai.tools.standalone._result_models import MAX_SAMPLE_LIMIT
 from pathfinder.ai.tools.standalone.results import (
+    READ_DEADLINE_SECONDS,
     named_or_root,
-    spread_offsets,
+    sample_page,
     step_sample_seed,
 )
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.services.gene_sets.step_genes import (
-    first_step_gene_ids,
-    step_gene_ids_at,
-)
+from pathfinder.services.gene_sets.step_genes import StepIds, first_step_gene_ids
 
 STEP_IDS_CAP = 5000
+# A whole listing reads up to five pages of a thousand ids each.
+LISTING_DEADLINE_SECONDS = 60.0
 
 
 class StepIdsReader(Protocol):
@@ -57,10 +59,25 @@ def _no_such_step(wdk_step_id: int, live: list[int]) -> str:
     )
 
 
+async def _sampled_ids(deps: StepIdsReader, wdk_step_id: int, limit: int) -> StepIds:
+    """The ids ``get_sample_records`` reads at the same limit, in its order."""
+    session = deps.strategy_session
+    graph = session.get_graph(None)
+    sampled = await sample_page(
+        deps.site_id,
+        wdk_step_id,
+        limit=limit,
+        attributes=["primary_key"],
+        record_type=(graph.record_type if graph is not None else None) or "transcript",
+        seed=step_sample_seed(session, wdk_step_id),
+    )
+    return StepIds(gene_ids=sampled.gene_ids, total=sampled.result.total_count)
+
+
 async def read_step_ids(
     ctx: RunContext[StepIdsReader],
     wdk_step_id: int | None = None,
-    limit: Annotated[int | None, Field(ge=1, le=STEP_IDS_CAP)] = None,
+    limit: Annotated[int | None, Field(ge=1, le=MAX_SAMPLE_LIMIT)] = None,
 ) -> ToolReturn[StepGeneIds]:
     """Return the gene ids a built step of this strategy holds. Read-only.
 
@@ -71,7 +88,7 @@ async def read_step_ids(
         wdk_step_id: The WDK step id of a built step of this strategy. Leave
             it out for the root, which holds the result the researcher sees;
             name another step only when the researcher names that step.
-        limit: How many ids to read, at most 5000. With a limit the ids are
+        limit: How many ids to read, at most 100. With a limit the ids are
             the genes ``get_sample_records`` reads at the same limit, spread
             over the step; leave it out for the first 5000 in the site's order.
             ``complete`` says whether the ids are every gene the step holds.
@@ -81,15 +98,20 @@ async def read_step_ids(
     live = sorted(set(sync_state.wdk_step_ids.values())) if sync_state else []
     if wdk_step_id not in live:
         raise ModelRetry(_no_such_step(wdk_step_id, live))
-    site_id = ctx.deps.site_id
+    subject = f"step {wdk_step_id}"
     if limit is None:
-        read = await first_step_gene_ids(site_id, wdk_step_id, limit=STEP_IDS_CAP)
+        read = await read_in_time(
+            "read_step_ids",
+            subject,
+            first_step_gene_ids(ctx.deps.site_id, wdk_step_id, limit=STEP_IDS_CAP),
+            deadline=LISTING_DEADLINE_SECONDS,
+        )
     else:
-        seed = step_sample_seed(ctx.deps.strategy_session, wdk_step_id)
-        read = await step_gene_ids_at(
-            site_id,
-            wdk_step_id,
-            lambda total: spread_offsets(total, limit, seed=seed),
+        read = await read_in_time(
+            "read_step_ids",
+            subject,
+            _sampled_ids(ctx.deps, wdk_step_id, limit),
+            deadline=READ_DEADLINE_SECONDS,
         )
     complete = len(read.gene_ids) >= read.total
     ctx.deps.turn_markers.record_listed_genes(wdk_step_id, read.gene_ids)

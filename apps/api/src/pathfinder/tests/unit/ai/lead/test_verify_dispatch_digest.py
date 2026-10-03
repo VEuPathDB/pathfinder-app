@@ -275,3 +275,115 @@ async def test_success_over_the_stated_combination_stands(
 
     assert delta.digest.success is True
     assert delta.digest.failure_cause is None
+
+
+_PASSED = "every stated requirement is met by a step and the records show it"
+
+
+def _genes_row(**marks: bool) -> dict[str, Any]:
+    return {
+        "text": "genes",
+        "turn": 1,
+        "answeredBy": [],
+        "how": "parameter",
+        "status": "unmet",
+        "note": "The strategy record type is `transcript`, not `gene`.",
+        **marks,
+    }
+
+
+def _transcript_digest(*rows: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "digest": {
+            "disposition": "handoff",
+            "handoffTo": "frame",
+            "success": False,
+            "prose": (
+                "The predicted signal-peptide search returned **720** records. The "
+                "strategy is configured as `transcript` record type rather than "
+                "`gene`, so the requested data type is not verified as honored."
+            ),
+            "reason": (
+                "The search returns a plausible 720-record result, but its "
+                "configured record type is `transcript`, not the requested genes."
+            ),
+            "review": {"requirements": list(rows)},
+        }
+    }
+
+
+def _signal_peptide_deps() -> LeadDeps:
+    state = pipeline_state(
+        "toxodb",
+        user_prompt=(
+            "Find Toxoplasma gondii ME49 genes whose proteins have a predicted "
+            "signal peptide."
+        ),
+    )
+    state.domain.operational_spec = OperationalSpec(
+        goal="signal peptide genes",
+        record_type="transcript",
+        criteria=[
+            Criterion(
+                id="s1",
+                text="proteins have a predicted signal peptide",
+                search_name="GenesWithSignalPeptide",
+            )
+        ],
+    )
+    state.domain.last_build_outcome = BuildOutcome(
+        pushed_step_ids=["s1"], wdk_strategy_id=330885923
+    )
+    return lead_deps(
+        state,
+        strategy_session=_session_with_step(
+            "toxodb",
+            name="Signal peptide",
+            search_name="GenesWithSignalPeptide",
+            count=720,
+            wdk_strategy_id=330885923,
+        ),
+    )
+
+
+async def test_a_failure_the_rows_do_not_support_passes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    deps = _signal_peptide_deps()
+
+    delta = await _verify(monkeypatch, deps, _transcript_digest(_genes_row()))
+
+    digest = delta.digest
+    assert [(r.text, r.shown_status) for r in digest.review.requirements] == [
+        ("genes", "met")
+    ]
+    assert (digest.success, digest.failure_cause, digest.gaps) == (True, None, [])
+    assert digest.reason == f"Verification passed: {_PASSED}."
+    assert (digest.disposition, digest.handoff_to) == (PhaseDisposition.DONE, None)
+    assert deps.state.turn_markers.verified is True
+
+
+async def test_a_failure_with_a_row_no_record_shows_stays_failed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    unshown = {
+        "text": "proteins have a predicted signal peptide",
+        "turn": 1,
+        "answeredBy": ["s1"],
+        "how": "search",
+        "status": "met",
+        "noRecordShowsIt": True,
+    }
+
+    delta = await _verify(
+        monkeypatch,
+        _signal_peptide_deps(),
+        _transcript_digest(_genes_row(), unshown),
+    )
+
+    assert [r.shown_status for r in delta.digest.review.requirements] == [
+        "met",
+        "unshown",
+    ]
+    assert delta.digest.success is False
+    assert delta.digest.reason.startswith("The search returns a plausible 720-record")

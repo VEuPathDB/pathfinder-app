@@ -36,7 +36,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    kept,
     recorded,
     session_holding,
 )
@@ -87,7 +86,7 @@ async def test_a_value_set_on_the_canvas_reaches_the_spec_and_is_not_written_bac
     canvas_sets(thread.graph, STAGE, timepoint=NumberValue(value=48))
     await thread.next_turn()
     untouched = facts_of(thread.facts(), SURFACE, STAGE, ROOT)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -117,7 +116,7 @@ async def test_a_combine_flipped_on_the_canvas_stands_through_the_next_edit(
     thread = _thread(monkeypatch)
     canvas_flips(thread.graph, ROOT, CombineOp.UNION)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -146,7 +145,7 @@ async def test_a_combine_flipped_on_the_canvas_stands_when_the_edit_restates_it(
     assert restated.structure is not None
     restated.structure.root.operator = CombineOp.UNION
     thread.deps.state.domain.operational_spec = restated
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -164,7 +163,7 @@ async def test_a_step_renamed_on_the_canvas_keeps_its_name_through_an_edit(
     thread = _thread(monkeypatch)
     canvas_renames(thread.graph, STAGE, "merozoite, my cutoff")
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -186,7 +185,7 @@ async def test_two_canvas_edits_in_a_row_both_reach_the_next_edit(
     canvas_sets(thread.graph, SURFACE, min_signal=NumberValue(value=3))
     await thread.next_turn()
     untouched = facts_of(thread.facts(), SURFACE, STAGE)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 

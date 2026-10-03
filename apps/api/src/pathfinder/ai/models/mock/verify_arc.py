@@ -34,6 +34,8 @@ from pathfinder.domain.evidence import RequirementCheck, SampledGene, Verificati
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
+)
+from pathfinder.domain.strategy.message_reading import (
     message_states_constraint,
 )
 

@@ -1,6 +1,6 @@
 """The wrong calls of the faults the turn contract and the intent gate answer:
-a reply that prints a count the facts part does not show, an open value asked in
-prose, and a classification that splits the organism."""
+a reply that writes a count outside a reference, an open value asked in prose,
+and a classification that splits the organism."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class _Prose(BaseModel):
 
 
 def unshown_count(messages: list[ModelMessage]) -> CallFault:
-    """The arc's reply with a count the facts part does not show printed in it."""
+    """The arc's reply with a count written in it outside a reference."""
     count = unshown_count_sentence(messages)
 
     def fault(intended: ToolCallPart) -> ToolCallPart | None:

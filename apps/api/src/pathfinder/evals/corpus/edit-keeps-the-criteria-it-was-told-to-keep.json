@@ -1,31 +1,31 @@
 {
   "name": "edit-keeps-the-criteria-it-was-told-to-keep",
   "turns": [
-    "Build a comprehensive kinase strategy for Plasmodium.",
-    "Swap the organism on the seed criterion and keep the rest."
+    "Plasmodium falciparum 3D7 genes with kinase in the product name or annotated with the GO term kinase activity.",
+    "Swap the organism on both searches to Plasmodium vivax P01 and keep everything else as it is."
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "An edit turn re-binds the criterion it was told to change and leaves the others standing. The cataloged run framed three criteria, came back from the edit with two, and reported the rest preserved. Three criteria over two operators must still sign as five nodes after the edit.",
+  "rationale": "An edit turn re-binds the value it was told to change on the criteria it names and leaves every other value standing: the two searches keep their term and their GO entry, the UNION keeps its shape, and both organisms carry the one the edit names.",
   "expected": {
     "buildsStrategy": true,
-    "structure": "((GenesByText UNION GenesByGoTerm) INTERSECT GenesByTaxon)",
+    "structure": "(GenesByText UNION GenesByGoTerm)",
     "recordType": null,
-    "stepCount": 5,
+    "stepCount": 3,
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {
-      "GenesByTaxon": {
-        "organism": "Plasmodium vivax P01"
-      },
       "GenesByText": {
-        "text_expression": "kinase"
+        "text_search_organism": "Plasmodium vivax P01"
+      },
+      "GenesByGoTerm": {
+        "organism": "Plasmodium vivax P01",
+        "go_typeahead": "GO:0016301"
       }
     },
-    "replyMentions": [
-      "unchanged"
-    ],
-    "replyOmits": []
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootOperator": "UNION"
   },
   "provenance": {
     "site": "plasmodb",
@@ -34,7 +34,7 @@
     "addedAt": "2026-08-30",
     "stagingId": "",
     "reference": "decisions/an-edit-is-a-delta-not-a-rebuild.md",
-    "curatorNote": "Two turns on one thread: the first builds, the second edits. A single-prompt case cannot reach the state this pins."
+    "curatorNote": "Two turns on one thread: the first builds a UNION of a product-text search and a GO-term search on one organism, the second swaps the organism on both. The edit names its replacement organism, so the turn applies it instead of asking, and the union's two searches keep the values the first turn bound."
   },
   "gates": {
     "policy": "leave",

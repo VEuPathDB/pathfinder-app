@@ -15,7 +15,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    declared,
     leaf,
     recorded,
     session_holding,
@@ -52,7 +51,6 @@ async def test_a_removal_only_pass_is_refused_and_keeps_the_thread_whole(
     thread = await _entered(monkeypatch)
     thread.frames(
         _dropping(STAGE),
-        declared=[*declared("kept", SURFACE), *declared("dropped", STAGE)],
     )
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)

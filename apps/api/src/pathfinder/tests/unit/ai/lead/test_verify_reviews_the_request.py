@@ -403,7 +403,9 @@ async def test_only_a_text_query_is_held_to_the_records_and_an_ask_files_no_row(
         },
     )
 
-    assert [(row.text, row.status) for row in delta.digest.review.requirements] == [
+    assert [
+        (row.text, row.shown_status) for row in delta.digest.review.requirements
+    ] == [
         ("protein kinase activity", "met"),
-        ("trans-sialidase", "unmet"),
+        ("trans-sialidase", "unshown"),
     ]

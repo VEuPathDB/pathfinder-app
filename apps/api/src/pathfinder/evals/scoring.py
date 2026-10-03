@@ -101,6 +101,7 @@ class RequirementCounts(CamelModel):
     met: int = 0
     unmet: int = 0
     unexpressed: int = 0
+    unshown: int = 0
     unjudged: int = 0
 
 
@@ -111,6 +112,7 @@ def requirement_counts(rows: Sequence[RequirementCheck]) -> RequirementCounts:
         met=statuses.count("met"),
         unmet=statuses.count("unmet"),
         unexpressed=statuses.count("unexpressed"),
+        unshown=statuses.count("unshown"),
         unjudged=statuses.count("unjudged"),
     )
 

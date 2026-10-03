@@ -124,18 +124,27 @@ def openai_stream(model: str) -> bytes:
     return "".join(frames).encode()
 
 
+def openai_stream_that_fails(model: str, body: JsonValue) -> bytes:
+    """The streamed answer, cut after its first delta by an error event."""
+    events, _, _ = openai_stream(model).decode().rpartition("event: response.completed")
+    failed = json.dumps({"type": "error", "error": body})
+    return f"{events}event: error\ndata: {failed}\n\n".encode()
+
+
 @dataclass
 class ProviderWire:
     """Builds real providers on a transport that records every request.
 
     ``refuse`` answers each request with the provider's ``refused_by`` fixture
-    and ``status`` with that status and no body; otherwise an OpenAI request
-    gets a finished answer.
+    and ``status`` with that status and no body. ``fails_mid_stream`` names the
+    fixture whose body ends a streamed OpenAI answer after it began; otherwise
+    an OpenAI request gets a finished answer.
     """
 
     refuse: bool = False
     refused_by: str = "invalid-key"
     status: int | None = None
+    fails_mid_stream: str | None = None
     requests: list[httpx2.Request] = field(default_factory=list)
 
     def _answer(
@@ -144,14 +153,24 @@ class ProviderWire:
         self.requests.append(request)
         if self.refuse:
             refusal = load_refusal(f"{provider}-{self.refused_by}")
+            if refusal.status is None:
+                msg = "a refusal without a status is sent inside a stream"
+                raise ValueError(msg)
             return httpx2.Response(refusal.status, json=refusal_on_the_wire(refusal))
         if self.status is not None:
             return httpx2.Response(self.status)
         requested = _Requested.model_validate_json(request.content)
         if requested.stream:
+            content = (
+                openai_stream(requested.model)
+                if self.fails_mid_stream is None
+                else openai_stream_that_fails(
+                    requested.model, load_refusal(self.fails_mid_stream).body
+                )
+            )
             return httpx2.Response(
                 200,
-                content=openai_stream(requested.model),
+                content=content,
                 headers={"content-type": "text/event-stream"},
             )
         return httpx2.Response(200, json=openai_answer(requested.model))

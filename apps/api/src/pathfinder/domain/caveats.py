@@ -10,19 +10,23 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Discriminator
 
 from pathfinder.domain.constraint_check import CheckGap
+from pathfinder.domain.count_words import counted
 from pathfinder.domain.evidence import (
     ColumnFit,
     ControlTestEvidence,
     NamedControlSet,
-    RequirementCheck,
     VerificationReview,
 )
-from pathfinder.domain.strategy.constraints import (
-    ConstraintSource,
-    GroundedConstraint,
-    message_states,
+from pathfinder.domain.requirement_naming import (
+    names_a_requirement,
+    names_a_retired_requirement,
+    requirement_naming,
 )
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.constraints import GroundedConstraint, message_states
+from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
+)
+from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
     ChoiceCaveat,
@@ -133,8 +137,8 @@ class EditDirectionCaveat(CamelModel):
         moved = "fell" if self.count_after < self.count_before else "rose"
         return (
             f"'{self.step_name}' was edited to {self.direction} it, and its count "
-            f"{moved} from {_counted_with_commas(self.count_before, self.noun)} "
-            f"to {_counted_with_commas(self.count_after, self.noun)}"
+            f"{moved} from {counted(self.count_before, self.noun)} "
+            f"to {counted(self.count_after, self.noun)}"
         )
 
     def texts(self) -> list[str]:
@@ -142,10 +146,6 @@ class EditDirectionCaveat(CamelModel):
 
     def redacted(self, redact: Callable[[str], str]) -> EditDirectionCaveat:
         return self.model_copy(update={"step_name": redact(self.step_name)})
-
-
-def _counted_with_commas(count: int, noun: str) -> str:
-    return f"{count:,} {noun}" if count == 1 else f"{count:,} {noun}s"
 
 
 def edit_direction_caveats(
@@ -177,8 +177,8 @@ def edit_direction_caveats(
 
 
 class PhraseCaveat(CamelModel):
-    """A several-word text sent unquoted, which matches any of its words,
-    where the same words as one phrase count otherwise."""
+    """A several-word text sent unquoted, which the site matches by any of its
+    words, where the same words as one phrase count otherwise."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -193,9 +193,10 @@ class PhraseCaveat(CamelModel):
     def sentence(self) -> str:
         """The text, its count as any of its words, and its count as a phrase."""
         return (
-            f"{self.param_display_name} {self.value!r} matches any of its words: "
-            f"{_counted_with_commas(self.words_count, 'gene')}; as the phrase "
-            f'"{self.value}": {_counted_with_commas(self.phrase_count, "gene")}'
+            f"{self.param_display_name} {self.value!r} is unquoted, so the site "
+            f"matches any of its words: "
+            f"{counted(self.words_count, 'gene')}; as the phrase: "
+            f"{counted(self.phrase_count, 'gene')}"
         )
 
     def texts(self) -> list[str]:
@@ -213,14 +214,13 @@ def phrase_caveats(spec: OperationalSpec | None) -> list[PhraseCaveat]:
         PhraseCaveat(
             criterion_id=c.id,
             param_display_name=c.display_name_of(m.param),
-            value=m.reading.strip('"'),
+            value=plain_value(c.resolved_params[m.param].value),
             words_count=c.result_count,
             phrase_count=m.count,
         )
         for c in spec.criteria
         for m in c.measurements
-        if m.kind == "wildcard_phrase"
-        and m.reading.startswith('"')
+        if m.kind == "phrase_reading"
         and m.param in c.resolved_params
         and m.count is not None
         and c.result_count is not None
@@ -313,8 +313,6 @@ def measured_caveats(
     ]
 
 
-# unshown: a text query answers the row and a sampled record shows it missing.
-# unjudged: a text query answers the row and no sampled record judged it.
 type RequirementGapStatus = Literal["unmet", "unexpressed", "unshown", "unjudged"]
 
 
@@ -405,54 +403,6 @@ Gap = Annotated[
 ]
 
 
-def _names(text: str, words: str) -> bool:
-    """Whether the text carries the words, or the words carry the text."""
-    return message_states(text, words) or message_states(words, text)
-
-
-def _requirement_naming(
-    text: str,
-    requirements: Sequence[GroundedConstraint],
-    *,
-    met: Sequence[str] = (),
-) -> GroundedConstraint | None:
-    """The one requirement of the researcher the text names, by its key.
-
-    A requirement a ``met`` row names is not the one the text misses. A text
-    that names several of the rest, or none, names no one requirement, so the
-    order the requirements come in decides nothing.
-    """
-    named = {
-        held.constraint.key: held
-        for held in requirements
-        if held.constraint.source is ConstraintSource.USER_EXPLICIT
-        and _names(text, held.constraint.requested_value)
-    }
-    missing = [
-        held
-        for held in named.values()
-        if not any(_names(row, held.constraint.requested_value) for row in met)
-    ]
-    found = missing or list(named.values())
-    return found[0] if len(found) == 1 else None
-
-
-def _names_a_requirement(text: str, requirements: Sequence[GroundedConstraint]) -> bool:
-    return any(_names(text, held.constraint.requested_value) for held in requirements)
-
-
-def _retired(text: str, requirements: Sequence[GroundedConstraint]) -> bool:
-    held = _requirement_naming(text, requirements)
-    return held is not None and held.retired
-
-
-def _gap_status(row: RequirementCheck) -> RequirementGapStatus:
-    shown = row.shown_status
-    if shown == "unexpressed" or shown == "unjudged":
-        return shown
-    return "unshown" if row.no_record_shows_it else "unmet"
-
-
 def check_gaps(
     *,
     structure: StructureGap | None,
@@ -472,31 +422,40 @@ def check_gaps(
     requirement carries the requirement's own words.
     """
     live_structure = structure
-    if structure is not None and _retired(structure.expression, requirements):
+    if structure is not None and names_a_retired_requirement(
+        structure.expression, requirements
+    ):
         live_structure = None
-    live_words = [w for w in dict.fromkeys(words) if not _retired(w, requirements)]
+    live_words = [
+        w
+        for w in dict.fromkeys(words)
+        if not names_a_retired_requirement(w, requirements)
+    ]
     named = {word.casefold() for word in words}
     if structure is not None:
         named.add(structure.expression.casefold())
     rows: list[Gap] = []
     for text in dict.fromkeys(unstated):
-        if text.casefold() in named or _retired(text, requirements):
+        if text.casefold() in named or names_a_retired_requirement(text, requirements):
             continue
         named.add(text.casefold())
         rows.append(RequirementGap(text=text, status="unexpressed"))
     met = [row.text for row in review.requirements if row.shown_status == "met"]
     for row in review.to_report():
-        if not _names_a_requirement(row.text, requirements) or any(
-            message_states(row.text, question) for question in asked
+        status = row.shown_status
+        if (
+            status == "met"
+            or not names_a_requirement(row.text, requirements)
+            or any(message_states(row.text, question) for question in asked)
         ):
             continue
-        held = _requirement_naming(row.text, requirements, met=met)
+        held = requirement_naming(row.text, requirements, met=met)
         text = row.text if held is None else held.constraint.requested_value
         spelled = {row.text.casefold(), text.casefold()}
         if spelled & named or (held is not None and held.retired):
             continue
         named.add(text.casefold())
-        rows.append(RequirementGap(text=text, status=_gap_status(row)))
+        rows.append(RequirementGap(text=text, status=status))
     return [
         *([] if live_structure is None else [live_structure]),
         *(WordGap(word=word) for word in live_words),

@@ -79,7 +79,10 @@ No DB and no re-run needed to inspect a past run - the files are the interface.
 **Login is mandatory for real runs.** A non-mock `run` logs in to VEuPathDB as the
 dev user (creds from `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` in `.env.dev`, or
 `--email`/`--password`) and runs all WDK calls as that authenticated user. If the
-creds are missing or rejected it aborts with a clear error. `--mock` skips login
+creds are missing or rejected it aborts with a clear error. If the site's
+`/login` does not answer it exits with code 2 on one line that names the site
+and the failure, such as `cryptodb login did not answer (connect timeout)`, and
+the corpus runner records that case as `not-run`. `--mock` skips login
 (it never touches WDK). This requires running compose with `--env-file .env.dev`
 so the vars reach the container.
 
@@ -285,7 +288,7 @@ A case can name how it runs, each field compared or applied only when set:
 | `expected.countsInGenes` | `true`: what the last turn showed states every count of the strategy's steps in genes, the unit the site counts them in, never as `N transcripts` (`reply_claims.counts_in_the_wrong_unit`) |
 | `expected.endsOn` | `none`, `consult`, `approval` or `proposal` (an offer card): the gate the last turn stopped on |
 | `expected.unexpressedRequirements` | the rows of the check on the strategy that no search on the site states, counted; `0` holds a withdrawn requirement or a settled question to no gap |
-| `expected.turnReplyMentions`, `expected.turnReplyOmits` | turn index to phrases. A mention is read in what that turn showed, its facts part's lines then the reply it ended on after its cards; an omission is read in the reply alone, since the facts part shows a vocabulary term beside its label. `replyMentions` and `replyOmits` read the last turn the same way, and every phrase difference names the text it read |
+| `expected.turnReplyMentions`, `expected.turnReplyOmits` | turn index to phrases. A mention is read in what that turn showed, its facts part's lines, each value beside who set it as the product shows it, then the reply it ended on after its cards; an omission is read in the reply alone, since the facts part shows a vocabulary term beside its label. `replyMentions` and `replyOmits` read the last turn the same way, and every phrase difference names the text it read |
 | `expected.assumedStated` | how many values the run applied that the request did not state and the last facts part did not show with who set them and their measurement (`domain/turn_facts.py::uncarried_assumptions`); compared only when the run counted them, and printed as `assumed=N` (`assumed=-` when uncounted) beside `refusals=` on every case line and in the run's closing line |
 
 **A verdict is `pass`, `re-measure` or `fail`.** The run reads each site's
@@ -293,8 +296,9 @@ A case can name how it runs, each field compared or applied only when set:
 fails: a changed tree, a missing phrase, a wrong unit, a gate that did not come.
 With only the count off, the same build fails, a new build within the larger of
 5 genes or 10 % passes, and a new build outside it is a `re-measure` (the exit
-criteria's rules for a count that moved). The summary counts `reMeasure` beside
-`passed`, `failed` and `errored`. Each case carries its `observedCount` and, whenever it differs from the recorded count, `countDrift`, which names both counts with their builds, a pass inside the band included.
+criteria's rules for a count that moved). A case whose site login did not
+answer is `not-run`: it is no failure and stays out of the pass rate. The
+summary counts `reMeasure` and `notRun` beside `passed`, `failed` and `errored`. Each case carries its `observedCount` and, whenever it differs from the recorded count, `countDrift`, which names both counts with their builds, a pass inside the band included.
 
 The `uat-<flow>-<site>` cases are the model-driven UAT flows, written from the
 flow tables under `docs/knowledge/uat/`; their provenance names the flow. The

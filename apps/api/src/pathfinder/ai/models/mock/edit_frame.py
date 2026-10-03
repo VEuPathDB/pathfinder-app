@@ -1,11 +1,10 @@
 """The mock FRAME on an EDIT work order: it reads the criteria and the shape the
-strategy holds, changes what the arc names, and states a disposition for the rest.
+strategy holds, and changes what the arc names.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from typing import Any
 
 from assistant_core.models.scripted import scripted_call
@@ -113,46 +112,10 @@ def _swap(node: StructureNode, old: str, new: StructureNode) -> StructureNode:
     return node.model_copy(update={"inputs": [_swap(c, old, new) for c in node.inputs]})
 
 
-def _changes(
-    criteria: list[WorkspaceCriterion],
-    *,
-    changed: Mapping[str, dict[str, str]] | None = None,
-    dropped: str | None = None,
-) -> list[dict[str, Any]]:
-    moved = changed or {}
-    out: list[dict[str, Any]] = []
-    for crit in criteria:
-        cid = crit.criterion_id
-        if cid == dropped:
-            out.append(
-                {
-                    "criterionId": cid,
-                    "disposition": "dropped",
-                    "reason": "the request removes it",
-                }
-            )
-        elif cid in moved:
-            out.append(
-                {
-                    "criterionId": cid,
-                    "disposition": "changed",
-                    "changedParams": moved[cid],
-                }
-            )
-        else:
-            out.append({"criterionId": cid, "disposition": "kept"})
-    return out
-
-
-def _final(summary: str, changes: list[dict[str, Any]]) -> ToolCallPart:
+def _final(summary: str) -> ToolCallPart:
     return scripted_call(
         "final_result",
-        {
-            "summary": summary,
-            "disposition": "spec_ready",
-            "openQuestions": [],
-            "changes": changes,
-        },
+        {"summary": summary, "disposition": "spec_ready", "openQuestions": []},
     )
 
 
@@ -174,15 +137,14 @@ def param_edit_call(
     criteria = workspace_criteria(work_order)
     target = _target(criteria, search_name)
     if target is None:
-        return _final("Nothing in the workspace runs that search.", _changes(criteria))
+        return _final("Nothing in the workspace runs that search.")
     if "list_searches" not in called:
         return _listing()
     if any(
         r.criterion_id == target.criterion_id and r.resolved_params for r in replies
     ):
         return _final(
-            f"Moved {', '.join(change)} on {target.criterion_id}; the rest are unchanged.",
-            _changes(criteria, changed={target.criterion_id: change}),
+            f"Moved {', '.join(change)} on {target.criterion_id}; the rest are unchanged."
         )
     args: dict[str, Any] = {
         "criterion_id": target.criterion_id,
@@ -212,10 +174,9 @@ def grown_call(
     instructions: str,
 ) -> ToolCallPart:
     """Bind the growth's criteria and grow the tree the strategy holds with them."""
-    criteria = workspace_criteria(work_order)
     shape = workspace_shape(work_order)
     if shape is None:
-        return _final("The work order prints no shape to grow.", _changes(criteria))
+        return _final("The work order prints no shape to grow.")
     if "list_searches" not in called:
         return _listing()
     maps = next((c for c in growth.criteria if c.role == "transform"), None)
@@ -227,7 +188,7 @@ def grown_call(
             return call
     if "set_structure" not in called:
         return _structure(growth.grow(shape))
-    return _final("Grew the strategy; the rest are unchanged.", _changes(criteria))
+    return _final("Grew the strategy; the rest are unchanged.")
 
 
 def replaced_step_call(
@@ -243,7 +204,7 @@ def replaced_step_call(
     target = _target(criteria, search_name)
     shape = workspace_shape(work_order)
     if target is None or shape is None:
-        return _final("Nothing in the workspace runs that search.", _changes(criteria))
+        return _final("Nothing in the workspace runs that search.")
     if "list_searches" not in called:
         return _listing()
     call = criterion_call(added, replies, instructions)
@@ -259,7 +220,4 @@ def replaced_step_call(
         )
     if "set_structure" not in called:
         return _structure(_swap(shape, target.criterion_id, leaf(added)))
-    return _final(
-        f"Replaced {target.criterion_id} with {added.criterion_id}.",
-        _changes(criteria, dropped=target.criterion_id),
-    )
+    return _final(f"Replaced {target.criterion_id} with {added.criterion_id}.")

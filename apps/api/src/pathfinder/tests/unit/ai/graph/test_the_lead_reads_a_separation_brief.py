@@ -41,7 +41,9 @@ async def _answered() -> _Answered:
 
 async def test_the_lead_reads_the_brief_of_the_run() -> None:
     expected = brief_of(
-        separation_report(recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID)
+        separation_report(
+            recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID, sheets={}
+        )
     )
 
     answered = await _answered()

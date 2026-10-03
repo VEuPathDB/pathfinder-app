@@ -57,6 +57,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "get_live_strategy_state",
         "list_control_sets",
         "read_control_set",
+        "compare_search_variants",
         # A repeat under one message answers from the first test.
         "run_control_tests_on_step",
     }

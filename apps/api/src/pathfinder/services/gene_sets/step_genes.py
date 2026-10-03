@@ -1,7 +1,5 @@
 """The gene ids a WDK step holds."""
 
-from collections.abc import Callable
-
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from veupathdb.domain.search import SearchContext
@@ -45,22 +43,6 @@ async def first_step_gene_ids(
         if not answer.records or offset >= total:
             break
     return StepIds(gene_ids=dedup_ordered(ids), total=total)
-
-
-async def step_gene_ids_at(
-    site_id: str, step_id: int, order: Callable[[int], list[int]]
-) -> StepIds:
-    """The gene ids at the offsets ``order`` places over the step's total, in
-    that order."""
-    counted = await first_step_gene_ids(site_id, step_id, limit=1)
-    offsets = order(counted.total)
-    if not offsets:
-        return StepIds(gene_ids=[], total=counted.total)
-    read = await first_step_gene_ids(site_id, step_id, limit=max(offsets) + 1)
-    held = read.gene_ids
-    return StepIds(
-        gene_ids=[held[o] for o in offsets if o < len(held)], total=read.total
-    )
 
 
 async def step_gene_ids(site_id: str, step_id: int) -> list[str]:

@@ -198,19 +198,6 @@ def test_a_copy_that_differs_from_the_subtree_it_restates_is_refused() -> None:
     )
 
 
-def test_a_copy_with_no_input_is_refused() -> None:
-    root = StructureNode(
-        kind="combine",
-        operator=CombineOp.INTERSECT,
-        inputs=[seed_node(), trip(StructureNode(kind="copy"))],
-    )
-
-    assert copy_refusal(root) == (
-        "A copy takes one input, the subtree it restates; "
-        '{"kind": "copy", "inputs": [<the source subtree>]}.'
-    )
-
-
 def _carried(organism: str) -> StrategyStepNode:
     seed = StrategyStepNode(
         search_name="GenesWithSignalPeptide",
@@ -273,3 +260,32 @@ def test_a_criterion_the_copy_restates_keeps_its_values() -> None:
     first, second = by_search["GenesWithSignalPeptide"]
     assert first.resolved_params == second.resolved_params
     assert first.text == second.text
+
+
+_COPY_BESIDE_ITS_SOURCE = (
+    "A copy sits beside the subtree it restates under one combine, so the "
+    "combine joins the same genes twice. A copy is the input of the first "
+    'transform of a round trip: state {"kind": "combine", "operator": '
+    '"INTERSECT", "inputs": [<the source subtree>, <the transform back>]}, and '
+    'give the first transform {"kind": "copy", "inputs": [<the source '
+    "subtree>]} as its input."
+)
+
+
+def test_a_copy_beside_its_own_leaf_is_refused() -> None:
+    signal = StructureNode(kind="leaf", criterion_id="c_signal")
+    root = StructureNode(
+        kind="combine", operator=CombineOp.INTERSECT, inputs=[signal, copy_of(signal)]
+    )
+
+    assert round_trip_refusal(round_trip_spec(root)) == _COPY_BESIDE_ITS_SOURCE
+
+
+def test_a_copy_beside_its_own_subtree_is_refused() -> None:
+    root = StructureNode(
+        kind="combine",
+        operator=CombineOp.UNION,
+        inputs=[copy_of(seed_node()), seed_node()],
+    )
+
+    assert round_trip_refusal(round_trip_spec(root)) == _COPY_BESIDE_ITS_SOURCE

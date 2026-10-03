@@ -39,9 +39,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -125,7 +123,6 @@ async def test_a_pass_that_bound_nothing_is_refused_and_keeps_the_thread_whole(
     thread = await _entered(monkeypatch)
     thread.frames(
         _binding_nothing(),
-        declared=declared("dropped", SURFACE, STAGE),
         disposition="needs_user",
     )
 
@@ -139,30 +136,30 @@ async def test_a_pass_that_claimed_more_than_it_bound_is_refused(
 ) -> None:
     """A ready spec whose every criterion is unbound is a claim, not a spec."""
     thread = await _entered(monkeypatch)
-    thread.frames(_unbound_criterion(), declared=declared("dropped", SURFACE, STAGE))
+    thread.frames(_unbound_criterion())
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)
 
     assert "framed" in refusal
 
 
-async def test_a_silent_drop_is_refused_before_anything_is_planned(
+async def test_an_edit_that_only_drops_a_step_is_the_removal_cards(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = await _entered(monkeypatch)
-    thread.frames(_silently_dropping_the_stage(), declared=kept(SURFACE))
+    thread.frames(_silently_dropping_the_stage())
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)
 
-    assert "This turn edits a spec that already had 2 criteria" in refusal
-    assert f"{STAGE} (expressed in merozoites) is gone from the spec" in refusal
+    assert "This edit only removes" in refusal
+    assert "Do not dispatch edit_strategy to remove a step" in refusal
 
 
 async def test_an_option_no_live_criterion_can_carry_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = await _entered(monkeypatch)
-    thread.frames(_an_option_no_criterion_runs(), declared=kept(SURFACE, STAGE))
+    thread.frames(_an_option_no_criterion_runs())
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)
 
@@ -180,7 +177,6 @@ async def test_a_strategy_changed_while_the_pass_ran_is_refused_by_revision(
     found = thread_state(thread)
     thread.frames(
         with_the_proteome(2),
-        declared=kept(SURFACE, STAGE),
         while_framing=lambda graph: canvas_sets(
             graph, SURFACE, min_signal=NumberValue(value=3)
         ),
@@ -207,7 +203,7 @@ async def test_a_commit_the_strategy_rejects_is_refused_and_changes_nothing(
         raise ApplyError(msg)
 
     monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _rejecting)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     refusal = await thread.edit()
 
@@ -238,7 +234,6 @@ async def test_values_the_site_refuses_name_the_step_that_states_them(
     monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _refusing)
     thread.frames(
         with_the_percentile(900),
-        declared=[*kept(SURFACE), *declared("changed", STAGE)],
     )
 
     refusal = await thread.edit()
@@ -277,7 +272,7 @@ async def test_an_edit_that_would_adopt_a_loose_step_is_refused(
         recorded_build=recorded(SURFACE, STAGE, ROOT),
     )
     await thread.next_turn()
-    thread.frames(_a_second_root_adopted(), declared=kept(SURFACE, STAGE))
+    thread.frames(_a_second_root_adopted())
 
     refusal = await thread.edit()
 

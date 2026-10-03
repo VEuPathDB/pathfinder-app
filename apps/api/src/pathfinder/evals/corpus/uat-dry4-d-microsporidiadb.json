@@ -51,7 +51,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ud4-microsporidiadb",
-    "curatorNote": "Round-4 dry UAT, tester D, investigation 10, conversation 724137b4-6b00-45ce-a93f-0a70093d0796."
+    "curatorNote": "The second message asks a count with no step removed, so the answer is the count of the signal peptide step."
   },
   "effort": "medium",
   "gates": {

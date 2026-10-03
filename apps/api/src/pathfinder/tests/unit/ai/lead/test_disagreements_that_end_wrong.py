@@ -47,7 +47,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -76,7 +75,7 @@ async def test_a_value_set_in_the_editor_survives_an_edit_of_another_value(
     thread = _thread(monkeypatch)
     thread.graph.steps[STAGE].parameters[STAGE_TIMEPOINT] = NumberValue(value=48)
     await thread.next_turn()
-    thread.frames(with_the_percentile(90), declared=[])
+    thread.frames(with_the_percentile(90))
 
     delta = await thread.edit()
 
@@ -94,7 +93,7 @@ async def test_a_resumed_edit_does_not_rebuild_a_step_deleted_while_it_was_parke
     record_the_spec_the_dispatch_found(thread.deps, resume=None)
     thread.session.graph = session_holding(surface_step()).graph
     await thread.next_turn(resumes_parked_call=True)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     await thread.edit(resume=SubAgentResume(messages=[], results=DeferredToolResults()))
 
@@ -107,10 +106,10 @@ async def test_the_delta_accounts_for_the_step_it_built(
     """The diff is measured against the strategy, so a step it builds reads added."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(with_the_proteome(None), declared=[], disposition="needs_user")
+    thread.frames(with_the_proteome(None), disposition="needs_user")
     await thread.edit()
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -169,7 +168,7 @@ async def test_a_refused_value_names_the_new_step_that_states_it(
     """The diff calls the unbuilt criterion kept, and this edit still writes it."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(_two_new(None), declared=[], disposition="needs_user")
+    thread.frames(_two_new(None), disposition="needs_user")
     await thread.edit()
 
     async def _refusing(**_kwargs: Any) -> CommitResult:
@@ -181,7 +180,7 @@ async def test_a_refused_value_names_the_new_step_that_states_it(
 
     monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _refusing)
     await thread.next_turn()
-    thread.frames(_two_new(3), declared=kept(SURFACE, STAGE, _FIRST, _SECOND))
+    thread.frames(_two_new(3))
 
     refusal = await thread.edit()
 
@@ -224,9 +223,7 @@ async def test_a_live_step_the_structure_leaves_out_is_never_called_an_option(
     """The refusal asks for a structure, and never for the live step's drop."""
     thread = _thread_with_an_export_beside_a_plan(monkeypatch)
     await thread.next_turn()
-    thread.frames(
-        with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME, _EXPORTED)
-    )
+    thread.frames(with_the_proteome(2))
 
     refusal = await thread.edit()
 

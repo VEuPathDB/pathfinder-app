@@ -1,7 +1,7 @@
 {
   "name": "uat-dry3-b-fungidb",
   "turns": [
-    "Cryptococcus neoformans H99 genes upregulated at 37 degrees compared with 30 degrees.",
+    "Cryptococcus neoformans H99 genes upregulated at 37 degrees compared with 30 degrees, using the WT input 37C and WT input 30C samples of the temperature RNA-Seq study.",
     "Please tighten the p-value cutoff to 0.001 and tell me how the count changes, with both cutoffs shown with who set them.",
     "At p 0.001 with no fold change cutoff, how many genes pass, and how many samples are in each group?"
   ],
@@ -27,13 +27,7 @@
     "metRequirements": null,
     "unmetRequirements": null,
     "unexpressedRequirements": null,
-    "turnReplyMentions": {
-      "0": [
-        "genotype is one of wild type",
-        "fraction is one of total",
-        "of 7,884 genes tested"
-      ]
-    },
+    "turnReplyMentions": {},
     "turnReplyOmits": {
       "0": [
         "VAR_84f17484",
@@ -56,7 +50,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ub-fungidb",
-    "curatorNote": "Round-3 dry UAT, tester B, investigation 5, conversation 32ea3a1a-f5a7-41c8-a9fb-2cb95012cc38. Turns 2 and 3 are the reports' quotes of the messages. The compute tested 7,884 genes and kept 8 higher in WT input 37C at log2 fold change 1 and p 0.05."
+    "curatorNote": "The compute tests 7,884 genes and keeps 8 higher in WT input 37C at log2 fold change 1 and p 0.05."
   },
   "effort": "medium",
   "gates": {

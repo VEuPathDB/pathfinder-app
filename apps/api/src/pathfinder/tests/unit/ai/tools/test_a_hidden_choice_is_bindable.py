@@ -1,5 +1,6 @@
 """A hidden parameter with a vocabulary is a choice the bind takes; only a
-hidden parameter without one is the site's to set.
+hidden parameter without one is the site's to set. The choice is a term a
+reason names and a row the researcher audits.
 
 The sheet is the tritrypdb life-stage comparison as WDK publishes it:
 ``profileset_generic`` is hidden, not read-only, with two comparisons, and
@@ -143,6 +144,29 @@ async def test_a_hidden_choice_left_out_is_the_sites_default(
     [criterion] = state.operational_spec_draft.criteria
     bound = criterion.resolved_params["profileset_generic"]
     assert (bound.source, bound.value.to_wire()) == ("default", _PNA)
+
+
+@pytest.mark.asyncio
+async def test_a_hidden_choice_is_a_visible_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, _sheet, url_segment=_SEARCH, display_name="Life stages")
+    state = AgentToolState()
+
+    await _bind(
+        state,
+        {
+            "profileset_generic": _AMA,
+            "samples_fc_direct_generic_page": _COMPARISONS[_AMA][0],
+            "fold_change": "2",
+        },
+    )
+
+    [criterion] = state.operational_spec_draft.criteria
+    assert (
+        criterion.resolved_params["profileset_generic"].visible,
+        criterion.rationale is not None and criterion.rationale.term,
+    ) == (True, "Experiment")
 
 
 def _read_only_sheet(context: dict[str, str]) -> list[ParameterInfo]:

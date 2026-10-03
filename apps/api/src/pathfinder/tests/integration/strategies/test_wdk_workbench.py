@@ -31,6 +31,7 @@ async def test_variant_comparison_real_counts_and_overlap(wdk_session: None) -> 
         VariantSpec(
             label=expr,
             search_name="GenesByText",
+            record_type="transcript",
             parameters=text_leaf(expr).parameters,
         )
         for expr in ("kinase", "phosphatase", "transferase")

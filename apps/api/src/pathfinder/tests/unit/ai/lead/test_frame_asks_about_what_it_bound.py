@@ -31,7 +31,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    kept,
     recorded,
     session_holding,
 )
@@ -65,7 +64,6 @@ def _asks_without_binding(thread: DisagreementThread) -> None:
     """Script the pass that ends on the user over an untouched draft."""
     thread.frames(
         _pins_the_sheet(),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[THRESHOLD],
     )
@@ -75,7 +73,6 @@ def _binds_with_an_open_slot(thread: DisagreementThread) -> None:
     """Script the pass that records the criterion and then asks about it."""
     thread.frames(
         with_the_proteome(None),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[THRESHOLD],
     )
@@ -125,7 +122,6 @@ async def test_a_pass_that_binds_and_asks_about_nothing_open_is_refused(
     await thread.next_turn()
     thread.frames(
         with_the_proteome(2),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[THRESHOLD],
     )
@@ -169,7 +165,7 @@ async def test_the_retry_records_the_criterion_and_the_answer_builds_it(
     assert thread.committed == []
 
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(with_the_proteome(2))
     delta = await thread.edit()
 
     assert isinstance(delta, EditDelta), delta

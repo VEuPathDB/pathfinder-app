@@ -34,7 +34,7 @@ def refuse_a_bound_analysis(state: AgentToolState, criterion_id: str) -> None:
         return
     msg = (
         f"{criterion_id} is bound to the analysis workflow ({words}). "
-        f"Keep it as it is and state it kept; do not re-bind it, and do not "
+        f"Keep it as it is; do not re-bind it, and do not "
         f"restate its comparison with another search. Only the Lead removes it, "
         f"with delete_step."
     )

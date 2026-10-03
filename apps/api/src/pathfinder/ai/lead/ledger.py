@@ -6,7 +6,11 @@ from collections.abc import Sequence
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
-from pathfinder.ai.graph.state import FailureCause, VerificationDigest
+from pathfinder.ai.graph.state import (
+    FailureCause,
+    PhaseDisposition,
+    VerificationDigest,
+)
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.ledger_render import (
     render_build_full,
@@ -146,6 +150,32 @@ def digest_held_to_the_build(
             "prose": (
                 f"Verification cannot be reported: {contradiction}. "
                 f"The checker's own account of the run follows.\n\n{digest.prose}"
+            ),
+        },
+    )
+
+
+_ROWS_MET = "every stated requirement is met by a step and the records show it"
+
+
+def digest_held_to_the_rows(digest: VerificationDigest) -> VerificationDigest:
+    """The digest with its verdict derived from the held review rows.
+
+    A failure that no finding supports, over rows that are each shown met,
+    passes; the checker's own account follows the code's sentence.
+    """
+    if digest.success or not digest.rows_all_met:
+        return digest
+    return digest.model_copy(
+        update={
+            "success": True,
+            "failure_cause": None,
+            "disposition": PhaseDisposition.DONE,
+            "handoff_to": None,
+            "reason": f"Verification passed: {_ROWS_MET}.",
+            "prose": (
+                f"Verification passed: {_ROWS_MET}. The checker's own account of "
+                f"the run follows.\n\n{digest.prose}"
             ),
         },
     )

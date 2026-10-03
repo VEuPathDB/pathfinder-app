@@ -4,7 +4,7 @@ title: An assumed value is recorded, not narrated
 description: Every bound value records who set it (stated, chosen, default, card or held), decided by the tool from the messages, the sheet and the card; a chosen value is rendered as a non-blocking constraint instead of appearing once in the reply's prose.
 tags: [agents, frame, parameters, ledger]
 generated: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-30T00:00:00Z }
+verified: { by: claude-code/opus-5.5, at: 2026-09-30T00:00:00Z }
 status: stable
 ---
 
@@ -24,9 +24,28 @@ REF"), a run matching with its punctuation left out ("C57BL/6J" names
 no message states it, and `chosen` otherwise. A value is unset when it is a
 site placeholder (the radio-off value `N/A`, an example text such as
 "(Example: chr22)") or equals the parameter's `initialDisplayValue` (or WDK
-supplied it): `value_source.is_unset` is the one test, and the text queries and
-the measurements read it through `parameter_rules.text_query`. A placeholder is
-never stated. A pick at its initial value shown as one word ("any", "yes") is
+supplied it). A placeholder is never stated.
+
+A `BoundValue` is built once, by `operational_spec.bind_values(values, source,
+sheet, basis)`, from the parameter sheet the site publishes: `display_name`
+from the sheet, `label` from the vocabulary (a pick's displays, a filter
+clause's field, the organism a species code names), `placeholder` from
+`ParameterInfo.is_placeholder`, and `at_default` when the value, read in its
+own kind, is the published initial value. The bind, the hydration and replay
+of a strategy that already exists, the fold (`BoundValue.carried`) and the
+separation card all build through it; `read_again` reads held values on a
+sheet through it and keeps who set each. No consumer holds a rule of its own:
+`text_query` is a free-text class with neither `placeholder` nor `at_default`,
+`measure_binding` gives a placeholder and an unset text no other reading, the
+organism check of a search choice reads `unset`, and the facts row reads the
+label and the placeholder from the value. A sheet read under the bound values
+is never the sheet a value is judged against: WDK answers every sent value as
+its `initialDisplayValue`, so plasmodb GenesByText read under
+`text_expression = "cysteine-rich protein"` answers that text as the initial
+value, where the published sheet holds `*reductase`.
+`_frame_measure.vocabularies_under` takes only the dependent vocabularies from
+such a read into the published sheet, and `get_parameter_options` sends no
+value of the parameter it reads, so the initial value it answers is the site's. A pick at its initial value shown as one word ("any", "yes") is
 stated only when a message writes it beside a word of the parameter's display
 name ("in any selected sample"); otherwise the site set it. A parameter the
 parameter rules class as `site_fixed` (read-only, or hidden with no vocabulary)
@@ -80,8 +99,16 @@ that is not read-only and has a vocabulary is a choice the bind takes, since
 WDK accepts any of its entries, and the sheet lists it marked hidden. A count
 the service fails to answer (a 5xx) is recorded with no count.
 An unquoted text is also counted with each operand of several words quoted
-(`TextExpression`); the operator words `AND`, `OR` and `NOT` and a wildcard
-word stay outside the quotes, and a text its writer grouped has no such reading.
+(`TextExpression`), recorded as a `phrase_reading`; the operator words `AND`,
+`OR` and `NOT` and a wildcard word stay outside the quotes, and a text its
+writer grouped has no such reading. The site matches any word of an unquoted
+text, so the clause and the `PhraseCaveat` show the bind's count as the words
+reading beside the phrase reading ("as any of its words: 4,497 genes; as the
+phrase: 0").
+When a request message asks for the phrase ("exact phrase", "the phrase", "as a
+phrase", "in quotes", read by `text_expression.asks_for_the_phrase`), the word
+reading is not a choice: `set_criterion` refuses a free-text term of several
+words sent unquoted and names the quoted term (`_frame_stated.py`).
 The reads of one bind run beside each other under one budget of their own
 (`MEASUREMENT_BUDGET_SECONDS`), apart from the bind's count; a reading that has
 not arrived by then is recorded with no count, and no missing count is held in
@@ -90,7 +117,9 @@ way it bounds: for a parameter that bounds from above that read counts fewer
 genes and records nothing, one extra read accepted in place of guessing the
 direction from the parameter's name.
 Every vocabulary pick records the label its vocabulary gives it, and a pick the
-call proposed that has no label is refused with the labels nearest to it. A
+call proposed that has no label is refused with the labels nearest to it. The
+per-term `vocabulary_label` measurements and `BoundValue.label` read the same
+`value_label.term_labels`, so the row's label is the terms' labels joined. A
 filter clause is labelled by the `display` of the `filter_fields` entry whose
 `term` its field names, and each member value is its own label, since WDK
 stores none (WDK-PARAM-014). A phyletic code, in a species list or the
@@ -121,6 +150,17 @@ read at that count ("12,318 genes; its other readings: not measured") and not
 as unmeasured.
 
 # What was rejected
+
+**A shared unset test each consumer calls.** `value_source.is_unset` existed
+and the text query, the measurements, the organism check and the hydration each
+called it with the sheet they held; a measurement given the sheet read under
+the bound values judged the bound text unset, and a hydrated placeholder was
+patched after the value was built. A rule on each caller is skipped by the next
+caller, so the sheet facts are fields of the value, set where it is built.
+
+**Passing the published sheet beside the context sheet to each consumer.**
+Every consumer of a context read then owns the choice of sheet again. The
+context read gives vocabularies only, and the value is judged when it binds.
 
 **Keeping a binding the site refused to count.** The criterion was once
 recorded before its count, so a 500 on the count reported the call as failed
@@ -191,8 +231,12 @@ words than the vocabulary's, so a chosen half is shown with its source instead.
 
 `BoundValue`, `ValueSource` and `Criterion.defaulted` in
 `domain/strategy/operational_spec.py`; `value_source` in
-`domain/strategy/value_source.py`; `is_unset`, `is_placeholder` and
-`stated_words` in `domain/strategy/value_source.py`; `ParameterRules.source`
+`domain/strategy/value_source.py`; `bind_values`, `read_again` and
+`BoundValue.unset` in `domain/strategy/operational_spec.py`; `value_label` and
+`term_labels` in `domain/strategy/value_label.py`; `get_parameter_options` in
+`ai/tools/standalone/catalog_discovery.py`; `vocabularies_under` in
+`ai/tools/standalone/_frame_measure.py`; `stated_words` in
+`domain/strategy/value_source.py`; `ParameterRules.source`
 and `text_query` in `services/strategies/parameter_rules.py`; `bound_values` in
 `ai/tools/standalone/_frame_sources.py`; `assumption_constraints` in
 `ai/lead/ledger_sections.py`; `AssumedValueCaveat` in `domain/value_caveats.py`;
@@ -223,6 +267,7 @@ Guarded by `tests/unit/domain/strategy/test_a_value_says_who_set_it.py`,
 `tests/unit/domain/test_a_log2_value_shows_its_fold.py`,
 `tests/unit/domain/strategy/test_a_value_is_stated_in_the_researchers_words.py`,
 `tests/unit/domain/strategy/test_an_unset_value_is_the_sites.py`,
+`tests/unit/domain/strategy/test_a_bound_value_is_built_with_its_sheet.py`,
 `tests/unit/ai/tools/test_a_bound_value_is_sourced_by_its_sheet.py`,
 `tests/unit/ai/models/test_mock_unset_value_arcs.py`,
 `tests/unit/ai/tools/test_a_value_binds_in_the_researchers_words.py`,

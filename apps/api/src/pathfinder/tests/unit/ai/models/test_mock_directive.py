@@ -168,6 +168,9 @@ def test_the_registry_holds_every_named_arc() -> None:
             "list-ids",
             "derived-count",
             "odorant-lookup",
+            "muris-phrase",
+            "narrowed-organism",
+            "withdrawn-requirement",
         ]
     )
 

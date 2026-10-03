@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.parameters import StringValue
 
 from pathfinder.ai.lead.build_messages import (
     build_not_ready_message,
@@ -13,7 +12,6 @@ from pathfinder.ai.lead.build_messages import (
 from pathfinder.ai.lead.dispatch_messages import (
     frame_result_from_draft,
     stopped_pass_work_order,
-    undeclared_spec_changes,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.domain.strategy.operational_spec import (
@@ -23,8 +21,6 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
-from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
-from pathfinder.tests._support.bound_values import bound
 
 _BUDGET_STOP = PhaseStop(
     role="frame", reason=PhaseStopReason.BUDGET, tool_calls=60, criteria_bound=1
@@ -167,58 +163,6 @@ class TestNothingBoundIsStillNothing:
         result = frame_result_from_draft(None, _BUDGET_STOP)
 
         assert result.disposition == "needs_user"
-
-
-_OPEN_PARAM = "min_peptide_count"
-
-
-def _with_an_open_slot() -> OperationalSpec:
-    """One criterion whose parameter the user has not answered yet."""
-    return OperationalSpec(
-        goal="candidate drug targets",
-        criteria=[
-            Criterion(
-                id="mass_spec",
-                text="detected by mass spectrometry",
-                search_name="GenesByMassSpec",
-                open_params=[
-                    OpenSlot(criterion_id="mass_spec", param_name=_OPEN_PARAM)
-                ],
-            ),
-        ],
-    )
-
-
-def _answered(value: str) -> OperationalSpec:
-    after = _with_an_open_slot()
-    after.criteria[0].resolved_params = bound({_OPEN_PARAM: StringValue(value=value)})
-    after.criteria[0].open_params = []
-    return after
-
-
-class TestAnAnsweredOpenSlotIsNotARebinding:
-    def test_filling_an_open_parameter_of_a_kept_criterion_is_no_problem(self) -> None:
-        before = _with_an_open_slot()
-
-        problem = undeclared_spec_changes(
-            diff_specs(before, _answered("1")),
-            [CriterionChange(criterion_id="mass_spec", disposition="kept")],
-            before,
-        )
-
-        assert problem == ""
-
-    def test_moving_a_value_the_baseline_resolved_is_still_refused(self) -> None:
-        before = _answered("1")
-
-        problem = undeclared_spec_changes(
-            diff_specs(before, _answered("2")),
-            [CriterionChange(criterion_id="mass_spec", disposition="kept")],
-            before,
-        )
-
-        assert "mass_spec" in problem
-        assert f"{_OPEN_PARAM}=2" in problem
 
 
 def test_a_continuation_keeps_a_criterion_waiting_for_its_analysis() -> None:

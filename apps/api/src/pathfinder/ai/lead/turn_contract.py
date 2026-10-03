@@ -11,34 +11,40 @@ from pydantic import ConfigDict, Field
 from pydantic_ai import DeferredToolRequests, RunContext
 from pydantic_ai.exceptions import ModelRetry
 
-from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS
+from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
 from pathfinder.ai.lead.contract_messages import (
     blamed_the_site_message,
     claimed_change_message,
     claimed_frame_message,
     eda_criterion_not_built_message,
     failed_check_message,
-    fact_outside_the_block_message,
     off_topic_essay_message,
     unclassified_turn_message,
     unfinished_work_message,
+    unmade_change_message,
     unnamed_record_organism_message,
     unrecorded_offer_message,
+    unrendered_prose_message,
     unreported_change_message,
     unsaved_controls_message,
     unverified_build_message,
 )
-from pathfinder.ai.lead.facts_in_prose import outside_the_facts
 from pathfinder.ai.lead.ledger import blamed_the_site
 from pathfinder.ai.lead.reply_claims import (
     CLAIMED_A_FRAME,
     claims,
+    denies,
     ends_with_a_question,
     names_an_organism,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
 from pathfinder.ai.lead.verdict_claims import open_value_in_prose, unstated_stop
+from pathfinder.domain.reply_references import (
+    prose_faults,
+    render_reply,
+    unheld_references,
+)
 from pathfinder.domain.strategy.questions import AskedQuestion
 
 LeadTurnState = Literal["await_user", "complete"]
@@ -51,19 +57,15 @@ CONTRACT_HEADING = "This reply does not match what the turn did:"
 
 
 class LeadResponse(CamelModel):
-    """The Lead's final user-facing turn output.
-
-    ``prose`` is rendered to the user verbatim (no upstream/downstream
-    translation). ``next_state`` tells the dispatcher whether the turn is
-    paused waiting on the user (``await_user``) or fully resolved
-    (``complete`` - typically after a successful verification).
-    """
+    """The Lead's final reply. ``prose`` holds references the emitter renders
+    from the turn's facts; ``next_state`` says whether the turn waits on the
+    user."""
 
     prose: str = Field(
         max_length=PROSE_MAX_CHARS,
         description=(
-            "User-facing reply for this turn. Plain markdown. Do NOT "
-            "include sub-agent log noise - synthesize from the Ledger."
+            f"User-facing reply for this turn. Plain markdown. {REPLY_REFERENCES} "
+            "Do NOT include sub-agent log noise - synthesize from the Ledger."
         ),
     )
     next_state: LeadTurnState = "await_user"
@@ -101,8 +103,9 @@ MismatchKind = Literal[
     "unsaved_controls",
     "off_topic_essay",
     "unnamed_record_organism",
-    "fact_outside_the_block",
+    "unrendered_prose",
     "failed_check",
+    "unmade_change",
 ]
 
 
@@ -251,15 +254,6 @@ def _unnamed_record_organism(report: LeadResponse, record: TurnRecord) -> str | 
     return unnamed_record_organism_message(change)
 
 
-def _fact_outside_the_block(report: LeadResponse, record: TurnRecord) -> str | None:
-    """The prose holds a count, a name or a link only when the thread showed it,
-    this turn read it, or a question of the reply offers it as a choice."""
-    offered = [option for q in report.asked_questions for option in q.options]
-    held = "\n".join([record.held_facts(), *offered])
-    found = outside_the_facts(report.prose, held, record.machine_names)
-    return fact_outside_the_block_message(found) if found else None
-
-
 def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
     """A check that failed on the strategy as it stands is stated or asked about."""
     digest = record.verification_section.digest
@@ -270,6 +264,20 @@ def _failed_check(report: LeadResponse, record: TurnRecord) -> str | None:
     if ends_with_a_question(report.prose) or digest.failure_stated_in(report.prose):
         return None
     return failed_check_message(digest.reason)
+
+
+def _unmade_change(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A change an edit asks for is made, raised on a card, or refused in the reply."""
+    asked = [*record.withdrawn_values, *record.stated_values]
+    if not asked or record.changed_strategy or record.ends_on_a_card:
+        return None
+    if report.asked_questions or record.facts.refusal:
+        return None
+    if record.refused_dispatches or record.last_phase_stop is not None:
+        return None
+    if all(denies(report.prose, value) for value in asked):
+        return None
+    return unmade_change_message(record.withdrawn_values, record.stated_values)
 
 
 _RULES: tuple[
@@ -288,43 +296,56 @@ _RULES: tuple[
     ("unsaved_controls", _unsaved_controls),
     ("off_topic_essay", _off_topic_essay),
     ("unnamed_record_organism", _unnamed_record_organism),
-    ("fact_outside_the_block", _fact_outside_the_block),
     ("failed_check", _failed_check),
+    ("unmade_change", _unmade_change),
 )
 
 
+def _as_read(report: LeadResponse, record: TurnRecord) -> LeadResponse:
+    """The reply as the researcher reads it, once every reference renders."""
+    if unheld_references(report.prose, record.facts):
+        return report
+    return report.model_copy(update={"prose": render_reply(report.prose, record.facts)})
+
+
 def reconcile(report: LeadResponse, record: TurnRecord) -> list[Mismatch]:
-    """Every way this reply disagrees with the turn it answers, in rule order."""
+    """Every way this reply, as the researcher reads it, disagrees with the turn
+    it answers, in rule order."""
+    shown = _as_read(report, record)
     found: list[Mismatch] = []
     for kind, rule in _RULES:
-        sentence = rule(report, record)
+        sentence = rule(shown, record)
         if sentence is not None:
             found.append(Mismatch(kind=kind, sentence=sentence))
     return found
 
 
-def to_correct(
-    ctx: RunContext[LeadDeps], report: LeadResponse, record: TurnRecord, part: str
-) -> list[Mismatch]:
-    """The mismatches one text part of the turn is corrected for, and the record
-    that it was.
+def unrendered_prose(replies: Sequence[str], record: TurnRecord) -> Mismatch | None:
+    """A reply writes a fact outside a reference, or a reference names nothing
+    the turn's facts hold."""
+    faults = list(
+        dict.fromkeys(f for text in replies for f in prose_faults(text, record.facts))
+    )
+    if not faults:
+        return None
+    return Mismatch(kind="unrendered_prose", sentence=unrendered_prose_message(faults))
 
-    The message's first correction carries every mismatch; after it, each text
-    part a run writes is still held to the facts once.
-    """
+
+def to_correct(
+    ctx: RunContext[LeadDeps],
+    report: LeadResponse,
+    record: TurnRecord,
+    replies: Sequence[str],
+) -> list[Mismatch]:
+    """The mismatches one answer is corrected for. Each of ``replies`` is read
+    whole and refused every time it cannot render; every other mismatch is
+    corrected once per message."""
     markers = ctx.deps.state.turn_markers
-    key = f"{ctx.run_id}:{part}"
-    if key in markers.facts_corrected:
-        return []
-    found = reconcile(report, record)
-    if markers.contract_refused:
-        found = [m for m in found if m.kind == "fact_outside_the_block"]
-    if not found:
-        return []
-    markers.contract_refused = True
-    if any(m.kind == "fact_outside_the_block" for m in found):
-        markers.facts_corrected.append(key)
-    return found
+    prose = unrendered_prose(replies, record)
+    found = [] if markers.contract_refused else reconcile(report, record)
+    if found:
+        markers.contract_refused = True
+    return [*([] if prose is None else [prose]), *found]
 
 
 def hold_the_turn_contract(
@@ -333,13 +354,12 @@ def hold_the_turn_contract(
 ) -> LeadResponse | DeferredToolRequests:
     """Refuse an answer of a turn that does not match the turn's record.
 
-    One correction carries every mismatch, and it is asked once per turn, so a
-    second answer reaches the user whatever else it says. A reply a later run
-    of the message writes is still held to the facts once.
+    One correction carries every mismatch. Prose the product cannot render is
+    refused on every answer; every other mismatch is asked once per turn.
     """
     if not isinstance(output, LeadResponse):
         return output
-    mismatches = to_correct(ctx, output, turn_record(ctx), "reply")
+    mismatches = to_correct(ctx, output, turn_record(ctx), [output.prose])
     if not mismatches:
         return output
     raise ModelRetry(correction_for(mismatches))

@@ -218,3 +218,29 @@ Recorded from the fourth dry UAT; counts read on 2026-09-30.
 |---|---|---|---|
 | 1 | New conversation | Send `Encephalitozoon intestinalis ATCC 50506 genes with a signal peptide and no ortholog in Encephalitozoon cuniculi GB-M1.` | `Predicted Signal Peptide` 66 INTERSECT `Orthology Phylogenetic Profile` 129 = 9 |
 | 2 | Same | Send `how many genes would there be without the ortholog filter` | The reply says 66 against 9, a difference of 57; no edit |
+
+## UCORE-A-cryptodb - A comparison states its counts - cryptodb
+
+Counts read on 2026-09-30 from the site, build 71.
+
+| Step | Where | Do | Expect |
+|---|---|---|---|
+| 1 | New conversation | Send `Cryptosporidium parvum IOWA-ATCC genes whose product description matches mucin*.` | One `Text` step on the product field: 2 genes |
+| 2 | Same | Send `Just a question, don't change the strategy: how many genes would mucin* match if every text field were searched instead of the product field alone, and how many of those are beyond the ones here?` | The reply says 84 genes over every text field and 82 genes beyond the 2 here, both rendered from the comparison; the strategy keeps its one step |
+
+## UCORE-D-veupathdb - A narrower organism replaces the family - veupathdb
+
+Counts read on 2026-09-30, build 71.
+
+| Step | Where | Do | Expect |
+|---|---|---|---|
+| 1 | New conversation | Send `Genes across Trypanosomatidae with the GO term 'glycosome'.` | `GO Term` GO:0020015, shown by its label glycosome |
+| 2 | Same | Send `Please narrow that to Leishmania donovani BPK282A1, and show me the count before next to the count after.` | 115 genes on Leishmania donovani BPK282A1; the facts show Trypanosomatidae replaced by Leishmania donovani BPK282A1, never withdrawn, and the GO term keeps its label |
+
+## UCORE-A-plasmodb - A requirement dropped by one card retires - plasmodb
+
+| Step | Where | Do | Expect |
+|---|---|---|---|
+| 1 | New conversation | Send `Plasmodium falciparum 3D7 genes with a transmembrane domain and a predicted apicoplast targeting signal.` | `Transmembrane Domain Count` INTERSECT the PlasmoAP apicoplast targeting step |
+| 2 | Same | Send `Drop the transmembrane domain requirement: remove that step.` | One `delete_step` approval card |
+| 3 | Card | Approve | The PlasmoAP step alone; the transmembrane domain requirement shows as withdrawn, the organism and the apicoplast signal stay, and no gap says nothing in the strategy answers the apicoplast signal |

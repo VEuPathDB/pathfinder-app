@@ -1,4 +1,5 @@
-"""A text query is the value of a free-text parameter that is not unset; a
+"""A text query is the value of a free-text parameter that states something
+the site does not already send, as its sheet read it when it bound; a
 placeholder, the radio-off value, the sheet default, a vocabulary term, a number
 and a phyletic pattern are none."""
 
@@ -25,14 +26,17 @@ from pathfinder.domain.evidence import (
     VerificationReview,
 )
 from pathfinder.domain.shown_requirements import TextQuery, held_to_the_records
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+)
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies import text_queries
 from pathfinder.services.strategies.text_queries import (
     free_text_params,
     search_definitions,
     text_query_criteria,
 )
-from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.logs import logged_events
 from pathfinder.tests._support.recorded_searches import suite_search
 
@@ -53,29 +57,29 @@ def _info(name: str, param_type: str = "string", **fields: object) -> ParameterI
 
 
 def _criterion(
-    search: str, values: dict[str, ParamValue], defaulted: tuple[str, ...] = ()
+    search: str, values: dict[str, ParamValue], sheet: list[ParameterInfo]
 ) -> Criterion:
     return Criterion(
         id=f"c_{search}",
         text=search,
         search_name=search,
-        resolved_params=bound(values, defaulted=defaulted),
+        resolved_params=bind_values(values, "stated", sheet),
     )
 
 
 def test_a_placeholder_go_term_is_no_text_query() -> None:
+    infos = [
+        _info("go_typeahead", "multi-pick-vocabulary"),
+        _info("go_term", display_name="GO Term wildcard search", default_value="N/A"),
+    ]
     criterion = _criterion(
         "GenesByGoTerm",
         {
             "go_typeahead": MultiPickValue(values=["GO:0004672"]),
             "go_term": StringValue(value="N/A"),
         },
-        defaulted=("go_term",),
+        infos,
     )
-    infos = [
-        _info("go_typeahead", "multi-pick-vocabulary"),
-        _info("go_term", display_name="GO Term wildcard search", default_value="N/A"),
-    ]
 
     assert free_text_params(criterion, infos) == frozenset()
 
@@ -85,15 +89,15 @@ def _recorded(fixture: str) -> list[ParameterInfo]:
 
 
 def test_the_radio_off_domain_accession_is_no_text_query() -> None:
+    infos = _recorded("search_genes_by_interpro_domain")
     criterion = _criterion(
         "GenesByInterproDomain",
         {
             "domain_typeahead": MultiPickValue(values=["PF05795", "PF09687"]),
             "domain_accession": StringValue(value="N/A"),
         },
-        defaulted=("domain_accession",),
+        infos,
     )
-    infos = _recorded("search_genes_by_interpro_domain")
     accession = next(i for i in infos if i.name == "domain_accession")
 
     assert (accession.default_value, free_text_params(criterion, infos)) == (
@@ -110,6 +114,7 @@ def test_a_phyletic_pattern_and_its_species_lists_are_no_text_query() -> None:
             "included_species": StringValue(value="n/a"),
             "excluded_species": StringValue(value="hsap"),
         },
+        _recorded("search_genes_by_ortholog_pattern"),
     )
 
     assert (
@@ -119,6 +124,10 @@ def test_a_phyletic_pattern_and_its_species_lists_are_no_text_query() -> None:
 
 
 def test_a_free_text_value_is_a_text_query() -> None:
+    infos = [
+        _info("text_expression", default_value=""),
+        _info("text_search_organism", "multi-pick-vocabulary"),
+    ]
     criterion = _criterion(
         "GenesByText",
         {
@@ -127,11 +136,8 @@ def test_a_free_text_value_is_a_text_query() -> None:
                 values=["Trypanosoma cruzi Dm28c 2018"]
             ),
         },
+        infos,
     )
-    infos = [
-        _info("text_expression", default_value=""),
-        _info("text_search_organism", "multi-pick-vocabulary"),
-    ]
 
     assert free_text_params(criterion, infos) == frozenset({"text_expression"})
 
@@ -141,6 +147,10 @@ def _location_search() -> WDKSearch:
         (FIXTURE_ROOT / "wdk" / "search_genes_by_location.json").read_text()
     )
     return WDKSearch.model_validate(recorded["body"]["searchData"])
+
+
+def _location_sheet() -> list[ParameterInfo]:
+    return format_param_info_typed(_location_search().parameters or [])
 
 
 @pytest.fixture
@@ -168,7 +178,7 @@ async def test_a_location_step_at_its_placeholder_sequence_binds_no_text_query()
             "start_point": StringValue(value="1"),
             "end_point": StringValue(value="0"),
         },
-        defaulted=("sequenceId", "start_point", "end_point"),
+        _location_sheet(),
     )
     spec = OperationalSpec(goal="chromosome 6 genes", criteria=[location])
 
@@ -180,6 +190,7 @@ async def test_a_sequence_the_researcher_typed_is_a_text_query() -> None:
     location = _criterion(
         "GenesByLocation",
         {"sequenceId": StringValue(value="Pf3D7_06_v3")},
+        _location_sheet(),
     )
     spec = OperationalSpec(goal="genes on one contig", criteria=[location])
 
@@ -204,7 +215,9 @@ async def test_a_search_the_catalog_cannot_read_binds_no_text_query(
 
     monkeypatch.setattr(text_queries, "resolve_search_record_type", _record_type)
     monkeypatch.setattr(text_queries, "read_search_definition", _unreadable)
-    typed = _criterion("GenesByText", {"text_expression": StringValue(value="kinase")})
+    typed = _criterion(
+        "GenesByText", {"text_expression": StringValue(value="kinase")}, []
+    )
     spec = OperationalSpec(goal="kinases", criteria=[typed])
 
     sheets = await search_definitions("plasmodb", spec)
@@ -225,7 +238,7 @@ def test_the_knowlesi_organism_and_domain_rows_stand_met_on_unclear_records() ->
         id="step_a6bb905a",
         text="with a Plasmodium-specific domain",
         search_name="GenesByInterproDomain",
-        resolved_params=bound(
+        resolved_params=bind_values(
             {
                 "organism": MultiPickValue(values=["Plasmodium knowlesi strain H"]),
                 "domain_database": SinglePickValue(value="Pfam"),
@@ -241,20 +254,23 @@ def test_the_knowlesi_organism_and_domain_rows_stand_met_on_unclear_records() ->
                 ),
                 "domain_accession": StringValue(value="N/A"),
             },
-            defaulted=("domain_database", "domain_accession"),
+            "stated",
+            _recorded("search_genes_by_interpro_domain"),
         ),
     )
     ortholog = Criterion(
         id="step_bd8bb1e3",
         text="that have no ortholog in Homo sapiens",
         search_name="GenesByOrthologPattern",
-        resolved_params=bound(
+        resolved_params=bind_values(
             {
                 "organism": MultiPickValue(values=["Plasmodium knowlesi strain H"]),
                 "profile_pattern": StringValue(value="%hsap:N%"),
                 "excluded_species": StringValue(value="hsap"),
                 "included_species": StringValue(value="n/a"),
-            }
+            },
+            "stated",
+            _recorded("search_genes_by_ortholog_pattern"),
         ),
     )
     spec = OperationalSpec(

@@ -372,3 +372,100 @@ async def test_a_word_the_text_value_carries_is_stated(
     )
 
     assert "c_fragment" in {c.id for c in state.operational_spec_draft.criteria}
+
+
+_VARIANT = suite_search("search_genes_by_variant_characteristics")
+_ANTIGEN_MESSAGE = (
+    "Plasmodium falciparum 3D7 genes with a variant erythrocyte surface antigen "
+    "annotation."
+)
+_ANTIGEN = "variant erythrocyte surface antigen"
+
+
+def _antigen_state() -> AgentToolState:
+    state = AgentToolState(request_messages=[_ANTIGEN_MESSAGE])
+    state.record_catalog_read(
+        CatalogRead(
+            tool_call_id="call_antigen",
+            tool="search_for_searches",
+            record_type="transcript",
+            query=_ANTIGEN,
+            hits=[
+                CatalogHit(
+                    name=d.url_segment,
+                    display_name=d.display_name,
+                    record_type="transcript",
+                )
+                for d in (_SEARCH_TEXT, _VARIANT)
+            ],
+        )
+    )
+    return state
+
+
+async def _bind_antigen_text(
+    monkeypatch: pytest.MonkeyPatch, text: str, expression: str
+) -> AgentToolState:
+    serve_recorded(monkeypatch, [_SEARCH_TEXT, _VARIANT])
+    serve_params(
+        monkeypatch,
+        lambda _context: format_param_info_typed(_SEARCH_TEXT.parameters or []),
+    )
+    no_validation(monkeypatch)
+    no_count(monkeypatch)
+    serve_site_listing(monkeypatch, [])
+    state = _antigen_state()
+    await set_criterion(
+        frame_ctx(state),
+        criterion_id="c_antigen",
+        text=text,
+        search_name=_SEARCH_TEXT.url_segment,
+        role="seed",
+        params={
+            "text_search_organism": ["Plasmodium falciparum 3D7"],
+            "text_expression": expression,
+            "text_fields": ["product"],
+        },
+        why=SearchChoice(
+            basis="parameter",
+            term="Text term (use * as wildcard)",
+            reason="the family name is product text",
+        ),
+    )
+    return state
+
+
+@pytest.mark.asyncio
+async def test_a_word_after_an_article_is_no_qualifier_for_another_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``a variant`` has a missing modifier, and Short Variant Characteristics
+    names the word only as ``gene variant``."""
+    state = await _bind_antigen_text(
+        monkeypatch, _ANTIGEN_MESSAGE, '"erythrocyte surface antigen"'
+    )
+
+    assert "c_antigen" in {c.id for c in state.operational_spec_draft.criteria}
+
+
+@pytest.mark.asyncio
+async def test_a_word_inside_the_bound_text_phrase_is_no_qualifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The phrase bound to the text parameter states its own words, even the
+    one that opens the criterion text with no modifier before it."""
+    state = await _bind_antigen_text(monkeypatch, f"{_ANTIGEN} genes", f'"{_ANTIGEN}"')
+
+    assert "c_antigen" in {c.id for c in state.operational_spec_draft.criteria}
+
+
+@pytest.mark.asyncio
+async def test_the_word_the_phrase_leaves_out_binds_the_search_that_names_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ModelRetry) as exc:
+        await _bind_antigen_text(
+            monkeypatch, f"{_ANTIGEN} genes", '"erythrocyte surface antigen"'
+        )
+
+    assert "Short Variant Characteristics carries 'variant'" in str(exc.value)

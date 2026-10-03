@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-import math
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from types import MappingProxyType
-from typing import NamedTuple
 
-from pydantic import Field
 from veupathdb.domain.parameters import to_wire
-from veupathdb.model import CamelModel
 
-from pathfinder.domain.constraint_check import agrees
-from pathfinder.domain.log2_scale import Scale, scale_of, stated_numbers
+from pathfinder.domain.log2_scale import scale_of
+from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.combination_check import (
     TermMatch,
     combination_violation,
@@ -31,11 +27,9 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileRequest,
 )
-from pathfinder.domain.strategy.operational_spec import (
-    Criterion,
-    OperationalSpec,
-    SpecStructure,
-)
+from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
+from pathfinder.domain.strategy.operational_spec import OperationalSpec, SpecStructure
+from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
 
 _SIGNIFICANCE_RE = re.compile(
     r"p_?value|p_?adj|fdr|q_?value|significance", re.IGNORECASE
@@ -43,20 +37,6 @@ _SIGNIFICANCE_RE = re.compile(
 _MICROARRAY_RE = re.compile(r"microarray", re.IGNORECASE)
 _RNASEQ_REQUEST_RE = re.compile(r"rna[\s_-]?seq", re.IGNORECASE)
 _EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
-
-
-class RealizedSpec(CamelModel):
-    """The bound facts a constraint is grounded against: the criteria's WDK
-    search names, the union of their parameter names, the values bound to them,
-    the tree the criteria are combined in, and the type of the upload each
-    criterion runs on, by criterion id."""
-
-    search_names: list[str] = Field(default_factory=list)
-    param_names: frozenset[str] = Field(default_factory=frozenset)
-    param_values: dict[str, str] = Field(default_factory=dict)
-    structure: SpecStructure | None = None
-    criteria: list[Criterion] = Field(default_factory=list)
-    upload_types: dict[str, str] = Field(default_factory=dict)
 
 
 def _data_run_on(realized: RealizedSpec) -> list[str]:
@@ -73,6 +53,8 @@ def _data_run_on(realized: RealizedSpec) -> list[str]:
 
 def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     expr = [d for d in _data_run_on(realized) if _EXPRESSION_DATA_RE.search(d)]
+    if not expr and realized.analysis_pending:
+        return awaiting_analysis(c)
     if not expr:
         return GroundedConstraint(
             constraint=c,
@@ -95,117 +77,22 @@ def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstrai
     )
 
 
+def _significance(analysis: AnalysisBinding) -> float | None:
+    return analysis.significance_threshold
+
+
 def _ground_threshold(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
     if any(_SIGNIFICANCE_RE.search(name) for name in realized.param_names) or any(
         k.analysis is not None and k.analysis.significance_threshold is not None
         for k in realized.criteria
     ):
         return GroundedConstraint(constraint=c, status=ConstraintStatus.GROUNDED)
+    if realized.awaits_analysis(_significance):
+        return awaiting_analysis(c)
     return GroundedConstraint(
         constraint=c,
         status=ConstraintStatus.UNGROUNDABLE,
         note="no selected search exposes a significance parameter",
-    )
-
-
-_FOLD_PARAM = "fold_change"
-_BARE_NUMBER = re.compile(r"\d+(?:\.\d+)?")
-
-
-class _FoldReading(NamedTuple):
-    """A fold-change threshold the strategy holds, on the scale it declares."""
-
-    param: str
-    value: float
-    scale: Scale
-
-
-def _requested_fold(c: Constraint) -> tuple[float, Scale] | None:
-    """The one number the requirement states, on the scale it names; a bare
-    number of a fold-change requirement is a fold."""
-    stated = stated_numbers(c.requested_value)
-    if len(stated) == 1:
-        return stated[0].number, stated[0].scale
-    bare = _BARE_NUMBER.findall(c.requested_value)
-    if not stated and len(bare) == 1:
-        return float(bare[0]), "fold"
-    return None
-
-
-def _fold_readings(realized: RealizedSpec) -> list[_FoldReading]:
-    """Each analysis cut, on the scale its compute names and log2 when it names
-    none, and each fold-change parameter, on the scale its display name names
-    and fold when it names none."""
-    shown = {
-        name: k.display_name_of(name)
-        for k in realized.criteria
-        for name in k.resolved_params
-    }
-    readings = [
-        _FoldReading(
-            "effect_size_threshold",
-            k.analysis.effect_size_threshold,
-            scale_of(k.analysis.effect_size_label) or "log2",
-        )
-        for k in realized.criteria
-        if k.analysis is not None and k.analysis.effect_size_threshold is not None
-    ]
-    for name, raw in realized.param_values.items():
-        if _FOLD_PARAM in name and _BARE_NUMBER.fullmatch(raw):
-            display = shown.get(name, name)
-            readings.append(_FoldReading(name, float(raw), scale_of(display) or "fold"))
-    return readings
-
-
-def _convert(source: Scale, target: Scale) -> Callable[[float], float]:
-    if source == target:
-        return float
-    return math.log2 if target == "log2" else lambda value: 2**value
-
-
-def _meets(requested: tuple[float, Scale], reading: _FoldReading) -> bool:
-    number, scale = requested
-    return agrees(
-        number,
-        reading.value,
-        to_bound=_convert(scale, reading.scale),
-        to_requested=_convert(reading.scale, scale),
-    )
-
-
-def _built(reading: _FoldReading) -> str:
-    fold = _convert(reading.scale, "fold")(reading.value)
-    on_log2 = f" (log2 {reading.value:g})" if reading.scale == "log2" else ""
-    return f"{fold:g}-fold{on_log2}"
-
-
-def _ground_fold_change(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
-    """The requirement against each fold-change threshold, compared in the
-    threshold's own scale at the decimals each value is written with."""
-    readings = _fold_readings(realized)
-    requested = _requested_fold(c)
-    if not readings or requested is None:
-        held = readings or any(_FOLD_PARAM in name for name in realized.param_names)
-        return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.GROUNDED if held else ConstraintStatus.UNGROUNDABLE,
-            note="" if held else "no fold_change parameter in the strategy",
-        )
-    reading = next((r for r in readings if _meets(requested, r)), None)
-    if reading is not None:
-        return GroundedConstraint(
-            constraint=c,
-            status=ConstraintStatus.GROUNDED,
-            realized_value=f"{reading.value:g}",
-            realized_param=reading.param,
-        )
-    first = readings[0]
-    return GroundedConstraint(
-        constraint=c,
-        status=ConstraintStatus.SUBSTITUTED,
-        realized_value=f"{first.value:g}",
-        realized_param=first.param,
-        note=f"built {_built(first)} where {c.requested_value} was asked",
     )
 
 
@@ -221,7 +108,7 @@ def dimension_of_parameter(name: str, display_name: str) -> ConstraintKind:
         return ConstraintKind.PERCENTILE
     if _SIGNIFICANCE_RE.search(name):
         return ConstraintKind.STATISTICAL_THRESHOLD
-    if _FOLD_PARAM in name or scale_of(display_name) is not None:
+    if FOLD_PARAM in name or scale_of(display_name) is not None:
         return ConstraintKind.FOLD_CHANGE
     return ConstraintKind.OTHER
 
@@ -358,7 +245,7 @@ _NO_UPLOADS: Mapping[str, str] = MappingProxyType({})
 _HANDLERS = {
     ConstraintKind.DATA_TYPE: _ground_data_type,
     ConstraintKind.STATISTICAL_THRESHOLD: _ground_threshold,
-    ConstraintKind.FOLD_CHANGE: _ground_fold_change,
+    ConstraintKind.FOLD_CHANGE: ground_fold_change,
     ConstraintKind.PERCENTILE: _ground_percentile,
     ConstraintKind.COMBINATION: _ground_combination,
 }
@@ -367,7 +254,20 @@ _HANDLERS = {
 def ground_constraints(
     constraints: list[Constraint], realized: RealizedSpec
 ) -> list[GroundedConstraint]:
-    """Ground each constraint against the realized strategy facts."""
+    """Ground each constraint against the realized strategy facts.
+
+    While the strategy realizes nothing, every constraint is provisional: no
+    search is bound that could state it or fail to.
+    """
+    if realized.realizes_nothing:
+        return [
+            GroundedConstraint(
+                constraint=c,
+                status=ConstraintStatus.PROVISIONAL,
+                note="no search is bound yet",
+            )
+            for c in constraints
+        ]
     out: list[GroundedConstraint] = []
     for c in constraints:
         handler = _HANDLERS.get(c.kind)

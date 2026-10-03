@@ -5,7 +5,7 @@
   ],
   "siteId": "tritrypdb",
   "assistantId": "pathfinder",
-  "rationale": "A bare context statement asks for nothing. The cataloged run answered it with a full frame, build and verify and left a strategy on the researcher's account. This pins the pipeline half: a turn the Lead classifies as a statement persists no strategy AST.",
+  "rationale": "A bare context statement asks for nothing. It gets no frame, build or verify, and it leaves no strategy on the researcher's account. This pins the pipeline half: a turn the Lead classifies as a statement persists no strategy AST.",
   "expected": {
     "buildsStrategy": false,
     "structure": null,

@@ -71,6 +71,15 @@ def test_a_transcript_count_no_step_holds_is_not_a_step_count() -> None:
     assert counts_in_genes(reply, _transcript_strategy()) is True
 
 
+def test_a_column_fit_row_in_transcripts_is_not_a_step_count() -> None:
+    shown = (
+        "720 of 720 transcripts fit Min %ile (Within Chosen Samples) (80 to 100)\n"
+        "The strategy holds 720 genes."
+    )
+
+    assert counts_in_genes(shown, _transcript_strategy()) is True
+
+
 def test_an_unset_expectation_is_not_compared() -> None:
     observed = _observed("The strategy holds 720 transcripts.")
 

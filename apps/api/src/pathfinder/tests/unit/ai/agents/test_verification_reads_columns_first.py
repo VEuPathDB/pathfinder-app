@@ -20,3 +20,10 @@ def test_the_runtime_states_a_column_short_of_every_gene() -> None:
         "states every column that falls short of all genes, or that the site "
         "does not show, as a caveat"
     ) in _TEXT
+
+
+def test_a_note_that_names_a_step_samples_that_step() -> None:
+    assert (
+        "call ``get_sample_records`` with the ``wdk_step_id`` the note names, "
+        "else the root's, and ``limit`` 8"
+    ) in _TEXT

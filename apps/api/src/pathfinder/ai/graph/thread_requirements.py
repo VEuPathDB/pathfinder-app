@@ -7,10 +7,15 @@ from collections.abc import Iterable, Sequence
 from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, TurnMarkers
+from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.domain.strategy.constraints import (
+    STRATEGY_SCOPES,
     Constraint,
-    ConstraintKind,
-    message_states,
+    states_the_content,
+)
+from pathfinder.domain.strategy.message_reading import (
+    adds_an_alternative,
+    message_states_constraint,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.questions import (
@@ -18,19 +23,17 @@ from pathfinder.domain.strategy.questions import (
     standing_recommendations,
 )
 from pathfinder.domain.strategy.requirement_lifecycle import (
-    RequirementWithdrawal,
     RetiredRequirement,
     reopened,
     restored,
     retire,
+    withdrawn_by,
 )
 from pathfinder.domain.strategy.stated_requirements import (
     RecordedRequirements,
+    attributed,
     with_requirements,
 )
-
-
-_STRATEGY_SCOPES = frozenset({ConstraintKind.ORGANISM, ConstraintKind.RECORD_TYPE})
 
 
 class ThreadRequirements(BaseModel):
@@ -115,6 +118,29 @@ class ThreadRequirements(BaseModel):
             held.append(offered)
         self.recommendations = held
 
+    def record(self, intent: UserIntent, messages: Sequence[str]) -> None:
+        """Take what this message states and withdraws. ``messages`` are the
+        researcher's words, this message first. A value only an ask of the
+        message carries is no requirement, and a question is all ask."""
+        held = list(self.requirements)
+        newest = messages[0] if messages else ""
+        asks = [ask.text for ask in intent.researcher_asks(newest)]
+        stated = [
+            c
+            for c in attributed(intent.explicit_constraints, messages, held)
+            if not _only_asked(c, newest, asks)
+        ]
+        self._record(
+            with_requirements(
+                held, stated, adds_alternatives=adds_an_alternative(newest)
+            )
+        )
+        still_held = [c for c in self.requirements if c in held]
+        added = [c for c in self.requirements if c not in held]
+        self.withdraw(withdrawn_by(still_held, intent.withdrawn), stated=added)
+        self.turn_markers.requirements_added.extend(added)
+        self.record_recommendations()
+
     def withdraw_this_messages_requirements(self) -> None:
         """Undo what this message asked for, once the researcher said no to it."""
         added = self.turn_markers.requirements_added
@@ -128,7 +154,8 @@ class ThreadRequirements(BaseModel):
         self.turn_markers.requirements_added = []
 
     def record_requirements(self, constraints: Iterable[Constraint]) -> None:
-        """Add each requirement the thread has not stated already."""
+        """Add each requirement the thread has not stated already, in place of
+        a held one of the same single-valued kind."""
         self._record(with_requirements(self.requirements, constraints))
 
     def _record(self, recorded: RecordedRequirements) -> None:
@@ -143,35 +170,56 @@ class ThreadRequirements(BaseModel):
             *recorded.displaced,
         ]
 
-    def retire_requirements(self, withdrawals: Iterable[RequirementWithdrawal]) -> None:
-        """Retire each held requirement a withdrawal names, on this message."""
+    def withdraw(
+        self,
+        requirements: Iterable[Constraint],
+        *,
+        stated: Sequence[Constraint] = (),
+        stand_in: Constraint | None = None,
+    ) -> None:
+        """Retire each of these held requirements on this message: replaced by
+        the chosen ``stand_in``, else by a value of its kind the message
+        ``stated``, else withdrawn."""
         self.requirements, self.retired_requirements = retire(
             self.requirements,
             self.retired_requirements,
-            list(withdrawals),
+            list(requirements),
             turn_id=self._turn_id(),
+            stated=stated,
+            stand_in=stand_in,
         )
 
     def retire_what_a_delete_leaves_unanswered(
         self, deleted: Sequence[Criterion], remaining: Sequence[Criterion]
     ) -> None:
-        """Withdraw, on this message, each live requirement a deleted
-        criterion's text states and no remaining criterion's text states. An
-        organism or a record type scopes the whole strategy, so a delete
-        withdraws neither."""
+        """Withdraw each live requirement a deleted criterion's text states and
+        no remaining one states. An organism or a record type scopes the whole
+        strategy, so a delete withdraws neither."""
 
         def stated(requirement: Constraint, criteria: Sequence[Criterion]) -> bool:
             return any(
-                message_states(c.text, requirement.requested_value) for c in criteria
+                states_the_content(c.text, requirement.requested_value)
+                for c in criteria
             )
 
-        self.retire_requirements(
-            RequirementWithdrawal(key=c.key)
+        self.withdraw(
+            c
             for c in self.requirements
-            if c.kind not in _STRATEGY_SCOPES
+            if c.kind not in STRATEGY_SCOPES
             and stated(c, deleted)
             and not stated(c, remaining)
         )
 
     def _turn_id(self) -> str:
         return str(self.turn_markers.message_id or "")
+
+
+def _only_asked(constraint: Constraint, message: str, asks: Sequence[str]) -> bool:
+    """Whether an ask of the message carries the value and the rest of the
+    message does not."""
+    rest = message.casefold()
+    for ask in asks:
+        rest = rest.replace(ask.casefold(), " ")
+    return any(
+        message_states_constraint(ask, constraint) for ask in asks
+    ) and not message_states_constraint(rest, constraint)

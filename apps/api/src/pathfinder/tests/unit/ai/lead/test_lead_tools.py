@@ -98,7 +98,8 @@ def test_the_classifier_takes_no_message_text_from_the_model() -> None:
         "named_controls",
         "named_gene_ids",
         "referenced_step_ids",
-        "withdrawn_requirements",
+        "undo",
+        "withdrawn",
     ]
 
 

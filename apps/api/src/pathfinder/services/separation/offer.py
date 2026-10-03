@@ -34,12 +34,14 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    bind_values,
 )
+from pathfinder.domain.strategy.spec_hydration import Sheets
 from pathfinder.domain.strategy.step_rationale import ControlsRationale, ControlsSource
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.evidence.control_enrichment import control_enrichment
 
-_RECORD_TYPE = "transcript"
+# The record type every separation run measures.
+RECORD_TYPE = "transcript"
 # A catalog or thread candidate's basis names where it came from, not what it finds.
 _NAMED_BY_ITS_SEARCH = frozenset({"catalog", "thread"})
 _SOURCE: TypeAdapter[ControlsSource] = TypeAdapter(ControlsSource)
@@ -77,7 +79,7 @@ def _rationale(measured: MeasuredCandidate, task_id: UUID) -> ControlsRationale:
 
 
 def _criterion(
-    measured: MeasuredCandidate, role: CriterionRole, task_id: UUID
+    measured: MeasuredCandidate, role: CriterionRole, task_id: UUID, sheets: Sheets
 ) -> Criterion:
     candidate = measured.candidate
     text = (
@@ -91,7 +93,12 @@ def _criterion(
         search_name=candidate.search_name,
         search_display_name=candidate.display_name,
         role=role,
-        resolved_params=bind_values(candidate.parameters, "card", str(task_id)),
+        resolved_params=bind_values(
+            candidate.parameters,
+            "card",
+            sheets.get(candidate.search_name, ()),
+            str(task_id),
+        ),
         confidence=1.0,
         rationale=_rationale(measured, task_id),
     )
@@ -123,13 +130,17 @@ def _structure(node: SeparationNode) -> StructureNode:
     )
 
 
-def _offer(result: SeparationResult, task_id: UUID) -> SeparationOffer | None:
+def _offer(
+    result: SeparationResult, task_id: UUID, sheets: Sheets
+) -> SeparationOffer | None:
     tree, positive, negative = result.tree, result.positive, result.negative
     if tree is None or positive is None or negative is None:
         return None
     by_id = {m.candidate.id: m for m in result.measured}
     roles = _roles(tree, "seed")
-    criteria = [_criterion(by_id[cid], role, task_id) for cid, role in roles.items()]
+    criteria = [
+        _criterion(by_id[cid], role, task_id, sheets) for cid, role in roles.items()
+    ]
     read_positive = ControlSetEvidence(
         returned=positive.recovered_ids, not_returned=positive.missed_ids
     )
@@ -145,7 +156,7 @@ def _offer(result: SeparationResult, task_id: UUID) -> SeparationOffer | None:
                 f"Separate {len(result.positives)} positive genes from "
                 f"{len(result.negatives)} negative genes"
             ),
-            record_type=_RECORD_TYPE,
+            record_type=RECORD_TYPE,
             organism_scope=", ".join(result.organisms) or None,
             criteria=criteria,
             structure=SpecStructure(root=_structure(tree)),
@@ -185,14 +196,20 @@ def _measured(measured: MeasuredCandidate) -> MeasuredCriterion:
     )
 
 
-def separation_report(result: SeparationResult, *, task_id: UUID) -> SeparationReport:
-    """The report of one run: its offer, its measurements, its skips and its cost."""
+def separation_report(
+    result: SeparationResult, *, task_id: UUID, sheets: Sheets
+) -> SeparationReport:
+    """The report of one run: its offer, its measurements, its skips and its cost.
+
+    ``sheets`` are the published sheets of the measured searches, which each
+    offered value is read on.
+    """
     skipped = Counter[SkipReason](s.reason for s in result.skipped)
     return SeparationReport(
         task_id=str(task_id),
         site_id=result.site_id,
         mode=result.mode,
-        offer=_offer(result, task_id),
+        offer=_offer(result, task_id, sheets),
         measured=[_measured(m) for m in result.measured],
         skipped_by_reason=dict(sorted(skipped.items())),
         skipped_examples=[
@@ -213,4 +230,4 @@ def separation_report(result: SeparationResult, *, task_id: UUID) -> SeparationR
     )
 
 
-__all__ = ["separation_report"]
+__all__ = ["RECORD_TYPE", "separation_report"]

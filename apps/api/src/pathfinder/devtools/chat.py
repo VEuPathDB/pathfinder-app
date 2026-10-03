@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from collections.abc import Mapping
@@ -12,6 +13,7 @@ from pathlib import Path
 from typing import Any, Literal, get_args
 from uuid import UUID, uuid4
 
+import httpx
 import structlog
 from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.conversation.event_stream import (
@@ -118,9 +120,31 @@ class MissingCredentialsError(RuntimeError):
     pass
 
 
+class LoginUnansweredError(RuntimeError):
+    """The site's login did not answer, so the turn did not run."""
+
+    def __init__(self, site: str, failure: httpx.TransportError) -> None:
+        words = re.sub(r"(?<!^)(?=[A-Z])", " ", type(failure).__name__).lower()
+        super().__init__(f"{site} login did not answer ({words})")
+
+
+# A site's login that does not answer once is tried a second time after this pause.
+LOGIN_RETRY_SECONDS = 2.0
+
+
+async def _login_twice(site: str, email: str, password: str) -> str | None:
+    """The token of a login the site answers on the first or the second try."""
+    try:
+        return await password_login(site, email, password)
+    except httpx.TransportError:
+        await asyncio.sleep(LOGIN_RETRY_SECONDS)
+    return await password_login(site, email, password)
+
+
 async def _wdk_token(args: RunArgs) -> str:
     """Resolves a real WDK auth token. Credentials come from the command line or
-    the environment. Missing or rejected credentials raise."""
+    the environment. Missing or rejected credentials raise, and so does a login
+    the site does not answer."""
 
     email = args.email or os.environ.get("WDK_DEV_EMAIL")
     password = args.password or os.environ.get("WDK_DEV_PASSWORD")
@@ -131,7 +155,10 @@ async def _wdk_token(args: RunArgs) -> str:
             "--email/--password. Use --mock to skip login."
         )
         raise MissingCredentialsError(msg)
-    token = await password_login(args.site, email, password)
+    try:
+        token = await _login_twice(args.site, email, password)
+    except httpx.TransportError as exc:
+        raise LoginUnansweredError(args.site, exc) from exc
     if not token:
         msg = f"WDK login failed for {email} on site {args.site!r} (bad credentials?)."
         raise MissingCredentialsError(msg)
@@ -862,13 +889,17 @@ def main() -> None:
     if command == "run":
         try:
             sys.exit(asyncio.run(run_once(parse_run_args(argv[1:]))))
-        except MissingCredentialsError as exc:
+        except (MissingCredentialsError, LoginUnansweredError) as exc:
             print(f"✖ {exc}", file=sys.stderr)
             sys.exit(2)
     if command == "respond":
         try:
             sys.exit(asyncio.run(run_respond(parse_respond_args(argv[1:]))))
-        except (MissingCredentialsError, GateResponseError) as exc:
+        except (
+            MissingCredentialsError,
+            LoginUnansweredError,
+            GateResponseError,
+        ) as exc:
             print(f"✖ {exc}", file=sys.stderr)
             sys.exit(2)
     ns = _build_parser().parse_args(argv)

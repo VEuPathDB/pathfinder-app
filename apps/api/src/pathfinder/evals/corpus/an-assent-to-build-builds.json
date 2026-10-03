@@ -6,7 +6,7 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Assent to the assistant's own offer is a request to build. The cataloged run classified such an assent as a question, hid the building tools and answered that the step was unavailable, so the turn produced nothing. This is the counterpart of question-turns-do-not-build: the first turn's offer is left open, and the next message that says yes must persist a strategy AST.",
+  "rationale": "Assent to the assistant's own offer is a request to build. Such an assent is not a question: the turn keeps the building tools and does not answer that the step is unavailable. This is the counterpart of question-turns-do-not-build: the first turn's offer is left open, and the next message that says yes must persist a strategy AST.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,

@@ -7,8 +7,10 @@ from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.ledger_render import render_verification_full
 from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.domain.caveats import ControlsCaveat, SampleCaveat
-from pathfinder.domain.evidence import (
+from pathfinder.domain.citations import (
     Citation,
+)
+from pathfinder.domain.evidence import (
     NamedControlSet,
     RequirementCheck,
     SampledGene,

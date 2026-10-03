@@ -9048,6 +9048,7 @@ components:
           enum:
           - loosest_bound
           - wildcard_phrase
+          - phrase_reading
           - site_search_reach
           - any_strain
           - all_strains
@@ -9116,16 +9117,11 @@ components:
       title: BoundLifecycle
       type: object
     BoundValue:
-      description: 'A bound value, and who set it.
+      description: 'A bound value, who set it, and what the published sheet says of it.
 
+        ``basis`` is the request''s words, the model''s reason or the card''s option
 
-        ``basis`` is the request''s words for a stated value, the model''s reason for
-
-        a chosen one and the option id for a card value. A default has none, and
-
-        neither has a held value, which a strategy that already exists holds with
-
-        no record of who set it.'
+        id; a default and a held value have none. No sheet read, no sheet fields.'
       properties:
         value:
           discriminator:
@@ -9172,14 +9168,39 @@ components:
           default: ''
           title: Carriedfrom
           type: string
-        placeholder:
-          default: false
-          title: Placeholder
-          type: boolean
         statedAs:
           default: ''
           title: Statedas
           type: string
+        displayName:
+          default: ''
+          title: Displayname
+          type: string
+        label:
+          default: ''
+          title: Label
+          type: string
+        placeholder:
+          default: false
+          title: Placeholder
+          type: boolean
+        atDefault:
+          default: false
+          title: Atdefault
+          type: boolean
+        visible:
+          default: true
+          title: Visible
+          type: boolean
+        number:
+          default: false
+          title: Number
+          type: boolean
+        decimals:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Decimals
       required:
       - value
       - source
@@ -9546,6 +9567,55 @@ components:
       - none
       - not_shown
       type: string
+    ComparedVariant:
+      description: 'One variant a comparison ran: its genes, the genes no other variant
+
+        returned, the strategy''s result with the variant in place, and the wire
+
+        value of each parameter whose value differs between the variants.'
+      properties:
+        label:
+          title: Label
+          type: string
+        geneCount:
+          title: Genecount
+          type: integer
+        uniqueCount:
+          title: Uniquecount
+          type: integer
+        resultCount:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Resultcount
+        differsBy:
+          additionalProperties:
+            type: string
+          title: Differsby
+          type: object
+      required:
+      - label
+      - geneCount
+      - uniqueCount
+      title: ComparedVariant
+      type: object
+    ComparisonFact:
+      description: 'The counts one completed comparison of this turn returned, for the
+
+        variants that ran.'
+      properties:
+        variants:
+          items:
+            $ref: '#/components/schemas/ComparedVariant'
+          title: Variants
+          type: array
+        overlaps:
+          items:
+            $ref: '#/components/schemas/SharedGenes'
+          title: Overlaps
+          type: array
+      title: ComparisonFact
+      type: object
     Constraint:
       properties:
         kind:
@@ -10069,11 +10139,6 @@ components:
             type: string
           title: Paramdisplaynames
           type: object
-        hiddenParams:
-          items:
-            type: string
-          title: Hiddenparams
-          type: array
         measurements:
           items:
             $ref: '#/components/schemas/Measurement'
@@ -10954,6 +11019,26 @@ components:
       - sentence
       title: LabelGapCaveat
       type: object
+    LastChange:
+      description: The strategy's most recent change, and the result's count on each side.
+      properties:
+        what:
+          title: What
+          type: string
+        before:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Before
+        after:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: After
+      required:
+      - what
+      title: LastChange
+      type: object
     LeadUsagePayload:
       description: 'Payload for the lead-usage chunk. The counts cover the lead agent only
 
@@ -11170,6 +11255,7 @@ components:
           enum:
           - loosest_bound
           - wildcard_phrase
+          - phrase_reading
           - site_search_reach
           - any_strain
           - all_strains
@@ -11492,14 +11578,11 @@ components:
       title: ParameterAlternatives
       type: object
     ParameterFact:
-      description: 'One bound value of a step, by the name the site shows, and who set it.
+      description: 'One bound value of a step and who set it. ``name`` is the wire name the
 
+        facts part does not show; ``notes`` are a default or chosen value''s
 
-        ``notes`` are the measurement clauses of a default or chosen value and the
-
-        option label of a card value. ``name`` is the wire name, which the facts
-
-        part does not show.'
+        measurement clauses and a card value''s option label.'
       properties:
         name:
           title: Name
@@ -11543,9 +11626,9 @@ components:
       title: PhaseDisposition
       type: string
     PhraseCaveat:
-      description: 'A several-word text sent unquoted, which matches any of its words,
+      description: 'A several-word text sent unquoted, which the site matches by any of its
 
-        where the same words as one phrase count otherwise.'
+        words, where the same words as one phrase count otherwise.'
       properties:
         kind:
           const: phrase
@@ -11775,25 +11858,6 @@ components:
       - unmet
       - unexpressed
       type: string
-    RequirementWithdrawal:
-      description: A held requirement a message takes back, and what replaces it.
-      properties:
-        key:
-          description: 'The key of the requirement the message takes back, as the ledger lists it: ''<dimension>:<requested
-            value>''.'
-          minLength: 1
-          title: Key
-          type: string
-        replacedBy:
-          default: ''
-          description: The key of the requirement this same message states in its place. Empty when the message only removes
-            it.
-          title: Replacedby
-          type: string
-      required:
-      - key
-      title: RequirementWithdrawal
-      type: object
     RetiredFact:
       description: A requirement the researcher withdrew or an answer replaced.
       properties:
@@ -12198,6 +12262,24 @@ components:
       - criterionId
       - params
       title: SetValuesChange
+      type: object
+    SharedGenes:
+      description: The genes two variants of one comparison both returned.
+      properties:
+        a:
+          title: A
+          type: string
+        b:
+          title: B
+          type: string
+        shared:
+          title: Shared
+          type: integer
+      required:
+      - a
+      - b
+      - shared
+      title: SharedGenes
       type: object
     SiteRead:
       enum:
@@ -12789,7 +12871,9 @@ components:
       title: ToolSummaryPayload
       type: object
     TurnFacts:
-      description: Everything a turn shows beside its reply. The reply holds no fact outside it.
+      description: 'Everything a turn shows beside its reply, and every fact a reference of
+
+        the reply renders. ``comparisons`` alone make no facts part: their card shows them.'
       properties:
         recordNoun:
           default: gene
@@ -12814,6 +12898,10 @@ components:
           - type: integer
           - type: 'null'
           title: Rootcountbefore
+        lastChange:
+          anyOf:
+          - $ref: '#/components/schemas/LastChange'
+          - type: 'null'
         removed:
           items:
             type: string
@@ -12902,6 +12990,11 @@ components:
           items:
             $ref: '#/components/schemas/SourceFact'
           title: Namedgenes
+          type: array
+        comparisons:
+          items:
+            $ref: '#/components/schemas/ComparisonFact'
+          title: Comparisons
           type: array
         stoppedCheck:
           default: ''
@@ -13004,6 +13097,7 @@ components:
           enum:
           - loosest_bound
           - wildcard_phrase
+          - phrase_reading
           - site_search_reach
           - any_strain
           - all_strains
@@ -13071,6 +13165,11 @@ components:
           description: 'For a change to the strategy: ''loosen'' when the message asks the result to admit more records (a
             lower cut, a wider range, a requirement dropped), ''tighten'' when it asks for fewer, ''other'' for any other
             message.'
+        undo:
+          default: false
+          description: The message asks to undo, revert or put back the last change.
+          title: Undo
+          type: boolean
         asks:
           description: 'Each part of this message that asks for an answer about results and not for records: to report, explain
             or compare counts or steps, such as ''tell me how the two counts compare''. List the ask''s own words and never
@@ -13092,13 +13191,14 @@ components:
             $ref: '#/components/schemas/Constraint'
           title: Explicitconstraints
           type: array
-        withdrawnRequirements:
-          description: 'One entry per requirement the conversation holds that this message takes back or swaps for another:
-            removing a requirement or a step that states it, or replacing a value with a new one. The key is the requirement''s
-            ''<dimension>:<requested value>''; a swap names the requirement it states in its place in ``replacedBy``.'
+        withdrawn:
+          description: 'One entry per requirement this message takes back, typed as in explicitConstraints: its dimension
+            and its value in the words the conversation stated it in. A new value of any dimension but ''other'' takes the
+            old one''s place, so a message that only states one withdraws nothing here. An ''other'' value stands beside the
+            others: a message that swaps one lists the old value here.'
           items:
-            $ref: '#/components/schemas/RequirementWithdrawal'
-          title: Withdrawnrequirements
+            $ref: '#/components/schemas/Constraint'
+          title: Withdrawn
           type: array
         namedControls:
           anyOf:
@@ -13198,6 +13298,11 @@ components:
           - type: integer
           - type: 'null'
           title: Resultcount
+        differsBy:
+          additionalProperties:
+            type: string
+          title: Differsby
+          type: object
       required:
       - label
       - searchName

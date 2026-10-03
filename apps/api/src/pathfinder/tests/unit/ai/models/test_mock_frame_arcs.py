@@ -286,14 +286,11 @@ def test_the_edit_moves_the_domain_minimum_and_copies_the_rest(
         "min_tm": low,
         "max_tm": None,
     }
-    assert calls[-1].args_as_dict()["changes"] == [
-        {"criterionId": "signal_peptide", "disposition": "kept"},
-        {
-            "criterionId": "tm_domains",
-            "disposition": "changed",
-            "changedParams": {"min_tm": low},
-        },
-    ]
+    assert calls[-1].args_as_dict() == {
+        "summary": "Moved min_tm on tm_domains; the rest are unchanged.",
+        "disposition": "spec_ready",
+        "openQuestions": [],
+    }
 
 
 def test_the_added_step_intersects_the_whole_strategy() -> None:

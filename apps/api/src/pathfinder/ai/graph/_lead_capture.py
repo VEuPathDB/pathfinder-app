@@ -1,10 +1,5 @@
-"""Lead-run capture + token/cost accounting.
-
-Shared base for the Lead node: the mutable ``_LeadRunCapture`` accumulator and
-the streaming/residual quota charging that mutates it. Kept separate so
-``lead_node`` and its event helpers can share this state without an import
-cycle.
-"""
+"""The mutable capture of one Lead run, the reply it writes, and the token and
+cost accounting that charges it."""
 
 from __future__ import annotations
 
@@ -41,6 +36,8 @@ from pathfinder.ai.lead.sub_agent_tools import (
     ToolCharge,
 )
 from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.platform.model_catalog import context_window_for
 from pathfinder.platform.model_keys import turn_paid_by
 
@@ -117,8 +114,10 @@ class _LeadRunCapture:
     parked_call_answered: bool = False
     # The researcher declined an offer card, so the turn writes no reply.
     offer_declined: bool = False
-    # The facts part is written once, before the first reply of the turn.
+    # The facts part is written once, before the first reply of the turn, and
+    # every reply of the turn is rendered from the same facts.
     facts_shown: bool = False
+    facts: TurnFacts = field(default_factory=TurnFacts)
 
     def note_model_output(
         self,
@@ -259,12 +258,17 @@ def _emit_residual_prose(
     *,
     message_id: UUID,
 ) -> None:
+    """Write the reply as one text part, each reference rendered from the facts
+    the turn showed."""
     response = capture.response
     if response is None or not response.prose:
         return
     chunk_id = f"lead-prose-{message_id}"
     emit_chunk(writer, TextStartChunk(id=chunk_id))
-    emit_chunk(writer, TextDeltaChunk(id=chunk_id, delta=response.prose))
+    emit_chunk(
+        writer,
+        TextDeltaChunk(id=chunk_id, delta=render_reply(response.prose, capture.facts)),
+    )
     emit_chunk(writer, TextEndChunk(id=chunk_id))
 
 

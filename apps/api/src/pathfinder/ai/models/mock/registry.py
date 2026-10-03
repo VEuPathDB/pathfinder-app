@@ -42,6 +42,10 @@ from pathfinder.ai.models.mock.lead_flow import (
     lead,
     thread_is_framed,
 )
+from pathfinder.ai.models.mock.lifecycle_arcs import (
+    narrowed_organism,
+    withdrawn_requirement,
+)
 from pathfinder.ai.models.mock.lookup_arcs import odorant_binding_frame
 from pathfinder.ai.models.mock.note_arc import noted
 from pathfinder.ai.models.mock.reads import frame_summary
@@ -198,6 +202,8 @@ ARCS: dict[str, Arc] = {
     "odorant-lookup": _built(odorant_binding_frame),
     "derived-count": _arc(lead(derived_count)),
     "muris-phrase": _built(spec_frame(phrase_label_arcs.muris_phrase_spec)),
+    "narrowed-organism": _arc(lead(narrowed_organism)),
+    "withdrawn-requirement": _arc(lead(withdrawn_requirement)),
 }
 
 

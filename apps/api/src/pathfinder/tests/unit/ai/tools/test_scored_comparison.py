@@ -25,7 +25,8 @@ from pathfinder.services.experiment.scored_comparison import (
     ScoredComparison,
     ScoredVariant,
 )
-from pathfinder.services.experiment.variant_comparison import VariantSpec
+from pathfinder.services.experiment.variant_comparison import VariantInput
+from pathfinder.tests._support.record_classes import list_searches_under
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
     detached_lead_context,
@@ -45,12 +46,13 @@ def _every_parameter_is_taken(monkeypatch: pytest.MonkeyPatch) -> None:
         return [param_info("fold_change")]
 
     monkeypatch.setattr(variant_comparison, "search_parameters", _takes)
+    list_searches_under(monkeypatch, "transcript", {"SA", "SB"})
 
 
-def _variants(first: str = "SA", second: str = "SB") -> list[VariantSpec]:
+def _variants(first: str = "SA", second: str = "SB") -> list[VariantInput]:
     return [
-        VariantSpec(label="a", search_name=first, parameters={}),
-        VariantSpec(label="b", search_name=second, parameters={}),
+        VariantInput(label="a", search_name=first, parameters={}),
+        VariantInput(label="b", search_name=second, parameters={}),
     ]
 
 
@@ -171,7 +173,7 @@ async def test_a_parameter_no_search_takes_is_refused_before_the_run(
 ) -> None:
     held = _pin_control_set(monkeypatch, positive_ids=["g1"], negative_ids=[])
     variants = [
-        VariantSpec.model_validate(
+        VariantInput.model_validate(
             {
                 "label": label,
                 "searchName": "SA",
@@ -197,7 +199,7 @@ async def test_it_refuses_a_single_variant(monkeypatch: pytest.MonkeyPatch) -> N
     with pytest.raises(ModelRetry, match="at least 2"):
         await compare_variants_scored(
             detached_lead_context(),
-            [VariantSpec(label="a", search_name="SA", parameters={})],
+            [VariantInput(label="a", search_name="SA", parameters={})],
             control_set_id=str(uuid4()),
         )
 

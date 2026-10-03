@@ -19,7 +19,6 @@ from veupathdb_mcp.wdk import SampleRecordsResult
 from pathfinder.ai.tools.standalone import _sample_attributes, results
 from pathfinder.ai.tools.standalone._sample_attributes import selecting_attributes
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.tests._support.tool_returns import returned
 
 from .conftest import agent_run_context
 

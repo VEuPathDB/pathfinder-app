@@ -1,6 +1,163 @@
 # Log
 
+## 2026-10-03
+
+* **The eval runner reads what the researcher reads.** `eval_runner.facts_text`
+  renders a turn's facts with the transcript's renderer, so a mention check sees the
+  source label beside each value; the counts of the latest review stand until a later
+  check replaces them; a case whose site login does not answer is `not-run`, never
+  failed. `counts_named_as` reads no decimal's digits as a count, so a similarity
+  score before a dataset named after transcripts is no count in the wrong unit.
+  Half, third, quarter, fifth and percent are number words a reference stands in
+  place of.
+
+* **The gate records a question as a question; an edit turn that changes nothing is
+  refused once; a check request is a building turn.** `held_as_question` records a
+  classification whose message states no change outside its asks as a
+  `follow_up_question` and tells the Lead so, instead of refusing until the retries
+  run out; an ask that names a test, a check or a control set keeps the classification
+  the model sent. `_unmade_change` refuses an edit turn that withdraws or states a
+  value, makes no change, raises no card and gives no reason. A stated
+  `record_type` whose value is no record noun (`protein-coding genes`) is a value
+  requirement; `_with_the_record_type` judges only rows that name a record noun. An
+  edit adds no criterion the message does not state: an added criterion no
+  requirement states is refused and the pass keeps what it bound.
+
+* **An undo restores the previous revision; a combine's operator moves only on the
+  message's word.** `UserIntent.undo` is read from the classifier and from the
+  message (`undo_words.asks_to_undo`); `asks_only_to_undo` takes the undo path even
+  when the classifier withdrew the change it undoes, and `revision_ops.previous_revision`
+  names the newest turn-end revision whose tree differs, which the edit path diffs
+  and pushes without a FRAME pass. `named_combine` places "the last combine" at the
+  root and "the first combine" at the deepest, and an edit that moves another
+  combine, or moves one to an operator the message does not state, is refused.
+  `TurnFacts.last_change` carries the counts before and after the strategy's most
+  recent change, rendered by `[last_change:before]` and `[last_change:after]`, so a
+  turn that edits nothing can state what the last edit did.
+
+## 2026-10-02
+
+* **Binding guards.** An organism entry the request names is the one bound: a bind
+  that leaves it out for a sibling strain or an ancestor is refused
+  (`_frame_stated.refuse_what_the_words_decide`); a text term the request calls a
+  phrase binds quoted; a typeahead pick binds the exact entry alone when the lookup
+  matched one, and never an entry the site labels obsolete unless the request says
+  so (`_frame_lookups`). A variant's record type comes from the catalog, never from
+  the model; `compare_search_variants` is a site read, so a site error fails the call
+  and not the turn; a word for every field runs every entry; each compared variant
+  shows the parameters it differs by, in the facts and on the card.
+  `CombinationRequest.parse` reads UNION and INTERSECT as OR and AND.
+
+* **The check's verdict is derived from the held rows.** A failed digest whose rows
+  are all met passes (`digest_held_to_the_rows`), as a passed digest the findings
+  do not support fails; a "genes" row on the transcript record class is met by code.
+  A threshold, fold or data-type requirement on an analysis criterion is provisional
+  until the analysis runs; "minimum ... percentile N" is a lower bound. A chosen
+  stand-in retires the requirement it replaces. A number the researcher's own
+  message writes is prose; a rendered number keeps the sheet's precision, at most
+  four significant digits. `httpx.TransportError` in a tool is transient.
+
+## 2026-10-01
+
+* **The tree's shape is the type's.** `StructureNode` refuses a combine of fewer
+  than two inputs or no operator, a leaf without a criterion, a transform or a copy
+  without exactly one input; a one-input wrapper loads as its input, and a checkpoint
+  that holds any other off-shape node no longer loads, so the release is installed
+  with `--purge-checkpoints`. Every guard the
+  invariant made dead left `spec_tree`, `spec_to_operations`, `edit_plan`,
+  `orthology`, `combination_check` and `spec_duplicates`, and a copy beside its own
+  source is a refusal, not a validation error. A provider error raised inside a
+  model's stream is caught by `GuardedModel` and classified: a refusal of the
+  deployment's key is `DeploymentKeyRefusedError`, named in the stop reply without
+  the provider's body; every other provider error loses its body and keeps its
+  status, and the guard logs the provider's error type and code. After a check has
+  run in a turn, the strategy changes only through a card unless the check blamed
+  the tree (`change_waits_for_a_card`). A hidden site parameter with one entry is no
+  facts row; a hidden parameter with a choice stays shown. A requirement is
+  provisional while nothing is bound, and an organism or record type is never
+  offered for withdrawal through a pass's `unstated` words.
+
 ## 2026-09-30
+
+* **A variant runs a pick it names no entry for at the site's default; a count
+  reference carries its noun; a narrowing to held organisms moves no record.**
+  `_variant_targets.checked_variants` sends the published default
+  (`pick_readings.site_default`) for each pick a variant leaves out or leaves empty,
+  as the bind's reading at the site's default does (GenesByText `text_fields`: all 26
+  fields); an empty pick whose default takes no entry, and an entry the vocabulary
+  lacks, are still refused. `render_reply` absorbs the record noun written after a
+  count reference (`[diff:a,b] genes` renders `627 genes`, once). `organism_move_refusal`
+  passes a tighten whose organisms are a subset of the held root's and a loosen whose
+  organisms hold every held one; another organism is still refused with the round
+  trip. `SearchChoice.term` states that a call setting another value names that
+  parameter even on an organism-only edit.
+
+* **The requirement lifecycle is derived.** `UserIntent` states requirements by
+  dimension and value, and the ones a message takes back in `withdrawn`; it names no
+  key and no successor (`RequirementWithdrawal` and the gate's withdrawal refusal are
+  gone). `ThreadRequirements.record` derives the rest: a new value of a single-valued
+  dimension replaces the held one (`replaced(by)`), a withdrawn statement retires the
+  held requirement its words name, as replaced by a value of its dimension the
+  message states or else as withdrawn, a value only an ask carries is no requirement,
+  and an ask drops a review row only when the row restates it word for word. FRAME's
+  disposition of each criterion is the computed diff (`frame_dispatch.derived_changes`,
+  `FrameResult.changes` omitted from its schema); `undeclared_spec_changes` and the
+  edit's pending-accounting refusal are gone. `RequirementCheck` refuses `unmet` with
+  a non-empty `answered_by`; a met text row the records leave short shows `unshown`
+  or `unjudged`, and a breached combine names no step. A reply over a failed check
+  names each failing gap by two consecutive words of it, never by its number
+  (`requirement_naming.named_in_prose`). Seams: `message_reading.py` (the combination
+  reading and `message_states_constraint`), `citations.py`, `requirement_naming.py`.
+  Decision: [The requirement lifecycle is derived](decisions/the-requirement-lifecycle-is-derived.md).
+  Corpus: `uat-core-d-veupathdb`, `uat-core-a-plasmodb`; mock arcs
+  `narrowed-organism`, `withdrawn-requirement`.
+
+* **The reply is rendered from the facts.** `LeadResponse.prose` and a card's `reply`
+  write each count, value, source word, record and link as a reference
+  (`[count:<step_id>]`, `[before:<step_id>]`, `[root]`, `[root_before]`, `[diff:<a>,<b>]`,
+  `[value:<step_id>.<param>]`, `[source:<step_id>.<param>]`, `[compare:<variant>]`,
+  `[record:<record_id>]`, `[url]`), and `domain/reply_references.py::render_reply` renders
+  them from the `TurnFacts` `show_the_facts` keeps on the run capture, in
+  `_emit_residual_prose` and in `CardHold.release`. `unrendered_prose` is the only check on
+  prose content: a digit, an identifier shape, a link or a source word outside a reference, or
+  a reference the facts cannot render, is refused on every answer with the reference that
+  renders each token. A completed comparison's counts are a `ComparisonFact` on the facts
+  (`domain/comparison_facts.py`, `VariantComparison.fact`). `facts_in_prose.py`,
+  `fact_outside_the_block`, its source-word and record-text rules, `TurnRecord.prose_refusal`,
+  `TurnFacts.held_lines` and `counts`, and `TurnMarkers.facts_corrected`, `compared_labels`
+  and `compared_counts` are gone. Decision:
+  [The product renders the facts; the reply narrates](decisions/the-product-renders-the-facts-the-reply-narrates.md).
+  Corpus: `uat-core-d-microsporidiadb`, `uat-core-a-cryptodb`; flow `UCORE-A-cryptodb`.
+  A bracket that nests, opens with a reference's name or is never closed is refused, a
+  difference of a side with itself names nothing, a line's item number is exempt only in list
+  order, every card reply of a response is read whole, and a label that repeats its value is
+  dropped on `ParameterFact`. The prose check reads a token's shape: a number or an identifier
+  shape is refused, and a name that mixes letters and digits ("PfEMP1", "3D7") is prose.
+
+* **A pick is a choice from a lookup, and a read the site does not answer fails as
+  one call.** A new entry on a typeahead multi-pick binds only when a lookup of that
+  parameter in the pass matched it (`_frame_lookups.py`, `AgentToolState.looked_up`
+  holding the matched entries); the facts name the lookup, the entries taken of those
+  matched and each picked label without the concept. A site error or timeout in a Lead
+  read is `ToolFailed` with the site's status (`capabilities/site_reads.py`,
+  `SiteReadFailures` on the Lead, `read_in_time` for the timed reads), and
+  `read_step_ids` reads the sample's ordered ids through `results.sample_page`
+  (`step_gene_ids_at` is gone). A comparison refuses a search no step runs in both
+  compare tools, keeps a value the step running the search holds, and expands a tree
+  value over the definition WDK builds from the variant's values. A word inside a
+  multi-word value bound to a text parameter is no qualifier for another search. An
+  edit that changes only an organism the reason does not name keeps the reason.
+  `frame_set_criterion` stores a copy, so a count recorded on the draft leaves the
+  caller's criterion unchanged. The review and the ledger print the record type as its
+  noun ("genes"), never the class name. Decision:
+  [A pick is a choice from a lookup](decisions/a-pick-is-a-choice-from-a-lookup.md);
+  [A read answers once per run](decisions/a-read-answers-once-per-run.md) gains the
+  site-error rule. Corpus: `uat-core-c-vectorbase`; mock arc `odorant-lookup`.
+  A limited `read_step_ids` takes the sample's cap of 100, since the sample reads one
+  record per id. `get_parameter_options` sends no value of the parameter it reads.
+  The per-term `vocabulary_label` measurements and `BoundValue.label` read one
+  `value_label.term_labels`.
+  Backlog: [A search report sends a tree value as its leaves](backlog/a-search-report-sends-a-tree-value-as-its-leaves.md).
 
 * **a19 round 5, lane 8: a count question gets its count, and a row shows what a
   researcher checks.** A reply holds each count the turn measured and the difference
@@ -15,20 +172,25 @@
   not-measurable clause. Corpus: `uat-dry4-a-toxodb`, `uat-dry4-d-microsporidiadb`;
   mock arc `derived-count`.
 
-* **a19 round 5, lane 9: unset is read at the published value, and a label
-  may be one letter off.** `_frame_measure.infos_under` keeps each
-  parameter's published initial value on a sheet read under the bound values,
-  because WDK answers every sent value as its `initialDisplayValue`; the
-  giardiadb G. muris text "cysteine-rich protein" is a text query again and
-  shows "as the phrase "cysteine-rich protein": 0 genes" beside 4,497, and a
-  pick's site default is counted at the published default. `PhraseCaveat` says
-  an unquoted text matches any of its words ("protein" alone counts 4,497). Each
-  measurement clause reaches FRAME once. A letters-only word of six letters or
-  more may be one letter off when the words still name one entry, so
-  "Roberts-Thompson" states "Giardia muris strain Roberts-Thomson"; a word with
-  a digit never is. A text that leaves out the words a requirement phrase writes
-  before it is chosen and counted at that phrase ("erythrocyte surface antigen"
-  under "variant erythrocyte surface antigen annotation").
+* **A bound value is built once, with its sheet.** `bind_values(values, source,
+  sheet, basis)` builds every `BoundValue` with `display_name`, `label`,
+  `placeholder` and `at_default` read from the published parameter sheet, and
+  the bind, hydration, replay, fold (`BoundValue.carried`) and separation card
+  build through it; `value_source.is_unset` and `is_placeholder` are gone.
+  `text_query`, `measure_binding`, the pick readings and the organism check of
+  a search choice read the fields. A read under the bound values gives only
+  dependent vocabularies (`_frame_measure.vocabularies_under`), since WDK
+  answers each sent value as its initial value: plasmodb GenesByText read under
+  "cysteine-rich protein" answers that text where the published sheet holds
+  "*reductase", and the text stays a text query. The phrase reading of an
+  unquoted text is its own measurement kind, `phrase_reading`, and
+  `PhraseCaveat` says the site matches any of its words ("4,497 genes; as the
+  phrase: 0 genes" on giardiadb G. muris). A letters-only word of six letters
+  or more may be one letter off when the words still name one entry
+  ("Roberts-Thompson" states "Giardia muris strain Roberts-Thomson"); a word
+  with a digit never is. A text that leaves out the words a requirement phrase
+  writes before it is chosen and counted at that phrase. Corpus:
+  `uat-core-b-giardiadb`.
 
 * **A text row no record judged is unjudged, and a verdict counts only for the
   requirement it names.** `held_to_the_records` marks a met row that only a text

@@ -7,13 +7,13 @@ does not name keeps its WDK id and every value the researcher set on it.
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Collection
 
 import pydantic
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.exceptions import ModelRetry, ToolFailed
 from veupathdb.errors import ParamMessages, ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -26,6 +26,7 @@ from pathfinder.ai.lead.dispatch_context import (
     dispatch_call_id,
     record_the_spec_the_dispatch_found,
     refuse_and_restore,
+    refuse_without_retry,
     the_edit_the_strategy_owes,
 )
 from pathfinder.ai.lead.dispatch_messages import option_binds_no_step_message
@@ -35,15 +36,17 @@ from pathfinder.ai.lead.edit_messages import (
     edit_bound_nothing_message,
     edit_operation_refused_message,
     edit_work_order,
+    no_earlier_revision_message,
     no_strategy_to_edit_message,
-    pending_changes_no_pass_accounted_for_message,
+    nothing_to_undo_message,
     removal_is_the_cards_message,
+    undo_moves_nothing_message,
     unsupported_edit_message,
     wdk_refused_the_written_step_message,
 )
 from pathfinder.ai.lead.frame_dispatch import run_frame
 from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
-from pathfinder.ai.lead.pre_turn import hydrate_spec_from_the_strategy
+from pathfinder.ai.lead.pre_turn import hydrate_spec_from_the_strategy, stated_spec_of
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
@@ -55,11 +58,9 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.orthology import organism_move_refusal
-from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.domain.strategy.revision import parse_strategy_ast, strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_diff import (
-    CriterionChange,
-    CriterionDisposition,
     SpecDiff,
     diff_specs,
     steps_only_removed,
@@ -80,8 +81,11 @@ from pathfinder.services.strategies.commit import (
     apply_operations_and_commit,
 )
 from pathfinder.services.strategies.graph_outcome import live_outcome
+from pathfinder.services.strategies.revision_ops import previous_revision
 
 __all__ = ["edit_strategy", "run_edit"]
+
+_UNDONE = "The strategy is back to the revision before the last change."
 
 
 async def run_edit(
@@ -107,6 +111,8 @@ async def run_edit(
         offered = tools_the_turn_offers(deps, ["frame_problem", "build_strategy"])
         raise ModelRetry(no_strategy_to_edit_message(offered))
     base_revision = strategy_revision(graph.to_strategy_ast())
+    if resume is None and deps.intent is not None and deps.intent.asks_only_to_undo():
+        return await _undo(deps=deps, graph=graph, base_revision=base_revision)
     answered, pending = the_edit_the_strategy_owes(deps.state, found)
     frame = await run_frame(
         deps=deps,
@@ -127,9 +133,6 @@ async def run_edit(
     after = deps.state.domain.operational_spec
     if after is None or not after.criteria:
         refuse_and_restore(deps, edit_bound_nothing_message())
-    # The draft before the fold is what this pass states: an option it absorbs
-    # is a criterion the pass wrote, whatever carries its values.
-    drafted = frozenset(criterion.id for criterion in after.criteria)
     # Both sides state an option as a value on the step that runs its search,
     # so the difference between them is a difference between steps. The stored
     # spec is what an earlier turn left, so only this turn's side is refused.
@@ -159,9 +162,6 @@ async def run_edit(
             ],
             card_questions=frame.card_questions,
         )
-    _refuse_a_pending_change_this_turn_did_not_account_for(
-        deps, pending, frame.changes, drafted
-    )
     _refuse_a_removal_the_card_owns(deps, diff, graph)
     moved = organism_move_refusal(
         "other" if deps.intent is None else deps.intent.edit_direction,
@@ -173,10 +173,46 @@ async def run_edit(
     return await _push_the_edit(
         deps=deps,
         after=after,
-        planned=planned,
         diff=diff,
         graph=graph,
         base_revision=base_revision,
+        undo=False,
+    )
+
+
+async def _undo(
+    *, deps: LeadDeps, graph: StrategyGraph, base_revision: str
+) -> EditDelta:
+    """Return the strategy to the revision before its last change.
+
+    Both trees are stated the same way, so the diff holds only what the last
+    change moved.
+    """
+    async with deps.runtime.db_session_factory() as session:
+        revision = await previous_revision(
+            session, conversation_id=deps.state.conversation_id
+        )
+    stored = None if revision is None else parse_strategy_ast(revision.strategy_ast)
+    live = graph.to_strategy_ast()
+    if revision is None or stored is None or live is None:
+        raise ToolFailed(no_earlier_revision_message())
+    if revision.revision == base_revision:
+        raise ToolFailed(nothing_to_undo_message())
+    site_id, goal = deps.runtime.site_id, deps.state.user_prompt
+    before = await stated_spec_of(live, site_id=site_id, goal=goal)
+    after = await stated_spec_of(stored, site_id=site_id, goal=goal)
+    diff = diff_specs(before, after)
+    _refuse_a_removal_the_card_owns(deps, diff, graph)
+    # The commit's guards read the spec the thread states, so it states the
+    # restored tree before the push.
+    deps.state.domain.operational_spec = after
+    return await _push_the_edit(
+        deps=deps,
+        after=after,
+        diff=diff,
+        graph=graph,
+        base_revision=base_revision,
+        undo=True,
     )
 
 
@@ -184,12 +220,18 @@ async def _push_the_edit(
     *,
     deps: LeadDeps,
     after: OperationalSpec,
-    planned: OperationalSpec,
     diff: SpecDiff,
     graph: StrategyGraph,
     base_revision: str,
+    undo: bool,
 ) -> EditDelta:
-    """Push what ``planned`` states; the thread's plan becomes ``after``."""
+    """Push what ``after`` states with no criterion that waits for its
+    analysis; the thread's plan becomes ``after``.
+
+    ``undo`` says the edit returns to the previous revision, which an empty
+    batch cannot do.
+    """
+    planned = spec_without_pending_analyses(after)
     try:
         ops = operations_for(diff, after=planned, graph=graph)
     except UnsupportedEditError as exc:
@@ -206,6 +248,8 @@ async def _push_the_edit(
         for c in diff.changes
         if c.disposition == "kept" and c.criterion_id in graph.steps
     ]
+    if not ops and undo:
+        refuse_without_retry(deps, undo_moves_nothing_message())
     if not ops:
         the_strategy_now_answers_to(deps.state, after, graph)
         return EditDelta(
@@ -245,6 +289,7 @@ async def _push_the_edit(
     refusal = wdk_refused_the_edit(commit)
     return EditDelta(
         diff=diff,
+        summary=_UNDONE if undo and refusal is None else "",
         description=commit.description if refusal is None else refusal.message,
         operations_applied=len(ops),
         added_step_ids=added,
@@ -266,49 +311,6 @@ def _refuse_a_removal_the_card_owns(
                 {sid: named_step(graph.steps[sid]) for sid in removed}
             ),
         )
-
-
-def _refuse_a_pending_change_this_turn_did_not_account_for(
-    deps: LeadDeps,
-    pending: SpecDiff,
-    declared: Sequence[CriterionChange],
-    drafted: Collection[str],
-) -> None:
-    """Every unpushed change of an earlier pass needs this pass's disposition.
-
-    A push carries them all, so one the pass never stated would reach the
-    strategy with no account of it in the delta the reply is read from.
-    """
-    stated: dict[str, CriterionDisposition] = {
-        change.criterion_id: change.disposition for change in declared
-    }
-    unaccounted = sorted(
-        change.criterion_id
-        for change in pending.changes
-        if change.disposition != "kept"
-        and not _accounts_for(change.criterion_id, stated, drafted)
-    )
-    if unaccounted:
-        refuse_and_restore(
-            deps, pending_changes_no_pass_accounted_for_message(unaccounted)
-        )
-
-
-def _accounts_for(
-    criterion_id: str,
-    stated: Mapping[str, CriterionDisposition],
-    drafted: Collection[str],
-) -> bool:
-    """Whether the pass's word for this criterion agrees with what it drafted.
-
-    A criterion the pass calls dropped is one its draft leaves out, and any
-    other word is one its draft states. A word the draft contradicts accounts
-    for nothing, because the two say different things about the same step.
-    """
-    disposition = stated.get(criterion_id)
-    if disposition is None:
-        return False
-    return (disposition == "dropped") is (criterion_id not in drafted)
 
 
 def _refuse_a_delta_the_strategy_disagrees_with(
@@ -403,7 +405,8 @@ async def edit_strategy(ctx: RunContext[LeadDeps], reason: str) -> EditDelta:
     It re-frames only the criteria the request names, pushes the difference as
     step edits, and leaves every other step's WDK id and values untouched.
     ``build_strategy`` replaces a strategy wholesale and is not the tool for an
-    edit.
+    edit. A request to undo the last change is an edit too: it returns the
+    strategy to the revision before that change and frames nothing.
 
     ``reason`` is what the request changes, in one sentence.
 

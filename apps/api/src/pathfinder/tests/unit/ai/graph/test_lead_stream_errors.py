@@ -13,10 +13,14 @@ from collections.abc import AsyncIterator, Sequence
 from typing import Any
 from uuid import uuid4
 
+import httpx2
+import openai
 import pytest
+from assistant_core.platform.types import PaidBy
 from langgraph.errors import GraphBubbleUp
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +33,14 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.devtools.provider_refusals import load_refusal
+from pathfinder.domain.provider_keys import KeyRefusal, ProviderKeyring
 from pathfinder.domain.strategy.session import StrategySession
+from pathfinder.platform.model_keys import (
+    GuardedModel,
+    attach_keyring,
+    turn_deployment_refusals,
+)
 from pathfinder.tests._support.logs import logged_events
 from pathfinder.tests.unit.ai.graph._approval_turn import Collector
 
@@ -111,7 +122,7 @@ def _drive(
 
 def _drive_model(
     monkeypatch: pytest.MonkeyPatch,
-    model: FunctionModel,
+    model: Model,
     capture: _LeadRunCapture,
     writer: Collector,
 ) -> None:
@@ -248,3 +259,40 @@ def test_a_model_that_answered_once_is_recorded_as_answered(
 
     assert capture.model_answered is True
     assert capture.run_error == "peer closed connection"
+
+
+def test_a_billing_error_inside_the_stream_reaches_the_wire_without_its_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The error chunk is the typed refusal's sentence, which holds no link."""
+    body = load_refusal("openai-no-credit-stream").body
+    streamed = openai.APIError(
+        "You have no credits remaining.",
+        request=httpx2.Request("POST", "https://api.openai.com/v1/responses"),
+        body=body,
+    )
+    capture = _LeadRunCapture()
+    writer = Collector()
+
+    with attach_keyring(ProviderKeyring()) as keys:
+        model = GuardedModel(
+            _raising_model(streamed),
+            keys=keys,
+            provider="openai",
+            paid_by=PaidBy.DEPLOYMENT,
+        )
+        _drive_model(monkeypatch, model, capture, writer)
+        refused = turn_deployment_refusals()
+        prose = fallback_prose(capture, None, changed=False)
+
+    written = [chunk["errorText"] for chunk in writer.chunks_of("error")]
+    assert written == [
+        "OpenAI refused the request on the deployment's account: no credit remaining"
+    ]
+    assert capture.run_error == written[0]
+    assert refused == {"openai": KeyRefusal.NO_CREDIT}
+    assert prose.startswith(
+        "I stopped this turn: OpenAI refused the request on the deployment's "
+        "account (no credit remaining)."
+    )
+    assert "http" not in prose

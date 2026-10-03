@@ -7,8 +7,10 @@ from __future__ import annotations
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead.verify_review import ReviewRecord, review_held_to_the_turn
-from pathfinder.domain.evidence import (
+from pathfinder.domain.citations import (
     Citation,
+)
+from pathfinder.domain.evidence import (
     RequirementCheck,
     SampledGene,
     VerificationReview,
@@ -104,7 +106,6 @@ def test_a_breached_combination_replaces_the_row_that_called_it_met() -> None:
         RequirementCheck(
             text=_COMBINATION,
             turn=1,
-            answered_by=["c_derisi", "c_ms"],
             how="structure",
             status="unmet",
             note=breach.message,

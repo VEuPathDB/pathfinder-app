@@ -12,11 +12,10 @@ from veupathdb.domain.parameters import (
     PHYLETIC_LIST_PARAMS,
     PHYLETIC_PARAM_NAMES,
     ParamKind,
-    ParamValue,
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.domain.strategy.value_source import is_unset
+from pathfinder.domain.strategy.operational_spec import BoundValue
 
 MeasurementRule = Literal[
     "loosest_bound",
@@ -138,11 +137,10 @@ def rules_of(info: ParameterInfo) -> ParameterRules:
     return PARAMETER_RULES[parameter_class(info)]
 
 
-def text_query(info: ParameterInfo, value: ParamValue) -> bool:
-    """Whether the value is a text query: a free-text value that is not unset."""
-    return parameter_class(info) == "string" and not is_unset(
-        value, info.default_value, info
-    )
+def text_query(info: ParameterInfo, bound: BoundValue) -> bool:
+    """Whether the value is a text query: a free-text value that states
+    something the site does not already send."""
+    return parameter_class(info) == "string" and not bound.unset
 
 
 __all__ = [

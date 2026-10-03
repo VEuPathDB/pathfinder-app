@@ -6,10 +6,7 @@ from __future__ import annotations
 from veupathdb.domain.parameters import StringValue, to_wire
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
-from pathfinder.domain.strategy.constraint_grounding import (
-    RealizedSpec,
-    ground_constraints,
-)
+from pathfinder.domain.strategy.constraint_grounding import ground_constraints
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -21,6 +18,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
 )
+from pathfinder.domain.strategy.realized_spec import RealizedSpec
 from pathfinder.tests._support.bound_values import bound
 
 # The realized facts of a single microarray fold-change leaf.

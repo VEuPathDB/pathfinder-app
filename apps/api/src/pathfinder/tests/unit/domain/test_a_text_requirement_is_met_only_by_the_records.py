@@ -1,6 +1,6 @@
-"""A requirement a text value states, and no other criterion answers, stands
-met while a record could show it: only a sampled record judged not to fit, or a
-column some record falls outside, holds it unmet."""
+"""A requirement a text value states, and no other criterion answers, stays met
+since its step answers it; a reader is shown it unshown when a sampled record
+judged not to fit, or a column some record falls outside, shows it missing."""
 
 from __future__ import annotations
 
@@ -90,7 +90,7 @@ def test_an_unclear_record_is_no_evidence_the_requirement_is_missing() -> None:
     assert held_to_the_records(review, _TEXTS) == _unjudged(review)
 
 
-def test_a_text_requirement_a_record_is_judged_short_of_is_unmet() -> None:
+def test_a_text_requirement_a_record_is_judged_short_of_is_unshown() -> None:
     review = VerificationReview(
         requirements=[_row(_TEXT, [])],
         sampled_genes=[_gene("EHI_035690", "unclear"), _gene("EHI_133900", "no")],
@@ -98,8 +98,8 @@ def test_a_text_requirement_a_record_is_judged_short_of_is_unmet() -> None:
 
     [row] = held_to_the_records(review, _TEXTS).requirements
 
-    assert (row.status, row.note) == (
-        "unmet",
+    assert (row.shown_status, row.note) == (
+        "unshown",
         (
             "0 of 2 sampled records fit and no column fit shows it; the query "
             "text alone does not show it"
@@ -122,7 +122,8 @@ def test_a_record_judged_short_of_it_shows_nothing() -> None:
         sampled_genes=[_gene("EHI_035690", "no")],
     )
 
-    assert held_to_the_records(review, _TEXTS).requirements[0].status == "unmet"
+    [row] = held_to_the_records(review, _TEXTS).requirements
+    assert row.shown_status == "unshown"
 
 
 def test_a_criterion_that_binds_no_text_query_needs_no_record() -> None:
@@ -163,7 +164,8 @@ def test_a_column_some_records_fit_does_not_show_it() -> None:
         column_fits=[_product_fit(1, 4)],
     )
 
-    assert held_to_the_records(review, _TEXTS).requirements[0].status == "unmet"
+    [row] = held_to_the_records(review, _TEXTS).requirements
+    assert row.shown_status == "unshown"
 
 
 def test_a_column_of_another_criterion_is_no_evidence_either_way() -> None:
@@ -195,8 +197,8 @@ def test_a_partial_sample_fit_shows_its_share() -> None:
 
     [row] = held_to_the_records(review, _TEXTS).requirements
 
-    assert (row.status, row.note) == (
-        "unmet",
+    assert (row.shown_status, row.note) == (
+        "unshown",
         (
             "3 of 8 sampled records fit and no column fit shows it; the query "
             "text alone does not show it"
@@ -408,10 +410,10 @@ def _gpi_review(*genes: SampledGene) -> VerificationReview:
     return VerificationReview(requirements=[row], sampled_genes=list(genes))
 
 
-def test_a_record_judged_short_of_the_text_holds_the_row_unmet() -> None:
+def test_a_record_judged_short_of_the_text_keeps_the_row_met_and_unshown() -> None:
     [row] = held_to_the_records(_gpi_review(_GPI_MISS), [_GPI_QUERY]).requirements
 
-    assert (row.status, row.no_record_shows_it) == ("unmet", True)
+    assert (row.status, row.shown_status) == ("met", "unshown")
 
 
 def test_a_record_judged_short_of_another_requirement_is_no_absence_of_the_text() -> (

@@ -38,7 +38,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -131,7 +130,7 @@ async def test_a_build_then_a_delete_then_an_edit_plans_over_what_is_left(
     await thread.build()
     seed, filtered = thread.criteria
     await thread.delete(filtered)
-    thread.frames(with_the_proteome(2), declared=kept(seed))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -173,11 +172,11 @@ async def test_a_clear_then_a_frame_then_a_build_then_an_edit_is_one_new_strateg
     thread = _built(monkeypatch)
     await thread.next_turn()
     await thread.clear()
-    thread.frames(_fresh_pair(), declared=[])
+    thread.frames(_fresh_pair())
     framed = await thread.frame()
     await thread.build()
     first, second = thread.criteria
-    thread.frames(with_the_proteome(2), declared=kept(first, second))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -216,7 +215,7 @@ async def test_a_refused_edit_shows_the_retry_the_spec_the_dispatch_found(
     thread = _built(monkeypatch)
     await thread.next_turn()
     untouched = facts_of(thread.facts(), SURFACE, STAGE, ROOT)
-    thread.frames(_only_the_surface_leaf(), declared=kept(SURFACE, STAGE))
+    thread.frames(_only_the_surface_leaf())
 
     refusal = await thread.edit()
 
@@ -235,9 +234,9 @@ async def test_a_second_pass_after_a_refusal_succeeds_from_the_restored_workspac
     """The retry's workspace is the strategy's own spec, not the refused draft."""
     thread = _built(monkeypatch)
     await thread.next_turn()
-    thread.frames(_only_the_surface_leaf(), declared=kept(SURFACE, STAGE))
+    thread.frames(_only_the_surface_leaf())
     await thread.edit()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 

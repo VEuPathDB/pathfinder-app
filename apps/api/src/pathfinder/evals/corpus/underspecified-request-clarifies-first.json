@@ -13,10 +13,8 @@
     "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
-    "replyMentions": [
-      "clarify"
-    ],
-    "replyOmits": []
+    "replyOmits": [],
+    "endsOn": null
   },
   "provenance": {
     "site": "plasmodb",
@@ -25,7 +23,7 @@
     "addedAt": "2026-08-23",
     "stagingId": "",
     "reference": "backlog/clarification-turn-forgets-the-original-request.md",
-    "curatorNote": "Pins the first half of that item: the clarification turn itself."
+    "curatorNote": "A request with an undefined cutoff builds nothing and ends on a question card that asks for the value it needs."
   },
   "gates": {
     "policy": "decline-offers"

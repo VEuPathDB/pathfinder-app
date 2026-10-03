@@ -84,8 +84,13 @@ class _Reports(StrategyAPI):
 
 @pytest.fixture
 def reports(monkeypatch: pytest.MonkeyPatch) -> _Reports:
+    async def _no_attributes(*_: object) -> list[str]:
+        return []
+
     api = _Reports()
     monkeypatch.setattr(step_genes, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(results, "get_strategy_api", lambda _site_id: api)
+    monkeypatch.setattr(results, "sample_attributes", _no_attributes)
     return api
 
 
@@ -108,9 +113,11 @@ async def test_the_ids_come_from_the_steps_primary_keys(reports: _Reports) -> No
     seed = results.step_sample_seed(session, _ROOT_WDK_STEP)
     picked = [_STEP_GENES[o] for o in results.spread_offsets(3, 2, seed=seed)]
     assert (read.gene_ids, read.total, read.complete) == (picked, 3, False)
-    assert [asked[1] for asked in reports.asked] == [["primary_key"]] * len(
-        reports.asked
-    )
+    assert [asked[1] for asked in reports.asked] == [
+        None,
+        ["primary_key"],
+        ["primary_key"],
+    ]
     assert summary_of(result).model_dump(by_alias=True)["data"]["summary"] == (
         "2 of 3 genes"
     )

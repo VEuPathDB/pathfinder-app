@@ -1,10 +1,13 @@
 """What a variant is allowed to name.
 
-A variant runs one WDK search with values its vocabulary holds. A combine step
-is a strategy structure, so it has no search to run.
+A variant runs one WDK search with values its vocabulary holds, and a pick it
+names no entry for at the site's published default. A combine step is a
+strategy structure, so it has no search to run.
 """
 
 from __future__ import annotations
+
+from difflib import get_close_matches
 
 from pydantic import TypeAdapter
 from pydantic_ai.exceptions import ModelRetry
@@ -21,7 +24,7 @@ from veupathdb.domain.strategy import COMBINE_SEARCH_NAME
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     adapt_param_specs_from_search,
-    fetch_search_details,
+    resolve_search_details,
 )
 
 from pathfinder.ai.tools.standalone._frame_proposals import (
@@ -33,16 +36,33 @@ from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
 from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.evidence.comparisons import variant_search_parameters
-from pathfinder.services.experiment.variant_comparison import VariantSpec
+from pathfinder.services.experiment.variant_comparison import (
+    VariantInput,
+    VariantSpec,
+)
+from pathfinder.services.strategies.pick_readings import site_default
+from pathfinder.services.strategies.record_classes import (
+    catalog_search_names,
+    search_record_types,
+)
 
 _COMBINE_NAMES = frozenset({COMBINE_SEARCH_NAME, "Combine", "combine"})
-# An empty pick is refused with the vocabulary, up to this many entries of it.
+_PICKS = frozenset({"single-pick-vocabulary", "multi-pick-vocabulary"})
+# An empty pick with no default is refused with this many vocabulary entries.
 _LISTED_ENTRIES = 60
 # The reader ``set_criterion`` reads a proposed value with.
 _PROPOSALS: TypeAdapter[ParamProposals] = TypeAdapter(ParamProposals)
+# An unlisted search is refused with at most this many listed names near it.
+_NEAREST_SEARCHES = 5
+_NEAREST_CUTOFF = 0.3
+# A multi-pick named by one of these words, when no entry has that name, runs
+# every entry of its vocabulary.
+_EVERY_ENTRY_WORDS = frozenset(
+    {"all", "every", "*", "all fields", "every field", "everything"}
+)
 
 
-def reject_combine_variants(variants: list[VariantSpec]) -> None:
+def reject_combine_variants(variants: list[VariantInput]) -> None:
     """Raises ModelRetry when a variant names a combine step."""
     named = [v for v in variants if v.search_name in _COMBINE_NAMES]
     if not named:
@@ -57,19 +77,24 @@ def reject_combine_variants(variants: list[VariantSpec]) -> None:
     raise ModelRetry(msg)
 
 
-def refuse_a_search_no_step_runs(
-    variants: list[VariantSpec], session: StrategySession
+def _searches_run(session: StrategySession) -> dict[str, str]:
+    """The search each step of the strategy runs, by step id."""
+    graph = session.graph
+    return {
+        step_id: step.search_name
+        for step_id, step in (graph.steps.items() if graph is not None else ())
+        if step.search_name and step.search_name not in _COMBINE_NAMES
+    }
+
+
+def _refuse_a_search_no_step_runs(
+    variants: list[VariantInput], session: StrategySession
 ) -> None:
     """Raises ModelRetry for a variant whose search no step of the strategy runs.
 
     A strategy with no step counts each variant alone, so every search passes.
     """
-    graph = session.graph
-    runs = {
-        step_id: step.search_name
-        for step_id, step in (graph.steps.items() if graph is not None else ())
-        if step.search_name and step.search_name not in _COMBINE_NAMES
-    }
+    runs = _searches_run(session)
     stray = [v for v in variants if runs and v.search_name not in runs.values()]
     if not stray:
         return
@@ -77,7 +102,7 @@ def refuse_a_search_no_step_runs(
         f"{search} ({', '.join(dict.fromkeys(v.label for v in stray if v.search_name == search))})"
         for search in dict.fromkeys(v.search_name for v in stray)
     )
-    counts = built_counts(graph, session.sync_state)
+    counts = built_counts(session.graph, session.sync_state)
     steps = "; ".join(
         f"{step_id} runs {search}{_genes(counts.of(step_id))}"
         for step_id, search in runs.items()
@@ -88,6 +113,19 @@ def refuse_a_search_no_step_runs(
         "of a criterion's removal is the count of the step that stays."
     )
     raise ModelRetry(msg)
+
+
+def _held_values(session: StrategySession, search_name: str) -> dict[str, str]:
+    """The wire values a step running the search holds, when one step runs it."""
+    graph = session.graph
+    steps = [
+        step
+        for step in (graph.steps.values() if graph is not None else ())
+        if step.search_name == search_name
+    ]
+    if len(steps) != 1:
+        return {}
+    return {name: to_wire(value) for name, value in steps[0].parameters.items()}
 
 
 def _genes(count: int | None) -> str:
@@ -113,6 +151,40 @@ def _unknown_parameters(
     )
 
 
+def _nearest(search: str, names: list[str]) -> str:
+    close = get_close_matches(search, names, _NEAREST_SEARCHES, _NEAREST_CUTOFF)
+    return ", ".join(close) or "none"
+
+
+async def _listed_under(
+    site_id: str, variants: list[VariantInput]
+) -> list[VariantSpec]:
+    """Each variant under the record type the site's catalog lists its search
+    under. Raises ModelRetry for a search the catalog does not list."""
+    listed = await search_record_types(site_id, [v.search_name for v in variants])
+    unlisted = list(
+        dict.fromkeys(v.search_name for v in variants if v.search_name not in listed)
+    )
+    if unlisted:
+        names = await catalog_search_names(site_id)
+        msg = " ".join(
+            f"{site_id} lists no search {search} "
+            f"({', '.join(v.label for v in variants if v.search_name == search)}). "
+            f"Nearest searches: {_nearest(search, names)}."
+            for search in unlisted
+        )
+        raise ModelRetry(msg)
+    return [
+        VariantSpec(
+            label=v.label,
+            search_name=v.search_name,
+            parameters=v.parameters,
+            record_type=listed[v.search_name],
+        )
+        for v in variants
+    ]
+
+
 def _empty_pick(search_name: str, label: str, info: ParameterInfo) -> ModelRetry:
     entries = [option.value for option in info.vocabulary()]
     return ModelRetry(
@@ -136,7 +208,17 @@ def _entry_value(
     proposals = _PROPOSALS.validate_python({info.name: value.to_decoded()})
     picks = proposal_values(proposals[info.name])
     if not picks:
-        raise _empty_pick(variant.search_name, variant.label, info)
+        default = site_default(info)
+        if default is None:
+            raise _empty_pick(variant.search_name, variant.label, info)
+        return default
+    if (
+        info.param_kind == "multi-pick-vocabulary"
+        and len(picks) == 1
+        and picks[0].strip().casefold() in _EVERY_ENTRY_WORDS
+        and match_exact_option(options, picks[0]) is None
+    ):
+        return MultiPickValue(values=[option.value for option in options])
     call = CriterionCall(
         criterion_id=variant.label,
         search_name=variant.search_name,
@@ -150,16 +232,34 @@ def _entry_value(
     return SinglePickValue(value=entries[0])
 
 
+def _published_defaults(
+    variant: VariantSpec, infos: dict[str, ParameterInfo]
+) -> dict[str, ParamValue]:
+    """The site's published default of each pick the variant names no value
+    for, as the bind's reading at the site's default sends it."""
+    return {
+        name: default
+        for name, info in infos.items()
+        if info.param_kind in _PICKS
+        and name not in variant.parameters
+        and (default := site_default(info)) is not None
+    }
+
+
 type _Search = tuple[str, str]
 
 
 async def checked_variants(
-    site_id: str, variants: list[VariantSpec]
+    session: StrategySession, stated: list[VariantInput]
 ) -> list[VariantSpec]:
-    """The variants with each vocabulary value as the entry it names.
-
-    Raises ModelRetry for a parameter the search does not take or a value its
-    vocabulary, read under the variant's parent values, does not hold."""
+    """The variants under the record type the catalog lists each search under,
+    with each vocabulary value as the entry it names and each pick they name no
+    entry for at the site's published default. Refuses a search no step runs or
+    the catalog does not list, an unknown parameter, and a value the vocabulary
+    under the variant's parents lacks; a value the step holds passes as it is."""
+    _refuse_a_search_no_step_runs(stated, session)
+    site_id = session.site_id
+    variants = await _listed_under(site_id, stated)
     read: dict[tuple[_Search, tuple[tuple[str, str], ...]], list[ParameterInfo]] = {}
 
     async def infos_at(search: _Search, context: dict[str, str]) -> list[ParameterInfo]:
@@ -188,6 +288,7 @@ async def checked_variants(
     checked: list[VariantSpec] = []
     for variant in variants:
         search = (variant.record_type, variant.search_name)
+        held = _held_values(session, variant.search_name)
         parents = {
             info.name: to_wire(variant.parameters[info.name])
             for info in published[search]
@@ -195,12 +296,23 @@ async def checked_variants(
         }
         infos = {info.name: info for info in await infos_at(search, parents)}
         entries = {
-            name: _entry_value(variant, infos[name], value)
+            name: value
+            if held.get(name) == to_wire(value)
+            else _entry_value(variant, infos[name], value)
             for name, value in variant.parameters.items()
         }
-        trees = [n for n in entries if infos[n].allowed_values_tree is not None]
+        trees = [
+            n
+            for n, value in entries.items()
+            if infos[n].allowed_values_tree is not None
+            and held.get(n) != to_wire(value)
+        ]
         if trees:
-            entries |= await _tree_leaves(site_id, variant, entries, trees)
+            entries = {
+                **entries,
+                **await _tree_leaves(site_id, variant, entries, trees),
+            }
+        entries = {**_published_defaults(variant, infos), **entries}
         checked.append(variant.model_copy(update={"parameters": entries}))
     return checked
 
@@ -211,12 +323,14 @@ async def _tree_leaves(
     entries: dict[str, ParamValue],
     trees: list[str],
 ) -> dict[str, ParamValue]:
-    """Each tree value as the leaves the site counts, read by the canonicalizer
-    ``set_criterion``'s binding runs, from the search's published definition."""
-    response, _ = await fetch_search_details(
-        SearchContext(site_id, variant.record_type, variant.search_name)
+    """Each tree value as the leaves the site counts, by the canonicalizer the
+    bind runs, over the definition WDK builds from the variant's own values."""
+    resolved = await resolve_search_details(
+        SearchContext(site_id, variant.record_type, variant.search_name),
+        resolved_record_type=variant.record_type,
+        parameters=entries,
     )
-    specs = adapt_param_specs_from_search(response.search_data)
+    specs = adapt_param_specs_from_search(resolved.response.search_data)
     return ParameterCanonicalizer(specs).canonicalize(
         {name: entries[name] for name in trees}
     )

@@ -36,16 +36,16 @@ def _spec(*criteria: Criterion) -> OperationalSpec:
     return OperationalSpec(
         goal="find kinases",
         criteria=list(criteria),
-        structure=SpecStructure(
-            root=StructureNode(
-                kind="combine",
-                operator=CombineOp.INTERSECT,
-                inputs=[
-                    StructureNode(kind="leaf", criterion_id=c.id) for c in criteria
-                ],
-            )
-        ),
+        structure=SpecStructure(root=_intersect_of(criteria)),
     )
+
+
+def _intersect_of(criteria: tuple[Criterion, ...]) -> StructureNode:
+    """One criterion is its leaf; more are an INTERSECT of their leaves."""
+    leaves = [StructureNode(kind="leaf", criterion_id=c.id) for c in criteria]
+    if len(leaves) == 1:
+        return leaves[0]
+    return StructureNode(kind="combine", operator=CombineOp.INTERSECT, inputs=leaves)
 
 
 def _three() -> OperationalSpec:

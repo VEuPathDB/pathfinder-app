@@ -37,7 +37,6 @@ from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -218,15 +217,6 @@ def _frame_that_swaps_the_organism(monkeypatch: pytest.MonkeyPatch) -> list[str]
         return FrameResult(
             disposition="spec_ready",
             summary="expression profile moved to P. vivax P01",
-            changes=[
-                CriterionChange(criterion_id="step_text", disposition="kept"),
-                CriterionChange(criterion_id="step_go", disposition="kept"),
-                CriterionChange(
-                    criterion_id="step_expr",
-                    disposition="changed",
-                    changed_params={"organism": f'["{PV}"]', "profileset": ZHU},
-                ),
-            ],
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)

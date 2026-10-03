@@ -88,8 +88,15 @@ def test_a_control_test_runs_only_on_a_set_attached_to_the_conversation() -> Non
 
 def test_a_text_requirement_is_shown_by_the_records() -> None:
     assert (
-        "a requirement a text value answers is met only when a record you judged "
-        "``yes`` or a column fit names it here"
+        "a requirement a text value answers is shown only when a record you judged "
+        "``yes`` or a column fit names it here. The row stays ``met``"
+    ) in _normalized(_VERIFICATION_INSTRUCTIONS)
+
+
+def test_an_unmet_row_names_no_step() -> None:
+    assert (
+        "An ``unmet`` row that names a step is refused: a combine row whose steps "
+        "the strategy joins another way is ``unmet`` with ``answered_by`` empty"
     ) in _normalized(_VERIFICATION_INSTRUCTIONS)
 
 

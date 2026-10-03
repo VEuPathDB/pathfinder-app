@@ -21,12 +21,11 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     SpecStructure,
     StructureNode,
-    bind_values,
     structure_criteria,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.domain.strategy.step_words import StepWords
-from pathfinder.domain.strategy.value_source import is_placeholder
+from pathfinder.domain.strategy.value_binding import bind_values, read_again
 
 __all__ = [
     "Sheets",
@@ -138,7 +137,7 @@ def _pending_joined_at_the_root(
         return None
     return StructureNode(
         kind="combine",
-        operator=structure.root.operator,
+        operator=structure.root.combine_operator,
         inputs=[built_root, *hanging],
     )
 
@@ -171,9 +170,7 @@ def root_join_operator(
     if structure is None or _hanging_at_the_root(structure, [criterion_id]) is None:
         return None
     root = structure.root
-    operator = root.operator
-    if operator is None:
-        return None
+    operator = root.combine_operator
     if operator in _SYMMETRIC or root.inputs[-1].criterion_id == criterion_id:
         return operator
     return None
@@ -209,7 +206,7 @@ def _structure_of(node: StrategyStepNode, reading: _Reading) -> StructureNode:
         ),
         search_name=node.search_name,
         role=_role_of(node.id, kind, reading.seed_id),
-        resolved_params=bind_values(node.parameters, "held"),
+        resolved_params=bind_values(node.parameters, "held", ()),
         rationale=reading.words.rationale_of(node.id, node.search_name),
     )
     binding = reading.analyses.get(node.id)
@@ -257,19 +254,16 @@ def _sheet_stated(criterion: Criterion, sheet_params: Sheets) -> Criterion:
 
 
 def sheet_marked(criterion: Criterion, sheet: Sequence[ParameterInfo]) -> Criterion:
-    """The criterion with each value its sheet names a placeholder marked, and
-    each parameter known by the sheet's display name."""
+    """The criterion with each value its sheet shows read on it, and each such
+    parameter known by the sheet's display name."""
     by_name = {info.name: info for info in sheet}
     held = [name for name in criterion.resolved_params if name in by_name]
+    shown = {name: criterion.resolved_params[name] for name in held}
     return criterion.model_copy(
         update={
             "resolved_params": {
-                name: bound.model_copy(
-                    update={"placeholder": is_placeholder(bound.value, by_name[name])}
-                )
-                if name in by_name
-                else bound
-                for name, bound in criterion.resolved_params.items()
+                **criterion.resolved_params,
+                **read_again(shown, sheet),
             },
             "param_display_names": {
                 **criterion.param_display_names,

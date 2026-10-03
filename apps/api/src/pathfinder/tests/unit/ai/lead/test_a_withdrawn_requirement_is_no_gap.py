@@ -1,12 +1,11 @@
 """A message that removes a requirement retires it with its lifecycle, so a
-check never reports it as a gap; a swap names the requirement that replaced it."""
+check never reports it as a gap; a new value of its kind replaces it."""
 
 from __future__ import annotations
 
 from uuid import uuid4
 
 import pytest
-from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import classification_gate
@@ -21,7 +20,6 @@ from pathfinder.domain.strategy.constraints import (
     ReplacedLifecycle,
     WithdrawnLifecycle,
 )
-from pathfinder.domain.strategy.requirement_lifecycle import RequirementWithdrawal
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests._support.site_organisms import recorded_organisms
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -33,6 +31,8 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 _CUTOFF = requirement(ConstraintKind.PERCENTILE, "expression", "top 50th percentile")
 _QUARTILE = requirement(ConstraintKind.PERCENTILE, "expression", "top quartile")
 _SIGNAL = requirement(ConstraintKind.OTHER, "localisation", "signal peptide")
+# The requirement as the classifier states what the message takes back.
+_EXPRESSION = requirement(ConstraintKind.PERCENTILE, "expression", "expression")
 
 
 @pytest.fixture(autouse=True)
@@ -89,7 +89,7 @@ async def _cutoff_stated_then_removed() -> LeadDeps:
     return await _turn(
         stated.state.domain,
         "Please remove the expression requirement.",
-        _intent(withdrawn_requirements=[RequirementWithdrawal(key=_CUTOFF.key)]),
+        _intent(withdrawn=[_EXPRESSION]),
     )
 
 
@@ -114,18 +114,13 @@ async def test_a_removed_cutoff_is_no_gap_after_the_check() -> None:
     assert gaps == [RequirementGap(text="signal peptide", status="unmet")]
 
 
-async def test_a_swap_names_the_requirement_that_replaced_it() -> None:
+async def test_a_new_value_of_the_kind_replaces_the_held_one() -> None:
     domain = StrategyDomainState(requirements=[_CUTOFF])
 
     deps = await _turn(
         domain,
         "Swap the 50th percentile for the top quartile.",
-        _intent(
-            explicit_constraints=[_QUARTILE],
-            withdrawn_requirements=[
-                RequirementWithdrawal(key=_CUTOFF.key, replaced_by=_QUARTILE.key)
-            ],
-        ),
+        _intent(explicit_constraints=[_QUARTILE]),
     )
 
     assert deps.state.domain.requirements == [_QUARTILE]
@@ -134,38 +129,18 @@ async def test_a_swap_names_the_requirement_that_replaced_it() -> None:
     ]
 
 
-async def test_a_withdrawal_of_a_requirement_the_thread_lacks_is_refused() -> None:
+async def test_a_withdrawal_of_a_requirement_the_thread_lacks_retires_nothing() -> None:
     domain = StrategyDomainState(requirements=[_SIGNAL])
+    exported = requirement(ConstraintKind.OTHER, "localisation", "exported")
 
-    with pytest.raises(ModelRetry) as refused:
-        await _turn(
-            domain,
-            "Drop the exported requirement.",
-            _intent(
-                withdrawn_requirements=[RequirementWithdrawal(key="other:exported")]
-            ),
-        )
+    deps = await _turn(
+        domain, "Drop the exported requirement.", _intent(withdrawn=[exported])
+    )
 
-    assert "other:exported" in str(refused.value)
-    assert "other:signal peptide" in str(refused.value)
-
-
-async def test_a_successor_the_message_does_not_state_is_refused() -> None:
-    domain = StrategyDomainState(requirements=[_CUTOFF])
-
-    with pytest.raises(ModelRetry) as refused:
-        await _turn(
-            domain,
-            "Swap the cutoff.",
-            _intent(
-                withdrawn_requirements=[
-                    RequirementWithdrawal(key=_CUTOFF.key, replaced_by=_QUARTILE.key)
-                ]
-            ),
-        )
-
-    assert "percentile:top quartile" in str(refused.value)
-    assert domain.requirements == [_CUTOFF]
+    assert (deps.state.domain.requirements, deps.state.domain.retired_requirements) == (
+        [_SIGNAL],
+        [],
+    )
 
 
 async def test_a_no_on_the_removal_card_takes_the_withdrawal_back() -> None:

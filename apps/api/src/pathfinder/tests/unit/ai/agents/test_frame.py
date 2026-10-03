@@ -92,7 +92,7 @@ def test_frame_instructions_read_a_typeahead_vocabulary_before_binding_it() -> N
         "A typeahead vocabulary (GO term, InterPro domain, EC number) is always read "
         "this way before you bind it: the sheet's list is ranked by name and is not "
         "the concept, so `set_criterion` refuses a new entry on it that no lookup of "
-        "this pass read, unless the request writes the entry out"
+        "this pass matched, unless the request writes the entry out"
     ) in _normalized(_FRAME_INSTRUCTIONS)
 
 

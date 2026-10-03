@@ -54,10 +54,13 @@ _MESSAGE = (
     f"Find {AEDES} odorant-binding protein genes on chromosome 3. "
     "[[arc:odorant-lookup]]"
 )
-# The Aedes Pfam entries whose labels hold an odorant or pheromone word.
-_AEDES_PFAM = [
+# The Aedes domain entries whose labels hold an odorant or pheromone word.
+_AEDES_DOMAINS = [
     VocabOption(value="PF02949", display="PF02949 : 7tm Odorant receptor"),
-    VocabOption(value=OBP_FAMILY, display=f"{OBP_FAMILY} : PBP/GOBP family"),
+    VocabOption(
+        value=OBP_FAMILY,
+        display=f"{OBP_FAMILY} : Pheromone/general odorant binding protein",
+    ),
     VocabOption(
         value=CSP_FAMILY,
         display=f"{CSP_FAMILY} : Insect pheromone-binding family, A10/OS-D",
@@ -68,10 +71,10 @@ _AEDES_PFAM = [
 
 
 def _aedes_sheet() -> list[ParameterInfo]:
-    """The recorded sheet, with the Aedes organism and its Pfam entries."""
+    """The recorded sheet, with the Aedes organism and its domain entries."""
     replaced = {
         "organism": [VocabOption(value=AEDES, display=AEDES)],
-        DOMAINS: _AEDES_PFAM,
+        DOMAINS: _AEDES_DOMAINS,
     }
     return [
         info.model_copy(
@@ -193,6 +196,8 @@ async def test_the_facts_row_names_the_lookup_and_its_matches(
     state, _calls, _refusals = await _framed(monkeypatch)
 
     assert read_pick_clauses(_obp(state), DOMAINS, noun="gene") == [
-        "Specific Domain(s) took 1 of the 2 entries that match "
-        "'odorant binding', 'OBP', 'PBP/GOBP'"
+        (
+            "Specific Domain(s) took 1 of the 2 entries that match "
+            "'odorant binding', 'OBP', 'PBP/GOBP'"
+        )
     ]

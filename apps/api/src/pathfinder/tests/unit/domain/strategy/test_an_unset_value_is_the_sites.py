@@ -12,7 +12,11 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
-from pathfinder.domain.strategy.value_source import is_unset, value_source
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+)
+from pathfinder.domain.strategy.value_binding import bind_values
+from pathfinder.domain.strategy.value_source import value_source
 from pathfinder.tests._support.recorded_searches import client_search, suite_search
 
 # The researcher's message of the schizont turn on plasmodb.
@@ -32,18 +36,27 @@ def _param(fixture: str, name: str) -> ParameterInfo:
     return next(info for info in sheet if info.name == name)
 
 
+def _read(value: ParamValue, info: ParameterInfo) -> BoundValue:
+    return bind_values({info.name: value}, "chosen", [info])[info.name]
+
+
+def _unset(value: ParamValue, info: ParameterInfo) -> bool:
+    return _read(value, info).unset
+
+
 def _source(
     name: str,
     value: ParamValue,
     info: ParameterInfo,
     texts: list[str],
 ) -> str:
+    held = _read(value, info)
     return value_source(
         value,
-        initial_display_value=info.default_value,
+        placeholder=held.placeholder,
+        unset=held.unset,
         request_texts=texts,
-        info=info,
-        display_name=info.display_name,
+        display_name=held.display_name,
     )
 
 
@@ -52,8 +65,8 @@ def test_the_radio_off_value_is_unset_under_an_empty_sheet_default() -> None:
 
     assert (
         accession.default_value,
-        is_unset(StringValue(value="N/A"), accession.default_value, accession),
-        is_unset(StringValue(value="PF05795"), accession.default_value, accession),
+        _unset(StringValue(value="N/A"), accession),
+        _unset(StringValue(value="PF05795"), accession),
     ) == ("", True, False)
 
 
@@ -64,10 +77,8 @@ def test_a_site_placeholder_is_unset_whatever_it_names() -> None:
     sequence = next(info for info in sheet if info.name == "sequenceId")
 
     assert [
-        is_unset(StringValue(value="(Example: chr22)"), "(Example: chr22)", sequence),
-        is_unset(StringValue(value="(Example: Pf3D7_04_v3)"), "", sequence),
-        is_unset(StringValue(value="n/a"), "", sequence),
-        is_unset(StringValue(value="chr22"), "(Example: chr22)", sequence),
+        _read(StringValue(value=text), sequence).placeholder
+        for text in ("(Example: chr22)", "(Example: Pf3D7_04_v3)", "n/a", "chr22")
     ] == [True, True, True, False]
 
 
@@ -87,7 +98,7 @@ def test_a_term_the_vocabulary_offers_is_never_a_placeholder() -> None:
         }
     )
 
-    assert is_unset(SinglePickValue(value="N/A"), "", status) is False
+    assert _unset(SinglePickValue(value="N/A"), status) is False
     assert _source("status", SinglePickValue(value="N/A"), status, []) == "chosen"
 
 
@@ -95,8 +106,8 @@ def test_a_value_at_the_sheet_default_is_unset() -> None:
     any_or_all = _param("search_genes_by_rnaseq_gomez_diaz_percentile", "any_or_all")
 
     assert (
-        is_unset(SinglePickValue(value="any"), any_or_all.default_value, any_or_all),
-        is_unset(SinglePickValue(value="all"), any_or_all.default_value, any_or_all),
+        _read(SinglePickValue(value="any"), any_or_all).at_default,
+        _read(SinglePickValue(value="all"), any_or_all).at_default,
     ) == (True, False)
 
 
@@ -149,13 +160,12 @@ def test_a_one_word_pick_off_its_default_the_message_writes_is_stated() -> None:
 def test_a_pick_of_several_words_at_its_default_the_message_holds_is_stated() -> None:
     organism = _param("search_genes_by_interpro_domain", "organism")
 
-    assert (
-        value_source(
-            MultiPickValue(values=["Plasmodium knowlesi strain H"]),
-            initial_display_value='["Plasmodium knowlesi strain H"]',
-            request_texts=[_KNOWLESI],
-            info=organism,
-            display_name=organism.display_name,
-        )
-        == "stated"
+    knowlesi = organism.model_copy(
+        update={"default_value": '["Plasmodium knowlesi strain H"]'}
     )
+    value = MultiPickValue(values=["Plasmodium knowlesi strain H"])
+
+    assert (
+        _read(value, knowlesi).at_default,
+        _source("organism", value, knowlesi, [_KNOWLESI]),
+    ) == (True, "stated")

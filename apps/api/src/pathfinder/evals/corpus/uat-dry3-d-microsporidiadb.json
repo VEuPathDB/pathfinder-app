@@ -20,7 +20,7 @@
     "parameters": {
       "GenesByText": {
         "text_expression": "\"polar tube protein\"",
-        "text_fields": "[\"product\"]"
+        "text_fields": "product"
       }
     },
     "replyMentions": [],
@@ -67,7 +67,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ud-microsporidiadb",
-    "curatorNote": "Round-3 dry UAT, tester D, investigation 10, conversation 19ddf66e-6080-4c2b-8434-a83880e82cf8. Turns 2 to 5 are the reports' quotes of the messages."
+    "curatorNote": "A request for an exact phrase in the product field binds the quoted phrase, with its quotes, and the vocabulary value product. A comparison the researcher asks for is read only and leaves that one step as the strategy."
   },
   "effort": "medium",
   "gates": {

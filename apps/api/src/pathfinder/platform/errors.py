@@ -374,6 +374,30 @@ class ProviderKeyRefusedError(ProviderKeyError):
         )
 
 
+# The refusal in the words a researcher reads; the deployment's key is never unreadable.
+_DEPLOYMENT_REFUSAL_WORDS: dict[KeyRefusal, str] = {
+    KeyRefusal.INVALID: "the key is not valid",
+    KeyRefusal.NO_CREDIT: "no credit remaining",
+    KeyRefusal.FORBIDDEN: "the key may not run this model",
+    KeyRefusal.UNREADABLE: "the key cannot be read",
+}
+
+
+class DeploymentKeyRefusedError(ProviderKeyError):
+    """The provider refused the deployment's key, so no model of it may run.
+
+    The message names the provider and the refusal, and never the provider's body.
+    """
+
+    def __init__(self, provider_name: str, refusal: KeyRefusal) -> None:
+        super().__init__(
+            code=ErrorCode.PROVIDER_KEY_REFUSED,
+            title=f"{provider_name} refused the request on the deployment's account",
+            status=503,
+            detail=_DEPLOYMENT_REFUSAL_WORDS[refusal],
+        )
+
+
 class ProviderKeyUnreadableError(ProviderKeyError):
     """The server secret no longer opens the researcher's stored key."""
 

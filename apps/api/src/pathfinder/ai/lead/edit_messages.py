@@ -18,10 +18,12 @@ from pathfinder.ai.lead.dispatch_messages import (
     stop_heading,
 )
 from pathfinder.ai.lead.phase_stop import PhaseStop
+from pathfinder.domain.strategy.named_combine import NamedCombine, combine_at
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     StructureNode,
+    criteria_under,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
@@ -32,9 +34,11 @@ __all__ = [
     "edit_continuation_work_order",
     "edit_operation_refused_message",
     "edit_work_order",
+    "no_earlier_revision_message",
     "no_strategy_to_edit_message",
-    "pending_changes_no_pass_accounted_for_message",
+    "nothing_to_undo_message",
     "removal_is_the_cards_message",
+    "undo_moves_nothing_message",
     "unsupported_edit_message",
     "wdk_refused_the_written_step_message",
 ]
@@ -141,6 +145,7 @@ def edit_work_order(
         ),
         "",
         *_shape_lines(before),
+        *_named_combine_lines(before, prompt),
         f"The strategy holds {len(before.criteria)} criteria now:",
     ]
     for criterion in before.criteria:
@@ -207,6 +212,28 @@ def _shape_lines(before: OperationalSpec) -> list[str]:
     return lines
 
 
+def _named_combine_lines(before: OperationalSpec, prompt: str) -> list[str]:
+    """The combine the message names by its place, as a node of the shape."""
+    named = NamedCombine.read(prompt)
+    node = (
+        None
+        if named is None or before.structure is None
+        else combine_at(before.structure, named.position)
+    )
+    if named is None or node is None:
+        return []
+    members = ", ".join(sorted(criteria_under(node)))
+    return [
+        (
+            f"The message names the {named.position} combine, the "
+            f"{node.combine_operator.value} over {members}: make it "
+            f"{named.operator.value}, and keep every other combine's operator as "
+            f"it stands."
+        ),
+        "",
+    ]
+
+
 def _shape_node(
     node: StructureNode,
     by_id: dict[str, Criterion],
@@ -215,18 +242,18 @@ def _shape_node(
 ) -> None:
     pad = "  " * depth
     if node.kind == "combine":
-        lines.append(f"{pad}{node.operator or 'COMBINE'}")
+        lines.append(f"{pad}{node.combine_operator}")
     elif node.kind == "copy":
         lines.append(f"{pad}COPY")
     else:
         prefix = "TRANSFORM " if node.kind == "transform" else ""
-        lines.append(f"{pad}{prefix}{_criterion_label(node.criterion_id, by_id)}")
+        lines.append(f"{pad}{prefix}{_criterion_label(node.named_criterion, by_id)}")
     for child in node.inputs:
         _shape_node(child, by_id, depth + 1, lines)
 
 
-def _criterion_label(criterion_id: str | None, by_id: dict[str, Criterion]) -> str:
-    criterion = by_id.get(criterion_id or "")
+def _criterion_label(criterion_id: str, by_id: dict[str, Criterion]) -> str:
+    criterion = by_id.get(criterion_id)
     if criterion is None:
         return f"[{criterion_id}] (no criterion states this step)"
     return f"[{criterion.id}] {criterion.text[:40]}"
@@ -321,22 +348,6 @@ def delta_disagrees_with_the_strategy_message(criterion_ids: Sequence[str]) -> s
     )
 
 
-def pending_changes_no_pass_accounted_for_message(criterion_ids: Sequence[str]) -> str:
-    """Why an edit carrying an earlier pass's unpushed change is refused.
-
-    The reply is read from this edit's own account, so a change no pass of this
-    turn stated would reach the strategy with nothing to explain it.
-    """
-    named = ", ".join(criterion_ids)
-    return (
-        f"This edit would also carry what an earlier pass of this conversation left "
-        f"unpushed, and no pass of this turn accounted for {named}. Nothing "
-        f"was applied. Dispatch edit_strategy again and, for each id named "
-        f"here, state its disposition in `changes` to let it stand, or state "
-        f"the criterion the strategy holds with set_criterion to take it back."
-    )
-
-
 def changed_revision_message(base_revision: str, current: str) -> str:
     return (
         f"The strategy changed while this edit was being planned (it was "
@@ -371,4 +382,29 @@ def removal_is_the_cards_message(removed: Mapping[str, NamedStep]) -> str:
         f"researcher's to approve. {held} Call delete_step once for each of "
         f"step_id {ids}, one card at a time; each card names its step and the "
         f"researcher approves it. {rule}"
+    )
+
+
+def nothing_to_undo_message() -> str:
+    """The failure of an undo over a strategy already at its previous revision."""
+    return (
+        "Nothing to undo: the strategy is the one before the last change. Tell "
+        "the researcher so, and change nothing."
+    )
+
+
+def no_earlier_revision_message() -> str:
+    """The failure of an undo on a thread with no strategy before the last change."""
+    return (
+        "Nothing to undo: the conversation holds no strategy before the last change. "
+        "Removing the strategy is clear_strategy, on the researcher's word."
+    )
+
+
+def undo_moves_nothing_message() -> str:
+    """The failure of an undo whose previous revision no criterion can state."""
+    return (
+        "Nothing to undo that an edit can state: the strategy before the last "
+        "change differs from this one only in values no criterion states. Tell "
+        "the researcher so, and change nothing."
     )

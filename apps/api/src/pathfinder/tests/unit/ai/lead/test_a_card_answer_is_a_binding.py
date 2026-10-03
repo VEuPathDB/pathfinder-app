@@ -4,8 +4,10 @@ as the card's, a withdrawal, or a requirement in the researcher's words."""
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from uuid import uuid4
 
+import pytest
 from assistant_core.graph.turn_state import (
     ConsultOption,
     PendingApproval,
@@ -14,8 +16,10 @@ from assistant_core.graph.turn_state import (
 from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.parameters import NumberValue, StringValue
 from veupathdb.domain.strategy import CombineOp, flatten_tree
+from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.lead import lead_consult
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.lead_agent import build_lead_agent
@@ -49,6 +53,7 @@ from pathfinder.domain.strategy.questions import (
     TypedOption,
     Withdraw,
 )
+from pathfinder.tests._support.recorded_searches import suite_search
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -63,6 +68,23 @@ _TROPHOZOITE = (
 _DETECTED = "Minimum expression percentile 1: 17 genes"
 _DEFAULT = "Minimum expression percentile 80"
 _REPLY = "One value decides the trophozoite step, so I ask it before I build."
+
+
+@pytest.fixture(autouse=True)
+def _published_sheet(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A recorded RNA-Seq percentile sheet stands in for the trophozoite search:
+    the two recorded percentile searches publish the floor alike."""
+    sheet = format_param_info_typed(
+        suite_search("search_genes_by_rnaseq_gomez_diaz_percentile").parameters or []
+    )
+
+    async def _sheets(
+        *, site_id: str, record_type: str | None, search_names: Collection[str]
+    ) -> dict[str, list[ParameterInfo]]:
+        del site_id, record_type
+        return {name: sheet for name in search_names if name == _TROPHOZOITE}
+
+    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _sheets)
 
 
 def _trophozoite() -> Criterion:
@@ -274,7 +296,12 @@ class TestAnAnswerAppliesItsBinding:
         assert spec is not None
         troph = next(c for c in spec.criteria if c.id == "c_troph")
         assert troph.resolved_params[_FLOOR] == BoundValue(
-            value=StringValue(value="1"), source="card", basis="1"
+            value=StringValue(value="1"),
+            source="card",
+            basis="1",
+            display_name="Minimum expression percentile",
+            number=True,
+            decimals=0,
         )
         assert troph.open_params == []
         assert troph.result_count is None

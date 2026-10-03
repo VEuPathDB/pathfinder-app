@@ -31,7 +31,7 @@ from pathfinder.services.evidence.control_sets import (
     UnknownControlSetError,
 )
 from pathfinder.services.experiment.control_sourcing import ResolvedControls
-from pathfinder.services.experiment.variant_comparison import VariantSpec
+from pathfinder.services.experiment.variant_comparison import VariantInput
 from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
@@ -319,8 +319,8 @@ async def test_a_scored_comparison_on_a_set_that_is_not_attached_is_refused(
         await compare_variants_scored(
             detached_lead_context(),
             [
-                VariantSpec(label="a", search_name="SA", parameters={}),
-                VariantSpec(label="b", search_name="SB", parameters={}),
+                VariantInput(label="a", search_name="SA", parameters={}),
+                VariantInput(label="b", search_name="SB", parameters={}),
             ],
             control_set_id=_ELSEWHERE.control_set_id,
         )

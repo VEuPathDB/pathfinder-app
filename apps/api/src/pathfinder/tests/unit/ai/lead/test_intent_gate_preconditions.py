@@ -190,22 +190,6 @@ def test_a_verification_that_ran_and_failed_keeps_the_gate_closed() -> None:
     assert _offered(deps) & BUILDING_TOOLS == {"verify_strategy"}
 
 
-def test_a_verification_that_passed_opens_the_gate() -> None:
-    """A checked build leaves the turn free to write again."""
-    deps = _deps(
-        classification=IntentClassification.NEW_STRATEGY,
-        domain=StrategyDomainState(last_build_outcome=BuildOutcome()),
-    )
-    deps.state.turn_markers.built = True
-    deps.state.turn_markers.contract_refused = True
-    deps.state.turn_markers.verified = True
-
-    offered = _offered(deps) & BUILDING_TOOLS
-
-    assert "frame_problem" in offered
-    assert "verify_strategy" not in offered
-
-
 def test_frame_is_hidden_once_a_frame_dispatch_ran_this_turn() -> None:
     deps = _deps(classification=IntentClassification.NEW_STRATEGY)
     deps.state.turn_markers.framed = True

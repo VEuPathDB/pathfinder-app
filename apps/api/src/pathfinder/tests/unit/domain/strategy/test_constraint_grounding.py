@@ -5,10 +5,7 @@ from __future__ import annotations
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
-from pathfinder.domain.strategy.constraint_grounding import (
-    RealizedSpec,
-    ground_constraints,
-)
+from pathfinder.domain.strategy.constraint_grounding import ground_constraints
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
@@ -22,6 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.domain.strategy.realized_spec import RealizedSpec
 
 # The realized facts of a single microarray fold-change leaf.
 _MICROARRAY_SEARCH = (

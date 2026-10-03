@@ -76,7 +76,7 @@ over the stored graph, and the refresh refuses with 503.
 **The operator is the researcher's, as well as the terms.** What was SAID
 includes how the requirements join. A `combination` constraint records one
 operator over the researcher's phrases, and the message must carry both
-(`domain/strategy/constraints.py::read_combination`): each term is located in
+(`domain/strategy/message_reading.py::read_combination`): each term is located in
 the message, and the text between two consecutive terms, in message order, is
 the connective. A connective with "or" (or "and/or") states OR; one with "and",
 "with", "plus" or "as well as" states AND; a bare comma or no text takes the
@@ -93,7 +93,7 @@ combination whose terms the message carries and whose operator it does not,
 and the refusal quotes the connective between the two terms.
 
 An edit is planned against `answered_spec`
-(`ai/lead/edit_dispatch.py::run_edit`). FRAME's declaration check, its work
+(`ai/lead/edit_dispatch.py::run_edit`). FRAME's derived dispositions, its work
 order and the restore target of a refusal stay `spec_before_dispatch`, the plan
 the dispatch found. A pass that ends `needs_user` leaves both answered facts
 alone, so the value it moved on a built criterion and the criterion it framed
@@ -102,19 +102,13 @@ planning diff is the delta the reply is read from, so
 `diff.added_count == len(added_step_ids)`; a disagreement is refused with the
 repair, never asserted.
 
-**A push carries only what a pass of this turn accounted for.** The difference
-between the answer and the plan, `diff_specs(answered_spec,
-spec_before_dispatch)`, is what an earlier pass of this thread stated and no
-push has applied: a drop, a moved value, a criterion with no step. The edit
-work order names each of them, and the pass states a disposition for each in
-its `changes`: repeating it lets it stand, and stating the criterion the
-strategy holds takes it back. The word has to agree with what the pass
-drafted - a criterion it calls dropped is one its draft leaves out, and any
-other word is one its draft states - because two statements about one step
-account for neither. A pending change no pass of this turn accounted for is a
-refusal that names it, so a drop the researcher asked about and then took back
-is never pushed by the turn that takes it back, and it is never lost in
-silence either.
+**A push carries what the pass leaves in its draft.** The difference between
+the answer and the plan, `diff_specs(answered_spec, spec_before_dispatch)`, is
+what an earlier pass of this thread stated and no push has applied: a drop, a
+moved value, a criterion with no step. The edit work order names each of them.
+The pass states the criterion the strategy holds to take a change back, and
+leaves its draft as it found it to let the change stand; the push carries the
+planning diff, which reads both from the values.
 
 An OPTION is the request as much as the criterion that carries it. A value the
 carrier only holds because the strategy answers to it moves when an option
@@ -200,7 +194,7 @@ a resumed turn like any other.
 `domain/strategy/spec_hydration.py::spec_stating_the_live_tree`,
 `ai/lead/edit_dispatch.py`,
 `domain/strategy/analysis_binding.py`,
-`domain/strategy/constraints.py::read_combination`,
+`domain/strategy/message_reading.py::read_combination`,
 `ai/lead/intent.py::unstated_operator_refusal`,
 `tests/unit/domain/strategy/test_combination_operator_is_stated.py`,
 `tests/unit/ai/lead/test_classifier_reads_the_stated_operator.py`,

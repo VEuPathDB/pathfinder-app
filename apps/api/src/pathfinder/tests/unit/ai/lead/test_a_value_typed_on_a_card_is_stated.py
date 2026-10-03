@@ -45,7 +45,7 @@ def _floor_after(answer: UserQuestionAnswer) -> str:
         domain=StrategyDomainState(open_questions=[_question()]),
     )
 
-    apply_option_bindings(state, [answer], [_CARD])
+    apply_option_bindings(state, [answer], [_CARD], sheets={})
 
     bound = bound_values(
         {_FLOOR: StringValue(value="90")},
@@ -87,7 +87,7 @@ def test_the_label_of_an_option_the_researcher_picked_is_not_their_words() -> No
         user_message_id=uuid4(),
         domain=StrategyDomainState(open_questions=[_question()]),
     )
-    apply_option_bindings(state, [answer], [_CARD])
+    apply_option_bindings(state, [answer], [_CARD], sheets={})
 
     assert state.researcher_messages() == [_REQUEST]
 
@@ -103,6 +103,6 @@ def test_the_label_of_an_option_the_researcher_picked_is_no_requirement() -> Non
         domain=StrategyDomainState(open_questions=[_question()]),
     )
 
-    apply_option_bindings(state, [answer], [_CARD])
+    apply_option_bindings(state, [answer], [_CARD], sheets={})
 
     assert state.domain.requirements == []

@@ -1,5 +1,6 @@
 """``get_parameter_options`` writes a trace line for each kind of answer, and a
-read a query narrowed is recorded as a lookup of that parameter this pass."""
+read a query narrowed holds the entries it matched as a lookup of that
+parameter this pass."""
 
 from __future__ import annotations
 
@@ -12,10 +13,11 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParameterNotOnSearch,
     ParentContextRequired,
+    PhrasingMatch,
     VocabLookup,
 )
 
-from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.agents.state import AgentToolState, LookupRecord
 from pathfinder.ai.tools.standalone import catalog_discovery
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
@@ -100,15 +102,28 @@ async def test_a_parameter_the_search_lacks_is_not_on_it(
     assert data["summary"] == f"{_DOMAINS} is not on {_INTERPRO}"
 
 
-async def test_a_read_a_query_narrowed_is_a_lookup_of_that_parameter(
+async def test_a_read_a_query_narrowed_holds_the_entries_it_matched(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _answering(monkeypatch, _domains(VocabLookup(terms=["PBP/GOBP"])))
+    lookup = VocabLookup(
+        terms=["PBP/GOBP"],
+        matches=[
+            PhrasingMatch(
+                term="PBP/GOBP",
+                phrasing="pbp gobp",
+                reach="phrase",
+                values=["PF01395"],
+            )
+        ],
+    )
+    _answering(monkeypatch, _domains(lookup))
     state = AgentToolState()
 
     await _summary(state, query=["PBP/GOBP"])
 
-    assert state.looked_up == {(_INTERPRO, _DOMAINS)}
+    assert state.looked_up == {
+        (_INTERPRO, _DOMAINS): LookupRecord(matched={"PF01395": "PBP/GOBP"})
+    }
 
 
 async def test_a_read_with_no_query_is_no_lookup(
@@ -119,4 +134,4 @@ async def test_a_read_with_no_query_is_no_lookup(
 
     await _summary(state)
 
-    assert state.looked_up == set()
+    assert state.looked_up == {}

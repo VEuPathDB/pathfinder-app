@@ -15,8 +15,9 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.provider_keys import PROVIDER_NAMES
+from pathfinder.platform.errors import DeploymentKeyRefusedError
 from pathfinder.platform.model_catalog import get_model_entry
-from pathfinder.platform.model_keys import turn_refusals
+from pathfinder.platform.model_keys import turn_deployment_refusals, turn_refusals
 
 
 def guard_stop_of(
@@ -159,14 +160,43 @@ def _refused_key_prose(*, changed: bool) -> str | None:
     )
 
 
+def _refused_deployment_prose(*, changed: bool) -> str | None:
+    """The reply for a turn a provider stopped by refusing the deployment's key.
+
+    Every model on that account meets the same refusal, so the reply names the
+    account and offers the researcher's own key.
+    """
+    refusals = turn_deployment_refusals()
+    if not refusals:
+        return None
+    refused = " and ".join(
+        f"{error.title} ({error.detail})"
+        for error in (
+            DeploymentKeyRefusedError(PROVIDER_NAMES[provider], refusal)
+            for provider, refusal in refusals.items()
+        )
+    )
+    prose = (
+        f"I stopped this turn: {refused}. A different model or a resend does not "
+        "help until that account is restored. A key of your own, added in "
+        "Settings under Provider keys, runs the turn on your account instead."
+    )
+    return f"{prose} {_CHECK_THE_CHANGE}" if changed else prose
+
+
 def fallback_prose(
     capture: _LeadRunCapture,
     unanswered: UnansweredStage | None,
     *,
     changed: bool,
 ) -> str:
-    """What the user reads when the run ended with no reply of its own."""
-    refused = _refused_key_prose(changed=changed)
+    """What the user reads when the run ended with no reply of its own.
+
+    A refusal of the researcher's key is named before one of the deployment's.
+    """
+    refused = _refused_key_prose(changed=changed) or _refused_deployment_prose(
+        changed=changed
+    )
     if capture.run_error and refused is not None:
         return refused
     if capture.run_error:

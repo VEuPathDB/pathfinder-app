@@ -41,6 +41,11 @@ each step's count on the site, and the references each criterion was bound on.
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: pathfinder.domain.citations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Strategy - Additional Modules
 -----------------------------
 

@@ -36,8 +36,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    declared,
-    kept,
     session_holding,
 )
 from pathfinder.tests.unit.ai.lead.conftest import (
@@ -136,7 +134,6 @@ async def test_a_draft_framed_after_a_clear_is_continued(
     await thread.clear()
     thread.frames(
         lambda _found: framed(None),
-        declared=[],
         disposition="needs_user",
         asks=[ASKED],
     )
@@ -211,7 +208,6 @@ async def test_the_answering_turn_binds_only_the_open_criterion(
     )
     thread.frames(
         lambda _found: framed(None),
-        declared=[],
         disposition="needs_user",
         asks=[ASKED],
     )
@@ -224,7 +220,6 @@ async def test_the_answering_turn_binds_only_the_open_criterion(
     await classify(thread.deps)
     thread.frames(
         lambda _found: framed("signal peptide"),
-        declared=[*kept(*BOUND), *declared("changed", OPEN)],
     )
 
     answered = await thread.frame()

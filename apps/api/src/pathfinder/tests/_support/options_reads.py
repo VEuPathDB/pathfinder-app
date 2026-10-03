@@ -1,12 +1,19 @@
 """``get_parameter_options`` answered from a sheet in hand: a query keeps the
-entries whose value or label holds one of its terms."""
+entries whose value or label holds one of its terms, each counted under the
+first term that holds it."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 
 import pytest
-from veupathdb_mcp.catalog import ParameterInfo, VocabLookup, VocabNarrowing
+from veupathdb.domain.parameters import VocabOption
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    PhrasingMatch,
+    VocabLookup,
+    VocabNarrowing,
+)
 
 from pathfinder.ai.tools.standalone import catalog_discovery
 
@@ -30,17 +37,30 @@ def serve_options_reads(
         terms = narrowing.terms if narrowing else ()
         if not terms:
             return info
-        folded = [term.casefold() for term in terms]
-        kept = [
-            option
-            for option in info.vocabulary()
-            if any(t in f"{option.value} {option.display}".casefold() for t in folded)
-        ]
+        claimed: dict[str, list[VocabOption]] = {term: [] for term in terms}
+        for option in info.vocabulary():
+            label = f"{option.value} {option.display}".casefold()
+            first = next((t for t in terms if t.casefold() in label), None)
+            if first is not None:
+                claimed[first].append(option)
+        lookup = VocabLookup(
+            terms=list(terms),
+            matches=[
+                PhrasingMatch(
+                    term=term,
+                    phrasing=term.casefold(),
+                    reach="phrase",
+                    values=[option.value for option in options],
+                )
+                for term, options in claimed.items()
+                if options
+            ],
+        )
         return info.model_copy(
             update={
-                "allowed_values": kept,
+                "allowed_values": [o for options in claimed.values() for o in options],
                 "allowed_values_total": None,
-                "vocab_lookup": VocabLookup(terms=list(terms)),
+                "vocab_lookup": lookup,
             }
         )
 

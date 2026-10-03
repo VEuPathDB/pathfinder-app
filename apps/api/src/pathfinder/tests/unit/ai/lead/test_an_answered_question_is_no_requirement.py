@@ -7,14 +7,17 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+import pytest
 from assistant_core.graph.turn_state import (
     ConsultOption,
     PendingApproval,
     UserQuestionAnswer,
 )
 from veupathdb.domain.parameters import SinglePickValue
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.lead import lead_consult
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.lead_consult import card_questions, consult_user
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -116,9 +119,16 @@ async def _answer(
     )
 
 
-async def test_a_typed_card_answer_leaves_no_retired_row() -> None:
+async def test_a_typed_card_answer_leaves_no_retired_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """The tritrypdb card answered with a value: the step holds it, and the
     facts show no retired row naming the card prompt."""
+
+    async def _unread(**_kwargs: object) -> dict[str, list[ParameterInfo]]:
+        return {}
+
+    monkeypatch.setattr(lead_consult, "sheet_params_for_searches", _unread)
     question = _comparison_question()
     deps = _deps(question)
     [card] = card_questions([question])

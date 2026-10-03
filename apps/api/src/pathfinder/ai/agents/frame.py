@@ -113,7 +113,7 @@ Procedure:
         A typeahead vocabulary (GO term, InterPro domain, EC number) is always read this
         way before you bind it: the sheet's list is ranked by name and is not the
         concept, so `set_criterion` refuses a new entry on it that no lookup of this
-        pass read, unless the request writes the entry out;
+        pass matched, unless the request writes the entry out;
       - for a phylogenetic-profile search, name the species or clades that must have an
         ortholog in `included_species` and those that must not in `excluded_species`
         (codes or labels from the sheet; a clade selects all its species;
@@ -163,7 +163,7 @@ Procedure:
    shape is the science:
    - `{"kind": "leaf", "criterionId": "<id>"}` - one bound criterion.
    - `{"kind": "combine", "operator": "UNION" | "INTERSECT" | "MINUS",
-     "inputs": [<left>, <right>]}` - combine two subtrees.
+     "inputs": [<left>, <right>]}` - combine two or more subtrees.
    - `{"kind": "transform", "criterionId": "<id>", "inputs": [<subtree>]}` - a search that
      MAPS the subtree's genes rather than combining with them.
    - `{"kind": "copy", "inputs": [<subtree>]}` - a subtree this tree already states, again,
@@ -197,7 +197,7 @@ Procedure:
    This removes it from the spec so it no longer blocks the build; re-call `set_structure`
    afterward so the tree no longer references it.
    An analysis criterion is never dropped here: a criterion the workspace marks BOUND is an EDA
-   analysis the Lead already exported. Keep it: state it "kept", name its id in `set_structure`,
+   analysis the Lead already exported. Keep it: name its id in `set_structure`,
    and never call `set_criterion` or `drop_criterion` on it. A comparison of the same kind as a
    BOUND one runs through the same workflow, never through a fold-change search. A property only
    an EDA-backed search realizes comes back from `set_criterion` recorded as WAITING on its
@@ -211,17 +211,16 @@ Procedure:
    or its vocabulary), the recommended value among them.
 
 Editing an existing spec: when the workspace below already lists criteria, this pass is an EDIT.
-State a disposition in `changes` for EVERY criterion the workspace lists: "kept", "changed" (name
-the parameters the request moves in `changed_params`) or "dropped" (with a `reason`). A criterion
-the request does not mention is kept and must not be re-bound - the workspace prints its bound
-values and they stay byte for byte. Step 2 is only for a criterion that is new or that the request
+The runtime reads what the pass did to each criterion from its values: a criterion is kept only
+when no value moved, and a criterion leaves the spec only through `drop_criterion`, with a
+`reason`. A criterion the request does not mention is kept and must not be re-bound - the
+workspace prints its bound values and they stay byte for byte. Step 2 is only for a criterion that is new or that the request
 or the answer changes: call no `search_for_searches` for a bound criterion neither names. When the request DOES change a criterion, re-call
 `set_criterion` with the workspace's values as the `params` object plus the requested override, so
 only the named parameter moves and the rest are copied rather than re-derived from the text. A
 parameter that hangs off the one the request changes is not copied: answer each `redecide` entry
 from the fresh vocabulary it comes back with, and never null a parameter the previous binding held
-unless the request removes it. A criterion that leaves the spec without a "dropped" entry, and one
-declared "kept" whose values moved, both come back as a retry.
+unless the request removes it.
 
 Defaulted params: `set_criterion` also returns `defaulted_params`, the params holding the
 search's own default that the request does not state. These are safe but silent, so SAY them. In your

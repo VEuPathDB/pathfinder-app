@@ -34,8 +34,8 @@ STATED_CUT = {
 }
 _PAIR = 2
 _EXPORTED_PROSE = (
-    "I compared the two groups of your upload and added the genes past the cut "
-    "you stated as a step."
+    "I compared the two groups of your upload and added the genes past your cut "
+    "as a step."
 )
 
 

@@ -209,5 +209,5 @@ def test_a_question_is_asked_whole() -> None:
     )
 
     assert intent.researcher_asks(message) == [
-        ResearcherAsk(message=message, text=message, question=True)
+        ResearcherAsk(message=message, text=message)
     ]

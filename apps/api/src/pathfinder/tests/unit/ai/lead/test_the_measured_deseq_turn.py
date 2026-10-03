@@ -24,7 +24,6 @@ from pathfinder.tests.unit.ai.lead._analysis_thread import (
 )
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     joined,
-    kept,
     leaf,
 )
 from pathfinder.tests.unit.ai.lead.conftest import user_intent
@@ -57,9 +56,7 @@ async def test_the_second_comparison_waits_and_the_edit_commits_nothing(
 ) -> None:
     thread = bare_thread(monkeypatch)
     first = await export(thread, reference="18h")
-    thread.frames(
-        with_the_waiting_comparison(first.step_id), declared=kept(first.step_id)
-    )
+    thread.frames(with_the_waiting_comparison(first.step_id))
 
     delta = await thread.edit()
 
@@ -81,9 +78,7 @@ async def test_the_route_names_the_waiting_comparison_by_its_id(
 ) -> None:
     thread = bare_thread(monkeypatch)
     first = await export(thread, reference="18h")
-    thread.frames(
-        with_the_waiting_comparison(first.step_id), declared=kept(first.step_id)
-    )
+    thread.frames(with_the_waiting_comparison(first.step_id))
     await thread.edit()
     thread.deps.intent = user_intent(IntentClassification.EDIT_STRATEGY)
     thread.deps.state.turn_markers.intent_classified = True
@@ -106,9 +101,7 @@ async def test_both_comparisons_are_deseq2_branches_with_a_significance_cut(
 ) -> None:
     thread = bare_thread(monkeypatch)
     first = await export(thread, reference="18h")
-    thread.frames(
-        with_the_waiting_comparison(first.step_id), declared=kept(first.step_id)
-    )
+    thread.frames(with_the_waiting_comparison(first.step_id))
     await thread.edit()
 
     second = await export(thread, reference="36h", criterion_id=WAITING)

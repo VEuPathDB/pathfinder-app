@@ -38,11 +38,7 @@
       ]
     },
     "assumedStated": 0,
-    "rootCount": {
-      "count": 37,
-      "build": "71",
-      "measuredOn": "2026-09-30"
-    },
+    "rootCount": null,
     "endsOn": "none"
   },
   "provenance": {
@@ -52,7 +48,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ub-tritrypdb",
-    "curatorNote": "Round-3 dry UAT, tester B, investigation 4, conversation 360957e9-85b4-4722-a1c3-e9166c3ca437."
+    "curatorNote": "A count comparison across strains is a question: the comparison reads the other strain's count and the strategy keeps its one InterPro step."
   },
   "effort": "medium",
   "gates": {

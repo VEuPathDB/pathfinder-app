@@ -50,8 +50,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    declared,
-    kept,
     recorded,
     session_holding,
 )
@@ -107,7 +105,6 @@ async def test_a_chat_edit_after_a_site_edit_sends_the_sites_value_on(
     site.remember_the_push(thread)
     thread.frames(
         with_the_percentile(90),
-        declared=[*kept(SURFACE), *declared("changed", STAGE)],
     )
 
     delta = await thread.edit()
@@ -143,7 +140,7 @@ async def test_a_site_value_and_a_canvas_value_on_one_step_both_reach_the_spec(
     canvas_sets(thread.graph, STAGE, min_expression_percentile=NumberValue(value=90))
     await thread.next_turn()
     untouched = facts_of(thread.facts(), SURFACE, STAGE, ROOT)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -164,7 +161,7 @@ async def test_a_site_value_stands_beside_a_canvas_flip_through_the_next_edit(
     site_sets(site, STAGE, timepoint=NumberValue(value=48))
     canvas_flips(thread.graph, ROOT, CombineOp.UNION)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -202,7 +199,7 @@ async def test_a_site_that_does_not_answer_leaves_the_stored_graph_and_runs_the_
     site.refuse = OSError("the site is not answering")
 
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
     delta = await thread.edit()
 
     assert (site.reads, site.stored_writes) == (1, 0)

@@ -114,15 +114,9 @@ def carried_values(carrier: Criterion) -> dict[str, str]:
 def _carry_the_option(
     carrier: Criterion, option: Criterion, answered: Mapping[str, str]
 ) -> bool:
-    """Give the carrier the values the option states, and report that it can.
-
-    A value the option defaulted, one the carrier holds on the wire already,
-    or one the carrier's own text states does not move, and a value
-    contradicting one the fold carried moves nothing at all.
-    A value the carrier only holds because the strategy answers to it is the
-    strategy's, and the option is what the request says about it. A carried
-    value keeps the source the option bound it with.
-    """
+    """Carry the option's values onto the carrier; False when one contradicts a
+    value the fold carried. A defaulted value, a wire value the carrier holds, and
+    a carrier value set by a statement and not by the answered strategy stay."""
     carried = carried_values(carrier)
     stated: dict[str, BoundValue] = {}
     for name, bound in option.resolved_params.items():
@@ -135,10 +129,13 @@ def _carry_the_option(
         held = carrier.resolved_params.get(name)
         if held is not None and to_wire(held.value) == to_wire(bound.value):
             continue
-        if held is not None and held.source not in ("default", "chosen"):
-            if answered.get(name) != to_wire(held.value):
-                continue
-        stated[name] = bound.model_copy(update={"carried_from": option.id})
+        if (
+            held is not None
+            and held.source not in ("default", "chosen")
+            and answered.get(name) != to_wire(held.value)
+        ):
+            continue
+        stated[name] = bound.carried(option.id)
     carrier.resolved_params.update(stated)
     if stated:
         carrier.result_count = None
@@ -301,8 +298,10 @@ class _OrganismReading:
 
     def redundancy(self, node: StructureNode) -> _Redundant | None:
         """The organisms a droppable leaf holds, and why it is redundant."""
-        criterion = self.by_id.get(node.criterion_id or "")
-        if node.kind != "leaf" or criterion is None or criterion.id in self.live:
+        if node.kind != "leaf":
+            return None
+        criterion = self.by_id.get(node.named_criterion)
+        if criterion is None or criterion.id in self.live:
             return None
         named = self._named_organism(criterion.text)
         if named is not None:
@@ -392,8 +391,8 @@ def _organism_folded(node: StructureNode, reading: _OrganismReading) -> Structur
         kept = [s for s in kept if s is not candidate]
         reading.dropped.append(
             OrganismDrop(
-                criterion_id=candidate.criterion_id or "",
-                text=reading.by_id[candidate.criterion_id or ""].text,
+                criterion_id=candidate.named_criterion,
+                text=reading.by_id[candidate.named_criterion].text,
                 organisms=tuple(sorted(found.organisms)),
                 met=found.records is None,
                 carrier_id=reading.carrier_of(carrier),

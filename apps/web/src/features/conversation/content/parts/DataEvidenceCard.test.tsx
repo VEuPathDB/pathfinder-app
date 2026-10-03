@@ -312,8 +312,8 @@ describe("DataEvidenceCard", () => {
 
   it("states a threshold the step holds on neither side with both counts", () => {
     const sentence =
-      "840 of 840 genes fit # TM Domains (99 or less); 242 to 294 of 840 genes " +
-      "hold # TM Domains 5 or more and 546 to 598 hold 5 or less";
+      "840 of 840 genes fit # TM Domains (99 or fewer); 242 to 294 of 840 genes " +
+      "hold # TM Domains 5 or more and 546 to 598 hold 5 or fewer";
     render(
       <DataEvidenceCard
         data={{

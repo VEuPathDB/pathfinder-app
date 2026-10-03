@@ -54,8 +54,6 @@ from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.questions import SlotQuestion
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_diff import (
-    CriterionChange,
-    CriterionDisposition,
     SpecDiff,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_the_strategy_holds
@@ -157,20 +155,6 @@ def recorded(*step_ids: str) -> BuildOutcome:
             for step_id in step_ids
         ]
     )
-
-
-def declared(
-    disposition: CriterionDisposition, *criterion_ids: str
-) -> list[CriterionChange]:
-    """What a FRAME pass says it did to the criteria it started with."""
-    return [
-        CriterionChange(criterion_id=cid, disposition=disposition)
-        for cid in criterion_ids
-    ]
-
-
-def kept(*criterion_ids: str) -> list[CriterionChange]:
-    return declared("kept", *criterion_ids)
 
 
 class DisagreementThread:
@@ -412,7 +396,6 @@ class DisagreementThread:
         self,
         draft: Draft,
         *,
-        declared: list[CriterionChange],
         disposition: FrameDisposition = "spec_ready",
         asks: list[SlotQuestion] | None = None,
         while_framing: Callable[[StrategyGraph], None] | None = None,
@@ -441,7 +424,6 @@ class DisagreementThread:
             return FrameResult(
                 disposition=disposition,
                 summary="framed",
-                changes=declared,
                 open_questions=list(asks or []),
             )
 

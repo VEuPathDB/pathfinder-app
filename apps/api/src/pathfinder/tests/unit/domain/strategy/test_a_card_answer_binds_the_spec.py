@@ -10,6 +10,7 @@ from veupathdb.domain.parameters import (
     SinglePickValue,
     StringValue,
 )
+from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
 from pathfinder.domain.strategy.card_answers import spec_bound_by_card
 from pathfinder.domain.strategy.constraints import ConstraintKind
@@ -22,9 +23,22 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.questions import SetValues, SlotQuestion
 from pathfinder.domain.strategy.value_source import value_source
+from pathfinder.tests._support.recorded_searches import suite_search
 
 _PERCENTILE = "min_expression_percentile"
 _SEARCH = "GenesByRNASeqehisHM1IMSS_Trophozoite_transcriptome_ebi_rnaSeq_RSRCPercentile"
+
+
+def _published(fixture: str) -> list[ParameterInfo]:
+    return format_param_info_typed(suite_search(fixture).parameters or [])
+
+
+# A recorded RNA-Seq percentile sheet stands in for the trophozoite search: the
+# two recorded percentile searches publish the floor alike.
+_SHEETS = {
+    _SEARCH: _published("search_genes_by_rnaseq_gomez_diaz_percentile"),
+    "GenesWithSignalPeptide": _published("search_genes_with_signal_peptide"),
+}
 
 
 def _trophozoite(*, open_floor: bool) -> Criterion:
@@ -106,11 +120,17 @@ class TestAnAnswerBindsTheCriterion:
             spec,
             SetValues(criterion_id="c_troph", params={_PERCENTILE: "1"}),
             option_id="1",
+            sheets=_SHEETS,
         )
 
         [criterion] = bound.criteria
         assert criterion.resolved_params[_PERCENTILE] == BoundValue(
-            value=StringValue(value="1"), source="card", basis="1"
+            value=StringValue(value="1"),
+            source="card",
+            basis="1",
+            display_name="Minimum expression percentile",
+            number=True,
+            decimals=0,
         )
         assert criterion.open_params == []
         assert criterion.measurements == []
@@ -123,6 +143,7 @@ class TestAnAnswerBindsTheCriterion:
             spec,
             SetValues(criterion_id="c_troph", params={_PERCENTILE: "1"}),
             option_id="1",
+            sheets=_SHEETS,
         )
 
         [criterion] = bound.criteria
@@ -143,6 +164,7 @@ class TestAnAnswerBindsTheCriterion:
             spec,
             SetValues(criterion_id="c_troph", params={_PERCENTILE: "1"}),
             option_id="1",
+            sheets=_SHEETS,
         )
 
         assert [s.criterion_id for s in bound.open_slots] == ["c_other"]
@@ -154,6 +176,7 @@ class TestAnAnswerBindsTheCriterion:
             spec,
             SetValues(criterion_id="c_gone", params={_PERCENTILE: "1"}),
             option_id="1",
+            sheets=_SHEETS,
         )
 
         assert bound == spec
@@ -182,6 +205,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             spec,
             SetValues(criterion_id="c_secreted", params={"organism": _ORGANISM}),
             option_id="entamoeba-histolytica-hm-1-imss",
+            sheets=_SHEETS,
         )
 
         [criterion] = bound.criteria
@@ -189,6 +213,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             value=MultiPickValue(values=[_ORGANISM]),
             source="card",
             basis="entamoeba-histolytica-hm-1-imss",
+            display_name="Organism",
         )
         assert criterion.resolved_params["organism"].value.to_wire() == (
             '["Entamoeba histolytica HM-1:IMSS"]'
@@ -201,6 +226,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             spec,
             SetValues(criterion_id="c_secreted", params={"organism": _ORGANISM}),
             option_id="o",
+            sheets=_SHEETS,
         )
 
         [criterion] = bound.criteria
@@ -225,6 +251,7 @@ class TestAnOpenSlotIsBoundInItsKind:
             spec,
             SetValues(criterion_id="c_secreted", params={"organism": _ORGANISM}),
             option_id="o",
+            sheets=_SHEETS,
         )
 
         assert bound.criteria[0].resolved_params["organism"].value == MultiPickValue(
@@ -238,7 +265,8 @@ class TestTheSourceOfACardValue:
         assert (
             value_source(
                 NumberValue(value=1),
-                initial_display_value="80",
+                placeholder=False,
+                unset=False,
                 request_texts=["cysteine proteases expressed in trophozoites"],
                 card_value="1",
             )
@@ -251,7 +279,8 @@ class TestTheSourceOfACardValue:
         assert (
             value_source(
                 organism,
-                initial_display_value=None,
+                placeholder=False,
+                unset=False,
                 request_texts=["cysteine proteases"],
                 card_value=organism.to_wire(),
             )

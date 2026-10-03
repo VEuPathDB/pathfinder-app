@@ -12,9 +12,9 @@
   "rationale": "A family phrase broadened to catch a shorter product name stays a text step intersected with the signal peptide search; the counts depend on which text fields the first turn searches, so they are not pinned.",
   "expected": {
     "buildsStrategy": true,
-    "structure": "(GenesByText INTERSECT GenesWithSignalPeptide)",
+    "structure": null,
     "recordType": "transcript",
-    "stepCount": 3,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},
@@ -24,7 +24,7 @@
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,
     "stepTitlesOmit": [],
-    "rootOperator": "INTERSECT",
+    "rootOperator": null,
     "finalCountBelowEveryInput": null,
     "metRequirements": null,
     "unmetRequirements": null,
@@ -42,7 +42,7 @@
     "addedAt": "2026-09-28",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#u5",
-    "curatorNote": ""
+    "curatorNote": "Five turns: a product-text build, a count question answered read-only, an explanation, a doubt about the count, and a broadening edit. A count question adds no step, so the case pins no tree; it checks that the thread builds, counts in genes and assumes nothing."
   },
   "effort": "medium",
   "gates": {

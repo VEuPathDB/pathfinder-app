@@ -10,10 +10,9 @@ import pytest
 from pydantic_ai.messages import ToolCallPart
 
 from pathfinder.ai.lead import classification_gate
-from pathfinder.ai.lead.facts_in_prose import outside_the_facts
 from pathfinder.ai.lead.intent import ClassifiedIntent, UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
-from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
+from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile, unrendered_prose
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.ai.models.mock.directive import without_tokens
 from pathfinder.ai.models.mock.faults import made_by_a_fault
@@ -60,15 +59,18 @@ def _finals(calls: list[ToolCallPart]) -> list[LeadResponse]:
     ]
 
 
-def test_an_unshown_count_is_refused_then_the_reply_points_at_the_facts() -> None:
+def test_a_written_count_is_refused_then_the_reply_writes_none() -> None:
     scene = replace(built_thread(), faulted={"final_result": _REFUSED})
     calls = play("lead", _SITE, _token("single", "unshown-count"), scene=scene)
     wrong, right = _finals(calls)
     record = turn_record(run_context_for(building_deps()))
+    refused = unrendered_prose([wrong.prose], record)
 
-    assert [m.kind for m in reconcile(wrong, record)] == ["fact_outside_the_block"]
-    assert outside_the_facts(wrong.prose, "", ()) != []
-    assert reconcile(right, record) == []
+    assert (None if refused is None else refused.kind) == "unrendered_prose"
+    assert (unrendered_prose([right.prose], record), reconcile(right, record)) == (
+        None,
+        [],
+    )
     assert len(_faulted(calls)) == 1
 
 

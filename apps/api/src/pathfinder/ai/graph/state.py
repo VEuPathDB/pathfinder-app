@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -34,11 +34,11 @@ from pathfinder.domain.evidence import (
     VerificationReview,
 )
 from pathfinder.domain.question_rows import ResearcherAsk
+from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
-from pathfinder.domain.strategy.constraints import message_states
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -48,7 +48,6 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.staleness import StaleBuild
-from pathfinder.domain.strategy.stated_requirements import attributed
 
 PhaseName = Literal[
     "frame",
@@ -148,11 +147,24 @@ class VerificationDigest(CamelModel):
         """True when the check succeeded and no step's check is pending."""
         return self.success and not self.pending_checks
 
+    @property
+    def rows_all_met(self) -> bool:
+        """True when the review holds a row and every row is shown met."""
+        rows = self.review.requirements
+        return bool(rows) and all(row.shown_status == "met" for row in rows)
+
+    @property
+    def blames_the_tree(self) -> bool:
+        """True when the check failed on the strategy's own structure."""
+        return (
+            not self.success and self.failure_cause is FailureCause.STRUCTURE_VIOLATION
+        )
+
     def failure_stated_in(self, prose: str) -> bool:
-        """Whether the prose carries the words of each gap that fails the
-        check, or of the reason when no gap does."""
+        """Whether the prose names each gap that fails the check, or the reason
+        when no gap does."""
         texts = [t for g in self.gaps if g.fails_the_check for t in g.texts()]
-        return all(message_states(prose, t) for t in texts or [self.reason])
+        return all(named_in_prose(prose, t) for t in texts or [self.reason])
 
 
 class StrategyDomainState(ThreadRequirements):
@@ -223,16 +235,9 @@ class StrategyDomainState(ThreadRequirements):
     # The saved control sets attached to this conversation. A control test,
     # a sweep or a scored comparison runs on no other set.
     control_sets: list[NamedControlSet] = Field(default_factory=list)
-    # Every line a facts part of this thread showed, oldest first, once each. A
-    # reply may restate any of them.
-    facts_shown: list[str] = Field(default_factory=list)
     # The type of the upload each criterion runs on, by criterion id, as the
     # last check read it from the site.
     upload_types: dict[str, str] = Field(default_factory=dict)
-
-    def record_facts_shown(self, lines: Iterable[str]) -> None:
-        """Keep each line a facts part showed, once."""
-        self.facts_shown = list(dict.fromkeys([*self.facts_shown, *lines]))
 
     def attach_control_set(self, attached: NamedControlSet) -> None:
         """Attach a saved control set; a set attached before is held once."""
@@ -273,20 +278,10 @@ class StrategyDomainState(ThreadRequirements):
             self.set_the_request_aside()
 
     def record_intent(self, intent: UserIntent, *, request_text: str) -> None:
-        """Take this turn's requirements, the ones it retires, and the request."""
-        held = list(self.requirements)
-        self.record_requirements(
-            attributed(
-                intent.explicit_constraints,
-                [request_text, self.original_request, *self.request_messages],
-                held,
-            ),
+        """Take what this turn states and withdraws, and the request."""
+        self.record(
+            intent, [request_text, self.original_request, *self.request_messages]
         )
-        self.retire_requirements(intent.withdrawn_requirements)
-        self.turn_markers.requirements_added.extend(
-            c for c in self.requirements if c not in held
-        )
-        self.record_recommendations()
         self.record_request_text(request_text)
         self.researcher_asks = [
             *(ask for ask in self.researcher_asks if ask.message != request_text),

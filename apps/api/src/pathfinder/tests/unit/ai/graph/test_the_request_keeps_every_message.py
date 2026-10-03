@@ -153,7 +153,7 @@ def test_the_gate_keeps_what_each_message_asks() -> None:
 
     assert domain.researcher_asks == [
         ResearcherAsk(message=_COMPARE, text="tell me how the two counts compare"),
-        ResearcherAsk(message=_WOULD_REMAIN, text=_WOULD_REMAIN, question=True),
+        ResearcherAsk(message=_WOULD_REMAIN, text=_WOULD_REMAIN),
     ]
 
 

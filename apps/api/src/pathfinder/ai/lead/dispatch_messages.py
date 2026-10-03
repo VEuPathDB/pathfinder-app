@@ -20,7 +20,6 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.questions import OpenQuestion
-from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.spec_fold import (
     carried_values,
 )
@@ -247,75 +246,6 @@ def frame_bound_nothing_result() -> FrameResult:
             "strategy must carry, or state fewer criteria and dispatch "
             "frame_problem again."
         ),
-    )
-
-
-def _answered_slots(before: Criterion | None) -> set[str]:
-    """The parameters the baseline left open with no value of their own."""
-    if before is None:
-        return set()
-    open_names = {slot.param_name for slot in before.open_params}
-    return open_names - set(before.resolved_params)
-
-
-def _movement_beyond_the_open_slots(
-    change: CriterionChange, before: Criterion | None
-) -> str:
-    """What this change did besides answering the parameters left open.
-
-    A parameter the baseline left open holds no value to re-bind, so answering
-    it is the work the turn asked for. Every other movement - another value, a
-    value taken away, another search - re-binds a criterion declared kept.
-    """
-    answered = _answered_slots(before)
-    moved = [
-        f"{name}={value}"
-        for name, value in sorted(change.changed_params.items())
-        if name not in answered
-    ]
-    moved.extend(f"{name} removed" for name in change.removed_params)
-    if change.rebound_search:
-        moved.append("its search name changed")
-    return ", ".join(moved)
-
-
-def undeclared_spec_changes(
-    computed: SpecDiff,
-    declared: Sequence[CriterionChange],
-    before: OperationalSpec,
-) -> str:
-    """Where the pass's own account of an edit disagrees with what it did.
-
-    Returns an empty string when every criterion the turn started with is
-    accounted for. A silent drop and a silent re-binding are the two shapes
-    that reach the user as a strategy they did not ask for.
-    """
-    stated = {c.criterion_id: c.disposition for c in declared}
-    held = {c.id: c for c in before.criteria}
-    problems: list[str] = []
-    for change in computed.changes:
-        cid = change.criterion_id
-        if change.disposition == "dropped" and stated.get(cid) != "dropped":
-            text = held[cid].text[:80] if cid in held else ""
-            problems.append(
-                f"{cid} ({text}) is gone from the spec and "
-                f"you declared it {stated.get(cid) or 'nothing'}"
-            )
-        elif change.disposition == "changed" and stated.get(cid) == "kept":
-            moved = _movement_beyond_the_open_slots(change, held.get(cid))
-            if not moved:
-                continue
-            problems.append(f"{cid} is declared kept but its binding moved ({moved})")
-    if not problems:
-        return ""
-    return (
-        "This turn edits a spec that already had "
-        f"{len(before.criteria)} criteria, and the account of it does not match "
-        f"what happened: {'; '.join(problems)}. Nothing was applied: the "
-        "strategy is exactly as this turn found it. A criterion the request "
-        "does not mention is kept and must keep the values the workspace "
-        "shows; re-bind it with set_criterion using those values, or drop it "
-        "with drop_criterion and say why."
     )
 
 

@@ -18,6 +18,7 @@ from assistant_core.persistence.repositories.background_tasks import (
 from assistant_core.platform.db import async_session_factory
 from assistant_core.tasks.runner import run_durable_task
 from sqlalchemy import select
+from veupathdb_mcp.catalog import ParameterInfo
 from veupathdb_mcp.separation import (
     SeparationProgress,
     SeparationRequest,
@@ -126,7 +127,11 @@ def requests(
             await progress(row)
         return result
 
+    async def _no_sheets(**_kwargs: object) -> dict[str, list[ParameterInfo]]:
+        return {}
+
     monkeypatch.setattr(separation, "separate", _recorded)
+    monkeypatch.setattr(separation, "sheet_params_for_searches", _no_sheets)
     return seen
 
 
@@ -173,7 +178,7 @@ async def test_the_worker_stores_the_report_and_a_lane_per_candidate(
     assert task.status == "complete"
     assert task.result is not None
     assert SeparationReport.model_validate(task.result) == separation_report(
-        result, task_id=task_id
+        result, task_id=task_id, sheets={}
     )
     ((site_id, request, name),) = requests
     assert (site_id, name, request.mode, request.budget, request.thread) == (

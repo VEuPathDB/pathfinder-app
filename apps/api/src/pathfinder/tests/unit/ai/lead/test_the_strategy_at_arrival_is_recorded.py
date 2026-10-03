@@ -1,5 +1,6 @@
 """The turn records the strategy the message found once, before any tool runs,
-and every count before an edit is read from that record."""
+and every count before an edit is read from that record, with the change that
+made the tree it found."""
 
 from __future__ import annotations
 
@@ -14,7 +15,11 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.graph.turn_records import CountsAtArrival
-from pathfinder.ai.lead.pre_turn import refresh_live_strategy_state
+from pathfinder.ai.lead.pre_turn import (
+    attach_change_at_arrival,
+    refresh_live_strategy_state,
+)
+from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState, ensure_sync_state
@@ -84,3 +89,17 @@ async def test_a_resumed_turn_keeps_the_record_its_message_made() -> None:
     )
 
     assert resumed.turn_markers.at_arrival == first.turn_markers.at_arrival
+
+
+def test_the_turn_records_the_tree_it_found_and_the_change_that_made_it() -> None:
+    session = _session()
+    state = _state()
+    built = LastChange(before=None, after=3, what="built the strategy")
+
+    attach_change_at_arrival(state, lead_runtime(strategy_session=session), built)
+
+    found = state.turn_markers.change_at_arrival
+    assert found is not None
+    assert found.change == built
+    assert found.tree is not None
+    assert (found.tree.root.id, found.tree.step_counts) == ("step_join", _COUNTS)

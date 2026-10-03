@@ -302,7 +302,9 @@ async def test_a_reply_the_contract_refuses_drops_every_card_of_the_response(
 
     capture = await drive_lead(state=state, deps=lead_deps(state), writer=writer)
 
-    assert len(seen) == 2
+    # The third response answers the misreported change the card's denial
+    # did not name.
+    assert len(seen) == 3
     for call_id in (CARD, DELETE):
         correction = _returns_to(seen[1], call_id)
         assert len(correction) == 1

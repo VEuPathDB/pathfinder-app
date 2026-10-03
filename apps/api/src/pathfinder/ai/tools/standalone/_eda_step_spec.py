@@ -182,7 +182,7 @@ def _node_restated(
 
     The export is one leaf, so it stands for the whole subtree that node held.
     """
-    if node.kind != "combine" and node.criterion_id == replace_step_id:
+    if node.criterion_id == replace_step_id:
         return StructureNode(kind="leaf", criterion_id=exported_id)
     return node.model_copy(
         update={

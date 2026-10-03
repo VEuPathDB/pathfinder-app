@@ -26,7 +26,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    kept,
     recorded,
     session_holding,
 )
@@ -94,7 +93,6 @@ async def test_a_pass_that_asks_before_it_records_the_choice_is_refused(
     await thread.next_turn()
     thread.frames(
         _read_the_listing_only(),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[WHICH_ONE],
     )
@@ -114,7 +112,6 @@ async def test_the_refusal_names_a_way_a_saved_strategy_question_can_follow(
     await thread.next_turn()
     thread.frames(
         _read_the_listing_only(),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[WHICH_ONE],
     )
@@ -134,7 +131,6 @@ async def test_a_pass_that_records_the_pending_choice_stands(
     await thread.next_turn()
     thread.frames(
         _records_the_pending_choice(),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[WHICH_ONE],
     )
@@ -156,14 +152,12 @@ async def test_the_retry_records_the_choice_the_first_pass_asked_about(
     await thread.next_turn()
     thread.frames(
         _read_the_listing_only(),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[WHICH_ONE],
     )
     assert isinstance(await thread.edit(), str)
     thread.frames(
         _records_the_pending_choice(),
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[WHICH_ONE],
     )

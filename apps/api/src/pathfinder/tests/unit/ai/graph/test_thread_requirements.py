@@ -1,4 +1,6 @@
-"""An approved delete withdraws each requirement only the deleted criteria stated."""
+"""The thread derives every requirement it holds, replaces and retires from what
+a message states and withdraws; an approved delete withdraws each requirement
+only the deleted criteria stated."""
 
 from __future__ import annotations
 
@@ -6,10 +8,14 @@ from uuid import uuid4
 
 from pathfinder.ai.graph.thread_requirements import ThreadRequirements
 from pathfinder.ai.graph.turn_records import TurnMarkers
+from pathfinder.ai.lead.intent import IntentClassification, UserIntent
+from pathfinder.domain.evidence import RequirementCheck, VerificationReview
+from pathfinder.domain.question_rows import ResearcherAsk, without_questions
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+    ReplacedLifecycle,
     WithdrawnLifecycle,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
@@ -79,3 +85,210 @@ def test_a_delete_never_withdraws_the_organism() -> None:
     thread.retire_what_a_delete_leaves_unanswered([_TM_STEP], [remaining])
 
     assert thread.requirements == [_ORGANISM, _SIGNAL]
+
+
+def test_a_requirement_a_remaining_criterion_also_states_survives_a_delete() -> None:
+    """The remaining text states the requirement without its article."""
+    thread = _thread()
+    second_tm = _TM_STEP.model_copy(
+        update={"id": "step_tm_max", "text": "transmembrane domain count at most 3"}
+    )
+
+    thread.retire_what_a_delete_leaves_unanswered([_TM_STEP], [second_tm])
+
+    assert (thread.requirements, thread.retired_requirements) == (
+        [_ORGANISM, _TM, _SIGNAL],
+        [],
+    )
+
+
+def _intent(
+    classification: IntentClassification = IntentClassification.EDIT_STRATEGY,
+    **fields: object,
+) -> UserIntent:
+    return UserIntent.model_validate(
+        {"classification": classification, "inferredGoal": "g"} | fields
+    )
+
+
+def _recorded(
+    held: list[Constraint], message: str, intent: UserIntent
+) -> ThreadRequirements:
+    thread = ThreadRequirements(
+        turn_markers=TurnMarkers(message_id=uuid4()), requirements=held
+    )
+    thread.record(intent, [message])
+    return thread
+
+
+def _lifecycles(thread: ThreadRequirements) -> list[tuple[str, str]]:
+    return [
+        (r.constraint.requested_value, r.lifecycle.state)
+        for r in thread.retired_requirements
+    ]
+
+
+_PLASMODIUM = _stated(ConstraintKind.ORGANISM, "Plasmodium")
+
+
+def test_a_narrower_organism_replaces_the_held_one_and_keeps_the_constraint() -> None:
+    thread = _recorded(
+        [_PLASMODIUM, _TM],
+        "Make that Plasmodium falciparum 3D7.",
+        _intent(explicit_constraints=[_ORGANISM]),
+    )
+
+    assert (thread.requirements, thread.retired_requirements[0].lifecycle) == (
+        [_TM, _ORGANISM],
+        ReplacedLifecycle(by=_ORGANISM.key),
+    )
+
+
+def test_a_withdrawn_requirement_retires_on_its_message() -> None:
+    thread = _recorded(
+        [_ORGANISM, _TM, _SIGNAL],
+        "Drop the transmembrane domain.",
+        _intent(withdrawn=[_stated(ConstraintKind.OTHER, "transmembrane domain")]),
+    )
+
+    assert (thread.requirements, _lifecycles(thread)) == (
+        [_ORGANISM, _SIGNAL],
+        [(_TM.requested_value, "withdrawn")],
+    )
+
+
+def test_a_withdrawn_value_the_message_restates_is_replaced_by_it() -> None:
+    """The hostdb edit from chromosome 17 to chromosome 19."""
+    chromosome_17 = _stated(ConstraintKind.OTHER, "chromosome 17")
+    chromosome_19 = _stated(ConstraintKind.OTHER, "chromosome 19")
+
+    thread = _recorded(
+        [chromosome_17],
+        "Change chromosome 17 to chromosome 19 and tell me the count.",
+        _intent(explicit_constraints=[chromosome_19], withdrawn=[chromosome_17]),
+    )
+
+    assert (thread.requirements, thread.retired_requirements[0].lifecycle) == (
+        [chromosome_19],
+        ReplacedLifecycle(by=chromosome_19.key),
+    )
+
+
+def test_a_compared_side_is_never_a_requirement() -> None:
+    thread = _recorded(
+        [_ORGANISM],
+        "How does the count compare with Plasmodium vivax P01?",
+        _intent(
+            IntentClassification.FOLLOW_UP_QUESTION,
+            is_differential=True,
+            differential_sides=["Plasmodium falciparum 3D7", "Plasmodium vivax P01"],
+            explicit_constraints=[
+                _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
+            ],
+        ),
+    )
+
+    assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM], [])
+
+
+_ASK = "tell me how many have a signal peptide"
+
+
+def test_an_ask_states_no_requirement() -> None:
+    thread = _recorded(
+        [_ORGANISM, _TM],
+        f"Keep it as it is and {_ASK}.",
+        _intent(
+            asks=[_ASK],
+            explicit_constraints=[_stated(ConstraintKind.OTHER, "signal peptide")],
+        ),
+    )
+
+    assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM, _TM], [])
+
+
+def test_an_ask_erases_no_row_it_only_shares_words_with() -> None:
+    message = f"Also require a signal peptide and {_ASK}."
+    row = RequirementCheck(
+        text="a signal peptide", turn=1, how="search", status="unmet"
+    )
+    review = VerificationReview(requirements=[row])
+
+    kept = without_questions(
+        review, [message], [ResearcherAsk(message=message, text=_ASK)]
+    )
+
+    assert kept == review
+
+
+_KINASES = _stated(ConstraintKind.OTHER, "kinases")
+
+
+def _combination(value: str) -> Constraint:
+    return _stated(ConstraintKind.COMBINATION, value)
+
+
+def test_an_include_verb_records_the_or_as_the_researchers() -> None:
+    either = _combination("kinases OR phosphatases")
+
+    thread = _recorded(
+        [_KINASES],
+        "Broaden the kinases to include phosphatases.",
+        _intent(explicit_constraints=[either]),
+    )
+
+    assert [(c.key, c.source) for c in thread.requirements] == [
+        (_KINASES.key, ConstraintSource.USER_EXPLICIT),
+        (either.key, ConstraintSource.USER_EXPLICIT),
+    ]
+
+
+def test_in_addition_to_records_neither_operator_as_the_researchers() -> None:
+    message = "Find genes that have a signal peptide in addition to a GPI anchor."
+    stated = [
+        _combination("signal peptide OR GPI anchor"),
+        _combination("signal peptide AND GPI anchor"),
+    ]
+
+    theirs = [
+        c.requested_value
+        for c in _recorded(
+            [], message, _intent(explicit_constraints=stated)
+        ).requirements
+        if c.source is ConstraintSource.USER_EXPLICIT
+    ]
+
+    assert theirs == []
+
+
+def test_a_question_that_names_another_organism_replaces_none() -> None:
+    thread = _recorded(
+        [_ORGANISM, _TM],
+        "And how many of those would Plasmodium vivax P01 have?",
+        _intent(
+            IntentClassification.FOLLOW_UP_QUESTION,
+            explicit_constraints=[
+                _stated(ConstraintKind.ORGANISM, "Plasmodium vivax P01")
+            ],
+        ),
+    )
+
+    assert (thread.requirements, thread.retired_requirements) == ([_ORGANISM, _TM], [])
+
+
+def test_a_count_question_that_asks_for_a_build_states_its_requirements() -> None:
+    """An ask that restates the whole message is the request itself."""
+    message = "How many Plasmodium falciparum 3D7 genes have a signal peptide?"
+    signal = _stated(ConstraintKind.OTHER, "signal peptide")
+
+    thread = _recorded(
+        [],
+        message,
+        _intent(
+            IntentClassification.NEW_STRATEGY,
+            asks=[message],
+            explicit_constraints=[_ORGANISM, signal],
+        ),
+    )
+
+    assert thread.requirements == [_ORGANISM, signal]

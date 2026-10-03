@@ -4,6 +4,8 @@ words, each operand a run of words."""
 from __future__ import annotations
 
 import itertools
+import re
+from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,6 +13,11 @@ _OPERATORS = frozenset({"AND", "OR", "NOT"})
 # A text that holds one of these is grouped by its writer.
 _GROUPING = frozenset('"()')
 _WILDCARD = "*"
+# The words a researcher uses to ask that a term match as one phrase.
+_ASKS_FOR_THE_PHRASE = re.compile(
+    r"\b(?:exact\s+phrase|the\s+phrase|as\s+a\s+phrase|in\s+quotes)\b",
+    re.IGNORECASE,
+)
 
 
 def _phrased(operand: list[str]) -> str:
@@ -45,4 +52,9 @@ class TextExpression(BaseModel):
         return None if read == " ".join(self.text.split()) else read
 
 
-__all__ = ["TextExpression"]
+def asks_for_the_phrase(messages: Sequence[str]) -> bool:
+    """Whether a message asks that the text term match as one phrase."""
+    return any(_ASKS_FOR_THE_PHRASE.search(message) for message in messages)
+
+
+__all__ = ["TextExpression", "asks_for_the_phrase"]

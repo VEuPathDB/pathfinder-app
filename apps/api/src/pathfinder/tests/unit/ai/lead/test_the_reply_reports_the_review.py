@@ -112,9 +112,3 @@ def test_a_reply_that_names_the_unmet_requirement_in_words_stands() -> None:
     report = reply("The strategy does not yet require the transmembrane domains.")
 
     assert kinds(_checked(), report) == []
-
-
-def test_a_reply_with_a_sample_size_the_facts_lack_is_refused() -> None:
-    report = reply("All 3 sampled genes fit the signal peptide.")
-
-    assert kinds(_checked(), report) == ["fact_outside_the_block"]

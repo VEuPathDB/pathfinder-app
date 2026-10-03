@@ -1,5 +1,6 @@
 """The facts a turn shows beside its reply, as lines and as carried values."""
 
+from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
 from pathfinder.domain.turn_facts import (
     ControlResultFact,
     ParameterFact,
@@ -151,3 +152,48 @@ def test_a_measurement_no_row_shows_stays_a_caveat() -> None:
             "at that value, 8,201 at 0"
         )
     ]
+
+
+_SIX_FIELDS = (
+    '["product", "name", "so_id", "UserCommentContent", "so_term_name", '
+    '"organism_full"]'
+)
+
+
+def _compared(*variants: ComparedVariant) -> TurnFacts:
+    return TurnFacts(comparisons=[ComparisonFact(variants=list(variants))])
+
+
+def test_a_compared_variant_row_shows_the_values_it_differs_by() -> None:
+    facts = _compared(
+        ComparedVariant(
+            label="Product field",
+            gene_count=2,
+            unique_count=0,
+            differs_by={"text_fields": '["product"]'},
+        ),
+        ComparedVariant(
+            label="Every text field",
+            gene_count=2,
+            unique_count=0,
+            differs_by={"text_fields": _SIX_FIELDS, "text_expression": "tube*"},
+        ),
+    )
+
+    assert facts.lines() == [
+        "Product field (text_fields: product): 2 genes",
+        (
+            "Every text field (text_fields: product, name, so_id, "
+            "UserCommentContent, so_term_name, organism_full; "
+            "text_expression: tube*): 2 genes"
+        ),
+    ]
+
+
+def test_a_compared_variant_that_differs_by_nothing_shows_its_count() -> None:
+    facts = _compared(
+        ComparedVariant(label="As built", gene_count=1, unique_count=0),
+        ComparedVariant(label="Again", gene_count=1665, unique_count=0),
+    )
+
+    assert facts.lines() == ["As built: 1 gene", "Again: 1,665 genes"]

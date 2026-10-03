@@ -1,10 +1,5 @@
-"""Hold a card turn's reply until the turn contract has read it.
-
-A card call carries the turn's reply as its ``reply`` argument. Every card of
-a response waits: cards the contract denies are dropped, and cards it passes
-are written when the run ends, each after its reply as text. A free text part
-of the Lead model is never the reply, so the hold drops it.
-"""
+"""The card calls of a Lead run, held until the run ends and then written
+each after its reply rendered from the turn's facts; a denied card is dropped."""
 
 from __future__ import annotations
 
@@ -28,6 +23,8 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
 from pathfinder.ai.lead.card_reply import CardCallReply
+from pathfinder.domain.reply_references import render_reply
+from pathfinder.domain.turn_facts import TurnFacts
 
 _TEXT = (TextStartChunk, TextDeltaChunk, TextEndChunk)
 _CallChunk = (
@@ -41,8 +38,9 @@ _CallChunk = (
 )
 
 
-def _reply_of(call_id: str, card: list[BaseChunk]) -> list[BaseChunk]:
-    """The card's reply as text chunks, or nothing when the call carries none."""
+def _reply_of(call_id: str, card: list[BaseChunk], facts: TurnFacts) -> list[BaseChunk]:
+    """The card's reply rendered as text chunks, or nothing when the call
+    carries none."""
     reply = next(
         (
             CardCallReply.model_validate(chunk.input).reply
@@ -56,7 +54,7 @@ def _reply_of(call_id: str, card: list[BaseChunk]) -> list[BaseChunk]:
     text_id = f"reply-{call_id}"
     return [
         TextStartChunk(id=text_id),
-        TextDeltaChunk(id=text_id, delta=reply),
+        TextDeltaChunk(id=text_id, delta=render_reply(reply, facts)),
         TextEndChunk(id=text_id),
     ]
 
@@ -88,12 +86,15 @@ class CardHold:
             return []
         return [chunk]
 
-    def release(self) -> list[BaseChunk]:
+    def holds_a_card(self) -> bool:
+        return bool(self._cards)
+
+    def release(self, facts: TurnFacts) -> list[BaseChunk]:
         """Each held card whole, after its reply, in the order they began."""
         cards = [
             chunk
             for call_id, card in self._cards.items()
-            for chunk in (*_reply_of(call_id, card), *card)
+            for chunk in (*_reply_of(call_id, card, facts), *card)
         ]
         self._cards.clear()
         return cards

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import JsonValue
-from veupathdb.domain.parameters import NumberValue
+from veupathdb.domain.parameters import MultiPickValue, NumberValue, StringValue
 from veupathdb.errors import WDKError
 from veupathdb.wdk import VEuPathDBClient, WDKAnswerMeta
 
@@ -73,11 +73,13 @@ async def test_compares_sizes_overlap_and_unique_genes(
         VariantSpec(
             label="2-fold",
             search_name="GenesByRNASeq",
+            record_type="transcript",
             parameters={"fold_change": NumberValue(value=2.0)},
         ),
         VariantSpec(
             label="5-fold",
             search_name="GenesByRNASeq",
+            record_type="transcript",
             parameters={"fold_change": NumberValue(value=5.0)},
         ),
     ]
@@ -128,11 +130,13 @@ async def test_one_failing_variant_does_not_crash_the_comparison(
         VariantSpec(
             label="good",
             search_name="S",
+            record_type="transcript",
             parameters={"fold_change": NumberValue(value=2.0)},
         ),
         VariantSpec(
             label="bad",
             search_name="S",
+            record_type="transcript",
             parameters={"fold_change": NumberValue(value=0.0)},
         ),
     ]
@@ -220,6 +224,7 @@ async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
             VariantSpec(
                 label="near the cap",
                 search_name="GenesByMolecularWeight",
+                record_type="transcript",
                 parameters={"min_molecular_weight": NumberValue(value=1.0)},
             )
         ],
@@ -230,3 +235,46 @@ async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
     ]
     assert result.truncated is False
     assert result.variants[0].gene_count == _GENES
+
+
+@pytest.mark.asyncio
+async def test_each_variant_states_the_values_it_differs_by(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _run_search_report(
+        record_type: str,
+        search_name: str,
+        search_config: Any,
+        report_config: Any,
+        view_filters: Any,
+    ) -> Any:
+        return _answer(["g1", "g2"])
+
+    client = MagicMock()
+    client.run_search_report = AsyncMock(side_effect=_run_search_report)
+    monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
+    expression = StringValue(value='"polar tube protein"')
+    specs = [
+        VariantSpec(
+            label=label,
+            search_name="GenesByText",
+            record_type="transcript",
+            parameters={
+                "text_expression": expression,
+                "text_fields": MultiPickValue(values=fields),
+            },
+        )
+        for label, fields in (
+            ("Product field", ["product"]),
+            ("Product and name", ["product", "name"]),
+        )
+    ]
+
+    result = await run_variant_comparison("plasmodb", specs)
+
+    differs = [
+        {"text_fields": '["product"]'},
+        {"text_fields": '["product", "name"]'},
+    ]
+    assert [v.differs_by for v in result.variants] == differs
+    assert [v.differs_by for v in result.fact().variants] == differs

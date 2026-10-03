@@ -31,7 +31,7 @@ def free_text_params(
     return frozenset(
         name
         for name, held in criterion.resolved_params.items()
-        if name in by_name and text_query(by_name[name], held.value)
+        if name in by_name and text_query(by_name[name], held)
     )
 
 

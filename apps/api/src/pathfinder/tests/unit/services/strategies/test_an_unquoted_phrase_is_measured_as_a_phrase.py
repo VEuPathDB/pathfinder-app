@@ -75,7 +75,7 @@ async def test_a_stated_unquoted_phrase_is_counted_as_one_phrase(
         ["GenesByText"],
         [
             Measurement(
-                kind="wildcard_phrase",
+                kind="phrase_reading",
                 param="text_expression",
                 count=_PHRASE,
                 reading='"cytochrome P450"',
@@ -111,7 +111,7 @@ def test_the_two_counts_are_a_caveat() -> None:
                 param_display_names={"text_expression": "Text term"},
                 measurements=[
                     Measurement(
-                        kind="wildcard_phrase",
+                        kind="phrase_reading",
                         param="text_expression",
                         count=_PHRASE,
                         reading='"cytochrome P450"',
@@ -132,8 +132,8 @@ def test_the_two_counts_are_a_caveat() -> None:
         phrase_count=_PHRASE,
     )
     assert caveat.sentence == (
-        "Text term 'cytochrome P450' matches any of its words: 158 genes; as "
-        'the phrase "cytochrome P450": 114 genes'
+        "Text term 'cytochrome P450' is unquoted, so the site matches any of its "
+        "words: 158 genes; as the phrase: 114 genes"
     )
 
 
@@ -158,7 +158,7 @@ async def test_an_operator_word_stays_outside_the_quoted_phrase(
 
     assert measured == [
         Measurement(
-            kind="wildcard_phrase",
+            kind="phrase_reading",
             param="text_expression",
             count=_VSP_PHRASES,
             reading='"variant-specific surface protein" OR VSP',

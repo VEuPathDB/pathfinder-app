@@ -21,7 +21,6 @@ from pathfinder.tests.unit.ai.lead._analysis_thread import WAITING, bare_thread,
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     joined,
-    kept,
     leaf,
     session_holding,
 )
@@ -47,7 +46,7 @@ def _ids(thread: DisagreementThread) -> dict[str, list[str]]:
 async def _bound(thread: DisagreementThread) -> tuple[str, str]:
     """Frame 24 h over 36 h waiting, edit, then export it by its id."""
     first = await _a_comparison_waits(thread)
-    thread.frames(lambda found: found, declared=kept(first))
+    thread.frames(lambda found: found)
     assert isinstance(await thread.edit(), EditDelta)
     second = await export(thread, reference="36h", criterion_id=WAITING)
     return first, second.step_id
@@ -85,7 +84,7 @@ async def test_a_resumed_edit_whose_record_predates_the_export_keeps_the_step(
     thread = bare_thread(monkeypatch)
     first, second = await _bound(thread)
     await thread.next_turn(resumes_parked_call=True)
-    thread.frames(lambda found: found, declared=kept(first, second))
+    thread.frames(lambda found: found)
 
     delta = await thread.edit(
         resume=SubAgentResume(messages=[], results=DeferredToolResults())

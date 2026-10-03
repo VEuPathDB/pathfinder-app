@@ -1,0 +1,62 @@
+{
+  "name": "uat-core-d-veupathdb",
+  "turns": [
+    "Genes across Trypanosomatidae with the GO term 'glycosome'.",
+    "Please narrow that to Leishmania donovani BPK282A1, and show me the count before next to the count after."
+  ],
+  "siteId": "veupathdb",
+  "assistantId": "pathfinder",
+  "rationale": "A narrower organism stated with no withdrawal replaces the family the thread held: the classifier names no key and no successor, the thread records the family as replaced by Leishmania donovani BPK282A1 and never as withdrawn, and the GO step keeps the term by its label, 115 genes.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByGoTerm",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByGoTerm": {
+        "go_typeahead": "GO:0020015"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": null,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {
+      "1": [
+        "'Trypanosomatidae' is withdrawn"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 115,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "veupathdb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ucore-d-veupathdb",
+    "curatorNote": "The first two messages of the veupathdb glycosome flow. GO:0020015 (glycosome) on Leishmania donovani BPK282A1 is 115 genes on build 71."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

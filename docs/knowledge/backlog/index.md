@@ -17,6 +17,20 @@ what left.
 8. [A case compares the records two turns showed](a-case-compares-the-records-two-turns-showed.md) - no corpus field holds the same-sample rule; the runner keeps the last facts part only.
 9. [Each corpus case runs as a fresh user](each-corpus-case-runs-as-a-fresh-user.md) - every case runs as the debugger's one user, so earlier runs' gene sets, memories and cases are read by later ones; the user id needs a seam in `devtools/chat.py`.
 10. [The vocabulary caps live beside the rule that reads them](the-vocabulary-caps-live-beside-the-rule-that-reads-them.md) - `veupathdb-mcp` a35 imports the two vocabulary caps as private names from another module; one module owns the caps and the cut in the next tag.
+11. [A search report sends a tree value as its leaves](a-search-report-sends-a-tree-value-as-its-leaves.md) - `veupathdb-py` expands a tree parent to its leaves for a step and not for an anonymous report, and its retry error prints an empty timeout message; PathFinder expands and names the error class itself until the release that fixes both.
+12. [A dependent pick's label is the vocabulary it was bound under](a-dependent-picks-label-is-the-vocabulary-it-was-bound-under.md) - the bind labels a dependent pick under its bound parents and hydration and replay under the published vocabulary; a plasmodb `GenesByInterproDomain.domain_typeahead` recording under two organisms measures it.
+
+15. [A membership question is answered by a read-only search](a-membership-question-is-answered-by-a-read-only-search.md) - "which sampled genes also have a signal peptide" is answered from record pages over other genes; a read-only ids search answers it.
+16. [An unquoted reading is labelled as separate words](an-unquoted-reading-is-labelled-as-separate-words.md) - the word reading of a quoted term is labelled the phrase, and a reading is built from the sentence; alternatives derive from the bound term only.
+17. [A quoted value and an initial value carry their source](a-quoted-value-and-an-initial-value-carry-their-source.md) - `"GPI anchored" (chosen)` for a quoted message value and `Start at: 1 (chosen)` at the published initial value.
+18. [The retired row names the dropped criterion's requirement](the-retired-row-names-the-dropped-criterions-requirement.md) - a MINUS arm's delete prints `'kinase AND no TM' is withdrawn` while the kinase step runs.
+19. [A card holds one change per stated part](a-card-holds-one-change-per-stated-part.md) - a two-arm request gets a one-change card called focused; the card is held to the classifier's asks and unique genes show products.
+21. [A count question about a catalog search is answered read-only](a-count-question-about-a-catalog-search-is-answered-read-only.md) - four guessed search names refused, the reply claims the search is absent; a read-only catalog count.
+22. [The check reads the counts before the edit](the-check-reads-the-counts-before-the-edit.md) - VERIFY fails a correct percentile edit for want of the before count the facts show; the scope carries the turn's before counts.
+24. [A genus the message names is stated on its species](a-genus-the-message-names-is-stated-on-its-species.md) - "Cryptosporidium" binds as 30 chosen species with a stale took-0-of-0 row; the parent the message names is stated.
+25. [A mid-stream provider error retries the stage once](a-mid-stream-provider-error-retries-the-stage-once.md) - a provider error inside a model stream ends the turn with a stop reply that suggests a model change; the stage's request is re-sent once.
+27. [A carry to orthologs is one transform](a-carry-to-orthologs-is-one-transform.md) - "carry these to their orthologs in X" is built as a round trip that keeps the source organism; the words choose the shape.
+28. [A lookup ranks the request's own words first](a-lookup-ranks-the-requests-own-words-first.md) - a capped lookup list hides the entries that carry the request's words behind the pass's synonyms; the library's `read_options` ranks them first.
 
 ## Known and accepted
 

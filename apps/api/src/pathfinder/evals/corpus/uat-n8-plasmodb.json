@@ -6,7 +6,7 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "A transform the site's organism sheet does not reach builds nothing; picking the portal keeps the conversation here and names the portal, with no further question.",
+  "rationale": "A transform the site's organism sheet does not reach builds nothing; picking the portal keeps the thread here and names the portal, with no further question.",
   "expected": {
     "buildsStrategy": true,
     "structure": "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)",

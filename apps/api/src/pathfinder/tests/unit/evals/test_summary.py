@@ -109,3 +109,21 @@ def test_the_refused_tools_round_trip_and_sum_into_the_run() -> None:
         "read_gene_record",
     ]
     assert restored.cases == summary.cases
+
+
+def test_a_case_not_run_counts_as_neither_passed_nor_failed_nor_run() -> None:
+    summary = _summary(
+        CaseResult(name="a", verdict="pass"),
+        CaseResult(name="b", verdict="fail"),
+        CaseResult(
+            name="c",
+            verdict="not-run",
+            error="cryptodb login did not answer (connect timeout)",
+        ),
+    )
+
+    counted = (summary.passed, summary.failed, summary.errored, summary.not_run)
+    assert counted == (1, 1, 0, 1)
+    assert summary.case_count == 3
+    assert summary.pass_rate == 0.5
+    assert summary.model_dump(by_alias=True, mode="json")["notRun"] == 1

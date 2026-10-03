@@ -139,12 +139,11 @@ async def test_the_stated_phrase_a_text_was_cut_from_is_counted(
         infos=_SHEET,
     )
 
-    assert (
+    assert [m for m in measured if m.kind == "wildcard_phrase"] == [
         Measurement(
             kind="wildcard_phrase",
             param="text_expression",
             count=_STATED,
             reading="variant erythrocyte surface antigen",
         )
-        in measured
-    )
+    ]

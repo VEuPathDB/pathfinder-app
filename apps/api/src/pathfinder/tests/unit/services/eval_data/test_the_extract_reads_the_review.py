@@ -13,8 +13,10 @@ from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.graph.stream_events import evidence_card_event, ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
 from pathfinder.domain.caveats import ControlsCaveat, WordGap
-from pathfinder.domain.evidence import (
+from pathfinder.domain.citations import (
     Citation,
+)
+from pathfinder.domain.evidence import (
     ColumnFit,
     ControlSetEvidence,
     ControlTestEvidence,

@@ -9,8 +9,11 @@ from typing import Literal
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
-from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat
+from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat, SampleCaveat
+from pathfinder.domain.comparison_facts import ComparisonFact
+from pathfinder.domain.count_words import counted
 from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence, GeneFit
+from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
@@ -20,17 +23,11 @@ from pathfinder.domain.value_caveats import (
 )
 
 type SavedKind = Literal["gene_set", "control_set"]
-
-# A held line that carries a record's own words. A number in them is the
-# record's own and no count, so a reply holds it only beside the same word.
-RECORD_WORDS = "Record words: "
 type RetiredState = Literal["withdrawn", "replaced"]
 
 
 def _counted(count: int | None, noun: str) -> str:
-    if count is None:
-        return "count not available"
-    return f"{count:,} {noun}" if count == 1 else f"{count:,} {noun}s"
+    return "count not available" if count is None else counted(count, noun)
 
 
 def _with_before(count: int | None, before: int | None, noun: str) -> str:
@@ -40,12 +37,9 @@ def _with_before(count: int | None, before: int | None, noun: str) -> str:
 
 
 class ParameterFact(CamelModel):
-    """One bound value of a step, by the name the site shows, and who set it.
-
-    ``notes`` are the measurement clauses of a default or chosen value and the
-    option label of a card value. ``name`` is the wire name, which the facts
-    part does not show.
-    """
+    """One bound value of a step and who set it. ``name`` is the wire name the
+    facts part does not show; ``notes`` are a default or chosen value's
+    measurement clauses and a card value's option label."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -56,9 +50,18 @@ class ParameterFact(CamelModel):
     source: ValueSource
     notes: list[str] = Field(default_factory=list)
 
+    @field_validator("label", mode="after")
+    @classmethod
+    def _a_label_adds_to_the_value(cls, label: str, info: ValidationInfo) -> str:
+        """A label that repeats the value names nothing more."""
+        return "" if label == info.data.get("value") else label
+
+    def shown(self) -> str:
+        """The value with its label."""
+        return f"{self.value} ({self.label})" if self.label else self.value
+
     def lines(self) -> list[str]:
-        shown = f"{self.value} ({self.label})" if self.label else self.value
-        return [f"{self.display_name}: {shown}", *self.notes]
+        return [f"{self.display_name}: {self.shown()}", *self.notes]
 
     def redacted(self, redact: Callable[[str], str]) -> ParameterFact:
         return self.model_copy(
@@ -144,16 +147,6 @@ class SourceFact(CamelModel):
         """The record's id and words, its fit, and its link."""
         named = ", ".join(t for t in (self.record_id, *self._words()) if t)
         return f"{named}{self._fit()}: {self.url}" if named else self.url
-
-    def held_lines(self, where: str) -> list[str]:
-        """The record as a reply may hold it: its id, fit and link, then its own
-        words on a line of their own."""
-        named = f"{self.record_id}{self._fit()}: " if self.record_id else ""
-        words = self._words()
-        return [
-            f"{where}: {named}{self.url}",
-            *([f"{RECORD_WORDS}{', '.join(words)}"] if words else []),
-        ]
 
     def where(self) -> str:
         return f"Read from {self.step_name}" if self.step_name else "Read"
@@ -282,7 +275,8 @@ def control_result_fact(test: ControlTestEvidence) -> ControlResultFact:
 
 
 class TurnFacts(CamelModel):
-    """Everything a turn shows beside its reply. The reply holds no fact outside it."""
+    """Everything a turn shows beside its reply, and every fact a reference of
+    the reply renders. ``comparisons`` alone make no facts part: their card shows them."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -293,6 +287,8 @@ class TurnFacts(CamelModel):
     root_count: int | None = None
     # The root's count before this turn's first edit.
     root_count_before: int | None = None
+    # The strategy's most recent change, made by this turn or an earlier one.
+    last_change: LastChange | None = None
     # The titles of the steps this turn deleted.
     removed: list[str] = Field(default_factory=list)
     strategy_url: str | None = None
@@ -308,8 +304,11 @@ class TurnFacts(CamelModel):
     listed: list[ListedFact] = Field(default_factory=list)
     # The genes the message names that the site resolved to its records.
     named_genes: list[SourceFact] = Field(default_factory=list)
+    comparisons: list[ComparisonFact] = Field(default_factory=list)
     stopped_check: str = ""
     refusal: str = ""
+    # The researcher's messages of the thread. A number they write is their word.
+    request_messages: list[str] = Field(default_factory=list, exclude=True)
 
     @field_validator("caveats", mode="after")
     @classmethod
@@ -325,6 +324,17 @@ class TurnFacts(CamelModel):
             if p.notes
         }
         return [c for c in caveats if not _drawn_by_a_row(c, noted)]
+
+    @field_validator("column_fits", mode="after")
+    @classmethod
+    def _one_row_per_column(
+        cls, fits: list[ColumnFit], info: ValidationInfo
+    ) -> list[ColumnFit]:
+        """A column is one row: its latest read, and none when a caveat shows it."""
+        caveats: list[Caveat] = info.data.get("caveats", [])
+        drawn = {key for c in caveats if (key := _sampled_column(c)) is not None}
+        latest = {fit.column_key: fit for fit in fits}
+        return [fit for key, fit in latest.items() if key not in drawn]
 
     def empty(self) -> bool:
         return not any(
@@ -346,37 +356,13 @@ class TurnFacts(CamelModel):
             )
         )
 
+    def step(self, step_id: str) -> StepFact | None:
+        """The step or criterion of that id, or None."""
+        return next((s for s in self.steps if s.step_id == step_id), None)
+
     def lines(self) -> list[str]:
-        """Every line the facts part shows, in the order it shows them."""
-        return self._rows(held=False)
-
-    def held_lines(self) -> list[str]:
-        """The lines a reply may restate: every shown line, with each record's
-        own words on a line of their own."""
-        return self._rows(held=True)
-
-    def _source_rows(self, source: SourceFact, where: str, *, held: bool) -> list[str]:
-        if held:
-            return source.held_lines(where)
-        return [f"{where}: {source.described()}"]
-
-    def _step_rows(self, step: StepFact, *, held: bool) -> list[str]:
-        return [
-            *step.lines(self.record_noun),
-            *(
-                row
-                for s in self.sources
-                if s.step_id == step.step_id
-                for row in self._source_rows(s, s.where(), held=held)
-            ),
-            *(
-                listed.line()
-                for listed in self.listed
-                if listed.step_id == step.step_id
-            ),
-        ]
-
-    def _rows(self, *, held: bool) -> list[str]:
+        """Every line the facts part shows, in the order it shows them, and a row
+        for each compared variant, which the comparison card draws."""
         noun = self.record_noun
         root = (
             []
@@ -386,8 +372,9 @@ class TurnFacts(CamelModel):
             ]
         )
         return [
-            *(line for step in self.steps for line in self._step_rows(step, held=held)),
+            *(line for step in self.steps for line in self._step_rows(step)),
             *root,
+            *([] if self.last_change is None else [self.last_change.line(noun)]),
             *(f"Removed {title}" for title in self.removed),
             *([] if self.strategy_url is None else [self.strategy_url]),
             *(caveat.sentence for caveat in self.caveats),
@@ -396,54 +383,26 @@ class TurnFacts(CamelModel):
             *(retired.sentence for retired in self.retired),
             *(saved.line() for saved in self.saved),
             *(result.sentence for result in self.control_results),
-            *(
-                row
-                for s in self.sources
-                if not s.step_id
-                for row in self._source_rows(s, s.where(), held=held)
-            ),
-            *(
-                row
-                for gene in self.named_genes
-                for row in self._source_rows(gene, "Named in the message", held=held)
-            ),
+            *(v.row(noun) for c in self.comparisons for v in c.variants),
+            *(s.line() for s in self.sources if not s.step_id),
+            *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
             *([self.stopped_check] if self.stopped_check else []),
             *([self.refusal] if self.refusal else []),
         ]
 
-    def text(self) -> str:
-        return "\n".join(self.lines())
-
-    def sources_named(self, words: Sequence[str]) -> frozenset[ValueSource]:
-        """Who set each value the words name. A value is named when every word
-        of its value, or of its label, is among the words."""
-        return frozenset(
-            p.source
-            for step in self.steps
-            for p in step.parameters
-            if any(_names(value_words(shown), words) for shown in (p.value, p.label))
-        )
-
-    def record_products(self) -> list[tuple[str, str]]:
-        """Each record id this turn read or resolved, with its product."""
+    def _step_rows(self, step: StepFact) -> list[str]:
         return [
-            (record.record_id, record.product)
-            for record in (*self.sources, *self.named_genes)
-            if record.record_id and record.product
+            *step.lines(self.record_noun),
+            *(s.line() for s in self.sources if s.step_id == step.step_id),
+            *(
+                listed.line()
+                for listed in self.listed
+                if listed.step_id == step.step_id
+            ),
         ]
 
-    def counts(self) -> frozenset[int]:
-        """Each step's count and the result's, and each count before this
-        turn's edit."""
-        return frozenset(
-            n
-            for n in (
-                *(c for s in self.steps for c in (s.count, s.count_before)),
-                self.root_count,
-                self.root_count_before,
-            )
-            if n is not None
-        )
+    def text(self) -> str:
+        return "\n".join(self.lines())
 
     def carries(self, caveat: ValueCaveat) -> bool:
         """Whether a step row shows this value with who set it and its measurement."""
@@ -460,6 +419,7 @@ class TurnFacts(CamelModel):
         return self.model_copy(
             update={
                 "steps": [step.redacted(redact) for step in self.steps],
+                "last_change": self.last_change and self.last_change.redacted(redact),
                 "removed": [redact(title) for title in self.removed],
                 "strategy_url": None
                 if self.strategy_url is None
@@ -484,36 +444,19 @@ class TurnFacts(CamelModel):
                 "sources": [source.redacted(redact) for source in self.sources],
                 "listed": [listed.redacted(redact) for listed in self.listed],
                 "named_genes": [gene.redacted(redact) for gene in self.named_genes],
+                "comparisons": [c.redacted(redact) for c in self.comparisons],
                 "stopped_check": redact(self.stopped_check),
                 "refusal": redact(self.refusal),
             }
         )
 
 
-_EDGE_MARKS = "*_`\"'.,;:!?()[]"
-
-
-def value_words(text: str) -> list[str]:
-    """The words of a value or of a phrase, casefolded, a hyphen splitting two."""
-    return [
-        w
-        for part in text.replace("-", " ").split()
-        if (w := part.strip(_EDGE_MARKS).casefold())
-    ]
-
-
-def _abbreviates(short: str, word: str) -> bool:
-    """Whether ``short`` is ``word`` cut to some of its letters, as hr is hour."""
-    if not (short.isalpha() and word.isalpha()) or len(short) >= len(word):
-        return False
-    letters = iter(word)
-    return short[0] == word[0] and all(c in letters for c in short)
-
-
-def _names(shown: Sequence[str], words: Sequence[str]) -> bool:
-    return bool(shown) and all(
-        any(s == w or _abbreviates(s, w) for w in words) for s in shown
-    )
+def _sampled_column(caveat: Caveat) -> tuple[int, str] | None:
+    match caveat:
+        case SampleCaveat():
+            return caveat.fit.column_key
+        case _:
+            return None
 
 
 def _drawn_by_a_row(caveat: Caveat, noted: set[tuple[str, str]]) -> bool:
@@ -539,7 +482,6 @@ def uncarried_assumptions(
 
 
 __all__ = [
-    "RECORD_WORDS",
     "ControlResultFact",
     "ListedFact",
     "ListedRecord",
@@ -550,6 +492,6 @@ __all__ = [
     "StepFact",
     "TurnFacts",
     "control_result_fact",
+    "counted",
     "uncarried_assumptions",
-    "value_words",
 ]

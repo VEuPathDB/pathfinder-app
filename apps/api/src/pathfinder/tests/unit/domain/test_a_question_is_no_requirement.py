@@ -85,14 +85,23 @@ _TM = [
 ]
 
 
-def test_a_message_the_gate_classified_as_a_question_files_no_row() -> None:
+def test_a_row_that_restates_a_sentence_of_a_question_message_is_dropped() -> None:
     kept = _row("two or more TM domains", 1)
     review = VerificationReview(
-        requirements=[kept, _row("how many of the 227 would remain", 2)]
+        requirements=[kept, _row("Let's compare both first", 2)]
     )
-    asks = [ResearcherAsk(message=_TM[1], text=_TM[1], question=True)]
+    asks = [ResearcherAsk(message=_TM[1], text=_TM[1])]
 
     assert without_questions(review, _TM, asks).requirements == [kept]
+
+
+def test_a_row_a_question_message_only_holds_among_its_words_stands() -> None:
+    review = VerificationReview(
+        requirements=[_row("3 TM domains", 2), _row("how many of the 227", 2)]
+    )
+    asks = [ResearcherAsk(message=_TM[1], text=_TM[1])]
+
+    assert without_questions(review, _TM, asks) == review
 
 
 def test_an_ask_of_a_later_message_keeps_a_requirement_it_repeats() -> None:

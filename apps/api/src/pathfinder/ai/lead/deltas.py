@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from assistant_core.platform.pydantic_base import CamelModel
+from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import Field, model_validator
 
 from pathfinder.ai.graph.state import OmittedFromInput, VerificationDigest
@@ -50,13 +50,11 @@ class FrameResult(CamelModel):
             "states, in the researcher's own words. Nothing is bound for it."
         ),
     )
-    changes: list[CriterionChange] = Field(
-        default_factory=list,
-        description=(
-            "One entry per criterion the workspace already held, stating "
-            "whether the pass kept, changed or dropped it. Empty when the "
-            "workspace was empty."
-        ),
+    # What the pass did to each criterion the workspace held: kept only when
+    # its wire values did not move. The dispatch derives it from the two
+    # specs, so FRAME's schema omits it.
+    changes: Annotated[list[CriterionChange], OmittedFromInput] = Field(
+        default_factory=list
     )
     # The open questions as the question card asks them. The dispatch sets it
     # from the recorded questions, so FRAME's schema omits it.
@@ -158,10 +156,22 @@ class RecoveryDelta(CamelModel):
     follow_up_needed: bool = False
 
 
+_CARD_RULE = (
+    "The strategy changes only through a card this turn: offer any change "
+    "with propose_changes showing the count before and after it, or report "
+    "the finding and ask."
+)
+
+
 class VerificationDelta(CamelModel):
     """Verification sub-agent output."""
 
     digest: VerificationDigest
+
+    @computed
+    def next_step(self) -> str | None:
+        """How the strategy may change after this check, or None when the build fixes it."""
+        return None if self.digest.blames_the_tree else _CARD_RULE
 
 
 class VerificationStopped(CamelModel):

@@ -29,7 +29,6 @@ from pathfinder.domain.strategy.edit_plan import (
     restructure,
 )
 from pathfinder.domain.strategy.operational_spec import (
-    MIN_COMBINE_INPUTS,
     Criterion,
     OperationalSpec,
     StructureNode,
@@ -325,9 +324,6 @@ def _resolve_leaf(node: StructureNode, plan: EditPlan) -> str:
 
 def _resolve_transform(node: StructureNode, plan: EditPlan) -> str:
     criterion = criterion_for(plan, node)
-    if not node.inputs:
-        msg = f"transform {criterion.id!r} states no input step"
-        raise UnsupportedEditError(msg)
     input_id = _resolve(node.inputs[0], plan)
     existing = plan.graph.steps.get(criterion.id)
     if existing is not None:
@@ -349,15 +345,10 @@ def _resolve_transform(node: StructureNode, plan: EditPlan) -> str:
 
 
 def _resolve_combine(node: StructureNode, plan: EditPlan) -> str:
-    if len(node.inputs) == 1:
-        return _resolve(node.inputs[0], plan)
-    if node.operator is None or len(node.inputs) < MIN_COMBINE_INPUTS:
-        msg = "a combine states an operator and at least two inputs"
-        raise UnsupportedEditError(msg)
     left = _resolve(node.inputs[0], plan)
     for extra in node.inputs[1:]:
         right = _resolve(extra, plan)
-        left = _join(plan, left, right, node.operator)
+        left = _join(plan, left, right, node.combine_operator)
     return left
 
 

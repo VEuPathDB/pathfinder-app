@@ -1,0 +1,14 @@
+{
+  "provider": "openai",
+  "refusal": "no_credit",
+  "status": null,
+  "body": {
+    "message": "You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.",
+    "type": "insufficient_quota",
+    "code": "credit_balance_exhausted"
+  },
+  "provenance": "recorded",
+  "source": "the deployment's OpenAI key, on an account with no credit, in a streamed request",
+  "model": "openai:gpt-5.6-luna",
+  "read_at": "2026-09-30T00:00:00Z"
+}

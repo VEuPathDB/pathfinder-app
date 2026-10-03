@@ -17,7 +17,8 @@ from itertools import combinations
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
-from veupathdb.domain.parameters import ParamValue, wire_map
+from pydantic import Field
+from veupathdb.domain.parameters import ParamValue, to_wire, wire_map
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError, WDKError
 from veupathdb.wdk import WDKAnswer, WDKSearchConfig, get_wdk_client
@@ -26,6 +27,12 @@ from veupathdb_mcp.wdk import (
     compute_plan_step_counts,
     extract_record_ids,
     view_filters_for,
+)
+
+from pathfinder.domain.comparison_facts import (
+    ComparedVariant,
+    ComparisonFact,
+    SharedGenes,
 )
 
 _CONCURRENCY = 4
@@ -38,13 +45,18 @@ _ALL_IDS_REPORT: JSONObject = {
 }
 
 
-class VariantSpec(CamelModel):
-    """One variant to run: a search + its parameter values."""
+class VariantInput(CamelModel):
+    """One variant as a caller names it: a search and its parameter values."""
 
     label: str
-    record_type: str = "transcript"
     search_name: str
     parameters: dict[str, ParamValue]
+
+
+class VariantSpec(VariantInput):
+    """One variant to run, under the record type the site lists its search under."""
+
+    record_type: str
 
 
 class PairwiseOverlap(CamelModel):
@@ -64,6 +76,8 @@ class VariantResult(CamelModel):
     # The strategy's result with this variant in place of the one step that
     # runs its search; None when no single step runs it.
     result_count: int | None = None
+    # The wire value of each parameter whose value differs between the variants.
+    differs_by: dict[str, str] = Field(default_factory=dict)
 
 
 class VariantComparison(CamelModel):
@@ -73,17 +87,23 @@ class VariantComparison(CamelModel):
     # The root step each ``result_count`` counts; None when none was counted.
     result_step_id: str | None = None
 
-    def counts(self) -> frozenset[int]:
-        """Every count a variant that ran returned: its genes, its result, its
-        unique genes, and the genes each pair shares."""
-        ran = [v for v in self.variants if v.error is None]
-        return frozenset(
-            {
-                *(v.gene_count for v in ran),
-                *(v.unique_count for v in ran),
-                *(v.result_count for v in ran if v.result_count is not None),
-                *(o.shared for o in self.overlaps),
-            }
+    def fact(self) -> ComparisonFact:
+        """The counts of the variants that ran, as a reply's references name them."""
+        return ComparisonFact(
+            variants=[
+                ComparedVariant(
+                    label=v.label,
+                    gene_count=v.gene_count,
+                    unique_count=v.unique_count,
+                    result_count=v.result_count,
+                    differs_by=v.differs_by,
+                )
+                for v in self.variants
+                if v.error is None
+            ],
+            overlaps=[
+                SharedGenes(a=o.a, b=o.b, shared=o.shared) for o in self.overlaps
+            ],
         )
 
 
@@ -186,6 +206,18 @@ async def _run_one(
     return spec, ids, total, None
 
 
+def _differs_by(specs: list[VariantSpec]) -> list[dict[str, str]]:
+    """Each spec's wire value of every parameter whose value differs between
+    the specs. A spec that names no value for such a parameter holds no entry."""
+    wires = [
+        {name: to_wire(value) for name, value in spec.parameters.items()}
+        for spec in specs
+    ]
+    names = dict.fromkeys(name for wire in wires for name in wire)
+    differing = [name for name in names if len({wire.get(name) for wire in wires}) > 1]
+    return [{name: wire[name] for name in differing if name in wire} for wire in wires]
+
+
 async def run_variant_comparison(
     site_id: str,
     specs: list[VariantSpec],
@@ -206,7 +238,7 @@ async def run_variant_comparison(
     truncated = any(total > len(ids) for _, ids, total, err in runs if err is None)
 
     variants: list[VariantResult] = []
-    for spec, ids, total, err in runs:
+    for (spec, ids, total, err), differs in zip(runs, _differs_by(specs), strict=True):
         others: set[str] = set()
         for label, other_ids in id_sets.items():
             if label != spec.label:
@@ -220,6 +252,7 @@ async def run_variant_comparison(
                 unique_count=len(unique),
                 sample_unique_genes=unique[:_SAMPLE_UNIQUE],
                 error=err,
+                differs_by=differs,
             )
         )
 

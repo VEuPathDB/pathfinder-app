@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import itertools
 import re
-from collections import Counter
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Annotated, Literal, NamedTuple
+from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Discriminator, Field
+from pydantic import ConfigDict, Discriminator, Field, model_validator
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.strategy.words import WORD, words_of
+from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 
 class ConstraintKind(StrEnum):
@@ -27,6 +25,30 @@ class ConstraintKind(StrEnum):
 
 # Every dimension a constraint can state, as an agent must spell it.
 CONSTRAINT_KINDS = ", ".join(kind.value for kind in ConstraintKind)
+
+# The dimensions every search of a strategy runs in. No single search states them.
+STRATEGY_SCOPES = frozenset({ConstraintKind.ORGANISM, ConstraintKind.RECORD_TYPE})
+
+
+# The nouns every site counts a gene answer in.
+GENE_RECORD_NOUNS = frozenset({"gene", "genes", "transcript", "transcripts"})
+# The words a record-type phrase adds to the noun it names.
+_RECORD_QUALIFIERS = frozenset({"record", "records", "level", "data", "type", "types"})
+
+
+def record_noun(text: str) -> str:
+    """The words of the text, less the words that only say it names a record type."""
+    words = re.findall(r"[a-z0-9]+", text.casefold())
+    return " ".join(word for word in words if word not in _RECORD_QUALIFIERS)
+
+
+def qualifies_a_record_noun(text: str) -> bool:
+    """Whether the text adds a content word to a gene record noun, as a gene
+    type does. Such a text names a value of the record, not a record class."""
+    words = record_noun(text).split()
+    return bool(GENE_RECORD_NOUNS.intersection(words)) and any(
+        word not in GENE_RECORD_NOUNS and word not in FILLER_WORDS for word in words
+    )
 
 
 class ConstraintSource(StrEnum):
@@ -49,6 +71,15 @@ class Constraint(CamelModel):
     hard: bool = True
     """A hard requirement ('RNA-Seq only') blocks if unmet; a soft preference
     ('RNA-Seq preferred, microarray fallback ok') is surfaced but never blocks."""
+
+    @model_validator(mode="after")
+    def _a_value_of_a_record_is_no_record_type(self) -> Constraint:
+        """A record type that qualifies a record noun states a value of it."""
+        if self.kind is ConstraintKind.RECORD_TYPE and qualifies_a_record_noun(
+            self.requested_value
+        ):
+            self.kind = ConstraintKind.OTHER
+        return self
 
     @property
     def key(self) -> str:
@@ -117,10 +148,6 @@ class GroundedConstraint(CamelModel):
         return self.lifecycle.state in ("withdrawn", "replaced")
 
 
-# A binomial is a genus and a species epithet, and only a genus abbreviates.
-_BINOMIAL_WORDS = 2
-
-
 def message_states(message: str, value: str) -> bool:
     """Whether the message carries every word of this value.
 
@@ -134,38 +161,15 @@ def message_states(message: str, value: str) -> bool:
     return bool(stated) and all(word in carried for word in stated)
 
 
-def _genus_abbreviated(value: str) -> str:
-    """The binomial with its genus as an initial, as a researcher writes it.
-
-    A one-word name abbreviates to a single letter, which names nothing, so it
-    is returned whole.
-    """
-    words = words_of(value)
-    if len(words) < _BINOMIAL_WORDS:
-        return value
-    return " ".join([words[0][0], *words[1:]])
+def content_words(value: str) -> frozenset[str]:
+    """The words of the value that are not filler."""
+    return frozenset(word for word in words_of(value) if word not in FILLER_WORDS)
 
 
-def message_states_constraint(message: str, constraint: Constraint) -> bool:
-    """Whether the message states the value this constraint carries.
-
-    A combination is stated when the message carries its terms and joins them
-    with its operator: both are the user's. An organism is written as the
-    binomial, which the message may carry with the genus abbreviated.
-    """
-    value = constraint.requested_value
-    if constraint.kind is ConstraintKind.ORGANISM:
-        return message_states(message, value) or message_states(
-            message, _genus_abbreviated(value)
-        )
-    request = (
-        CombinationRequest.parse(value)
-        if constraint.kind is ConstraintKind.COMBINATION
-        else None
-    )
-    if request is None:
-        return message_states(message, value)
-    return combination_operator_is_stated(message, request)
+def states_the_content(text: str, value: str) -> bool:
+    """Whether the text carries every word of the value that is not filler."""
+    wanted = content_words(value)
+    return bool(wanted) and wanted <= set(words_of(text))
 
 
 _UNMET = {ConstraintStatus.UNGROUNDABLE, ConstraintStatus.SUBSTITUTED}
@@ -206,17 +210,16 @@ def combination_requirements_from(
     return [c for c in requirements if c.kind is ConstraintKind.COMBINATION]
 
 
-_Dimension = tuple[ConstraintKind, str]
+_Dimension = tuple[ConstraintKind, str | frozenset[str]]
 
 
 def _dimension(c: Constraint) -> _Dimension:
-    """What a constraint collapses on.
-
-    A combination names the criteria it is about, so two of them are two
-    dimensions; every other kind holds one value per kind.
-    """
+    """What a constraint collapses on: a combination on its value, an other
+    value on its non-filler words, and every other kind on the kind alone."""
     if c.kind is ConstraintKind.COMBINATION:
         return (c.kind, c.requested_value)
+    if c.kind is ConstraintKind.OTHER:
+        return (c.kind, content_words(c.requested_value))
     return (c.kind, "")
 
 
@@ -242,6 +245,16 @@ _BOTTOM_RE = re.compile(r"\bbottom\b|\blowest\b", re.IGNORECASE)
 # A percentile named as a cut is a lower bound unless the text puts the genes
 # below it.
 _BELOW_RE = re.compile(r"\bbelow\b|\bunder\b|\bat most\b", re.IGNORECASE)
+# A percentile named by one number and the end it bounds: "minimum
+# percentile 1", "percentile 75 or above", "80 or higher".
+_PERCENTILE_WORD_RE = re.compile(r"\bpercentile\b", re.IGNORECASE)
+_NUMBER_RE = re.compile(r"\b\d+(?:\.\d+)?\b")
+_UPPER_RE = re.compile(
+    r"\bmax(?:imum)?\b|\bat most\b|\bor (?:lower|below)\b", re.IGNORECASE
+)
+_LOWER_RE = re.compile(
+    r"\bmin(?:imum)?\b|\bat least\b|\bor (?:higher|above)\b", re.IGNORECASE
+)
 _FULL_SCALE = 100.0
 
 
@@ -254,7 +267,8 @@ class PercentileRequest(CamelModel):
     @classmethod
     def parse(cls, text: str) -> PercentileRequest | None:
         """A share with its end ("top 5 percent"), or the percentile that
-        bounds it ("95th percentile", "below the 10th percentile")."""
+        bounds it ("95th percentile", "below the 10th percentile", "minimum
+        percentile 1")."""
         ordinal = _ORDINAL_RE.search(text)
         if ordinal is not None:
             bound = float(ordinal.group(1))
@@ -262,6 +276,9 @@ class PercentileRequest(CamelModel):
                 return cls(direction="bottom", share=bound)
             return cls(direction="top", share=_FULL_SCALE - bound)
         share = _SHARE_RE.search(text)
+        numbers = _NUMBER_RE.findall(text)
+        if share is None and _PERCENTILE_WORD_RE.search(text) and len(numbers) == 1:
+            return cls._bounded_at(float(numbers[0]), text)
         if share is None:
             return None
         if _TOP_RE.search(text):
@@ -271,6 +288,15 @@ class PercentileRequest(CamelModel):
         else:
             return None
         return cls(direction=direction, share=float(share.group(1)))
+
+    @classmethod
+    def _bounded_at(cls, bound: float, text: str) -> PercentileRequest | None:
+        """The share a named bound keeps, or None when the text names no end."""
+        if _UPPER_RE.search(text):
+            return cls(direction="bottom", share=bound)
+        if _LOWER_RE.search(text):
+            return cls(direction="top", share=_FULL_SCALE - bound)
+        return None
 
     @property
     def bound(self) -> float:
@@ -284,6 +310,17 @@ class PercentileRequest(CamelModel):
 CombinationOperator = Literal["OR", "AND"]
 
 _SEPARATORS: dict[CombinationOperator, str] = {"OR": " OR ", "AND": " AND "}
+# The operator each separator states. MINUS states a subtraction, which no
+# single combination operator holds.
+_STATED_BY: dict[str, CombinationOperator | None] = {
+    "OR": "OR",
+    "AND": "AND",
+    "UNION": "OR",
+    "INTERSECT": "AND",
+    "MINUS": None,
+}
+# An uppercase OR or AND, or an operator word in any case, between spaces.
+_SEPARATOR_RE = re.compile(r" (OR|AND) | ((?i:UNION|INTERSECT|MINUS)) ")
 _MIN_COMBINATION_TERMS = 2
 
 
@@ -302,17 +339,21 @@ class CombinationRequest(CamelModel):
     def parse(cls, text: str) -> CombinationRequest | None:
         """Read one operator over two or more terms, or nothing.
 
-        The operator is an uppercase word between spaces. A string that holds
-        both operators states no single combination, so it is unparseable.
+        The operator is an uppercase OR or AND, or UNION, INTERSECT or MINUS in
+        any case, between spaces. A string that states two operators, or a
+        subtraction, states no single combination, so it is unparseable.
         """
-        stated: list[CombinationOperator] = [
-            operator for operator, separator in _SEPARATORS.items() if separator in text
+        parts = _SEPARATOR_RE.split(text)
+        words = [
+            (upper or other).upper()
+            for upper, other in zip(parts[1::3], parts[2::3], strict=True)
         ]
+        stated: set[CombinationOperator | None] = {_STATED_BY[word] for word in words}
         if len(stated) != 1:
             return None
-        operator = stated[0]
-        terms = [part.strip() for part in text.split(_SEPARATORS[operator])]
-        if len(terms) < _MIN_COMBINATION_TERMS or not all(terms):
+        [operator] = stated
+        terms = [part.strip() for part in parts[::3]]
+        if operator is None or not all(terms):
             return None
         return cls(operator=operator, terms=terms)
 
@@ -320,225 +361,3 @@ class CombinationRequest(CamelModel):
     def expression(self) -> str:
         """The combination as one line, in the user's own words."""
         return _SEPARATORS[self.operator].join(self.terms)
-
-
-_AND_OR_RE = re.compile(r"\band\s*/\s*or\b", re.IGNORECASE)
-_UNION_RE = re.compile(r"\bunion\b", re.IGNORECASE)
-_INTERSECT_RE = re.compile(r"\bintersect(?:ion|s|ed)?\b", re.IGNORECASE)
-_JOINING_WORDS = frozenset({"with", "plus"})
-_AS_WELL_AS = "as well as"
-_EITHER = "either"
-_CLAUSE_BREAK_RE = re.compile(r"[,;:.!?]")
-# An "include" verb adds an alternative to what the request already finds.
-_ADDS_AN_ALTERNATIVE_RE = re.compile(
-    r"\balso\s+include|\bto\s+include\b|(?:^|[,;.]\s*)include\b"
-    r"|\bas\s+an?\s+alternative\b",
-    re.IGNORECASE,
-)
-# Words that add a term and state neither operator: a class added to a class
-# is an OR, a property added to a property is an AND.
-_STATES_NEITHER_RE = re.compile(
-    r"\bin\s+addition\s+to\b|\bas\s+well\b(?!\s+as\b)", re.IGNORECASE
-)
-
-
-def adds_an_alternative(text: str) -> bool:
-    """Whether the text adds an alternative with an "include" verb."""
-    return bool(_ADDS_AN_ALTERNATIVE_RE.search(text))
-
-
-def _states_neither(text: str) -> bool:
-    return bool(_STATES_NEITHER_RE.search(text))
-
-
-# What a connective's own words state. "list" is a bare separator, which takes
-# the operator of the next conjunction in the list.
-_Stated = Literal["OR", "AND", "both", "list"]
-
-
-class Connective(CamelModel):
-    """The message text between two consecutive terms, and the operator it states.
-
-    ``operator`` is None when the text states both operators.
-    """
-
-    before: str
-    after: str
-    text: str
-    operator: CombinationOperator | None
-
-
-class CombinationReading(CamelModel):
-    """How the message itself joins a combination's terms, in message order.
-
-    ``named`` is the operator the message names as a set operation, or OR when
-    the words after the last term add it as an alternative.
-    """
-
-    connectives: list[Connective]
-    named: CombinationOperator | None = None
-
-    def states(self, operator: CombinationOperator) -> bool:
-        if self.named is not None:
-            return self.named == operator
-        return all(c.operator == operator for c in self.connectives)
-
-    def departures(self, operator: CombinationOperator) -> list[Connective]:
-        """The connectives that do not state this operator."""
-        return [c for c in self.connectives if c.operator != operator]
-
-
-class _Span(NamedTuple):
-    term: str
-    start: int
-    end: int
-
-
-def _phrase(wanted: Sequence[str], words: Sequence[str]) -> tuple[int, int] | None:
-    """Where the term's words run in order in the message, first occurrence."""
-    width = len(wanted)
-    return next(
-        (
-            (left, left + width - 1)
-            for left in range(len(words) - width + 1)
-            if list(words[left : left + width]) == list(wanted)
-        ),
-        None,
-    )
-
-
-def _window(wanted: set[str], words: Sequence[str]) -> tuple[int, int] | None:
-    """The shortest run of message words that carries every word of the term."""
-    held: Counter[str] = Counter()
-    missing = len(wanted)
-    best: tuple[int, int] | None = None
-    left = 0
-    for right, word in enumerate(words):
-        if word in wanted:
-            held[word] += 1
-            missing -= held[word] == 1
-        while wanted and not missing:
-            if best is None or right - left < best[1] - best[0]:
-                best = (left, right)
-            dropped = words[left]
-            if dropped in wanted:
-                held[dropped] -= 1
-                missing += held[dropped] == 0
-            left += 1
-    return best
-
-
-def _span(term: str, tokens: Sequence[re.Match[str]]) -> _Span | None:
-    """Where the message carries the term: its phrase, else its words' shortest run."""
-    wanted = words_of(term)
-    words = [token.group().casefold() for token in tokens]
-    found = _phrase(wanted, words) or _window(set(wanted), words)
-    if not wanted or found is None:
-        return None
-    return _Span(term, tokens[found[0]].start(), tokens[found[1]].end())
-
-
-def _between(message: str, first: _Span, second: _Span) -> tuple[str, list[str]]:
-    """The connective text and its words.
-
-    Two spans that share a phrase are joined by the words before the second
-    that are not the first term's own.
-    """
-    if second.start >= first.end:
-        text = message[first.end : second.start]
-        return text, words_of(text)
-    text = message[first.start : second.start]
-    own = set(words_of(first.term))
-    return text, [word for word in words_of(text) if word not in own]
-
-
-def _stated_by(text: str, words: Sequence[str]) -> _Stated:
-    if _AND_OR_RE.search(text) or adds_an_alternative(text):
-        return "OR"
-    if _states_neither(text):
-        return "both"
-    says_or, says_and = "or" in words, "and" in words
-    if says_or and says_and:
-        return "both"
-    if says_or:
-        return "OR"
-    if says_and or _JOINING_WORDS & set(words) or _AS_WELL_AS in " ".join(words):
-        return "AND"
-    return "list"
-
-
-def _named_operator(message: str) -> CombinationOperator | None:
-    union, intersect = _UNION_RE.search(message), _INTERSECT_RE.search(message)
-    if union and not intersect:
-        return "OR"
-    if intersect and not union:
-        return "AND"
-    return None
-
-
-def _resolved(
-    stated: Sequence[_Stated], default: CombinationOperator | None
-) -> list[CombinationOperator | None]:
-    """Each connective's operator, a bare separator taking the next conjunction's."""
-    following: CombinationOperator | None = default
-    resolved: list[CombinationOperator | None] = []
-    for own in reversed(stated):
-        match own:
-            case "OR" | "AND":
-                following = own
-            case "both":
-                following = None
-            case "list":
-                pass
-        resolved.append(following)
-    return resolved[::-1]
-
-
-def read_combination(
-    message: str, request: CombinationRequest
-) -> CombinationReading | None:
-    """How the message joins the request's terms, or None when a term is absent.
-
-    Each term is located by its words, and the connectives are read between
-    consecutive terms in message order. An "or" inside one term's span is an
-    alternative within that term, so it is never read as a connective.
-    """
-    tokens = list(WORD.finditer(message))
-    located = [_span(term, tokens) for term in request.terms]
-    spans = sorted(
-        (span for span in located if span is not None),
-        key=lambda span: (span.start, span.end),
-    )
-    if len(spans) != len(located):
-        return None
-    pairs = list(itertools.pairwise(spans))
-    between = [_between(message, first, second) for first, second in pairs]
-    clause = _CLAUSE_BREAK_RE.split(message[: spans[0].start])[-1]
-    opening = [*words_of(clause), *words_of(spans[0].term)[:1]]
-    default: CombinationOperator | None = (
-        "OR"
-        if _EITHER in opening or adds_an_alternative(clause)
-        else None
-        if _states_neither(clause)
-        else "AND"
-    )
-    operators = _resolved([_stated_by(*joined) for joined in between], default)
-    trailing = _CLAUSE_BREAK_RE.split(message[spans[-1].end :])[0]
-    if operators and _states_neither(trailing):
-        operators[-1] = None
-    named = _named_operator(message)
-    return CombinationReading(
-        connectives=[
-            Connective(before=first.term, after=second.term, text=text, operator=op)
-            for (first, second), (text, _), op in zip(
-                pairs, between, operators, strict=True
-            )
-        ],
-        named="OR" if named is None and adds_an_alternative(trailing) else named,
-    )
-
-
-def combination_operator_is_stated(message: str, request: CombinationRequest) -> bool:
-    """Whether the message carries every term and joins them with this operator."""
-    reading = read_combination(message, request)
-    return reading is not None and reading.states(request.operator)

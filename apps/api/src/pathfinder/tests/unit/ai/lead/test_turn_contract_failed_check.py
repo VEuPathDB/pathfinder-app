@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.caveats import RequirementGap
+from pathfinder.domain.caveats import Gap, RequirementGap
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.domain.strategy.revision import strategy_revision
@@ -19,7 +19,7 @@ _REASON = "Seven of eight sampled genes are not odorant-binding proteins."
 _BUILT = "The strategy returns 8 gene records on chromosome 3."
 
 
-def _failed(*, gaps: list[RequirementGap], success: bool = False) -> LeadDeps:
+def _failed(*, gaps: list[Gap], success: bool = False) -> LeadDeps:
     deps = reading_deps()
     domain = deps.state.domain
     domain.record_verdict(
@@ -74,3 +74,15 @@ def test_a_failure_with_no_gap_is_stated_by_its_reason() -> None:
 
 def test_a_passed_check_asks_nothing() -> None:
     assert "failed_check" not in kinds(_failed(gaps=[], success=True), reply(_BUILT))
+
+
+def test_a_gap_is_named_by_its_words_and_never_by_its_number() -> None:
+    """A reply carries no number, so a gap with one is named by its other words."""
+    tm_gap = RequirementGap(text="at least 2 transmembrane domains", status="unmet")
+    deps = _failed(gaps=[tm_gap])
+
+    assert (
+        "failed_check" in kinds(deps, reply("The strategy has no TM step yet.")),
+        "failed_check"
+        in kinds(deps, reply("It does not yet require the transmembrane domains.")),
+    ) == (True, False)

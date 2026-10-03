@@ -52,8 +52,8 @@ The union of 87 and 128 giving 134 is only possible if the two kinase sets were 
 
 # The change
 
-`set_structure(root: StructureNode)` -- a recursive model, which schematizes for the tool as `$defs` with a self-reference (the same pattern `apply_operations` already proved). The FRAME instruction now shows the three node shapes and says explicitly not to flatten.
+`set_structure(root: StructureNode)` -- a recursive model, which schematizes for the tool as `$defs` with a self-reference (the same pattern `apply_operations` already proved). The FRAME instruction shows the node shapes and says explicitly not to flatten. `StructureNode` refuses a node off the shape of its kind: a leaf names a criterion and has no inputs, a combine has an operator and two or more inputs, a transform names a criterion over one input, and a copy holds one input. A refused tree is a retry the model reads.
 
 # Anchor
 
-`set_structure` in `ai/tools/standalone/frame_spec.py`. Guarded by `TestNestedBranches` in `tests/unit/ai/tools/test_frame_structure.py` and `TestNestedBranchesReachWdk` in `tests/unit/domain/strategy/test_operational_spec.py`, which pins that the branch survives all the way to the WDK step tree.
+`set_structure` in `ai/tools/standalone/frame_structure.py`, and the shape validator on `StructureNode` in `domain/strategy/operational_spec.py`. Guarded by `TestNestedBranches` in `tests/unit/ai/tools/test_frame_structure.py` and `TestNestedBranchesReachWdk` in `tests/unit/domain/strategy/test_operational_spec.py`, which pins that the branch survives all the way to the WDK step tree.

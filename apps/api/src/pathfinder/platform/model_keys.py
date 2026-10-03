@@ -2,7 +2,8 @@
 
 A researcher's live key pays for its provider; the deployment pays for the
 rest. Every resolved model is guarded, so a provider's error body reaches no
-chunk, log or trace, and a key the provider refuses is recorded for the turn.
+chunk, log or trace, and a key the provider refuses, the researcher's or the
+deployment's, is recorded for the turn.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
+from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import ModelProvider, PaidBy
 from pydantic import SecretStr
 from pydantic_ai import RunContext
@@ -44,12 +46,19 @@ from pathfinder.domain.provider_keys import (
 )
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
+    DeploymentKeyRefusedError,
     ProviderKeyRefusedError,
     ProviderNotConfiguredError,
     ProviderUnreachableError,
     refused_key_error,
 )
-from pathfinder.platform.key_refusals import classify_refusal
+from pathfinder.platform.key_refusals import (
+    PROVIDER_ERRORS,
+    classify_refusal,
+    provider_failure,
+)
+
+logger = get_logger(__name__)
 
 type ProviderBuilder = Callable[[KeyableProvider, SecretStr], Provider[Any]]
 type KeyProbe = Callable[[KeyableProvider, str, SecretStr], Awaitable[None]]
@@ -79,6 +88,7 @@ class TurnKeys:
     keyring: ProviderKeyring
     build: ProviderBuilder = build_provider
     refusals: dict[KeyableProvider, KeyRefusal] = field(default_factory=dict)
+    deployment_refusals: dict[KeyableProvider, KeyRefusal] = field(default_factory=dict)
 
 
 _turn_keys: ContextVar[TurnKeys | None] = ContextVar("turn_keys", default=None)
@@ -106,6 +116,11 @@ def turn_refusals() -> dict[KeyableProvider, KeyRefusal]:
     return dict(_current().refusals)
 
 
+def turn_deployment_refusals() -> dict[KeyableProvider, KeyRefusal]:
+    """The providers that refused the deployment's key during this turn."""
+    return dict(_current().deployment_refusals)
+
+
 def turn_paid_by(model_id: str) -> PaidBy:
     """Who pays for a call to ``model_id`` in this turn."""
     active = _current().keyring.active
@@ -115,29 +130,64 @@ def turn_paid_by(model_id: str) -> PaidBy:
 class GuardedModel(WrapperModel):
     """A model whose provider errors carry the status and never the body.
 
-    A refusal of the researcher's key is recorded for the turn and raised as
-    the typed refusal.
+    A refusal of the key is recorded for the turn and raised as the typed
+    refusal of whoever pays: the researcher or the deployment.
     """
 
     _keys: TurnKeys
-    _keyed: KeyableProvider | None
+    _key_provider: KeyableProvider | None
+    _paid_by: PaidBy
 
     def __init__(
-        self, wrapped: Model, *, keys: TurnKeys, keyed: KeyableProvider | None
+        self,
+        wrapped: Model,
+        *,
+        keys: TurnKeys,
+        provider: KeyableProvider | None,
+        paid_by: PaidBy,
     ) -> None:
         super().__init__(wrapped)
         self._keys = keys
-        self._keyed = keyed
+        self._key_provider = provider
+        self._paid_by = paid_by
 
-    def _failure(self, error: ModelHTTPError) -> Exception:
-        if self._keyed is not None:
-            refusal = classify_refusal(self._keyed, error.status_code, error.body)
-            if refusal is not None:
-                self._keys.refusals[self._keyed] = refusal
-                return ProviderKeyRefusedError(PROVIDER_NAMES[self._keyed], refusal)
-        return ModelHTTPError(
-            error.status_code, error.model_name, headers=error.headers
+    def _refused(self, provider: KeyableProvider, refusal: KeyRefusal) -> Exception:
+        name = PROVIDER_NAMES[provider]
+        if self._paid_by is PaidBy.USER:
+            self._keys.refusals[provider] = refusal
+            return ProviderKeyRefusedError(name, refusal)
+        # A deployment model can outlive the turn that built it, so the refusal
+        # goes on the turn the call runs in.
+        _current().deployment_refusals[provider] = refusal
+        return DeploymentKeyRefusedError(name, refusal)
+
+    def _failure(self, error: Exception) -> Exception:
+        failure = provider_failure(error)
+        refusal = (
+            None
+            if self._key_provider is None
+            else classify_refusal(self._key_provider, failure.status, failure.body)
         )
+        # The operator reads what the provider did; the body and message stay out.
+        provider_type, provider_code = failure.kind
+        logger.warning(
+            "model provider error",
+            error_type=type(error).__name__,
+            provider_type=provider_type,
+            provider_code=provider_code,
+            status=failure.status,
+            model=self.model_name,
+            paid_by=self._paid_by.value,
+            refusal=None if refusal is None else refusal.value,
+        )
+        if self._key_provider is not None and refusal is not None:
+            return self._refused(self._key_provider, refusal)
+        if failure.status is None:
+            return ModelAPIError(
+                self.model_name,
+                f"The provider did not complete the request to {self.model_name}.",
+            )
+        return ModelHTTPError(failure.status, self.model_name, headers=failure.headers)
 
     async def request(
         self,
@@ -149,7 +199,7 @@ class GuardedModel(WrapperModel):
             response = await super().request(
                 messages, model_settings, model_request_parameters
             )
-        except ModelHTTPError as error:
+        except PROVIDER_ERRORS as error:
             failure = self._failure(error)
         else:
             return response
@@ -169,11 +219,13 @@ class GuardedModel(WrapperModel):
                 messages, model_settings, model_request_parameters, run_context
             ) as response:
                 yield response
-        except ModelHTTPError as error:
+        except PROVIDER_ERRORS as error:
             failure = self._failure(error)
         else:
             return
-        raise failure
+        # An error the consumer's loop raised is still handled by its caller, so
+        # only suppressing the context keeps it out of the traceback.
+        raise failure from None
 
 
 def _deployment_provider(name: str, keys: TurnKeys) -> Provider[Any]:
@@ -224,7 +276,7 @@ def keyed_model(model: Model | str) -> Model | str:
         return deployment_model(model, keys)
     keyed, key = users_key
     built = infer_model(model, provider_factory=lambda _: keys.build(keyed, key))
-    return GuardedModel(built, keys=keys, keyed=keyed)
+    return GuardedModel(built, keys=keys, provider=keyed, paid_by=PaidBy.USER)
 
 
 def deployment_model(model_id: str, keys: TurnKeys | None = None) -> Model:
@@ -233,7 +285,16 @@ def deployment_model(model_id: str, keys: TurnKeys | None = None) -> Model:
     built = infer_model(
         model_id, provider_factory=lambda name: _deployment_provider(name, scope)
     )
-    return GuardedModel(built, keys=scope, keyed=None)
+    return GuardedModel(
+        built,
+        keys=scope,
+        provider=_keyable(provider_of(model_id)),
+        paid_by=PaidBy.DEPLOYMENT,
+    )
+
+
+def _keyable(provider: ModelProvider) -> KeyableProvider | None:
+    return next((keyable for keyable in KEYABLE_PROVIDERS if keyable == provider), None)
 
 
 def _is_mock_deployment() -> bool:

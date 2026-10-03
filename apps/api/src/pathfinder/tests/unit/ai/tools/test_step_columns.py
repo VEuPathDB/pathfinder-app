@@ -18,6 +18,7 @@ from veupathdb.wdk import WDKParameter
 
 from pathfinder.ai.tools.standalone._step_columns import (
     AttributeHistogram,
+    Bounds,
     ColumnBound,
     Measured,
     Threshold,
@@ -282,7 +283,7 @@ def test_a_threshold_with_no_side_the_step_holds_reports_both_sides() -> None:
         fitting=854,
         fitting_at_most=854,
         total=854,
-        bound_value="99 or less",
+        bound_value="99 or fewer",
         sides=(
             ThresholdSides(
                 value="3", above=532, above_at_most=532, below=449, below_at_most=449
@@ -369,3 +370,40 @@ def test_the_percentile_step_holds_every_transcript_at_80_or_above() -> None:
             fitting=1663, fitting_at_most=1663, total=1663, bound_value="80 to 100"
         ),
     ]
+
+
+def test_a_minimum_equal_to_the_maximum_reads_exactly_that_value() -> None:
+    (bound,) = _bounds(
+        "GenesByTransmembraneDomains",
+        _TM_PARAMETERS,
+        {"min_tm": _text("0"), "max_tm": _text("0")},
+    )
+    every_zero = AttributeHistogram(data={"0": 5041}).bins()
+
+    assert measured(bound, every_zero) == Measured(
+        fitting=5041, fitting_at_most=5041, total=5041, bound_value="exactly 0"
+    )
+
+
+def test_a_threshold_every_record_equals_takes_the_side_left_open() -> None:
+    (bound,) = _bounds(
+        "GenesByTransmembraneDomains",
+        _TM_PARAMETERS,
+        {"min_tm": _text("0"), "max_tm": _text("5")},
+    )
+    every_zero = AttributeHistogram(data={"0": 5041}).bins()
+
+    assert measured(bound, every_zero).bound_value == "0 to 5"
+
+
+def test_a_bound_states_each_side_it_knows() -> None:
+    low, high = Threshold(2.0, "2", "at_least"), Threshold(99.0, "99", "at_most")
+    same = Threshold(2.0, "2", "at_most")
+
+    assert [
+        Bounds(low, high).text,
+        Bounds(low, same).text,
+        Bounds(low=low).text,
+        Bounds(high=high).text,
+        Bounds().text,
+    ] == ["2 to 99", "exactly 2", "2 or more", "99 or fewer", ""]

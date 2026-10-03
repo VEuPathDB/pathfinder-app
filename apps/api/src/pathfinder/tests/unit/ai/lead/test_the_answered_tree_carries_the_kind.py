@@ -13,7 +13,6 @@ from pathfinder.domain.strategy.step_words import StampedKind, StepWords
 from pathfinder.tests.unit.ai.lead._analysis_thread import bare_thread, export
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
-    kept,
 )
 
 
@@ -43,7 +42,7 @@ async def test_an_edit_a_turn_entry_and_a_second_export_keep_every_kind(
 ) -> None:
     thread = bare_thread(monkeypatch)
     first = await export(thread, reference="18h")
-    thread.frames(lambda found: found, declared=kept(first.step_id))
+    thread.frames(lambda found: found)
     assert isinstance(await thread.edit(), EditDelta)
     await thread.next_turn()
 

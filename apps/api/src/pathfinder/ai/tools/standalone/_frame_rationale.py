@@ -34,6 +34,7 @@ from pathfinder.domain.strategy.step_rationale import (
     SearchRationale,
     names_the_phrase,
 )
+from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 _COMPARED = 3
 
@@ -54,7 +55,10 @@ class SearchChoice(CamelModel):
         description=(
             "parameter: the name or display name of the parameter you set, never "
             "its value. organism: the organism value you set. record_type: the "
-            "record type. only_match and nearest: the phrase from the request."
+            "record type. only_match and nearest: the phrase from the request. "
+            "A call that sets a value away from its default besides the organism "
+            "names that parameter with basis parameter, even when the edit "
+            "changes only the organism; the organism goes in the reason."
         )
     )
     reason: str = Field(
@@ -96,9 +100,10 @@ async def rationale_for(
     """The recorded reason for this binding, or a retry naming what is wrong.
 
     A binding on the search the criterion already runs keeps its reason while
-    it changes no value the reason was derived from. One that changes such a
-    value records the edit's why, checked like a new one against the catalog
-    read the reason holds, and is refused without one.
+    it changes no value the reason was derived from, or only an organism the
+    reason does not name. One that changes such a value records the edit's
+    why, checked like a new one against the catalog read the reason holds, and
+    is refused without one.
     """
     criterion_id, search_name = call.criterion_id, call.search_name
     state = ctx.deps.agent_state
@@ -115,8 +120,12 @@ async def rationale_for(
             return ChosenWhy(None)
         if kept.kind == "search":
             changed = kept.changed_by(_wired(values))
+            organisms = {info.name for info in infos if info.organism_param}
             if not changed:
                 return ChosenWhy(kept)
+            if set(changed) <= organisms and not _names_the_old_value(kept, changed):
+                rewired = kept.model_copy(update={"derived_from": _wired(values)})
+                return ChosenWhy(rewired)
             if why is None:
                 raise ModelRetry(_derived_from_changed(criterion_id, kept, changed))
             read = read or _read_behind(kept, held, record_type)
@@ -165,6 +174,17 @@ async def rationale_for(
     )
     corrections = () if chosen.correction is None else (chosen.correction,)
     return ChosenWhy(rationale, corrections)
+
+
+def _names_the_old_value(kept: SearchRationale, changed: Sequence[str]) -> bool:
+    """Whether the reason's words hold a word of a value this edit changes."""
+    said = set(words_of(kept.sentence))
+    return any(
+        word in said
+        for name in changed
+        for word in words_of(kept.derived_from.get(name, ""))
+        if word not in FILLER_WORDS
+    )
 
 
 def _wired(values: Mapping[str, ParamValue]) -> dict[str, str]:

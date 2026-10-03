@@ -32,7 +32,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.services.strategies.commit import CommitResult
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
@@ -205,15 +204,9 @@ async def _restoring_edit(
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = _reframed()
-        # The work order lists the criterion the strategy holds no step for,
-        # and the pass states that it stands.
         return FrameResult(
             disposition="spec_ready",
             summary="reframed",
-            changes=[
-                CriterionChange(criterion_id=_SIGNAL, disposition="kept"),
-                CriterionChange(criterion_id=_TRANSMEMBRANE, disposition="kept"),
-            ],
         )
 
     async def _fake_commit(**kwargs: Any) -> CommitResult:

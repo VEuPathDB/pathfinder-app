@@ -206,6 +206,40 @@ describe("DataFacts", () => {
     );
   });
 
+  it("shows the last change with the result's count before and after it", () => {
+    render(
+      <DataFacts
+        data={{
+          rootCount: 68,
+          lastChange: {
+            what: "deleted Predicted Signal Peptide",
+            before: 17,
+            after: 68,
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-last-change")).toHaveTextContent(
+      "Last change: deleted Predicted Signal Peptide; 17 genes before, 68 genes after",
+    );
+  });
+
+  it("says a count the last change did not record is not recorded", () => {
+    render(
+      <DataFacts
+        data={{
+          rootCount: 68,
+          lastChange: { what: "built the strategy", after: 68 },
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-last-change")).toHaveTextContent(
+      "Last change: built the strategy; count before not recorded, 68 genes after",
+    );
+  });
+
   it("lists the genes the message names with their records", () => {
     const record = "https://plasmodb.org/plasmo/app/record/gene/PF3D7_1133400";
     render(

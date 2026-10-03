@@ -58,7 +58,7 @@ class TestClassifyWDKError:
 
 
 class TestClassifyHttpxErrors:
-    """httpx network errors are TRANSIENT."""
+    """Every httpx transport error is TRANSIENT."""
 
     def test_timeout_exception_is_transient(self) -> None:
         exc = httpx.TimeoutException("timed out")
@@ -67,6 +67,16 @@ class TestClassifyHttpxErrors:
     def test_connect_error_is_transient(self) -> None:
         exc = httpx.ConnectError("connection refused")
         assert classify_error(exc) == ErrorCategory.TRANSIENT
+
+    def test_remote_protocol_error_is_transient(self) -> None:
+        exc = httpx.RemoteProtocolError(
+            "peer closed connection without sending complete message body "
+            "(incomplete chunked read)"
+        )
+        assert classify_error(exc) == ErrorCategory.TRANSIENT
+
+    def test_read_error_is_transient(self) -> None:
+        assert classify_error(httpx.ReadError("reset")) == ErrorCategory.TRANSIENT
 
 
 class TestClassifyOSErrors:

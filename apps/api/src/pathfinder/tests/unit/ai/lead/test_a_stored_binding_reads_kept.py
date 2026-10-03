@@ -12,7 +12,6 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
-    kept,
     session_holding,
 )
 from pathfinder.tests.unit.domain.strategy._analysis import (
@@ -77,7 +76,7 @@ async def test_a_turn_that_changes_nothing_keeps_the_stored_binding(
         monkeypatch, spec=_stored(), session=session_holding(e2_step())
     )
     await thread.next_turn()
-    thread.frames(lambda found: found, declared=kept(E2_STEP))
+    thread.frames(lambda found: found)
 
     delta = await thread.edit()
 

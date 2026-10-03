@@ -12,6 +12,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     Measurement,
     OperationalSpec,
+    ValueSource,
 )
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.domain.value_caveats import LabelGapCaveat, assumed_value_caveats
@@ -29,7 +30,7 @@ _GAP = Measurement(
 )
 
 
-def _criterion(source: str) -> Criterion:
+def _criterion(source: ValueSource) -> Criterion:
     return Criterion.model_validate(
         {
             "id": "c_lipase_annotation",

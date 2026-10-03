@@ -162,6 +162,7 @@ def _value_caveat(
         case (
             (
                 "vocabulary_label"
+                | "phrase_reading"
                 | "not_measurable"
                 | "picked_from_a_cut_list"
                 | "picked_from_a_lookup"

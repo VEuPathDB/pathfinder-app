@@ -1,6 +1,6 @@
-"""A bound parameter the sheet hides and offers no entries for is the site's
-own. The criterion marks it, so no facts row draws it; a hidden parameter with
-entries is a choice and stays unmarked."""
+"""A bound parameter the sheet hides and offers no choice for is marked not
+visible, so no facts row draws it. A hidden parameter with a choice of entries
+stays visible, and so does a parameter the sheet shows."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def _sheet(context: dict[str, str]) -> list[ParameterInfo]:
 
 
 @pytest.mark.asyncio
-async def test_a_hidden_parameter_without_entries_is_marked_as_the_sites(
+async def test_only_a_hidden_parameter_without_a_choice_is_not_visible(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     serve_search(monkeypatch, _sheet, url_segment=_SEARCH, display_name="Profile")
@@ -61,7 +61,8 @@ async def test_a_hidden_parameter_without_entries_is_marked_as_the_sites(
     )
 
     [criterion] = state.operational_spec_draft.criteria
-    assert (
-        "profile_pattern" in criterion.resolved_params,
-        criterion.hidden_params,
-    ) == (True, ["profile_pattern"])
+    assert {name: held.visible for name, held in criterion.resolved_params.items()} == {
+        "profile_pattern": False,
+        "profileset_generic": True,
+        "min_count": True,
+    }

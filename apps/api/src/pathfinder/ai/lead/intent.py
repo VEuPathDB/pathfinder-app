@@ -9,14 +9,16 @@ from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.strategy.constraints import (
     CONSTRAINT_KINDS,
-    CombinationReading,
     CombinationRequest,
     Constraint,
     ConstraintKind,
     message_states,
+)
+from pathfinder.domain.strategy.message_reading import (
+    CombinationReading,
     read_combination,
 )
-from pathfinder.domain.strategy.requirement_lifecycle import RequirementWithdrawal
+from pathfinder.domain.strategy.undo_words import asks_to_undo
 from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 
 
@@ -127,6 +129,10 @@ class UserIntent(CamelModel):
             "for any other message."
         ),
     )
+    undo: bool = Field(
+        default=False,
+        description="The message asks to undo, revert or put back the last change.",
+    )
     asks: list[str] = Field(
         default_factory=list,
         description=(
@@ -148,14 +154,15 @@ class UserIntent(CamelModel):
             "scoping's provisional assumptions for the same dimension."
         ),
     )
-    withdrawn_requirements: list[RequirementWithdrawal] = Field(
+    withdrawn: list[Constraint] = Field(
         default_factory=list,
         description=(
-            "One entry per requirement the conversation holds that this message "
-            "takes back or swaps for another: removing a requirement or a step "
-            "that states it, or replacing a value with a new one. The key is "
-            "the requirement's '<dimension>:<requested value>'; a swap names "
-            "the requirement it states in its place in ``replacedBy``."
+            "One entry per requirement this message takes back, typed as in "
+            "explicitConstraints: its dimension and its value in the words the "
+            "conversation stated it in. A new value of any dimension but "
+            "'other' takes the old one's place, so a message that only states "
+            "one withdraws nothing here. An 'other' value stands beside the "
+            "others: a message that swaps one lists the old value here."
         ),
     )
     named_controls: NamedControls | None = Field(
@@ -192,12 +199,41 @@ class UserIntent(CamelModel):
         ]
         return self
 
+    def as_question(self) -> UserIntent:
+        """This intent as a follow-up question that keeps its asks and requests no change."""
+        return UserIntent.model_validate(
+            {
+                **self.model_dump(),
+                "classification": IntentClassification.FOLLOW_UP_QUESTION,
+                "edit_direction": "other",
+            }
+        )
+
+    def with_undo_read_from(self, message: str) -> UserIntent:
+        """This intent, recording an undo when the message asks for one too.
+
+        An intent the message leaves as it is stays the same object.
+        """
+        if self.undo or not asks_to_undo(message):
+            return self
+        return self.model_copy(update={"undo": True})
+
+    def asks_only_to_undo(self) -> bool:
+        """Whether the message asks to undo the last change and states no value.
+
+        A combination states a shape and no value, so it is not one. An undo
+        withdraws the last change, so a withdrawn requirement keeps it an undo.
+        """
+        return self.undo and all(
+            c.kind is ConstraintKind.COMBINATION for c in self.explicit_constraints
+        )
+
     def researcher_asks(self, message: str) -> list[ResearcherAsk]:
         """The parts of the message that ask for an answer: all of it when the
         message is a question, else each ask that does not restate the
         message, since the message itself is the request."""
         if self.classification is IntentClassification.FOLLOW_UP_QUESTION:
-            return [ResearcherAsk(message=message, text=message, question=True)]
+            return [ResearcherAsk(message=message, text=message)]
         return [
             ResearcherAsk(message=message, text=ask)
             for ask in self.asks
@@ -313,6 +349,14 @@ def repeated_refusal_message(refusal: str) -> str:
         f"{refusal}\n\nThis call repeats the one just refused, so it fails "
         "without a retry. Ask the researcher the question this refusal states, "
         "through consult_user."
+    )
+
+
+def recorded_as_question_message() -> str:
+    """The note on a request classification the gate records as a question."""
+    return (
+        "Recorded as a follow_up_question: the message states no change outside "
+        "its questions; the facts answer it and nothing is framed."
     )
 
 

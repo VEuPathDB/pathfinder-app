@@ -98,8 +98,11 @@ async def test_a_floor_the_card_bound_stays_the_cards_on_the_rebind(
 
     rebound = await _bound(state, min_expression_percentile="1")
 
-    assert rebound.resolved_params[_FLOOR] == BoundValue(
-        value=StringValue(value="1"), source="card", basis="1"
+    floor = rebound.resolved_params[_FLOOR]
+    assert (floor.value, floor.source, floor.basis) == (
+        StringValue(value="1"),
+        "card",
+        "1",
     )
 
 

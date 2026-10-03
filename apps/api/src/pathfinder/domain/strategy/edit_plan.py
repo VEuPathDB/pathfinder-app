@@ -22,7 +22,6 @@ from pathfinder.domain.strategy.combine_naming import (
     combine_name,
 )
 from pathfinder.domain.strategy.operational_spec import (
-    MIN_COMBINE_INPUTS,
     Criterion,
     StructureNode,
 )
@@ -80,9 +79,11 @@ def node_for(criterion: Criterion) -> StrategyStepNode:
 
 
 def criterion_for(plan: EditPlan, node: StructureNode) -> Criterion:
-    criterion = plan.criteria.get(node.criterion_id or "")
+    criterion = plan.criteria.get(node.named_criterion)
     if criterion is None:
-        msg = f"structure names criterion {node.criterion_id!r}, which the spec lacks"
+        msg = (
+            f"structure names criterion {node.named_criterion!r}, which the spec lacks"
+        )
         raise UnsupportedEditError(msg)
     return criterion
 
@@ -125,9 +126,6 @@ def _live_or_added_node(criterion: Criterion, plan: EditPlan) -> StrategyStepNod
 
 def _target_transform(node: StructureNode, plan: EditPlan) -> StrategyStepNode:
     criterion = criterion_for(plan, node)
-    if not node.inputs:
-        msg = f"transform {criterion.id!r} states no input step"
-        raise UnsupportedEditError(msg)
     return _live_or_added_node(criterion, plan).model_copy(
         update={
             "primary_input": target(node.inputs[0], plan),
@@ -137,14 +135,9 @@ def _target_transform(node: StructureNode, plan: EditPlan) -> StrategyStepNode:
 
 
 def _target_combine(node: StructureNode, plan: EditPlan) -> StrategyStepNode:
-    if len(node.inputs) == 1:
-        return target(node.inputs[0], plan)
-    if node.operator is None or len(node.inputs) < MIN_COMBINE_INPUTS:
-        msg = "a combine states an operator and at least two inputs"
-        raise UnsupportedEditError(msg)
     left = target(node.inputs[0], plan)
     for extra in node.inputs[1:]:
-        left = _target_join(plan, left, target(extra, plan), node.operator)
+        left = _target_join(plan, left, target(extra, plan), node.combine_operator)
     return left
 
 

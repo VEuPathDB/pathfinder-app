@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
     OFF_TOPIC_REPLY_MAX_CHARS,
+    LeadResponse,
     reconcile,
+    unrendered_prose,
 )
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
@@ -283,20 +286,20 @@ class TestTheOffTopicEssayRule:
 _RECORD_URL = "https://toxodb.org/toxo/app/record/gene/TGME49_233460"
 
 
+def _unrendered(deps: LeadDeps, report: LeadResponse) -> list[str]:
+    found = unrendered_prose([report.prose], turn_record(run_context_for(deps)))
+    return [] if found is None else [found.kind]
+
+
 class TestTheLinksTheReplyGives:
-    def test_the_record_this_turn_read_may_be_linked(self) -> None:
+    def test_a_link_in_the_prose_is_refused(self) -> None:
         deps = reading_deps()
         deps.state.turn_markers.record_retrieved_source(_RECORD_URL)
-        report = reply(f"The [gene record]({_RECORD_URL}) says one exon.")
+        report = reply(f"The [gene record]({_RECORD_URL}) states its exons.")
 
-        assert kinds(deps, report) == []
-
-    def test_a_link_no_read_of_this_turn_returned_is_refused(self) -> None:
-        report = reply(f"The [gene record]({_RECORD_URL}) says one exon.")
-
-        assert kinds(reading_deps(), report) == ["fact_outside_the_block"]
+        assert _unrendered(deps, report) == ["unrendered_prose"]
 
     def test_a_doi_in_the_prose_is_refused(self) -> None:
         report = reply("See doi:10.1000/invented.2026.99 for the review.")
 
-        assert kinds(reading_deps(), report) == ["fact_outside_the_block"]
+        assert _unrendered(reading_deps(), report) == ["unrendered_prose"]

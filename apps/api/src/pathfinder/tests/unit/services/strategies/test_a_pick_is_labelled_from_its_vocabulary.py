@@ -12,7 +12,10 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
-from pathfinder.domain.strategy.operational_spec import BoundValue
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+)
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies.value_labels import (
     UnlabelledPick,
     vocabulary_labels,
@@ -144,3 +147,36 @@ def test_a_clause_on_a_field_the_parameter_lacks_names_the_fields_it_has() -> No
         )
     ]
     assert len(labels.unlabelled[0].labels) == 27
+
+
+def test_the_bound_label_joins_the_label_of_each_term() -> None:
+    """The row's label and the per-term labels come from one reading."""
+    picks: dict[str, ParamValue] = {
+        "profileset_generic": SinglePickValue(value=_PROFILESET),
+        "samples_percentile_generic": MultiPickValue(
+            values=["asexual blood stages", "salivary gland sporozoite"]
+        ),
+        "protein_coding_only": SinglePickValue(value="maybe"),
+    }
+    clauses = _samples(
+        {"field": _SEX, "type": "string", "value": ["female"]},
+        {"field": "VAR_00000000", "value": ["female"]},
+        {"field": _SAMPLE_NAME, "value": ["PfSample-not-listed"]},
+    )
+    read = [
+        (
+            vocabulary_labels(_bound(picks), _sheet()),
+            bind_values(picks, "stated", _sheet()),
+        ),
+        (
+            vocabulary_labels(clauses, _snps_sheet()),
+            bind_values({_SAMPLES: clauses[_SAMPLES].value}, "stated", _snps_sheet()),
+        ),
+    ]
+
+    for labels, bound in read:
+        joined = {
+            name: ", ".join(m.label for m in labels.labels if m.param == name)
+            for name in bound
+        }
+        assert joined == {name: held.label for name, held in bound.items()}

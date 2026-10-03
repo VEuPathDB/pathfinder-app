@@ -75,7 +75,7 @@ async def test_a_frame_that_records_a_waiting_comparison_is_ready(
 ) -> None:
     """The waiting criterion is the pass's work, not a pass that bound nothing."""
     thread = _empty_thread(monkeypatch, OperationalSpec(goal="24 h over 36 h"))
-    thread.frames(lambda _found: _spec(pending(_WAITING)), declared=[])
+    thread.frames(lambda _found: _spec(pending(_WAITING)))
 
     result = await thread.frame()
 

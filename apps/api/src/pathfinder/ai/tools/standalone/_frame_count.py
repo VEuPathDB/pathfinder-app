@@ -97,21 +97,21 @@ def _offered_by(info: ParameterInfo, value: ParamValue) -> ParameterAlternatives
 def empty_binding_alternatives(
     result_count: int | None,
     infos: Sequence[ParameterInfo],
-    resolved: ResolvedParams,
+    criterion: Criterion,
 ) -> list[ParameterAlternatives]:
-    """The choices inside a binding that matches no record.
+    """The choices inside a binding that matches no record, on the parameters
+    the site shows.
 
     A binding that matches records, and one whose count did not arrive, offers
     nothing to report.
     """
     if result_count != 0:
         return []
+    shown = criterion.shown_values
     offered = [
-        _offered_by(info, resolved.params[info.name])
+        _offered_by(info, shown[info.name].value)
         for info in infos
-        if info.is_visible
-        and info.param_kind in _VOCABULARY_KINDS
-        and info.name in resolved.params
+        if info.param_kind in _VOCABULARY_KINDS and info.name in shown
     ]
     return [entry for entry in offered if entry is not None]
 
@@ -158,7 +158,7 @@ async def record_and_count_criterion(
         _refuse_an_empty_obsolete_pick(criterion, infos, record_type)
     state = ctx.deps.agent_state
     state.frame_set_criterion(criterion)
-    alternatives = empty_binding_alternatives(count, infos, resolved)
+    alternatives = empty_binding_alternatives(count, infos, criterion)
     state.frame_record_count(criterion.id, count, alternatives)
     return count, alternatives
 

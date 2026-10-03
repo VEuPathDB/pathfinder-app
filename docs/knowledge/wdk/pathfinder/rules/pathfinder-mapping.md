@@ -333,9 +333,11 @@ ordinary tree. The same module refuses a round trip without the INTERSECT, a
 copy that differs from the subtree it restates, and two legs that differ in
 anything but the organism each maps to; `set_structure`, the build and the edit
 each read it.
-An edit the researcher asked to tighten or loosen keeps the organism the held
-root answers, so an edit whose tree would answer another organism's genes (a
-one-way transform) is refused with the round trip above
+An edit the researcher asked to tighten keeps organisms the held root answers,
+and one asked to loosen keeps every one of them. So a tighten from every
+Plasmodium organism to P. falciparum 3D7 alone passes, and an edit whose tree
+would answer another organism's genes (a one-way transform) is refused with the
+round trip above
 (`domain/strategy/orthology.py:organism_move_refusal`, read by the edit
 dispatch).
 

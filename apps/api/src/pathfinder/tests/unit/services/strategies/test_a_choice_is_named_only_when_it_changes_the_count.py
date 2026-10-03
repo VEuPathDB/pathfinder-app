@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Measurement,
     OperationalSpec,
 )
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.domain.value_caveats import (
     ChoiceCaveat,
     assumed_value_caveats,
@@ -111,7 +112,7 @@ async def test_a_default_comparison_whose_other_option_counts_fewer_is_a_choice(
             params={"profileset_generic": value},
             count=bound,
         ),
-        values={"profileset_generic": BoundValue(value=value, source="default")},
+        values=bind_values({"profileset_generic": value}, "default", _life_stages()),
         infos=_life_stages(),
     )
 
@@ -165,7 +166,7 @@ async def test_a_percentile_step_names_only_the_picks_that_change_its_count(
             or []
         )
     )
-    values = {n: BoundValue(value=params[n], source="default") for n in picks}
+    values = bind_values({n: params[n] for n in picks}, "default", infos)
     bound = recorded_count("report_percentile_min_80")
 
     measured = await measure_binding(
@@ -218,6 +219,18 @@ async def test_a_percentile_step_names_only_the_picks_that_change_its_count(
     ] == [("chosen_among", "Experiment"), ("chosen_among", "Protein Coding Only:")]
 
 
+def _gene_types() -> list[ParameterInfo]:
+    return format_param_info_typed(
+        list(suite_search("search_genes_by_gene_type").parameters or [])
+    )
+
+
+def _snps() -> list[ParameterInfo]:
+    return format_param_info_typed(
+        list(suite_search("search_genes_by_ngs_snps").parameters or [])
+    )
+
+
 def _gene_type_count(_search: str, params: Mapping[str, ParamValue]) -> int:
     assert json.loads(wire(params, "geneType")) == [
         "misc RNA",
@@ -248,10 +261,8 @@ async def test_a_default_multi_pick_subset_is_counted_at_every_option(
             },
             count=bound,
         ),
-        values={"geneType": BoundValue(value=value, source="default")},
-        infos=format_param_info_typed(
-            list(suite_search("search_genes_by_gene_type").parameters or [])
-        ),
+        values=bind_values({"geneType": value}, "default", _gene_types()),
+        infos=_gene_types(),
     )
 
     assert (bound, measured) == (
@@ -307,10 +318,8 @@ async def test_a_multi_pick_whose_other_reading_the_site_refuses_is_no_reading(
             },
             count=recorded_count("report_gene_type_protein_coding"),
         ),
-        values={"geneType": BoundValue(value=value, source="default")},
-        infos=format_param_info_typed(
-            list(suite_search("search_genes_by_gene_type").parameters or [])
-        ),
+        values=bind_values({"geneType": value}, "default", _gene_types()),
+        infos=_gene_types(),
     )
 
     assert measured == []
@@ -332,10 +341,8 @@ async def test_a_tree_pick_records_that_options_not_taken_do_not_apply(
             params={"organismSinglePick": value},
             count=None,
         ),
-        values={"organismSinglePick": BoundValue(value=value, source="default")},
-        infos=format_param_info_typed(
-            list(suite_search("search_genes_by_ngs_snps").parameters or [])
-        ),
+        values=bind_values({"organismSinglePick": value}, "default", _snps()),
+        infos=_snps(),
     )
 
     assert (asked, measured) == (
@@ -377,9 +384,11 @@ async def test_every_option_of_a_large_vocabulary_is_named_with_its_separator() 
     async def _count(_params: Mapping[str, ParamValue]) -> int:
         return 4444
 
-    measured = await default_reading(
-        _count, info.name, MultiPickValue(values=["PF00001"]), info, 37
-    )
+    [held] = bind_values(
+        {info.name: MultiPickValue(values=["PF00001"])}, "default", [info]
+    ).values()
+
+    measured = await default_reading(_count, info.name, held, info, 37)
 
     assert [(m.kind, m.count, m.reading) for m in measured[:1]] == [
         ("loosest_bound", 4444, "all 2,441 options")

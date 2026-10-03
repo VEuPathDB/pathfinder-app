@@ -23,7 +23,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -58,50 +57,11 @@ async def test_a_spec_with_no_structure_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = await _entered(monkeypatch)
-    thread.frames(_structured(None), declared=kept(SURFACE, STAGE))
+    thread.frames(_structured(None))
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)
 
     assert "the edited spec states no structure" in refusal
-
-
-async def test_a_combine_with_no_operator_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    thread = await _entered(monkeypatch)
-    thread.frames(
-        _structured(
-            StructureNode(
-                kind="combine", operator=None, inputs=[leaf(SURFACE), leaf(STAGE)]
-            )
-        ),
-        declared=kept(SURFACE, STAGE),
-    )
-
-    refusal = await a_refusal_that_keeps_the_thread_whole(thread)
-
-    assert "a combine states an operator and at least two inputs" in refusal
-
-
-async def test_a_transform_with_no_input_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    thread = await _entered(monkeypatch)
-    thread.frames(
-        _structured(
-            joined(
-                CombineOp.INTERSECT,
-                leaf(SURFACE),
-                StructureNode(kind="transform", criterion_id=STAGE, inputs=[]),
-            )
-        ),
-        declared=kept(SURFACE, STAGE),
-    )
-
-    refusal = await a_refusal_that_keeps_the_thread_whole(thread)
-
-    assert "states no input step" in refusal
-    assert f"transform {STAGE!r} states no input step" in refusal
 
 
 async def test_a_structure_naming_a_criterion_the_spec_lacks_is_refused(
@@ -110,7 +70,6 @@ async def test_a_structure_naming_a_criterion_the_spec_lacks_is_refused(
     thread = await _entered(monkeypatch)
     thread.frames(
         _structured(joined(CombineOp.INTERSECT, leaf(SURFACE), leaf(_NOWHERE))),
-        declared=kept(SURFACE, STAGE),
     )
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)
@@ -124,7 +83,7 @@ async def test_a_structure_that_leaves_a_live_criterion_out_is_refused(
 ) -> None:
     """The planner never removes a step the edit did not ask it to remove."""
     thread = await _entered(monkeypatch)
-    thread.frames(_structured(leaf(SURFACE)), declared=kept(SURFACE, STAGE))
+    thread.frames(_structured(leaf(SURFACE)))
 
     refusal = await a_refusal_that_keeps_the_thread_whole(thread)
 

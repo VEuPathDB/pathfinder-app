@@ -45,7 +45,7 @@ _TM_REQUEST = (
 
 
 def _source(value: ParamValue, texts: list[str]) -> str:
-    return value_source(value, initial_display_value=None, request_texts=texts)
+    return value_source(value, placeholder=False, unset=False, request_texts=texts)
 
 
 def test_a_boolean_the_model_composed_is_chosen() -> None:

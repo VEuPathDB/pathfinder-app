@@ -7,13 +7,18 @@ reads.
 from __future__ import annotations
 
 import pytest
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
-from pathfinder.tests.unit.ai.tools.test_frame_spec import bind, serve_search
+from pathfinder.tests.unit.ai.tools.test_frame_spec import (
+    bind,
+    param_info,
+    serve_search,
+)
 from pathfinder.tests.unit.ai.tools.test_frame_spec_criterion_count import _serve_count
 from pathfinder.tests.unit.ai.tools.test_frame_spec_empty_criterion import (
     _PICK_V3,
@@ -111,3 +116,28 @@ async def test_a_vocabulary_too_large_to_list_renders_its_size_alone(
     rendered = _frame_section(state.operational_spec_draft)
     assert "    CHOICES tissue: holds ['t7'], 40 options" in rendered
     assert "others" not in rendered
+
+
+def _hidden_versioned(context: dict[str, str]) -> list[ParameterInfo]:
+    """The versioned search with its vocabulary parameter not visible, beside
+    a shown minimum."""
+    hidden = [
+        info.model_copy(update={"is_visible": False}) for info in versioned(context)
+    ]
+    return [param_info("min_count", default_value="1"), *hidden]
+
+
+@pytest.mark.asyncio
+async def test_a_hidden_parameter_with_a_choice_renders_its_choices_line(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_search(monkeypatch, _hidden_versioned)
+    _serve_count(monkeypatch, 0)
+    state = AgentToolState()
+
+    await bind(state, "RecordsByMethod", {"min_count": "1", **_PICK_V3})
+
+    assert (
+        "    CHOICES method_version: holds ['v3'], 3 options, others ['v2', 'v1']"
+        in _frame_section(state.operational_spec_draft)
+    )

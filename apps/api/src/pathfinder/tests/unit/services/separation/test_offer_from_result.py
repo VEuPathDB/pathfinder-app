@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
+from veupathdb_mcp.catalog import format_param_info_typed
 from veupathdb_mcp.separation import (
     SeparationNode,
     SeparationResult,
@@ -19,6 +20,7 @@ from pathfinder.domain.separation import SeparationOffer, SeparationReport
 from pathfinder.domain.strategy.spec_tree import build_step_tree
 from pathfinder.domain.strategy.step_rationale import ControlsRationale
 from pathfinder.services.separation.offer import separation_report
+from pathfinder.tests._support.recorded_searches import suite_search
 from pathfinder.tests._support.separation import (
     ERYTHROCYTE_INVASION,
     SIGNAL_PEPTIDE,
@@ -28,7 +30,7 @@ from pathfinder.tests._support.separation import (
 
 
 def _report(result: SeparationResult) -> SeparationReport:
-    return separation_report(result, task_id=TASK_ID)
+    return separation_report(result, task_id=TASK_ID, sheets={})
 
 
 def _offer(result: SeparationResult) -> SeparationOffer:
@@ -218,4 +220,40 @@ def test_a_run_that_assembled_nothing_offers_nothing() -> None:
     )
     assert report.summary == (
         "no strategy assembled; No measured criterion recovers any positive."
+    )
+
+
+def test_each_offered_value_is_read_on_the_published_sheet_of_its_search() -> None:
+    sheet = [
+        info
+        for info in format_param_info_typed(
+            list(suite_search("search_genes_by_text").parameters or [])
+        )
+        if info.is_visible
+    ]
+
+    report = separation_report(
+        recorded_separation(ERYTHROCYTE_INVASION),
+        task_id=TASK_ID,
+        sheets={"GenesByText": sheet},
+    )
+
+    assert report.offer is not None
+    [pfemp1] = [c for c in report.offer.spec.criteria if c.id == "c11"]
+    fields = pfemp1.resolved_params["text_fields"]
+    text = pfemp1.resolved_params["text_expression"]
+    assert (
+        fields.source,
+        fields.display_name,
+        fields.label,
+        text.display_name,
+        text.at_default,
+        pfemp1.resolved_params["document_type"].display_name,
+    ) == (
+        "card",
+        "Fields",
+        "Product description",
+        "Text term (use * as wildcard)",
+        False,
+        "",
     )

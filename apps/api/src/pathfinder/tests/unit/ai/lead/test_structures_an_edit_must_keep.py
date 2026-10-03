@@ -50,9 +50,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -115,11 +113,11 @@ async def test_an_option_whose_carrier_the_canvas_deleted_is_refused_by_name(
         recorded_build=recorded(SURFACE, STAGE, ROOT),
     )
     await thread.next_turn()
-    thread.frames(_with_the_option(None), declared=[], disposition="needs_user")
+    thread.frames(_with_the_option(None), disposition="needs_user")
     await thread.edit()
     canvas_deletes(thread.graph, STAGE)
     await thread.next_turn()
-    thread.frames(_with_the_option("ds2019"), declared=kept(SURFACE))
+    thread.frames(_with_the_option("ds2019"))
 
     refusal = await thread.edit()
 
@@ -140,11 +138,11 @@ async def test_dropping_that_option_is_the_way_out_and_costs_no_operation(
         recorded_build=recorded(SURFACE, STAGE, ROOT),
     )
     await thread.next_turn()
-    thread.frames(_with_the_option(None), declared=[], disposition="needs_user")
+    thread.frames(_with_the_option(None), disposition="needs_user")
     await thread.edit()
     canvas_deletes(thread.graph, STAGE)
     await thread.next_turn()
-    thread.frames(_without_the_option(), declared=declared("dropped", _OPTION))
+    thread.frames(_without_the_option())
 
     delta = await thread.edit()
 
@@ -209,7 +207,6 @@ async def test_a_dropped_saved_strategy_criterion_goes_to_the_card_whole(
     held = sorted(thread.graph.steps)
     thread.frames(
         _dropping_the_saved(),
-        declared=[*kept(SURFACE, STAGE), *declared("dropped", _SAVED)],
     )
 
     refusal = await thread.edit()
@@ -233,7 +230,6 @@ async def test_a_saved_strategy_criterion_is_untouched_while_a_sibling_is_edited
     untouched = facts_of(thread.facts(), _SAVED, _SAVED_A, _SAVED_B, _WITH_SAVED)
     thread.frames(
         with_the_percentile(90),
-        declared=[*kept(SURFACE, _SAVED), *declared("changed", STAGE)],
     )
 
     delta = await thread.edit()
@@ -304,7 +300,7 @@ async def test_a_transforms_own_parameter_moves_without_touching_its_input(
                 )
         return found
 
-    thread.frames(_draft, declared=[*kept(SURFACE, STAGE), *declared("changed", _ORTH)])
+    thread.frames(_draft)
 
     delta = await thread.edit()
 
@@ -337,7 +333,7 @@ async def test_a_criterion_added_under_a_transform_is_wired_into_its_input(
         )
         return found
 
-    thread.frames(_draft, declared=kept(SURFACE, STAGE, _ORTH))
+    thread.frames(_draft)
 
     delta = await thread.edit()
 
@@ -398,7 +394,7 @@ async def test_a_flat_restatement_of_the_same_tree_asks_for_no_operation(
     )
     await thread.next_turn()
     untouched = thread.facts()
-    thread.frames(_flat_restatement(extra=False), declared=kept(SURFACE, STAGE, THIRD))
+    thread.frames(_flat_restatement(extra=False))
 
     delta = await thread.edit()
 
@@ -422,7 +418,7 @@ async def test_a_flat_restatement_with_a_fourth_criterion_adds_only_that_one(
     )
     await thread.next_turn()
     untouched = facts_of(thread.facts(), SURFACE, STAGE, THIRD, ROOT, NESTED_ROOT)
-    thread.frames(_flat_restatement(extra=True), declared=kept(SURFACE, STAGE, THIRD))
+    thread.frames(_flat_restatement(extra=True))
 
     delta = await thread.edit()
 

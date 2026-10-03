@@ -48,15 +48,24 @@ deployment pays when it holds the provider's key; else `PROVIDER_NOT_CONFIGURED`
 deployment's key. A served tool's cost is always the deployment's.
 
 **Every model is guarded** (`platform/model_keys.py::GuardedModel`), keyed or
-not: a provider error reaches the turn as its status with no body, raised
-outside the handler so no traceback, log or span carries the provider's text;
-OpenAI echoes a key's last four characters in its 401. A refusal of the
+not: a provider error, whether the request or its stream raised it, reaches the
+turn as its status with no body, raised with no provider error in its printed
+chain, so no chunk, traceback, log or span carries the provider's text; OpenAI
+echoes a key's last four characters in its 401, and its billing error inside a
+stream carries a link. An SDK error inside a stream carries no status of its
+own, so the classifier reads its body alone. A refusal of the
 researcher's key (`platform/key_refusals.py::classify_refusal`) is raised as the
 typed refusal, which no model retry can pass, and marked on the row after the
 turn as `invalid`, `no_credit` or `forbidden` (migration `2026_09_24_0004`); the
-settings row and the turn's refusal say which. The classifier reads only the
+settings row and the turn's refusal say which. A refusal of the deployment's
+key is raised as `DeploymentKeyRefusedError`, whose message names the provider
+and the refusal and nothing else, and recorded for the turn
+(`turn_deployment_refusals`); the turn's reply names the account, says that
+another model or a resend does not help, and offers the researcher's own key.
+The classifier reads only the
 fixtures of `pathfinder.devtools.provider_refusals`: the invalid-key bodies of
-the three providers and Anthropic's low-balance 400 are recorded; OpenAI's 429
+the three providers, Anthropic's low-balance 400 and OpenAI's billing error
+inside a stream are recorded; OpenAI's 429
 quota codes, Anthropic's 402 and 403, and Google's 402 and 403
 `PERMISSION_DENIED` are copied from each provider's error reference and marked
 `documented`, with the page's URL. OpenAI's only documented 403 is an

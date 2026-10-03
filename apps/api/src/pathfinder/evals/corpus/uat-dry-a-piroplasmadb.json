@@ -9,7 +9,7 @@
   ],
   "siteId": "piroplasmadb",
   "assistantId": "pathfinder",
-  "rationale": "An exact product phrase that finds one gene of a family states the count its wildcard form finds (146); the chromosome 1 subset (47) is bound on chromosome 1 and stated beside the full family, whichever tree keeps both, and the closing sentence carries both counts.",
+  "rationale": "A product-name search is corrected across turns on the researcher's words: the term, its quoting and a wildcard each move the count, and every count the reply states is one the facts show. A count question about a search the strategy does not run is answered read-only once the catalog count exists.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,
@@ -17,15 +17,8 @@
     "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
-    "parameters": {
-      "GenesByLocation": {
-        "chromosomeOptional": "1"
-      }
-    },
-    "replyMentions": [
-      "146",
-      "47"
-    ],
+    "parameters": {},
+    "replyMentions": [],
     "replyOmits": [],
     "countsInGenes": true,
     "replyNamesItsSearches": false,
@@ -36,15 +29,7 @@
     "metRequirements": null,
     "unmetRequirements": null,
     "unexpressedRequirements": null,
-    "turnReplyMentions": {
-      "2": [
-        "146"
-      ],
-      "3": [
-        "47",
-        "146"
-      ]
-    },
+    "turnReplyMentions": {},
     "turnReplyOmits": {},
     "assumedStated": 0,
     "rootCount": null,
@@ -57,11 +42,28 @@
     "addedAt": "2026-09-28",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#u3",
-    "curatorNote": "Keeping the full list admits a root of either the subset or the union, so the shape is not pinned."
+    "curatorNote": "Five turns on one thread that build and then refine a product-name text search; the case pins no count, since each reading of the term moves it, and no location step, since a count question about a search outside the strategy is a read, not an edit."
   },
   "effort": "medium",
   "gates": {
-    "policy": "leave"
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "propose_changes",
+        "turn": 2,
+        "accept": true
+      },
+      {
+        "card": "propose_changes",
+        "turn": 3,
+        "accept": true
+      },
+      {
+        "card": "propose_changes",
+        "turn": 4,
+        "accept": true
+      }
+    ]
   },
   "attachments": {},
   "newConversationBefore": []

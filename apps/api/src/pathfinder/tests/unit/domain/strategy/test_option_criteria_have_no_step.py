@@ -227,7 +227,7 @@ def test_an_added_criterion_answers_to_the_step_the_structure_states() -> None:
             SpecStructure(
                 root=StructureNode(
                     kind="combine",
-                    operator=None,
+                    operator=CombineOp.INTERSECT,
                     inputs=[_leaf(root_id), _leaf("new_leaf")],
                 )
             )

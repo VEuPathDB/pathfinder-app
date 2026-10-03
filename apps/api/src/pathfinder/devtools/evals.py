@@ -148,7 +148,12 @@ def _list_corpus() -> int:
     return 0
 
 
-_MARKS = {"pass": "PASS", "re-measure": "RE-MEASURE", "fail": "FAIL"}
+_MARKS = {
+    "pass": "PASS",
+    "re-measure": "RE-MEASURE",
+    "fail": "FAIL",
+    "not-run": "NOT RUN",
+}
 
 
 def _run(args: argparse.Namespace) -> int:
@@ -164,7 +169,7 @@ def _run(args: argparse.Namespace) -> int:
         payload = summary.model_dump(by_alias=True, mode="json")
         Path(args.out).write_text(json.dumps(payload, indent=2) + "\n")
     for case in summary.cases:
-        mark = "ERROR" if case.error else _MARKS[case.verdict]
+        mark = "ERROR" if case.errored else _MARKS[case.verdict]
         count = "" if case.observed_count is None else f"  count {case.observed_count}"
         assumed = assumed_label(case.assumed)
         refusals = refusals_label(case.refused_tools)
@@ -179,8 +184,10 @@ def _run(args: argparse.Namespace) -> int:
                 f"labelled {case.distance.labelled}, "
                 f"parameter fidelity {case.distance.parameter_fidelity}",
             )
-        if case.error:
+        if case.errored:
             print(f"      error: {case.error}")
+        elif case.error:
+            print(f"      {case.error}")
         drift = [] if case.count_drift is None else [case.count_drift]
         for difference in [*case.differences, *drift]:
             print(
@@ -190,7 +197,8 @@ def _run(args: argparse.Namespace) -> int:
     print(
         f"--- {summary.passed}/{summary.case_count} passed "
         f"(re-measure {summary.re_measure}, failed {summary.failed}, "
-        f"errored {summary.errored}) refusals={summary.refusals} "
+        f"errored {summary.errored}, not run {summary.not_run}) "
+        f"refusals={summary.refusals} "
         f"{assumed_label(summary.assumed)} "
         f"harness={summary.harness} provider={summary.provider}",
     )

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+from pathfinder.devtools import evals
 from pathfinder.devtools.evals import _build_parser, main
 from pathfinder.evals.case import ExpectedOutcome, GatePlan
+from pathfinder.evals.summary import CaseResult, EvalRunSummary
 
 
 def test_corpus_lists_the_shipped_cases(capsys: pytest.CaptureFixture[str]) -> None:
@@ -94,3 +96,35 @@ def test_run_takes_one_effort_for_every_role() -> None:
 def test_a_command_is_required() -> None:
     with pytest.raises(SystemExit):
         _build_parser().parse_args([])
+
+
+def test_a_case_not_run_is_printed_as_not_run(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    async def _run_corpus(**options: object) -> EvalRunSummary:
+        del options
+        return EvalRunSummary(
+            harness="pydantic-evals",
+            provider="mock",
+            assistant_id="pathfinder",
+            ran_at="2026-08-23T00:00:00+00:00",
+            cases=[
+                CaseResult(
+                    name="uat-s1-cryptodb",
+                    verdict="not-run",
+                    error="cryptodb login did not answer (connect timeout)",
+                ),
+                CaseResult(name="uat-s1-plasmodb", verdict="pass"),
+            ],
+        )
+
+    monkeypatch.setattr(evals, "run_corpus", _run_corpus)
+
+    assert main(["run"]) == 0
+
+    printed = capsys.readouterr().out.splitlines()
+    assert printed[0].startswith("NOT RUN  uat-s1-cryptodb")
+    assert printed[1] == "      cryptodb login did not answer (connect timeout)"
+    assert printed[-1].startswith(
+        "--- 1/2 passed (re-measure 0, failed 0, errored 0, not run 1)"
+    )

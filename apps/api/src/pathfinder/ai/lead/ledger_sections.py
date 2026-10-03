@@ -27,10 +27,10 @@ from pathfinder.domain.strategy.operational_spec import (
     OpenSlot,
     OperationalSpec,
     StructureNode,
-    plain_value,
 )
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.strategy.value_binding import plain_value
 
 RecoveryKind = Literal[
     "none",
@@ -94,20 +94,14 @@ def _contrast_for(crit: Criterion) -> ContrastSummary | None:
 def render_structure(node: StructureNode, spec: OperationalSpec) -> str:
     by_id = {c.id: c for c in spec.criteria}
     if node.kind in {"leaf", "transform"}:
-        crit = by_id.get(node.criterion_id or "")
-        name = (
-            crit.search_name
-            if crit and crit.search_name
-            else (node.criterion_id or "?")
-        )
+        crit = by_id.get(node.named_criterion)
+        name = crit.search_name if crit and crit.search_name else node.named_criterion
         if node.kind == "transform":
-            inner = render_structure(node.inputs[0], spec) if node.inputs else "?"
-            return f"{name}({inner})"
+            return f"{name}({render_structure(node.inputs[0], spec)})"
         return name
     if node.kind == "copy":
-        inner = render_structure(node.inputs[0], spec) if node.inputs else "?"
-        return f"COPY {inner}"
-    op = node.operator.value if node.operator else "?"
+        return f"COPY {render_structure(node.inputs[0], spec)}"
+    op = node.combine_operator.value
     inner = f" {op} ".join(render_structure(child, spec) for child in node.inputs)
     return f"({inner})"
 

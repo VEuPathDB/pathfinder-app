@@ -25,7 +25,6 @@ from pathfinder.ai.lead.dispatch_messages import (
     frame_claimed_more_than_it_bound,
     frame_result_from_draft,
     stopped_pass_work_order,
-    undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
@@ -44,6 +43,7 @@ from pathfinder.ai.lead.sub_agent_tools import (
     criteria_floor,
 )
 from pathfinder.domain.strategy.constraints import (
+    STRATEGY_SCOPES,
     Constraint,
     ConstraintSource,
     ConstraintStatus,
@@ -54,7 +54,7 @@ from pathfinder.domain.strategy.questions import (
     unanswered_questions,
     with_withdrawals,
 )
-from pathfinder.domain.strategy.spec_diff import diff_specs
+from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
 
 
 def frame_work_order(reason: str, deps: LeadDeps) -> str:
@@ -194,7 +194,7 @@ async def run_frame(
 def _unstated_requirements(deps: LeadDeps, named: Sequence[str]) -> list[Constraint]:
     """The held requirements the researcher stated that no search of the spec
     states: each one the ledger lists as ungroundable, and each one the pass
-    names in ``unstated``."""
+    names in ``unstated`` that is no scope every search runs in."""
     held = {c.key for c in deps.state.domain.requirements}
     return [
         g.constraint
@@ -203,7 +203,10 @@ def _unstated_requirements(deps: LeadDeps, named: Sequence[str]) -> list[Constra
         and g.constraint.key in held
         and (
             g.status is ConstraintStatus.UNGROUNDABLE
-            or any(_names_the_requirement(text, g.constraint) for text in named)
+            or (
+                g.constraint.kind not in STRATEGY_SCOPES
+                and any(_names_the_requirement(text, g.constraint) for text in named)
+            )
         )
     ]
 
@@ -269,15 +272,9 @@ async def _run_frame(
 def _accepted(
     deps: LeadDeps, delta: FrameResult, draft: OperationalSpec, route: str
 ) -> FrameResult:
-    """The result the Lead reads from a pass that answered, or a refusal.
-
-    A refusal of undeclared changes puts back the spec the dispatch found; a
-    refusal of what the pass asks keeps each criterion it bound.
-    A conversation stays on its site, so a pass the organism refusal sent to
-    the portal and that changed nothing asks nothing: it answers with the
-    portal's sentence. A pass that changed something carries the sentence
-    ahead of its summary.
-    """
+    """The result the Lead reads from a pass that answered, its changes read
+    from the wire values, or a refusal. A pass sent to the portal carries the
+    portal's sentence, alone when the pass changed nothing."""
     found = deps.state.domain.spec_before_dispatch
     if route and draft == (found or OperationalSpec(goal=draft.goal)):
         return FrameResult(disposition="needs_user", summary=route)
@@ -290,15 +287,31 @@ def _accepted(
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
-    if found is not None and found.criteria:
-        problem = undeclared_spec_changes(
-            diff_specs(found, draft), delta.changes, found
-        )
-        if problem:
-            refuse_and_restore(deps, problem)
+    delta = delta.model_copy(update={"changes": derived_changes(found, draft)})
     _refuse_questions_that_bind_to_nothing(deps, delta, draft)
     _refuse_an_unstated_requirement_the_researcher_did_not_write(deps, delta)
+    _refuse_an_added_criterion_the_message_does_not_state(deps, found, draft)
     return delta
+
+
+def derived_changes(
+    found: OperationalSpec | None, draft: OperationalSpec
+) -> list[CriterionChange]:
+    """What the pass did to each criterion the dispatch found, read from the
+    wire values of the two specs. A drop carries the reason the pass gave."""
+    if found is None or not found.criteria:
+        return []
+    reasons = {d.text: d.reason for d in draft.dropped}
+    texts = {c.id: c.text for c in found.criteria}
+    return [
+        change.model_copy(
+            update={"reason": reasons.get(texts[change.criterion_id], "")}
+        )
+        if change.disposition == "dropped"
+        else change
+        for change in diff_specs(found, draft).changes
+        if change.criterion_id in texts
+    ]
 
 
 def _refuse_an_unstated_requirement_the_researcher_did_not_write(
@@ -317,6 +330,38 @@ def _refuse_an_unstated_requirement_the_researcher_did_not_write(
             f"unstated names {unwritten}, which no message of the researcher "
             f"states. Name each requirement no search states in the words the "
             f"researcher wrote it in.",
+        )
+
+
+def _refuse_an_added_criterion_the_message_does_not_state(
+    deps: LeadDeps, found: OperationalSpec | None, draft: OperationalSpec
+) -> None:
+    """Refuse an edit pass that adds a criterion no requirement of the message
+    states. An edit changes what the message asks for, and a question is
+    answered without a step."""
+    intent = deps.intent
+    if intent is None or found is None or deps.step_count == 0:
+        return
+    message = deps.state.user_prompt
+    rest = message.casefold()
+    for ask in intent.researcher_asks(message):
+        rest = rest.replace(ask.text.casefold(), " ")
+    held = {c.id for c in found.criteria}
+    for criterion in draft.criteria:
+        if criterion.id in held or message_states(rest, criterion.text):
+            continue
+        if any(
+            _names_the_requirement(criterion.text, c)
+            for c in intent.explicit_constraints
+        ):
+            continue
+        refuse_and_keep_what_it_bound(
+            deps,
+            f"The pass adds '{criterion.id}' ('{criterion.text}'), which no "
+            "requirement of the message states; a question is answered with "
+            "compare_search_variants, not with a step. Drop it, or name the "
+            "requirement the message states for it.",
+            refused={criterion.id},
         )
 
 

@@ -20,6 +20,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
+from pathfinder.domain.turn_facts import TurnFacts
 
 
 class _Label(BaseModel):
@@ -42,7 +43,7 @@ def _written(hold: CardHold, chunks: Sequence[BaseChunk]) -> list[str]:
     written: list[BaseChunk] = []
     for chunk in chunks:
         written.extend(hold.admit(chunk))
-    written.extend(hold.release())
+    written.extend(hold.release(TurnFacts()))
     return _labels(written)
 
 

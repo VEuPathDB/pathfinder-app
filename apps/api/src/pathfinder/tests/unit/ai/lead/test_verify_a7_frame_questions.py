@@ -33,7 +33,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -82,7 +81,6 @@ def _unchanged(found: OperationalSpec) -> OperationalSpec:
 def _asks_over_an_unchanged_draft(thread: DisagreementThread) -> None:
     thread.frames(
         _unchanged,
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[THRESHOLD],
     )
@@ -97,7 +95,7 @@ async def test_1a_a_fresh_frame_that_bound_everything_and_asks_a_fork(
     bound, so the retry does not bind them again.
     """
     thread = _fresh_thread(monkeypatch)
-    thread.frames(_binds_everything, declared=[], disposition="needs_user", asks=[FORK])
+    thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
 
     result = await thread.frame()
 
@@ -115,9 +113,9 @@ async def test_1a_second_pass_with_the_same_fork_is_accepted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = _fresh_thread(monkeypatch)
-    thread.frames(_binds_everything, declared=[], disposition="needs_user", asks=[FORK])
+    thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
     assert isinstance(await thread.frame(), str)
-    thread.frames(_binds_everything, declared=[], disposition="needs_user", asks=[FORK])
+    thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
 
     result = await thread.frame()
 
@@ -158,13 +156,12 @@ async def test_1c_an_edit_that_moves_a_value_and_asks_is_refused(
 ) -> None:
     """Case (c): no open slot anywhere, the value moved, one question asked.
 
-    The undeclared move is refused first, and the spec goes back as found.
+    The question binds nothing, and the spec goes back as found.
     """
     thread = _built_thread(monkeypatch)
     await thread.next_turn()
     thread.frames(
         _moves_a_built_value,
-        declared=kept(SURFACE, STAGE),
         disposition="needs_user",
         asks=[THRESHOLD],
     )
@@ -172,7 +169,7 @@ async def test_1c_an_edit_that_moves_a_value_and_asks_is_refused(
     result = await thread.edit()
 
     assert isinstance(result, str), result
-    assert "the account of it does not match what happened" in result
+    assert "and no criterion o" in result
     stage = next(c for c in thread.spec.criteria if c.id == STAGE)
     assert stage.param_values[STAGE_PERCENTILE] == NumberValue(value=80)
 
@@ -228,7 +225,6 @@ async def test_1e_a_drop_beside_an_open_slot_passes(
     await thread.next_turn()
     thread.frames(
         _drops_stage_and_binds_proteome_open,
-        declared=[*kept(SURFACE), *_dropped(STAGE)],
         disposition="needs_user",
         asks=[THRESHOLD],
     )
@@ -264,7 +260,6 @@ async def test_1f_an_edit_that_asks_offers_to_withdraw_what_no_search_states(
     await thread.next_turn()
     thread.frames(
         _drops_the_floor_the_researcher_stated,
-        declared=[*kept(SURFACE), *_dropped(STAGE)],
         disposition="needs_user",
         asks=[THRESHOLD],
     )

@@ -9,11 +9,12 @@ from collections.abc import Sequence
 
 from assistant_core.graph.tool_summary import count_noun
 
-from pathfinder.ai.lead.facts_in_prose import AlteredRecordText, MisattributedSource
+from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.evidence import RequirementCheck
+from pathfinder.domain.reply_references import ProseFault
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.operational_spec import Criterion, ValueSource
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.orthology import OrganismChange
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.turn_facts import TurnFacts
@@ -287,58 +288,58 @@ def unnamed_record_organism_message(change: OrganismChange) -> str:
     )
 
 
-def fact_outside_the_block_message(found: Sequence[str]) -> str:
-    """Why a reply that prints a number, a name or a link no fact holds is refused.
-
-    A fact is what a facts part of the conversation shows, what the researcher
-    wrote, a count this turn measured or compared, or the difference of two
-    such counts. Nothing else is held.
-    """
-    printed = ", ".join(f"``{token}``" for token in found)
-    return (
-        f"Your reply prints {printed}, and no fact holds it. The facts this "
-        f"conversation showed - each step with its values and count, the caveats "
-        f"and gaps, the link, the saved sets, the control results and the records "
-        f"this turn read - stand beside its replies, with the options this reply "
-        f"offers. A count a comparison of this "
-        f"turn returned, and the difference of two counts the facts show, are "
-        f"facts too. Take out only {printed} and keep every other part of the "
-        f"reply as it is, every count the facts show included. Do not say where "
-        f"a fact is shown."
-    )
+_WRITE_REFERENCES = (
+    f"Your reply writes facts the product renders. {REPLY_REFERENCES} Keep "
+    "every other part of the reply as it is."
+)
 
 
-_SOURCE_NAMES: dict[ValueSource, str] = {
-    "stated": "stated in the request",
-    "card": "answered on a card",
-    "default": "the site's default",
-    "chosen": "chosen",
-    "held": "held by the strategy",
-}
+def _placement_sentence(fault: ProseFault) -> str | None:
+    """The rewrite for a misplaced reference or a record's product text."""
+    if fault.kind == "number_word":
+        return (
+            f"``{fault.token}``: ``{fault.references[0]}`` stands in place of the "
+            "number, so the clause writes no number word: write 'at least "
+            "[value:step_x.min_tm] transmembrane domains', not 'at least one "
+            "transmembrane domain [value:step_x.min_tm]'."
+        )
+    if fault.kind == "noun_after_count":
+        reference = fault.references[0]
+        return (
+            f"``{fault.token}``: ``{reference}`` renders the count with its noun, "
+            "so write no noun after it: 'returns [count:step_a], the overall "
+            "result', not 'returns [count:step_a] genes'."
+        )
+    if fault.kind == "product_text":
+        return (
+            f"``{fault.token}``: the product of {fault.record_id} renders from "
+            f"``[record:{fault.record_id}]``; write the reference alone."
+        )
+    return None
 
 
-def misattributed_source_message(found: MisattributedSource) -> str:
-    """Why a reply that says a value was set by another source than its row's
-    is refused."""
-    shown = " or ".join(sorted(_SOURCE_NAMES[s] for s in found.shown))
-    return (
-        f"Your reply says ``{found.phrase}``, and the facts row of that value "
-        f"shows it as {shown}, not as {_SOURCE_NAMES[found.claimed]}. Say who "
-        f"set each value as its facts row does, and keep every other part of the "
-        f"reply as it is."
-    )
+def _fault_sentence(fault: ProseFault) -> str:
+    if fault.kind == "unheld_reference":
+        return f"``{fault.token}`` names nothing the facts hold."
+    if fault.kind == "malformed_reference":
+        return (
+            f"``{fault.token}`` is no reference the product reads: write one of "
+            "the references above, or take the brackets out."
+        )
+    placed = _placement_sentence(fault)
+    if placed is not None:
+        return placed
+    if fault.references:
+        written = " or ".join(f"``{r}``" for r in fault.references)
+        return f"``{fault.token}``: write {written}, which renders it."
+    return f"``{fault.token}``: no fact holds it, so take it out."
 
 
-def altered_record_text_message(found: Sequence[AlteredRecordText]) -> str:
-    """Why a reply that writes a record's product another way is refused."""
-    words = "; ".join(
-        f"``{a.written}`` where the record of {a.record_id} writes ``{a.recorded}``"
-        for a in found
-    )
-    return (
-        f"Your reply writes {words}. A record's text is the site's: copy it as "
-        f"the record writes it or leave it out, and keep every other part of the "
-        f"reply as it is."
+def unrendered_prose_message(faults: Sequence[ProseFault]) -> str:
+    """Why a reply that writes a fact itself, or names one the facts lack, is
+    refused, with the reference that renders each fact."""
+    return "\n".join(
+        [_WRITE_REFERENCES, *(f"- {_fault_sentence(fault)}" for fault in faults)]
     )
 
 
@@ -349,4 +350,21 @@ def failed_check_message(reason: str) -> str:
         "since, so the reply states that verdict: name each requirement the "
         "check found unanswered, or quote its reason. Or ask the researcher how "
         "to go on, recorded in ``asked_questions`` or on a card."
+    )
+
+
+def unmade_change_message(withdrawn: Sequence[str], stated: Sequence[str]) -> str:
+    """Why an edit turn that made no change, raised no card and stated no reason is refused."""
+    if withdrawn:
+        values, ask, act, how = withdrawn, "to remove", "remove", "delete_step"
+        done = "removed"
+    else:
+        values, ask, act, how = stated, "for", "make", "edit_strategy"
+        done = "made"
+    named = ", ".join(f"'{value}'" for value in values)
+    them = "it" if len(values) == 1 else "them"
+    return (
+        f"The message asks {ask} {named} and this turn made no change and raised "
+        f"no card: {act} {them} through {how}, or say in the reply why {them} "
+        f"cannot be {done}."
     )

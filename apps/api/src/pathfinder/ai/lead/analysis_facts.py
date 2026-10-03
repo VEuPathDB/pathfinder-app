@@ -10,7 +10,7 @@ from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue
 from pathfinder.domain.eda_parts import EdaComparison
 from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding, CutTallies
-from pathfinder.domain.strategy.operational_spec import plain_value
+from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.strategy.value_source import value_source
 from pathfinder.domain.turn_facts import ParameterFact
 from pathfinder.services.eda.direction import direction_sentence
@@ -113,7 +113,8 @@ def analysis_parameters(
     for name, shown, value, label in _analysis_values(binding):
         source = value_source(
             value,
-            initial_display_value=None,
+            placeholder=False,
+            unset=False,
             request_texts=said,
             display_name=shown,
         )

@@ -11,9 +11,9 @@ from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     Measurement,
-    bind_values,
 )
 from pathfinder.domain.strategy.spec_replay import criterion_rebound, criterion_restated
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.domain.strategy.value_source import stated_run, value_source
 
 from ._builders import text_leaf
@@ -62,7 +62,7 @@ def test_the_step_parameters_carry_the_bound_values() -> None:
 
 
 def test_bind_values_gives_every_value_one_source() -> None:
-    bound = bind_values({"organism": StringValue(value="Pf3D7")}, "stated", "held")
+    bound = bind_values({"organism": StringValue(value="Pf3D7")}, "stated", [], "held")
 
     assert bound == {
         "organism": BoundValue(
@@ -90,7 +90,9 @@ def test_a_vocabulary_label_measurement_holds_no_count() -> None:
 
 
 def test_a_restated_value_is_held_and_forgets_its_measurements() -> None:
-    restated = criterion_restated(_criterion(), _PERCENTILE, NumberValue(value=90))
+    restated = criterion_restated(
+        _criterion(), _PERCENTILE, NumberValue(value=90), sheet=()
+    )
 
     assert (
         restated.resolved_params[_PERCENTILE].source,
@@ -110,7 +112,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 StringValue(value="blood stages"),
-                initial_display_value="",
+                placeholder=False,
+                unset=False,
                 request_texts=[_REQUEST],
             )
             == "stated"
@@ -120,7 +123,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 StringValue(value="blood stages"),
-                initial_display_value="blood stages",
+                placeholder=False,
+                unset=True,
                 request_texts=[_REQUEST],
             )
             == "stated"
@@ -130,7 +134,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 NumberValue(value=50),
-                initial_display_value="80",
+                placeholder=False,
+                unset=False,
                 request_texts=[_REQUEST],
                 card_value="50",
             )
@@ -141,7 +146,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 NumberValue(value=50),
-                initial_display_value="80",
+                placeholder=False,
+                unset=False,
                 request_texts=[_REQUEST],
                 card_value="60",
             )
@@ -152,7 +158,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 NumberValue(value=80),
-                initial_display_value="80",
+                placeholder=False,
+                unset=True,
                 request_texts=[_REQUEST],
             )
             == "default"
@@ -162,7 +169,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 StringValue(value="pfal3D7_Blood"),
-                initial_display_value="pfal3D7_Liver",
+                placeholder=False,
+                unset=False,
                 request_texts=[_REQUEST],
             )
             == "chosen"
@@ -172,7 +180,8 @@ class TestTheSourceOfAValue:
         assert (
             value_source(
                 MultiPickValue(values=["Plasmodium falciparum 3D7"]),
-                initial_display_value=None,
+                placeholder=False,
+                unset=False,
                 request_texts=["an earlier message", _REQUEST],
             )
             == "stated"

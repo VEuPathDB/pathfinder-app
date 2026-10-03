@@ -104,8 +104,11 @@ def _criterion(spec: OperationalSpec, criterion_id: str) -> Criterion:
 def test_a_value_set_outside_reaches_the_criterion() -> None:
     replayed = _replayed(_spec(), _built(80), _built(48))
 
-    assert _criterion(replayed, "expr").resolved_params[_PERCENTILE] == BoundValue(
-        value=NumberValue(value=48), source="held"
+    held = _criterion(replayed, "expr").resolved_params[_PERCENTILE]
+    assert (held.value, held.source, held.display_name) == (
+        NumberValue(value=48),
+        "held",
+        "min_expression_percentile",
     )
 
 

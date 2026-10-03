@@ -18,9 +18,15 @@ from pathfinder.domain.strategy.combination_check import (
     first_combination_violation,
     unstated_union,
 )
+from pathfinder.domain.strategy.named_combine import (
+    combination_operators,
+    named_combine_breach,
+    unstated_operator_move,
+)
 from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
+    criteria_under,
     structure_criteria,
 )
 from pathfinder.domain.strategy.organism_scope import organism_params_of, universe_key
@@ -93,6 +99,49 @@ def _refuse_a_tree_that_breaks_a_stated_combination(
     raise ModelRetry(msg)
 
 
+def _refuse_a_tree_that_moves_an_unnamed_combine(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A combine the message names by its place carries the stated operator,
+    and every other combine keeps the operator the strategy holds."""
+    if state.named_combine is None:
+        return
+    breach = named_combine_breach(
+        state.named_combine, proposed, held=state.held_structure
+    )
+    if breach is None:
+        return
+    msg = (
+        f"The structure is refused: {breach.message}. Restate the tree with "
+        f"that combine changed and every other combine as it stands."
+    )
+    raise ModelRetry(msg)
+
+
+def _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """An edit that names no combine by its place changes a held combine's
+    operator only to one the message or a stated combination states."""
+    if state.named_combine is not None or state.held_structure is None:
+        return
+    stated = state.stated_operators | combination_operators(
+        state.combination_requirements
+    )
+    moved = unstated_operator_move(proposed, state.held_structure, stated)
+    if moved is None:
+        return
+    was, now = moved
+    members = ", ".join(sorted(criteria_under(was)))
+    msg = (
+        f"The structure is refused: the tree moves the combine over {members} "
+        f"from {was.combine_operator.value} to {now.combine_operator.value}, and "
+        f"the message states no {now.combine_operator.value}. A combine's "
+        f"operator changes only to one the message states."
+    )
+    raise ModelRetry(msg)
+
+
 def _refuse_a_union_no_one_stated(
     state: AgentToolState, proposed: SpecStructure, held: frozenset[str]
 ) -> None:
@@ -149,13 +198,11 @@ def _refuse_a_tree_the_site_cannot_run(
     """A copy restates a subtree the tree holds, a round trip keeps the source,
     and an INTERSECT joins genes of one organism."""
     stated = state.operational_spec_draft.model_copy(update={"structure": proposed})
-    steps = stated_steps(stated)
-    marked = organism_params_of(stated.criteria)
-    refusal = (
-        copy_refusal(proposed.root)
-        or round_trip_refusal(stated)
-        or (None if steps is None else first_cross_organism_refusal(steps, marked))
-    )
+    refusal = copy_refusal(proposed.root) or round_trip_refusal(stated)
+    if refusal is None:
+        steps = stated_steps(stated)
+        marked = organism_params_of(stated.criteria)
+        refusal = None if steps is None else first_cross_organism_refusal(steps, marked)
     if refusal is not None:
         msg = f"The structure is refused: {refusal} Nothing was recorded."
         raise ModelRetry(msg)
@@ -231,7 +278,8 @@ async def set_structure(
 
     - ``{"kind": "leaf", "criterionId": "<id>"}`` -- one bound criterion.
     - ``{"kind": "combine", "operator": "INTERSECT" | "UNION" | "MINUS",
-      "inputs": [<left>, <right>]}`` -- boolean-combine two subtrees.
+      "inputs": [<left>, <right>]}`` -- boolean-combine two or more
+      subtrees. A tree of one criterion is that criterion's leaf.
     - ``{"kind": "transform", "criterionId": "<id>", "inputs": [<subtree>]}``
       -- a search that MAPS the subtree's genes rather than combining with
       them (e.g. ``GenesByOrthologs`` returning orthologs in another
@@ -250,7 +298,10 @@ async def set_structure(
     question. WDK step trees carry a primary and a secondary input, so a
     branch on either side is representable. A combination the user stated is
     checked here: a tree that joins those criteria with another operator is
-    refused. A UNION that joins a step the strategy holds to a criterion this
+    refused, and so is a tree that leaves a combine the message names by its
+    place ("the last combine") or moves any other combine. An edit that names
+    no combine by its place changes a combine's operator only to one the
+    message or a stated combination states. A UNION that joins a step the strategy holds to a criterion this
     turn adds is refused unless the researcher stated that OR. An INTERSECT
     input that states only the organism another input already runs on,
     matches every gene of it, or repeats another input's searches and values,
@@ -261,6 +312,8 @@ async def set_structure(
     graph = ctx.deps.strategy_session.get_graph(None)
     live = frozenset(graph.steps) if graph is not None else frozenset[str]()
     _refuse_a_tree_that_breaks_a_stated_combination(state, proposed)
+    _refuse_a_tree_that_moves_an_unnamed_combine(state, proposed)
+    _refuse_a_tree_that_moves_a_combine_to_an_unstated_operator(state, proposed)
     _refuse_a_union_no_one_stated(state, proposed, live)
     _refuse_a_node_the_role_contradicts(state, proposed)
     _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)

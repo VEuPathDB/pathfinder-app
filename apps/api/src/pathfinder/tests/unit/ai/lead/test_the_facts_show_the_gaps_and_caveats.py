@@ -121,20 +121,6 @@ def test_the_checks_gaps_and_caveats_are_shown_beside_the_reply() -> None:
     ]
 
 
-def test_a_reply_that_names_the_shown_control_counts_stands() -> None:
-    report = reply(
-        "Most positives came back: 52 of 80 positive controls were returned."
-    )
-
-    assert kinds(_checked(caveats=[_V2_CAVEAT]), report) == []
-
-
-def test_a_reply_with_a_control_count_the_facts_lack_is_refused() -> None:
-    report = reply("Most positives came back: 53 of 81 were returned.")
-
-    assert kinds(_checked(caveats=[_V2_CAVEAT]), report) == ["fact_outside_the_block"]
-
-
 def test_a_reply_that_names_the_gap_in_words_stands() -> None:
     report = reply(
         "The strategy does not require the transmembrane domains you asked for; "

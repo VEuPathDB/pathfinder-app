@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 
+from pathfinder.domain.count_words import counted
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     Measurement,
     ValueSource,
-    plain_value,
 )
+from pathfinder.domain.strategy.value_binding import plain_value
 
 _SET_BY: dict[ValueSource, str] = {
     "default": "the site's default of",
@@ -35,9 +36,7 @@ def shown_value(value: ParamValue) -> str:
 
 
 def _records(count: int | None, noun: str) -> str:
-    if count is None:
-        return _NOT_MEASURED
-    return f"{count:,} {noun}" if count == 1 else f"{count:,} {noun}s"
+    return _NOT_MEASURED if count is None else counted(count, noun)
 
 
 def _other(count: int | None) -> str:
@@ -51,8 +50,8 @@ def _counted(
     name = criterion.display_name_of(m.param)
     if criterion.result_count is None:
         return f"{name} {other}: {_records(m.count, noun)}"
-    counted = _records(criterion.result_count, noun)
-    return f"{name} {at}: {counted}; {other}: {_other(m.count)}"
+    shown = _records(criterion.result_count, noun)
+    return f"{name} {at}: {shown}; {other}: {_other(m.count)}"
 
 
 def _worded(criterion: Criterion, m: Measurement, noun: str) -> str | None:
@@ -120,6 +119,8 @@ def _clause(criterion: Criterion, m: Measurement, noun: str) -> str:
         case "wildcard_phrase" | "site_default":
             other = _AS_VALUE_READINGS[m.kind].format(m.reading)
             return _counted(criterion, m, f"as {value}", other, noun)
+        case "phrase_reading":
+            return _counted(criterion, m, "as any of its words", "as the phrase", noun)
         case "site_search_reach":
             return f"the site search finds {_records(m.count, noun)} for {m.reading}"
         case _:

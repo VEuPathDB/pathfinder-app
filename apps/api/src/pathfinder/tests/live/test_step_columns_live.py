@@ -14,7 +14,10 @@ from veupathdb_mcp.catalog import read_search_definition
 from pathfinder.ai.tools.standalone._step_columns import column_bounds, settled
 from pathfinder.ai.tools.standalone.results import read_column_fit
 from pathfinder.domain.evidence import ColumnFit
-from pathfinder.domain.strategy.operational_spec import Criterion, bind_values
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+)
+from pathfinder.domain.strategy.value_binding import bind_values
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -86,7 +89,7 @@ async def _fits(
         id="c_live",
         text="the step's own values",
         search_name=search,
-        resolved_params=bind_values(params, "stated"),
+        resolved_params=bind_values(params, "stated", []),
     )
     parameters = (await read_search_definition(_SITE, "transcript", search)).parameters
     bounds = column_bounds(

@@ -80,14 +80,14 @@ def _modifier(word: str | None) -> str | None:
     return None
 
 
-# The modifier of a word that opens a compound after a word like "a": the
-# compound is the one it heads, so no parameter name that puts a word before
-# it states it.
-NO_COMPOUND = ""
+# The modifier of a word that opens a compound after a word like "a": a
+# missing modifier. The compound is the one it heads, so no parameter name
+# that puts a word before it states it.
+_MISSING_MODIFIER = ""
 
 
 def _function_word(word: str | None) -> bool:
-    return bool(word) and word.isalpha() and len(word) < _MIN_STEM
+    return word is not None and word.isalpha() and len(word) < _MIN_STEM
 
 
 def _content_word(word: str | None) -> bool:
@@ -135,14 +135,14 @@ def _words(text: str) -> list[_Word]:
 
 
 def _text_modifier(word: _Word, after: _Word | None) -> str | None:
-    """The modifier the text puts before a word: a stem, ``NO_COMPOUND`` when a
-    function word opens the compound the word heads, or None when the text
-    states none it can read."""
+    """The modifier the text puts before a word: a stem, a missing modifier
+    when a function word opens the compound the word heads, or None when the
+    text states none it can read."""
     opens = (
         after is not None and after.before == word.word and _content_word(after.word)
     )
     if _function_word(word.before) and opens:
-        return NO_COMPOUND
+        return _MISSING_MODIFIER
     return _modifier(word.before)
 
 
@@ -170,8 +170,11 @@ class Owner:
     """The one search whose parameter names carry a stem, and the modifier
     each of those names puts directly before it.
 
-    None on the owner is a name that puts the word first; None on a qualifier is
-    a text that states no modifier it can read. Either matches any modifier.
+    None on the owner is a name that puts the word first, so it states the word
+    in any compound. None on a qualifier is a text that states no modifier it
+    can read, which any name can state. A missing modifier on a qualifier, a
+    function word that opens the compound the word heads, matches no modifier
+    a name puts before the word.
     """
 
     search: str

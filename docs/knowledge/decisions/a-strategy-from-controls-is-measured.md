@@ -79,8 +79,8 @@ names no gene. The whole report rides the `data-separation-result` part.
 
 **Claims.** The card shows the offer's read and each leaf's own counts, and the
 facts part beside the reply shows the control results of the turn; the reply
-restates none of them, and the turn contract's `fact_outside_the_block` refuses
-one that does.
+restates none of them, and the turn contract's `unrendered_prose` refuses one
+that writes a count.
 
 # What was rejected
 

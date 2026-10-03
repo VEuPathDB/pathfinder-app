@@ -24,6 +24,7 @@ from pathfinder.ai.graph._lead_capture import _emit_residual_prose, _LeadRunCapt
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.domain.turn_facts import TurnFacts
 
 _COMMENTARY = {
     "pydantic_ai": {
@@ -70,7 +71,7 @@ def _through_hold(hold: CardHold, chunks: Sequence[BaseChunk]) -> list[BaseChunk
     written: list[BaseChunk] = []
     for chunk in chunks:
         written.extend(hold.admit(chunk))
-    written.extend(hold.release())
+    written.extend(hold.release(TurnFacts()))
     return written
 
 

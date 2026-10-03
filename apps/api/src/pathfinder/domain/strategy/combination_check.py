@@ -36,7 +36,6 @@ _REQUIRED_OPERATOR: dict[CombinationOperator, CombineOp] = {
     "AND": CombineOp.INTERSECT,
 }
 _MIN_MEETING_CRITERIA = 2
-_MIN_COMBINE_INPUTS = 2
 
 
 def required_operator(operator: CombinationOperator) -> CombineOp:
@@ -180,7 +179,7 @@ def exclusion_stands_over(
     wanted = frozenset(criterion_ids)
     for node in _nodes(structure.root):
         side = _subtracted_side(node)
-        if side is None or len(node.inputs) < _MIN_COMBINE_INPUTS:
+        if side is None:
             continue
         removed = criteria_under(node.inputs[side])
         kept = criteria_under(node.inputs[1 - side])
@@ -212,7 +211,7 @@ def _brought(node: StructureNode, wanted: frozenset[str]) -> _Brought:
     criterion_id = node.criterion_id
     if criterion_id is not None and criterion_id in wanted:
         return _Brought(named=frozenset({criterion_id}), unnamed=False)
-    if node.kind == "transform" and node.inputs:
+    if node.kind == "transform":
         return _brought(node.inputs[0], wanted)
     return _Brought(named=frozenset[str](), unnamed=True)
 

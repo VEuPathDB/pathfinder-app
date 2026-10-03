@@ -33,9 +33,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -63,7 +61,6 @@ async def test_an_edit_of_another_step_writes_that_step_alone(
     written = len(thread.committed)
     thread.frames(
         with_the_percentile(90),
-        declared=[*kept(SURFACE, exported.step_id), *declared("changed", STAGE)],
     )
 
     delta = await thread.edit()
@@ -125,7 +122,7 @@ async def test_two_comparisons_on_one_dataset_each_wait_and_each_are_built(
         drafted.criteria[0] = found.criteria[0]
         return drafted
 
-    thread.frames(_draft, declared=kept(first.step_id))
+    thread.frames(_draft)
     delta = await thread.edit()
     thread.deps.intent = user_intent(IntentClassification.EDIT_STRATEGY)
     thread.deps.state.turn_markers.intent_classified = True
@@ -154,21 +151,19 @@ async def test_two_comparisons_on_one_dataset_each_wait_and_each_are_built(
 async def _a_comparison_waits(thread: DisagreementThread) -> str:
     """Export 24 h over 18 h, then frame 24 h over 36 h waiting beside it."""
     first = await export(thread, reference="18h")
-    thread.frames(
-        with_the_waiting_comparison(first.step_id), declared=kept(first.step_id)
-    )
+    thread.frames(with_the_waiting_comparison(first.step_id))
     assert isinstance(await thread.edit(), EditDelta)
     await thread.next_turn()
     return first.step_id
 
 
-async def test_a_later_edit_owes_no_disposition_for_a_waiting_criterion(
+async def test_a_later_edit_pushes_no_waiting_criterion(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """No push carries a waiting criterion, so it is no unpushed change."""
     thread = bare_thread(monkeypatch)
-    exported = await _a_comparison_waits(thread)
-    thread.frames(lambda found: found, declared=kept(exported))
+    await _a_comparison_waits(thread)
+    thread.frames(lambda found: found)
 
     delta = await thread.edit()
 

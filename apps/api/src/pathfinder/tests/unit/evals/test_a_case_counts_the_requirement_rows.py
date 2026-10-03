@@ -66,6 +66,14 @@ def test_a_met_row_no_record_judged_is_counted_apart() -> None:
     assert counts == RequirementCounts(met=1, unjudged=1)
 
 
+def test_a_met_row_a_record_shows_missing_is_counted_apart() -> None:
+    unshown = _MET.model_copy(update={"no_record_shows_it": True})
+
+    counts = requirement_counts([_MET, unshown])
+
+    assert counts == RequirementCounts(met=1, unshown=1)
+
+
 def test_a_run_whose_rows_disagree_is_named_on_each_count() -> None:
     observed = ObservedOutcome(
         built_strategy=True, requirements=requirement_counts([_MET, _UNMET])

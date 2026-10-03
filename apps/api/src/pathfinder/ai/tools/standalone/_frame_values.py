@@ -7,7 +7,10 @@ from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone._frame_measure import labelled_picks
+from pathfinder.ai.tools.standalone._frame_measure import (
+    labelled_picks,
+    vocabularies_under,
+)
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
     left_to_the_site,
@@ -42,10 +45,11 @@ async def sourced_values(
     reason: str,
 ) -> tuple[dict[str, BoundValue], list[Measurement]]:
     """Each value with who set it, and the label the site gives each pick; a
-    value a message names by its labels is stated."""
+    value a message names by its labels is stated. ``infos`` is the published
+    sheet, and each dependent vocabulary is read under the bound parents."""
     bound = bound_values(
         values,
-        infos=infos,
+        infos=await vocabularies_under(fetch_at, infos, values),
         site_supplied=site_supplied,
         request_texts=state.request_messages,
         reason=reason,

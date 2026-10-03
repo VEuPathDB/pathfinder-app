@@ -44,16 +44,14 @@ or no criterion of it holds an open slot - and tells FRAME to record the criteri
 The two answer one failure from opposite ends: the pass that asks about nothing, and the reply
 that reports what the pass never wrote.
 
-`fact_outside_the_block` is the rule for what the prose may print. The facts part beside the
-reply (`ai/lead/turn_facts.py`, rendered by the product) shows every step with its values and
-count, the caveats and gaps, the strategy link, the saved sets, the control results and the
-references the turn read. The rule refuses a reply whose prose prints a number, an identifier
-the facts part does not show (a token holding a digit, an underscore or an internal colon, a
-search url segment, a step or criterion id) or an http link the facts part does not hold
-(`ai/lead/facts_in_prose.py`). The correction names the printed tokens and says the facts are
-shown beside the reply. See
-[the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md), which
-retired the twelve rules that held the prose to one fact each.
+`unrendered_prose` is the rule for what the prose may hold, and the only check on its content.
+The prose writes each count, value, source word, record and link as a reference the emitter
+renders from the turn's `TurnFacts` (`domain/reply_references.py`). The rule refuses a reply
+that writes a digit, an identifier shape, a link or a source word outside a reference, or a
+reference that names nothing the facts hold, and its correction names each token with the
+reference that renders it. It is refused on every answer, a card's reply included; it takes no
+part in the one latch below. See
+[the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).
 
 The one latch is also what the precondition gate reads: `intent_gate.verification_pending` is
 `contract_refused and built and not verified`, the condition the deleted `verification_nudged`
@@ -80,6 +78,10 @@ sentence. A card answer, a typed acceptance and a turn that re-enters a parked c
 saved a control set, recorded a question, or ended on a card. `stopped_check` reads the phase
 stop: when the verification pass stopped, the reply states that the check did not finish, whether
 or not the turn built; a stopped check records no verdict, so nothing else on the turn claims one.
+`unmade_change` reads the values an accepted `edit_strategy` classification withdraws or states:
+a turn that changed nothing, ended on no card, recorded no question and carries no refusal is
+refused, unless the reply names each value in a clause that takes the change back and says why.
+The correction names `delete_step` for a removal and `edit_strategy` for a stated value.
 
 # Why
 

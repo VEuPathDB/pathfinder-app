@@ -44,7 +44,6 @@ from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
@@ -324,29 +323,13 @@ def _organism_swap(before: OperationalSpec) -> OperationalSpec:
     return after
 
 
-def _stub_frame(
-    monkeypatch: pytest.MonkeyPatch,
-    after: OperationalSpec,
-    changes: list[CriterionChange],
-) -> None:
+def _stub_frame(monkeypatch: pytest.MonkeyPatch, after: OperationalSpec) -> None:
     async def _fake(**kwargs: Any) -> FrameResult:
         agent_deps: AgentDeps = kwargs["agent_deps"]
         agent_deps.agent_state.operational_spec_draft = after.model_copy(deep=True)
-        return FrameResult(
-            disposition="spec_ready", summary="organism swapped", changes=changes
-        )
+        return FrameResult(disposition="spec_ready", summary="organism swapped")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
-
-
-_SWAP_CHANGES = [
-    CriterionChange(criterion_id="step_text", disposition="kept"),
-    CriterionChange(
-        criterion_id="step_go",
-        disposition="changed",
-        changed_params={"organism": "Plasmodium vivax P01"},
-    ),
-]
 
 
 async def test_edit_preserves_step_ids(
@@ -358,7 +341,7 @@ async def test_edit_preserves_step_ids(
 ) -> None:
     conv_id = await _seed(db_session, seed_user)
     deps = _deps(conv_id, session_maker)
-    _stub_frame(monkeypatch, _organism_swap(_before()), _SWAP_CHANGES)
+    _stub_frame(monkeypatch, _organism_swap(_before()))
 
     result = await run_edit(deps=deps, parent_tool_call_id="t1", reason="swap organism")
 
@@ -383,7 +366,7 @@ async def test_the_untouched_criterion_keeps_its_values(
     del stub_api
     conv_id = await _seed(db_session, seed_user)
     deps = _deps(conv_id, session_maker)
-    _stub_frame(monkeypatch, _organism_swap(_before()), _SWAP_CHANGES)
+    _stub_frame(monkeypatch, _organism_swap(_before()))
 
     result = await run_edit(deps=deps, parent_tool_call_id="t1", reason="swap organism")
 
@@ -413,7 +396,7 @@ async def test_edit_does_not_re_put_the_step_tree_when_topology_is_unchanged(
     monkeypatch.setattr(commit, "sync_strategy_for_site", _record_sync)
     conv_id = await _seed(db_session, seed_user)
     deps = _deps(conv_id, session_maker)
-    _stub_frame(monkeypatch, _organism_swap(_before()), _SWAP_CHANGES)
+    _stub_frame(monkeypatch, _organism_swap(_before()))
 
     await run_edit(deps=deps, parent_tool_call_id="t1", reason="swap organism")
 
@@ -441,9 +424,7 @@ async def test_edit_refuses_on_a_changed_revision(
         graph.steps["step_text"].parameters["organism"] = MultiPickValue(
             values=["Plasmodium falciparum 3D7"]
         )
-        return FrameResult(
-            disposition="spec_ready", summary="swapped", changes=_SWAP_CHANGES
-        )
+        return FrameResult(disposition="spec_ready", summary="swapped")
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 

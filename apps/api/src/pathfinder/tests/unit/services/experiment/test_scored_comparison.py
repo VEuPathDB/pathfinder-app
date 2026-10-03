@@ -54,8 +54,12 @@ def _exp(name: str, metrics: Any) -> Experiment:
 
 def _variants() -> list[VariantSpec]:
     return [
-        VariantSpec(label="lenient", search_name="SA", parameters={}),
-        VariantSpec(label="strict", search_name="SB", parameters={}),
+        VariantSpec(
+            label="lenient", search_name="SA", record_type="transcript", parameters={}
+        ),
+        VariantSpec(
+            label="strict", search_name="SB", record_type="transcript", parameters={}
+        ),
     ]
 
 

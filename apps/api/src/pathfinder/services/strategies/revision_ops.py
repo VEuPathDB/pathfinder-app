@@ -8,6 +8,7 @@ from uuid import UUID
 from assistant_core.persistence.models import Conversation, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.domain.last_change import LastChange, change_between
 from pathfinder.domain.strategy.revision import (
     parse_strategy_ast,
     without_wdk_readings,
@@ -30,7 +31,9 @@ from pathfinder.services.strategies.materialize import (
 __all__ = [
     "DiscardedWrites",
     "discard_turn_strategy_writes",
+    "last_change",
     "materialize_revision",
+    "previous_revision",
     "restore_revision",
     "revision_at_message",
 ]
@@ -59,6 +62,43 @@ async def revision_at_message(
     if named is not None:
         return named
     return await repo.at_or_before(message.conversation_id, message.created_at)
+
+
+async def previous_revision(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> StrategyRevisionView | None:
+    """The strategy the thread held before its last change.
+
+    It is the newest snapshot a turn ended on, older than the thread's newest
+    snapshot and with another tree. None when the thread holds no such
+    snapshot.
+    """
+    repo = StrategyRevisionRepository(session)
+    latest = await repo.latest(conversation_id)
+    if latest is None:
+        return None
+    return await repo.newest_turn_end_unlike(
+        conversation_id, before_row_id=latest.id, revision=latest.revision
+    )
+
+
+async def last_change(
+    session: AsyncSession,
+    *,
+    conversation_id: UUID,
+) -> LastChange | None:
+    """The thread's most recent change, read from its newest snapshot and the
+    one before its last change. None when the thread holds no strategy."""
+    latest = await StrategyRevisionRepository(session).latest(conversation_id)
+    ast = None if latest is None else parse_strategy_ast(latest.strategy_ast)
+    if ast is None:
+        return None
+    previous = await previous_revision(session, conversation_id=conversation_id)
+    return change_between(
+        None if previous is None else parse_strategy_ast(previous.strategy_ast), ast
+    )
 
 
 async def _write_strategy_state(

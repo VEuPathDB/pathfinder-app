@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.graph.turn_state import ConsultOption, UserQuestionAnswer
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
+from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
+from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.card_reply import CardReply
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -32,12 +33,14 @@ from pathfinder.domain.strategy.questions import (
     Withdraw,
     requirement_choices,
 )
-from pathfinder.domain.strategy.requirement_lifecycle import RequirementWithdrawal
+from pathfinder.domain.strategy.requirement_lifecycle import (
+    MANY_VALUED_KINDS,
+    stood_in_for,
+)
+from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 
 _LABEL_LIMIT = 120
 _QUESTION_LIMIT = 300
-# A dimension that names no one question: two answers on it state two things.
-_UNNAMED_DIMENSIONS = frozenset({ConstraintKind.OTHER, ConstraintKind.COMBINATION})
 
 
 def _recommends(question: OpenQuestion, option: TypedOption) -> bool:
@@ -67,13 +70,11 @@ def card_questions(questions: Sequence[OpenQuestion]) -> list[CardQuestion]:
 def _held_dimensions(
     recorded: Sequence[OpenQuestion], spec: OperationalSpec | None
 ) -> set[ConstraintKind]:
-    """The named dimensions a sheet in play holds: each one a recorded
-    question states, the organism while a criterion names its parameter, and
-    the dimension of each parameter a criterion holds. A parameter on an
-    unnamed dimension names no question."""
+    """The single-valued dimensions a recorded question states or a parameter
+    of the spec sets, the organism included while a criterion names it."""
     held = {q.dimension for q in recorded}
     if spec is None:
-        return held - _UNNAMED_DIMENSIONS
+        return held - MANY_VALUED_KINDS
     if any(c.organism_param for c in spec.criteria):
         held.add(ConstraintKind.ORGANISM)
     names = {c.id: c for c in spec.criteria}
@@ -84,10 +85,10 @@ def _held_dimensions(
         for cid, params in params_held(spec).items()
         for param in params
     }
-    return held - _UNNAMED_DIMENSIONS
+    return held - MANY_VALUED_KINDS
 
 
-def _unbound_labels(question: CardQuestion, choices: set[str]) -> list[str]:
+def _unbound_labels(question: CardQuestion, choices: Sequence[str]) -> list[str]:
     """The labels of a question of the Lead's own that bind nothing."""
     return [o.label for o in question.options if o.label not in choices]
 
@@ -118,7 +119,7 @@ def refuse_a_card_that_binds_nothing(
     prompts = {q.question for q in recorded}
     own = [q for q in questions if q.prompt not in prompts]
     reused = [q.prompt for q in own if offered & {o.label for o in q.options}]
-    choices = set(requirement_choices(domain.requirements))
+    choices = list(requirement_choices(domain.requirements))
     unbound = [
         (q.prompt, labels)
         for q in own
@@ -196,31 +197,18 @@ def _answer_requirement(
     )
 
 
-def _record_answer(domain: StrategyDomainState, stated: Constraint) -> None:
-    """Record the answer's requirement in place of any the thread holds on its
-    dimension, since the answer is the researcher's newer word on it."""
-    replaced = (
-        []
-        if stated.kind in _UNNAMED_DIMENSIONS
-        else [
-            RequirementWithdrawal(key=c.key, replaced_by=stated.key)
-            for c in domain.requirements
-            if c.kind is stated.kind and c.key != stated.key
-        ]
-    )
-    domain.record_requirements([stated])
-    domain.retire_requirements(replaced)
-
-
 def apply_option_bindings(
     state: PipelineState,
     answers: list[UserQuestionAnswer],
     asked: Sequence[CardQuestion] = (),
+    *,
+    sheets: Mapping[str, Sequence[ParameterInfo]],
 ) -> None:
     """Apply what each picked option binds, with no model in between.
 
     A value binds and a withdrawal retires; typed words and the note, never an
-    offered label, become a requirement on the dimension ``asked`` names.
+    offered label, become a requirement on the dimension ``asked`` names. That
+    requirement replaces each one a question that asks for a stand-in names.
     """
     domain = state.domain
     recorded = {q.question: q for q in domain.open_questions}
@@ -243,10 +231,13 @@ def apply_option_bindings(
                 case SetValues() as values:
                     if domain.operational_spec is not None:
                         domain.operational_spec = spec_bound_by_card(
-                            domain.operational_spec, values, option_id=option.id
+                            domain.operational_spec,
+                            values,
+                            option_id=option.id,
+                            sheets=sheets,
                         )
                 case Withdraw(constraint_id=key):
-                    domain.retire_requirements([RequirementWithdrawal(key=key)])
+                    domain.withdraw(c for c in domain.requirements if c.key == key)
                 case Keep():
                     continue
         dimension = (
@@ -256,7 +247,46 @@ def apply_option_bindings(
         )
         stated = _answer_requirement(answer.prompt, words, answer.note, dimension)
         if stated is not None:
-            _record_answer(domain, stated)
+            domain.record_requirements([stated])
+            domain.withdraw(
+                stood_in_for(
+                    domain.requirements, prompt=answer.prompt, stand_in=stated
+                ),
+                stand_in=stated,
+            )
+
+
+def _bound_criterion(option: TypedOption) -> str | None:
+    match option.binding:
+        case SetValues(criterion_id=criterion_id):
+            return criterion_id
+        case _:
+            return None
+
+
+async def _card_sheets(
+    state: PipelineState, answers: Sequence[UserQuestionAnswer]
+) -> dict[str, list[ParameterInfo]]:
+    """The published sheet of each search a picked option binds a value on."""
+    spec = state.domain.operational_spec
+    recorded = {q.question: q for q in state.domain.open_questions}
+    bound = {
+        _bound_criterion(option)
+        for answer in answers
+        if (question := recorded.get(answer.prompt)) is not None
+        for option in question.options
+        if option.label in answer.chosen_labels
+    }
+    searches = (
+        {c.search_name for c in spec.criteria if c.id in bound and c.search_name}
+        if spec is not None
+        else set()
+    )
+    if spec is None or not searches:
+        return {}
+    return await sheet_params_for_searches(
+        site_id=state.site_id, record_type=spec.record_type, search_names=searches
+    )
 
 
 def _chosen(label: str, question: OpenQuestion | None) -> str:
@@ -350,7 +380,9 @@ async def consult_user(
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False
         state.turn_markers.consulted = True
-        apply_option_bindings(state, answers, questions)
+        apply_option_bindings(
+            state, answers, questions, sheets=await _card_sheets(state, answers)
+        )
         state.domain.answer_open_questions(answered, on_card=True)
         state.domain.record_answered(_asked(questions))
     return asked

@@ -2,7 +2,6 @@
 the check found, and each count an edit moved beside the count it held before."""
 
 from pathfinder.domain.turn_facts import (
-    RECORD_WORDS,
     ListedFact,
     ListedRecord,
     SourceFact,
@@ -130,7 +129,7 @@ def test_the_ids_a_listing_returned_are_shown_under_their_step() -> None:
     ]
 
 
-def test_a_record_s_own_words_are_held_apart_from_the_counts() -> None:
+def test_a_record_is_shown_with_its_words_and_its_link() -> None:
     read = SourceFact(
         url="https://tritrypdb.org/tritrypdb/app/record/gene/Tbg972.6.590",
         record_id="Tbg972.6.590",
@@ -146,11 +145,4 @@ def test_a_record_s_own_words_are_held_apart_from_the_counts() -> None:
             "chromosome 6: https://tritrypdb.org/tritrypdb/app/record/gene/"
             "Tbg972.6.590"
         )
-    ]
-    assert facts.held_lines() == [
-        (
-            "Read: Tbg972.6.590: https://tritrypdb.org/tritrypdb/app/record/gene/"
-            "Tbg972.6.590"
-        ),
-        f"{RECORD_WORDS}hypothetical protein, T. brucei gambiense DAL972, chromosome 6",
     ]

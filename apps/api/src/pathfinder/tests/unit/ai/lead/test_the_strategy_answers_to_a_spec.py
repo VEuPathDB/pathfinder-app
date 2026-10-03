@@ -32,9 +32,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -77,7 +75,7 @@ async def test_a_pushed_edit_makes_the_strategy_answer_to_the_edited_spec(
 ) -> None:
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -92,7 +90,7 @@ async def test_an_edit_with_nothing_to_push_makes_the_plan_the_answer(
     """The strategy already states it, so the plan became the answer with no push."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(lambda found: found, declared=kept(SURFACE, STAGE))
+    thread.frames(lambda found: found)
 
     delta = await thread.edit()
 
@@ -135,7 +133,6 @@ async def test_a_value_the_user_set_is_not_pushed_back_by_the_next_edit(
     await thread.next_turn()
     thread.frames(
         with_the_percentile(90),
-        declared=[*kept(SURFACE), *declared("changed", STAGE)],
     )
 
     delta = await thread.edit()
@@ -243,7 +240,7 @@ async def test_a_turn_stopped_after_an_edit_leaves_the_answer_the_edit_recorded(
     """The checkpoint holds both facts, so the next turn replays nothing."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
     await thread.edit()
     stopped = thread.deps.state.domain.model_copy(deep=True)
 

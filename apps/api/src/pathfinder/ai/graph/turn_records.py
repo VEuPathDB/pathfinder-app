@@ -8,15 +8,17 @@ from uuid import UUID
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
+from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet
+from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
+from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
-from pathfinder.services.experiment.variant_comparison import VariantComparison
 
 # What a written reference carries before the identifier itself.
 _REFERENCE_PREFIXES = (
@@ -142,6 +144,15 @@ class CountsAtArrival(CamelModel):
     counts: dict[str, int] = Field(default_factory=dict)
 
 
+class ChangeAtArrival(CamelModel):
+    """The tree a message found, with its counts, and the change that made it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    tree: StrategyAst | None = None
+    change: LastChange | None = None
+
+
 class TurnMarkers(CamelModel):
     """What the Lead already did for one user message.
 
@@ -166,9 +177,6 @@ class TurnMarkers(CamelModel):
     verification_stopped: bool = False
     # A reply that did not match the turn's record is corrected once.
     contract_refused: bool = False
-    # The text parts, by run and part, whose restated facts were corrected. Each
-    # part is held to the facts once, after the message's one correction too.
-    facts_corrected: list[str] = Field(default_factory=list)
     # The EDA datasets this turn opened an analysis on.
     eda_datasets_opened: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
@@ -182,6 +190,8 @@ class TurnMarkers(CamelModel):
     # The strategy as the message found it. Every count before an edit of
     # this turn is read from it.
     at_arrival: CountsAtArrival | None = None
+    # The tree the message found and the thread's last change before it.
+    change_at_arrival: ChangeAtArrival | None = None
     # The genes whose record each check of this turn read, by check id.
     records_read: dict[str, list[str]] = Field(default_factory=dict)
     # The genes a sample of this turn returned, whose records a check may read.
@@ -193,10 +203,8 @@ class TurnMarkers(CamelModel):
     records_retrieved: list[ReadRecord] = Field(default_factory=list)
     # The genes the message names that the classification gate resolved.
     resolved_genes: list[ReadRecord] = Field(default_factory=list)
-    # The variant labels a comparison of this turn returned, in its order.
-    compared_labels: list[str] = Field(default_factory=list)
-    # Every count a comparison of this turn returned.
-    compared_counts: list[int] = Field(default_factory=list)
+    # The counts each completed comparison of this turn returned, in order.
+    comparisons: list[ComparisonFact] = Field(default_factory=list)
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -280,8 +288,8 @@ class TurnMarkers(CamelModel):
 
     def record_column_fits(self, fits: Iterable[ColumnFit]) -> None:
         """Keep one fit per step and column, the latest read."""
-        read = {(fit.wdk_step_id, fit.column): fit for fit in self.column_fits}
-        read.update({(fit.wdk_step_id, fit.column): fit for fit in fits})
+        read = {fit.column_key: fit for fit in self.column_fits}
+        read.update({fit.column_key: fit for fit in fits})
         self.column_fits = list(read.values())
 
     def record_arrival(
@@ -294,6 +302,13 @@ class TurnMarkers(CamelModel):
             root_id=root_id or "",
             counts={step: n for step, n in counts.items() if n is not None},
         )
+
+    def record_change_at_arrival(
+        self, tree: StrategyAst | None, change: LastChange | None
+    ) -> None:
+        """Keep the tree the message found and its last change, once per message."""
+        if self.change_at_arrival is None:
+            self.change_at_arrival = ChangeAtArrival(tree=tree, change=change)
 
     def _held_at_arrival(self, step_id: str) -> int | None:
         """The count the message found for the step, or for the step an export
@@ -343,10 +358,9 @@ class TurnMarkers(CamelModel):
         held = {gene.record_id for gene in self.resolved_genes}
         self.resolved_genes.extend(r for r in records if r.record_id not in held)
 
-    def record_comparison(self, comparison: VariantComparison) -> None:
-        """Keep each label and every count a comparison returned."""
-        self.compared_labels.extend(v.label for v in comparison.variants)
-        self.compared_counts.extend(sorted(comparison.counts()))
+    def record_comparison(self, comparison: ComparisonFact) -> None:
+        """Keep the counts one completed comparison returned."""
+        self.comparisons.append(comparison)
 
     def record_sampled_genes(self, gene_ids: Iterable[str]) -> None:
         """Record each gene a sample returned, once."""

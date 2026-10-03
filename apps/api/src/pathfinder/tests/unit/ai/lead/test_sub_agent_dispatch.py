@@ -252,20 +252,24 @@ async def test_the_build_pushes_the_option_a_criterion_states(
 
 
 def _unconvertible() -> OperationalSpec:
-    # Two inputs and no operator: bound, structured, and not a tree.
+    """Bound and structured, with a copy no pass restated into criteria."""
+    a_leaf = StructureNode(kind="leaf", criterion_id="a")
+    mapped_copy = StructureNode(
+        kind="transform",
+        criterion_id="t",
+        inputs=[StructureNode(kind="copy", inputs=[a_leaf])],
+    )
     return OperationalSpec(
         goal="drug targets",
         criteria=[
-            Criterion(id=n, text=n, role="filter", search_name=f"By{n}")
-            for n in ("a", "b")
+            Criterion(id="a", text="a", role="filter", search_name="Bya"),
+            Criterion(id="t", text="t", role="transform", search_name="Byt"),
         ],
         structure=SpecStructure(
             root=StructureNode(
                 kind="combine",
-                inputs=[
-                    StructureNode(kind="leaf", criterion_id="a"),
-                    StructureNode(kind="leaf", criterion_id="b"),
-                ],
+                operator=CombineOp.UNION,
+                inputs=[a_leaf, mapped_copy],
             )
         ),
     )
@@ -290,7 +294,9 @@ class TestTheTurnSurvives:
         with pytest.raises(ModelRetry) as err:
             await build_strategy(_empty_thread_ctx(_unconvertible()))
 
-        assert "combine" in str(err.value)
+        assert "a copy is stated as criteria of its own before the build" in str(
+            err.value
+        )
 
     async def test_the_message_says_the_structure_is_at_fault(self) -> None:
         with pytest.raises(ModelRetry) as err:

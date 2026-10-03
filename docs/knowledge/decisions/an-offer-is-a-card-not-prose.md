@@ -31,6 +31,14 @@ Lead asks in prose.
   closes the card as denied (`tool-output-denied`) and ends the turn with no model call. `final_reply`
   writes nothing for it, so the reply already on screen stays the turn's reply and the thread's
   `lead_next_state` and open questions stay as they stood. The denial's reason is the note.
+- **After a check, a change is a card.** A check's finding about what the records show is the
+  researcher's to act on; a check's finding about the tree is the build's to fix. So once a
+  check of this turn ran (`TurnMarkers.verification_dispatched`), `intent_gate.unmet_preconditions`
+  withholds every tool that writes except `verify_strategy` unless the check's verdict failed on
+  the structure (`VerificationDigest.blames_the_tree`, cause `STRUCTURE_VIOLATION`, on the tree
+  the verdict judged). `propose_changes` stays reachable, and `VerificationDelta.next_step` tells
+  the Lead that the change is offered on that card with the count before and after it. The
+  markers belong to the message, so a new message starts with every tool its intent allows.
 - **A run is its own card.** A sweep, a separation or a control test is never offered on a
   `propose_changes` card, whose yes runs an edit. The Lead calls that tool, whose own approval is
   the card, with the controls the conversation holds. A sweep or a control test takes a control

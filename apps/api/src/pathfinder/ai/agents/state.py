@@ -5,9 +5,11 @@ from typing import Literal
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, VocabOption
+from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.named_combine import NamedCombine
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     DroppedCriterion,
@@ -53,6 +55,22 @@ class ParamVocabSnapshot(BaseModel):
             total=self.allowed_values_total,
             lookup=self.vocab_lookup,
         )
+
+
+class LookupRecord(BaseModel):
+    """The entries the lookups of one parameter matched this pass, each with the
+    query term that matched it first."""
+
+    model_config = ConfigDict(frozen=True)
+
+    matched: dict[str, str] = Field(default_factory=dict)
+
+    def merged(self, lookup: VocabLookup) -> LookupRecord:
+        found = {value: m.term for m in lookup.matches for value in m.values}
+        return LookupRecord(matched={**found, **self.matched})
+
+    def matched_by(self, term: str) -> list[str]:
+        return [value for value, first in self.matched.items() if first == term]
 
 
 class CreatedGeneSet(BaseModel):
@@ -164,8 +182,8 @@ class AgentToolState:
     # Every catalog answer of this pass, oldest first.
     catalog_reads: list[CatalogRead] = field(default_factory=list)
     read_param_options: set[str] = field(default_factory=set)
-    # The (search, parameter) pairs a query narrowed this pass.
-    looked_up: set[tuple[str, str]] = field(default_factory=set)
+    # The entries the lookups of each (search, parameter) matched this pass.
+    looked_up: dict[tuple[str, str], LookupRecord] = field(default_factory=dict)
     operational_spec_draft: OperationalSpec = field(default_factory=OperationalSpec)
     # The organisms this investigation states. A capped vocabulary renders the
     # branches that match them first.
@@ -173,6 +191,12 @@ class AgentToolState:
     # How the user said their evidence lines combine. A proposed structure that
     # contradicts one of them is refused.
     combination_requirements: list[Constraint] = field(default_factory=list)
+    # The combine this turn's message names by its place, and the tree the
+    # dispatch found. A tree that moves another combine is refused.
+    named_combine: NamedCombine | None = None
+    held_structure: SpecStructure | None = None
+    # The combine operators this turn's message names by an operator word.
+    stated_operators: frozenset[CombineOp] = frozenset()
     # The requirements the thread states. A dropped criterion holds open the one
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)
@@ -253,9 +277,11 @@ class AgentToolState:
         return (criterion_id, search_name, param_name) in self.redecided_params
 
     def frame_set_criterion(self, criterion: Criterion) -> None:
+        """Hold a copy of the criterion, so a later count or measurement recorded
+        here never changes the caller's object."""
         spec = self.operational_spec_draft
         spec.criteria = [c for c in spec.criteria if c.id != criterion.id]
-        spec.criteria.append(criterion)
+        spec.criteria.append(criterion.model_copy(deep=True))
         self.open_sheets.pop(criterion.id, None)
 
     def frame_record_count(
@@ -344,6 +370,13 @@ class AgentToolState:
                 f"{k}={v.model_dump_json()}" for k, v in sorted(context_values.items())
             )
         return f"{search_name}|{parameter_id}|{ctx}|{';'.join(terms)}"
+
+    def record_lookup(
+        self, search_name: str, parameter_id: str, lookup: VocabLookup
+    ) -> None:
+        """Add the entries a query of the parameter matched to its lookups."""
+        key = (search_name, parameter_id)
+        self.looked_up[key] = self.looked_up.get(key, LookupRecord()).merged(lookup)
 
     def mark_param_read(self, key: str) -> None:
         self.read_param_options.add(key)

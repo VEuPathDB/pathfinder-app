@@ -30,7 +30,7 @@ _ANSWERED = (
     "The question is answered from the comparison beside this reply, and the "
     "strategy is as it was."
 )
-_READ = "The genes you asked for are listed beside this reply, each from its record."
+_READ = "The genes you named are listed beside this reply, each from its record."
 _COMPARED = (
     "The comparison beside this reply counts both searches on the site, and the "
     "strategy keeps its steps and its count. Say which one to carry into the "
@@ -74,7 +74,6 @@ def _fields_variant(label: str, fields: list[str], organism: str) -> dict[str, A
     return {
         "label": label,
         "search_name": "GenesByText",
-        "record_type": "transcript",
         "parameters": {
             "text_expression": {"type": "string", "value": "kinase"},
             "text_fields": {"type": "multi-pick-vocabulary", "values": fields},

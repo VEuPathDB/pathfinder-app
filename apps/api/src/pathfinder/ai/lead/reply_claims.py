@@ -13,6 +13,8 @@ from collections.abc import Iterable
 from pathfinder.ai.lead.proposal import PROPOSAL_TOOL
 from pathfinder.ai.lead.sub_agent_tools import TOOL_TO_PHASE_ROLE
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
+from pathfinder.domain.evidence import COLUMN_FIT_COUNTS
+from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
 
 _CLAUSE_END = re.compile(r"[.!?;\n]")
@@ -66,6 +68,14 @@ def claims(prose: str, made: re.Pattern[str]) -> bool:
     )
 
 
+def denies(prose: str, text: str) -> bool:
+    """Whether a clause of this reply names the text and takes the act back."""
+    return any(
+        _DENIED.search(clause) and named_in_prose(clause, text)
+        for clause in _CLAUSE_END.split(prose.casefold())
+    )
+
+
 def names_an_organism(prose: str, organism: str) -> bool:
     """Whether the prose names the organism in full or with its genus abbreviated."""
     genus, _, rest = organism.partition(" ")
@@ -109,8 +119,10 @@ def counts_named_as(prose: str, noun: str, *, instead_of: str) -> list[int]:
     """
     word = r"(?=[\w.-]*[A-Za-z])[\w][\w.-]*"
     between = rf"(?:(?!{re.escape(instead_of)}s?\b){word}\**\s+){{0,4}}?"
+    # The digits of a decimal, such as a similarity score, are no count.
     named = re.compile(
-        rf"\b(\d[\d,]*)\**\s+{between}\**{re.escape(noun)}s?\b", re.IGNORECASE
+        rf"(?<![\d.])\b(\d[\d,]*)\**\s+{between}\**{re.escape(noun)}s?\b",
+        re.IGNORECASE,
     )
     return [int(match.group(1).replace(",", "")) for match in named.finditer(prose)]
 
@@ -119,10 +131,12 @@ def counts_in_the_wrong_unit(
     prose: str, record_type: str, held: Iterable[int]
 ) -> list[int]:
     """Each count of ``held`` the prose names in ``record_type``, once, when the
-    site counts that record type in another noun."""
+    site counts that record type in another noun. A column fit row counts in
+    the column's own unit, so its counts are not read."""
     noun = counted_noun(record_type)
     if not record_type or noun == record_type:
         return []
     holds = set(held)
-    named = counts_named_as(prose, record_type, instead_of=noun)
+    outside_fits = COLUMN_FIT_COUNTS.sub(" ", prose)
+    named = counts_named_as(outside_fits, record_type, instead_of=noun)
     return [count for count in dict.fromkeys(named) if count in holds]

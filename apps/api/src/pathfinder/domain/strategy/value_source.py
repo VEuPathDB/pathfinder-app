@@ -7,7 +7,6 @@ from typing import assert_never
 
 from pydantic import BaseModel, TypeAdapter
 from veupathdb.domain.parameters import NumberValue, ParamValue, StringValue, to_wire
-from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.log2_scale import (
     stated_on_the_other_scale,
@@ -45,19 +44,6 @@ class _DateBounds(BaseModel):
 
     def texts(self) -> list[str]:
         return [b for b in (self.min, self.max) if b is not None]
-
-
-def is_placeholder(value: ParamValue, info: ParameterInfo | None) -> bool:
-    """Whether the parameter's sheet names the value a placeholder."""
-    return info is not None and info.is_placeholder(to_wire(value))
-
-
-def is_unset(
-    value: ParamValue, initial_display_value: str | None, info: ParameterInfo | None
-) -> bool:
-    """Whether the value states nothing the site did not: a placeholder the
-    parameter's sheet names, or the site's initial value."""
-    return is_placeholder(value, info) or to_wire(value) == initial_display_value
 
 
 def stated_texts(value: ParamValue) -> list[str]:
@@ -315,18 +301,17 @@ def cut_from(value: ParamValue, requirement_phrases: Sequence[str]) -> str:
 def value_source(
     value: ParamValue,
     *,
-    initial_display_value: str | None,
+    placeholder: bool,
+    unset: bool,
     request_texts: Sequence[str],
-    info: ParameterInfo | None = None,
     card_value: str | None = None,
     display_name: str = "",
 ) -> ValueSource:
-    """Who set one bound value, from data: the default for a placeholder, else
-    stated, else the card's, else the default at the site's initial value, else
-    chosen."""
-    if is_placeholder(value, info):
+    """Who set one bound value, from what its sheet says of it: the default for
+    a placeholder, else stated, else the card's, else the default for a value
+    that states nothing the site does not already send, else chosen."""
+    if placeholder:
         return "default"
-    unset = is_unset(value, initial_display_value, info)
     if stated_words(value, request_texts, display_name=display_name, at_default=unset):
         return "stated"
     if card_value == to_wire(value):

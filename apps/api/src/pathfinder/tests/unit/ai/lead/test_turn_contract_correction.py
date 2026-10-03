@@ -7,7 +7,14 @@ import asyncio
 import pytest
 from pydantic_ai import DeferredToolRequests
 from pydantic_ai.exceptions import ModelRetry
-from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    ToolCallPart,
+)
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.turn_contract import (
@@ -93,22 +100,50 @@ class TestTheOneCorrection:
 
         assert names == ["hold_the_turn_contract"]
 
-    def test_the_refusal_reaches_the_model_once_and_the_turn_answers(self) -> None:
-        deps = control_test_deps()
-        script = _scripted_answer("The strategy recovered 8 of 10 positive controls.")
+    def test_written_counts_are_refused_until_the_reply_writes_none(self) -> None:
+        answers = [
+            "The strategy recovered 8 of 10 positive controls.",
+            "It recovered 8 of them.",
+            "It recovers most of your positive controls; the results stand beside.",
+        ]
+        retries: list[str] = []
+
+        def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            del info
+            request = messages[-1]
+            if isinstance(request, ModelRequest):
+                retries.extend(
+                    p.model_response()
+                    for p in request.parts
+                    if isinstance(p, RetryPromptPart)
+                )
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="final_result",
+                        args={
+                            "prose": answers[len(retries)],
+                            "nextState": "await_user",
+                            "strategyChanged": False,
+                        },
+                        tool_call_id=f"call_final_{len(retries)}",
+                    )
+                ]
+            )
 
         result = asyncio.run(
             build_lead_agent().run(
                 "How well does it recover my controls?",
-                deps=deps,
-                model=script.model(),
+                deps=control_test_deps(),
+                model=FunctionModel(_fn, model_name="scripted"),
             ),
         )
 
         assert isinstance(result.output, LeadResponse)
-        assert len(script.retries) == 1
-        assert "Your reply prints ``8``." in script.retries[0]
-        assert "stand beside its replies" in script.retries[0]
+        assert result.output.prose == answers[-1]
+        assert [
+            "- ``8``: no fact holds it, so take it out." in retry for retry in retries
+        ] == [True, True]
 
     def test_an_out_of_scope_essay_is_re_asked_once_and_the_turn_answers(self) -> None:
         """The latch is the contract's, so every rule reaches the model once."""

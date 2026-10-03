@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import re
+
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.lead_proposal import propose_changes
+from pathfinder.domain.reference_grammar import BARE_REFERENCES, REFERENCE_KINDS
 
 
 def _flat(text: str) -> str:
@@ -199,15 +202,25 @@ def test_the_instructions_name_the_two_fields_the_contract_reads() -> None:
     assert "a single correction listing every mismatch" in instructions
 
 
-def test_the_reply_explains_and_prints_no_fact_the_product_lacks() -> None:
+def test_the_reply_names_each_fact_by_a_reference_the_product_renders() -> None:
     instructions = _flat(LEAD_INSTRUCTIONS)
 
-    assert "**The facts are shown beside the reply.**" in instructions
-    assert "The reply explains, recommends and asks" in instructions
     assert (
-        "It prints no number, name or link the facts do not show; the runtime "
-        "refuses such a reply once."
-    ) in instructions
+        "**The reply names each fact by a reference; the product renders it.**"
+        in instructions
+    )
+    assert "The reply explains, recommends and asks" in instructions
+    assert "which stands in place of the number" in instructions
+    assert (
+        'A name that mixes letters and digits ("PfEMP1", "3D7", "SignalP-6.0") is prose.'
+        in instructions
+    )
+
+
+def test_the_instructions_name_exactly_the_references_the_renderer_reads() -> None:
+    named = set(re.findall(r"``\[(\w+)(?::[^`]*)?\]``", LEAD_INSTRUCTIONS))
+
+    assert named == {*REFERENCE_KINDS, *BARE_REFERENCES}
 
 
 def test_a_fact_about_a_gene_is_read_from_its_record() -> None:

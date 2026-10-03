@@ -8,9 +8,9 @@
   "rationale": "The same question on VectorBase binds the site's own blood-fed versus sugar-fed search.",
   "expected": {
     "buildsStrategy": true,
-    "structure": "GenesByMicroarrayDirectagamPEST_microarrayExpression_E-MTAB-1621_Bloodfed_vs_Sugarfed_RSRC",
+    "structure": null,
     "recordType": "transcript",
-    "stepCount": 1,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {},

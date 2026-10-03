@@ -14,13 +14,20 @@ from veupathdb.wdk import WDKAnswer, WDKSearchConfig
 from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
+from pathfinder.domain.comparison_facts import (
+    ComparedVariant,
+    ComparisonFact,
+    SharedGenes,
+)
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.variant_comparison import (
     VariantComparison,
-    VariantSpec,
+    VariantInput,
+    VariantResult,
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.record_classes import list_searches_under
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import combine, session_with
@@ -51,8 +58,8 @@ def _strategy() -> StrategyStepNode:
     )
 
 
-def _variant(label: str, **values: str) -> VariantSpec:
-    return VariantSpec.model_validate(
+def _variant(label: str, **values: str) -> VariantInput:
+    return VariantInput.model_validate(
         {
             "label": label,
             "searchName": _TM,
@@ -100,6 +107,7 @@ def _site(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: _Reports())
     monkeypatch.setattr(variant_comparison, "compute_plan_step_counts", _counted)
     monkeypatch.setattr(variant_comparison, "search_parameters", _takes)
+    list_searches_under(monkeypatch, "transcript", {_TM})
 
 
 async def test_each_variant_is_counted_at_the_result_with_it_in_place() -> None:
@@ -149,17 +157,60 @@ async def test_a_search_no_step_runs_is_counted_alone() -> None:
     assert comparison.result_step_id is None
 
 
-async def test_the_labels_and_counts_a_comparison_returned_are_the_turns() -> None:
+async def test_the_counts_a_comparison_returned_are_the_turns() -> None:
     ctx = lead_run_context(strategy_session=session_with(_strategy(), {}))
 
     await compare_search_variants(
         ctx, [_variant("Minimum 2", min_tm="2"), _variant("Minimum 3", min_tm="3")]
     )
 
-    markers = ctx.deps.state.turn_markers
-    assert (markers.compared_labels, set(markers.compared_counts)) == (
-        ["Minimum 2", "Minimum 3"],
-        {1490, 227, 1029, 82, 0},
+    assert ctx.deps.state.turn_markers.comparisons == [
+        ComparisonFact(
+            variants=[
+                ComparedVariant(
+                    label="Minimum 2",
+                    gene_count=1490,
+                    unique_count=0,
+                    result_count=227,
+                    differs_by={"min_tm": "2"},
+                ),
+                ComparedVariant(
+                    label="Minimum 3",
+                    gene_count=1029,
+                    unique_count=0,
+                    result_count=82,
+                    differs_by={"min_tm": "3"},
+                ),
+            ],
+            overlaps=[SharedGenes(a="Minimum 2", b="Minimum 3", shared=0)],
+        )
+    ]
+
+
+async def test_a_variant_that_failed_leaves_no_count() -> None:
+    comparison = VariantComparison(
+        variants=[
+            VariantResult(
+                label="Product field",
+                search_name="GenesByText",
+                gene_count=2,
+                unique_count=0,
+                sample_unique_genes=[],
+            ),
+            VariantResult(
+                label="Every field",
+                search_name="GenesByText",
+                gene_count=0,
+                unique_count=0,
+                sample_unique_genes=[],
+                error="HTTP 500",
+            ),
+        ],
+        overlaps=[],
+    )
+
+    assert comparison.fact() == ComparisonFact(
+        variants=[ComparedVariant(label="Product field", gene_count=2, unique_count=0)]
     )
 
 
@@ -189,7 +240,7 @@ def _apicoplast_strategy() -> StrategySession:
 async def test_a_search_no_step_runs_is_refused_with_each_steps_search() -> None:
     """A variant is counted in place, so it varies a search a step runs."""
     ctx = lead_run_context(strategy_session=_apicoplast_strategy())
-    alone = VariantSpec(
+    alone = VariantInput(
         label="Apicoplast-targeted only",
         search_name="GenesBySubcellularLocalization",
         parameters={},

@@ -36,9 +36,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -108,7 +106,7 @@ async def test_a_step_deleted_and_added_again_with_the_same_search_is_a_new_step
 
     assert thread.criteria == [SURFACE, READDED]
     assert [c.id for c in thread.answered.criteria] == [SURFACE, READDED]
-    thread.frames(_percentile_on(READDED), declared=kept(SURFACE))
+    thread.frames(_percentile_on(READDED))
     _only_the_percentile(await thread.edit(), thread)
 
 
@@ -125,7 +123,7 @@ async def test_the_inputs_of_the_root_swapped_on_the_canvas_stand_through_an_edi
     assert thread.spec.structure == SpecStructure(
         root=joined(CombineOp.INTERSECT, leaf(STAGE), leaf(SURFACE))
     )
-    thread.frames(with_the_percentile(90), declared=kept(SURFACE))
+    thread.frames(with_the_percentile(90))
     _only_the_percentile(await thread.edit(), thread)
     assert thread.graph.steps[ROOT].primary_input_id == STAGE
 
@@ -172,7 +170,7 @@ async def test_one_join_of_a_flat_three_way_combine_flipped_on_the_canvas_stands
             leaf(THIRD),
         )
     )
-    thread.frames(with_the_percentile(90), declared=kept(SURFACE, THIRD))
+    thread.frames(with_the_percentile(90))
     _only_the_percentile(await thread.edit(), thread)
     assert thread.graph.steps[ROOT].operator == CombineOp.UNION
 
@@ -222,7 +220,7 @@ async def test_an_option_restating_the_value_the_canvas_replaced_is_pushed(
         for name, held in c.resolved_params.items()
         if held.carried_from
     ] == []
-    thread.frames(_asking_for_the_ring_stage_again, declared=kept(SURFACE))
+    thread.frames(_asking_for_the_ring_stage_again)
 
     delta = await thread.edit()
 
@@ -291,14 +289,12 @@ async def test_a_drop_no_pass_of_this_turn_declared_is_not_pushed(
     await thread.next_turn()
     thread.frames(
         _dropping_the_stage_and_asking,
-        declared=declared("dropped", STAGE),
         disposition="needs_user",
     )
     await thread.edit()
     await thread.next_turn()
     thread.frames(
         _taking_the_question_back,
-        declared=[*kept(SURFACE), *declared("dropped", PROTEOME)],
     )
 
     await thread.edit()
@@ -318,7 +314,7 @@ async def test_an_account_that_adds_what_the_edit_does_not_build_is_refused_whol
     thread = _thread(monkeypatch)
     await thread.next_turn()
     entry = thread.spec.model_copy(deep=True)
-    thread.frames(_stating_a_criterion_no_step_answers, declared=kept(SURFACE, STAGE))
+    thread.frames(_stating_a_criterion_no_step_answers)
 
     refusal = await thread.edit()
 

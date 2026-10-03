@@ -7,12 +7,18 @@ make the assistant worse at a real task.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
 
 from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import StrategyDistance
 from pathfinder.evals.drift import DriftVerdict
+
+# A case whose turn never reached the product, such as a site login that did
+# not answer, is not run: it says nothing of the assistant.
+type CaseOutcome = DriftVerdict | Literal["not-run"]
 
 
 class CaseResult(CamelModel):
@@ -24,12 +30,13 @@ class CaseResult(CamelModel):
     was read on beside the recorded count, whenever the two differ.
     ``refused_tools`` names the tool of each refused call, on a pass too, and
     ``assumed`` the applied values the request did not state, None when uncounted.
+    A case not run carries why in ``error``.
     """
 
     model_config = ConfigDict(frozen=True)
 
     name: str
-    verdict: DriftVerdict
+    verdict: CaseOutcome
     differences: list[CaseDifference] = Field(default_factory=list)
     distance: StrategyDistance | None = None
     observed_count: int | None = None
@@ -42,6 +49,11 @@ class CaseResult(CamelModel):
     @computed
     def passed(self) -> bool:
         return self.verdict == "pass" and not self.error
+
+    @computed
+    def errored(self) -> bool:
+        """Whether the case ran and broke before it reached a verdict."""
+        return self.verdict == "fail" and bool(self.error)
 
 
 class EvalRunSummary(CamelModel):
@@ -73,7 +85,11 @@ class EvalRunSummary(CamelModel):
 
     @computed
     def errored(self) -> int:
-        return sum(1 for case in self.cases if case.error)
+        return sum(1 for case in self.cases if case.errored)
+
+    @computed
+    def not_run(self) -> int:
+        return sum(1 for case in self.cases if case.verdict == "not-run")
 
     @computed
     def refusals(self) -> int:
@@ -86,18 +102,20 @@ class EvalRunSummary(CamelModel):
 
     @computed
     def pass_rate(self) -> float:
-        if not self.cases:
+        """The share of the cases that ran which passed."""
+        ran = len(self.cases) - self.not_run
+        if not ran:
             return 0.0
-        return round(_passed(self.cases) / len(self.cases), 4)
+        return round(_passed(self.cases) / ran, 4)
 
 
 def _passed(cases: list[CaseResult]) -> int:
     return _counted(cases, "pass")
 
 
-def _counted(cases: list[CaseResult], verdict: DriftVerdict) -> int:
+def _counted(cases: list[CaseResult], verdict: CaseOutcome) -> int:
     """The cases that ran to a verdict and reached *verdict*."""
     return sum(1 for case in cases if case.verdict == verdict and not case.error)
 
 
-__all__ = ["CaseResult", "EvalRunSummary"]
+__all__ = ["CaseOutcome", "CaseResult", "EvalRunSummary"]

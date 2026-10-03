@@ -16,15 +16,13 @@ from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
 
 from pathfinder.domain.strategy.ast_diff import StepChange
-from pathfinder.domain.strategy.constraint_grounding import (
-    RealizedSpec,
-    ground_constraints,
-)
+from pathfinder.domain.strategy.constraint_grounding import ground_constraints
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintStatus,
 )
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
+from pathfinder.domain.strategy.realized_spec import RealizedSpec
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,

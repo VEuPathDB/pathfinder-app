@@ -249,8 +249,12 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | U10 | - | `uat-dry-d-veupathdb` | - |
 | UA-plasmodb | - | `uat-dry-a-plasmodb` | - |
 | UC-piroplasmadb | - | `uat-dry-c-piroplasmadb` | - |
-| UB4-giardiadb | - | `uat-dry4-b-giardiadb` | - |
+| UB4-giardiadb | - | `uat-core-b-giardiadb` | - |
 | UB4-tritrypdb | - | `uat-dry4-b-tritrypdb` | - |
+| UD4-microsporidiadb | - | `uat-dry4-d-microsporidiadb`, `uat-core-d-microsporidiadb` | - |
+| UCORE-A-cryptodb | - | `uat-core-a-cryptodb` | - |
+| UCORE-D-veupathdb | - | `uat-core-d-veupathdb` | - |
+| UCORE-A-plasmodb | - | `uat-core-a-plasmodb` | - |
 
 ## Coverage
 

@@ -50,7 +50,8 @@ _TRITRYPDB = [
 def _source(value: ParamValue, texts: list[str], display_name: str = "") -> str:
     return value_source(
         value,
-        initial_display_value=None,
+        placeholder=False,
+        unset=False,
         request_texts=texts,
         display_name=display_name,
     )

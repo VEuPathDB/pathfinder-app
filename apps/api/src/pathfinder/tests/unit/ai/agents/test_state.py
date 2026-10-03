@@ -1,4 +1,5 @@
-"""``AgentToolState``: the discovery registry and the params a criterion bound."""
+"""``AgentToolState``: the discovery registry, the params a criterion bound, and
+the entries each lookup matched."""
 
 from __future__ import annotations
 
@@ -9,10 +10,11 @@ from veupathdb.domain.parameters import (
     VocabOption,
 )
 from veupathdb.domain.strategy import CombineOp
-from veupathdb_mcp.catalog import ParameterInfo, VocabLookup
+from veupathdb_mcp.catalog import ParameterInfo, PhrasingMatch, VocabLookup
 
 from pathfinder.ai.agents.state import (
     AgentToolState,
+    LookupRecord,
     ParamVocabSnapshot,
     SearchOverview,
 )
@@ -202,6 +204,48 @@ def test_frame_set_criterion_replaces_by_id() -> None:
     st.frame_set_criterion(Criterion(id="c1", text="a2", search_name="S2"))
     assert len(st.operational_spec_draft.criteria) == 1
     assert st.operational_spec_draft.criteria[0].search_name == "S2"
+
+
+def test_a_count_recorded_on_the_draft_leaves_the_bound_criterion_unchanged() -> None:
+    st = AgentToolState()
+    bound_criterion = Criterion(id="c1", text="a", search_name="S1")
+    st.frame_set_criterion(bound_criterion)
+
+    st.frame_record_count("c1", 42, [])
+
+    assert (st.operational_spec_draft.criteria[0].result_count, bound_criterion) == (
+        42,
+        Criterion(id="c1", text="a", search_name="S1"),
+    )
+
+
+def _matched(term: str, values: list[str]) -> VocabLookup:
+    return VocabLookup(
+        terms=[term],
+        matches=[
+            PhrasingMatch(term=term, phrasing=term, reach="phrase", values=values)
+        ],
+    )
+
+
+def test_the_lookups_of_one_parameter_hold_every_entry_they_matched() -> None:
+    st = AgentToolState()
+
+    st.record_lookup(
+        "GenesByInterproDomain", "domain_typeahead", _matched("OBP", ["PF01395"])
+    )
+    st.record_lookup(
+        "GenesByInterproDomain", "domain_typeahead", _matched("PBP/GOBP", ["PF22651"])
+    )
+    st.record_lookup(
+        "GenesByInterproDomain", "domain_typeahead", VocabLookup(terms=["x"])
+    )
+
+    assert st.looked_up == {
+        ("GenesByInterproDomain", "domain_typeahead"): LookupRecord(
+            matched={"PF01395": "OBP", "PF22651": "PBP/GOBP"}
+        )
+    }
 
 
 def _spec_of_three() -> OperationalSpec:

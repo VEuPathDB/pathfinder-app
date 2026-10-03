@@ -91,6 +91,41 @@ class TestInheritsBoundParentContext:
         assert len(client.contexts) == 1
         assert client.contexts[0]["profileset_generic"] == "DeRisi 3D7 Smoothed"
 
+    async def test_a_read_sends_no_value_of_the_parameter_it_reads(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """WDK answers a sent value as the initial value, which is no default."""
+        client = patch_search_details(
+            monkeypatch, parameters=[wdk_param("samples_percentile_generic")]
+        )
+        _pin_formatter(monkeypatch)
+        ctx = agent_run_context()
+        ctx.deps.agent_state.frame_set_criterion(
+            Criterion(
+                id="timecourse",
+                text="trophozoite expression",
+                search_name="GenesByMicroarrayDerisi",
+                resolved_params=bound(
+                    {
+                        "profileset_generic": SinglePickValue(
+                            value="DeRisi 3D7 Smoothed"
+                        ),
+                        "samples_percentile_generic": SinglePickValue(
+                            value="Trophozoite"
+                        ),
+                    }
+                ),
+            )
+        )
+
+        await catalog_discovery.get_parameter_options(
+            ctx,
+            search_name="GenesByMicroarrayDerisi",
+            parameter_id="samples_percentile_generic",
+        )
+
+        assert client.contexts == [{"profileset_generic": "DeRisi 3D7 Smoothed"}]
+
     async def test_an_explicit_context_overrides_the_bound_value(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

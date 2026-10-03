@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 
 from veupathdb.domain.parameters import (
     ParamKind,
@@ -10,6 +11,7 @@ from veupathdb.domain.parameters import (
     from_wire,
     param_value_from_raw,
 )
+from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -43,25 +45,37 @@ def _option_value(kind: ParamKind, value: str) -> ParamValue:
     return param_value_from_raw(value, kind)
 
 
-def _kind_of(criterion: Criterion, name: str, slots: list[OpenSlot]) -> ParamKind:
-    """The kind of the parameter: its bound value's, else the kind its slot holds."""
+def _kind_of(
+    criterion: Criterion,
+    name: str,
+    slots: list[OpenSlot],
+    sheet: Sequence[ParameterInfo],
+) -> ParamKind:
+    """The kind of the parameter: its bound value's, else its slot's, else the
+    kind its published sheet gives it."""
     held = criterion.resolved_params.get(name)
     if held is not None:
         return held.value.type
-    kinds: dict[str, ParamKind] = {s.param_name: s.param_kind for s in slots}
+    kinds: dict[str, ParamKind] = {i.name: i.param_kind for i in sheet}
+    kinds |= {s.param_name: s.param_kind for s in slots}
     return kinds.get(name, _TEXT)
 
 
 def _card_bound(
-    criterion: Criterion, binding: SetValues, option_id: str, slots: list[OpenSlot]
+    criterion: Criterion,
+    binding: SetValues,
+    option_id: str,
+    slots: list[OpenSlot],
+    sheet: Sequence[ParameterInfo],
 ) -> Criterion:
     slots = [*criterion.open_params, *slots]
     for name, value in binding.params.items():
-        kind = _kind_of(criterion, name, slots)
+        kind = _kind_of(criterion, name, slots, sheet)
         criterion = criterion_restated(
             criterion,
             name,
             _option_value(kind, value),
+            sheet=sheet,
             source="card",
             basis=option_id,
         )
@@ -69,20 +83,22 @@ def _card_bound(
 
 
 def spec_bound_by_card(
-    spec: OperationalSpec, binding: SetValues, *, option_id: str
+    spec: OperationalSpec,
+    binding: SetValues,
+    *,
+    option_id: str,
+    sheets: Mapping[str, Sequence[ParameterInfo]],
 ) -> OperationalSpec:
-    """The spec with the option's values bound as the card's.
-
-    A value takes the kind of the value it replaces or of the slot it fills. A
-    binding on a criterion the spec no longer holds binds nothing.
-    """
+    """The spec with the option's values bound as the card's, each read on the
+    published sheet of its search in ``sheets``. A value takes the kind of the
+    value it replaces or the slot it fills; a gone criterion binds nothing."""
     if all(c.id != binding.criterion_id for c in spec.criteria):
         return spec
     slots = [s for s in spec.open_slots if s.criterion_id == binding.criterion_id]
     return spec.model_copy(
         update={
             "criteria": [
-                _card_bound(c, binding, option_id, slots)
+                _card_bound(c, binding, option_id, slots, sheets.get(c.search_name, []))
                 if c.id == binding.criterion_id
                 else c
                 for c in spec.criteria

@@ -6,10 +6,11 @@ the two ways a dispatch ends before it returns a delta.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import NoReturn
 
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import CallDeferred, ModelRetry
+from pydantic_ai.exceptions import CallDeferred, ModelRetry, ToolFailed
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
@@ -22,6 +23,7 @@ from pathfinder.domain.strategy.constraints import (
     combination_requirements_from,
     organism_hints_from,
 )
+from pathfinder.domain.strategy.named_combine import NamedCombine, stated_operators
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_reconciliation import (
@@ -50,6 +52,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
     runtime = deps.runtime
     ledger = derive_ledger(state, deps.intent, phase_stop=deps.last_phase_stop)
     requirements = [*state.domain.requirements, *ledger.constraints.recommended]
+    found = state.domain.spec_before_dispatch
     return AgentDeps(
         site_id=runtime.site_id,
         user_id=runtime.user_id,
@@ -66,6 +69,9 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             ),
             organism_hints=organism_hints_from(requirements),
             combination_requirements=combination_requirements_from(requirements),
+            named_combine=NamedCombine.read(state.user_prompt),
+            held_structure=None if found is None else found.structure,
+            stated_operators=stated_operators(state.user_prompt),
             stated_requirements=list(state.domain.requirements),
             created_gene_sets=deps.created_gene_sets,
             request_messages=state.researcher_messages(),
@@ -156,8 +162,11 @@ def the_edit_the_strategy_owes(
     )
 
 
-def refuse_and_keep_what_it_bound(deps: LeadDeps, message: str) -> NoReturn:
-    """Reject the pass, and keep each bound criterion the dispatch did not find.
+def refuse_and_keep_what_it_bound(
+    deps: LeadDeps, message: str, *, refused: Collection[str] = ()
+) -> NoReturn:
+    """Reject the pass, and keep each bound criterion the dispatch did not find
+    and the refusal does not name.
 
     Every criterion the dispatch found is put back as it was found, so the
     retry keeps new work and never a change to what was there.
@@ -170,7 +179,7 @@ def refuse_and_keep_what_it_bound(deps: LeadDeps, message: str) -> NoReturn:
         kept.criteria += [
             c.model_copy(deep=True)
             for c in draft.criteria
-            if c.bound and c.id not in found
+            if c.bound and c.id not in found and c.id not in refused
         ]
         deps.state.domain.operational_spec = kept
     raise ModelRetry(message)
@@ -183,8 +192,18 @@ def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:
     left the draft in place would show the retry a workspace missing the very
     criterion it has to preserve.
     """
+    _restore_the_found_spec(deps)
+    raise ModelRetry(message)
+
+
+def refuse_without_retry(deps: LeadDeps, message: str) -> NoReturn:
+    """Fail the call for good and put back the spec the dispatch found."""
+    _restore_the_found_spec(deps)
+    raise ToolFailed(message)
+
+
+def _restore_the_found_spec(deps: LeadDeps) -> None:
     before = deps.state.domain.spec_before_dispatch
     deps.state.domain.operational_spec = (
         None if before is None else before.model_copy(deep=True)
     )
-    raise ModelRetry(message)

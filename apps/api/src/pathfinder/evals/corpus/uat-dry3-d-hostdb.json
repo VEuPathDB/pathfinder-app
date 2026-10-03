@@ -59,7 +59,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ud-hostdb",
-    "curatorNote": "Round-3 dry UAT, tester D, investigation 12, conversation 2fef18b7-1292-41d9-9050-036249632a0e. Turns 2 to 4 are the reports' quotes of the messages. The sample of turn 3 and turn 4 must hold the same five genes; no expectation field compares two turns' records yet."
+    "curatorNote": "The samples of the third and the fourth message must hold the same five genes, which no expectation field compares across turns."
   },
   "effort": "medium",
   "gates": {

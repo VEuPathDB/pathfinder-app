@@ -78,7 +78,6 @@ DOMAIN_FIELDS = {
     "separation_offers",
     "attached_controls",
     "control_sets",
-    "facts_shown",
     "upload_types",
 }
 

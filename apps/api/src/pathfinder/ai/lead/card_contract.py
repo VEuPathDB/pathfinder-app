@@ -42,38 +42,35 @@ CARD_TOOLS: frozenset[str] = frozenset(
 _NOT_SHOWN = "The card was not shown to the researcher. Answer again with the card."
 
 
-def _reply_beside_the_card(requests: DeferredToolRequests) -> str:
+def _replies_beside_the_cards(requests: DeferredToolRequests) -> list[str]:
     """The replies the card calls of one response carry, in call order."""
-    replies = [
+    replies = (
         CardCallReply.model_validate(call.args_as_dict()).reply
         for call in requests.approvals
         if call.tool_name in CARD_TOOLS
-    ]
-    return "\n\n".join(reply for reply in replies if reply)[:PROSE_MAX_CHARS]
+    )
+    return [reply for reply in replies if reply]
 
 
 def hold_the_contract_on_a_card(
     ctx: RunContext[LeadDeps],
     requests: DeferredToolRequests,
 ) -> DeferredToolResults | None:
-    """Deny a card whose reply does not match the turn, with the correction.
-
-    The denial returns the correction to the Lead inside the same run, so the
-    card is never emitted and the corrected answer issues it again. It is asked
-    on the same latch as the typed reply's correction, and a card a later run
-    of the message issues is still held to the facts once.
-    """
+    """Deny every card of a response whose replies do not match the turn. The
+    correction returns inside the same run, and the corrected answer issues
+    the card again."""
     cards = [
         call.tool_call_id for call in requests.approvals if call.tool_name in CARD_TOOLS
     ]
     if not cards:
         return None
     record = turn_record(ctx).model_copy(update={"ends_on_a_card": True})
+    replies = _replies_beside_the_cards(requests)
     report = LeadResponse(
-        prose=_reply_beside_the_card(requests),
+        prose="\n\n".join(replies)[:PROSE_MAX_CHARS],
         strategy_changed=record.changed_strategy,
     )
-    mismatches = to_correct(ctx, report, record, "card")
+    mismatches = to_correct(ctx, report, record, replies)
     if not mismatches:
         return None
     denial: DeferredToolApprovalResult = ToolDenied(

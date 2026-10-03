@@ -21,7 +21,6 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentResume
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
-    PROTEOME,
     with_the_percentile,
     with_the_proteome,
 )
@@ -38,8 +37,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    declared,
-    kept,
     recorded,
     session_holding,
 )
@@ -119,7 +116,7 @@ async def test_restating_the_branch_term_on_a_kept_criterion_is_no_movement(
                 }
         return with_the_proteome(2)(found)
 
-    thread.frames(_draft, declared=kept(SURFACE, STAGE))
+    thread.frames(_draft)
 
     delta = await thread.edit()
 
@@ -135,7 +132,6 @@ async def test_an_edit_of_another_parameter_sends_only_that_parameter(
     await thread.next_turn()
     thread.frames(
         with_the_percentile(90),
-        declared=[*kept(SURFACE), *declared("changed", STAGE)],
     )
 
     delta = await thread.edit()
@@ -172,7 +168,7 @@ async def test_restating_the_branch_term_alone_asks_for_no_operation(
                 }
         return found
 
-    thread.frames(_draft, declared=kept(SURFACE, STAGE))
+    thread.frames(_draft)
 
     delta = await thread.edit()
 
@@ -191,7 +187,7 @@ async def test_a_value_set_while_a_call_was_parked_costs_the_resumed_pass_nothin
     record_the_spec_the_dispatch_found(thread.deps, resume=None)
     thread.graph.steps[STAGE].parameters[STAGE_TIMEPOINT] = NumberValue(value=48)
     await thread.next_turn(resumes_parked_call=True)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit(
         resume=SubAgentResume(messages=[], results=DeferredToolResults())
@@ -211,12 +207,11 @@ async def test_a_change_framed_beside_an_open_question_is_pushed_once_it_is_answ
     await thread.next_turn()
     thread.frames(
         lambda found: with_the_proteome(None)(with_the_percentile(90)(found)),
-        declared=[],
         disposition="needs_user",
     )
     await thread.edit()
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 

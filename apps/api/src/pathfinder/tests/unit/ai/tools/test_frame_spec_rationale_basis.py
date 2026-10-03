@@ -69,7 +69,8 @@ def _site(monkeypatch: pytest.MonkeyPatch) -> None:
             "covers Toxoplasma gondii",
             (
                 "c_gpi: no value this binding sends holds Toxoplasma gondii, so the "
-                "organism does not decide the choice."
+                "organism does not decide the choice. The term is the organism "
+                "value the binding sends, never the parameter's name."
             ),
         ),
         (

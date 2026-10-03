@@ -33,7 +33,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_site import (
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     joined,
-    kept,
     leaf,
     session_holding,
 )
@@ -114,7 +113,7 @@ async def test_an_edit_after_the_statement_proceeds(
 ) -> None:
     thread = _thread(monkeypatch, _carried())
     await thread.next_turn()
-    thread.frames(with_the_waiting_comparison(_EXPORTED), declared=kept(_EXPORTED))
+    thread.frames(with_the_waiting_comparison(_EXPORTED))
 
     delta = await thread.edit()
 

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 from pydantic import SecretStr
-from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.models import Model
 
 from pathfinder.ai.capabilities.security import _judge_model
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.errors import DeploymentKeyRefusedError
 from pathfinder.platform.model_keys import attach_keyring, one_generation
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
@@ -35,10 +35,10 @@ async def test_the_judge_sends_the_deployment_key_and_no_provider_body() -> None
     with attach_keyring(keyring, build=wire.build):
         judge = _judge_model()
     assert isinstance(judge, Model)
-    with pytest.raises(ModelHTTPError) as caught:
+    with pytest.raises(DeploymentKeyRefusedError) as caught:
         await one_generation(judge)
 
     assert [h["authorization"] for h in wire.sent_headers()] == [
         f"Bearer {_DEPLOYMENT_KEY}"
     ]
-    assert (caught.value.status_code, caught.value.body) == (401, None)
+    assert "Incorrect API key" not in str(caught.value)

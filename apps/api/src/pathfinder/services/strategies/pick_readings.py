@@ -16,7 +16,7 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.domain.strategy.operational_spec import Measurement
+from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
 from pathfinder.services.strategies.parameter_rules import rules_of
 from pathfinder.services.strategies.value_labels import pick_terms
 
@@ -28,7 +28,7 @@ LISTED_OPTIONS = 30
 COUNTED_OPTIONS = 3
 
 
-def _site_default(info: ParameterInfo) -> ParamValue | None:
+def site_default(info: ParameterInfo) -> ParamValue | None:
     """The value the site sends when nothing is proposed; None for a pick whose
     default takes no option, which is no reading the search answers."""
     wire = info.default_value or ""
@@ -83,7 +83,7 @@ def options_not_taken(
 
 def _other_options(value: ParamValue, info: ParameterInfo) -> list[ParamValue]:
     """The options a single pick is counted at, the site default first."""
-    default = _site_default(info)
+    default = site_default(info)
     others = [from_wire(info.param_kind, o.value) for o in info.vocabulary()]
     seen = {to_wire(value)}
     found: list[ParamValue] = []
@@ -114,7 +114,7 @@ async def _single_pick(
     """
     others = _other_options(value, info)
     counts = await asyncio.gather(*(count_with({name: o}) for o in others))
-    default = _site_default(info)
+    default = site_default(info)
     found: list[Measurement] = []
     if (
         default is not None
@@ -136,15 +136,16 @@ async def _single_pick(
 
 
 async def _counted_once(
-    count_with: CountWith, name: str, value: ParamValue, info: ParameterInfo, bound: int
+    count_with: CountWith, name: str, held: BoundValue, info: ParameterInfo, bound: int
 ) -> list[Measurement]:
     """A multi-pick or a filter at its site default when it holds another
     value, else a multi-pick at every option, its loosest bound. A reading
     whose count did not arrive is no reading."""
-    default = _site_default(info)
+    value = held.value
+    default = site_default(info)
     other: ParamValue | None = None
     kind: Literal["site_default", "loosest_bound"] = "site_default"
-    if default is not None and to_wire(default) != to_wire(value):
+    if default is not None and not held.at_default:
         other = default
     elif info.param_kind == "multi-pick-vocabulary":
         other, kind = _every_option(value, info), "loosest_bound"
@@ -162,13 +163,15 @@ async def _counted_once(
 
 
 async def default_reading(
-    count_with: CountWith, name: str, value: ParamValue, info: ParameterInfo, bound: int
+    count_with: CountWith, name: str, held: BoundValue, info: ParameterInfo, bound: int
 ) -> list[Measurement]:
     """The counts at the other readings of a pick or a filter, and the options
-    a pick did not take when one of those counts differs from ``bound``."""
+    a pick did not take when one of those counts differs from ``bound``.
+    ``info`` is the published sheet entry, whose initial value is the site's
+    default."""
     if info.param_kind == "single-pick-vocabulary":
-        return await _single_pick(count_with, name, value, info, bound)
-    return await _counted_once(count_with, name, value, info, bound)
+        return await _single_pick(count_with, name, held.value, info, bound)
+    return await _counted_once(count_with, name, held, info, bound)
 
 
 __all__ = [
@@ -176,5 +179,6 @@ __all__ = [
     "LISTED_OPTIONS",
     "CountWith",
     "default_reading",
+    "site_default",
     "tree_note",
 ]

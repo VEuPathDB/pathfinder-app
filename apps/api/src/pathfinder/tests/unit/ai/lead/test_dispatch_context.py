@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from veupathdb.domain.strategy import CombineOp
+from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
+
+from pathfinder.ai.agents.state import LookupRecord
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
@@ -10,7 +14,13 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     organism_hints_from,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.domain.strategy.named_combine import NamedCombine
+from pathfinder.domain.strategy.operational_spec import (
+    Criterion,
+    OperationalSpec,
+    SpecStructure,
+    StructureNode,
+)
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
@@ -226,3 +236,73 @@ def test_the_commit_context_carries_the_criteria_the_spec_states() -> None:
     context = agent_deps_for(lead_deps(state)).to_strategy_context()
 
     assert context.stated_criteria == frozenset({"step_a", "step_b"})
+
+
+def test_a_lookup_one_pass_ran_does_not_reach_the_next_pass() -> None:
+    """A pick binds from a lookup of its own pass only."""
+    deps = lead_deps(pipeline_state("vectorbase", user_prompt=_HINT_PROMPT))
+    first = agent_deps_for(deps).agent_state
+    first.record_lookup(
+        "GenesByInterproDomain",
+        "domain_typeahead",
+        VocabLookup(
+            terms=["odorant binding"],
+            matches=[
+                PhrasingMatch(
+                    term="odorant binding",
+                    phrasing="odorant binding",
+                    reach="phrase",
+                    values=["PF01395"],
+                )
+            ],
+        ),
+    )
+
+    second = agent_deps_for(deps).agent_state
+
+    assert (
+        first.looked_up,
+        second.looked_up,
+    ) == (
+        {
+            ("GenesByInterproDomain", "domain_typeahead"): LookupRecord(
+                matched={"PF01395": "odorant binding"}
+            )
+        },
+        {},
+    )
+
+
+def test_the_turns_placed_combine_and_the_found_tree_reach_the_tool_state() -> None:
+    state = pipeline_state(
+        "plasmodb", user_prompt="flip the last combine to a UNION, please"
+    )
+    found = OperationalSpec(
+        criteria=[Criterion(id="a", text="a"), Criterion(id="b", text="b")],
+        structure=SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    StructureNode(kind="leaf", criterion_id="a"),
+                    StructureNode(kind="leaf", criterion_id="b"),
+                ],
+            )
+        ),
+    )
+    state.domain.spec_before_dispatch = found
+
+    tool_state = agent_deps_for(lead_deps(state)).agent_state
+
+    assert tool_state.named_combine == NamedCombine(
+        position="root", operator=CombineOp.UNION
+    )
+    assert tool_state.held_structure == found.structure
+
+
+def test_the_turns_operator_words_reach_the_tool_state() -> None:
+    state = pipeline_state("plasmodb", user_prompt="Undo that, keep the intersection.")
+
+    tool_state = agent_deps_for(lead_deps(state)).agent_state
+
+    assert tool_state.stated_operators == frozenset({CombineOp.INTERSECT})

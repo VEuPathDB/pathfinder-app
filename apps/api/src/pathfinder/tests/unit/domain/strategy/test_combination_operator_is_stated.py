@@ -7,6 +7,8 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+)
+from pathfinder.domain.strategy.message_reading import (
     combination_operator_is_stated,
     message_states_constraint,
     read_combination,

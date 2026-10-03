@@ -38,8 +38,8 @@ def _row(text: str) -> RequirementCheck:
         text=text,
         turn=3,
         answered_by=["step_dd5b456c"],
-        how="structure",
-        status="unmet",
+        how="search",
+        status="met",
         no_record_shows_it=True,
     )
 
@@ -102,16 +102,28 @@ def test_a_row_a_step_answers_and_no_record_shows_is_no_gap() -> None:
     assert gaps == []
 
 
-def test_a_combine_that_joins_its_steps_another_way_is_unmet() -> None:
-    row = RequirementCheck(
-        text="A or B",
-        turn=1,
-        answered_by=["c_a", "c_b"],
-        how="structure",
-        status="unmet",
-    )
+def test_a_combine_that_joins_its_steps_another_way_names_no_answer() -> None:
+    with pytest.raises(ValidationError, match="names no step that answers it"):
+        RequirementCheck(
+            text="A or B",
+            turn=1,
+            answered_by=["c_a", "c_b"],
+            how="structure",
+            status="unmet",
+        )
 
-    assert (row.status, row.answered_by) == ("unmet", ["c_a", "c_b"])
+
+def test_a_row_the_records_leave_short_is_either_unshown_or_unjudged() -> None:
+    with pytest.raises(ValidationError, match="either unshown or unjudged"):
+        RequirementCheck(
+            text="RNA-binding domain",
+            turn=1,
+            answered_by=["c_rbd"],
+            how="parameter",
+            status="met",
+            no_record_shows_it=True,
+            no_record_judged_it=True,
+        )
 
 
 def test_a_row_no_record_judged_is_a_gap_of_its_own() -> None:
@@ -124,19 +136,23 @@ def test_a_row_no_record_judged_is_a_gap_of_its_own() -> None:
         no_record_judged_it=True,
     )
 
-    [gap] = check_gaps(
+    gaps = check_gaps(
         structure=None,
         words=[],
         review=VerificationReview(requirements=[row]),
         requirements=_HELD,
     )
 
-    assert (gap.status, gap.sentence, gap.fails_the_check) == (
-        "unjudged",
-        "'RNA-binding domain': no sampled record judged it",
-        False,
-    )
+    assert [(g.sentence, g.fails_the_check) for g in gaps] == [
+        ("'RNA-binding domain': no sampled record judged it", False)
+    ]
+    assert row.shown_status == "unjudged"
 
 
 def test_an_unmet_row_fails_the_check() -> None:
-    assert RequirementGap(text="RNA-binding domain", status="unmet").fails_the_check
+    gap = RequirementGap(text="RNA-binding domain", status="unmet")
+
+    assert (gap.sentence, gap.fails_the_check) == (
+        "'RNA-binding domain': nothing in the strategy answers it",
+        True,
+    )

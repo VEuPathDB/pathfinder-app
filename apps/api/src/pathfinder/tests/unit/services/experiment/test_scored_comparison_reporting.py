@@ -38,8 +38,12 @@ _POSITIVES = ["PF3D7_1116700", "PF3D7_0507500", "PF3D7_1245900"]
 
 def _variants() -> list[VariantSpec]:
     return [
-        VariantSpec(label="top 20%", search_name="SA", parameters={}),
-        VariantSpec(label="top 5%", search_name="SB", parameters={}),
+        VariantSpec(
+            label="top 20%", search_name="SA", record_type="transcript", parameters={}
+        ),
+        VariantSpec(
+            label="top 5%", search_name="SB", record_type="transcript", parameters={}
+        ),
     ]
 
 

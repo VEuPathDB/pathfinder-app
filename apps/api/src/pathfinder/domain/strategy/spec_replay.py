@@ -20,7 +20,6 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
     ValueSource,
-    bind_values,
 )
 from pathfinder.domain.strategy.outside_changes import OutsideChanges
 from pathfinder.domain.strategy.spec_hydration import (
@@ -32,6 +31,7 @@ from pathfinder.domain.strategy.spec_hydration import (
     spec_stating_the_live_tree,
 )
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
+from pathfinder.domain.strategy.value_binding import bind_values
 
 __all__ = ["criterion_rebound", "criterion_restated", "spec_replaying"]
 
@@ -41,6 +41,7 @@ def criterion_restated(
     name: str,
     value: ParamValue | None,
     *,
+    sheet: Sequence[ParameterInfo],
     source: ValueSource = "held",
     basis: str = "",
 ) -> Criterion:
@@ -48,11 +49,12 @@ def criterion_restated(
 
     A decided value takes the place of the slot that asked for it, the counts
     measured around the old value and the options it was chosen from. The
-    value is the strategy's unless ``source`` names who set it.
+    value is the strategy's unless ``source`` names who set it. ``sheet`` is
+    the search's published sheet, empty when none was read.
     """
     params = {n: v for n, v in criterion.resolved_params.items() if n != name}
     if value is not None:
-        params |= bind_values({name: value}, source, basis)
+        params |= bind_values({name: value}, source, sheet, basis)
     return criterion.model_copy(
         update={
             "resolved_params": params,
@@ -79,7 +81,9 @@ def criterion_rebound(
             "search_name": node.search_name,
             "saved_strategy_ref": None,
             "analysis": None,
-            "resolved_params": bind_values(sheet_bound(node.parameters, sheet), "held"),
+            "resolved_params": bind_values(
+                sheet_bound(node.parameters, sheet), "held", sheet or ()
+            ),
             "measurements": [],
             "open_params": [],
             "alternatives": [],
@@ -186,6 +190,8 @@ def _criterion_the_step_states(
     shown = sheet_bound({p.name: p for p in change.params}, sheet)
     restated = criterion
     for name in shown:
-        restated = criterion_restated(restated, name, node.parameters.get(name))
+        restated = criterion_restated(
+            restated, name, node.parameters.get(name), sheet=sheet or ()
+        )
         closed.add((criterion.id, name))
-    return restated if sheet is None else sheet_marked(restated, sheet)
+    return restated

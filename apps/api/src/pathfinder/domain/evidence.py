@@ -3,6 +3,7 @@ the references of each criterion, and the review VERIFY wrote."""
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Callable
 from datetime import datetime
@@ -12,6 +13,7 @@ from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
+from pathfinder.domain.citations import Citation
 from pathfinder.domain.control_enrichment import ControlEnrichment
 
 # Whether the site's counts were read: read, asked and not answered, or not
@@ -25,13 +27,14 @@ type RequirementHow = Literal[
     "search", "parameter", "structure", "transform", "analysis"
 ]
 type RequirementStatus = Literal["met", "unmet", "unexpressed"]
-type ShownStatus = RequirementStatus | Literal["unjudged"]
+# unshown: a record the check read shows a met row missing.
+# unjudged: no record the check read judged a met row either way.
+type ShownStatus = RequirementStatus | Literal["unshown", "unjudged"]
 type GeneFit = Literal["yes", "no", "unclear"]
 type ColumnFitState = Literal["all", "some", "none", "not_shown"]
 # A column reporter counts the step's genes; an attribute histogram counts its
 # transcript rows.
 type CountedIn = Literal["genes", "transcripts"]
-type CitationKind = Literal["record", "literature", "web"]
 
 
 class ControlSetEvidence(CamelModel):
@@ -202,39 +205,37 @@ class RequirementCheck(CamelModel):
         max_length=SAMPLED_GENE_LIMIT,
         description="The sampled gene ids or the columns whose fit show it.",
     )
-    # The runtime's mark, hidden from the check: a text query answers the row
-    # and no record the check read shows it.
+    # The runtime's marks, hidden from the check: a text query alone answers
+    # the met row, and a record the check read shows it missing, or no record
+    # judged it either way.
     no_record_shows_it: SkipJsonSchema[bool] = False
-    # The runtime's mark: a text query alone answers the met row and no record
-    # the check read judged it either way.
     no_record_judged_it: SkipJsonSchema[bool] = False
 
     @model_validator(mode="after")
-    def _a_met_requirement_names_its_answer(self) -> Self:
+    def _a_status_agrees_with_its_answer(self) -> Self:
         if self.status == "met" and not self.answered_by:
             msg = "a met requirement names the criterion or the step that answers it"
             raise ValueError(msg)
-        if self.no_record_judged_it and self.status != "met":
-            msg = "only a met requirement is left unjudged by the records"
-            raise ValueError(msg)
-        if self.status == "unmet" and self.answered_by and not self._answered_short:
+        if self.status == "unmet" and self.answered_by:
             msg = (
                 "an unmet requirement names no step that answers it: a step "
                 "that states it makes the row met, and a step that states "
-                "another value is named in the note"
+                "another value or joins the steps another way is named in the note"
             )
+            raise ValueError(msg)
+        if (self.no_record_shows_it or self.no_record_judged_it) and (
+            self.status != "met" or self.no_record_shows_it == self.no_record_judged_it
+        ):
+            msg = "a met row the records leave short is either unshown or unjudged"
             raise ValueError(msg)
         return self
 
     @property
-    def _answered_short(self) -> bool:
-        """Whether the row's answers fall short: a combine that joins them
-        another way, or a text row a record shows missing."""
-        return self.how == "structure" or self.no_record_shows_it
-
-    @property
     def shown_status(self) -> ShownStatus:
-        """The status a reader is shown: a met row no record judged is unjudged."""
+        """The status a reader is shown: a met row the records show missing is
+        unshown, and one no record judged is unjudged."""
+        if self.no_record_shows_it:
+            return "unshown"
         return "unjudged" if self.no_record_judged_it else self.status
 
 
@@ -256,6 +257,13 @@ class SampledGene(CamelModel):
 
 def _counted(surely: int, at_most: int) -> str:
     return str(surely) if surely == at_most else f"{surely} to {at_most}"
+
+
+# The counts a column fit row opens with: "569 of 569 transcripts fit" or
+# "300 of 569 transcripts hold". A row counts records in the column's own unit.
+COLUMN_FIT_COUNTS = re.compile(
+    r"\b\d[\d,]*(?: to \d[\d,]*)? of \d[\d,]* (?:genes|transcripts) (?:fit|hold)\b"
+)
 
 
 class ThresholdSides(CamelModel):
@@ -282,7 +290,7 @@ class ThresholdSides(CamelModel):
         return (
             f"{_counted(self.above, self.above_at_most)} of {total} {counted_in} "
             f"hold {display_name} {self.value} or more and "
-            f"{_counted(self.below, self.below_at_most)} hold {self.value} or less"
+            f"{_counted(self.below, self.below_at_most)} hold {self.value} or fewer"
         )
 
 
@@ -355,44 +363,13 @@ class ColumnFit(CamelModel):
         ]
         return "; ".join([*inside, *sides])
 
+    @property
+    def column_key(self) -> tuple[int, str]:
+        """The step and the column this fit reads."""
+        return self.wdk_step_id, self.column
+
     def texts(self) -> list[str]:
         return [self.criterion_text, self.display_name, self.bound_value]
-
-
-class SourceReference(CamelModel):
-    """One source an answer names, by the identifiers a reader opens it with."""
-
-    model_config = ConfigDict(frozen=True)
-
-    kind: CitationKind
-    label: str = Field(
-        min_length=1,
-        max_length=200,
-        description=(
-            "What the reader sees: the gene id and the site for a record, the "
-            "title for a paper or a page."
-        ),
-    )
-    url: str | None = None
-    doi: str | None = None
-    pmid: str | None = None
-
-    @model_validator(mode="after")
-    def _a_source_can_be_opened(self) -> Self:
-        if not self.references():
-            msg = "a source carries a url, a DOI or a PMID"
-            raise ValueError(msg)
-        return self
-
-    def references(self) -> list[str]:
-        """Every identifier this source is checked by."""
-        return [value for value in (self.url, self.doi, self.pmid) if value]
-
-
-class Citation(SourceReference):
-    """One source the check retrieved, and what it settles."""
-
-    why: str = Field(min_length=1, max_length=300)
 
 
 class VerificationReview(CamelModel):
@@ -491,8 +468,6 @@ class EvidenceCard(CamelModel):
 __all__ = [
     "SAMPLED_GENE_LIMIT",
     "CheckedStepCount",
-    "Citation",
-    "CitationKind",
     "ColumnFit",
     "ColumnFitState",
     "ControlSetEvidence",
@@ -508,7 +483,6 @@ __all__ = [
     "SampledGene",
     "ShownStatus",
     "SiteRead",
-    "SourceReference",
     "ThresholdSides",
     "VerificationReview",
 ]

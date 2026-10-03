@@ -125,3 +125,27 @@ def test_the_refusal_names_the_invariant_and_not_a_missing_capability() -> None:
 
     assert "the edit would strand ['step_go']" in message
     assert "re-nest" not in message
+
+
+def test_a_combine_named_by_its_place_is_named_in_the_order() -> None:
+    order = _order_over(
+        _spec(), "flip the final combine", "flip the last combine to a UNION"
+    )
+
+    assert (
+        "The message names the root combine, the INTERSECT over step_expr, "
+        "step_go, step_text: make it UNION, and keep every other combine's "
+        "operator as it stands."
+    ) in order.splitlines()
+
+
+def test_the_inner_combine_is_the_deepest_in_the_order() -> None:
+    order = _order_over(
+        _spec(), "intersect the inner pair", "make the inner combine an intersection"
+    )
+
+    assert (
+        "The message names the deepest combine, the UNION over step_expr, "
+        "step_go: make it INTERSECT, and keep every other combine's operator "
+        "as it stands."
+    ) in order.splitlines()

@@ -224,8 +224,68 @@ class TestCombinationRequest:
     def test_an_empty_term_is_unparseable(self) -> None:
         assert _parsed("mass spectrometry OR ") == []
 
+    def test_a_union_reads_as_an_or_over_its_terms(self) -> None:
+        assert _parsed("surface features UNION blood-stage expression") == [
+            "OR",
+            "surface features",
+            "blood-stage expression",
+        ]
+
+    def test_an_intersect_in_any_case_reads_as_an_and(self) -> None:
+        assert _parsed("kinase domain intersect mass spectrometry") == [
+            "AND",
+            "kinase domain",
+            "mass spectrometry",
+        ]
+
+    def test_an_and_reads_as_before_beside_the_operator_words(self) -> None:
+        assert _parsed("a AND b") == ["AND", "a", "b"]
+
+    def test_two_different_operator_words_are_unparseable(self) -> None:
+        assert _parsed("a UNION b INTERSECT c") == []
+
+    def test_a_subtraction_states_no_single_combination(self) -> None:
+        assert (_parsed("a MINUS b"), _parsed("a OR b MINUS c")) == ([], [])
+
+    def test_an_operator_word_inside_a_term_is_no_operator(self) -> None:
+        assert _parsed("reunion genes OR minus-strand transcripts") == [
+            "OR",
+            "reunion genes",
+            "minus-strand transcripts",
+        ]
+
     def test_the_expression_reads_back_as_the_user_stated_it(self) -> None:
         request = CombinationRequest.parse("mass spec OR DeRisi")
 
         assert request is not None
         assert request.expression == "mass spec OR DeRisi"
+
+
+def _other(value: str, source: ConstraintSource) -> Constraint:
+    return Constraint(
+        kind=ConstraintKind.OTHER, requested_value=value, source=source, label="other"
+    )
+
+
+def test_two_distinct_other_values_both_survive_the_merge() -> None:
+    merged = merge_constraints(
+        [_other("signal peptide", ConstraintSource.ASSUMED)],
+        [_other("zinc finger domain", ConstraintSource.USER_EXPLICIT)],
+    )
+
+    assert [c.requested_value for c in merged] == [
+        "signal peptide",
+        "zinc finger domain",
+    ]
+
+
+def test_a_reworded_other_value_collapses_to_the_stated_one() -> None:
+    """Values whose non-filler words are equal are one requirement."""
+    merged = merge_constraints(
+        [_other("transmembrane domain", ConstraintSource.ASSUMED)],
+        [_other("a transmembrane domain", ConstraintSource.USER_EXPLICIT)],
+    )
+
+    assert [(c.requested_value, c.source) for c in merged] == [
+        ("a transmembrane domain", ConstraintSource.USER_EXPLICIT)
+    ]

@@ -27,9 +27,9 @@ from pathfinder.domain.evidence import ColumnFit
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
-    bind_values,
 )
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.recorded_columns import (
     PERCENTILE_SEARCH,
@@ -119,7 +119,10 @@ def _serve(monkeypatch: pytest.MonkeyPatch, site: _Site) -> None:
 
 
 def _context(
-    search_name: str, wdk_step_id: int, params: Mapping[str, ParamValue]
+    search_name: str,
+    wdk_step_id: int,
+    params: Mapping[str, ParamValue],
+    counted: int | None = None,
 ) -> RunContext[AgentDeps]:
     session = StrategySession(site_id="plasmodb")
     graph = StrategyGraph(graph_id="g1", name="Membrane", site_id="plasmodb")
@@ -127,12 +130,14 @@ def _context(
     graph.steps = flatten_tree(StrategyStepNode(id="c_one", search_name=search_name))
     graph.recompute_roots()
     session.graph = graph
-    session.sync_state = WDKSyncState(wdk_step_ids={"c_one": wdk_step_id})
+    session.sync_state = WDKSyncState(
+        wdk_step_ids={"c_one": wdk_step_id}, step_counts={"c_one": counted}
+    )
     criterion = Criterion(
         id="c_one",
         text=_TM_TEXT,
         search_name=search_name,
-        resolved_params=bind_values(params, "stated"),
+        resolved_params=bind_values(params, "stated", []),
     )
     state = AgentToolState(operational_spec_draft=OperationalSpec(criteria=[criterion]))
     return agent_run_context(strategy_session=session, agent_state=state)
@@ -189,8 +194,8 @@ async def test_a_threshold_the_step_holds_on_neither_side_states_both_counts(
         (
             "some",
             (
-                "840 of 840 genes fit # TM Domains (99 or less); 242 to 294 of 840 "
-                "genes hold # TM Domains 5 or more and 546 to 598 hold 5 or less"
+                "840 of 840 genes fit # TM Domains (99 or fewer); 242 to 294 of 840 "
+                "genes hold # TM Domains 5 or more and 546 to 598 hold 5 or fewer"
             ),
         )
     ]
@@ -283,6 +288,34 @@ async def test_a_column_the_site_does_not_report_is_not_shown(
     assert [(f.fits, f.sentence) for f in answer.fits] == [
         ("not_shown", f"the site shows no column for '{_TM_TEXT}'")
     ]
+
+
+async def test_a_read_with_no_rows_on_a_counted_step_names_the_step_sample(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The column the search publishes is not reported as absent."""
+    site = _Site({}, {})
+    _serve(monkeypatch, site)
+    ctx = _context(
+        "GenesByTransmembraneDomains",
+        TM_STEP,
+        {"min_tm": StringValue(value="0"), "max_tm": StringValue(value="0")},
+        counted=5041,
+    )
+
+    answer = returned(await results.read_step_columns(ctx, TM_STEP), StepColumns)
+
+    assert (answer.fits, answer.note, ctx.deps.turn_markers.column_fits) == (
+        [],
+        (
+            f"Step {TM_STEP} counts 5041 on the site and its read of "
+            "# TM Domains (tm_count) returned no rows. Sample step "
+            f"{TM_STEP} with get_sample_records and read tm_count on its "
+            "records for this criterion."
+        ),
+        [],
+    )
+    assert site.asked == [f"{TM_STEP}/columns/tm_count"]
 
 
 async def test_a_search_with_no_column_names_the_sample_instead(

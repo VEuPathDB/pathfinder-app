@@ -81,3 +81,22 @@ async def test_a_criterion_named_twice_is_refused_toward_a_copy() -> None:
 
     assert "c_signal appears twice in the tree" in str(exc.value)
     assert state.operational_spec_draft.structure is None
+
+
+@pytest.mark.asyncio
+async def test_a_copy_beside_its_own_source_is_refused() -> None:
+    state = _drafted()
+    signal = StructureNode(kind="leaf", criterion_id="c_signal")
+    root = StructureNode(
+        kind="combine",
+        operator=CombineOp.INTERSECT,
+        inputs=[signal, StructureNode(kind="copy", inputs=[signal])],
+    )
+
+    with pytest.raises(ModelRetry) as exc:
+        await set_structure(agent_run_context(agent_state=state), root=root)
+
+    assert str(exc.value).startswith(
+        "The structure is refused: A copy sits beside the subtree it restates"
+    )
+    assert state.operational_spec_draft.structure is None

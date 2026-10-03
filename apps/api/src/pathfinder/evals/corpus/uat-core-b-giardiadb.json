@@ -1,5 +1,5 @@
 {
-  "name": "uat-dry4-b-giardiadb",
+  "name": "uat-core-b-giardiadb",
   "turns": [
     "Giardia muris Roberts-Thompson genes with a cysteine-rich protein annotation.",
     "OK. Please exclude the genes that have a transmembrane domain from this result.",
@@ -7,7 +7,7 @@
   ],
   "siteId": "giardiadb",
   "assistantId": "pathfinder",
-  "rationale": "An unquoted text on a search with a dependent parameter keeps its phrase reading: the facts show the exact phrase at 0 genes beside the 4,497 the words count, so the exact-phrase question is answered 0, and the organism the message names one letter off shows as stated.",
+  "rationale": "An unquoted several-word text keeps its phrase reading on a search with a dependent parameter: the facts show the site's match of any of its words beside the count as the phrase, the exact-phrase question is answered from that count, and the organism the message names one letter off binds to the site's strain and shows as stated.",
   "expected": {
     "buildsStrategy": true,
     "structure": "(GenesByText MINUS GenesByTransmembraneDomains)",
@@ -15,7 +15,15 @@
     "stepCount": 3,
     "verified": null,
     "stepIdsUnchanged": null,
-    "parameters": {},
+    "parameters": {
+      "GenesByText": {
+        "text_search_organism": "Giardia muris strain Roberts-Thomson"
+      },
+      "GenesByTransmembraneDomains": {
+        "organism": "Giardia muris strain Roberts-Thomson",
+        "min_tm": "1"
+      }
+    },
     "replyMentions": [],
     "replyOmits": [],
     "countsInGenes": true,
@@ -29,11 +37,7 @@
     "unexpressedRequirements": null,
     "turnReplyMentions": {
       "0": [
-        "Roberts-Thomson) (stated)",
-        "as the phrase \"cysteine-rich protein\": 0 genes"
-      ],
-      "2": [
-        "as the phrase \"cysteine-rich protein\": 0 genes"
+        "Roberts-Thomson (stated)"
       ]
     },
     "turnReplyOmits": {},
@@ -48,7 +52,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ub4-giardiadb",
-    "curatorNote": "Round-4 dry UAT, tester B, investigation 6, conversation e0373ad7-2fdb-4188-838b-ee1e7420fd46."
+    "curatorNote": "The organism is bound to the site's spelling, Giardia muris strain Roberts-Thomson, on every step. An unquoted several-word text is counted both ways, so the facts name both readings whatever fields the step searches; the counts depend on the fields and are not pinned."
   },
   "effort": "medium",
   "gates": {

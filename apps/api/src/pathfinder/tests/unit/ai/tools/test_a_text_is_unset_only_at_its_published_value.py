@@ -7,12 +7,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 import pytest
-from veupathdb.domain.parameters import ParamValue
+from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.wdk import SiteSearchResponse
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info_typed
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import _frame_count, frame_spec
+from pathfinder.ai.tools.standalone._frame_measure import vocabularies_under
 from pathfinder.domain.caveats import phrase_caveats
 from pathfinder.domain.strategy.operational_spec import Measurement
 from pathfinder.tests._support.recorded_counts import (
@@ -89,6 +90,33 @@ def test_the_context_read_answers_the_bound_text_as_its_initial_value() -> None:
 
 
 @pytest.mark.asyncio
+async def test_a_context_read_gives_the_published_sheet_its_dependent_vocabularies() -> (
+    None
+):
+    published = format_param_info_typed(list(_PUBLISHED.parameters or []))
+    under = format_param_info_typed(list(_UNDER_CONTEXT.parameters or []))
+
+    async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
+        return under if context else published
+
+    sheet = await vocabularies_under(
+        fetch_at, published, {"text_expression": StringValue(value=_TEXT)}
+    )
+    read = {info.name: info for info in sheet}
+    fields = next(info for info in under if info.name == "text_fields")
+
+    assert (
+        read["text_expression"].default_value,
+        read["text_fields"].default_value,
+        read["text_fields"].vocabulary(),
+    ) == (
+        "*reductase",
+        next(i for i in published if i.name == "text_fields").default_value,
+        fields.vocabulary(),
+    )
+
+
+@pytest.mark.asyncio
 async def test_a_text_bound_on_a_search_with_a_dependent_parameter_keeps_its_phrase_reading(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -99,9 +127,9 @@ async def test_a_text_bound_on_a_search_with_a_dependent_parameter_keeps_its_phr
     await bind(state, "GenesByText", dict(_PARAMS), text=_MESSAGE)
 
     [criterion] = state.operational_spec_draft.criteria
-    assert [m for m in criterion.measurements if m.kind == "wildcard_phrase"] == [
+    assert [m for m in criterion.measurements if m.kind == "phrase_reading"] == [
         Measurement(
-            kind="wildcard_phrase",
+            kind="phrase_reading",
             param="text_expression",
             count=_PHRASE,
             reading=f'"{_TEXT}"',
@@ -109,8 +137,8 @@ async def test_a_text_bound_on_a_search_with_a_dependent_parameter_keeps_its_phr
     ]
     [caveat] = phrase_caveats(state.operational_spec_draft)
     assert caveat.sentence == (
-        "Text term (use * as wildcard) 'cysteine-rich protein' matches any of its "
-        'words: 4,497 genes; as the phrase "cysteine-rich protein": 0 genes'
+        "Text term (use * as wildcard) 'cysteine-rich protein' is unquoted, so the "
+        "site matches any of its words: 4,497 genes; as the phrase: 0 genes"
     )
 
 

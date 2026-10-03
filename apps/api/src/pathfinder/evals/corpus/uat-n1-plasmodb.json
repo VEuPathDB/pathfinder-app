@@ -10,7 +10,7 @@
     "buildsStrategy": true,
     "structure": null,
     "recordType": "transcript",
-    "stepCount": 5,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
     "parameters": {

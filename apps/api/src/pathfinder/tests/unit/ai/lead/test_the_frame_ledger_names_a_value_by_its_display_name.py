@@ -1,4 +1,4 @@
-"""The Lead's frame ledger names each bound value by the parameter's display
+"""The Lead's frame ledger names each value the site shows by its display
 name, in readable form, with who set it and the measurements the bind read."""
 
 from __future__ import annotations
@@ -27,6 +27,12 @@ def _section() -> FrameSection:
                     resolved_params={
                         "min_expression_percentile": BoundValue(
                             value=StringValue(value="80"), source="default"
+                        ),
+                        "dataset_url": BoundValue(
+                            value=StringValue(value="DS_66f9e70b8a"),
+                            source="default",
+                            display_name="Dataset Url",
+                            visible=False,
                         ),
                         "samples_percentile_generic": BoundValue(
                             value=MultiPickValue(values=["asexual blood stages"]),
@@ -64,6 +70,12 @@ def test_each_value_line_names_the_display_name_and_the_readable_value() -> None
         "    Samples (samples_percentile_generic) = asexual blood stages (stated)"
         in lines
     )
+
+
+def test_a_parameter_the_site_does_not_show_has_no_value_line() -> None:
+    rendered = render_frame_full(_section())
+
+    assert "(dataset_url)" not in rendered
 
 
 def test_each_measurement_is_a_line_of_the_criterion() -> None:

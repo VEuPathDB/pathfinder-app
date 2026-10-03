@@ -7,6 +7,7 @@ the spec adopts that id, the next turn's edit has nothing to address.
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import (
     COMBINE_SEARCH_NAME,
@@ -45,7 +46,7 @@ def _leaf_node(criterion_id: str) -> StructureNode:
     return StructureNode(kind="leaf", criterion_id=criterion_id)
 
 
-def _joined(operator: CombineOp | None, *inputs: StructureNode) -> StructureNode:
+def _joined(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
     return StructureNode(kind="combine", operator=operator, inputs=list(inputs))
 
 
@@ -234,15 +235,14 @@ def _abc_spec(root: StructureNode) -> OperationalSpec:
 
 
 class TestASpareWrapperIsTransparent:
-    """Combining n criteria needs n-1 combine nodes, so a spec that emits one
-    per criterion carries a spare node with nothing to combine against."""
+    """A combine of one input is that input: it loads, and it builds, as the input."""
 
     def test_the_tree_is_the_inner_combine(self) -> None:
         pair = _joined(CombineOp.INTERSECT, _leaf_node("a"), _leaf_node("b"))
         wrapper = _joined(CombineOp.INTERSECT, pair)
 
+        assert wrapper == pair
         tree = _step_tree(_abc_spec(wrapper))
-
         assert tree.operator == CombineOp.INTERSECT
         assert tree.primary_input is not None
         assert tree.secondary_input is not None
@@ -250,25 +250,54 @@ class TestASpareWrapperIsTransparent:
     def test_a_wrapper_around_a_leaf_is_the_leaf(self) -> None:
         wrapper = _joined(CombineOp.INTERSECT, _leaf_node("a"))
 
+        assert wrapper == _leaf_node("a")
         assert _step_tree(_abc_spec(wrapper)).search_name == "Bya"
 
     def test_nested_wrappers_all_collapse(self) -> None:
-        inner = _joined(CombineOp.INTERSECT, _leaf_node("a"))
-        outer = _joined(CombineOp.INTERSECT, inner)
+        stored = {
+            "kind": "combine",
+            "operator": "UNION",
+            "inputs": [
+                {
+                    "kind": "combine",
+                    "operator": "INTERSECT",
+                    "inputs": [{"kind": "leaf", "criterionId": "a"}],
+                }
+            ],
+        }
 
-        assert _step_tree(_abc_spec(outer)).search_name == "Bya"
+        assert StructureNode.model_validate(stored) == _leaf_node("a")
 
+    def test_a_structure_rooted_at_a_wrapper_holds_the_input(self) -> None:
+        structure = SpecStructure.model_validate(
+            {
+                "root": {
+                    "kind": "combine",
+                    "operator": "MINUS",
+                    "inputs": [{"kind": "leaf", "criterionId": "a"}],
+                }
+            }
+        )
 
-class TestAnEmptyCombineIsStillAnError:
-    def test_no_inputs_is_refused(self) -> None:
-        with pytest.raises(ValueError, match="combine"):
-            _step_tree(_abc_spec(_joined(CombineOp.INTERSECT)))
+        assert structure.root == _leaf_node("a")
 
-    def test_no_operator_with_two_inputs_is_refused(self) -> None:
-        node = _joined(None, _leaf_node("a"), _leaf_node("b"))
+    def test_the_input_a_wrapper_holds_is_still_validated(self) -> None:
+        stored = {
+            "kind": "combine",
+            "operator": "INTERSECT",
+            "inputs": [
+                {
+                    "kind": "combine",
+                    "inputs": [
+                        {"kind": "leaf", "criterionId": "a"},
+                        {"kind": "leaf", "criterionId": "b"},
+                    ],
+                }
+            ],
+        }
 
-        with pytest.raises(ValueError, match="combine"):
-            _step_tree(_abc_spec(node))
+        with pytest.raises(ValidationError, match="a combine is"):
+            StructureNode.model_validate(stored)
 
 
 def _protease_spec() -> OperationalSpec:

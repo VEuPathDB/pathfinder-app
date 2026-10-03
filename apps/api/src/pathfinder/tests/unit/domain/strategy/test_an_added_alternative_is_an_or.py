@@ -11,6 +11,8 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
+)
+from pathfinder.domain.strategy.message_reading import (
     combination_operator_is_stated,
 )
 from pathfinder.domain.strategy.stated_requirements import attributed

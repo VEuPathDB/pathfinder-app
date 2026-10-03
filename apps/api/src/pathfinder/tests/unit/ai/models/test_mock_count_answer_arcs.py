@@ -1,5 +1,5 @@
-"""The count arc answers with a step's count, the result's and their
-difference, and the turn holds all three."""
+"""The count arc answers with references to a step's count, the result's and
+their difference, and the turn's facts render all three."""
 
 from __future__ import annotations
 
@@ -13,14 +13,17 @@ from veupathdb.domain.strategy import (
 )
 
 from pathfinder.ai.graph.state import StrategyDomainState
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.domain.reply_references import prose_faults, render_reply
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.models._mock_turns import Scene, names, play
 
-# toxodb: GT1 signal peptide 680, the ncan exclusion 1,240, 53 in both.
+# toxodb, build 71: GT1 signal peptide 680, the N. caninum exclusion 1,240, 53
+# in both.
 _LIVE = {
     "rootCount": 53,
     "steps": [
@@ -44,7 +47,7 @@ _LIVE = {
 }
 
 
-def _toxo_turn():
+def _toxo_turn() -> LeadDeps:
     root = StrategyStepNode(
         id="step_join",
         search_name=COMBINE_SEARCH_NAME,
@@ -71,7 +74,7 @@ def _toxo_turn():
     return lead_deps(state, strategy_session=session)
 
 
-def test_the_count_arc_answers_with_a_difference_the_turn_holds() -> None:
+def test_the_count_arc_answers_with_a_difference_the_facts_render() -> None:
     calls = play(
         "lead",
         "toxodb",
@@ -79,17 +82,17 @@ def test_the_count_arc_answers_with_a_difference_the_turn_holds() -> None:
         scene=Scene(answers={"get_live_strategy_state": _LIVE}),
     )
     prose = str(calls[-1].args_as_dict()["prose"])
-    record = turn_record(run_context_for(_toxo_turn()))
+    facts = turn_record(run_context_for(_toxo_turn())).facts
 
     assert names(calls) == [
         "classify_user_intent",
         "get_live_strategy_state",
         "final_result",
     ]
-    assert (prose, record.prose_refusal(prose, [])) == (
+    assert (prose_faults(prose, facts), render_reply(prose, facts)) == (
+        [],
         (
-            "The Predicted Signal Peptide step returns 680 genes and the result 53, "
-            "so the other filters remove 627."
+            "The first search step returns 680 genes and the result 53 genes, so "
+            "the other filters remove 627 genes."
         ),
-        None,
     )

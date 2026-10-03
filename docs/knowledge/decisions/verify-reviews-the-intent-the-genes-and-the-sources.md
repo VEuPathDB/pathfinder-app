@@ -75,7 +75,7 @@ three typed lists, and the evidence card carries the same review.
   built 2.82843", `domain/constraint_check.py::shortfalls`) and refuses a
   success. A stated fold-change requirement is grounded by the same
   comparison against each fold-change threshold, in the scale the threshold
-  declares (`domain/strategy/constraint_grounding.py`); a threshold at another
+  declares (`domain/strategy/fold_grounding.py`); a threshold at another
   value is `substituted`, never grounded by its presence.
 - A row whose text is a question the researcher asked (it ends with a
   question mark, or it and a question sentence of the request carry each
@@ -103,9 +103,12 @@ three typed lists, and the evidence card carries the same review.
   `parameter_rules.text_query`): a placeholder ("N/A", "(Example: chr22)"),
   the sheet default, a vocabulary term, a number and a phyletic code are none.
   A text query matches words, never the thing the words name. Such a row
-  carries the runtime's mark `no_record_shows_it`, hidden from the check's
-  schema, and its gap reads "no sampled record shows it", not "nothing in the
-  strategy answers it". The sheets are read once per check
+  stays `met`, since its step answers it, and carries the runtime's mark
+  `no_record_shows_it`, hidden from the check's schema: the Lead reads it as
+  `unshown`, and its gap reads "no sampled record shows it", not "nothing in
+  the strategy answers it". An `unmet` row names no step: the type refuses one
+  with a non-empty `answered_by`, and a combine the strategy joins another way
+  is named in the row's note. The sheets are read once per check
   (`search_definitions`); a sheet the catalog cannot read binds no text query.
 - A row that names one of the researcher's uploads is `met` by the criteria
   that run on it: a user-dataset search (one that declares
@@ -162,8 +165,8 @@ verdict on the strategy as its own sentence, and each column fit
 (`ai/lead/turn_facts.py`, see
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md)).
 The reply says what each means for the question and restates none of their
-numbers; the turn contract's `fact_outside_the_block` refuses a reply that
-does. A caveat is a measurement the runtime reads from the records: a value
+numbers; the turn contract's `unrendered_prose` refuses a reply that
+writes one. A caveat is a measurement the runtime reads from the records: a value
 the checker writes is never one. A computed check short of the request is a
 gap row of its own.
 

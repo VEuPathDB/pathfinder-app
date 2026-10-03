@@ -48,7 +48,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    kept,
     recorded,
     session_holding,
     stage_step,
@@ -113,7 +112,7 @@ async def test_a_step_added_in_a_nested_position_is_stated_where_the_canvas_put_
     await thread.next_turn()
     assert thread.criteria == [SURFACE, STAGE, CANVAS]
     untouched = facts_of(thread.facts(), SURFACE, STAGE, CANVAS, _NESTED_CANVAS, ROOT)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, CANVAS))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -158,7 +157,7 @@ async def test_a_transform_added_over_the_root_is_stated_and_keeps_its_input(
     await thread.next_turn()
     assert thread.criteria == [SURFACE, STAGE, _ORTHOLOGS]
     assert spec_facts(thread.spec)[_ORTHOLOGS] == {"organism": '["P. vivax P01"]'}
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, _ORTHOLOGS))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -199,7 +198,7 @@ async def test_an_edit_after_a_canvas_delete_plans_over_what_is_left(
     canvas_deletes(thread.graph, STAGE)
     await thread.next_turn()
     untouched = facts_of(thread.facts(), SURFACE, THIRD, NESTED_ROOT)
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, THIRD))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -255,7 +254,7 @@ async def test_a_step_added_while_a_call_was_parked_is_stated_by_the_resumed_tur
     thread.session.graph = session_holding(tree_with_the_canvas_step()).graph
     await thread.next_turn(resumes_parked_call=True)
     assert thread.criteria == [SURFACE, STAGE, CANVAS]
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit(
         resume=SubAgentResume(messages=[], results=DeferredToolResults())
@@ -278,7 +277,7 @@ async def test_a_step_added_while_a_call_was_parked_is_stated_by_the_next_turn(
         recorded_build=recorded(SURFACE, STAGE, ROOT),
     )
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, CANVAS))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 

@@ -30,6 +30,7 @@ from pathfinder.ai.lead.evidence_card import (
 from pathfinder.ai.lead.ledger import (
     build_contradiction,
     digest_held_to_the_build,
+    digest_held_to_the_rows,
     structure_contradiction,
 )
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
@@ -373,13 +374,16 @@ def _caveats(
 
 
 def _held(digest: VerificationDigest, findings: _Findings) -> VerificationDigest:
-    """Hold the verdict to what the ledger recorded.
+    """Hold the verdict to what the ledger recorded, both ways.
 
     The digest decides the memory auto-write and the eval verdict, so a success
-    it cannot support is corrected here rather than at each reader.
+    the findings do not support fails, and a failure with no finding passes
+    when the held rows are each shown met.
     """
     sentence = findings.sentence()
-    if sentence is None or not digest.success:
+    if sentence is None:
+        return digest_held_to_the_rows(digest)
+    if not digest.success:
         return digest
     return digest_held_to_the_build(digest, sentence, failure_cause=findings.cause())
 

@@ -24,7 +24,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     CANVAS,
     CANVAS_ROOT,
     PROTEOME,
-    PROTEOME_PARAM,
     canvas_step,
     with_the_percentile,
     with_the_proteome,
@@ -40,9 +39,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -73,7 +70,7 @@ async def test_a_resumed_baseline_takes_the_canvas_step_and_not_the_turns_own(
 ) -> None:
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
     await thread.edit()
     own_root = thread.graph.primary_root_id()
     assert own_root is not None
@@ -115,12 +112,11 @@ async def test_a_pending_value_a_pass_calls_kept_is_pushed_and_the_delta_says_ch
     await thread.next_turn()
     thread.frames(
         _moving_the_percentile_and_asking,
-        declared=[*kept(SURFACE), *declared("changed", STAGE)],
         disposition="needs_user",
     )
     await thread.edit()
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -167,14 +163,12 @@ async def test_a_pending_drop_taken_back_pushes_nothing_and_the_plan_is_the_answ
     await thread.next_turn()
     thread.frames(
         _dropping_the_stage_and_asking,
-        declared=declared("dropped", STAGE),
         disposition="needs_user",
     )
     await thread.edit()
     await thread.next_turn()
     thread.frames(
         _restating_the_stage_and_dropping_the_question,
-        declared=[*kept(SURFACE, STAGE), *declared("dropped", PROTEOME)],
     )
 
     delta = await thread.edit()
@@ -186,33 +180,6 @@ async def test_a_pending_drop_taken_back_pushes_nothing_and_the_plan_is_the_answ
     assert thread.graph.steps[STAGE].parameters[STAGE_TIMEPOINT] == NumberValue(
         value=40
     )
-
-
-async def test_a_pending_drop_carried_through_a_second_question_is_still_owed_an_account(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    thread = _thread(monkeypatch)
-    await thread.next_turn()
-    thread.frames(
-        _dropping_the_stage_and_asking,
-        declared=declared("dropped", STAGE),
-        disposition="needs_user",
-    )
-    await thread.edit()
-    await thread.next_turn()
-    thread.frames(with_the_proteome(None), declared=[], disposition="needs_user")
-    await thread.edit()
-    await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, PROTEOME))
-
-    refusal = await thread.edit()
-
-    assert isinstance(refusal, str), refusal
-    assert STAGE in refusal
-    assert thread.committed == []
-    assert sorted(thread.graph.steps) == sorted([SURFACE, STAGE, ROOT])
-    assert thread.spec.criteria[-1].resolved_params == {}
-    assert PROTEOME_PARAM not in thread.spec.criteria[-1].resolved_params
 
 
 def _an_option_on_the_stage(value: float, *, carrier: float | None = None) -> Draft:
@@ -249,7 +216,7 @@ async def test_an_option_stating_the_value_the_strategy_holds_pushes_nothing(
 ) -> None:
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(_an_option_on_the_stage(40), declared=kept(SURFACE, STAGE))
+    thread.frames(_an_option_on_the_stage(40))
 
     delta = await thread.edit()
 
@@ -266,7 +233,6 @@ async def test_an_option_against_a_value_this_pass_bound_on_the_carrier_leaves_i
     await thread.next_turn()
     thread.frames(
         _an_option_on_the_stage(36, carrier=48),
-        declared=[*kept(SURFACE), *declared("changed", STAGE)],
     )
 
     delta = await thread.edit()
@@ -279,25 +245,3 @@ async def test_an_option_against_a_value_this_pass_bound_on_the_carrier_leaves_i
             parameters={STAGE_TIMEPOINT: "48"},
         )
     ]
-
-
-async def test_a_pending_drop_a_pass_calls_kept_is_not_pushed_as_a_drop(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A pass that says kept and leaves the criterion out has not let the drop stand."""
-    thread = _thread(monkeypatch)
-    await thread.next_turn()
-    thread.frames(
-        _dropping_the_stage_and_asking,
-        declared=declared("dropped", STAGE),
-        disposition="needs_user",
-    )
-    await thread.edit()
-    await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, PROTEOME, STAGE))
-
-    refusal = await thread.edit()
-
-    assert isinstance(refusal, str), committed_facts(thread.committed)
-    assert thread.committed == []
-    assert sorted(thread.graph.steps) == sorted([SURFACE, STAGE, ROOT])

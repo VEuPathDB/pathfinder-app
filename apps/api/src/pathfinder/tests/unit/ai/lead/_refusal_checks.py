@@ -17,7 +17,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_facts import (
 )
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
-    kept,
 )
 
 
@@ -47,7 +46,7 @@ async def a_refusal_that_keeps_the_thread_whole(thread: DisagreementThread) -> s
     assert thread_state(thread) == found
     assert thread.before_dispatch == found.spec
     assert thread.committed == []
-    thread.frames(with_the_proteome(2), declared=kept(*thread.criteria))
+    thread.frames(with_the_proteome(2))
     delta = await thread.edit()
     assert isinstance(delta, EditDelta)
     assert [op.kind for op in committed_facts(thread.committed)] == [

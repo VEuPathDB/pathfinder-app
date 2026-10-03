@@ -1,5 +1,6 @@
-"""A value that states nothing has no other reading: a site placeholder and
-the radio-off value are measured neither by the site search nor by count."""
+"""A value its sheet marks as stating nothing has no other reading: a site
+placeholder and the radio-off value are measured neither by the site search
+nor by count."""
 
 from __future__ import annotations
 
@@ -10,7 +11,11 @@ from veupathdb.domain.parameters import ParamValue, StringValue
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
-from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
+from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
+    Measurement,
+)
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies.measurements import (
     MeasuredBinding,
     TurnCounts,
@@ -28,11 +33,10 @@ def _sheet(search: WDKSearch) -> list[ParameterInfo]:
     return format_param_info_typed(list(search.parameters or []))
 
 
-def _defaults(params: Mapping[str, ParamValue]) -> dict[str, BoundValue]:
-    return {
-        name: BoundValue(value=value, source="default")
-        for name, value in params.items()
-    }
+def _defaults(
+    params: Mapping[str, ParamValue], sheet: list[ParameterInfo]
+) -> dict[str, BoundValue]:
+    return bind_values(params, "default", sheet)
 
 
 def _no_count(_search: str, params: Mapping[str, ParamValue]) -> int:
@@ -43,6 +47,15 @@ def _no_count(_search: str, params: Mapping[str, ParamValue]) -> int:
 async def _measure_unset(
     fixture: str, search_name: str, params: dict[str, ParamValue], count: int
 ) -> list[Measurement]:
+    sheet = [
+        info
+        for info in _sheet(
+            client_search(fixture)
+            if fixture == "search_genes_by_location"
+            else suite_search(fixture)
+        )
+        if info.name in params
+    ]
     return await measure_binding(
         TurnCounts(),
         MeasuredBinding(
@@ -52,16 +65,8 @@ async def _measure_unset(
             params=params,
             count=count,
         ),
-        values=_defaults(params),
-        infos=[
-            info
-            for info in _sheet(
-                client_search(fixture)
-                if fixture == "search_genes_by_location"
-                else suite_search(fixture)
-            )
-            if info.name in params
-        ],
+        values=_defaults(params, sheet),
+        infos=sheet,
     )
 
 
@@ -103,6 +108,7 @@ async def test_the_radio_off_value_has_no_other_reading(
 @pytest.mark.asyncio
 async def test_an_unset_value_of_a_binding_that_counted_nothing_is_not_listed() -> None:
     params: dict[str, ParamValue] = {"domain_accession": StringValue(value="N/A")}
+    sheet = _sheet(suite_search("search_genes_by_interpro_domain"))
 
     measured = await measure_binding(
         TurnCounts(),
@@ -113,8 +119,8 @@ async def test_an_unset_value_of_a_binding_that_counted_nothing_is_not_listed() 
             params=params,
             count=None,
         ),
-        values=_defaults(params),
-        infos=_sheet(suite_search("search_genes_by_interpro_domain")),
+        values=_defaults(params, sheet),
+        infos=sheet,
     )
 
     assert measured == []

@@ -29,7 +29,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     DisagreementThread,
     built_spec,
     built_tree,
-    kept,
     recorded,
     session_holding,
 )
@@ -70,7 +69,7 @@ async def test_a_value_recovery_wrote_is_the_answer_and_the_next_edit_leaves_it(
     assert _value(domain.spec_before_turn, STAGE_TIMEPOINT) == NumberValue(value=40)
     thread.assert_invariants()
     await thread.next_turn()
-    thread.frames(with_the_percentile(90), declared=kept(SURFACE))
+    thread.frames(with_the_percentile(90))
     delta = await thread.edit()
     assert isinstance(delta, EditDelta), delta
     assert committed_facts(thread.committed) == [
@@ -88,7 +87,7 @@ async def test_a_stop_that_rolls_the_strategy_back_takes_the_built_criterion_wit
     """The checkpoint kept the edit's answer and the strategy went back."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
     await thread.edit()
     assert PROTEOME in thread.graph.steps
     rolled_back = session_holding(built_tree()).get_graph(None)
@@ -142,7 +141,7 @@ async def test_a_turn_resumed_after_its_own_edit_still_reports_the_step_it_added
     """The entry record is this turn's baseline, so it never gains this turn's step."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
     await thread.edit()
     assert thread.ledger_diff().added_count == 1
 

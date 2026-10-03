@@ -141,6 +141,55 @@ describe("DataVariantComparison", () => {
     expect(screen.getByText("kinases vs phosphatases:")).toBeInTheDocument();
   });
 
+  it("lists under each label the parameter values it differs by", () => {
+    inThread(
+      <DataVariantComparison
+        data={{
+          variants: [
+            {
+              label: "Product only",
+              searchName: "GenesByText",
+              geneCount: 1,
+              uniqueCount: 0,
+              sampleUniqueGenes: [],
+            },
+            {
+              label: "Every text field",
+              searchName: "GenesByText",
+              geneCount: 2,
+              uniqueCount: 1,
+              sampleUniqueGenes: [],
+              differsBy: { text_fields: '["product", "name", "so_id"]', min_tm: "2" },
+            },
+          ],
+          overlaps: [],
+        }}
+      />,
+    );
+    const lines = screen
+      .getAllByTestId("variant-differs-by")
+      .map((line) => line.textContent);
+    expect(lines).toEqual(["text_fields: product, name, so_id", "min_tm: 2"]);
+    const rows = screen.getAllByRole("row");
+    expect(rows[1]).not.toHaveTextContent("text_fields");
+    expect(rows[2]).toHaveTextContent("text_fields: product, name, so_id");
+  });
+
+  it("shows no parameter line where differsBy is empty", () => {
+    inThread(
+      <DataVariantComparison
+        data={{
+          ...COMPARISON,
+          variants: COMPARISON.variants.map((variant) => ({
+            ...variant,
+            differsBy: {},
+          })),
+        }}
+      />,
+    );
+    expect(screen.queryAllByTestId("variant-differs-by")).toHaveLength(0);
+  });
+
   it("draws no divider, no card and no outer margin", () => {
     inThread(<DataVariantComparison data={COMPARISON} />);
     expect(screen.getByTestId("figure").className).toBe("");

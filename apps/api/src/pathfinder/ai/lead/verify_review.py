@@ -23,15 +23,18 @@ from pathfinder.domain.strategy.combination_check import (
     match_terms,
 )
 from pathfinder.domain.strategy.constraints import (
+    GENE_RECORD_NOUNS,
     CombinationRequest,
     Constraint,
     ConstraintKind,
     combination_requirements_from,
+    record_noun,
+)
+from pathfinder.domain.strategy.message_reading import (
     message_states_constraint,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
-
 
 # The most step ids one requirement row names.
 _ANSWERED_LIMIT = 8
@@ -59,12 +62,20 @@ def _turn_where(messages: Sequence[str], stated: Callable[[str], bool]) -> int:
     return found if found is not None else max(len(messages), 1)
 
 
-def breached_rows(record: ReviewRecord) -> list[RequirementCheck]:
-    """One unmet row per stated combination the structure contradicts."""
+@dataclass(frozen=True)
+class _Breach:
+    """A stated combination the structure contradicts, and the criteria its
+    terms name."""
+
+    row: RequirementCheck
+    criteria: frozenset[str]
+
+
+def _breaches(record: ReviewRecord) -> list[_Breach]:
     spec = record.spec
     if spec is None or spec.structure is None:
         return []
-    rows: list[RequirementCheck] = []
+    found: list[_Breach] = []
     for constraint in combination_requirements_from(record.requirements):
         breach = first_combination_violation(
             [constraint], spec.criteria, spec.structure
@@ -73,34 +84,44 @@ def breached_rows(record: ReviewRecord) -> list[RequirementCheck]:
         if breach is None or request is None:
             continue
         matched = match_terms(request.terms, spec.criteria)
-        rows.append(
-            RequirementCheck(
-                text=constraint.requested_value,
-                turn=_turn_where(
-                    record.messages,
-                    partial(message_states_constraint, constraint=constraint),
-                ),
-                answered_by=sorted(set(matched.members.values())) if matched else [],
-                how="structure",
-                status="unmet",
-                note=breach.message,
-            )
+        row = RequirementCheck(
+            text=constraint.requested_value,
+            turn=_turn_where(
+                record.messages,
+                partial(message_states_constraint, constraint=constraint),
+            ),
+            how="structure",
+            status="unmet",
+            note=breach.message,
         )
-    return rows
+        members = frozenset(matched.members.values()) if matched else frozenset()
+        found.append(_Breach(row=row, criteria=members))
+    return found
+
+
+def breached_rows(record: ReviewRecord) -> list[RequirementCheck]:
+    """One unmet row per stated combination the structure contradicts. The
+    strategy joins the steps another way, so no step answers the row; its
+    note names the join."""
+    return [breach.row for breach in _breaches(record)]
 
 
 def _with_the_structure(
     rows: list[RequirementCheck], record: ReviewRecord
 ) -> list[RequirementCheck]:
     """The checker's rows, with each breached combination stated unmet."""
-    breached = breached_rows(record)
-    replaced = {cid for row in breached for cid in row.answered_by}
+    breaches = _breaches(record)
+    replaced = {cid for breach in breaches for cid in breach.criteria}
+    stated = {breach.row.text for breach in breaches}
     kept = [
         row
         for row in rows
-        if not (row.how == "structure" and replaced.intersection(row.answered_by))
+        if not (
+            row.how == "structure"
+            and (replaced.intersection(row.answered_by) or row.text in stated)
+        )
     ]
-    return [*kept, *breached]
+    return [*kept, *(breach.row for breach in breaches)]
 
 
 def _unexpressed_note(word: str) -> str:
@@ -141,30 +162,38 @@ def _with_the_unexpressed(
 def _with_the_record_type(
     rows: list[RequirementCheck], record: ReviewRecord
 ) -> list[RequirementCheck]:
-    """The rows, with a stated record type met when the site counts the
-    strategy's record class in that noun."""
+    """The rows, with each record-class row judged from the strategy's record
+    class: met when the site counts that class in the noun the row names. A
+    row that names no record noun is a value row and stands as written."""
     spec = record.spec
     if spec is None or not spec.criteria:
         return rows
     noun = counted_noun(spec.record_type)
-    counted = {
-        c.requested_value.casefold()
-        for c in record.requirements
-        if c.kind == ConstraintKind.RECORD_TYPE
-        and c.requested_value.casefold() in {noun, f"{noun}s"}
+    named_class = (spec.record_type or noun).replace("_", " ")
+    returned = {noun, f"{noun}s", named_class, f"{named_class}s"}
+    record_nouns = (
+        GENE_RECORD_NOUNS
+        | returned
+        | {
+            record_noun(c.requested_value)
+            for c in record.requirements
+            if c.kind == ConstraintKind.RECORD_TYPE
+        }
+    )
+    met = {
+        "status": "met",
+        "answered_by": [c.id for c in spec.criteria][:_ANSWERED_LIMIT],
+        "note": f"the strategy returns {noun}s",
     }
-    return [
-        row.model_copy(
-            update={
-                "status": "met",
-                "answered_by": [c.id for c in spec.criteria][:_ANSWERED_LIMIT],
-                "note": f"the strategy returns {noun}s",
-            }
-        )
-        if row.text.casefold() in counted
-        else row
-        for row in rows
-    ]
+    unmet = {"status": "unmet", "answered_by": [], "note": met["note"]}
+    held: list[RequirementCheck] = []
+    for row in rows:
+        named = record_noun(row.text)
+        if not named or named not in record_nouns:
+            held.append(row)
+            continue
+        held.append(row.model_copy(update=met if named in returned else unmet))
+    return held
 
 
 def _read_genes(

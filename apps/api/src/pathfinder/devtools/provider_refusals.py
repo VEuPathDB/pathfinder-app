@@ -1,7 +1,8 @@
 """The refusals each model provider answers a key it does not accept.
 
-A recorded fixture is the ``ModelHTTPError`` pydantic-ai raised for one
-generation request, through the construction a turn uses. A documented fixture
+A recorded fixture is the provider error one generation request raised, through
+the construction a turn uses; a streamed case reads the error the stream raised
+after it began, which carries no status. A documented fixture
 is a body copied from the provider's error reference, for an account state no
 key here is in; it names the page it was read from. The refusal classifier
 reads these bodies and nothing else.
@@ -24,13 +25,18 @@ from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, JsonValue, SecretStr, model_validator
-from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.models import infer_model
+from pydantic_ai.messages import ModelRequest
+from pydantic_ai.models import Model, ModelRequestParameters, infer_model
 
 from pathfinder.domain.provider_keys import KeyableProvider, KeyRefusal
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.key_refusals import PROVIDER_ERRORS, provider_failure
 from pathfinder.platform.model_catalog import get_smallest_model
-from pathfinder.platform.model_keys import build_provider, one_generation
+from pathfinder.platform.model_keys import (
+    ProviderBuilder,
+    build_provider,
+    one_generation,
+)
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "refusals"
 
@@ -52,7 +58,8 @@ class ProviderRefusal(BaseModel):
 
     provider: KeyableProvider
     refusal: KeyRefusal
-    status: int
+    # None for an error a stream raised after it began.
+    status: int | None
     body: JsonValue
     provenance: Provenance
     # The key a recorded body answered, or the page a documented body is from.
@@ -100,30 +107,39 @@ def _deployment_key(provider: KeyableProvider) -> SecretStr:
 
 
 @dataclass(frozen=True)
-class _Case:
+class RefusalCase:
     """One refusal a key in a known state receives."""
 
     provider: KeyableProvider
     refusal: KeyRefusal
     source: str
     key: Callable[[], SecretStr]
+    streamed: bool = False
 
 
-CASES: Mapping[str, _Case] = {
-    "openai-invalid-key": _Case(
+CASES: Mapping[str, RefusalCase] = {
+    "openai-invalid-key": RefusalCase(
         "openai", KeyRefusal.INVALID, "a made-up key", _made_up("openai")
     ),
-    "anthropic-invalid-key": _Case(
+    "anthropic-invalid-key": RefusalCase(
         "anthropic", KeyRefusal.INVALID, "a made-up key", _made_up("anthropic")
     ),
-    "google-invalid-key": _Case(
+    "google-invalid-key": RefusalCase(
         "google", KeyRefusal.INVALID, "a made-up key", _made_up("google")
     ),
-    "anthropic-no-credit": _Case(
+    "anthropic-no-credit": RefusalCase(
         "anthropic",
         KeyRefusal.NO_CREDIT,
         "the deployment's Anthropic key, on an account with no credit",
         lambda: _deployment_key("anthropic"),
+    ),
+    "openai-no-credit-stream": RefusalCase(
+        "openai",
+        KeyRefusal.NO_CREDIT,
+        "the deployment's OpenAI key, on an account with no credit, in a "
+        "streamed request",
+        lambda: _deployment_key("openai"),
+        streamed=True,
     ),
 }
 
@@ -132,21 +148,35 @@ _MADE_UP_CASES = [
 ]
 
 
-async def _record(case: _Case) -> ProviderRefusal:
+async def _one_streamed_generation(model: Model) -> None:
+    async with (
+        model,
+        model.request_stream(
+            [ModelRequest.user_text_prompt("ok")], None, ModelRequestParameters()
+        ) as stream,
+    ):
+        async for _event in stream:
+            pass
+
+
+async def record_case(
+    case: RefusalCase, build: ProviderBuilder = build_provider
+) -> ProviderRefusal:
+    """What the provider answers ``case``'s key, as a recorded fixture."""
     model_id = get_smallest_model(case.provider).id
     key = case.key()
-    model = infer_model(
-        model_id, provider_factory=lambda _: build_provider(case.provider, key)
-    )
+    model = infer_model(model_id, provider_factory=lambda _: build(case.provider, key))
+    generate = _one_streamed_generation if case.streamed else one_generation
     try:
-        await one_generation(model)
-    except ModelHTTPError as exc:
+        await generate(model)
+    except PROVIDER_ERRORS as exc:
+        failure = provider_failure(exc)
         return ProviderRefusal.model_validate(
             {
                 "provider": case.provider,
                 "refusal": case.refusal,
-                "status": exc.status_code,
-                "body": exc.body,
+                "status": failure.status,
+                "body": failure.body,
                 "provenance": "recorded",
                 "source": case.source,
                 "model": model_id,
@@ -160,7 +190,7 @@ async def _record(case: _Case) -> ProviderRefusal:
 async def record(names: list[str]) -> None:
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
     for name in names:
-        recorded = await _record(CASES[name])
+        recorded = await record_case(CASES[name])
         fixture_path(name).write_text(recorded.model_dump_json(indent=2) + "\n")
         sys.stdout.write(f"{name}: {recorded.status}\n")
 

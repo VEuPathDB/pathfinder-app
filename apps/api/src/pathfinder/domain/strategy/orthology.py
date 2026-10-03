@@ -47,6 +47,12 @@ _KEPT_BY_INTERSECT = (
     "<the transform back>]}"
 )
 _COPY = '{"kind": "copy", "inputs": [<the source subtree>]}'
+_COPY_BESIDE_ITS_SOURCE = (
+    "A copy sits beside the subtree it restates under one combine, so the "
+    "combine joins the same genes twice. A copy is the input of the first "
+    f"transform of a round trip: state {_KEPT_BY_INTERSECT}, and give the first "
+    f"transform {_COPY} as its input."
+)
 
 
 class OrganismChange(CamelModel):
@@ -85,8 +91,8 @@ def organism_move_refusal(
     """Why an edit that narrows or widens the result moves its records to
     another organism, or None.
 
-    Such an edit keeps the organism the held root answers. Either side
-    unknown is no move.
+    A narrowing keeps organisms the held root answers, and a widening keeps
+    every one of them. Either side unknown is no move.
     """
     if direction == "other":
         return None
@@ -96,7 +102,9 @@ def organism_move_refusal(
         return None
     held = extract_output_organisms(held_tree, marked)
     edited = extract_output_organisms(edited_tree, marked)
-    if not held or not edited or held == edited:
+    if not held or not edited:
+        return None
+    if edited <= held if direction == "tighten" else edited >= held:
         return None
     source, target = ", ".join(sorted(held)), ", ".join(sorted(edited))
     return (
@@ -139,9 +147,9 @@ def _restated(
     node: StructureNode, by_id: dict[str, Criterion], clones: list[Criterion]
 ) -> StructureNode:
     inputs = [_restated(child, by_id, clones) for child in node.inputs]
-    if node.kind != "copy" or len(inputs) != 1:
+    if node.kind != "copy":
         return node.model_copy(update={"inputs": inputs})
-    source = inputs[0]
+    (source,) = inputs
     copied = [by_id.get(cid) for cid in _criteria_of(source)]
     if not all(c is not None and c.bound and not c.open_params for c in copied):
         return node.model_copy(update={"inputs": inputs})
@@ -156,7 +164,7 @@ def _restated(
 
 
 def _criteria_of(node: StructureNode) -> list[str]:
-    own = [node.criterion_id] if node.kind != "combine" and node.criterion_id else []
+    own = [node.criterion_id] if node.criterion_id else []
     return [*own, *(cid for child in node.inputs for cid in _criteria_of(child))]
 
 
@@ -179,7 +187,7 @@ def copy_refusal(root: StructureNode) -> str | None:
     seen: set[str] = set()
     for node in stated:
         cid = node.criterion_id
-        if node.kind != "combine" and cid:
+        if cid:
             if cid in seen:
                 return (
                     f"{cid} appears twice in the tree. A subtree the tree already "
@@ -189,8 +197,6 @@ def copy_refusal(root: StructureNode) -> str | None:
                 )
             seen.add(cid)
     for copy in _copies(root):
-        if len(copy.inputs) != 1:
-            return f"A copy takes one input, the subtree it restates; {_COPY}."
         if copy.inputs[0] not in stated:
             return (
                 "A copy restates a subtree the tree states outside a copy, node "
@@ -222,7 +228,10 @@ def round_trip_refusal(
 
     ``touched`` limits the reading to the round trips whose legs it names; None
     reads every one. Each leg's organism is the parameter its criterion marks.
+    A copy beside its own source is refused before the tree is read as steps.
     """
+    if spec.structure is not None and _copy_beside_its_source(spec.structure.root):
+        return _COPY_BESIDE_ITS_SOURCE
     tree = stated_steps(spec)
     if tree is None:
         return None
@@ -238,6 +247,15 @@ def round_trip_refusal(
         if refusal is not None:
             return refusal
     return None
+
+
+def _copy_beside_its_source(node: StructureNode) -> bool:
+    """Whether a combine in this subtree joins a copy to the subtree it copies."""
+    if node.kind == "combine" and any(
+        child.kind == "copy" and child.inputs[0] in node.inputs for child in node.inputs
+    ):
+        return True
+    return any(_copy_beside_its_source(child) for child in node.inputs)
 
 
 def _refused_trip(
@@ -359,31 +377,25 @@ def projected_steps(
     node: StructureNode, by_id: Mapping[str, Criterion]
 ) -> StrategyStepNode:
     """The stated subtree as steps, each keyed on its criterion, bound or not."""
-    if node.kind == "combine" and len(node.inputs) != 1:
-        steps = [projected_steps(child, by_id) for child in node.inputs]
-        joined = steps[0] if steps else StrategyStepNode(search_name="")
-        for step in steps[1:]:
+    if node.kind == "combine":
+        first, *rest = (projected_steps(child, by_id) for child in node.inputs)
+        joined = first
+        for step in rest:
             joined = StrategyStepNode(
                 search_name=COMBINE_SEARCH_NAME,
-                operator=node.operator or CombineOp.INTERSECT,
+                operator=node.combine_operator,
                 primary_input=joined,
                 secondary_input=step,
             )
         return joined
-    if node.kind in ("combine", "copy"):
-        return (
-            projected_steps(node.inputs[0], by_id)
-            if node.inputs
-            else StrategyStepNode(search_name="")
-        )
-    criterion = by_id.get(node.criterion_id or "")
+    if node.kind == "copy":
+        return projected_steps(node.inputs[0], by_id)
+    criterion = by_id.get(node.named_criterion)
     return StrategyStepNode(
-        id=node.criterion_id or generate_step_id(),
+        id=node.named_criterion,
         search_name=criterion.search_name if criterion is not None else "",
         parameters=criterion.param_values if criterion is not None else {},
         primary_input=(
-            projected_steps(node.inputs[0], by_id)
-            if node.kind == "transform" and node.inputs
-            else None
+            projected_steps(node.inputs[0], by_id) if node.kind == "transform" else None
         ),
     )

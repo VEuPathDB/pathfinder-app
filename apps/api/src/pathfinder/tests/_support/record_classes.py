@@ -3,7 +3,7 @@ search definitions under ``tests/fixtures/wdk``."""
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection
 from functools import cache
 from pathlib import Path
 
@@ -38,13 +38,6 @@ def recorded_searches() -> dict[str, WDKSearch]:
 def serve_record_classes(monkeypatch: pytest.MonkeyPatch) -> None:
     """Answer each recorded search's record classes; any other search is unlisted."""
 
-    async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
-        async def _listed_under(search_name: str) -> str | None:
-            search = recorded_searches().get(search_name)
-            return None if search is None else search.output_record_class_name
-
-        return _listed_under
-
     async def _searches(_site_id: str, record_type: str) -> list[WDKSearch]:
         return [
             s
@@ -55,6 +48,23 @@ def serve_record_classes(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _record_types(_site_id: str) -> list[WDKRecordType]:
         return [TRANSCRIPT, COMPOUND]
 
-    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
+    list_searches_under(monkeypatch, TRANSCRIPT.url_segment, ())
     monkeypatch.setattr(record_classes, "get_raw_searches", _searches)
     monkeypatch.setattr(record_classes, "get_raw_record_types", _record_types)
+
+
+def list_searches_under(
+    monkeypatch: pytest.MonkeyPatch, record_type: str, search_names: Collection[str]
+) -> None:
+    """List each named search under the record type, beside the recorded ones."""
+
+    async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
+        async def _listed_under(search_name: str) -> str | None:
+            if search_name in search_names:
+                return record_type
+            search = recorded_searches().get(search_name)
+            return None if search is None else search.output_record_class_name
+
+        return _listed_under
+
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)

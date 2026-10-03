@@ -28,7 +28,6 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.operations import GraphOperation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
@@ -152,7 +151,6 @@ class _Thread:
         *,
         value: float | None,
         disposition: FrameDisposition,
-        declared: list[CriterionChange],
     ) -> None:
         """Make the next FRAME pass leave this draft behind."""
 
@@ -163,9 +161,7 @@ class _Thread:
             agent_deps.agent_state.operational_spec_draft = _with_the_open_criterion(
                 found, value
             )
-            return FrameResult(
-                disposition=disposition, summary="framed", changes=declared
-            )
+            return FrameResult(disposition=disposition, summary="framed")
 
         self.monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)
 
@@ -182,17 +178,11 @@ class _Thread:
         return [c.id for c in spec.criteria] if spec is not None else []
 
 
-def _kept(*criterion_ids: str) -> list[CriterionChange]:
-    return [
-        CriterionChange(criterion_id=cid, disposition="kept") for cid in criterion_ids
-    ]
-
-
 async def test_the_open_criterion_is_committed_and_pushes_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = _Thread(monkeypatch)
-    thread.frames(value=None, disposition="needs_user", declared=[])
+    thread.frames(value=None, disposition="needs_user")
 
     delta = await thread.edit()
 
@@ -205,12 +195,11 @@ async def test_the_next_edit_pushes_the_step_the_answer_completes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = _Thread(monkeypatch)
-    thread.frames(value=None, disposition="needs_user", declared=[])
+    thread.frames(value=None, disposition="needs_user")
     await thread.edit()
     thread.frames(
         value=2,
         disposition="spec_ready",
-        declared=_kept(*thread.built_ids, _OPEN),
     )
 
     delta = await thread.edit()
@@ -224,12 +213,11 @@ async def test_a_criterion_with_no_step_is_never_reported_preserved(
 ) -> None:
     """The edit builds it, so no earlier turn reported an id for it."""
     thread = _Thread(monkeypatch)
-    thread.frames(value=None, disposition="needs_user", declared=[])
+    thread.frames(value=None, disposition="needs_user")
     await thread.edit()
     thread.frames(
         value=None,
         disposition="spec_ready",
-        declared=_kept(*thread.built_ids, _OPEN),
     )
 
     delta = await thread.edit()

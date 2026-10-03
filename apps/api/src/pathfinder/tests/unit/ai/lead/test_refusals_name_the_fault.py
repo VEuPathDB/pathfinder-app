@@ -18,7 +18,6 @@ from pathfinder.ai.lead._delete_rules import (
 from pathfinder.ai.lead.build_messages import structure_does_not_convert_message
 from pathfinder.ai.lead.dispatch_messages import (
     option_binds_no_step_message,
-    undeclared_spec_changes,
 )
 from pathfinder.ai.lead.edit_messages import (
     edit_bound_nothing_message,
@@ -36,7 +35,6 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
 from pathfinder.tests._support.bound_values import bound
 
 # What no refusal of an edit or a build may offer as a way out.
@@ -140,42 +138,6 @@ class TestAnOptionNoStepCarries:
         spec = _spec_with_an_unplaced_option()
 
         assert "c_option" in option_binds_no_step_message(spec, ["c_option"])
-
-
-def _two_criteria() -> OperationalSpec:
-    return OperationalSpec(
-        goal="proteases",
-        criteria=[
-            Criterion(id="step_a", text="protease text", search_name="GenesByText"),
-            Criterion(id="step_b", text="proteolysis GO", search_name="GenesByGoTerm"),
-        ],
-        structure=SpecStructure(
-            root=StructureNode(
-                kind="combine",
-                operator=CombineOp.INTERSECT,
-                inputs=[
-                    StructureNode(kind="leaf", criterion_id="step_a"),
-                    StructureNode(kind="leaf", criterion_id="step_b"),
-                ],
-            )
-        ),
-    )
-
-
-class TestAnAccountThatDoesNotMatchTheDraft:
-    def test_it_says_the_strategy_did_not_move(self) -> None:
-        before = _two_criteria()
-        after = before.model_copy(deep=True)
-        after.criteria = [after.criteria[0]]
-
-        problem = undeclared_spec_changes(
-            diff_specs(before, after),
-            [CriterionChange(criterion_id="step_b", disposition="kept")],
-            before,
-        )
-
-        assert "Nothing was applied" in problem
-        assert "step_b" in problem
 
 
 class TestABuildTheTreeCannotHold:

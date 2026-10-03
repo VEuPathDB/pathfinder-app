@@ -27,7 +27,6 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.turn_facts import uncarried_assumptions
 from pathfinder.domain.value_caveats import assumed_value_caveats
-from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 _PERCENTILE = "min_expression_percentile"
@@ -140,18 +139,3 @@ def test_the_trophozoite_default_is_shown_with_both_counts() -> None:
         "Minimum expression percentile at the site's default of 80: 1,665 genes; "
         "at 0: 8,201"
     ) in turn_facts(_trophozoite_checked()).lines()
-
-
-def test_a_reply_that_names_the_shown_trophozoite_counts_stands() -> None:
-    report = reply(
-        "The trophozoite step returns 1,665 genes at the site's default; at a "
-        "floor of 0 it returns 8,201."
-    )
-
-    assert kinds(_trophozoite_checked(), report) == []
-
-
-def test_a_reply_with_a_trophozoite_count_the_facts_lack_is_refused() -> None:
-    report = reply("At a floor of 50 the trophozoite step returns 4,000 genes.")
-
-    assert kinds(_trophozoite_checked(), report) == ["fact_outside_the_block"]

@@ -109,7 +109,7 @@ async def qualifiers_no_search_states(
     type names a parameter by, is not one of them.
     """
     reading = await _read(ctx, record_type, definition, stated)
-    phrased = _phrase_stems(params)
+    phrased = _phrase_stems(definition, params)
     left, unread = await _refuse_a_search_another_one_outstates(
         ctx,
         record_type,
@@ -128,13 +128,19 @@ async def qualifiers_no_search_states(
     )
 
 
-def _phrase_stems(params: ParamProposals) -> frozenset[str]:
-    """The stems of every value of two or more words: a phrase the binding
+def _phrase_stems(definition: WDKSearch, params: ParamProposals) -> frozenset[str]:
+    """The stems of every text value of two or more words: a phrase the binding
     states whole, whose words no other search states for it."""
+    texts = {
+        p.name
+        for p in definition.parameters or []
+        if p.type == "string" and not p.is_number
+    }
     return frozenset().union(
         *(
             stems_of(v)
-            for value in params.values()
+            for name, value in params.items()
+            if name in texts
             for v in proposal_values(value)
             if len(stems_of(v)) > 1
         )

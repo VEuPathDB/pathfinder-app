@@ -35,6 +35,7 @@ from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.reply_claims import counts_in_the_wrong_unit
 from pathfinder.devtools.capture import RunCapture, unshown_assumed_values
 from pathfinder.devtools.chat import (
+    LoginUnansweredError,
     RespondArgs,
     RunArgs,
     checkpoint_values,
@@ -42,6 +43,7 @@ from pathfinder.devtools.chat import (
     drive_run,
 )
 from pathfinder.devtools.gates import Gate
+from pathfinder.devtools.transcript import facts_lines
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
 from pathfinder.evals.difference import CaseDifference
@@ -89,9 +91,15 @@ def checkpointed_requirements(
     return None if verdict is None else requirement_counts(verdict.review.requirements)
 
 
+async def reviewed_requirements(conversation_id: UUID) -> RequirementCounts | None:
+    """The requirement rows of the review the thread's checkpoint holds, counted."""
+    return checkpointed_requirements(await checkpoint_values(conversation_id))
+
+
 def facts_text(facts: TurnFacts | None) -> str:
-    """The facts part a turn showed, one line each; empty when it showed none."""
-    return "" if facts is None else "\n".join(facts.lines())
+    """The facts part as the turn showed it, each value with who set it; empty
+    when it showed none."""
+    return "" if facts is None else "\n".join(facts_lines(facts))
 
 
 async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
@@ -127,11 +135,13 @@ def counts_in_genes(reply_text: str, ast: StrategyAst) -> bool:
 @dataclass(frozen=True)
 class TurnsShown:
     """What the case's turns showed: each reply, the facts part beside each,
-    and the last facts part any turn showed."""
+    the last facts part any turn showed, and the counts of the latest review.
+    A review stands until a later check of the same thread replaces it."""
 
     replies: list[str]
     facts: list[str]
     last_facts: TurnFacts | None = None
+    requirements: RequirementCounts | None = None
 
 
 async def observe(
@@ -144,7 +154,7 @@ async def observe(
 ) -> ObservedOutcome:
     """What the finished turns left behind, as the scorer reads it.
 
-    The last turn is the one scored.
+    The last turn is the one scored, with the counts of the latest review.
     """
     reply_text = turns.replies[-1] if turns.replies else ""
     last_facts = turns.facts[-1] if turns.facts else ""
@@ -159,7 +169,7 @@ async def observe(
         record_type=strategy.record_type or None,
         step_count=strategy.step_count if built else None,
         verified=checkpointed_verdict(checkpointed),
-        requirements=checkpointed_requirements(checkpointed),
+        requirements=turns.requirements,
         step_ids_unchanged=step_ids_unchanged,
         tree=tree_from_ast(ast) if ast is not None else None,
         step_titles=step_titles(ast) if ast is not None else [],
@@ -291,6 +301,7 @@ async def run_one_case(
     replies: list[str] = []
     shown_facts: list[str] = []
     last_facts: TurnFacts | None = None
+    reviewed: RequirementCounts | None = None
     ended = Gate(kind="none")
     refused: list[str] = []
     cards = _CardAnswers(case.gates)
@@ -298,6 +309,7 @@ async def run_one_case(
         prompt, inline = _turn_message(case, index)
         if index in case.new_conversation_before:
             conversation_id = uuid4()
+            reviewed = None
         if index == last and last > 0:
             before = await persisted_wdk_step_ids(conversation_id)
         args = RunArgs(
@@ -331,10 +343,17 @@ async def run_one_case(
         last_facts = facts or last_facts
         replies.append(capture.assistant_text())
         shown_facts.append(facts_text(facts))
+        counted = await reviewed_requirements(conversation_id)
+        reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)
     return await observe(
         conversation_id,
-        TurnsShown(replies=replies, facts=shown_facts, last_facts=last_facts),
+        TurnsShown(
+            replies=replies,
+            facts=shown_facts,
+            last_facts=last_facts,
+            requirements=reviewed,
+        ),
         step_ids_unchanged=(before == after) if before else None,
         ends_on=gate_end(ended),
         refused_tools=refused,
@@ -428,11 +447,17 @@ async def run_corpus(
     cases = [case for case in load_corpus() if not only or case.name in only]
     builds = {site: await site_build(site) for site in {c.site_id for c in cases}}
     dataset = build_dataset(cases, builds)
+    # Why each case whose site login did not answer was not run.
+    not_run: dict[str, str] = {}
 
     async def task(case: EvalCase) -> ObservedOutcome:
-        return await run_one_case(
-            case, run_root=run_root, effort=effort, via_worker=via_worker
-        )
+        try:
+            return await run_one_case(
+                case, run_root=run_root, effort=effort, via_worker=via_worker
+            )
+        except LoginUnansweredError as exc:
+            not_run[case.name] = str(exc)
+            raise
 
     report = await dataset.evaluate(task, max_concurrency=1, progress=False)
 
@@ -460,7 +485,9 @@ async def run_corpus(
             ),
         )
     results.extend(
-        CaseResult(name=failure.name, verdict="fail", error=failure.error_message)
+        CaseResult(name=failure.name, verdict="not-run", error=not_run[failure.name])
+        if failure.name in not_run
+        else CaseResult(name=failure.name, verdict="fail", error=failure.error_message)
         for failure in report.failures
     )
     return EvalRunSummary(

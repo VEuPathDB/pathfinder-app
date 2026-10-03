@@ -19,9 +19,7 @@ from pathfinder.domain.strategy.operations import AddLeafOp
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._analysis_thread import WAITING, bare_thread
 from pathfinder.tests.unit.ai.lead._disagreement_thread import (
-    declared,
     joined,
-    kept,
     leaf,
 )
 from pathfinder.tests.unit.ai.lead.test_an_analysis_criterion_across_edits import (
@@ -52,7 +50,7 @@ async def test_an_edit_beside_both_analysis_criteria_mints_only_the_search(
         )
         return found
 
-    thread.frames(_draft, declared=[*kept(exported), *declared("added", "c_kinase")])
+    thread.frames(_draft)
 
     delta = await thread.edit()
 

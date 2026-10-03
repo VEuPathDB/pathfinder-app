@@ -215,7 +215,6 @@ def _answered_frame(messages: list[ModelMessage], organism: str) -> ToolCallPart
             "summary": f"Bound the organism the researcher chose: {organism}.",
             "disposition": "spec_ready",
             "openQuestions": [],
-            "changes": [{"criterionId": crit.criterion_id, "disposition": "changed"}],
         },
     )
 

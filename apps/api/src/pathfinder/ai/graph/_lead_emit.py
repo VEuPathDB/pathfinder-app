@@ -49,8 +49,9 @@ def release_the_cards(
     capture: _LeadRunCapture,
     sub_agent_tool_calls: dict[str, str],
 ) -> None:
-    """Write the held cards, after the facts their replies stand beside."""
-    cards = hold.release()
-    if cards:
-        show_the_facts(writer, deps, capture)
-    emit_each(writer, cards, sub_agent_tool_calls, capture)
+    """Write the held cards, after the facts their replies stand beside and are
+    rendered from."""
+    if not hold.holds_a_card():
+        return
+    facts = show_the_facts(writer, deps, capture)
+    emit_each(writer, hold.release(facts), sub_agent_tool_calls, capture)

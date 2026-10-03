@@ -48,7 +48,7 @@ strategy is the one that check judged. VERIFY's digest (prose, key findings) is 
 output validator on the verification agent, once per check (`TurnMarkers.refused_digests`,
 keyed by the dispatch), refused once with the recorded values in the correction. The Lead's
 reply states no control result at all: the facts part beside it shows each result of the turn,
-and `fact_outside_the_block` refuses a reply that restates a count or a gene id.
+and `unrendered_prose` refuses a reply that writes a count or a gene id itself.
 
 ## The workbench
 

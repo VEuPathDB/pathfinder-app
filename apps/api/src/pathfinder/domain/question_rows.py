@@ -1,6 +1,6 @@
 """A question the researcher asks, or a comparison they ask for, is answered in
 the reply; it is never a requirement of the strategy, so a check files no row
-for it."""
+that restates one."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from collections.abc import Sequence
 from pydantic import ConfigDict
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.evidence import RequirementCheck, VerificationReview
-from pathfinder.domain.strategy.constraints import message_states
+from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.strategy.words import words_of
 
 _SENTENCE_END = re.compile(r"(?<=[.?!])\s+")
 
@@ -24,41 +24,30 @@ class ResearcherAsk(CamelModel):
 
     message: str
     text: str
-    # The gate read the whole message as a question.
-    question: bool = False
-
-    def files_no_row(self, row: RequirementCheck, stated_in: str | None) -> bool:
-        """Whether the row is this ask: a row of a message read as a question
-        whose words the message carries, or a row that restates the ask."""
-        if self.question and self.message == stated_in:
-            return message_states(self.text, row.text)
-        return message_states(self.text, row.text) and message_states(
-            row.text, self.text
-        )
 
 
-def _questions(messages: Sequence[str]) -> list[str]:
-    return [
-        sentence
-        for message in messages
-        for sentence in _SENTENCE_END.split(message.strip())
-        if sentence.endswith("?")
-    ]
+def _sentences(text: str) -> list[str]:
+    return _SENTENCE_END.split(text.strip())
 
 
-def _asks(row: RequirementCheck, questions: Sequence[str]) -> bool:
-    """Whether the row is a question: it ends with one, or it and a question
-    the researcher wrote carry each other's words."""
-    return row.text.rstrip().endswith("?") or any(
-        message_states(q, row.text) and message_states(row.text, q) for q in questions
-    )
-
-
-def _asked(
-    row: RequirementCheck, messages: Sequence[str], asks: Sequence[ResearcherAsk]
-) -> bool:
-    stated_in = messages[row.turn - 1] if row.turn <= len(messages) else None
-    return any(ask.files_no_row(row, stated_in) for ask in asks)
+def _asked_words(
+    messages: Sequence[str], asks: Sequence[ResearcherAsk]
+) -> set[tuple[str, ...]]:
+    """The words of each ask, of each sentence of an ask, and of each sentence
+    a message ends with a question mark."""
+    return {
+        tuple(words_of(text))
+        for text in [
+            *(ask.text for ask in asks),
+            *(sentence for ask in asks for sentence in _sentences(ask.text)),
+            *(
+                sentence
+                for message in messages
+                for sentence in _sentences(message)
+                if sentence.endswith("?")
+            ),
+        ]
+    }
 
 
 def without_questions(
@@ -66,13 +55,14 @@ def without_questions(
     messages: Sequence[str],
     asks: Sequence[ResearcherAsk] = (),
 ) -> VerificationReview:
-    """The review with no row for a question the researcher asked or for a
-    part of a message the gate read as an ask."""
-    questions = _questions(messages)
+    """The review with no row that restates an ask word for word.
+
+    A row whose words an ask only holds among others is a requirement the
+    message also states, so an ask erases no row but its own restatement.
+    """
+    asked = _asked_words(messages, asks)
     rows = [
-        row
-        for row in review.requirements
-        if not _asks(row, questions) and not _asked(row, messages, asks)
+        row for row in review.requirements if tuple(words_of(row.text)) not in asked
     ]
     if len(rows) == len(review.requirements):
         return review

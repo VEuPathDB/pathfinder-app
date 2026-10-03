@@ -1,6 +1,6 @@
-"""A fact is anything the thread showed or this turn read: every facts part the
-thread wrote, each count before and after an edit, every record a tool of the
-turn returned and every gene the gate resolved. The reply may hold any of them."""
+"""The facts of a turn hold each count before and after an edit, every record a
+tool of the turn returned, every gene the gate resolved and every count a
+comparison returned, and a reply names each of them by a reference."""
 
 from __future__ import annotations
 
@@ -23,22 +23,23 @@ from pathfinder.ai.graph.state import (
 )
 from pathfinder.ai.graph.turn_records import ReadRecord
 from pathfinder.ai.lead import classification_gate
-from pathfinder.ai.lead.contract_messages import fact_outside_the_block_message
 from pathfinder.ai.lead.intent import UserIntent
 from pathfinder.ai.lead.lead_tools import classify_user_intent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_contract import reconcile
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.domain.comparison_facts import (
+    ComparedVariant,
+    ComparisonFact,
+    SharedGenes,
+)
 from pathfinder.domain.evidence import SampledGene, VerificationReview
-from pathfinder.domain.strategy.constraints import ConstraintKind
-from pathfinder.domain.strategy.questions import AskedQuestion
+from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.turn_facts import SourceFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import run_context_for
-from pathfinder.tests.unit.ai.lead._turn_contract_cases import reply
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 
@@ -60,27 +61,19 @@ def _session(
     return session
 
 
-def _deps(
-    session: StrategySession,
-    *,
-    shown: list[str] | None = None,
-    site_id: str = "plasmodb",
-) -> LeadDeps:
+def _deps(session: StrategySession, *, site_id: str = "plasmodb") -> LeadDeps:
     state = pipeline_state(
-        site_id,
-        user_message_id=uuid4(),
-        domain=StrategyDomainState(facts_shown=list(shown or [])),
+        site_id, user_message_id=uuid4(), domain=StrategyDomainState()
     )
     return lead_deps(state, strategy_session=session)
 
 
-def _printed(deps: LeadDeps, prose: str) -> list[str]:
-    record = turn_record(run_context_for(deps))
-    return [
-        m.sentence
-        for m in reconcile(reply(prose), record)
-        if m.kind == "fact_outside_the_block"
-    ]
+def _rendered(deps: LeadDeps, prose: str) -> str:
+    return render_reply(prose, turn_record(run_context_for(deps)).facts)
+
+
+def _faults(deps: LeadDeps, prose: str) -> list[ProseFault]:
+    return prose_faults(prose, turn_record(run_context_for(deps)).facts)
 
 
 # The portal narrowing: the text search held 2,160 genes, then 19 at 3D7.
@@ -100,22 +93,6 @@ def test_the_narrowed_step_and_the_result_show_their_counts_before_the_edit() ->
     assert (facts.root_count, facts.root_count_before) == (19, 2160)
 
 
-def test_the_count_before_an_earlier_turn_s_edit_may_be_restated() -> None:
-    """Turn 4 asks the count before turn 2's narrowing, which turn 1 showed."""
-    session = _session(StrategyStepNode(id="c_text", search_name="GenesByText"), {})
-    session.sync_state = WDKSyncState(step_counts={"c_text": 19})
-    deps = _deps(
-        session,
-        shown=["GenesByText: 2,160 genes", "Result: 2,160 genes"],
-        site_id="veupathdb",
-    )
-
-    assert _printed(deps, "Before the organism narrowing it was 2,160 genes.") == []
-    assert _printed(deps, "Before the organism narrowing it was 2,161 genes.") == [
-        fact_outside_the_block_message(["2,161"])
-    ]
-
-
 # The percentile tighten: the percentile step 1,014 -> 260, the root 209 -> 38.
 def _tightened() -> LeadDeps:
     root = StrategyStepNode(
@@ -128,7 +105,7 @@ def _tightened() -> LeadDeps:
         ),
     )
     session = _session(root, {"c_tm": 1305, "c_pct": 260, "step_root": 38})
-    deps = _deps(session, shown=["Result: 209 genes"])
+    deps = _deps(session)
     markers = deps.state.turn_markers
     markers.record_arrival("step_root", {"c_tm": 1305, "c_pct": 1014, "step_root": 209})
     markers.edited = True
@@ -201,13 +178,16 @@ def test_a_turn_that_wrote_nothing_shows_no_count_before() -> None:
     )
 
 
-def test_a_reply_may_say_how_the_count_moved_but_not_a_number_no_count_gives() -> None:
+def test_a_reply_says_how_the_count_moved_by_reference() -> None:
     deps = _tightened()
+    prose = (
+        "It fell from [root_before] to [root], a decrease of [diff:root_before,root]."
+    )
 
-    assert _printed(deps, "It fell from 209 to 38, a decrease of 171.") == []
-    assert _printed(deps, "It fell from 209 to 38, a decrease of 172.") == [
-        fact_outside_the_block_message(["172"])
-    ]
+    assert _rendered(deps, prose) == (
+        "It fell from 209 genes to 38 genes, a decrease of 171 genes."
+    )
+    assert _faults(deps, "It fell by 172.") == [ProseFault(token="172", kind="number")]
 
 
 # A leaf of 627 genes under a result of 9, and one record read from the leaf.
@@ -305,21 +285,30 @@ def test_a_record_read_under_a_step_the_strategy_replaced_is_no_source() -> None
     )
 
 
-def test_a_value_a_record_read_returned_is_a_fact_of_the_turn() -> None:
+_VECTORBASE_RECORD = "https://vectorbase.org/vectorbase/app/record/gene/AFUN020124"
+
+
+def test_a_record_a_read_returned_is_rendered_linked_with_its_product() -> None:
     deps = _leaf_read()
     deps.state.turn_markers.record_read(
         ReadRecord(
             record_id="AFUN020124",
-            url="https://vectorbase.org/vectorbase/app/record/gene/AFUN020124",
+            url=_VECTORBASE_RECORD,
             product="insulin receptor",
             organism="Anopheles funestus FUMOZ",
             asked_orthologs=["AGAP009262", "Anopheles gambiae PEST"],
         )
     )
 
-    assert _printed(deps, "AFUN020124 lists AGAP009262 as its PEST ortholog.") == []
-    assert _printed(deps, "AFUN020124 lists AGAP000001 as its PEST ortholog.") == [
-        fact_outside_the_block_message(["AGAP000001"])
+    assert _rendered(deps, "The record is [record:AFUN020124].") == (
+        f"The record is [AFUN020124]({_VECTORBASE_RECORD}) (insulin receptor)."
+    )
+    assert _faults(deps, "It is AFUN020124.") == [
+        ProseFault(
+            token="AFUN020124",
+            kind="identifier",
+            references=("[record:AFUN020124]",),
+        )
     ]
 
 
@@ -343,10 +332,11 @@ _IMAGE_GENES = [
 ]
 _IMAGE_REPLY = (
     "The image contains these genes:\n\n"
-    "- **PF3D7_0709000** - chloroquine resistance transporter\n"
-    "- **PF3D7_1133400** - apical membrane antigen 1\n"
-    "- **PF3D7_0102600** - a FIKK family kinase"
+    "- [record:PF3D7_0709000]\n"
+    "- [record:PF3D7_1133400]\n"
+    "- [record:PF3D7_0102600]"
 )
+_PLASMO_RECORD = "https://plasmodb.org/plasmo/app/record/gene/"
 
 
 async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
@@ -379,56 +369,59 @@ async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(
 
     facts = turn_facts(deps)
     assert [(g.record_id, g.url) for g in facts.named_genes] == [
-        (g.gene_id, f"https://plasmodb.org/plasmo/app/record/gene/{g.gene_id}")
-        for g in _IMAGE_GENES
+        (g.gene_id, f"{_PLASMO_RECORD}{g.gene_id}") for g in _IMAGE_GENES
     ]
-    assert _printed(deps, _IMAGE_REPLY) == []
-
-
-# The transmembrane choice: the facts hold the minimum of 2, and a reply offers 3.
-_TM_OPTIONS = [
-    "Keep the current inclusive rule: at least 2 predicted TM domains",
-    "Use a conservative corrected rule: at least 3 predicted TM domains",
-]
-_TM_PROSE = "You can keep at least 2 domains, or move to at-least-3 domains."
-
-
-def _tm_deps() -> LeadDeps:
-    step = StrategyStepNode(id="c_tm", search_name="GenesByTransmembraneDomains")
-    return _deps(
-        _session(step, {"c_tm": 1490}),
-        shown=["Transmembrane Domain Count: 1,490 genes", "Minimum TM domains: 2"],
-        site_id="amoebadb",
+    assert _rendered(deps, _IMAGE_REPLY) == (
+        "The image contains these genes:\n\n"
+        f"- [PF3D7_0709000]({_PLASMO_RECORD}PF3D7_0709000) "
+        "(chloroquine resistance transporter)\n"
+        f"- [PF3D7_1133400]({_PLASMO_RECORD}PF3D7_1133400) "
+        "(apical membrane antigen 1)\n"
+        f"- [PF3D7_0102600]({_PLASMO_RECORD}PF3D7_0102600) "
+        "(serine/threonine protein kinase, FIKK family)"
     )
 
 
-def _printed_with(deps: LeadDeps, prose: str, options: list[str]) -> list[str]:
-    asked = AskedQuestion(
-        question="Which minimum?",
-        dimension=ConstraintKind.OTHER,
-        options=options,
+# cryptodb, build 71: mucin* over C. parvum IOWA-ATCC in the product field and
+# in every text field.
+def test_the_counts_a_comparison_returned_are_facts_a_reply_references() -> None:
+    step = StrategyStepNode(id="c_text", search_name="GenesByText")
+    deps = _deps(_session(step, {"c_text": 2}), site_id="cryptodb")
+    deps.state.turn_markers.record_comparison(
+        ComparisonFact(
+            variants=[
+                ComparedVariant(label="Product field", gene_count=2, unique_count=0),
+                ComparedVariant(
+                    label="All text fields", gene_count=84, unique_count=82
+                ),
+            ],
+            overlaps=[SharedGenes(a="Product field", b="All text fields", shared=2)],
+        )
     )
-    record = turn_record(run_context_for(deps))
-    return [
-        m.sentence
-        for m in reconcile(reply(prose, questions=[asked]), record)
-        if m.kind == "fact_outside_the_block"
+    prose = (
+        "Every text field finds [compare:All text fields], "
+        "[compare:All text fields:unique] beyond the [count:c_text] here."
+    )
+
+    assert _rendered(deps, prose) == (
+        "Every text field finds 84 genes, 82 genes beyond the 2 genes here."
+    )
+    assert _faults(deps, "Every text field finds 83.") == [
+        ProseFault(token="83", kind="number")
     ]
 
 
-def test_a_value_a_question_of_the_reply_offers_may_be_named() -> None:
-    deps = _tm_deps()
+def test_a_number_the_researcher_writes_is_prose_in_the_reply() -> None:
+    step = StrategyStepNode(id="step_cfe9f20f", search_name="GenesByText")
+    session = _session(step, {"step_cfe9f20f": 146}, site_id="piroplasmadb")
+    state = pipeline_state(
+        "piroplasmadb",
+        user_prompt="What fraction of the VESA1 genes are on chromosome 1?",
+        domain=StrategyDomainState(original_request="Find the VESA1 genes."),
+    )
+    deps = lead_deps(state, strategy_session=session)
 
-    assert _printed_with(deps, _TM_PROSE, _TM_OPTIONS) == []
-    assert _printed(deps, _TM_PROSE) == [fact_outside_the_block_message(["at-least-3"])]
-
-
-def test_a_label_and_a_count_a_comparison_returned_may_be_printed() -> None:
-    deps = _tm_deps()
-    deps.state.turn_markers.compared_labels.extend(["Minimum 2", "Minimum 3"])
-    deps.state.turn_markers.compared_counts.extend([1490, 227, 1029, 82])
-
-    assert _printed(deps, "At a minimum of 3, 82 of the 227 remain.") == []
-    assert _printed(deps, "At a minimum of 3, 83 of the 227 remain.") == [
-        fact_outside_the_block_message(["83"])
+    assert _faults(deps, "On chromosome 1: [count:step_cfe9f20f].") == []
+    assert _faults(deps, "On chromosome 2: [count:step_cfe9f20f].") == [
+        ProseFault(token="2", kind="number")
     ]

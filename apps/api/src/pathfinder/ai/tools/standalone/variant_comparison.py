@@ -13,7 +13,6 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._variant_targets import (
     checked_variants,
-    refuse_a_search_no_step_runs,
     reject_combine_variants,
 )
 from pathfinder.domain.strategy.session import StrategySession
@@ -23,6 +22,7 @@ from pathfinder.services.evidence.comparisons import (
 )
 from pathfinder.services.experiment.variant_comparison import (
     VariantComparison,
+    VariantInput,
     VariantSpec,
 )
 
@@ -47,7 +47,7 @@ def _steps_running(
 
 async def compare_search_variants(
     ctx: RunContext[LeadDeps],
-    variants: list[VariantSpec],
+    variants: list[VariantInput],
 ) -> ToolReturn[VariantComparison]:
     """Run 2+ search-config variants and compare how their results differ.
 
@@ -59,7 +59,8 @@ async def compare_search_variants(
     variant of a search one step of the strategy runs is also counted in the
     strategy's result with the variant in place (``resultCount``), which is
     the count to answer "how many of the result would remain" from. Each
-    variant takes only parameters its search takes.
+    variant takes only parameters its search takes. A pick a variant leaves
+    out runs at the site's default (for text Fields, every field).
 
     Provide at least two variants; each is one search with one set of
     parameter values, given a short human ``label`` (e.g. "2-fold",
@@ -80,11 +81,10 @@ async def compare_search_variants(
         )
         raise ModelRetry(msg)
     reject_combine_variants(variants)
-    refuse_a_search_no_step_runs(variants, ctx.deps.runtime.strategy_session)
     site_id = ctx.deps.runtime.site_id
-    variants = await checked_variants(site_id, variants)
+    specs = await checked_variants(ctx.deps.runtime.strategy_session, variants)
 
-    comparison = await run_variant_comparison(site_id, variants)
+    comparison = await run_variant_comparison(site_id, specs)
     if all(v.error is not None for v in comparison.variants):
         failures = "; ".join(
             f"{v.label}: {v.error}" for v in comparison.variants if v.error
@@ -98,12 +98,12 @@ async def compare_search_variants(
     session = ctx.deps.runtime.strategy_session
     graph = session.get_graph(None)
     strategy = None if graph is None else graph.to_strategy_ast()
-    steps = _steps_running(session, variants)
+    steps = _steps_running(session, specs)
     if strategy is not None and steps:
         comparison = await counted_in_place(
-            site_id, comparison, variants, strategy=strategy, steps=steps
+            site_id, comparison, specs, strategy=strategy, steps=steps
         )
-    ctx.deps.state.turn_markers.record_comparison(comparison)
+    ctx.deps.state.turn_markers.record_comparison(comparison.fact())
     chunk = DataChunk(
         type="data-variant-comparison",
         data=comparison.model_dump(by_alias=True, mode="json"),

@@ -22,6 +22,7 @@ from pathfinder.ai.lead.answered_strategy import (
 )
 from pathfinder.ai.lead.turn_briefing import compose_turn_briefing
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.strategy.build_outcome import built_counts
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
@@ -47,15 +48,18 @@ from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.organism_params import organism_parameters
+from pathfinder.services.strategies.revision_ops import last_change
 from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
 from pathfinder.services.strategies.site_changes import read_the_site_into_the_thread
 
 __all__ = [
+    "attach_change_at_arrival",
     "attach_open_eda_analysis",
     "attach_turn_briefing",
     "hydrate_spec_from_the_strategy",
     "pathfinder_pre_turn",
     "refresh_live_strategy_state",
+    "stated_spec_of",
 ]
 
 
@@ -71,9 +75,24 @@ async def pathfinder_pre_turn(
             session,
             conversation_id=state.conversation_id,
         )
+        change = await last_change(session, conversation_id=state.conversation_id)
+    attach_change_at_arrival(refreshed, context, change)
     briefed = attach_turn_briefing(refreshed, context, activity, answered=answered)
     return await attach_open_eda_analysis(
         briefed, context, changed_after_the_card=activity.analysis is not None
+    )
+
+
+def attach_change_at_arrival(
+    state: PipelineState, context: Context, change: LastChange | None
+) -> None:
+    """Keep the tree the message found, with its counts, and the thread's last
+    change, which made it."""
+    session = context.strategy_session
+    graph = session.get_graph(None)
+    state.turn_markers.record_change_at_arrival(
+        None if graph is None else graph.to_strategy_ast(sync_state=session.sync_state),
+        change,
     )
 
 
@@ -292,18 +311,26 @@ async def hydrate_spec_from_the_strategy(
     ast = graph.to_strategy_ast(sync_state=context.strategy_session.sync_state)
     if ast is None:
         return
-    hydrated = spec_from_ast(ast, goal=state.user_prompt, analyses=analyses_of(ast))
+    stated = await stated_spec_of(ast, site_id=context.site_id, goal=state.user_prompt)
+    state.domain.operational_spec = stated
+    the_strategy_now_answers_to(state, stated, graph)
+
+
+async def stated_spec_of(
+    ast: StrategyAst, *, site_id: str, goal: str
+) -> OperationalSpec:
+    """The spec a strategy tree states, with each criterion holding only the
+    parameters its search's sheet shows and the organism parameter it marks."""
+    hydrated = spec_from_ast(ast, goal=goal, analyses=analyses_of(ast))
     search_names = [c.search_name for c in hydrated.criteria if c.search_name]
     sheets = await sheet_params_for_searches(
-        site_id=context.site_id,
+        site_id=site_id,
         record_type=ast.record_type,
         search_names=search_names,
     )
-    marks = await organism_parameters(context.site_id, ast.record_type, search_names)
+    marks = await organism_parameters(site_id, ast.record_type, search_names)
     hydrated.criteria = [
         c.model_copy(update={"organism_param": marks.get(c.search_name)})
         for c in hydrated.criteria
     ]
-    stated = hidden_params_dropped(hydrated, sheet_params=sheets)
-    state.domain.operational_spec = stated
-    the_strategy_now_answers_to(state, stated, graph)
+    return hidden_params_dropped(hydrated, sheet_params=sheets)

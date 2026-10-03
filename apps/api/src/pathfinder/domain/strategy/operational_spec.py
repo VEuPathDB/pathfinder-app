@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from veupathdb.domain.parameters import (
-    MultiPickValue,
     ParamKind,
     ParamValue,
-    SinglePickValue,
     UnboundParameter,
-    to_wire,
 )
 from veupathdb.domain.strategy import (
     CombineOp,
@@ -20,6 +17,7 @@ from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.number_precision import rounded_number
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
     ChosenRationale,
@@ -47,13 +45,9 @@ ValueSource = Literal["stated", "chosen", "default", "card", "held"]
 
 
 class BoundValue(CamelModel):
-    """A bound value, and who set it.
-
-    ``basis`` is the request's words for a stated value, the model's reason for
-    a chosen one and the option id for a card value. A default has none, and
-    neither has a held value, which a strategy that already exists holds with
-    no record of who set it.
-    """
+    """A bound value, who set it, and what the published sheet says of it.
+    ``basis`` is the request's words, the model's reason or the card's option
+    id; a default and a held value have none. No sheet read, no sheet fields."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -62,36 +56,52 @@ class BoundValue(CamelModel):
     basis: str = ""
     # The option criterion a fold carried this value from, empty otherwise.
     carried_from: str = ""
-    # The value is a placeholder the site shows in an empty box: it states nothing.
-    placeholder: bool = False
     # The request's longer phrase a chosen text leaves words out of, else empty.
     stated_as: str = ""
+    display_name: str = ""
+    # The vocabulary's label of a pick, a filter field or a species code.
+    label: str = ""
+    # The value is the site's prompt in an empty box: it states nothing.
+    placeholder: bool = False
+    # The value is the initial value the site publishes for the parameter.
+    at_default: bool = False
+    # The sheet shows the parameter, or its vocabulary offers more than one
+    # entry. A hidden parameter with no choice still rides the step.
+    visible: bool = True
+    # The sheet reads the parameter as a number or a pick of terms.
+    number: bool = False
+    # The decimal places the sheet's initial value shows, None for no number.
+    decimals: int | None = None
 
+    @property
+    def unset(self) -> bool:
+        """Whether the value states nothing the site does not already send."""
+        return self.placeholder or self.at_default
 
-def bind_values(
-    values: Mapping[str, ParamValue], source: ValueSource, basis: str = ""
-) -> dict[str, BoundValue]:
-    """Each value bound with the one source and basis they share."""
-    return {
-        name: BoundValue(value=value, source=source, basis=basis)
-        for name, value in values.items()
-    }
+    def rounded(self) -> str | None:
+        """The value at the precision of its sheet, or None for a value that is
+        no number or that the researcher stated, which shows as written."""
+        if not self.number or self.source == "stated":
+            return None
+        return rounded_number(self.value.to_wire(), self.decimals)
 
+    def carried(self, criterion_id: str) -> BoundValue:
+        """The value as a fold carries it from the option criterion."""
+        return self.model_copy(update={"carried_from": criterion_id})
 
-def plain_value(value: ParamValue) -> str:
-    """A vocabulary term in readable form instead of its JSON wire form."""
-    match value:
-        case MultiPickValue(values=terms):
-            return ", ".join(terms)
-        case SinglePickValue(value=term):
-            return term
-        case _:
-            return to_wire(value)
+    def sourced(
+        self, source: ValueSource, basis: str = "", stated_as: str = ""
+    ) -> BoundValue:
+        """The value with who set it decided, and the words that decided it."""
+        return self.model_copy(
+            update={"source": source, "basis": basis, "stated_as": stated_as}
+        )
 
 
 CountedKind = Literal[
     "loosest_bound",
     "wildcard_phrase",
+    "phrase_reading",
     "site_search_reach",
     "any_strain",
     "all_strains",
@@ -171,6 +181,38 @@ class UnexpressedText(CamelModel):
     requirement: Constraint | None = None
 
 
+_NODE_SHAPES = {
+    "leaf": (
+        'a leaf is {"kind": "leaf", "criterionId": "<id>"}: one bound criterion, '
+        "with no inputs and no operator."
+    ),
+    "combine": (
+        'a combine is {"kind": "combine", "operator": "INTERSECT" | "UNION" | '
+        '"MINUS", "inputs": [<left>, <right>]}: an operator over two or more '
+        "subtrees, with no criterionId. A tree of one criterion is that "
+        "criterion's leaf; with no criterion left, there is no tree to set."
+    ),
+    "transform": (
+        'a transform is {"kind": "transform", "criterionId": "<id>", "inputs": '
+        "[<subtree>]}: one criterion that maps exactly one input subtree, with no "
+        "operator."
+    ),
+    "copy": (
+        'a copy is {"kind": "copy", "inputs": [<subtree>]}: exactly one subtree '
+        "the tree already states, with no criterionId and no operator."
+    ),
+}
+
+
+class _SpareWrapper(BaseModel):
+    """A raw combine node of exactly one input."""
+
+    model_config = ConfigDict(extra="ignore", from_attributes=True)
+
+    kind: Literal["combine"]
+    inputs: Annotated[list[object], Field(min_length=1, max_length=1)]
+
+
 class StructureNode(CamelModel):
     """One node of the stated tree.
 
@@ -183,6 +225,45 @@ class StructureNode(CamelModel):
     operator: CombineOp | None = None
     inputs: list[StructureNode] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _a_spare_wrapper_is_its_input(cls, data: object) -> object:
+        """A combine of one input combines nothing, so it is that input."""
+        try:
+            wrapper = _SpareWrapper.model_validate(data)
+        except ValidationError:
+            return data
+        return cls.model_validate(wrapper.inputs[0]).model_dump(by_alias=True)
+
+    @model_validator(mode="after")
+    def _in_the_shape_of_its_kind(self) -> StructureNode:
+        named = self.criterion_id is not None
+        joined = self.operator is not None
+        count = len(self.inputs)
+        fits = {
+            "leaf": named and not joined and count == 0,
+            "combine": joined and not named and count >= MIN_COMBINE_INPUTS,
+            "transform": named and not joined and count == 1,
+            "copy": not named and not joined and count == 1,
+        }[self.kind]
+        if not fits:
+            raise ValueError(_NODE_SHAPES[self.kind])
+        return self
+
+    @property
+    def combine_operator(self) -> CombineOp:
+        """The operator of a combine. Only a copy that skips validation has none."""
+        if self.operator is None:
+            raise ValueError(_NODE_SHAPES[self.kind])
+        return self.operator
+
+    @property
+    def named_criterion(self) -> str:
+        """The criterion a leaf or a transform runs."""
+        if self.criterion_id is None:
+            raise ValueError(_NODE_SHAPES[self.kind])
+        return self.criterion_id
+
 
 class SpecStructure(CamelModel):
     root: StructureNode
@@ -191,13 +272,10 @@ class SpecStructure(CamelModel):
 def criteria_under(node: StructureNode) -> frozenset[str]:
     """The criteria this subtree names.
 
-    A leaf and a transform each name one; a combine names none of its own.
+    A leaf and a transform each name one; a combine and a copy name none of
+    their own.
     """
-    own = (
-        frozenset({node.criterion_id})
-        if node.kind != "combine" and node.criterion_id
-        else frozenset[str]()
-    )
+    own = frozenset({node.criterion_id}) if node.criterion_id else frozenset[str]()
     return own.union(*(criteria_under(child) for child in node.inputs))
 
 
@@ -238,9 +316,6 @@ class Criterion(CamelModel):
     resolved_params: dict[str, BoundValue] = Field(default_factory=dict)
     # The name the site shows each bound parameter by, read when it binds.
     param_display_names: dict[str, str] = Field(default_factory=dict)
-    # The bound parameters the sheet hides and offers no entries for. The site
-    # sets them, so no facts row draws them.
-    hidden_params: list[str] = Field(default_factory=list)
     # The counts the site returned for other readings of the bound values.
     measurements: list[Measurement] = Field(default_factory=list)
     open_params: list[OpenSlot] = Field(default_factory=list)
@@ -275,6 +350,13 @@ class Criterion(CamelModel):
         """The bound values, without who set them."""
         return {name: bound.value for name, bound in self.resolved_params.items()}
 
+    @property
+    def shown_values(self) -> dict[str, BoundValue]:
+        """The bound values whose parameter the site shows, by parameter name."""
+        return {
+            name: bound for name, bound in self.resolved_params.items() if bound.visible
+        }
+
     def set_by(self, source: ValueSource) -> dict[str, BoundValue]:
         """The bound values this source set, by parameter name."""
         return {
@@ -285,6 +367,9 @@ class Criterion(CamelModel):
 
     def display_name_of(self, param: str) -> str:
         """The name the site shows the parameter by, else the parameter's own."""
+        held = self.resolved_params.get(param)
+        if held is not None and held.display_name:
+            return held.display_name
         return self.param_display_names.get(param, param)
 
     def defaulted(self) -> list[str]:
@@ -415,7 +500,7 @@ def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:
 
 
 def _named_by(node: StructureNode) -> set[str]:
-    own = {node.criterion_id} if node.kind != "combine" and node.criterion_id else set()
+    own = {node.criterion_id} if node.criterion_id else set()
     for child in node.inputs:
         own |= _named_by(child)
     return own

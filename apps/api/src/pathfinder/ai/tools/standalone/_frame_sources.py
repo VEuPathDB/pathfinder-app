@@ -24,10 +24,9 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.step_rationale import SearchRationale
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.domain.strategy.value_source import (
     cut_from,
-    is_placeholder,
-    is_unset,
     stated_words,
     value_source,
 )
@@ -51,50 +50,41 @@ def bound_values(
     card_values: Mapping[str, BoundValue] = _NO_CARD,
     requirement_phrases: Sequence[str] = (),
 ) -> dict[str, BoundValue]:
-    """Each resolved value with who set it. A value the site supplied is at its
-    initial value; a value only the site sets is the default. ``card_values``
-    holds what an answered card bound, each with the option id that bound it.
-    A text that leaves words out of a requirement phrase is chosen, and names
-    that phrase."""
+    """Each resolved value read on the published sheet, with who set it. A value
+    the site supplied or only the site sets is the default; a text that leaves
+    words out of a requirement phrase is chosen, and names that phrase."""
     card_wire = {name: to_wire(held.value) for name, held in card_values.items()}
     by_name = {info.name: info for info in infos}
     bound: dict[str, BoundValue] = {}
-    for name, value in values.items():
-        info = by_name.get(name)
-        initial = info.default_value if info is not None else None
-        shown = info.display_name if info is not None else ""
-        at_default = to_wire(value) if name in site_supplied else initial
+    for name, held in bind_values(values, "default", infos).items():
+        unset = held.unset or name in site_supplied
         source = (
             "default"
-            if _set_by_site(info)
+            if _set_by_site(by_name.get(name))
             else value_source(
-                value,
-                initial_display_value=at_default,
+                held.value,
+                placeholder=held.placeholder,
+                unset=unset,
                 request_texts=request_texts,
-                info=info,
                 card_value=card_wire.get(name),
-                display_name=shown,
+                display_name=held.display_name,
             )
         )
-        cut = cut_from(value, requirement_phrases)
+        cut = cut_from(held.value, requirement_phrases)
         if source == "stated" and cut:
             source = "chosen"
         basis = {
             "stated": stated_words(
-                value,
+                held.value,
                 request_texts,
-                display_name=shown,
-                at_default=is_unset(value, at_default, info),
+                display_name=held.display_name,
+                at_default=unset,
             ),
             "chosen": reason,
             "card": card_values[name].basis if name in card_values else "",
         }.get(source, "")
-        bound[name] = BoundValue(
-            value=value,
-            source=source,
-            basis=basis,
-            placeholder=is_placeholder(value, info),
-            stated_as=cut if source == "chosen" else "",
+        bound[name] = held.sourced(
+            source, basis, stated_as=cut if source == "chosen" else ""
         )
     return bound
 
@@ -168,13 +158,13 @@ def stated_by_their_labels(
         run = stated_words(
             held.value,
             request_texts,
-            display_name="" if info is None else info.display_name,
+            display_name=held.display_name,
             at_default=held.source == "default",
             labels=named,
             vocabulary=_vocabulary_holding(named, infos),
         )
         if run:
-            restated[name] = held.model_copy(update={"source": "stated", "basis": run})
+            restated[name] = held.sourced("stated", run)
     return restated
 
 

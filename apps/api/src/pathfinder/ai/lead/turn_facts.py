@@ -31,6 +31,7 @@ from pathfinder.domain.caveats import (
 )
 from pathfinder.domain.constraint_check import shortfalls
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.last_change import LastChange, change_since
 from pathfinder.domain.log2_scale import fold_label
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.measurement_clauses import (
@@ -41,12 +42,12 @@ from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
     OperationalSpec,
-    plain_value,
 )
 from pathfinder.domain.strategy.questions import option_label
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.turn_facts import (
     ParameterFact,
     RetiredFact,
@@ -60,12 +61,10 @@ from pathfinder.services.strategies.commit import live_strategy_url
 
 
 def _label(criterion: Criterion, param: str, bound: BoundValue) -> str:
-    """The labels the vocabulary gives the value, else the fold a log2 value is."""
-    return ", ".join(
-        m.label
-        for m in criterion.measurements
-        if m.kind == "vocabulary_label" and m.param == param and m.label
-    ) or fold_label(criterion.display_name_of(param), plain_value(bound.value))
+    """The label the vocabulary gives the value, else the fold a log2 value is."""
+    return bound.label or fold_label(
+        criterion.display_name_of(param), plain_value(bound.value)
+    )
 
 
 def _notes(criterion: Criterion, param: str, bound: BoundValue, noun: str) -> list[str]:
@@ -100,7 +99,7 @@ def _parameter(
     return ParameterFact(
         name=name,
         display_name=shown,
-        value=plain_value(bound.value),
+        value=bound.rounded() or plain_value(bound.value),
         label=_label(criterion, name, bound),
         source=bound.source,
         notes=_notes(criterion, name, bound, noun),
@@ -114,8 +113,7 @@ def _parameters(
         return analysis_parameters(criterion.analysis, said, noun)
     return [
         _parameter(criterion, name, bound, noun)
-        for name, bound in criterion.resolved_params.items()
-        if name not in criterion.hidden_params
+        for name, bound in criterion.shown_values.items()
     ]
 
 
@@ -280,6 +278,20 @@ def _moved_against_the_edit(
     )
 
 
+def _last_change(deps: LeadDeps, graph: StrategyGraph | None) -> LastChange | None:
+    """The change the message found, or the one this turn made since. A turn
+    that recorded nothing at arrival states no change."""
+    found = deps.state.turn_markers.change_at_arrival
+    if found is None:
+        return None
+    sync = deps.runtime.strategy_session.sync_state
+    return change_since(
+        found.tree,
+        found.change,
+        None if graph is None else graph.to_strategy_ast(sync_state=sync),
+    )
+
+
 def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     """Everything this turn shows beside its reply.
 
@@ -308,11 +320,13 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         None if verdict is None else verdict.review,
     )
     return TurnFacts(
+        request_messages=said,
         record_noun=noun,
         steps=built or _draft_steps(spec, said),
         draft=not built,
         root_count=built[-1].count if built else None,
         root_count_before=markers.root_count_before() if built else None,
+        last_change=_last_change(deps, graph),
         removed=[step.title for step in markers.deleted_steps],
         strategy_url=live_strategy_url(deps.runtime.site_id, session.sync_state)
         if built
@@ -349,6 +363,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
             deps.runtime.site_id, markers, built, session.sync_state, sources
         ),
         named_genes=named_genes(markers),
+        comparisons=list(markers.comparisons),
         stopped_check=""
         if stop is None or stop.role != "verification"
         else stop.render(),

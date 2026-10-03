@@ -26,7 +26,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     session_holding,
 )
@@ -71,7 +70,7 @@ async def test_the_edit_order_carries_the_question_and_its_answer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = await _answering(monkeypatch, IntentClassification.CLARIFICATION_RESPONSE)
-    thread.frames(lambda found: found, declared=kept(SURFACE, STAGE))
+    thread.frames(lambda found: found)
 
     delta = await thread.edit()
 

@@ -31,19 +31,35 @@ from pathfinder.services.strategies.measurements import (
 from pathfinder.services.strategies.value_labels import vocabulary_labels
 
 
-async def infos_under(
-    fetch_at: ParamFetcher, infos: list[ParameterInfo], bound: Mapping[str, BoundValue]
+def _with_vocabulary(info: ParameterInfo, read: ParameterInfo) -> ParameterInfo:
+    """The published entry holding the vocabulary another read answers."""
+    return info.model_copy(
+        update={
+            "allowed_values": read.allowed_values,
+            "allowed_values_total": read.allowed_values_total,
+            "allowed_values_tree": read.allowed_values_tree,
+            "allowed_values_note": read.allowed_values_note,
+            "prompt_values": read.prompt_values,
+            "vocab_leaves": read.vocab_leaves,
+        }
+    )
+
+
+async def vocabularies_under(
+    fetch_at: ParamFetcher, infos: list[ParameterInfo], values: Mapping[str, ParamValue]
 ) -> list[ParameterInfo]:
-    """The sheet as the bound parents answer it, each initial value as the site
-    publishes it. WDK answers each sent value as its parameter's initial value,
-    so only the published sheet tells a value from the site's own."""
+    """The published sheet with each dependent vocabulary as the bound parents
+    answer it. WDK answers each sent value as its parameter's initial value, so
+    the read gives vocabularies and nothing else."""
     if not any(info.vocab_depends_on for info in infos):
         return infos
-    published = {info.name: info.default_value for info in infos}
-    read = await fetch_at({name: to_wire(value.value) for name, value in bound.items()})
+    read = await fetch_at({name: to_wire(value) for name, value in values.items()})
+    answered = {info.name: info for info in read}
     return [
-        info.model_copy(update={"default_value": published.get(info.name)})
-        for info in read
+        _with_vocabulary(info, answered[info.name])
+        if info.vocab_depends_on and info.name in answered
+        else info
+        for info in infos
     ]
 
 
@@ -53,14 +69,12 @@ async def labelled_picks(
     call: CriterionCall,
     bound: dict[str, BoundValue],
 ) -> list[Measurement]:
-    """The label the vocabulary gives each pick.
-
-    A dependent vocabulary is read under the bound parents. A pick the call
-    proposed that the vocabulary gives no label is refused with the labels
-    nearest to it; a value the site supplied is recorded as it is. A filter
-    parameter defaults to no clause, so every clause it holds was proposed.
-    """
-    infos = await infos_under(fetch_at, infos, bound)
+    """The label the vocabulary, read under the bound parents, gives each pick.
+    A proposed pick or filter clause with no label is refused with the nearest
+    labels; a value the site supplied is recorded as it is."""
+    infos = await vocabularies_under(
+        fetch_at, infos, {name: held.value for name, held in bound.items()}
+    )
     read = vocabulary_labels(bound, infos)
     filters = {info.name for info in infos if info.param_kind == "filter"}
     proposed = [
@@ -159,6 +173,6 @@ async def record_bound_criterion(
         params=canonical.params,
         count=count,
         definition=definition,
-        infos=await infos_under(fetch_at, infos, criterion.resolved_params),
+        infos=await vocabularies_under(fetch_at, infos, criterion.param_values),
     )
     return count, alternatives, measured

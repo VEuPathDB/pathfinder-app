@@ -80,7 +80,4 @@ def test_the_answered_pass_binds_the_organism_the_answer_chose(site_id: str) -> 
         "final_result",
     ]
     assert [params["organism"] for params in bound] == [[chosen]]
-    assert (answer["disposition"], answer["changes"]) == (
-        "spec_ready",
-        [{"criterionId": "signal_peptide", "disposition": "changed"}],
-    )
+    assert (answer["disposition"], "changes" in answer) == ("spec_ready", False)

@@ -11,7 +11,11 @@ from veupathdb import JSONObject
 from pathfinder.ai.lead._delete_rules import DeleteSurface
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.card_reply import CardReply
-from pathfinder.ai.lead.classification_gate import classification_refusal, read_the_site
+from pathfinder.ai.lead.classification_gate import (
+    classification_refusal,
+    held_as_question,
+    read_the_site,
+)
 from pathfinder.ai.lead.deleted_steps import named_step
 from pathfinder.ai.lead.dispatch_context import inner_context
 from pathfinder.ai.lead.intent import (
@@ -21,6 +25,7 @@ from pathfinder.ai.lead.intent import (
     RefusedClassification,
     UserIntent,
     already_classified_message,
+    recorded_as_question_message,
     repeated_refusal_message,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -89,6 +94,18 @@ async def classify_user_intent(
     record of the boolean shape they asked for, so a stated combination
     that never lands here is a strategy that can silently answer the other
     question.
+
+    A message that takes a requirement back - "drop the fold-change cutoff",
+    "forget the signal peptide" - lists it in ``withdrawn``, typed like a
+    constraint with the value the conversation stated it in. A message that
+    only narrows or swaps a value - "make that P. falciparum 3D7" - states the
+    new value in ``explicit_constraints`` and withdraws nothing: a new value
+    of an organism, a record type, a threshold, a fold change, a percentile,
+    a data type or a comparator takes the place of the one the conversation
+    holds. An "other" value stands beside the other ones, so a message that
+    swaps one - "promastigotes instead of amastigotes" - states the new value
+    and lists the old one in ``withdrawn``. Words inside ``asks`` state no
+    requirement.
 
     Set ``hard=True`` for non-negotiable requirements ("only", "must",
     "required", "do not use X"); set ``hard=False`` when the user states a
@@ -164,6 +181,9 @@ async def classify_user_intent(
     """
     held = ctx.deps.intent
     state = ctx.deps.state
+    question = held_as_question(state, intent)
+    notes = [] if question is None else [recorded_as_question_message()]
+    intent = question or intent
     if state.turn_markers.intent_classified and held is not None:
         if held.classification is intent.classification:
             raise ToolFailed(already_classified_message(held.classification))
@@ -178,13 +198,15 @@ async def classify_user_intent(
             intent=intent, sentence=refusal
         )
         raise ModelRetry(refusal)
-    corrections: list[str] = []
+    corrections = list(notes)
     if intent.explicit_constraints:
-        constraints, corrections = complete_organisms(
+        constraints, completed = complete_organisms(
             intent.explicit_constraints, state.user_prompt, site.organisms
         )
-        if corrections:
+        if completed:
             intent = intent.model_copy(update={"explicit_constraints": constraints})
+            corrections += completed
+    intent = intent.with_undo_read_from(state.user_prompt)
     ctx.deps.refused_classification = None
     ctx.deps.intent = intent
     state.turn_markers.intent_classified = True

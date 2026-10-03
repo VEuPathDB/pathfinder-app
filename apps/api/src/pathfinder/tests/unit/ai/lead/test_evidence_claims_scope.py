@@ -30,7 +30,7 @@ from pathfinder.services.experiment.scored_comparison import (
     ScoredComparison,
     ScoredVariant,
 )
-from pathfinder.services.experiment.variant_comparison import VariantSpec
+from pathfinder.services.experiment.variant_comparison import VariantInput
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
 from pathfinder.tests.unit.ai.tools.test_frame_spec import param_info
@@ -151,8 +151,8 @@ async def test_a_scored_comparison_backs_the_counts_it_scored(
     await compare_variants_scored(
         ctx,
         [
-            VariantSpec(label="A", search_name="GenesByTaxon", parameters={}),
-            VariantSpec(label="B", search_name="GenesByText", parameters={}),
+            VariantInput(label="A", search_name="GenesByTaxon", parameters={}),
+            VariantInput(label="B", search_name="GenesByText", parameters={}),
         ],
         control_set_id=control_set.id,
     )

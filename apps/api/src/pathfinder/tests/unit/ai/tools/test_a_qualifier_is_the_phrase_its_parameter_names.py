@@ -54,12 +54,15 @@ def _qualifiers(text: str) -> list[str]:
             True,
         ),
         (
-            "Babesia bovis T2Bo genes with a variant erythrocyte surface antigen "
-            "annotation",
+            (
+                "Babesia bovis T2Bo genes with a variant erythrocyte surface "
+                "antigen annotation"
+            ),
             "variant",
             False,
         ),
         ("genes with a high gene variant count", "variant", True),
+        ("carry these to the syntenic orthologs", "syntenic", True),
     ],
 )
 def test_a_word_qualifies_when_its_modifier_reads_like_the_names(
@@ -78,7 +81,7 @@ def test_the_owner_is_the_search_whose_parameter_names_carry_the_stem() -> None:
     assert naming["synten"].modifiers == frozenset({None})
 
 
-def test_the_s10_wording_reads_no_qualifier_on_toxodb() -> None:
+def test_the_host_cell_reads_no_qualifier_on_toxodb() -> None:
     naming = the_one_search_naming(toxodb_transcript_listing())
     text = (
         "predicted to be exported to the host cell, with an ExportPred score of "
@@ -93,9 +96,9 @@ def test_the_s10_wording_reads_no_qualifier_on_toxodb() -> None:
     ] == []
 
 
-def test_an_article_before_a_word_is_no_compound() -> None:
-    """``a variant`` puts no modifier before the word, and the one parameter
-    name that carries it reads ``gene variant``."""
+def test_an_article_before_a_word_is_a_missing_modifier() -> None:
+    """``a variant`` puts no modifier before the word, so it matches none of
+    the names: the one parameter name that carries it reads ``gene variant``."""
     naming = the_one_search_naming(transcript_listing())
     text = "genes with a variant erythrocyte surface antigen annotation"
     variant = next(q for q in qualifiers_of(text) if q.stem == "variant")

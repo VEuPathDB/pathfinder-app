@@ -134,3 +134,15 @@ async def test_a_placeholder_is_no_value_set_beside_the_organism(
 
     assert result.rationale is not None
     assert (result.rationale.basis, result.rationale.term) == ("parameter", "Organism")
+
+
+def test_the_term_the_schema_asks_for_names_the_parameter_beside_the_organism() -> None:
+    """An organism-only edit of a criterion that sets another value still names
+    that parameter, so the schema says so before the tool refuses."""
+    term = SearchChoice.model_json_schema()["properties"]["term"]["description"]
+
+    assert (
+        "A call that sets a value away from its default besides the organism "
+        "names that parameter with basis parameter, even when the edit changes "
+        "only the organism; the organism goes in the reason."
+    ) in term

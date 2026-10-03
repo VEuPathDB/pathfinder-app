@@ -48,7 +48,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -127,7 +126,7 @@ async def test_yes_builds_the_two_refinements_the_card_names(
             )
         ],
     }
-    thread.frames(_with_both_refinements(), declared=kept(SURFACE, STAGE))
+    thread.frames(_with_both_refinements())
 
     delta = await propose_changes(run_context_for(thread.deps, CALL_ID), THE_CARD)
 

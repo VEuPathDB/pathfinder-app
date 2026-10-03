@@ -23,13 +23,11 @@ def variant_args(organism: str) -> dict[str, Any]:
             {
                 "label": "kinase",
                 "search_name": "GenesByText",
-                "record_type": "transcript",
                 "parameters": _variant_text_params("kinase", organism),
             },
             {
                 "label": "phosphatase",
                 "search_name": "GenesByText",
-                "record_type": "transcript",
                 "parameters": _variant_text_params("phosphatase", organism),
             },
         ],

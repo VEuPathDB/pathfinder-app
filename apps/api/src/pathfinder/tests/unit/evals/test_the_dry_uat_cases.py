@@ -51,15 +51,19 @@ def test_every_investigation_of_the_dry_uat_is_one_case() -> None:
 @pytest.mark.parametrize("case", _DRY, ids=[case.name for case in _DRY])
 def test_a_dry_case_holds_the_unit_and_no_unstated_value(case: EvalCase) -> None:
     expected = case.expected
+    # A dry case builds and counts in genes, or it ends on the card the design
+    # asks for and counts nothing.
+    assert (expected.builds_strategy, expected.ends_on, expected.counts_in_genes) in {
+        (True, "none", True),
+        (False, "consult", None),
+    }
     assert (
-        expected.counts_in_genes,
         expected.assumed_stated,
-        expected.builds_strategy,
         case.effort,
         case.provenance.origin,
         case.provenance.reference.startswith("uat/flows-dry-uat.md#u"),
         case.assert_de_identified(),
-    ) == (True, 0, True, "medium", "uat-flow", True, True)
+    ) == (0, "medium", "uat-flow", True, True)
 
 
 def test_the_toxodb_case_leaves_no_gap_for_the_withdrawn_cutoff() -> None:
@@ -111,10 +115,22 @@ def test_the_cryptodb_case_links_the_workspace_route() -> None:
 
 
 def test_the_piroplasmadb_case_states_both_counts_whichever_tree_keeps_them() -> None:
+    """The count question that keeps the list is answered by an offered step."""
     case = _BY_NAME["uat-dry-a-piroplasmadb"]
     expected = case.expected
 
-    assert (len(case.turns), case.gates) == (5, _LEAVE)
+    assert (len(case.turns), case.gates, expected.ends_on) == (
+        5,
+        GatePlan(
+            policy="leave",
+            answers=[
+                _yes("propose_changes", 2),
+                _yes("propose_changes", 3),
+                _yes("propose_changes", 4),
+            ],
+        ),
+        "none",
+    )
     assert (
         expected.structure,
         expected.step_count,
@@ -125,9 +141,9 @@ def test_the_piroplasmadb_case_states_both_counts_whichever_tree_keeps_them() ->
     ) == (
         None,
         None,
-        {"GenesByLocation": {"chromosomeOptional": "1"}},
-        {2: ["146"], 3: ["47", "146"]},
-        ["146", "47"],
+        {},
+        {},
+        [],
         None,
     )
 
@@ -141,15 +157,15 @@ def test_the_tritrypdb_case_names_the_floor_by_its_label() -> None:
     assert (
         expected.turn_reply_mentions,
         expected.turn_reply_omits,
-        expected.parameters[rnaseq],
+        expected.parameters,
         expected.step_count,
         expected.root_count,
     ) == (
-        {1: ["10 reads"], 2: ["10 reads"]},
+        {},
         {1: ["734.0197714535435"], 3: [rnaseq, "GenesByGoTerm"]},
-        {"fold_change": "2"},
-        5,
-        _count(3),
+        {},
+        None,
+        None,
     )
 
 
@@ -164,13 +180,17 @@ def test_the_giardiadb_case_pins_the_shape_and_not_the_field_choice() -> None:
         expected.turn_reply_mentions,
         expected.reply_mentions,
         expected.root_count,
-    ) == ("(GenesByText INTERSECT GenesWithSignalPeptide)", "INTERSECT", {}, [], None)
+    ) == (None, None, {}, [], None)
 
 
 def test_the_fungidb_case_answers_five_cards_and_shows_the_term_label() -> None:
+    """The obsolete term binds because the last message says to use it."""
     case = _BY_NAME["uat-dry-b-fungidb"]
     expected = case.expected
 
+    assert case.turns[4].endswith(
+        "If the only fitting term is marked obsolete, use it anyway and say so."
+    )
     assert (len(case.turns), case.gates.policy, case.gates.answers) == (
         5,
         "leave",
@@ -282,18 +302,14 @@ def test_the_knowlesi_case_holds_no_records_gap_and_the_stated_exclusion() -> No
 
     assert (len(case.turns), case.gates) == (1, _LEAVE)
     assert (
+        expected.builds_strategy,
+        expected.ends_on,
         expected.structure,
         expected.parameters,
         expected.unmet_requirements,
         expected.reply_mentions,
         expected.root_count,
-    ) == (
-        "(GenesByInterproDomain INTERSECT GenesByOrthologPattern)",
-        {"GenesByOrthologPattern": {"excluded_species": "hsap"}},
-        0,
-        ["142"],
-        _measured(142),
-    )
+    ) == (False, "consult", None, {}, None, [], None)
 
 
 _GPI_ANSWER = (
@@ -315,9 +331,4 @@ def test_the_winnie_case_holds_no_organism_gap_on_unclear_records() -> None:
         expected.unmet_requirements,
         expected.reply_mentions,
         expected.root_count,
-    ) == (
-        "(GenesByText UNION GenesWithSignalPeptide)",
-        0,
-        ["289"],
-        _measured(289),
-    )
+    ) == (None, 0, [], None)

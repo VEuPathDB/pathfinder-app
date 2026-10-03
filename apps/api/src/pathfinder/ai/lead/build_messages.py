@@ -40,8 +40,7 @@ def structure_does_not_convert_message(detail: str) -> str:
     return (
         f"The plan is bound and its structure does not convert into a WDK "
         f"tree: {detail}. Nothing was built and the strategy is unchanged. "
-        f"Call set_structure with a tree whose every combine names an operator "
-        f"and joins two inputs."
+        f"Call set_structure with a tree that answers that reason."
     )
 
 

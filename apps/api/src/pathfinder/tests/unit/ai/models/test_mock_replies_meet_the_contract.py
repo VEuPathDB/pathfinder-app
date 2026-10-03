@@ -1,6 +1,6 @@
-"""The reply of every arc is one the real turn contract accepts: it prints no
-number, identifier or link, since the facts part beside it shows them. A check
-of a built thread is accepted as a turn that wrote nothing."""
+"""The reply of every arc is one the real turn contract accepts: it writes no
+number, identifier, link or source word outside a reference. A check of a
+built thread is accepted as a turn that wrote nothing."""
 
 from __future__ import annotations
 
@@ -13,12 +13,12 @@ from pathfinder.ai.lead.build_messages import (
     build_not_ready_message,
     build_would_replace_the_strategy,
 )
-from pathfinder.ai.lead.facts_in_prose import outside_the_facts
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse, reconcile
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.ai.models.mock.registry import ARCS
+from pathfinder.domain.reply_references import shape_faults
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
@@ -91,7 +91,7 @@ _TESTED = "7 of 10 positive controls recovered."
 @pytest.mark.parametrize("framed", [False, True])
 @pytest.mark.parametrize("checked_with_findings", [False, True])
 @pytest.mark.parametrize("arc", sorted(ARCS))
-def test_every_reply_prints_no_fact_outside_the_block(
+def test_every_reply_writes_no_fact_outside_a_reference(
     arc: str, site_id: str, framed: bool, checked_with_findings: bool
 ) -> None:
     answers = {"verify_strategy": checked()} if checked_with_findings else {}
@@ -104,7 +104,7 @@ def test_every_reply_prints_no_fact_outside_the_block(
 
     mismatches = reconcile(report, turn_record(run_context_for(deps)))
 
-    assert outside_the_facts(report.prose, "", ()) == []
+    assert shape_faults(report.prose) == []
     assert [(m.kind, m.sentence) for m in mismatches] == []
 
 

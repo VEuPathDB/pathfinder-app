@@ -69,7 +69,11 @@ and there are three invariants behind it:
   model reads as a WDK verdict makes it report a failure that never happened.
   What is *not* coerced is meaning: a vocabulary value must match an entry
   exactly - by term, by label, or by an accession exactly one entry carries -
-  and a near miss is a question rather than a substitution.
+  and a near miss is a question rather than a substitution. On the parameter
+  a search marks as its organism, a bind that holds a sibling or an ancestor
+  of an entry the request names whole (`stated_organisms`), in place of that
+  entry or a tree node under it, is refused; an entry of another lineage
+  belongs to another criterion and is never refused (`_frame_stated.py`).
 
 # The three things that were rejected, and what each one measured
 

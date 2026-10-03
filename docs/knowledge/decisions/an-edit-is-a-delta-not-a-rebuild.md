@@ -48,6 +48,11 @@ that turns the strategy the turn started from into the one the request asks for.
   `services/strategies/commit.py::apply_operations_and_commit`, which patches
   only the steps whose inputs changed and re-PUTs the step tree only when the
   topology changed.
+- An undo whose intent states no value is an edit with a target and no FRAME
+  pass: `run_edit` reads the newest snapshot a turn ended on with another tree
+  (`services/strategies/revision_ops.py::previous_revision`), states it and the
+  live tree through one hydration, and pushes their diff like any edit, and a
+  strategy already at that revision fails the call as nothing to undo.
 - `build_strategy` refuses a thread whose graph has steps.
 
 The operations are planned against a working copy of the graph and applied to it

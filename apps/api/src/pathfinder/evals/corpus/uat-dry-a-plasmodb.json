@@ -5,41 +5,31 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "A domain step whose free-text half holds the radio-off value binds no text query, so neither the organism nor the domain row is a records gap on sampled records judged unclear; the exclusion the researcher named as Homo sapiens binds hsap and stands met. Counts 144, 2,795 and 142.",
+  "rationale": "A concept that names no single vocabulary entry, such as a Plasmodium-specific domain, is not bound on the pass's own guess: the turn ends on a card that asks which entries define it, and nothing is built until the researcher answers.",
   "expected": {
-    "buildsStrategy": true,
-    "structure": "(GenesByInterproDomain INTERSECT GenesByOrthologPattern)",
-    "recordType": "transcript",
-    "stepCount": 3,
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
-    "parameters": {
-      "GenesByOrthologPattern": {
-        "excluded_species": "hsap"
-      }
-    },
-    "replyMentions": [
-      "142"
-    ],
+    "parameters": {},
+    "replyMentions": [],
     "replyOmits": [],
-    "countsInGenes": true,
+    "countsInGenes": null,
     "replyNamesItsSearches": false,
     "replyGivesItsReasons": false,
     "stepTitlesOmit": [],
-    "rootOperator": "INTERSECT",
+    "rootOperator": null,
     "finalCountBelowEveryInput": null,
     "metRequirements": null,
-    "unmetRequirements": 0,
+    "unmetRequirements": null,
     "unexpressedRequirements": null,
     "turnReplyMentions": {},
     "turnReplyOmits": {},
     "assumedStated": 0,
-    "rootCount": {
-      "count": 142,
-      "build": "71",
-      "measuredOn": "2026-09-30"
-    },
-    "endsOn": "none"
+    "rootCount": null,
+    "endsOn": "consult"
   },
   "provenance": {
     "site": "plasmodb",
@@ -48,7 +38,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ua-plasmodb",
-    "curatorNote": "Round-3 dry UAT, tester A, investigation 1, conversation 7da4f9a7-48a4-495a-a971-82e2f1ae5d01."
+    "curatorNote": "One message naming a domain family that the Pfam vocabulary does not carry as one entry; the turn asks on a card which entries define it and builds nothing."
   },
   "effort": "medium",
   "gates": {

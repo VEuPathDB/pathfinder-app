@@ -10,6 +10,27 @@ from pydantic import ConfigDict, Field, StringConstraints
 PROSE_MAX_CHARS = 4000
 # A reply shorter than a sentence answers nothing.
 _REPLY_MIN_CHARS = 20
+PLACEMENT_RULES = (
+    "A count reference renders with its noun, so no noun follows it. A number "
+    "word (one to twelve, twice, two-fold) never stands in the clause of "
+    "a count or value reference, which stands in place of the number."
+)
+REPLY_REFERENCES = (
+    "It writes no number, identifier, link or source word itself: each fact is "
+    "a reference the product renders from the facts beside the reply. "
+    "[count:<step_id>] a step's count, [before:<step_id>] its count before this "
+    "turn's edit, [root] and [root_before] the result's, [last_change:before] "
+    "and [last_change:after] the result's before and after the strategy's most "
+    "recent change, which an earlier turn may have made, [diff:<a>,<b>] the "
+    "difference of two counts (each side a step id, root, root_before, "
+    "before:<step_id>, last_change:before, last_change:after or "
+    "compare:<variant>), [value:<step_id>.<param>] a bound "
+    "value with its label, [source:<step_id>.<param>] who set it, "
+    "[compare:<variant>] the genes a comparison of this turn returned for a "
+    "variant (add :unique or :result; [compare:<a>,<b>:shared] for the genes "
+    "two share), [record:<record_id>] a record this turn read or listed, [url] "
+    f"the strategy's link. {PLACEMENT_RULES}"
+)
 
 CardReply = Annotated[
     str,
@@ -20,7 +41,8 @@ CardReply = Annotated[
         description=(
             "Your reply to the message, which the researcher reads above the "
             "card: what you found, what you recommend and why. Plain markdown. "
-            "It is the whole reply of this turn, so never write it as text too."
+            "It is the whole reply of this turn, so never write it as text too. "
+            f"{REPLY_REFERENCES}"
         ),
     ),
 ]
@@ -34,4 +56,10 @@ class CardCallReply(CamelModel):
     reply: str = ""
 
 
-__all__ = ["PROSE_MAX_CHARS", "CardCallReply", "CardReply"]
+__all__ = [
+    "PLACEMENT_RULES",
+    "PROSE_MAX_CHARS",
+    "REPLY_REFERENCES",
+    "CardCallReply",
+    "CardReply",
+]

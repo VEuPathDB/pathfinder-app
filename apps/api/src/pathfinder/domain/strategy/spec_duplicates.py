@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import CombineOp
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.operational_spec import (
+    MIN_COMBINE_INPUTS,
     OperationalSpec,
     SpecStructure,
     StructureNode,
@@ -71,7 +72,7 @@ def _operands(node: StructureNode) -> Iterator[StructureNode]:
 
 def _named_in_order(node: StructureNode) -> list[str]:
     """The criteria of a subtree in tree order, copies included."""
-    own = [node.criterion_id] if node.kind != "combine" and node.criterion_id else []
+    own = [node.criterion_id] if node.criterion_id else []
     return own + [cid for child in node.inputs for cid in _named_in_order(child)]
 
 
@@ -89,13 +90,13 @@ class _DuplicateReading:
         A criterion whose values are not all decided answers only for itself.
         """
         if node.kind == "copy":
-            return self.shape(node.inputs[0]) if node.inputs else ["copy"]
+            return self.shape(node.inputs[0])
         below = [self.shape(child) for child in node.inputs]
         if node.kind == "combine":
-            return ["combine", node.operator.value if node.operator else "", below]
-        c = self.by_id.get(node.criterion_id or "")
+            return ["combine", node.combine_operator.value, below]
+        c = self.by_id.get(node.named_criterion)
         if c is None or not c.search_name or c.open_params or c.analysis is not None:
-            return ["criterion", node.criterion_id or ""]
+            return ["criterion", node.named_criterion]
         values = {name: to_wire(value) for name, value in c.param_values.items()}
         return [node.kind, c.search_name, values, below]
 
@@ -114,10 +115,8 @@ class _DuplicateReading:
                 if other is not keeper:
                     redundant.add(id(other))
                     self._record(other, keeper)
-        kept = self._without(node, redundant)
-        if kept is None:
-            msg = "an INTERSECT chain keeps the input its duplicates fold into"
-            raise ValueError(msg)
+        # Each group keeps one operand, so the chain keeps at least one.
+        (kept,) = self._without(node, redundant)
         return kept
 
     def _live(self, node: StructureNode) -> bool:
@@ -137,19 +136,18 @@ class _DuplicateReading:
                 )
             )
 
-    def _without(
-        self, node: StructureNode, redundant: set[int]
-    ) -> StructureNode | None:
+    def _without(self, node: StructureNode, redundant: set[int]) -> list[StructureNode]:
+        """The subtree with the redundant operands gone: no node, or one."""
         if not _intersects(node):
-            return None if id(node) in redundant else self.folded(node)
+            return [] if id(node) in redundant else [self.folded(node)]
         kept = [
             joined
             for child in node.inputs
-            if (joined := self._without(child, redundant)) is not None
+            for joined in self._without(child, redundant)
         ]
-        if len(kept) <= 1:
-            return kept[0] if kept else None
-        return node.model_copy(update={"inputs": kept})
+        if len(kept) < MIN_COMBINE_INPUTS:
+            return kept
+        return [node.model_copy(update={"inputs": kept})]
 
 
 def fold_duplicate_inputs(

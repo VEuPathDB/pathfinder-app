@@ -117,6 +117,28 @@ class StrategyRevisionRepository:
         )
         return None if row is None else StrategyRevisionView.model_validate(row)
 
+    async def newest_turn_end_unlike(
+        self,
+        conversation_id: UUID,
+        *,
+        before_row_id: int,
+        revision: str,
+    ) -> StrategyRevisionView | None:
+        """The newest snapshot older than ``before_row_id`` that a turn ended on
+        and whose tree differs from ``revision``."""
+        row = await self.session.scalar(
+            select(StrategyRevision)
+            .where(
+                StrategyRevision.conversation_id == conversation_id,
+                StrategyRevision.id < before_row_id,
+                StrategyRevision.message_id.is_not(None),
+                StrategyRevision.revision != revision,
+            )
+            .order_by(desc(StrategyRevision.id))
+            .limit(1),
+        )
+        return None if row is None else StrategyRevisionView.model_validate(row)
+
     async def newest(
         self,
         conversation_id: UUID,

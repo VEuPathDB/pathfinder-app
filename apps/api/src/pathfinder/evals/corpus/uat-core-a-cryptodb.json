@@ -1,0 +1,68 @@
+{
+  "name": "uat-core-a-cryptodb",
+  "turns": [
+    "Cryptosporidium parvum IOWA-ATCC genes whose product description matches mucin*.",
+    "Just a question, don't change the strategy: how many genes would mucin* match if every text field were searched instead of the product field alone, and how many of those are beyond the ones here?"
+  ],
+  "siteId": "cryptodb",
+  "assistantId": "pathfinder",
+  "rationale": "A comparison's counts are in the reply, rendered from the comparison the turn ran: 84 genes over every text field and 82 genes beyond the 2 the product-field step holds, while the strategy keeps its one text step.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesByText",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {
+      "GenesByText": {
+        "text_expression": "mucin*",
+        "text_fields": "product"
+      }
+    },
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "1": [
+        "84 genes",
+        "82 genes"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "[compare:"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 2,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "cryptodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ucore-a-cryptodb",
+    "curatorNote": "A text step bound to the product field carries the vocabulary value product. On build 71, mucin* over C. parvum IOWA-ATCC matches 2 genes in the product field (CPATCC_0009860, CPATCC_0031660) and 84 over every text field, 82 of them outside the product-field result."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "stop"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

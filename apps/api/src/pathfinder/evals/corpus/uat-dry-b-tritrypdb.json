@@ -13,27 +13,13 @@
   "rationale": "A bound vocabulary value is described by the label the site gives it: the expression floor is \"10 reads\", never its raw term; no reply prints a search's internal name; the final strategy keeps the three transmembrane kinases at 2-fold.",
   "expected": {
     "buildsStrategy": true,
-    "structure": "((GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC INTERSECT GenesByGoTerm) INTERSECT GenesByTransmembraneDomains)",
+    "structure": null,
     "recordType": "transcript",
-    "stepCount": 5,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
-    "parameters": {
-      "GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC": {
-        "fold_change": "2"
-      },
-      "GenesByGoTerm": {
-        "go_typeahead": "GO:0004672"
-      },
-      "GenesByTransmembraneDomains": {
-        "min_tm": "1"
-      }
-    },
-    "replyMentions": [
-      "Tb927.11.14070",
-      "Tb927.2.2720",
-      "Tb927.5.3320"
-    ],
+    "parameters": {},
+    "replyMentions": [],
     "replyOmits": [],
     "countsInGenes": true,
     "replyNamesItsSearches": false,
@@ -44,14 +30,7 @@
     "metRequirements": null,
     "unmetRequirements": null,
     "unexpressedRequirements": null,
-    "turnReplyMentions": {
-      "1": [
-        "10 reads"
-      ],
-      "2": [
-        "10 reads"
-      ]
-    },
+    "turnReplyMentions": {},
     "turnReplyOmits": {
       "1": [
         "734.0197714535435"
@@ -62,11 +41,7 @@
       ]
     },
     "assumedStated": 0,
-    "rootCount": {
-      "count": 3,
-      "build": "71",
-      "measuredOn": "2026-09-28"
-    },
+    "rootCount": null,
     "endsOn": "none"
   },
   "provenance": {
@@ -76,7 +51,7 @@
     "addedAt": "2026-09-28",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#u4",
-    "curatorNote": ""
+    "curatorNote": "Two turns: a build with a GO term, a transmembrane count and procyclic expression, then a tightened cutoff. Expression binds a curated percentile search or an analysis step, so the case pins no tree and no floor label; it checks the unit, that nothing is assumed, and that the raw floor value never reaches the reply."
   },
   "effort": "medium",
   "gates": {

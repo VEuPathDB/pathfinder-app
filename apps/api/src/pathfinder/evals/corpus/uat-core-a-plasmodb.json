@@ -1,0 +1,65 @@
+{
+  "name": "uat-core-a-plasmodb",
+  "turns": [
+    "Plasmodium falciparum 3D7 genes with a transmembrane domain and a predicted apicoplast targeting signal.",
+    "Drop the transmembrane domain requirement: remove that step."
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A requirement dropped through one delete card retires with it: the approved delete withdraws the transmembrane domain requirement, which only the deleted step stated, and keeps the organism and the apicoplast signal; the PlasmoAP step answers the apicoplast row, so the check files no gap that nothing in the strategy answers it.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GenesBySubcellularLocalizationpfal3D7_subcellular_localization_ApicoplastTargeting_RSRC",
+    "recordType": "transcript",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": null,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": null,
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {},
+    "turnReplyOmits": {
+      "1": [
+        "nothing in the strategy answers it"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 495,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ucore-a-plasmodb",
+    "curatorNote": "The transmembrane step and the PlasmoAP step join under an INTERSECT on the first message; the second message raises one delete card, approved here."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave",
+    "answers": [
+      {
+        "card": "delete_step",
+        "turn": 1,
+        "accept": true
+      }
+    ]
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

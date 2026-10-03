@@ -19,8 +19,8 @@ from pathfinder.domain.strategy.measurement_clauses import measurement_clauses
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
-    plain_value,
 )
+from pathfinder.domain.strategy.value_binding import plain_value
 
 # The choices of one open slot the ledger prints.
 _OPTION_WINDOW = 8
@@ -110,7 +110,7 @@ def _render_criterion(crit: Criterion, noun: str) -> list[str]:
     out.extend(
         f"    {crit.display_name_of(name)} ({name}) = {plain_value(bound.value)} "
         f"({bound.source})"
-        for name, bound in crit.resolved_params.items()
+        for name, bound in crit.shown_values.items()
     )
     out.extend(
         f"    MEASURED {clause}" for clause in measurement_clauses(crit, noun=noun)

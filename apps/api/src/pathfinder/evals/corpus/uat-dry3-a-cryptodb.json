@@ -53,7 +53,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ua-cryptodb",
-    "curatorNote": "Round-3 dry UAT, tester A, investigation 3, conversation 63f6d5f9-7989-48a0-93c1-8f8eb70b1812. The second turn is the report's quote with the ask the classifier recorded. Live: the C. hominis arm is 783 genes at percentile 80, 3,886 at 0 and 792 at all, and each INTERSECT with the 421 is 0."
+    "curatorNote": "The second message is the request with the ask the classifier records. The C. hominis arm is 783 genes at percentile 80, 3,886 at 0 and 792 at all, and each INTERSECT with the 421 is 0."
   },
   "effort": "medium",
   "gates": {

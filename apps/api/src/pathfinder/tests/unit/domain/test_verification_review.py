@@ -6,9 +6,11 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from pathfinder.domain.citations import (
+    Citation,
+)
 from pathfinder.domain.evidence import (
     SAMPLED_GENE_LIMIT,
-    Citation,
     RequirementCheck,
     SampledGene,
     VerificationReview,

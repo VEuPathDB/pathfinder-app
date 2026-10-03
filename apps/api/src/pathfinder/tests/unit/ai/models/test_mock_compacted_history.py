@@ -166,13 +166,9 @@ def test_an_edit_survives_the_compaction_of_its_own_history() -> None:
     call = _next_call(_compacted(_edit_order()))
 
     assert call.tool_name == "final_result"
-    assert call.args_as_dict()["changes"] == [
-        {
-            "criterionId": _CRITERION,
-            "disposition": "changed",
-            "changedParams": {"min_tm": "1"},
-        }
-    ]
+    assert call.args_as_dict()["summary"] == (
+        f"Moved min_tm on {_CRITERION}; the rest are unchanged."
+    )
 
 
 @pytest.mark.parametrize("plasmo_turn", [_BUILD_TEXT], indirect=True)

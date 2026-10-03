@@ -19,7 +19,6 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     structure_criteria,
 )
-from pathfinder.domain.strategy.spec_diff import CriterionChange
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.lead._disagreement_drafts import (
     PROTEOME,
@@ -43,9 +42,7 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     Draft,
     built_spec,
     built_tree,
-    declared,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -121,14 +118,10 @@ def _a_different_request() -> Draft:
     return _draft
 
 
-async def _asked(
-    thread: DisagreementThread,
-    draft: Draft,
-    account: list[CriterionChange] | None = None,
-) -> None:
+async def _asked(thread: DisagreementThread, draft: Draft) -> None:
     """Run the turn that ends on the user, and check it pushed nothing."""
     await thread.next_turn()
-    thread.frames(draft, declared=account or [], disposition="needs_user")
+    thread.frames(draft, disposition="needs_user")
     delta = await thread.edit()
     assert isinstance(delta, EditDelta)
     assert delta.disposition == "needs_user"
@@ -140,14 +133,13 @@ async def test_a_dropped_criterion_beside_an_open_question_is_pushed_by_the_answ
 ) -> None:
     """The drop is a request the strategy has not taken, so the answering turn pushes it."""
     thread = _thread(monkeypatch)
-    await _asked(thread, _dropping_the_stage_and_asking(), declared("dropped", STAGE))
+    await _asked(thread, _dropping_the_stage_and_asking())
     await thread.next_turn()
     assert thread.criteria == [SURFACE, PROTEOME]
     # The work order lists the drop this thread has not pushed, and the pass
     # states that it stands.
     thread.frames(
         with_the_proteome(2),
-        declared=[*kept(SURFACE, PROTEOME), *declared("dropped", STAGE)],
     )
 
     delta = await thread.edit()
@@ -163,112 +155,6 @@ async def test_a_dropped_criterion_beside_an_open_question_is_pushed_by_the_answ
     assert spec_facts(thread.spec) == {SURFACE: {}, PROTEOME: {PROTEOME_PARAM: "2"}}
 
 
-def _restating_the_stage_and_answering() -> Draft:
-    """The pass takes the drop back and answers the question in one pass."""
-
-    def _draft(found: OperationalSpec) -> OperationalSpec:
-        found = with_the_proteome(2)(found)
-        found.criteria = [c for c in found.criteria if c.id != STAGE]
-        found.criteria.append(
-            Criterion(
-                id=STAGE,
-                text="expressed in merozoites",
-                search_name="GenesByRNASeqEvidence",
-                resolved_params=bound(
-                    {
-                        STAGE_PERCENTILE: NumberValue(value=80),
-                        STAGE_TIMEPOINT: NumberValue(value=40),
-                    }
-                ),
-            )
-        )
-        assert found.structure is not None
-        found.structure = SpecStructure(
-            root=joined(
-                CombineOp.INTERSECT,
-                joined(CombineOp.INTERSECT, leaf(SURFACE), leaf(STAGE)),
-                leaf(PROTEOME),
-            )
-        )
-        return found
-
-    return _draft
-
-
-async def _asked_to_drop_the_stage(thread: DisagreementThread) -> None:
-    """The turn that drops the stage and asks a question, pushing nothing."""
-    await _asked(thread, _dropping_the_stage_and_asking(), declared("dropped", STAGE))
-    await thread.next_turn()
-
-
-async def test_a_pending_drop_the_pass_declares_dropped_while_it_keeps_it_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The draft holds the criterion again, so `dropped` accounts for nothing."""
-    thread = _thread(monkeypatch)
-    await _asked_to_drop_the_stage(thread)
-    thread.frames(
-        _restating_the_stage_and_answering(),
-        declared=[*kept(SURFACE, PROTEOME), *declared("dropped", STAGE)],
-    )
-
-    refusal = await thread.edit()
-
-    assert isinstance(refusal, str), refusal
-    assert STAGE in refusal
-    assert thread.committed == []
-    assert sorted(thread.graph.steps) == sorted([SURFACE, STAGE, ROOT])
-
-
-async def test_a_pending_criterion_the_pass_calls_kept_while_it_drops_it_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The draft no longer states the criterion, so `kept` accounts for nothing."""
-    thread = _thread(monkeypatch)
-    await _asked(thread, with_the_proteome(None))
-    await thread.next_turn()
-    thread.frames(_without_the_proteome(), declared=kept(SURFACE, STAGE, PROTEOME))
-
-    refusal = await thread.edit()
-
-    assert isinstance(refusal, str), refusal
-    assert PROTEOME in refusal
-    assert thread.committed == []
-
-
-async def test_a_pending_value_the_pass_declares_dropped_while_it_keeps_it_is_refused(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The draft still states the criterion, so `dropped` accounts for nothing."""
-    thread = _thread(monkeypatch)
-    await _asked(
-        thread, lambda found: with_the_proteome(None)(with_the_percentile(90)(found))
-    )
-    await thread.next_turn()
-    thread.frames(
-        with_the_proteome(2),
-        declared=[*kept(SURFACE, PROTEOME), *declared("dropped", STAGE)],
-    )
-
-    refusal = await thread.edit()
-
-    assert isinstance(refusal, str), refusal
-    assert STAGE in refusal
-    assert thread.committed == []
-    assert thread.graph.steps[STAGE].parameters[STAGE_PERCENTILE] == NumberValue(
-        value=80
-    )
-
-
-def _without_the_proteome() -> Draft:
-    def _draft(found: OperationalSpec) -> OperationalSpec:
-        found.criteria = [c for c in found.criteria if c.id != PROTEOME]
-        found.structure = built_spec().structure
-        return found
-
-    return _draft
-
-
 async def test_two_open_questions_answered_one_a_turn_build_on_the_third(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -276,14 +162,12 @@ async def test_two_open_questions_answered_one_a_turn_build_on_the_third(
     thread = _thread(monkeypatch)
     await _asked(thread, _with_both_open(None, None))
     await thread.next_turn()
-    thread.frames(_with_both_open(2, None), declared=[], disposition="needs_user")
+    thread.frames(_with_both_open(2, None), disposition="needs_user")
     second = await thread.edit()
     assert isinstance(second, EditDelta)
     assert (second.disposition, second.operations_applied) == ("needs_user", 0)
     await thread.next_turn()
-    thread.frames(
-        _with_both_open(2, 7), declared=kept(SURFACE, STAGE, PROTEOME, _LOCALISED)
-    )
+    thread.frames(_with_both_open(2, 7))
 
     delta = await thread.edit()
 
@@ -314,11 +198,6 @@ async def test_a_different_request_instead_of_an_answer_abandons_the_open_criter
     await thread.next_turn()
     thread.frames(
         _a_different_request(),
-        declared=[
-            *kept(SURFACE),
-            *declared("changed", STAGE),
-            *declared("dropped", PROTEOME),
-        ],
     )
 
     delta = await thread.edit()
@@ -348,7 +227,7 @@ async def test_a_canvas_delete_before_the_answer_takes_the_step_and_keeps_the_qu
     canvas_deletes(thread.graph, STAGE)
     await thread.next_turn()
     assert thread.criteria == [SURFACE, PROTEOME]
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 

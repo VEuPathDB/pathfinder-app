@@ -14,12 +14,11 @@ from pathfinder.domain.strategy.constraints import (
     provisional_constraints,
 )
 from pathfinder.domain.strategy.requirement_lifecycle import (
-    RequirementWithdrawal,
     RetiredRequirement,
     reopened,
     restored,
     retire,
-    unheld_withdrawals,
+    withdrawn_by,
 )
 
 _CUTOFF = Constraint(
@@ -43,12 +42,7 @@ _QUARTILE = Constraint(
 
 
 def test_a_withdrawn_requirement_leaves_the_live_record_on_its_turn() -> None:
-    live, retired = retire(
-        [_CUTOFF, _SIGNAL],
-        [],
-        [RequirementWithdrawal(key=_CUTOFF.key)],
-        turn_id="turn-4",
-    )
+    live, retired = retire([_CUTOFF, _SIGNAL], [], [_CUTOFF], turn_id="turn-4")
 
     assert live == [_SIGNAL]
     assert retired == [
@@ -58,12 +52,9 @@ def test_a_withdrawn_requirement_leaves_the_live_record_on_its_turn() -> None:
     ]
 
 
-def test_a_replaced_requirement_names_the_one_that_replaced_it() -> None:
+def test_a_requirement_retired_beside_a_new_value_of_its_kind_is_replaced() -> None:
     live, retired = retire(
-        [_CUTOFF, _QUARTILE],
-        [],
-        [RequirementWithdrawal(key=_CUTOFF.key, replaced_by=_QUARTILE.key)],
-        turn_id="turn-4",
+        [_CUTOFF, _QUARTILE], [], [_CUTOFF], turn_id="turn-4", stated=[_QUARTILE]
     )
 
     assert live == [_QUARTILE]
@@ -80,21 +71,28 @@ def test_a_requirement_stated_again_is_live_again() -> None:
     assert reopened(held, [_CUTOFF, _SIGNAL]) == []
 
 
-def test_a_withdrawal_of_a_requirement_the_thread_does_not_hold_is_named() -> None:
-    assert unheld_withdrawals(
-        [
-            RequirementWithdrawal(key="other:exported"),
-            RequirementWithdrawal(key=_SIGNAL.key),
-        ],
-        held=[_SIGNAL],
-    ) == ["other:exported"]
+def test_a_statement_names_the_held_requirement_its_words_carry() -> None:
+    kinase = _SIGNAL.model_copy(update={"requested_value": "protein kinase"})
+    stated = _SIGNAL.model_copy(update={"requested_value": "the signal peptide"})
+
+    assert withdrawn_by([kinase, _SIGNAL], [stated]) == [_SIGNAL]
+
+
+def test_a_statement_of_a_single_valued_kind_names_its_one_value() -> None:
+    stated = _CUTOFF.model_copy(update={"requested_value": "the expression cutoff"})
+
+    assert withdrawn_by([_CUTOFF, _SIGNAL], [stated]) == [_CUTOFF]
+
+
+def test_a_statement_names_nothing_the_thread_does_not_hold() -> None:
+    stated = _SIGNAL.model_copy(update={"requested_value": "exported"})
+
+    assert withdrawn_by([_SIGNAL], [stated]) == []
 
 
 def test_a_withdrawn_cutoff_is_no_gap_while_a_live_requirement_still_is() -> None:
     """The toxodb shape: a cutoff stated on one turn, removed on a later one."""
-    live, retired = retire(
-        [_CUTOFF, _SIGNAL], [], [RequirementWithdrawal(key=_CUTOFF.key)], turn_id="t4"
-    )
+    live, retired = retire([_CUTOFF, _SIGNAL], [], [_CUTOFF], turn_id="t4")
     review = VerificationReview(
         requirements=[
             RequirementCheck(

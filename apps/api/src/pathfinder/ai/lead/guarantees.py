@@ -134,9 +134,9 @@ def render_machine_guarantees(tools: Mapping[str, Tool[LeadDeps]]) -> str:
             f" steps the build recorded before you read it."
         ),
         (
-            f"- An undeclared spec change is refused, and the spec the turn started"
-            f" from is restored, when the account of an edit does not match what it"
-            f" did: {_named(_role('frame', known))}."
+            f"- What a pass did to each criterion is read from the values, and a"
+            f" criterion is reported kept only when no value moved:"
+            f" {_named(_role('frame', known))}."
         ),
         (
             f"- Run on a worker, so the turn ends and reopens with the result:"

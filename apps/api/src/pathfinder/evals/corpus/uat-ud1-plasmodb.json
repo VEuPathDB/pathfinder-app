@@ -25,11 +25,7 @@
     "finalCountBelowEveryInput": null,
     "metRequirements": null,
     "unmetRequirements": null,
-    "rootCount": {
-      "count": 16,
-      "build": "71",
-      "measuredOn": "2026-09-29"
-    },
+    "rootCount": null,
     "endsOn": null,
     "assumedStated": 0
   },

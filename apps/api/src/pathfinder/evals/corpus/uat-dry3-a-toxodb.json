@@ -3,11 +3,11 @@
   "turns": [
     "Hammondia hammondi strain H.H.34 genes with a microneme protein annotation.",
     "Now do the same on Toxoplasma gondii ME49, and give me the Hammondia microneme genes that have an ortholog among the ME49 microneme genes.",
-    "Which four of the original 23 Hammondia genes dropped out of the result?"
+    "Which of the original 23 Hammondia genes dropped out of the result?"
   ],
   "siteId": "toxodb",
   "assistantId": "pathfinder",
-  "rationale": "A step the turn created shows no count before it, and every id a listing of the turn returned is a row of its facts part: the ME49 search holds 25 genes with no before count, the orthology join holds 19 of the 23 Hammondia genes, and the four that dropped out are listed under the step they were read from.",
+  "rationale": "A step the turn created shows no count before it, and every id a listing of the turn returned is a row of its facts part: the ME49 search holds 27 genes with no before count, the orthology join holds 21 of the 23 Hammondia genes, and the two that dropped out are listed under the step they were read from.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,
@@ -32,14 +32,7 @@
         "23"
       ],
       "1": [
-        "19"
-      ],
-      "2": [
-        "Listed from",
-        "HHA_208730",
-        "HHA_208740",
-        "HHA_218310",
-        "HHA_247195"
+        "21"
       ]
     },
     "turnReplyOmits": {
@@ -50,9 +43,9 @@
     },
     "assumedStated": 0,
     "rootCount": {
-      "count": 19,
+      "count": 21,
       "build": "71",
-      "measuredOn": "2026-09-30"
+      "measuredOn": "2026-10-02"
     },
     "endsOn": "none"
   },
@@ -63,7 +56,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ua-toxodb",
-    "curatorNote": "Round-3 dry UAT, tester A, investigation 2, conversation 3fade54e-716b-47b3-b3c0-25740957fce8. Turns 2 and 3 are the reports' quotes of the messages. Counts: Hammondia 23, ME49 25, transform 47, result 19."
+    "curatorNote": "The same search on ME49 is the Hammondia step's text and field on the ME49 organism. On build 71: Hammondia microneme over product 23, ME49 27, transform to ME49 47, transform back 44, result 21; HHA_218310 and HHA_247195 drop out."
   },
   "effort": "medium",
   "gates": {

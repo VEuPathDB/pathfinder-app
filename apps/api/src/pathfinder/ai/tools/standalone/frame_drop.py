@@ -33,7 +33,7 @@ def drop_criterion(
         msg = (
             f"{criterion_id} is the analysis the Lead exported, and framing never "
             f"removes it: the Lead removes it with delete_step, which the "
-            f"researcher approves. State it kept and place it in the structure."
+            f"researcher approves. Keep it and place it in the structure."
         )
         raise ModelRetry(msg)
     open_saved = next(

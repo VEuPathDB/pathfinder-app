@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import NamedTuple
 from uuid import UUID
 
+import httpx
 import pytest
 
 from pathfinder.ai.conversation.gene_list_marker import (
@@ -16,9 +17,9 @@ from pathfinder.ai.conversation.gene_list_marker import (
     parse_gene_list_marker,
 )
 from pathfinder.devtools import eval_runner, evals
-from pathfinder.devtools.chat import RespondArgs, RunArgs
+from pathfinder.devtools.chat import LoginUnansweredError, RespondArgs, RunArgs
 from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption
-from pathfinder.domain.turn_facts import StepFact, TurnFacts
+from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 from pathfinder.evals import store
 from pathfinder.evals.case import (
     CaseProvenance,
@@ -29,7 +30,7 @@ from pathfinder.evals.case import (
     GatePlan,
     RecordedCount,
 )
-from pathfinder.evals.scoring import ObservedOutcome
+from pathfinder.evals.scoring import ObservedOutcome, RequirementCounts, score_case
 from pathfinder.evals.store import ATTACHMENTS_DIR
 
 
@@ -87,10 +88,12 @@ def _install(
     monkeypatch: pytest.MonkeyPatch,
     step_ids: list[set[int]],
     gate: Gate | None = None,
+    reviews: list[RequirementCounts | None] | None = None,
 ) -> _Installed:
     driven: list[RunArgs] = []
     read: list[UUID] = []
     remaining = list(step_ids)
+    reviewed = list(reviews or [])
     ended = Gate(kind="none") if gate is None else gate
 
     async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
@@ -100,6 +103,10 @@ def _install(
     async def _step_ids(conversation_id: UUID) -> set[int]:
         read.append(conversation_id)
         return remaining.pop(0)
+
+    async def _reviewed(conversation_id: UUID) -> RequirementCounts | None:
+        del conversation_id
+        return reviewed.pop(0) if reviewed else None
 
     async def _observe(
         conversation_id: UUID,
@@ -114,6 +121,7 @@ def _install(
             built_strategy=True,
             reply_text=turns.replies[-1],
             turn_replies=turns.replies,
+            requirements=turns.requirements,
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
             refused_tools=refused_tools,
@@ -122,6 +130,7 @@ def _install(
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)
     monkeypatch.setattr(eval_runner, "observe", _observe)
+    monkeypatch.setattr(eval_runner, "reviewed_requirements", _reviewed)
     return _Installed(driven=driven, read=read, drive=_drive, step_ids=_step_ids)
 
 
@@ -429,6 +438,55 @@ async def test_the_corpus_reads_each_site_build_once_and_judges_the_drift(
         ("116 (build 71)", "140 (build 72)"),
         ("343 (build 71)", "350 (build 71)"),
     ]
+
+
+async def test_a_case_whose_site_login_did_not_answer_is_not_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cases = [
+        _counted("uat-s1-plasmodb", "plasmodb", 479),
+        _counted("uat-s1-cryptodb", "cryptodb", 12),
+        _counted("uat-s2-plasmodb", "plasmodb", 116),
+    ]
+
+    async def _site_build(site_id: str) -> str:
+        del site_id
+        return "71"
+
+    async def _run_one_case(
+        case: EvalCase,
+        *,
+        run_root: Path,
+        effort: str | None,
+        via_worker: bool,
+    ) -> ObservedOutcome:
+        del run_root, effort, via_worker
+        if case.site_id == "cryptodb":
+            unanswered = httpx.ConnectTimeout("no answer")
+            raise LoginUnansweredError(case.site_id, unanswered)
+        if case.name == "uat-s2-plasmodb":
+            msg = "the turn broke"
+            raise RuntimeError(msg)
+        return ObservedOutcome(built_strategy=True, root_count=479)
+
+    monkeypatch.setattr(eval_runner, "load_corpus", lambda: cases)
+    monkeypatch.setattr(eval_runner, "site_build", _site_build)
+    monkeypatch.setattr(eval_runner, "run_one_case", _run_one_case)
+
+    summary = await eval_runner.run_corpus(run_root=tmp_path)
+
+    assert [(case.name, case.verdict, case.error) for case in summary.cases] == [
+        (
+            "uat-s1-cryptodb",
+            "not-run",
+            "cryptodb login did not answer (connect timeout)",
+        ),
+        ("uat-s1-plasmodb", "pass", ""),
+        ("uat-s2-plasmodb", "fail", "RuntimeError: the turn broke"),
+    ]
+    counted = (summary.passed, summary.failed, summary.errored, summary.not_run)
+    assert counted == (1, 0, 1, 1)
+    assert summary.pass_rate == 0.5
 
 
 _RUN_CARD = Gate(kind="approval", tool="separate_controls", tool_call_id="run")
@@ -808,7 +866,7 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
         ["PASS", "uat-s1-plasmodb"],
         ["---", "1/2", "passed", "(re-measure", "0,", "failed"],
     )
-    assert "errored 0) refusals=0 assumed=- harness=" in after[-1]
+    assert "errored 0, not run 0) refusals=0 assumed=- harness=" in after[-1]
 
 
 def test_a_passing_case_prints_its_refusals_on_every_line(
@@ -869,7 +927,7 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
             "refusals=2 (classify_user_intent, read_gene_record)",
         ],
     )
-    assert "errored 0) refusals=2 assumed=0 harness=" in lines[-2]
+    assert "errored 0, not run 0) refusals=2 assumed=0 harness=" in lines[-2]
     payload = json.loads(out.read_text())
     assert (payload["refusals"], payload["cases"][0]["refusedTools"]) == (
         2,
@@ -972,7 +1030,74 @@ async def test_a_turn_is_observed_as_its_reply_and_the_facts_part_beside_it(
     assert observed == [
         eval_runner.TurnsShown(
             replies=["The count is shown beside this reply."],
-            facts=["GO Term: 74 genes"],
+            facts=["Strategy\nGO Term: 74 genes"],
             last_facts=shown,
         )
     ]
+
+
+def test_the_facts_text_shows_who_set_each_value() -> None:
+    """A case reads each value beside the source label the facts part shows."""
+    facts = TurnFacts(
+        steps=[
+            StepFact(
+                step_id="step_27087579",
+                display_name="Text (product name, notes, etc.)",
+                count=3308,
+                parameters=[
+                    ParameterFact(
+                        name="text_search_organism",
+                        display_name="Organism",
+                        value="Giardia muris strain Roberts-Thomson",
+                        source="stated",
+                    ),
+                    ParameterFact(
+                        name="text_fields",
+                        display_name="Fields",
+                        value="product, Notes",
+                        label="Product description, Notes from annotators",
+                        source="chosen",
+                    ),
+                ],
+            )
+        ]
+    )
+
+    assert eval_runner.facts_text(facts).splitlines() == [
+        "Strategy",
+        "Text (product name, notes, etc.): 3,308 genes",
+        "  Organism: Giardia muris strain Roberts-Thomson (stated)",
+        "  Fields: product, Notes (Product description, Notes from annotators) (chosen)",
+    ]
+
+
+async def test_the_latest_review_stands_through_a_turn_that_ran_no_check(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    reviewed = RequirementCounts(met=2, unmet=0, unexpressed=0)
+    _install(monkeypatch, [{100}, {100}], reviews=[reviewed, None])
+    case = _case(
+        "build it",
+        "summarize the session",
+        expected=ExpectedOutcome(builds_strategy=True, unexpressed_requirements=0),
+    )
+
+    observed = await eval_runner.run_one_case(case, run_root=tmp_path)
+
+    assert observed.requirements == reviewed
+    assert score_case(case, observed).differences == []
+
+
+async def test_a_new_conversation_drops_the_review_of_the_last_one(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _install(
+        monkeypatch,
+        [{100}, {100}],
+        reviews=[RequirementCounts(met=1), None],
+    )
+    case = _case("build it", "build again", new_conversation_before=[1])
+
+    observed = await eval_runner.run_one_case(case, run_root=tmp_path)
+
+    assert [observed.requirements] == [None]

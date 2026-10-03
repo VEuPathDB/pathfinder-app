@@ -29,7 +29,7 @@ from pathfinder.domain.evidence import (
 from pathfinder.services.evidence.comparisons import run_scored_comparison
 from pathfinder.services.evidence.control_sets import get_control_set
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
-from pathfinder.services.experiment.variant_comparison import VariantSpec
+from pathfinder.services.experiment.variant_comparison import VariantInput
 
 _MIN_VARIANTS = 2
 
@@ -77,7 +77,7 @@ def _scored_runs(
 
 async def compare_variants_scored(
     ctx: RunContext[LeadDeps],
-    variants: list[VariantSpec],
+    variants: list[VariantInput],
     control_set_id: str,
     objective: str = "mcc",
 ) -> ToolReturn[ScoredComparison]:
@@ -88,7 +88,8 @@ async def compare_variants_scored(
     metrics + the winning variant as a card. A variant that carries an error
     scored nothing: report that its scoring failed and quote the one line,
     never a different reason. Every variant also carries the control ids its
-    result contains, so a membership question is answerable either way.
+    result contains, so a membership question is answerable either way. A
+    pick a variant leaves out runs at the site's default.
     """
     runtime = ctx.deps.runtime
     if len(variants) < _MIN_VARIANTS:
@@ -99,7 +100,7 @@ async def compare_variants_scored(
     if refused is not None:
         msg = f"{refused} {ATTACH_A_SET}"
         raise ModelRetry(msg)
-    variants = await checked_variants(runtime.site_id, variants)
+    specs = await checked_variants(runtime.strategy_session, variants)
 
     parsed = parse_id_argument(
         control_set_id, argument="control_set_id", names="control set"
@@ -110,7 +111,7 @@ async def compare_variants_scored(
     result = await run_scored_comparison(
         runtime.site_id,
         str(runtime.user_id),
-        variants,
+        specs,
         positive_controls=control_set.positive_ids,
         negative_controls=control_set.negative_ids,
         objective=objective,

@@ -1,6 +1,7 @@
 "use client";
 
 import type { VariantComparison, VariantResult } from "@pathfinder/shared";
+import { z } from "zod";
 
 import {
   ExhibitTable,
@@ -35,14 +36,44 @@ function hasFailed(variant: VariantResult): boolean {
   return variant.error != null && variant.error !== "";
 }
 
+/** A multi-pick wire value: a JSON list of strings. */
+const WireList = z.array(z.string());
+
+function wireValueText(raw: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  const list = WireList.safeParse(parsed);
+  return list.success ? list.data.join(", ") : raw;
+}
+
+function variantLabel(variant: VariantResult) {
+  const differs = Object.entries(variant.differsBy ?? {});
+  return (
+    <span key="label" className="flex flex-col">
+      <span className="font-medium">{variant.label}</span>
+      {differs.map(([name, value]) => (
+        <span
+          key={name}
+          data-testid="variant-differs-by"
+          className="text-xs text-muted-foreground"
+        >
+          {`${name}: ${wireValueText(value)}`}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function rows(data: VariantComparison): ExhibitRow[] {
   const counted = countedInTheResult(data);
   return data.variants.map((variant) => ({
     key: variant.label,
     cells: [
-      <span key="label" className="font-medium">
-        {variant.label}
-      </span>,
+      variantLabel(variant),
       hasFailed(variant) ? "-" : variant.geneCount.toLocaleString(),
       hasFailed(variant) ? "-" : variant.uniqueCount.toLocaleString(),
       ...(counted ? [variant.resultCount?.toLocaleString() ?? "-"] : []),

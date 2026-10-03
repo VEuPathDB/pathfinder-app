@@ -1,7 +1,7 @@
 {
   "name": "uat-dry-d-amoebadb",
   "turns": [
-    "Entamoeba histolytica HM-1:IMSS cysteine proteases with a predicted signal peptide.",
+    "Entamoeba histolytica HM-1:IMSS genes with the GO term cysteine-type peptidase activity (GO:0008234) and a predicted signal peptide.",
     "Good. Can you also require that they are expressed in trophozoites (minimum expression percentile 1), if AmoebaDB has an expression dataset for that?",
     "Thanks. Now please delete the signal peptide step from the strategy.",
     "What was the count right before you deleted the signal peptide step, and what is it after?"
@@ -56,7 +56,7 @@
     "addedAt": "2026-09-28",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#u9",
-    "curatorNote": "The second message states the definition, so no card is needed before the deletion card."
+    "curatorNote": "Four turns on one thread: a GO-term and signal-peptide build, an expression edit, a delete through its card, then a question about the counts before and after the delete. The GO term is named exactly so the pick is the same on every pass, and the counts the thread states come from the strategy's last change."
   },
   "effort": "medium",
   "gates": {

@@ -104,6 +104,30 @@ def test_a_phrase_reads_its_wildcard_and_its_site_search_counts() -> None:
     ]
 
 
+def test_an_unquoted_text_reads_its_word_count_beside_its_phrase_count() -> None:
+    """The giardiadb G. muris text counts 4,497 genes and 0 as the phrase."""
+    phrase = _criterion(
+        "text_expression",
+        "cysteine-rich protein",
+        "stated",
+        Measurement(
+            kind="phrase_reading",
+            param="text_expression",
+            count=0,
+            reading='"cysteine-rich protein"',
+        ),
+        4497,
+        "Text term (use * as wildcard)",
+    )
+
+    assert measurement_clauses(phrase, noun="gene") == [
+        (
+            "Text term (use * as wildcard) as any of its words: 4,497 genes; "
+            "as the phrase: 0"
+        )
+    ]
+
+
 def test_a_species_group_reads_both_ways() -> None:
     group = _criterion(
         "included_species",

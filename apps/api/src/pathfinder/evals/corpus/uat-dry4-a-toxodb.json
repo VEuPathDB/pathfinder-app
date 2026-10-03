@@ -51,7 +51,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ua4-toxodb",
-    "curatorNote": "Round-4 dry UAT, tester A, investigation 2, conversation 0ae50a3d-65d3-4924-9450-4dbb7c98f568."
+    "curatorNote": "The second message asks a count and forbids an edit, so the strategy stays as the first message built it."
   },
   "effort": "medium",
   "gates": {

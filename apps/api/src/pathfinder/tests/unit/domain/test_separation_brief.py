@@ -16,12 +16,16 @@ _GENE_ID = re.compile(r"PF3D7_\d{7}")
 
 
 def _brief_json() -> str:
-    report = separation_report(recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID)
+    report = separation_report(
+        recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID, sheets={}
+    )
     return brief_of(report).model_dump_json(by_alias=True)
 
 
 def test_the_brief_holds_the_counts_the_reply_is_written_from() -> None:
-    report = separation_report(recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID)
+    report = separation_report(
+        recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID, sheets={}
+    )
 
     brief = brief_of(report).model_dump(by_alias=True, mode="json")
 
@@ -86,7 +90,9 @@ def test_the_brief_names_no_gene_and_stays_under_two_kilobytes() -> None:
 
 
 def test_a_run_with_no_offer_is_briefed_with_its_sentence() -> None:
-    report = separation_report(recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID)
+    report = separation_report(
+        recorded_separation(SIGNAL_PEPTIDE), task_id=TASK_ID, sheets={}
+    )
     bare = report.model_copy(
         update={
             "offer": None,

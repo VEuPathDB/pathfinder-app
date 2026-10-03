@@ -14,7 +14,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.tools.standalone._frame_proposals import ParamProposals
 from pathfinder.domain.strategy.step_rationale import RationaleBasis, names_the_phrase
-from pathfinder.domain.strategy.value_source import is_unset
+from pathfinder.domain.strategy.value_binding import bind_values, researcher_sees
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,11 @@ class Binding:
     defaulted: Collection[str]
     # A search that runs on an input step maps it to the organism it names.
     transform: bool
+
+    @property
+    def shown(self) -> list[ParameterInfo]:
+        """The parameters the researcher sees, the only ones a term may name."""
+        return [info for info in self.infos if researcher_sees(info)]
 
 
 @dataclass(frozen=True)
@@ -56,7 +61,8 @@ def checked_term(basis: RationaleBasis, term: str, at: Binding) -> ChosenTerm:
             ):
                 msg = (
                     f"{cid}: no value this binding sends holds {term}, so the "
-                    f"organism does not decide the choice."
+                    f"organism does not decide the choice. The term is the organism "
+                    f"value the binding sends, never the parameter's name."
                 )
                 raise ModelRetry(msg)
             holding = {
@@ -86,14 +92,14 @@ def _set_parameter(cid: str, term: str, at: Binding) -> ChosenTerm:
     info = next(
         (
             i
-            for i in at.infos
+            for i in at.shown
             if wanted in {i.name.casefold(), i.display_name.casefold()}
         ),
         None,
     )
     if info is not None:
         return ChosenTerm("parameter", _checked_parameter(cid, term, at, info))
-    headed = _headed_by(term, at.infos)
+    headed = _headed_by(term, at.shown)
     if headed is not None:
         shown = headed.display_name
         return ChosenTerm(
@@ -110,7 +116,7 @@ def _set_parameter(cid: str, term: str, at: Binding) -> ChosenTerm:
             f"why.term corrected to {shown}: {term} is its value",
         )
     search = at.bound.display_name
-    set_here = [i for i in at.infos if at.params.get(i.name) is not None]
+    set_here = [i for i in at.shown if at.params.get(i.name) is not None]
     if (
         wanted in {at.search_name.casefold(), search.casefold()}
         and all(i.organism_param for i in set_here)
@@ -147,7 +153,7 @@ def _set_with_value(term: str, at: Binding) -> ParameterInfo | None:
     wanted = term.casefold()
     holding = [
         i
-        for i in at.infos
+        for i in at.shown
         if at.params.get(i.name) is not None
         and i.name in at.values
         and wanted in {v.casefold() for v in _picks(at.values[i.name])}
@@ -188,15 +194,15 @@ def _refuse_the_organism_beside_a_set_value(
     """
     if at.transform:
         return
+    read = bind_values(at.values, "chosen", at.infos)
     set_away = [
         i.display_name
-        for i in at.infos
-        if i.is_visible
-        and not i.organism_param
+        for i in at.shown
+        if not i.organism_param
         and i.name not in organism
-        and i.name in at.values
+        and i.name in read
         and i.name not in at.defaulted
-        and not is_unset(at.values[i.name], i.default_value, i)
+        and not read[i.name].unset
     ]
     if not set_away:
         return
@@ -212,7 +218,7 @@ def _refuse_the_organism_beside_a_set_value(
 def _not_a_parameter(cid: str, term: str, at: Binding) -> str:
     """Why the term names no parameter: the parameter a value is set on, or the
     display names the term may take."""
-    set_here = [i for i in at.infos if at.params.get(i.name) is not None]
+    set_here = [i for i in at.shown if at.params.get(i.name) is not None]
     holding = next(
         (
             i.display_name

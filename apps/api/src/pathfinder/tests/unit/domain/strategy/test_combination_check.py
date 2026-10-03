@@ -177,17 +177,6 @@ class TestMeetingOperator:
 
         assert _meeting(structure, ["c_ms", "c_derisi"]) == ""
 
-    def test_a_single_input_combine_passes_the_meeting_node_through(self) -> None:
-        """A combine of one input builds to its input, so it decides nothing."""
-        structure = SpecStructure(
-            root=StructureNode(
-                kind="combine",
-                inputs=[_combine(CombineOp.UNION, _leaf("c_ms"), _leaf("c_derisi"))],
-            )
-        )
-
-        assert meeting_operator(structure, ["c_ms", "c_derisi"]) is CombineOp.UNION
-
 
 class TestCombinationViolation:
     def test_an_or_over_a_union_branch_is_no_violation(self) -> None:

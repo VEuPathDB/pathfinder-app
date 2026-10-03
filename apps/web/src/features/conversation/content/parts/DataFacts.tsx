@@ -35,6 +35,22 @@ function withBefore(
   return `${counted(count, noun)}, ${counted(before, noun)} before this turn's edit`;
 }
 
+type LastChange = NonNullable<TurnFacts["lastChange"]>;
+
+function changeSide(
+  count: number | null | undefined,
+  side: string,
+  noun: string,
+): string {
+  if (count === null || count === undefined) return `count ${side} not recorded`;
+  return `${counted(count, noun)} ${side}`;
+}
+
+function lastChangeLine(change: LastChange, noun: string): string {
+  const before = changeSide(change.before, "before", noun);
+  return `Last change: ${change.what}; ${before}, ${changeSide(change.after, "after", noun)}`;
+}
+
 function Parameter({ fact }: { fact: ParameterFact }): ReactElement {
   const label = fact.label ?? "";
   return (
@@ -187,6 +203,11 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           className="mt-1 text-sm font-medium"
         >
           Result: {withBefore(data.rootCount, data.rootCountBefore, noun)}
+        </div>
+      )}
+      {data.lastChange == null ? null : (
+        <div data-testid="facts-last-change" className="mt-1 text-sm">
+          {lastChangeLine(data.lastChange, noun)}
         </div>
       )}
       <Sentences

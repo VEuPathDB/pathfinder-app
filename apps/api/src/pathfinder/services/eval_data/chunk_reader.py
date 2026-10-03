@@ -14,8 +14,10 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from pathfinder.domain.caveats import Caveat, Gap
-from pathfinder.domain.evidence import (
+from pathfinder.domain.citations import (
     Citation,
+)
+from pathfinder.domain.evidence import (
     ColumnFit,
     EvidenceCard,
     RequirementCheck,

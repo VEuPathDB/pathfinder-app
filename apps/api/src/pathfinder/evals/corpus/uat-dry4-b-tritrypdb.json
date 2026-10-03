@@ -28,10 +28,7 @@
     "unexpressedRequirements": null,
     "turnReplyMentions": {
       "0": [
-        "Leishmania infantum JPCM5) (stated)"
-      ],
-      "1": [
-        "Samples: 0 hr (0 hr) (chosen)"
+        "Leishmania infantum JPCM5 (stated)"
       ]
     },
     "turnReplyOmits": {
@@ -50,7 +47,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ub4-tritrypdb",
-    "curatorNote": "Round-4 dry UAT, tester B, investigation 4, conversation 5bd26447-7e40-4594-a092-7af749d9ddd9."
+    "curatorNote": "A value the message names shows as stated, a value the build picked shows as chosen, and a value whose label is the value itself shows once."
   },
   "effort": "medium",
   "gates": {

@@ -120,6 +120,18 @@ def verification_pending(deps: LeadDeps) -> bool:
     return markers.contract_refused and markers.built and not markers.verified
 
 
+def change_waits_for_a_card(deps: LeadDeps) -> bool:
+    """Whether a check of this turn leaves every change to the researcher.
+
+    A check's finding about what the records show is the researcher's to act
+    on, through a card. A check's finding about the tree is the build's to fix.
+    """
+    if not deps.state.turn_markers.verification_dispatched:
+        return False
+    verdict = deps.state.checked_verdict
+    return verdict is None or not verdict.blames_the_tree
+
+
 def _subset_was_previewed(deps: LeadDeps) -> bool:
     """Whether the thread's open analysis has had its subset counted."""
     analysis = deps.state.domain.open_eda_analysis
@@ -130,7 +142,8 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
     """The tools whose precondition this turn does not meet.
 
     A turn whose answer was refused for want of a check reaches the check and
-    no other tool that writes, so the refusal has one way out.
+    no other tool that writes, so the refusal has one way out. After a check,
+    a change the tree does not need reaches the strategy only through a card.
     """
     markers = deps.state.turn_markers
     ledger = derive_ledger(deps.state, deps.intent)
@@ -147,7 +160,7 @@ def unmet_preconditions(deps: LeadDeps) -> frozenset[str]:
         unmet.add("verify_strategy")
     if not _subset_was_previewed(deps):
         unmet.add("create_eda_step")
-    if verification_pending(deps):
+    if verification_pending(deps) or change_waits_for_a_card(deps):
         unmet |= BUILDING_TOOLS - {"verify_strategy"}
     return frozenset(unmet)
 

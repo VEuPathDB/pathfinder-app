@@ -1,6 +1,6 @@
 """A reason records the values it was derived from. An edit that changes one of
-them records the edit's own why, or asks for one; an edit that changes none keeps
-the reason."""
+them records the edit's own why, or asks for one; an edit that changes none, or
+only an organism the reason does not name, keeps the reason."""
 
 from __future__ import annotations
 
@@ -262,3 +262,29 @@ def test_the_glycosome_reason_no_longer_holds_once_the_organism_narrows() -> Non
         "GoTermId": '["GO:0020015"]',
     }
     assert held.changed_by(narrowed) == ["organism"]
+
+
+@pytest.mark.asyncio
+async def test_an_organism_edit_keeps_a_reason_that_names_no_organism() -> None:
+    held = _HELD.model_copy(
+        update={"reason": "The text term is the requested phrase in the product field."}
+    )
+    state = _state()
+    state.operational_spec_draft.criteria[0].rationale = held
+
+    result = returned(
+        await set_criterion(
+            frame_ctx(state),
+            criterion_id="step_2381d896",
+            text="Genes in Plasmodium falciparum 3D7 annotated as rhoptry proteins",
+            search_name=_TEXT.url_segment,
+            params=dict(_EDIT),
+        ),
+        SetCriterionResult,
+    )
+
+    assert result.rationale is not None
+    assert (result.rationale.term, result.rationale.reason) == (held.term, held.reason)
+    assert result.rationale.derived_from["text_search_organism"] == (
+        '["Plasmodium falciparum 3D7"]'
+    )

@@ -138,9 +138,14 @@ async def get_parameter_options(
     deps = ctx.deps
     explicit = coerce_context_values(context_values) if context_values else {}
     # Parents already bound by the spec outrank WDK defaults; an explicit
-    # argument outranks both.
+    # argument outranks both. WDK answers a sent value as the parameter's
+    # initial value, so the read sends none of the parameter it reads.
     inherited = deps.agent_state.resolved_params_for(search_name)
-    merged = {**inherited, **explicit}
+    merged = {
+        name: value
+        for name, value in {**inherited, **explicit}.items()
+        if name != parameter_id
+    }
     typed_context = merged or None
     narrowing = VocabNarrowing(
         query=query, organism_hints=deps.agent_state.organism_hints
@@ -190,8 +195,8 @@ async def get_parameter_options(
             )
     _snapshot_param_vocab(deps, search_name, result)
     deps.agent_state.mark_param_read(read_key)
-    if narrowing.terms:
-        deps.agent_state.looked_up.add((search_name, parameter_id))
+    if result.vocab_lookup is not None:
+        deps.agent_state.record_lookup(search_name, parameter_id, result.vocab_lookup)
     return with_summary(
         result,
         _options_summary(parameter_id, result),

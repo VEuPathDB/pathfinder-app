@@ -35,7 +35,6 @@ from pathfinder.tests.unit.ai.lead._disagreement_thread import (
     built_spec,
     built_tree,
     joined,
-    kept,
     leaf,
     recorded,
     session_holding,
@@ -56,7 +55,7 @@ def _thread(monkeypatch: pytest.MonkeyPatch) -> DisagreementThread:
 
 async def _left_with_an_open_criterion(thread: DisagreementThread) -> None:
     await thread.next_turn()
-    thread.frames(with_the_proteome(None), declared=[], disposition="needs_user")
+    thread.frames(with_the_proteome(None), disposition="needs_user")
     await thread.edit()
 
 
@@ -66,7 +65,7 @@ async def test_a_criterion_framed_last_turn_is_built_this_turn(
     thread = _thread(monkeypatch)
     await _left_with_an_open_criterion(thread)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -86,7 +85,7 @@ async def test_a_step_added_in_the_editor_is_stated_and_survives_an_edit(
         recorded_build=recorded(SURFACE, STAGE, ROOT),
     )
     await thread.next_turn()
-    thread.frames(with_the_percentile(90), declared=[])
+    thread.frames(with_the_percentile(90))
 
     delta = await thread.edit()
 
@@ -105,7 +104,7 @@ async def test_an_editor_step_beside_an_unbuilt_criterion_is_stated_and_kept(
     thread.session.graph = session_holding(tree_with_the_canvas_step()).graph
     await thread.next_turn()
     assert thread.criteria == [SURFACE, STAGE, PROTEOME, CANVAS]
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -148,7 +147,7 @@ async def test_stating_the_editor_step_is_the_way_out_of_that_refusal(
     await _left_with_an_open_criterion(thread)
     thread.session.graph = session_holding(tree_with_the_canvas_step()).graph
     await thread.next_turn()
-    thread.frames(_stating_the_canvas_step(), declared=kept(SURFACE, STAGE, PROTEOME))
+    thread.frames(_stating_the_canvas_step())
 
     delta = await thread.edit()
 
@@ -165,7 +164,7 @@ async def test_a_step_deleted_in_the_editor_leaves_and_the_open_one_is_built(
     thread.session.graph = session_holding(surface_step()).graph
     await thread.next_turn()
     assert thread.criteria == [SURFACE, PROTEOME]
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, PROTEOME))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 
@@ -200,10 +199,10 @@ async def test_an_option_framed_last_turn_lands_on_the_step_that_runs_its_search
 ) -> None:
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(_with_the_option(None), declared=[], disposition="needs_user")
+    thread.frames(_with_the_option(None), disposition="needs_user")
     await thread.edit()
     await thread.next_turn()
-    thread.frames(_with_the_option("ds2019"), declared=kept(SURFACE, STAGE, _OPTION))
+    thread.frames(_with_the_option("ds2019"))
 
     delta = await thread.edit()
 
@@ -221,7 +220,7 @@ async def test_a_value_set_in_the_editor_survives_an_edit_that_names_another_cri
     thread = _thread(monkeypatch)
     thread.graph.steps[STAGE].parameters[STAGE_TIMEPOINT] = NumberValue(value=48)
     await thread.next_turn()
-    thread.frames(with_the_proteome(2), declared=kept(SURFACE, STAGE))
+    thread.frames(with_the_proteome(2))
 
     delta = await thread.edit()
 

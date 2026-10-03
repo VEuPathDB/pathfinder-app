@@ -238,13 +238,16 @@ class Measured:
 
 def _held_side(
     threshold: Threshold, bins: Sequence[ValueBin], total: int
-) -> Side | None:
-    """The side of a threshold that holds every record, else None."""
-    if _Interval(low=threshold.value).counts(bins)[0] == total:
+) -> Side | Literal["either"] | None:
+    """The side of a threshold that holds every record, ``either`` when both
+    do, else None."""
+    above = _Interval(low=threshold.value).counts(bins)[0] == total
+    below = _Interval(high=threshold.value).counts(bins)[0] == total
+    if above and below:
+        return "either"
+    if above:
         return "at_least"
-    if _Interval(high=threshold.value).counts(bins)[0] == total:
-        return "at_most"
-    return None
+    return "at_most" if below else None
 
 
 def _both_sides(threshold: Threshold, bins: Sequence[ValueBin]) -> ThresholdSides:
@@ -259,16 +262,54 @@ def _both_sides(threshold: Threshold, bins: Sequence[ValueBin]) -> ThresholdSide
     )
 
 
-def _bound_value(low: Threshold | None, high: Threshold | None) -> str:
-    match low, high:
-        case Threshold(), Threshold():
-            return f"{low.wire} to {high.wire}"
-        case Threshold(), None:
-            return f"{low.wire} or more"
-        case None, Threshold():
-            return f"{high.wire} or less"
-        case _:
-            return ""
+@dataclass(frozen=True)
+class Bounds:
+    """The thresholds whose side is known, as one range: the highest floor and
+    the lowest ceiling."""
+
+    low: Threshold | None = None
+    high: Threshold | None = None
+
+    @classmethod
+    def of(cls, known: Sequence[Threshold]) -> Bounds:
+        floors = [t for t in known if t.side == "at_least"]
+        ceilings = [t for t in known if t.side == "at_most"]
+        return cls(
+            low=max(floors, key=lambda t: t.value, default=None),
+            high=min(ceilings, key=lambda t: t.value, default=None),
+        )
+
+    def filled(self, either: Sequence[Threshold]) -> Bounds:
+        """Each threshold every record equals takes the side still open, the
+        floor first."""
+        bounds = self
+        for threshold in either:
+            if bounds.low is None:
+                bounds = replace(bounds, low=replace(threshold, side="at_least"))
+            elif bounds.high is None:
+                bounds = replace(bounds, high=replace(threshold, side="at_most"))
+        return bounds
+
+    @property
+    def text(self) -> str:
+        match self.low, self.high:
+            case Threshold(), Threshold() if self.low.value == self.high.value:
+                return f"exactly {self.low.wire}"
+            case Threshold(), Threshold():
+                return f"{self.low.wire} to {self.high.wire}"
+            case Threshold(), None:
+                return f"{self.low.wire} or more"
+            case None, Threshold():
+                return f"{self.high.wire} or fewer"
+            case _:
+                return ""
+
+    def counts(self, bins: Sequence[ValueBin]) -> tuple[int, int]:
+        """The records surely inside, and the most that may be inside."""
+        return _Interval(
+            self.low.value if self.low else -math.inf,
+            self.high.value if self.high else math.inf,
+        ).counts(bins)
 
 
 def measured(bound: ColumnBound, bins: Sequence[ValueBin]) -> Measured:
@@ -276,31 +317,30 @@ def measured(bound: ColumnBound, bins: Sequence[ValueBin]) -> Measured:
     every other threshold's count on each side."""
     total = sum(b.count for b in bins)
     known: list[Threshold] = []
+    either: list[Threshold] = []
     sides: list[ThresholdSides] = []
     for threshold in bound.thresholds:
-        side = threshold.side or _held_side(threshold, bins, total)
-        if side is None:
-            sides.append(_both_sides(threshold, bins))
-        else:
-            known.append(replace(threshold, side=side))
-    floors = [t for t in known if t.side == "at_least"]
-    ceilings = [t for t in known if t.side == "at_most"]
-    low = max(floors, key=lambda t: t.value, default=None)
-    high = min(ceilings, key=lambda t: t.value, default=None)
-    fitting, at_most = _Interval(
-        low.value if low else -math.inf, high.value if high else math.inf
-    ).counts(bins)
+        match threshold.side or _held_side(threshold, bins, total):
+            case None:
+                sides.append(_both_sides(threshold, bins))
+            case "either":
+                either.append(threshold)
+            case side:
+                known.append(replace(threshold, side=side))
+    bounds = Bounds.of(known).filled(either)
+    fitting, at_most = bounds.counts(bins)
     return Measured(
         fitting=fitting,
         fitting_at_most=at_most,
         total=total,
-        bound_value=_bound_value(low, high),
+        bound_value=bounds.text,
         sides=tuple(sides),
     )
 
 
 __all__ = [
     "AttributeHistogram",
+    "Bounds",
     "ColumnBound",
     "Measured",
     "Threshold",

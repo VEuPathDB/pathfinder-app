@@ -77,7 +77,7 @@ def _shown_missing(
 
 
 def _not_shown(review: VerificationReview) -> str:
-    """Why the row stands unmet, with the share of sampled genes that fit."""
+    """Why no record shows the row, with the share of sampled genes that fit."""
     sampled = len(review.sampled_genes)
     if not sampled:
         return f"no column fit or sampled record of this check shows it; {_NOT_SHOWN}"
@@ -91,8 +91,9 @@ def _not_shown(review: VerificationReview) -> str:
 def _held(
     row: RequirementCheck, review: VerificationReview, queries: Sequence[TextQuery]
 ) -> RequirementCheck:
-    """The row unmet when a record shows it missing, unjudged when no record
-    judged it, else as the check filed it."""
+    """The row unshown when a record shows it missing, unjudged when no record
+    judged it, else as the check filed it. The step still answers the row, so
+    it stays met."""
     if (
         row.status != "met"
         or not _only_text_answers(row, queries)
@@ -101,11 +102,7 @@ def _held(
         return row
     if _shown_missing(row, review, queries):
         return row.model_copy(
-            update={
-                "status": "unmet",
-                "note": _not_shown(review),
-                "no_record_shows_it": True,
-            }
+            update={"note": _not_shown(review), "no_record_shows_it": True}
         )
     return row.model_copy(update={"note": _UNJUDGED, "no_record_judged_it": True})
 

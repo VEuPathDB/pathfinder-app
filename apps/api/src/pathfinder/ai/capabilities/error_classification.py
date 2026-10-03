@@ -51,7 +51,7 @@ def classify_error(error: Exception) -> ErrorCategory:
     if isinstance(error, VEuPathDBError):
         return ErrorCategory.SEMANTIC
 
-    if isinstance(error, (httpx.TimeoutException, httpx.ConnectError, OSError)):
+    if isinstance(error, (httpx.TransportError, OSError)):
         return ErrorCategory.TRANSIENT
 
     if isinstance(error, RuntimeError):

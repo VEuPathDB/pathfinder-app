@@ -50,7 +50,7 @@ def _runtime() -> Runtime[Context]:
 
 async def _turn(
     monkeypatch: pytest.MonkeyPatch, *, saved: bool
-) -> tuple[list[dict[str, Any]], PipelineState]:
+) -> list[dict[str, Any]]:
     payloads: list[object] = []
 
     async def _answered(
@@ -72,19 +72,16 @@ async def _turn(
     monkeypatch.setattr(lead_node, "retrieve_memories", _nothing)
     monkeypatch.setattr(lead_node, "_drive_lead_stream", _answered)
     state = _state()
-    command = await _run_lead_turn(
+    await _run_lead_turn(
         state, _runtime(), pre_turn=_pre_turn, build_agent=build_lead_agent
     )
-    assert isinstance(command.update, dict)
-    after = state.model_copy(update={"domain": command.update["domain"]})
-    chunks = [chunk for p in payloads if (chunk := _extract_chunk(p)) is not None]
-    return chunks, after
+    return [chunk for p in payloads if (chunk := _extract_chunk(p)) is not None]
 
 
 async def test_the_facts_part_comes_before_the_reply(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    written, _ = await _turn(monkeypatch, saved=True)
+    written = await _turn(monkeypatch, saved=True)
     types = [str(chunk["type"]) for chunk in written]
     (facts,) = [chunk["data"] for chunk in written if chunk["type"] == "data-facts"]
 
@@ -97,17 +94,9 @@ async def test_the_facts_part_comes_before_the_reply(
 async def test_a_turn_whose_facts_hold_nothing_writes_no_facts_part(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    written, _ = await _turn(monkeypatch, saved=False)
+    written = await _turn(monkeypatch, saved=False)
 
     assert "data-facts" not in [chunk["type"] for chunk in written]
     assert [chunk["delta"] for chunk in written if chunk["type"] == "text-delta"] == [
         _REPLY
     ]
-
-
-async def test_the_facts_a_turn_shows_are_kept_for_the_thread(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _, after = await _turn(monkeypatch, saved=True)
-
-    assert after.domain.facts_shown == ["Saved gene set kinases draft, 61 genes"]

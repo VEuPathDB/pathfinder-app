@@ -358,6 +358,5 @@ class TestTheToolRecordsWhoSetEachValue:
     ) -> None:
         bound = await self._bound({**_STATED, "min_expression_percentile": "80"})
 
-        assert bound["min_expression_percentile"] == BoundValue(
-            value=bound["min_expression_percentile"].value, source="default"
-        )
+        held = bound["min_expression_percentile"]
+        assert (held.source, held.basis, held.at_default) == ("default", "", True)

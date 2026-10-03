@@ -102,7 +102,7 @@ def test_a_shipped_case_holds_the_count_unit_and_forbids_no_bare_word(
 def test_the_shipped_cases_that_hold_the_count_unit() -> None:
     held = [c.name for c in load_corpus() if c.expected.counts_in_genes is True]
 
-    assert len(held) == 51
+    assert len(held) == 52
     assert [name for name in held if not name.startswith("uat-")] == []
 
 
@@ -338,7 +338,6 @@ def test_a_uat_case_holds_the_check_to_zero_unmet_rows_not_a_met_count() -> None
             f"uat-s2-{site}": (None, 0)
             for site in ("fungidb", "plasmodb", "toxodb", "vectorbase", "veupathdb")
         },
-        "uat-dry-a-plasmodb": (None, 0),
         "uat-dry-c-piroplasmadb": (None, 0),
     }
 
@@ -417,7 +416,23 @@ def test_the_n1_case_answers_the_card_and_builds_the_three_criteria() -> None:
         [GateAnswer(card="consult_user", turn=0, picks=[])],
         True,
         "INTERSECT",
-        5,
+        None,
         {"GenesByOrthologPattern": {"excluded_species": "hsap"}},
         None,
     )
+
+
+@pytest.mark.parametrize(
+    ("name", "stated"),
+    [
+        ("uat-core-d-microsporidiadb", ["66 genes", "9 genes", "57 genes"]),
+        ("uat-core-a-cryptodb", ["84 genes", "82 genes"]),
+    ],
+)
+def test_a_count_case_states_the_rendered_counts_and_no_reference(
+    name: str, stated: list[str]
+) -> None:
+    expected = load_case(name).expected
+
+    assert expected.turn_reply_mentions == {1: stated}
+    assert all(omitted.startswith("[") for omitted in expected.turn_reply_omits[1])

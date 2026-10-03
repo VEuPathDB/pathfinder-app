@@ -137,19 +137,14 @@ def test_the_proposal_moves_the_named_value_and_copies_the_rest() -> None:
     }
 
 
-def test_the_result_declares_every_criterion_the_workspace_listed() -> None:
+def test_the_result_states_no_disposition_the_runtime_derives() -> None:
     bound = CriterionReply(
         criterion_id="step_tm", search_name=_TM, resolved_params={"min_tm": "1"}
     )
 
     call = _call(_listed(), [bound])
 
-    assert call.tool_name == "final_result"
-    assert call.args_as_dict()["changes"] == [
-        {"criterionId": "step_sp", "disposition": "kept"},
-        {
-            "criterionId": "step_tm",
-            "disposition": "changed",
-            "changedParams": {"min_tm": "1"},
-        },
-    ]
+    assert (call.tool_name, "changes" in call.args_as_dict()) == (
+        "final_result",
+        False,
+    )

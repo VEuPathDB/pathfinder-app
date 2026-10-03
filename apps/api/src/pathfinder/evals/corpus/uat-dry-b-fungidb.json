@@ -5,7 +5,7 @@
     "Good. Now also require that they are expressed during hyphal growth.",
     "One gene is too few to be meaningful. Remove whichever step you added last and tell me what the count goes back to.",
     "Give me the final count in one sentence a grant reviewer would accept.",
-    "A reviewer will say GPI biosynthesis enzymes are not GPI-anchored proteins. Is there a GO cellular component term for GPI-anchored or anchored-membrane proteins on FungiDB that fits my question better? If so, use it instead and give me the new count."
+    "A reviewer will say GPI biosynthesis enzymes are not GPI-anchored proteins. Is there a GO cellular component term for GPI-anchored or anchored-membrane proteins on FungiDB that fits my question better? If so, use it instead and give me the new count. If the only fitting term is marked obsolete, use it anyway and say so."
   ],
   "siteId": "fungidb",
   "assistantId": "pathfinder",
@@ -53,7 +53,7 @@
     "addedAt": "2026-09-28",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#u6",
-    "curatorNote": ""
+    "curatorNote": "An obsolete term binds on the researcher's word: the only fitting cellular-component term, GO:0031225, is labelled obsolete on the site, and the last message says to use an obsolete term."
   },
   "effort": "medium",
   "gates": {

@@ -1,0 +1,65 @@
+{
+  "name": "uat-core-d-microsporidiadb",
+  "turns": [
+    "Encephalitozoon intestinalis ATCC 50506 genes with a signal peptide and no ortholog in Encephalitozoon cuniculi GB-M1.",
+    "how many genes would there be without the ortholog filter"
+  ],
+  "siteId": "microsporidiadb",
+  "assistantId": "pathfinder",
+  "rationale": "A count question is answered with the counts the product renders from the facts: the signal peptide step's 66 genes, the result's 9 genes and their difference of 57 genes, each written as a reference to a step or a difference, with no edit.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "(GenesWithSignalPeptide INTERSECT GenesByOrthologPattern)",
+    "recordType": "transcript",
+    "stepCount": 3,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": true,
+    "replyNamesItsSearches": false,
+    "replyGivesItsReasons": false,
+    "stepTitlesOmit": [],
+    "rootOperator": "INTERSECT",
+    "finalCountBelowEveryInput": null,
+    "metRequirements": null,
+    "unmetRequirements": null,
+    "unexpressedRequirements": null,
+    "turnReplyMentions": {
+      "1": [
+        "66 genes",
+        "9 genes",
+        "57 genes"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "[count:",
+        "[diff:"
+      ]
+    },
+    "assumedStated": 0,
+    "rootCount": {
+      "count": 9,
+      "build": "71",
+      "measuredOn": "2026-09-30"
+    },
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "microsporidiadb",
+    "assistant": "pathfinder",
+    "origin": "uat-flow",
+    "addedAt": "2026-09-30",
+    "stagingId": "",
+    "reference": "uat/flows-dry-uat.md#ud4-microsporidiadb",
+    "curatorNote": "The flow's two messages as sent. Live on build 71: the signal peptide step 66, the ortholog profile step 129, the INTERSECT 9."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

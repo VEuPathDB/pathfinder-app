@@ -7,9 +7,13 @@ shows is not a refusal: the call failed, and the key stays live.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
+import anthropic
+import openai
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic_ai.exceptions import ModelAPIError, ModelHTTPError
 
 from pathfinder.domain.provider_keys import KeyableProvider, KeyRefusal
 
@@ -74,18 +78,19 @@ class _GoogleError(_Body):
     error: _GoogleDetail = Field(default_factory=_GoogleDetail)
 
 
-def _openai(status: int, body: object) -> KeyRefusal | None:
+def _openai(status: int | None, body: object) -> KeyRefusal | None:
     error = _OpenAIError.model_validate(body)
     if status == _UNAUTHORIZED and error.code == "invalid_api_key":
         return KeyRefusal.INVALID
-    if status == _TOO_MANY_REQUESTS and (
+    # A billing error inside a stream carries the body and no status.
+    if status in {_TOO_MANY_REQUESTS, None} and (
         error.type == _OPENAI_QUOTA or error.code in _OPENAI_BILLING_CODES
     ):
         return KeyRefusal.NO_CREDIT
     return None
 
 
-def _anthropic(status: int, body: object) -> KeyRefusal | None:
+def _anthropic(status: int | None, body: object) -> KeyRefusal | None:
     error = _AnthropicError.model_validate(body).error
     if status == _UNAUTHORIZED and error.type == "authentication_error":
         return KeyRefusal.INVALID
@@ -102,7 +107,7 @@ def _anthropic(status: int, body: object) -> KeyRefusal | None:
     return None
 
 
-def _google(status: int, body: object) -> KeyRefusal | None:
+def _google(status: int | None, body: object) -> KeyRefusal | None:
     error = _GoogleError.model_validate(body).error
     if status == _BAD_REQUEST and any(
         one.reason == "API_KEY_INVALID" for one in error.details
@@ -116,7 +121,7 @@ def _google(status: int, body: object) -> KeyRefusal | None:
 
 
 def classify_refusal(
-    provider: KeyableProvider, status: int, body: object
+    provider: KeyableProvider, status: int | None, body: object
 ) -> KeyRefusal | None:
     """Why the provider refused the key, or None when the answer is no refusal."""
     match provider:
@@ -126,3 +131,47 @@ def classify_refusal(
             return _anthropic(status, body)
         case "google":
             return _google(status, body)
+
+
+# Every error a model request or its stream raises for the provider's answer.
+# pydantic-ai wraps what a request raises; an SDK error inside a stream passes.
+PROVIDER_ERRORS: tuple[type[Exception], ...] = (
+    ModelAPIError,
+    openai.APIError,
+    anthropic.APIError,
+)
+
+
+@dataclass(frozen=True)
+class ProviderFailure:
+    """The status, the body and the headers of one provider error, and the
+    type and code the body names, which an operator reads in place of it."""
+
+    status: int | None
+    body: object
+    headers: dict[str, str] | None = None
+
+    @property
+    def kind(self) -> tuple[str | None, str | None]:
+        """The provider's error type and code: OpenAI's at the top of the body,
+        Anthropic's under its error object."""
+        flat = _OpenAIError.model_validate(self.body)
+        if flat.type or flat.code:
+            return flat.type, flat.code
+        nested = _AnthropicError.model_validate(self.body).error
+        return nested.type, None
+
+
+def provider_failure(error: Exception) -> ProviderFailure:
+    """The status and the body ``error`` carries, from any of ``PROVIDER_ERRORS``.
+
+    An SDK error arrives inside a stream the provider accepted, so any status it
+    holds is the stream's and not the error's.
+    """
+    match error:
+        case ModelHTTPError():
+            return ProviderFailure(error.status_code, error.body, error.headers)
+        case openai.APIError() | anthropic.APIError():
+            return ProviderFailure(None, error.body)
+        case _:
+            return ProviderFailure(None, None)

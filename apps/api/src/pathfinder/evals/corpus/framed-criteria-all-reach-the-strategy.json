@@ -5,16 +5,19 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Every framed criterion must reach the persisted strategy. The cataloged run framed three and built two, then reported the rest preserved. Three criteria over two operators must sign as five nodes.",
+  "rationale": "Every criterion the framing pass binds reaches the strategy as a step: the build pushes each bound search and the tree the pass set, so the result holds a step per criterion and no criterion is lost between the frame and the push.",
   "expected": {
     "buildsStrategy": true,
-    "structure": "((GenesByText UNION GenesByGoTerm) INTERSECT GenesByTaxon)",
+    "structure": null,
     "recordType": null,
-    "stepCount": 5,
+    "stepCount": null,
     "verified": null,
     "stepIdsUnchanged": null,
     "replyMentions": [],
-    "replyOmits": []
+    "replyOmits": [],
+    "countsInGenes": null,
+    "assumedStated": 0,
+    "endsOn": "none"
   },
   "provenance": {
     "site": "plasmodb",
@@ -23,7 +26,7 @@
     "addedAt": "2026-08-23",
     "stagingId": "",
     "reference": "decisions/an-edit-is-a-delta-not-a-rebuild.md",
-    "curatorNote": "The verification verdict is not asserted here: see the runner's note on what the deterministic provider can and cannot settle."
+    "curatorNote": "A comprehensive request binds as many searches as the catalog offers for the concept, so the case pins no tree; it checks that a strategy is built, that it counts in genes and that no value is assumed."
   },
   "gates": {
     "policy": "auto"

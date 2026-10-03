@@ -12,11 +12,16 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
     ReplacedLifecycle,
-    adds_an_alternative,
     message_states,
+)
+from pathfinder.domain.strategy.message_reading import (
+    adds_an_alternative,
     message_states_constraint,
 )
-from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
+from pathfinder.domain.strategy.requirement_lifecycle import (
+    MANY_VALUED_KINDS,
+    RetiredRequirement,
+)
 
 
 def _added_as_an_alternative(constraint: Constraint, messages: Sequence[str]) -> bool:
@@ -77,36 +82,61 @@ class RecordedRequirements(NamedTuple):
     displaced: list[RetiredRequirement]
 
 
-def with_requirements(
-    held: Sequence[Constraint], constraints: Iterable[Constraint]
-) -> RecordedRequirements:
-    """The record with each new requirement added, a restated one added once.
+def _displaces(new: Constraint, held: Constraint) -> bool:
+    """Whether a new requirement takes the place of a held one.
 
-    A new combination over the same criteria displaces the old one, which
-    retires as replaced by the new one's key."""
+    A new combination displaces one over the same criteria. A kind of one
+    value is displaced by any other value of it. A kind of many values adds.
+    """
+    if new.kind is not held.kind or new.key == held.key:
+        return False
+    if new.kind is ConstraintKind.COMBINATION:
+        return combination_terms_overlap(held.requested_value, new.requested_value)
+    return new.kind not in MANY_VALUED_KINDS
+
+
+def _outranked(new: Constraint, record: Sequence[Constraint]) -> bool:
+    """Whether an assumed value meets a stated value of its single-valued kind."""
+    return (
+        new.source is ConstraintSource.ASSUMED
+        and new.kind not in MANY_VALUED_KINDS
+        and any(
+            c.kind is new.kind and c.source is ConstraintSource.USER_EXPLICIT
+            for c in record
+        )
+    )
+
+
+def with_requirements(
+    held: Sequence[Constraint],
+    constraints: Iterable[Constraint],
+    *,
+    adds_alternatives: bool = False,
+) -> RecordedRequirements:
+    """The record with each new requirement added once, and each ``held`` one
+    it displaces. Values stated together displace neither, a message that
+    ``adds_alternatives`` adds beside, and an assumed value never displaces a
+    stated one: it is dropped."""
     record = list(held)
     displaced: list[RetiredRequirement] = []
-    seen = {(c.kind, c.requested_value) for c in record}
+    seen = {c.key for c in record}
     for constraint in constraints:
-        key = (constraint.kind, constraint.requested_value)
-        if key in seen:
+        if constraint.key in seen or _outranked(constraint, record):
             continue
-        if constraint.kind is ConstraintKind.COMBINATION:
-            replaced = [
-                kept
-                for kept in record
-                if kept.kind is ConstraintKind.COMBINATION
-                and combination_terms_overlap(
-                    kept.requested_value, constraint.requested_value
-                )
-            ]
-            record = [kept for kept in record if kept not in replaced]
-            displaced += [
-                RetiredRequirement(
-                    constraint=kept, lifecycle=ReplacedLifecycle(by=constraint.key)
-                )
-                for kept in replaced
-            ]
-        seen.add(key)
+        replaced = [
+            kept
+            for kept in record
+            if kept in held
+            and _displaces(constraint, kept)
+            and not (adds_alternatives and kept.kind is not ConstraintKind.COMBINATION)
+        ]
+        record = [kept for kept in record if kept not in replaced]
+        displaced += [
+            RetiredRequirement(
+                constraint=kept, lifecycle=ReplacedLifecycle(by=constraint.key)
+            )
+            for kept in replaced
+        ]
+        seen.add(constraint.key)
         record.append(constraint)
     return RecordedRequirements(live=record, displaced=displaced)

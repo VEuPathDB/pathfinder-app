@@ -5,7 +5,7 @@
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Four requirements joined by commas and a final 'and' are an intersection; the 'or' inside two of them is an alternative within that requirement. The cataloged run hoisted the inner 'or' to the top level, recorded an OR combination, and a later edit unioned every filter, so the reported set was a union of filters and not a candidate set. The final strategy's root combine must be INTERSECT, and its count must be below every search step's count.",
+  "rationale": "Four requirements joined by commas and a final 'and' are an intersection; the 'or' inside two of them is an alternative within that requirement. An inner 'or' hoisted to the top level records an OR combination, and an edit that unions every filter under it shows a union of filters and not a candidate set. The final strategy's root combine must be INTERSECT, and its count must be below every search step's count.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,

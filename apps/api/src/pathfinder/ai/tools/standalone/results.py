@@ -37,11 +37,10 @@ from veupathdb_mcp.catalog import (
 from veupathdb_mcp.tool_payloads import gene_sample_attributes
 from veupathdb_mcp.wdk import (
     SampleRecordsResult,
-    extract_pk,
     view_filters_for,
 )
 
-from pathfinder.ai.capabilities.site_reads import site_read_failure, site_words
+from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._result_models import (
     MAX_SAMPLE_LIMIT,
@@ -63,6 +62,7 @@ from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.types import SyncStateProtocol
+from pathfinder.services.gene_sets.step_genes import extract_gene_id
 
 # A read of a few rows or of one column answers in about a second; a site that
 # takes longer holds the whole check, which goes on without the read instead.
@@ -206,7 +206,25 @@ async def sample_page(
             records=[_row(record, shown) for record in records],
             attributes=shown,
         ),
-        gene_ids=[extract_pk(r) or r.display_name for r in records],
+        gene_ids=[gene_id for r in records if (gene_id := extract_gene_id(r))],
+    )
+
+
+async def _sample(
+    session: StrategySession, wdk_step_id: int, limit: int, record_type: str
+) -> SampledRecords:
+    """The step's sample, with the attributes the strategy's searches select on."""
+    attributes = [
+        *(gene_sample_attributes(record_type) or []),
+        *await sample_attributes(session.site_id, record_type, session.get_graph(None)),
+    ]
+    return await sample_page(
+        session.site_id,
+        wdk_step_id,
+        limit=limit,
+        attributes=attributes or None,
+        record_type=record_type,
+        seed=step_sample_seed(session, wdk_step_id),
     )
 
 
@@ -238,27 +256,12 @@ async def get_sample_records(
 
     graph = session.get_graph(None)
     record_type = (graph.record_type if graph is not None else None) or "transcript"
-    try:
-        attributes = [
-            *(gene_sample_attributes(record_type) or []),
-            *await sample_attributes(session.site_id, record_type, graph),
-        ]
-        sample = await asyncio.wait_for(
-            sample_page(
-                session.site_id,
-                wdk_step_id,
-                limit=limit,
-                attributes=attributes or None,
-                record_type=record_type,
-                seed=step_sample_seed(session, wdk_step_id),
-            ),
-            timeout=READ_DEADLINE_SECONDS,
-        )
-    except TimeoutError as exc:
-        said = f"no answer within {READ_DEADLINE_SECONDS} s for step {wdk_step_id}"
-        raise site_read_failure("get_sample_records", said) from exc
-    except (VEuPathDBError, OSError) as exc:
-        raise site_read_failure("get_sample_records", site_words(exc)) from exc
+    sample = await read_in_time(
+        "get_sample_records",
+        f"step {wdk_step_id}",
+        _sample(session, wdk_step_id, limit, record_type),
+        deadline=READ_DEADLINE_SECONDS,
+    )
     ctx.deps.turn_markers.record_sampled_genes(sample.gene_ids)
     ctx.deps.turn_markers.record_listed_genes(wdk_step_id, sample.gene_ids)
     return with_summary(
@@ -272,6 +275,8 @@ async def get_sample_records(
 class _SearchStep:
     criterion: Criterion
     search_name: str
+    # The records the site counts in the step, None before it counts them.
+    count: int | None = None
 
 
 def _search_step(ctx: RunContext[AgentDeps], wdk_step_id: int) -> _SearchStep | None:
@@ -286,7 +291,11 @@ def _search_step(ctx: RunContext[AgentDeps], wdk_step_id: int) -> _SearchStep | 
     criterion = next((c for c in criteria if c.id == step_id), None)
     if step is None or not step.search_name or criterion is None:
         return None
-    return _SearchStep(criterion=criterion, search_name=step.search_name)
+    return _SearchStep(
+        criterion=criterion,
+        search_name=step.search_name,
+        count=sync.step_counts.get(criterion.id),
+    )
 
 
 async def _column_bounds(site_id: str, target: _SearchStep) -> list[ColumnBound]:
@@ -362,6 +371,27 @@ def _no_column(
     )
 
 
+def _no_rows(
+    ctx: RunContext[AgentDeps], wdk_step_id: int, count: int, unread: list[ColumnFit]
+) -> ToolReturn[StepColumns]:
+    """A column the search publishes whose read returned no rows for a counted step."""
+    columns = ", ".join(f"{fit.display_name} ({fit.column})" for fit in unread)
+    names = ", ".join(fit.column for fit in unread)
+    return with_summary(
+        StepColumns(
+            wdk_step_id=wdk_step_id,
+            note=(
+                f"Step {wdk_step_id} counts {count} on the site and its read of "
+                f"{columns} returned no rows. Sample step {wdk_step_id} with "
+                f"get_sample_records and read {names} on its records for this "
+                "criterion."
+            ),
+        ),
+        f"No rows in the columns of step {wdk_step_id}",
+        ctx=ctx,
+    )
+
+
 async def read_step_columns(
     ctx: RunContext[AgentDeps],
     wdk_step_id: int,
@@ -372,7 +402,8 @@ async def read_step_columns(
     a value inside the bounds, such as ``tm_count`` 2 to 99, and for a threshold
     whose direction the site does not state, how many lie on each side. A step
     whose search shows no such column, or several that do not all hold every
-    gene, says so, and only then is the root sampled.
+    gene, says so, and only then is the root sampled. A column whose read
+    returns no rows for a step the site counts names the step to sample.
 
     Args:
         wdk_step_id: The WDK step id of a search step, not a combine.
@@ -393,18 +424,20 @@ async def read_step_columns(
             f"No column of {target.search_name} shows a numeric value its "
             "criterion binds.",
         )
-    try:
-        read = await asyncio.wait_for(
-            asyncio.gather(
-                *(
-                    read_column_fit(site_id, wdk_step_id, target.criterion, b)
-                    for b in bounds
-                )
-            ),
-            timeout=READ_DEADLINE_SECONDS,
-        )
-    except (TimeoutError, VEuPathDBError, OSError) as exc:
-        raise site_read_failure("read_step_columns", site_words(exc)) from exc
+    read = await read_in_time(
+        "read_step_columns",
+        f"step {wdk_step_id}",
+        asyncio.gather(
+            *(
+                read_column_fit(site_id, wdk_step_id, target.criterion, b)
+                for b in bounds
+            )
+        ),
+        deadline=READ_DEADLINE_SECONDS,
+    )
+    unread = [fit for fit in read if not fit.shown]
+    if unread and target.count:
+        return _no_rows(ctx, wdk_step_id, target.count, unread)
     fits = settled(list(zip(bounds, read, strict=True)))
     if not fits:
         return _no_column(

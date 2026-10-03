@@ -15,8 +15,18 @@ from pathfinder.services.experiment.variant_comparison import (
 )
 
 _SPECS = [
-    VariantSpec(label="2-fold", search_name="GenesByRNASeq", parameters={}),
-    VariantSpec(label="5-fold", search_name="GenesByRNASeq", parameters={}),
+    VariantSpec(
+        label="2-fold",
+        search_name="GenesByRNASeq",
+        record_type="transcript",
+        parameters={},
+    ),
+    VariantSpec(
+        label="5-fold",
+        search_name="GenesByRNASeq",
+        record_type="transcript",
+        parameters={},
+    ),
 ]
 
 

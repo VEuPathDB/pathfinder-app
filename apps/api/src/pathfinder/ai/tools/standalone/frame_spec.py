@@ -71,6 +71,7 @@ from pathfinder.ai.tools.standalone._frame_sources import (
     chosen_reason,
     open_slots,
 )
+from pathfinder.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
 from pathfinder.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
 from pathfinder.domain.strategy.operational_spec import (
@@ -139,6 +140,38 @@ async def _canonical_binding(
         ) from exc
     canonical = resolved.model_copy(update={"params": validated.params})
     return canonical, validated.substituted
+
+
+async def _open_the_sheet(
+    ctx: RunContext[AgentDeps],
+    stated: Criterion,
+    search_name: str,
+    record_type: str,
+) -> ToolReturn[SetCriterionResult]:
+    definition = await read_search_definition(
+        ctx.deps.site_id, record_type, search_name
+    )
+    await refuse_a_search_the_criterion_cannot_use(
+        ctx, record_type, definition, stated, None
+    )
+    unread = await refuse_a_qualifier_the_search_drops(
+        ctx, record_type, definition, stated
+    )
+    register_search(ctx.deps.agent_state, definition, record_type)
+    return criterion_return(
+        ctx,
+        SetCriterionResult(
+            criterion_id=stated.id,
+            search_name=search_name,
+            params_template=open_parameter_sheet(
+                ctx.deps.agent_state, stated.id, search_name, definition
+            ),
+            sheet_pinned=True,
+            unread_searches=unread,
+        ),
+        record_type,
+        definition,
+    )
 
 
 async def set_criterion(
@@ -253,30 +286,7 @@ async def set_criterion(
         raise ModelRetry(msg)
     record_type = await _record_type(ctx, search_name)
     if params is None:
-        definition = await read_search_definition(
-            ctx.deps.site_id, record_type, search_name
-        )
-        await refuse_a_search_the_criterion_cannot_use(
-            ctx, record_type, definition, stated, None
-        )
-        unread = await refuse_a_qualifier_the_search_drops(
-            ctx, record_type, definition, stated
-        )
-        register_search(state, definition, record_type)
-        return criterion_return(
-            ctx,
-            SetCriterionResult(
-                criterion_id=criterion_id,
-                search_name=search_name,
-                params_template=open_parameter_sheet(
-                    state, criterion_id, search_name, definition
-                ),
-                sheet_pinned=True,
-                unread_searches=unread,
-            ),
-            record_type,
-            definition,
-        )
+        return await _open_the_sheet(ctx, stated, search_name, record_type)
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
     definition = await _search_definition(search)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
@@ -307,7 +317,8 @@ async def set_criterion(
         PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset(),
         state,
     )
-    refuse_a_pick_no_lookup_read(state, definition, call)
+    refuse_what_the_words_decide(definition, call, infos, state.request_messages)
+    refuse_a_pick_no_lookup_read(state, definition, call, infos)
     # A null proposal states no value, so it leaves the param to resolution.
     # The derived pattern replaces the two lists it was derived from.
     overrides = {
@@ -390,11 +401,6 @@ async def set_criterion(
             organism_param=next((i.name for i in infos if i.organism_param), None),
             resolved_params=bound,
             param_display_names=display_names(bound, open_params, infos),
-            hidden_params=sorted(
-                i.name
-                for i in infos
-                if i.name in bound and not i.is_visible and not i.vocabulary()
-            ),
             measurements=labels,
             open_params=open_params,
             rationale=chosen.rationale,

@@ -392,7 +392,9 @@ def with_withdrawals(
     """The questions, with an option to withdraw each requirement no search states.
 
     A question on the requirement's dimension gains the option; an optionless
-    question naming it, or a new question, offers to drop it or keep it."""
+    question naming it, or a new question, offers to drop it or keep it. An
+    optionless question keeps its own prompt, so an answer in the researcher's
+    words, such as a substitute it offers, still reaches the thread."""
     asked = list(questions)
     for requirement in unmet:
         option = _withdrawal(requirement)

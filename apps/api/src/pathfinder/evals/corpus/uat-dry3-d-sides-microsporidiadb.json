@@ -48,7 +48,7 @@
     "addedAt": "2026-09-30",
     "stagingId": "",
     "reference": "uat/flows-dry-uat.md#ud-microsporidiadb",
-    "curatorNote": "Round-3 dry UAT, tester D, investigation 10, conversation 19ddf66e-6080-4c2b-8434-a83880e82cf8, turns 1 and 2. Round 3 recorded both sides as requirements and built UNION(UNION(text, IPR031507), PF17022) on the question."
+    "curatorNote": "Two messages are checked. A thread that records both sides as requirements builds UNION(UNION(text, IPR031507), PF17022) on the question, which the case refuses."
   },
   "effort": "medium",
   "gates": {

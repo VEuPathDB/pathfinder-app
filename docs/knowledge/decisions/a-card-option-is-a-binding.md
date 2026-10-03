@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A card option is a binding, and a requirement has a lifecycle
-description: A question card asks the questions FRAME recorded with the options it typed; a picked value is bound into the spec as the card's with no model in between, a withdrawal retires its requirement, and a message that removes or swaps a requirement retires it with its lifecycle, so no check reports it as a gap. A card that offers no choice, or asks what the researcher answered, is never offered, and an option label is never a requirement. Rewriting the card's arguments, free-text options and filing an answered question as a requirement were rejected.
+description: A question card asks the questions FRAME recorded with the options it typed; a picked value is bound into the spec as the card's with no model in between, and a withdrawal retires its requirement, so no check reports it as a gap. A card that offers no choice, or asks what the researcher answered, is never offered, and an option label is never a requirement. Rewriting the card's arguments, free-text options and filing an answered question as a requirement were rejected.
 tags: [agents, lead, frame, parameters, verification]
 generated: { by: claude-code/opus-5, at: 2026-09-28T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-30T00:00:00Z }
@@ -25,7 +25,9 @@ the FRAME dispatch adds a `Withdraw` option: on the question of the requirement'
 dimension, beside the values the nearest search offers, or on a question of its own,
 which also offers a `Keep` option, so a question never offers only to drop what the
 researcher asked for. A fold change or a p value an exported analysis cuts at is
-grounded, so no such question claims that nothing states it.
+grounded, so no such question claims that nothing states it. While the spec binds
+no search and holds no analysis, every requirement is provisional and never
+ungroundable (`constraint_grounding.ground_constraints`).
 
 A card offers a choice or it is not asked, and the rule is held by the question
 types, so no path can build a card that breaks it: FRAME's first pass or its
@@ -42,12 +44,14 @@ the log2 value, each labelled with the fold it stands for ("0.585 (1.5-fold)" an
 number. The FRAME dispatch asks no question the researcher answered. A requirement
 the pass names in `unstated` gets the same drop-or-keep question as one the ledger
 lists as ungroundable, so a card of the Lead's own about it is refused as a card
-that leaves a recorded binding question out. A FRAME question with no option that
-carries the words of such a requirement is that drop-or-keep question, and
+that leaves a recorded binding question out. An organism or a record type is a scope
+every search runs in, so words in `unstated` that carry it never offer to drop it.
+A FRAME question with no option that carries the words of such a requirement is that
+drop-or-keep question. It keeps its own prompt, and the card's note takes an answer
+in the researcher's words, such as a substitute the prompt offers, and
 `questions_that_bind_to_nothing` (`ai/lead/frame_questions.py`) counts it as bound.
 A refusal of what a pass asks keeps each criterion the pass bound
-(`refuse_and_keep_what_it_bound`); a refusal of undeclared changes puts back the
-spec the dispatch found, and runs first.
+(`refuse_and_keep_what_it_bound`).
 The FRAME result hands the Lead `cardQuestions`, the card those questions become,
 each a `CardQuestion` that carries the dimension its answer states. The
 `consult_user` tool's arguments validator refuses a card that does not ask each
@@ -68,17 +72,13 @@ FRAME's `questions_that_bind_to_nothing` refuses a question that names a slot no
 criterion of its draft holds, open or bound.
 
 A requirement the researcher takes back leaves `requirements` for
-`retiredRequirements` with a `withdrawn(turn)` lifecycle; one swapped for another
-the same message states is `replaced(by)`. `classify_user_intent` records both from
-`withdrawnRequirements` and refuses a key the conversation does not hold and a
-successor the conversation already holds; an empty `replacedBy` is a plain removal.
-A new combination over the terms of a held one displaces it: `with_requirements`
-returns the displaced one as `replaced(by)`, so no path removes a requirement
-without a retired record. A review row that names no held requirement, such as an
-edit instruction the turn carried out, is no gap. An answer in the researcher's
-words states a requirement on its question's dimension, which replaces the
-requirement the thread held on that dimension (`replaced(by)`, shown in the words of
-both). A question an answer settled, on a card or typed, is a question and never a
+`retiredRequirements` with a `withdrawn(turn)` or a `replaced(by)` lifecycle, and the
+thread derives which from the message: see
+[the requirement lifecycle is derived](the-requirement-lifecycle-is-derived.md). A
+review row that names no held requirement, such as an edit instruction the turn
+carried out, is no gap. An answer in the researcher's words states a requirement on
+its question's dimension, which replaces the requirement the thread held on that
+dimension when the dimension holds one value. A question an answer settled, on a card or typed, is a question and never a
 requirement: the thread keeps it in `answeredQuestions`, no retired row names it, and
 `check_gaps` reports no gap for a row that carries every word of it. A question
 carries the words of the requirements it asks about, so a row a question's words

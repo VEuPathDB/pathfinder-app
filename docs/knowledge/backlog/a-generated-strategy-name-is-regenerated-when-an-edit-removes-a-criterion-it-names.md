@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A generated strategy name is regenerated when an edit removes a criterion it names
-description: The thread's generated title stays on the strategy after an edit deletes the criterion it named; a nullable marker on the strategy row records that the name is generated and which steps it was written over, and the turn end regenerates it when one of those steps is gone, never touching a name the researcher gave.
+description: The thread's generated title stays on the strategy after an edit deletes the criterion it named or changes a value it spells out; a nullable marker on the strategy row records that the name is generated and which steps it was written over, and the turn end regenerates it when one of those steps is gone, never touching a name the researcher gave.
 tags: [naming, strategy-graph, persistence]
 generated: { by: claude-code/opus-5, at: 2026-09-30T00:00:00Z }
 status: proposed
@@ -18,6 +18,10 @@ only step.
 
 **Why that's wrong.** The saved strategy is named for a filter it no longer
 applies, and the name travels to WDK and to the auto-imported gene set.
+
+The same holds for a value edit: a fungidb strategy (WDK 330879483) named
+"Fusarium graminearum P450 Genes on Chromosome 1" kept that name after
+`set_criterion` moved `GenesByLocation` to chromosome 2 (3,755 genes, result 39).
 
 **Why it happens.** By [one-name-for-a-strategy](../decisions/one-name-for-a-strategy.md)
 the thread's name is the strategy's. That name is the generated title of the
@@ -48,7 +52,8 @@ whether a name is generated or the researcher's, or what it was generated over.
   agent's `rename_strategy`) and `name_the_thread_as_the_graph`
   (`UpdateStrategyMetaOp`), since both carry a name a person chose.
 - Trigger: at turn end in `ai/conversation/turn_runner.py`. When the marker is
-  a list and the turn removed one of its steps (compare the turn-start
+  a list and the turn removed one of its steps or changed a value the name
+  spells out (compare the turn-start
   revision, `services/conversations/turns.py::turn_start_revision_id`, with the
   current strategy), generate a title seeded with the remaining criteria's
   texts and write it through `naming.name_the_thread`, then

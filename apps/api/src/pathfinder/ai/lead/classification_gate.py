@@ -21,7 +21,6 @@ from pathfinder.ai.lead.intent import (
     untyped_ids,
 )
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
-from pathfinder.domain.strategy.requirement_lifecycle import unheld_withdrawals
 from pathfinder.domain.strategy.words import FILLER_WORDS, words_of
 from pathfinder.services.gene_records.read import gene_record_url
 
@@ -139,42 +138,22 @@ def _answers_nothing(state: PipelineState, intent: UserIntent) -> bool:
     )
 
 
-def _withdrawal_refusal(state: PipelineState, intent: UserIntent) -> str | None:
-    """Why a withdrawal names a requirement nobody holds, or a successor that
-    the message does not state or that the conversation holds already."""
-    held = state.domain.requirements
-    held_keys = {c.key for c in held}
-    stated = {c.key for c in intent.explicit_constraints}
-    successors = [w.replaced_by for w in intent.withdrawn_requirements if w.replaced_by]
-    found = [
-        *(
-            f"{key!r} names no requirement the conversation holds"
-            for key in unheld_withdrawals(intent.withdrawn_requirements, held=held)
-        ),
-        *(
-            f"{key!r} is a requirement the conversation already holds, so it "
-            "replaces nothing"
-            for key in successors
-            if key in held_keys
-        ),
-        *(
-            f"{key!r} replaces it, but explicit_constraints states no such requirement"
-            for key in successors
-            if key not in held_keys and key not in stated
-        ),
-    ]
-    if not found:
-        return None
-    keys = ", ".join(repr(c.key) for c in held) or "none"
-    return (
-        f"withdrawn_requirements: {'; '.join(found)}. The requirements it holds: "
-        f"{keys}. An empty replacedBy removes the requirement; a replacedBy names "
-        "a requirement this message states for the first time."
-    )
-
-
 _REQUESTS = frozenset(
     {IntentClassification.EDIT_STRATEGY, IntentClassification.EXTEND_STRATEGY}
+)
+
+# The words of an ask that requests a check of the strategy. A check runs a
+# building tool, so such an ask is never a question.
+_CHECK_WORDS = frozenset(
+    {
+        "test",
+        "check",
+        "recheck",
+        "verify",
+        "validate",
+        "control",
+        "controls",
+    }
 )
 
 
@@ -182,15 +161,18 @@ def _content_words(text: str) -> set[str]:
     return {word for word in words_of(text) if word not in FILLER_WORDS}
 
 
-def _question_refusal(state: PipelineState, intent: UserIntent) -> str | None:
-    """Why a change the intent records is a question about the strategy.
+def held_as_question(state: PipelineState, intent: UserIntent) -> UserIntent | None:
+    """The question form of a change the intent records, or None.
 
     The message states nothing outside its asks: no word of a requirement the
-    intent records, or no word at all when it records none.
+    intent records, or no word at all when it records none. An ask that names
+    a check keeps the request.
     """
     if intent.classification not in _REQUESTS or not intent.asks:
         return None
-    if intent.edit_direction != "other" or intent.withdrawn_requirements:
+    if any(_CHECK_WORDS.intersection(words_of(ask)) for ask in intent.asks):
+        return None
+    if intent.edit_direction != "other" or intent.withdrawn:
         return None
     rest = state.user_prompt.casefold()
     for ask in intent.asks:
@@ -203,14 +185,7 @@ def _question_refusal(state: PipelineState, intent: UserIntent) -> str | None:
     }
     if outside & stated if stated else outside:
         return None
-    return (
-        f"The message states no change outside its questions ({'; '.join(intent.asks)}). "
-        "A question about what the strategy holds, whether a change went "
-        "through or what the count is now, is a follow_up_question: the facts "
-        "answer it and nothing is framed. If the message asks for a change, "
-        "asks lists only the words that ask for an answer, and the change goes "
-        "in explicit_constraints."
-    )
+    return intent.as_question()
 
 
 def classification_refusal(
@@ -223,12 +198,6 @@ def classification_refusal(
         return operator
     if _answers_nothing(state, intent):
         return nothing_to_answer_message()
-    withdrawal = _withdrawal_refusal(state, intent)
-    if withdrawal is not None:
-        return withdrawal
-    question = _question_refusal(state, intent)
-    if question is not None:
-        return question
     unheld = _unheld_ids(state, intent, site)
     if unheld:
         return unstated_ids_message(unheld)

@@ -6,6 +6,7 @@ from __future__ import annotations
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 
 from pathfinder.domain.strategy.operational_spec import (
+    BoundValue,
     Criterion,
     Measurement,
     OperationalSpec,
@@ -41,7 +42,10 @@ def _counted(criterion_id: str = "c_expression") -> Criterion:
 
 def test_a_restated_value_forgets_the_count() -> None:
     restated = criterion_restated(
-        _counted(), "dataset", StringValue(value="pfal3D7_Sexual_Stage_rnaSeq")
+        _counted(),
+        "dataset",
+        StringValue(value="pfal3D7_Sexual_Stage_rnaSeq"),
+        sheet=(),
     )
 
     assert (restated.param_values["dataset"], restated.result_count) == (
@@ -131,3 +135,42 @@ def test_an_option_that_restates_the_carriers_values_carries_nothing() -> None:
         folded.measurements,
         folded.result_count,
     ) == ("", carrier.measurements, 7)
+
+
+def test_an_option_with_the_carriers_wire_value_keeps_the_carriers_label() -> None:
+    """The fold carries a value only when its wire form differs."""
+    labelled = BoundValue(
+        value=MultiPickValue(values=["GO:0042540"]),
+        source="chosen",
+        label="hemoglobin catabolic process",
+    )
+    carrier = Criterion(
+        id="step_go",
+        text="hemoglobin catabolic process",
+        search_name="GenesByGoTerm",
+        resolved_params={"go_typeahead": labelled},
+        result_count=7,
+    )
+    option = Criterion(
+        id="c_option",
+        text="the same GO term",
+        search_name="GenesByGoTerm",
+        resolved_params={
+            "go_typeahead": BoundValue(
+                value=MultiPickValue(values=["GO:0042540"]), source="stated"
+            )
+        },
+    )
+    spec = OperationalSpec(
+        criteria=[carrier, option],
+        structure=SpecStructure(
+            root=StructureNode(kind="leaf", criterion_id="step_go")
+        ),
+    )
+
+    (folded,) = fold_option_criteria(spec).spec.criteria
+
+    assert (folded.resolved_params["go_typeahead"], folded.result_count) == (
+        labelled,
+        7,
+    )

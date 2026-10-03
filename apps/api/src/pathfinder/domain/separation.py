@@ -141,9 +141,7 @@ def _returned(leaf: OfferedLeaf) -> _Returned:
     )
 
 
-def _combined(
-    operator: CombineOp | None, left: _Returned, right: _Returned
-) -> _Returned:
+def _combined(operator: CombineOp, left: _Returned, right: _Returned) -> _Returned:
     match operator:
         case CombineOp.UNION:
             return _Returned(
@@ -171,7 +169,7 @@ def _evaluate(
     that step leaves the strategy.
     """
     if node.kind == "leaf":
-        return None if node.criterion_id == dropped else sets[node.criterion_id or ""]
+        return None if node.criterion_id == dropped else sets[node.named_criterion]
     held = [
         found
         for child in node.inputs
@@ -181,7 +179,7 @@ def _evaluate(
         return None
     total = held[0]
     for other in held[1:]:
-        total = _combined(node.operator, total, other)
+        total = _combined(node.combine_operator, total, other)
     return total
 
 

@@ -36,9 +36,10 @@ _DEMAND = re.compile(
 INTERPRO = "GenesByInterproDomain"
 DOMAINS = "domain_typeahead"
 AEDES = "Aedes aegypti LVP_AGWG"
-# The CSP family a name-ranked list offers, and the OBP family a lookup reaches.
-CSP_FAMILY = "PF03392"
-OBP_FAMILY = "PF01395"
+# The InterPro entry of the CSP family a name-ranked list offers, and of the OBP
+# family a lookup reaches.
+CSP_FAMILY = "IPR005055"
+OBP_FAMILY = "IPR006170"
 OBP_PHRASINGS = ["odorant binding", "OBP", "PBP/GOBP"]
 
 
@@ -90,7 +91,7 @@ def lookup_the_refused_pick(
 
 
 def odorant_binding_spec(family: str) -> SpecPlan:
-    """The Aedes odorant-binding criterion on one Pfam family."""
+    """The Aedes odorant-binding criterion on one InterPro family."""
     domain = CriterionSpec(
         criterion_id="c_obp",
         text=f"{AEDES} odorant-binding protein genes",
@@ -98,7 +99,7 @@ def odorant_binding_spec(family: str) -> SpecPlan:
         role="seed",
         values={
             "organism": [AEDES],
-            "domain_database": "Pfam",
+            "domain_database": "INTERPRO",
             DOMAINS: [family],
             "domain_accession": "N/A",
         },
@@ -131,8 +132,8 @@ __all__ = [
     "INTERPRO",
     "OBP_FAMILY",
     "OBP_PHRASINGS",
-    "lookup_the_refused_pick",
     "looked_up",
+    "lookup_the_refused_pick",
     "odorant_binding_frame",
     "odorant_binding_spec",
 ]

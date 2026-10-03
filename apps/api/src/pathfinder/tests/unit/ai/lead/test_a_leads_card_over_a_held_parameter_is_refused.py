@@ -1,7 +1,8 @@
 """A question of the Lead's own binds nothing unless it offers to drop or keep
 a requirement, so a card whose options are labels is refused, and a question in
-words is refused on every dimension a parameter of the spec holds. The cards
-below are the ones the Lead asked over a built step."""
+words is refused on every named dimension a parameter of the spec holds. A
+parameter of no named dimension names no question. The cards below are the ones
+the Lead asked over a built step."""
 
 from __future__ import annotations
 
@@ -210,7 +211,9 @@ def test_the_amoebadb_definition_card_is_refused() -> None:
     assert "dispatch edit_strategy, or frame_problem" in refusal
 
 
-def test_the_same_question_in_words_on_a_held_dimension_is_refused() -> None:
+def test_the_same_question_in_words_on_a_parameter_of_no_named_dimension_is_asked() -> (
+    None
+):
     card = _card(
         "signalp_version",
         "Which available prediction version should I use for the "
@@ -218,9 +221,7 @@ def test_the_same_question_in_words_on_a_held_dimension_is_refused() -> None:
         ConstraintKind.OTHER,
     )
 
-    refusal = _refusal("trichdb", _signalp_step(), _TRICHDB, card)
-
-    assert "asks the other, which a parameter of the spec sets" in refusal
+    assert _refusal("trichdb", _signalp_step(), _TRICHDB, card) == ""
 
 
 def test_a_question_in_words_on_a_dimension_the_spec_leaves_open_is_accepted() -> None:

@@ -29,7 +29,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 )
 
 _ZERO_PROMPT = "Find ME49 genes with a signal peptide and a similar profile."
-_ZERO_PROSE = "The strategy returned 0 genes, so here is one way to broaden it."
+_ZERO_PROSE = "The strategy returned no genes, so here is one way to broaden it."
 _ZERO_DIGEST = {
     "digest": {
         "disposition": "awaiting_user",

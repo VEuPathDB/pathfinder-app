@@ -13,7 +13,6 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.domain.strategy.combine_naming import combine_display_name
 from pathfinder.domain.strategy.operational_spec import (
-    MIN_COMBINE_INPUTS,
     Criterion,
     OperationalSpec,
     SavedStrategyRef,
@@ -88,9 +87,9 @@ def _renumber_structure(node: StructureNode, mapping: dict[str, str]) -> None:
 def _bound_criterion(
     node: StructureNode, by_id: dict[str, Criterion], label: str
 ) -> Criterion:
-    crit = by_id.get(node.criterion_id or "")
+    crit = by_id.get(node.named_criterion)
     if crit is None or not crit.bound:
-        msg = f"{label} {node.criterion_id!r} is missing or unbound"
+        msg = f"{label} {node.named_criterion!r} is missing or unbound"
         raise ValueError(msg)
     return crit
 
@@ -113,9 +112,6 @@ def _node_to_step(
         return step
     if node.kind == "transform":
         crit = _bound_criterion(node, by_id, "transform criterion")
-        if not node.inputs:
-            msg = f"transform criterion {node.criterion_id!r} has no input step"
-            raise ValueError(msg)
         step = StrategyStepNode(
             search_name=crit.search_name,
             parameters=crit.step_parameters,
@@ -127,23 +123,14 @@ def _node_to_step(
     if node.kind == "copy":
         msg = "a copy is stated as criteria of its own before the build"
         raise ValueError(msg)
-    # Combining n criteria takes n-1 nodes. A spec that emits one per criterion
-    # carries a spare with nothing to combine against, and one operand is that
-    # operand.
-    if len(node.inputs) == 1:
-        return _node_to_step(node.inputs[0], by_id, minted)
-    if node.operator is None or len(node.inputs) < MIN_COMBINE_INPUTS:
-        msg = "combine node needs an operator and at least two inputs"
-        raise ValueError(msg)
+    operator = node.combine_operator
     combined = _combine(
         _node_to_operand(node.inputs[0], by_id, minted),
         _node_to_operand(node.inputs[1], by_id, minted),
-        node.operator,
+        operator,
     )
     for extra in node.inputs[2:]:
-        combined = _combine(
-            combined, _node_to_operand(extra, by_id, minted), node.operator
-        )
+        combined = _combine(combined, _node_to_operand(extra, by_id, minted), operator)
     return combined.step
 
 
@@ -153,7 +140,7 @@ def _node_to_operand(
     """One side of a combine, and the saved strategy it stands for."""
     saved = None
     if node.kind == "leaf":
-        crit = by_id.get(node.criterion_id or "")
+        crit = by_id.get(node.named_criterion)
         saved = crit.saved_strategy_ref if crit is not None else None
     return _Operand(step=_node_to_step(node, by_id, minted), saved=saved)
 

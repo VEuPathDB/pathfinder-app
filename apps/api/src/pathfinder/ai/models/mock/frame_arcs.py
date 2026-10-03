@@ -17,8 +17,6 @@ from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pathfinder.ai.models.mock.arc import Script
 from pathfinder.ai.models.mock.edit_frame import (
     EDIT_WORK_ORDER,
-    WorkspaceCriterion,
-    workspace_criteria,
 )
 from pathfinder.ai.models.mock.growths import portal_only_criterion
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
@@ -231,13 +229,9 @@ def _elsewhere(
     return _unbound(f"{read.name} runs on {read.site}. {read.where_they_run}")
 
 
-def _kept(criteria: list[WorkspaceCriterion]) -> list[dict[str, str]]:
-    return [{"criterionId": c.criterion_id, "disposition": "kept"} for c in criteria]
-
-
 def portal_frame(messages: list[ModelMessage]) -> ToolCallPart:
     """Propose orthologs in an organism another site holds; the refusal ends it,
-    and an edit keeps every criterion it found."""
+    and an edit moves no criterion it found."""
     called = acted_tool_names(messages)
     crit = portal_only_criterion(_site())
     if "list_searches" not in called:
@@ -248,17 +242,12 @@ def portal_frame(messages: list[ModelMessage]) -> ToolCallPart:
     call = criterion_call(crit, criterion_replies(messages), instructions_of(messages))
     if refused is None and call is not None:
         return call
-    work_order = head_work_order(messages)
-    held = (
-        workspace_criteria(work_order) if work_order.startswith(EDIT_WORK_ORDER) else []
-    )
     return scripted_call(
         "final_result",
         {
             "summary": "Nothing was bound.",
             "disposition": "spec_ready",
             "openQuestions": [],
-            "changes": _kept(held),
         },
     )
 
