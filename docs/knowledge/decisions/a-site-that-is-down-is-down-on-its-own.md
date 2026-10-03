@@ -164,7 +164,7 @@ Threading a site id through `platform/security.py::resolve_principal` was
 rejected in turn: it is a dependency of 73 of the 94 routes, so declaring a
 `siteId` there would put a meaningless query parameter on all of them.
 `resolve_veupathdb_bearer` keeps the configured default and gets its answer from
-`identity_site`.
+`identity_sites`.
 
 **Letting a request wait for the site.** Without the gate, a call to a dead
 site's route waits out the WDK client timeout, 120 s on the portal, and the

@@ -2,6 +2,18 @@
 
 ## 2026-10-03
 
+* **An identity read is handed to a site that answers.** The sites an identity
+  call reads are the named site, then one loaded site
+  (`services/wdk_identity.py::identity_sites`), and the read moves on when a
+  site does not answer in time, so a slow spell on one site refuses no turn
+  and no sign-in; the identity is cached by token alone, because the WDK user
+  id is account scoped. A card question is read by the researcher before the
+  facts exist, so it carries no reference (`ai/lead/card_question.py`); a
+  value it states is written in words. The rating controls show only on a
+  message the server wrote, never on one the client made up for a turn the
+  server refused (`lib/conversations/messageIds.ts`). The api reports the
+  version its release tag names.
+
 * **A bound value's label names its term alone, and a turn's log lines name
   the turn.** A vocabulary label that leads with the value (`PF00069 : Protein
   kinase domain`) labels the bound value with the term alone, so a rendered

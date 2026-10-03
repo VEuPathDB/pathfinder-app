@@ -10,6 +10,7 @@ import { delay, http, HttpResponse } from "msw";
 const toastError = vi.hoisted(() => vi.fn());
 let conversationId = "";
 const MESSAGE_ID = "bbbbbbb1-1111-4111-8111-111111111111";
+let messageId = MESSAGE_ID;
 
 vi.mock("next/navigation", () => ({
   usePathname: () => `/plasmodb/conversation/${conversationId}`,
@@ -17,7 +18,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@assistant-ui/react", () => ({
   useAuiState: (select: (state: { message: { id: string } }) => unknown) =>
-    select({ message: { id: MESSAGE_ID } }),
+    select({ message: { id: messageId } }),
 }));
 
 vi.mock("sonner", () => ({ toast: { error: toastError } }));
@@ -98,6 +99,16 @@ describe("RateMessageActions", () => {
   afterEach(() => {
     onlineManager.setOnline(true);
     vi.clearAllMocks();
+  });
+
+  it("shows nothing on a message the server never wrote", () => {
+    messageId = "a_zuWkLc3Pq1";
+    try {
+      renderActions();
+      expect(screen.queryAllByRole("button")).toEqual([]);
+    } finally {
+      messageId = MESSAGE_ID;
+    }
   });
 
   it("renders the saved rating pressed when the thread opens", async () => {

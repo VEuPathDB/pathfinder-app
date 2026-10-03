@@ -30,9 +30,7 @@ def _app(monkeypatch: pytest.MonkeyPatch, seen: list[str]) -> FastAPI:
         seen.append(site_id)
         return WDKUserInfo(id=7, is_guest=False, email="researcher@upenn.edu")
 
-    monkeypatch.setattr(
-        "pathfinder.transport.http.routers.veupathdb_auth.fetch_current_user", _fetch
-    )
+    monkeypatch.setattr("pathfinder.services.wdk_identity.fetch_current_user", _fetch)
 
     async def _session() -> AsyncGenerator[None]:
         yield None

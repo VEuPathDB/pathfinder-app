@@ -71,26 +71,33 @@ def _fake_user_row(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     return emails
 
 
-class TestTheSiteAnIdentityCallReads:
-    def test_a_loaded_site_answers_for_itself(self) -> None:
+class TestTheSitesAnIdentityCallReads:
+    def test_a_loaded_site_answers_first_and_alone(self) -> None:
         get_readiness().mark_catalog_ready("plasmodb")
 
-        assert wdk_identity.identity_site("plasmodb") == "plasmodb"
+        assert wdk_identity.identity_sites("plasmodb") == ["plasmodb"]
 
     def test_a_site_this_process_never_registered_answers_for_itself(self) -> None:
-        assert wdk_identity.identity_site("plasmodb") == "plasmodb"
+        assert wdk_identity.identity_sites("plasmodb") == ["plasmodb"]
+
+    def test_a_loaded_peer_answers_after_the_named_site(self) -> None:
+        readiness = get_readiness()
+        readiness.mark_catalog_ready("plasmodb")
+        readiness.mark_catalog_ready("toxodb")
+
+        assert wdk_identity.identity_sites("toxodb") == ["toxodb", "plasmodb"]
 
     def test_a_degraded_site_hands_the_call_to_a_loaded_one(self) -> None:
         readiness = get_readiness()
         readiness.mark_catalog_failed("veupathdb", TimeoutError())
         readiness.mark_catalog_ready("plasmodb")
 
-        assert wdk_identity.identity_site("veupathdb") == "plasmodb"
+        assert wdk_identity.identity_sites("veupathdb") == ["plasmodb", "veupathdb"]
 
     def test_a_degraded_site_with_no_loaded_peer_answers_for_itself(self) -> None:
         get_readiness().mark_catalog_failed("veupathdb", TimeoutError())
 
-        assert wdk_identity.identity_site("veupathdb") == "veupathdb"
+        assert wdk_identity.identity_sites("veupathdb") == ["veupathdb"]
 
 
 class TestOneTokenNamesOneUserOnEverySite:
@@ -111,9 +118,12 @@ class TestOneTokenNamesOneUserOnEverySite:
             REGISTERED_TOKEN, "plasmodb"
         )
 
-        assert on_portal == SESSION_USER
-        assert on_plasmodb == SESSION_USER
-        assert seen == ["veupathdb", "plasmodb"]
+        # The identity is the token's, so the second site is never read.
+        assert (on_portal, on_plasmodb, seen) == (
+            SESSION_USER,
+            SESSION_USER,
+            ["veupathdb"],
+        )
 
     @pytest.mark.asyncio
     async def test_a_degraded_default_is_never_called(

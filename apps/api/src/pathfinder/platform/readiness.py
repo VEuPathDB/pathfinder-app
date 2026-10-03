@@ -82,16 +82,14 @@ class ReadinessState(BaseModel):
         return sorted(site_id for site_id, c in self.catalogs.items() if not c.ready)
 
     @property
+    def ready_catalogs(self) -> list[str]:
+        """The loaded sites, by id."""
+        return [s for s in sorted(self.catalogs) if self.catalogs[s].ready]
+
+    @property
     def first_ready_catalog(self) -> str | None:
         """The loaded site with the lowest id, or None while none is loaded."""
-        return next(
-            (
-                site_id
-                for site_id in sorted(self.catalogs)
-                if self.catalogs[site_id].ready
-            ),
-            None,
-        )
+        return next(iter(self.ready_catalogs), None)
 
     def degraded_catalog(self, site_id: str) -> SubsystemStatus | None:
         """The status of a registered catalog that is not ready."""

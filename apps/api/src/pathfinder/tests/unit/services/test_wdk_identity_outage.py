@@ -17,7 +17,7 @@ from veupathdb.wdk import VEuPathDBClaims
 
 from pathfinder.platform.errors import ErrorCode, SiteUnavailableError
 from pathfinder.platform.principal import Principal
-from pathfinder.platform.readiness import reset_readiness
+from pathfinder.platform.readiness import get_readiness, reset_readiness
 from pathfinder.services import wdk_identity
 from pathfinder.transport.http.deps import require_registered_wdk_identity
 
@@ -136,3 +136,62 @@ class TestTheIdentityGate:
 
         assert refusal.value.status == 503
         assert refusal.value.code == ErrorCode.SITE_UNAVAILABLE
+
+
+class TestASiteThatDoesNotAnswerHandsTheReadOn:
+    async def test_a_loaded_peer_answers_when_the_named_site_times_out(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        readiness = get_readiness()
+        readiness.mark_catalog_ready("plasmodb")
+        readiness.mark_catalog_ready("toxodb")
+        seen: list[str] = []
+
+        async def registered_email(token: str, site_id: str) -> str | None:
+            del token
+            seen.append(site_id)
+            if site_id == "plasmodb":
+                raise _outage(502, TimeoutError())
+            return "researcher@upenn.edu"
+
+        monkeypatch.setattr(wdk_identity, "resolve_registered_email", registered_email)
+        monkeypatch.setattr(wdk_identity, "get_or_create_user_id", _user_id_of)
+        monkeypatch.setattr(wdk_identity, "async_session_factory", _NoSession)
+
+        user_id = await wdk_identity.resolve_veupathdb_user_id(
+            REGISTERED_TOKEN, "plasmodb"
+        )
+
+        assert (seen, user_id) == (["plasmodb", "toxodb"], SESSION_USER)
+
+    async def test_the_last_sites_refusal_stands_when_none_answers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        readiness = get_readiness()
+        readiness.mark_catalog_ready("plasmodb")
+        readiness.mark_catalog_ready("toxodb")
+        seen = _email_read_fails(monkeypatch)
+
+        with pytest.raises(SiteUnavailableError) as refusal:
+            await wdk_identity.resolve_veupathdb_user_id(REGISTERED_TOKEN, "plasmodb")
+
+        assert seen == ["plasmodb", "toxodb"]
+        assert refusal.value.detail == (
+            "Could not connect to toxodb (the site did not answer in time)."
+        )
+
+
+async def _user_id_of(session: object, email: str) -> UUID:
+    del session, email
+    return SESSION_USER
+
+
+class _NoSession:
+    async def __aenter__(self) -> _NoSession:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+    async def commit(self) -> None:
+        return None

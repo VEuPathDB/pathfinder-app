@@ -13,10 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import ValidationError
 from veupathdb.wdk import (
     WDKUserInfo,
-    fetch_current_user,
     password_login,
     password_logout,
-    resolve_registered_email,
 )
 
 from pathfinder.platform.config import get_settings
@@ -32,7 +30,10 @@ from pathfinder.platform.security import (
     limiter,
 )
 from pathfinder.services.users import get_or_create_user_id
-from pathfinder.services.wdk_identity import identity_or_unavailable, identity_site
+from pathfinder.services.wdk_identity import (
+    current_user_on_a_site_that_answers,
+    registered_email_on_a_site_that_answers,
+)
 from pathfinder.transport.http.deps import DBSession
 from pathfinder.transport.http.schemas import (
     AuthStatusResponse,
@@ -72,9 +73,7 @@ async def _link_internal_user(
     session: AsyncSession, veupathdb_token: str, site_id: str
 ) -> UUID | None:
     """Name the internal user of the VEuPathDB identity, creating it if new."""
-    email = await identity_or_unavailable(
-        site_id, resolve_registered_email(veupathdb_token, site_id)
-    )
+    email = await registered_email_on_a_site_that_answers(veupathdb_token, site_id)
     if not email:
         return None
     return await get_or_create_user_id(session, email)
@@ -266,8 +265,7 @@ async def auth_status(
                 "email": "e2e@test.local",
             }
 
-    read_site = identity_site(site_id)
-    user = await identity_or_unavailable(read_site, fetch_current_user(read_site))
+    user = await current_user_on_a_site_that_answers(site_id)
     if user is None:
         return {"signedIn": False, "name": None, "email": None}
 

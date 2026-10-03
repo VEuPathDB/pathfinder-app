@@ -20,6 +20,7 @@ from veupathdb.wdk import WDKUserInfo
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.platform.readiness import reset_readiness
 from pathfinder.platform.security import create_user_token, limiter
+from pathfinder.services import wdk_identity
 from pathfinder.transport.http.routers import veupathdb_auth
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
@@ -62,7 +63,7 @@ def _current_user(monkeypatch: pytest.MonkeyPatch, answer: WDKUserInfo | None) -
         del site_id
         return answer
 
-    monkeypatch.setattr(veupathdb_auth, "fetch_current_user", _fetch)
+    monkeypatch.setattr(wdk_identity, "fetch_current_user", _fetch)
 
 
 def _current_user_fails(monkeypatch: pytest.MonkeyPatch, outage: WDKError) -> None:
@@ -70,7 +71,7 @@ def _current_user_fails(monkeypatch: pytest.MonkeyPatch, outage: WDKError) -> No
         del site_id
         raise outage
 
-    monkeypatch.setattr(veupathdb_auth, "fetch_current_user", _fetch)
+    monkeypatch.setattr(wdk_identity, "fetch_current_user", _fetch)
 
 
 def _registered_email(monkeypatch: pytest.MonkeyPatch, outage: WDKError) -> None:
@@ -78,7 +79,7 @@ def _registered_email(monkeypatch: pytest.MonkeyPatch, outage: WDKError) -> None
         del token, site_id
         raise outage
 
-    monkeypatch.setattr(veupathdb_auth, "resolve_registered_email", _email)
+    monkeypatch.setattr(wdk_identity, "resolve_registered_email", _email)
 
 
 async def _call(app: FastAPI, method: str, path: str, **kwargs: Any) -> httpx.Response:

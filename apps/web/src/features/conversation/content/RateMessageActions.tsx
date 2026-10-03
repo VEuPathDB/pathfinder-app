@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { MessageAction } from "@/components/ai-elements/message";
 import { toUserMessage } from "@/lib/api/errors";
+import { isServerMessageId } from "@/lib/conversations/messageIds";
 import { clearMessageRating } from "@pathfinder/shared/generated/hooks/useClearMessageRating";
 import { listMessageRatingsQueryOptions } from "@pathfinder/shared/generated/hooks/useListMessageRatings";
 import { rateMessage } from "@pathfinder/shared/generated/hooks/useRateMessage";
@@ -20,11 +21,12 @@ interface RateButtonsProps {
 }
 
 /** The like and dislike controls of one assistant message. A draft thread
- * has no id yet, so it has nothing to rate. */
+ * has no id yet, and a message the server never wrote has none either, so
+ * neither has anything to rate. */
 export function RateMessageActions() {
   const conversationId = useConversationId();
   const messageId = useAuiState((s) => s.message.id);
-  if (conversationId === null) return null;
+  if (conversationId === null || !isServerMessageId(messageId)) return null;
   return <RateButtons conversationId={conversationId} messageId={messageId} />;
 }
 

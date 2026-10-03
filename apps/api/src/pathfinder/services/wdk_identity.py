@@ -6,7 +6,7 @@ request carries the user's own token or it is refused.
 
 import hashlib
 import time
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable, Sequence
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
@@ -14,7 +14,12 @@ from assistant_core.platform.logging import get_logger
 from pydantic import BaseModel, ConfigDict
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import WDKError, WDKLoginRequiredError
-from veupathdb.wdk import resolve_registered_email, validate_oauth_token
+from veupathdb.wdk import (
+    WDKUserInfo,
+    fetch_current_user,
+    resolve_registered_email,
+    validate_oauth_token,
+)
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
@@ -49,16 +54,17 @@ async def require_registered_wdk_login() -> None:
 _identities: dict[str, tuple[float, UUID]] = {}
 
 
-def identity_site(site_id: str) -> str:
-    """Name the site an identity call reads for a request that names ``site_id``.
+def identity_sites(site_id: str) -> list[str]:
+    """The sites an identity call reads for a request that names ``site_id``,
+    in order: the named site when its catalog loaded, then one loaded site.
 
     The WDK user id is account scoped, so a loaded site answers the same user
-    when the named one has no catalog and would answer nothing.
+    when the named one has no catalog, or does not answer in time.
     """
     readiness = get_readiness()
-    if readiness.degraded_catalog(site_id) is None:
-        return site_id
-    return readiness.first_ready_catalog or site_id
+    named = [site_id] if readiness.degraded_catalog(site_id) is None else []
+    peer = next((s for s in readiness.ready_catalogs if s != site_id), None)
+    return list(dict.fromkeys([*named, *([peer] if peer else []), site_id]))
 
 
 _SERVER_ERROR = 500
@@ -79,6 +85,38 @@ async def identity_or_unavailable[T](site_id: str, read: Awaitable[T]) -> T:
         raise SiteUnavailableError(site_id, reason) from error
 
 
+async def _on_a_site_that_answers[T](
+    sites: Sequence[str], read: Callable[[str], Awaitable[T]]
+) -> T:
+    """The identity read on the first of the sites that answers it. The
+    refusal of the last site stands when none does."""
+    for index, site_id in enumerate(sites):
+        try:
+            return await identity_or_unavailable(site_id, read(site_id))
+        except SiteUnavailableError:
+            if index == len(sites) - 1:
+                raise
+    msg = "an identity read needs one site"
+    raise ValueError(msg)
+
+
+async def registered_email_on_a_site_that_answers(
+    token: str, site_id: str
+) -> str | None:
+    """The registered email the token names, read on a site that answers for
+    ``site_id``; None for a token the site refuses."""
+    return await _on_a_site_that_answers(
+        identity_sites(site_id),
+        lambda read_on: resolve_registered_email(token, read_on),
+    )
+
+
+async def current_user_on_a_site_that_answers(site_id: str) -> WDKUserInfo | None:
+    """The WDK user the request's token names, read on a site that answers
+    for ``site_id``; None for a token the site refuses."""
+    return await _on_a_site_that_answers(identity_sites(site_id), fetch_current_user)
+
+
 async def resolve_veupathdb_user_id(token: str, site_id: str) -> UUID | None:
     """Map a VEuPathDB token to the internal user, by the email WDK reports.
 
@@ -86,15 +124,12 @@ async def resolve_veupathdb_user_id(token: str, site_id: str) -> UUID | None:
     remembered per token for a few minutes, so a bearer client does not cost a
     WDK round trip on every request.
     """
-    site_id = identity_site(site_id)
-    key = hashlib.sha256(f"{site_id}\0{token}".encode()).hexdigest()
+    key = hashlib.sha256(token.encode()).hexdigest()
     cached = _identities.get(key)
     if cached is not None and cached[0] > time.monotonic():
         return cached[1]
 
-    email = await identity_or_unavailable(
-        site_id, resolve_registered_email(token, site_id)
-    )
+    email = await registered_email_on_a_site_that_answers(token, site_id)
     if not email:
         return None
 
