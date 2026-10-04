@@ -21,7 +21,7 @@ step is checked against the current source before it is filed.
 - [The researcher's own uploaded datasets](flows-user-datasets.md) - `UD1` to `UD4`, on plasmodb and vectorbase
 - [Memory and notes](flows-memory-notes.md) - `M1` to `M6`
 - [Composer](flows-composer.md) - `C1` to `C16`
-- [Settings and account](flows-settings-account.md) - `A1` to `A7`
+- [Settings and account](flows-settings-account.md) - `A1` to `A6`
 - [Gene sets and exports](flows-gene-sets-exports.md) - `G1` to `G4`
 - [Cross-site and orthology](flows-cross-site.md) - `X1` to `X6`
 - [Resilience](flows-resilience.md) - `R1` to `R8`
@@ -97,7 +97,7 @@ Result: `pass`, `fail`, `blocked` or `re-measure`. Bug ids: the tracker's, comma
 | UD1 to UD4 | vectorbase | | |
 | M1 to M6 | plasmodb | | |
 | C1 to C16 | plasmodb | | |
-| A1 to A7 | once | | |
+| A1 to A6 | once | | |
 | G1 | each site | | |
 | G2 to G4 | plasmodb | | |
 | X1 | plasmodb and vectorbase | | |
@@ -202,7 +202,6 @@ Where each flow runs without a runner. The e2e spec drives the flow on the mock 
 | A4 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
 | A5 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
 | A6 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
-| A7 | `apps/web/e2e/uat/settings-account.spec.ts` | - | - |
 | G1 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | `uat-g1-plasmodb` | - |
 | G2 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | - | - |
 | G3 | `apps/web/e2e/uat/gene-sets-exports.spec.ts` | - | - |
@@ -325,7 +324,7 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 | `/import` | C7, G4 | `Memory` | M5 |
 | `/help` | C1 | `Privacy` | A5 |
 | `/clear` | C8, S13 | `Advanced` | A6 |
-| `/analyze` | C9 | `Seeding` | A7 |
+| `/analyze` | C9 | | |
 | `/summarize` | C10 | | |
 | `/diagnose`, `/explain` | C11 | | |
 
@@ -353,4 +352,4 @@ Where each rule, card, background tool, thread part, command, settings tab and r
 | The worker stopped | R4 |
 | A VEuPathDB 4xx on a step | R2 |
 
-Gaps: none left open in the lists above. Flows marked "not measured" (A2, A7, F6 step 5, N9 step 2, N13, N14, R3, R5, R8, V6, V7, D1 to D11) carry expectations from the code and are measured at UAT start.
+Gaps: none left open in the lists above. Flows marked "not measured" (A2, F6 step 5, N9 step 2, N13, N14, R3, R5, R8, V6, V7, D1 to D11) carry expectations from the code and are measured at UAT start.

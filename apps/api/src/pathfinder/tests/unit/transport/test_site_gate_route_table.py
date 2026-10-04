@@ -88,12 +88,6 @@ UNGATED_BUT_REACHES_A_SITE: dict[tuple[str, str], str] = {
         "PATCH",
         "/api/v1/conversations/{conversation_id}/eda",
     ): "Same shape: the binding row names the site.",
-    (
-        "POST",
-        "/api/v1/seed",
-    ): "Its site is optional, so the required site dependency cannot bind it; "
-    "the identity gate refuses a degraded one and the seed stream reports each "
-    "site's own failure.",
 }
 
 # Routes that name a site in a request body other than the chat body. Their

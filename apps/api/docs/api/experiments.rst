@@ -17,20 +17,6 @@ experiment.
        style A fill:#2563eb,color:#fff
        style C fill:#7c3aed,color:#fff
 
-Seed Endpoint
--------------
-
-.. list-table::
-   :widths: 15 35 50
-   :header-rows: 1
-
-   * - Method
-     - Endpoint
-     - Description
-   * - :bdg-success:`POST`
-     - ``/api/v1/seed``
-     - Seed demo strategies and control sets (SSE)
-
 Persistence
 -----------
 
@@ -155,5 +141,6 @@ each criterion adds.
 Seed Data
 ~~~~~~~~~
 
-Generate demo strategies with curated multi-step trees and control sets across
-13 VEuPathDB databases. See :doc:`services` for full seed module reference.
+Curated multi-step trees and control sets across the VEuPathDB databases, read
+by the mock model and the live tests. See :doc:`services` for the seed module
+reference.

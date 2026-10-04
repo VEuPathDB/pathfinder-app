@@ -141,14 +141,6 @@ class TestARequestWithNoVEuPathDBSessionIsRefused:
 
         _assert_login_required(response)
 
-    async def test_the_seed_route_is_refused(
-        self,
-        signed_out: httpx.AsyncClient,
-    ) -> None:
-        response = await signed_out.post("/api/v1/seed?siteId=plasmodb")
-
-        _assert_login_required(response)
-
     async def test_the_own_datasets_listing_is_refused(
         self,
         signed_out: httpx.AsyncClient,

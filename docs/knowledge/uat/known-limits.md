@@ -39,7 +39,6 @@ Named as in the [backlog](../backlog/index.md) on 2026-09-24; the list moves as 
 | Item | What a runner sees | Flow |
 |---|---|---|
 | The sample of a large transcript step outlasts the read deadline | On a genome-sized result the check says the genes were not sampled (the read is cut at 20 s) | V1 on a large result |
-| The seeds of the other sites recover their controls | The toxodb, vectorbase and portal seeds (Settings, `Seeding`) do not recover all their positives from their own trees | A7 |
 | A site edit reaches the Lead's briefing | After an edit on the site, the tab is right but the assistant may describe the old analysis | E5 step 4 |
 | The Claude models are probed for images and documents | The Anthropic and Google models are not part of UAT; only the OpenAI models are tested | A1, C13 |
 | A search report pages transcripts under a gene cap | A variant comparison near 50,000 rows may say it was cut short | V7 |

@@ -13,6 +13,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.devtools.eda_capture import (
     ANALYSIS_CAPTURES,
     DISTRIBUTION_CAPTURES,
+    POST_CAPTURES,
     DistributionCapture,
 )
 from veupathdb.eda import get_eda_client
@@ -83,6 +84,7 @@ async def test_every_fixture_on_disk_is_in_the_manifest() -> None:
         {fixture.file.name for fixture in FIXTURES}
         | {f"{capture.name}.json" for capture in DISTRIBUTION_CAPTURES}
         | {f"{capture.name}.json" for capture in ANALYSIS_CAPTURES}
+        | {f"{capture.name}.json" for capture in POST_CAPTURES}
     )
     on_disk = {
         path.name

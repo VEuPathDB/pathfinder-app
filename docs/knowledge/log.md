@@ -2,6 +2,23 @@
 
 ## 2026-10-04
 
+* **No route builds strategies in a researcher's account on request.** The seed
+  route, its runner and its progress events, the Settings `Seeding` tab, and the
+  typed-event stream helpers that only it used (`transport/http/sse_utils.py`,
+  `lib/sse/typedEventStream.ts`) are gone, and UAT flow A7 with them. The seed
+  catalog stays (`data/seeds/`, `services/experiment/seed/catalog.py`,
+  `SeedDef`): the mock model reads its site values, `devtools/seeds.py` refreshes
+  its measurements, and the separation resume test, the live tests and the e2e
+  fixtures read its trees and control sets.
+
+* **Settings names the release.** Under every tab, `PathFinder v<version>` shows
+  the version `GET /health` reports, read through the generated
+  `healthCheckQueryOptions`; nothing shows while the call loads or when it fails.
+  `publish-images.yml` refuses a tag that is not `v` plus the version in
+  `apps/api/pyproject.toml` and in `pathfinder.__version__`. The Kubb name
+  transform strips the path suffix from the last path root, so `health_check` on
+  `/health` generates `useHealthCheck`.
+
 * **A statistic belongs to the thread.** `StrategyDomainState.statistics` holds
   every statistic the EDA service computed on the thread, the latest read of each
   id, so a follow-up message's reply references a PCA an earlier message ran; the

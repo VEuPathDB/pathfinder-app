@@ -14,7 +14,6 @@ src/pathfinder/tests/integration/http/test_wdk_login_required.py::test_a_gene_se
 src/pathfinder/tests/integration/http/test_wdk_login_required.py::test_a_guest_token_is_refused
 src/pathfinder/tests/integration/http/test_wdk_login_required.py::test_a_strategy_operation_is_refused
 src/pathfinder/tests/integration/http/test_wdk_login_required.py::test_chat_is_refused
-src/pathfinder/tests/integration/http/test_wdk_login_required.py::test_the_seed_route_is_refused
 src/pathfinder/tests/integration/jobs/test_eda_compute_resume.py::test_the_resumed_turn_carries_the_compute_summary_into_the_prose
 src/pathfinder/tests/integration/jobs/test_procrastinate_app.py::test_procrastinate_app_opens_and_closes
 src/pathfinder/tests/integration/mcp/test_auth_live.py::test_a_forged_bearer_verifies_as_nothing

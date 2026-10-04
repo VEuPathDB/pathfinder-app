@@ -1,11 +1,13 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { healthCheckQueryOptions } from "@pathfinder/shared/generated/hooks/useHealthCheck";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Modal } from "@/lib/components/Modal";
 import type { SettingsTab } from "../types";
 import { DataSettings } from "./settings/DataSettings";
 import { AdvancedSettings } from "./settings/AdvancedSettings";
-import { SeedingSettings } from "./settings/SeedingSettings";
 import { MemorySettings } from "./settings/MemorySettings";
 import { ModelSettings } from "./settings/ModelSettings";
 import { PrivacySettings } from "./settings/PrivacySettings";
@@ -18,7 +20,6 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "memory", label: "Memory" },
   { id: "privacy", label: "Privacy" },
   { id: "advanced", label: "Advanced" },
-  { id: "seeding", label: "Seeding" },
 ];
 
 interface SettingsPageProps {
@@ -76,7 +77,22 @@ export function SettingsPage({
           </TabsContent>
         ))}
       </Tabs>
+      <ReleaseVersion />
     </Modal>
+  );
+}
+
+/** The release the api reports; nothing while it loads or when the call fails. */
+function ReleaseVersion() {
+  const { data } = useQuery(healthCheckQueryOptions());
+  if (data === undefined) return null;
+  return (
+    <p
+      data-testid="settings-release"
+      className="shrink-0 border-t border-border px-5 py-2 text-xs text-muted-foreground"
+    >
+      {`PathFinder v${data.version}`}
+    </p>
   );
 }
 
@@ -94,7 +110,5 @@ function TabBody({ tab, siteId }: { tab: SettingsTab; siteId: string }) {
       return <PrivacySettings />;
     case "advanced":
       return <AdvancedSettings />;
-    case "seeding":
-      return <SeedingSettings />;
   }
 }

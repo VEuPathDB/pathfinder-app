@@ -1,1 +1,1 @@
-"""Scoring a search against positive and negative controls, and the demo seed."""
+"""Scoring a search against positive and negative controls, and the seed catalog."""

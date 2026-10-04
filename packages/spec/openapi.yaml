@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a23
+  version: 0.2.0a24
 paths:
   /health:
     get:
@@ -1861,49 +1861,6 @@ paths:
         '404':
           description: Not Found
           content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/seed:
-    post:
-      tags:
-      - seed
-      summary: Seed Strategies
-      description: 'Seed demo strategies and control sets across VEuPathDB sites.
-
-
-        With a site id, only seeds for that database are created.'
-      operationId: seed_strategies_api_v1_seed_post
-      security:
-      - APIKeyCookie: []
-      - HTTPBearer: []
-      - APIKeyHeader: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-            minLength: 1
-            maxLength: 50
-          - type: 'null'
-          title: Siteid
-      responses:
-        '200':
-          description: Server-sent event stream.
-          content:
-            application/json:
-              schema: {}
-            text/event-stream:
-              schema:
-                type: string
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'

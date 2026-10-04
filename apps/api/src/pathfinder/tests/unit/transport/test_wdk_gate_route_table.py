@@ -49,8 +49,6 @@ GATED: frozenset[tuple[str, str]] = frozenset(
         # Publishing a set writes a dataset into the researcher's own account.
         ("POST", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
         ("GET", "/api/v1/gene-sets/{gene_set_id}/vdi-publication"),
-        # The demo seed builds strategies in the researcher's own account.
-        ("POST", "/api/v1/seed"),
         # EDA: every route reads the caller's own EDA account, and resolving
         # the analysis user goes through WDK.
         ("GET", "/api/v1/eda/studies"),

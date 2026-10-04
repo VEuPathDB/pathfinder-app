@@ -28,8 +28,3 @@ def get_seeds_for_site(site_id: str) -> list[SeedDef]:
             detail=f"No seed definitions for site: {site_id}",
         )
     return _SEED_LIST.validate_json((SEEDS_DIR / f"{site_id}.json").read_bytes())
-
-
-def get_all_seeds() -> list[SeedDef]:
-    """Return the seed definitions of every site, in catalog order."""
-    return [seed for site in SEED_DATABASES for seed in get_seeds_for_site(site)]

@@ -4,8 +4,13 @@ import { pluginTs } from "@kubb/plugin-ts";
 import { pluginZod } from "@kubb/plugin-zod";
 import { pluginReactQuery } from "@kubb/plugin-react-query";
 
+// The path suffix starts at the last path root, so a route named after its own
+// path root (`health_check` on `/health`) keeps its name.
 const stripPathSuffix = (name: string): string =>
-  name.replace(/(?:ApiV1|Health).*?(?:Get|Post|Put|Patch|Delete)/, "");
+  name.replace(
+    /(?:ApiV1|Health)(?!.*(?:ApiV1|Health)).*?(?:Get|Post|Put|Patch|Delete)/,
+    "",
+  );
 
 export default defineConfig({
   root: ".",

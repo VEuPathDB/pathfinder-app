@@ -25,13 +25,6 @@ def test_download_routes_declare_real_content_types(app: FastAPI) -> None:
     assert "application/json" in download_types, download_types
 
 
-def test_streaming_route_declares_event_stream(app: FastAPI) -> None:
-    spec = app.openapi()
-    op = _op(spec, "/api/v1/seed", "post")
-    content = op["responses"]["200"]["content"]
-    assert "text/event-stream" in content, content
-
-
 def test_problem_detail_is_a_declared_component(app: FastAPI) -> None:
     spec = app.openapi()
     schemas = spec["components"]["schemas"]

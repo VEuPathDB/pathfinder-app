@@ -39,7 +39,8 @@ src/pathfinder/
                              #     role mounts), durable.py (@durable_tool)
     strategy_stream_parts.py eda_stream_parts.py stream_part_payloads.py   # The data-* parts PathFinder emits and their payloads
     pricing.py               #   Per-1M-token price lookups for the Engine UI
-  data/seeds/                # Per-site experiment seed JSON
+  data/seeds/                # Curated strategies and their control sets, read by the mock model
+                             #   and the live tests
   domain/                    # Pure domain logic this app owns (no I/O); the WDK-shaped half is veupathdb.domain
     conversation.py          #   Thread-level defaults the persistence layer and the services share
     eda.py eda_compute_config.py eda_parts.py eda_thread.py   # EDA predicates, compute-config checks, parts, thread state
@@ -78,7 +79,8 @@ src/pathfinder/
     eda/                     #   EDA study catalog, subsetting, compute, export
     eval.py                  #   Thesis evaluation: gold strategies and their gene ids
     eval_data/               #   Eval staging and promotion
-    experiment/              #   Experiment engine (evaluate), scored and variant comparisons, seeds
+    experiment/              #   Experiment engine (evaluate), scored and variant comparisons,
+                             #     the seed catalog
     export/                  #   Data export and its sweeper, incl. control downloads
     gene_sets/               #   Gene set store, import, delete, VDI publication
     parameter_optimization/  #   Parameter sweeps, scoring, builders
@@ -99,7 +101,6 @@ src/pathfinder/
         chat.py              #     Chat endpoint
         conversations/       #     CRUD, events, counts, fork, revert, WDK import, scratchpad
         sites/               #     Site-scoped catalog and parameter endpoints
-        seed.py              #     Demo strategies and control sets, as a stream
         gene_sets/           #     Gene set list, delete, export, import, VDI publication
         eda.py               #     EDA studies, subset counts, distributions, viz
         evaluation.py        #     Thesis eval endpoints
@@ -117,7 +118,6 @@ src/pathfinder/
       schemas/               #   Pydantic request/response DTOs
       deps.py                #   FastAPI dependencies (auth, DB, site context)
       openapi.py             #   Spec post-passes
-      sse_utils.py           #   SSE encoding helpers
   devtools/                  # Developer CLIs (chat debugger, evals desk, openapi, WDK fixtures)
   tests/                     # Unit + integration tests
 ```

@@ -9,7 +9,7 @@ status: draft
 
 # Settings and account (A)
 
-Settings opens from the nav rail (`Settings`, gear) or on the `Model` tab from `AI model settings` (brain). Tabs: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`, `Seeding`. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
+Settings opens from the nav rail (`Settings`, gear) or on the `Model` tab from `AI model settings` (brain). Tabs: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. Under every tab, `PathFinder v<version>` names the release the api reports, which a finding quotes. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
 
 ## A1 - The model a turn runs on - core, once
 
@@ -74,12 +74,3 @@ This is the sweep of `H1` in the [runner checklist](runner-checklist.md).
 | 1 | Settings, `Advanced` | Untick `Show token usage` | The trace header loses its usage; the composer usage pill stays |
 | 2 | Same | Tick `Show raw tool calls in the conversation` | Each trace row gains a `Raw` toggle showing `Parameters` and `Result` |
 | 3 | Same | Tick `Also delete on VEuPathDB`, then delete a conversation from the sidebar | The dialog's own checkbox still decides; this toggle changes nothing today (record a minor if so) |
-
-## A7 - Seeding - once, on a scratch account
-
-| Step | Where | Do | Expect |
-|---|---|---|---|
-| 1 | Settings, `Seeding` | `PlasmoDB` | Progress messages, then six seeded strategies in the sidebar and their control sets available to the assistant (`List control sets` in a later trace) |
-| 2 | Cleanup | Settings, `Data`, `Clear site data`; delete the seeded conversations with the strategy box ticked | Nothing seeded remains |
-
-Not measured (it writes six strategies to the account). Expected: measure at UAT start.

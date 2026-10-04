@@ -37,7 +37,7 @@ src/
       data/                     #     Static thread data
     eda/                        #   EDA workbench, study picker, filters, compute config
     saved/                      #   Saved strategy library
-    settings/                   #   Settings modal (model, tiers, privacy, data, memory, seeding)
+    settings/                   #   Settings modal (model, tiers, keys, privacy, data, memory, release)
     sidebar/                    #   Conversation sidebar and its subtree dialogs
     sites/                      #   Site selection, banners, per-site theming
     strategy/                   #   Strategy graph and step editing
@@ -54,7 +54,7 @@ src/
                                 #     errors.ts, veupathdb-auth.ts
     query/                      #   React Query client, keys, hooks, invalidation, test helpers
     components/                 #   Shared shells (QueryBoundary, Modal, spinners, charts)
-    color/ config/ eda/ errors/ hooks/ markdown/ models/ parameters/ sse/ types/ utils/
+    color/ config/ eda/ errors/ hooks/ markdown/ models/ parameters/ types/ utils/
   state/                        # Global state (Zustand stores)
     useSessionStore.ts          #   Chat session state
     useSettingsStore.ts         #   User preferences

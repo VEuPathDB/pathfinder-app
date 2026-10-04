@@ -56,18 +56,6 @@ injection, and experiment ownership checks. Used by routers.
    :undoc-members:
    :show-inheritance:
 
-SSE Helpers
------------
-
-**Purpose:** Format a typed event as an SSE frame for the experiment, sweep
-and seed progress streams. Conversation does not use these; it goes through
-the LangGraph stream-event pipeline.
-
-.. automodule:: pathfinder.transport.http.sse_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Routers
 -------
 
@@ -140,11 +128,6 @@ specific domain area.
    :show-inheritance:
 
 .. automodule:: pathfinder.transport.http.routers.conversations.wdk_import
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.transport.http.routers.seed
    :members:
    :undoc-members:
    :show-inheritance:

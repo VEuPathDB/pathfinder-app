@@ -16,7 +16,7 @@ import { siteOrganism } from "../fixtures/site-reads";
 /**
  * Feature: `DELETE /api/v1/user/data` without a site clears the user's data on
  * every site, against the real database and the real WDK strategies. The Data
- * tab's own flows are A4 and A7 in `uat/settings-account.spec.ts`.
+ * tab's own flow is A4 in `uat/settings-account.spec.ts`.
  */
 
 /** Every conversation of the calling user, on every site. */

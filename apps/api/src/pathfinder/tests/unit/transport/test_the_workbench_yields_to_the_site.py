@@ -1,4 +1,4 @@
-"""The workbench routes are gone, and the seed route has its own path.
+"""The workbench routes are gone.
 
 A removed route answers what HTTP says for a path no route serves: 404 when no
 route template covers the path, 405 when a kept route covers it for another verb.
@@ -12,7 +12,6 @@ from fastapi.testclient import TestClient
 from starlette.routing import Match
 
 from pathfinder.main import create_app
-from pathfinder.tests._support.routes import api_routes
 
 _UNSERVED: list[tuple[str, str]] = [
     ("POST", "/api/v1/gene-sets/gs-1/enrich"),
@@ -79,9 +78,3 @@ def test_a_removed_verb_on_a_kept_path_is_not_allowed(
         method, path, headers={"X-Requested-With": "test"}
     )
     assert response.status_code == 405
-
-
-def test_the_seed_route_is_mounted_at_its_own_path(app: FastAPI) -> None:
-    pairs = {pair for route in api_routes(app.routes) for pair in route.pairs}
-
-    assert ("POST", "/api/v1/seed") in pairs

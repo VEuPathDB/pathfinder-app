@@ -189,7 +189,7 @@ async def test_a_preview_on_an_entity_the_study_does_not_carry_is_refused(
     wire: Wire,
 ) -> None:
     wired = wire(_route())
-    with pytest.raises(ValueError, match="ENT_nope"):
+    with pytest.raises(authoring.UnknownEntityError, match="has no entity ENT_nope"):
         await authoring.preview_subset(
             "plasmodb",
             dataset_id=_DATASET,

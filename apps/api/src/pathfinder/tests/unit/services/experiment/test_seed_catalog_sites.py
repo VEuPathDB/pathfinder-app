@@ -8,7 +8,6 @@ from veupathdb.wdk import load_sites_config
 
 from pathfinder.services.experiment.seed.catalog import (
     SEED_DATABASES,
-    get_all_seeds,
     get_seeds_for_site,
 )
 
@@ -32,6 +31,4 @@ def test_a_site_the_registry_does_not_name_is_refused() -> None:
 
 
 def test_every_listed_site_reads() -> None:
-    assert len(get_all_seeds()) > 0
-    for site in SEED_DATABASES:
-        assert get_seeds_for_site(site) is not None
+    assert [site for site in SEED_DATABASES if not get_seeds_for_site(site)] == []

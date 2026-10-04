@@ -9,7 +9,7 @@ test.describe("Settings", () => {
   test("switch between settings tabs", async ({ settingsPage }) => {
     await settingsPage.open();
 
-    for (const tab of ["Data", "Advanced", "Seeding", "Model"] as const) {
+    for (const tab of ["Data", "Advanced", "Model"] as const) {
       await settingsPage.openTab(tab);
       await settingsPage.expectOnlyTabActive(tab);
     }
@@ -23,10 +23,10 @@ test.describe("Settings", () => {
     await settingsPage.openTab("Advanced");
 
     await page.keyboard.press("ArrowRight");
-    await settingsPage.expectOnlyTabActive("Seeding");
-    await page.keyboard.press("Home");
     await settingsPage.expectOnlyTabActive("Model");
     await page.keyboard.press("End");
-    await settingsPage.expectOnlyTabActive("Seeding");
+    await settingsPage.expectOnlyTabActive("Advanced");
+    await page.keyboard.press("Home");
+    await settingsPage.expectOnlyTabActive("Model");
   });
 });

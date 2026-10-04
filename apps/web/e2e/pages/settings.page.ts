@@ -1,6 +1,6 @@
 import { type Locator, type Page, expect } from "@playwright/test";
 
-type SettingsTab = "Model" | "Data" | "Advanced" | "Seeding";
+type SettingsTab = "Model" | "Data" | "Advanced";
 
 export class SettingsPage {
   constructor(private page: Page) {}
@@ -34,7 +34,7 @@ export class SettingsPage {
 
   /** One tab is active and no other is. */
   async expectOnlyTabActive(tabName: SettingsTab) {
-    for (const tab of ["Model", "Data", "Advanced", "Seeding"] as const) {
+    for (const tab of ["Model", "Data", "Advanced"] as const) {
       if (tab === tabName) {
         await expect(this.tab(tab)).toHaveAttribute("aria-selected", "true");
       } else {
@@ -48,7 +48,7 @@ export class SettingsPage {
   }
 
   async expectAllTabsVisible() {
-    for (const tab of ["Model", "Data", "Advanced", "Seeding"] as const) {
+    for (const tab of ["Model", "Data", "Advanced"] as const) {
       await this.expectTabVisible(tab);
     }
   }

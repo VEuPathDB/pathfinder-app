@@ -1,7 +1,7 @@
 /**
- * UAT flows A1 to A7: the Settings tabs, the usage figures of a turn, the data
- * tab, privacy, the local settings and seeding. Prices, counts and model names
- * are read from the api at run time; only the model is mocked.
+ * UAT flows A1 to A6: the Settings tabs, the usage figures of a turn, the data
+ * tab, privacy and the local settings. Prices, counts and model names are read
+ * from the api at run time; only the model is mocked.
  */
 
 import type { Locator, Page } from "@playwright/test";
@@ -41,15 +41,7 @@ const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
 const COUNT_QUESTION = "How many genes does this strategy return?";
 
-const TAB_LABELS = [
-  "Model",
-  "Provider keys",
-  "Data",
-  "Memory",
-  "Privacy",
-  "Advanced",
-  "Seeding",
-];
+const TAB_LABELS = ["Model", "Provider keys", "Data", "Memory", "Privacy", "Advanced"];
 const TIER_LABELS: Record<string, string> = {
   quality: "Quality",
   balanced: "Balanced",
@@ -142,25 +134,6 @@ async function importGeneSet(api: ApiClient, siteId: string, name: string) {
   });
   expect(resp.status(), `import ${await resp.text()}`).toBe(201);
   return (await resp.json()) as GeneSet;
-}
-
-interface SeedFrame {
-  type: string;
-  message: string;
-}
-
-interface SeedCompleteFrame extends SeedFrame {
-  type: "seed_complete";
-  strategiesCreated: number;
-  error: string | null;
-}
-
-/** The typed frames of one `/api/v1/seed` stream. */
-function seedFrames(body: string): SeedFrame[] {
-  return body
-    .split("\n")
-    .filter((line) => line.startsWith("data: ") && line.trim() !== "data: [DONE]")
-    .map((line) => JSON.parse(line.slice("data: ".length)) as SeedFrame);
 }
 
 test.describe("Settings and account", () => {
@@ -529,72 +502,4 @@ test.describe("Settings and account", () => {
       await expect(raw.getByRole("heading", { name: "Result" })).toHaveCount(1);
     },
   );
-
-  test("A7 - Seeding", async ({
-    sidebarPage,
-    settingsPage,
-    apiClient,
-    page,
-    siteId,
-  }) => {
-    test.setTimeout(600_000);
-    await openSite(page, siteId);
-    await openSettingsTab(page, settingsPage, "Seeding");
-    const dialog = settingsDialog(page);
-    const seedSite = dialog
-      .getByRole("button")
-      .filter({ hasText: siteShortName(siteId) });
-    const seeded = page.waitForResponse(
-      (r) =>
-        r.url().includes(`/api/v1/seed?siteId=${siteId}`) &&
-        r.request().method() === "POST",
-      { timeout: 480_000 },
-    );
-    await seedSite.click();
-    await expect(seedSite).toBeDisabled();
-    const stream = await seeded;
-    expect(stream.ok()).toBe(true);
-    const frames = seedFrames(await stream.text());
-    const complete = frames.find(
-      (f): f is SeedCompleteFrame => f.type === "seed_complete",
-    );
-    if (complete === undefined)
-      throw new Error("the seed stream carried no seed_complete");
-    expect(complete.error).toBe(null);
-    expect(complete.strategiesCreated).toBeGreaterThan(0);
-    await expect(dialog.getByText(complete.message, { exact: true })).toBeVisible();
-    await expect(seedSite).toBeEnabled();
-    await settingsPage.close();
-
-    const active = await listConversations(apiClient, siteId);
-    const linked = active.filter((row) => row.wdkStrategyId != null);
-    expect(linked.length).toBeGreaterThanOrEqual(complete.strategiesCreated);
-    await sidebarPage.refresh();
-    await expect(sidebarPage.items).toHaveCount(active.length, { timeout: 30_000 });
-
-    await openSettingsTab(page, settingsPage, "Data");
-    await dialog.getByRole("button", { name: "Clear site data", exact: true }).click();
-    const purge = purgeResponse(page);
-    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
-    expect((await purge).ok()).toBe(true);
-    expect(await listConversations(apiClient, siteId)).toEqual([]);
-    const dismissed = await listConversations(apiClient, siteId, "dismissed");
-    expect(dismissed).toHaveLength(active.length);
-
-    for (const row of dismissed) {
-      const gone = await apiClient.delete(
-        `/api/v1/conversations/${row.id}?deleteFromWdk=true`,
-      );
-      expect(gone.ok(), `delete ${row.id}: ${gone.status()}`).toBe(true);
-    }
-    expect(await listConversations(apiClient, siteId, "dismissed")).toEqual([]);
-    for (const { wdkStrategyId } of linked) {
-      const reopen = await apiClient.post("/api/v1/conversations/open", {
-        data: { siteId, wdkStrategyId },
-      });
-      expect(reopen.ok(), `strategy ${String(wdkStrategyId)} survived on WDK`).toBe(
-        false,
-      );
-    }
-  });
 });

@@ -1,8 +1,8 @@
 Services
 ========
 
-Core business logic for parameter optimization, export and seeding. Services
-are stateless and orchestrated by the chat layer.
+Core business logic for parameter optimization and export. Services are
+stateless and orchestrated by the chat layer.
 
 Overview
 --------
@@ -10,7 +10,8 @@ Overview
 - **Parameter optimization** — Optimize search parameters against positive/negative
   control lists using Bayesian optimization (TPE), grid, or random search.
 - **Export** — Generate a downloadable file from strategy results and gene sets.
-- **Experiment seeds** — Demo experiments with pre-built strategies and controls.
+- **Seed catalog** - Curated strategies with their control sets, read by the
+  mock model and the live tests.
 - **Evidence facade** — The one door the agent and the jobs use to reach gene
   sets, control sets, variant comparisons and parameter sweeps.
 
@@ -88,12 +89,12 @@ in Postgres for client retrieval.
    :undoc-members:
    :show-inheritance:
 
-Experiment Seed Data
---------------------
+Seed Catalog
+------------
 
-**Purpose:** Generate demo strategies with pre-built multi-step trees and
-control sets across 13 VEuPathDB databases. Triggered via ``POST /api/v1/seed``
-or the Settings > Seeding UI.
+**Purpose:** Curated strategies with multi-step trees and control sets across
+the VEuPathDB databases, read by the deterministic mock model, the measurement
+refresher and the live tests.
 
 Each database has curated seed definitions with organism-specific searches,
 known positive/negative gene controls, and step trees that demonstrate
@@ -101,11 +102,6 @@ real research workflows (e.g. drug resistance genes in PlasmoDB, virulence
 factors in TriTrypDB).
 
 .. automodule:: pathfinder.services.experiment.seed
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. automodule:: pathfinder.services.experiment.seed.runner
    :members:
    :undoc-members:
    :show-inheritance:

@@ -11,7 +11,6 @@ from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.experiment.seed.catalog import (
     SEED_DATABASES,
     SEEDS_DIR,
-    get_all_seeds,
     get_seeds_for_site,
 )
 from pathfinder.services.experiment.seed.types import (
@@ -90,8 +89,8 @@ def test_every_step_tree_builds_a_strategy_node(site_id: str) -> None:
     ]
 
 
-def test_get_all_seeds_totals_the_per_site_counts() -> None:
-    assert len(get_all_seeds()) == TOTAL_SEEDS
+def test_the_catalog_totals_the_per_site_counts() -> None:
+    assert sum(len(get_seeds_for_site(site)) for site in SEED_DATABASES) == TOTAL_SEEDS
     assert sum(EXPECTED_COUNTS.values()) == TOTAL_SEEDS
 
 
