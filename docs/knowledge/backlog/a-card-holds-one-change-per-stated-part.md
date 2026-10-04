@@ -15,8 +15,27 @@ status: proposed
 
 **Why that's wrong.** The researcher asked for a union of two arms and was offered a replacement term; accepting builds a strategy they did not ask for, described as focused.
 
-**Why it happens.** The card's changes are the Lead's own, and nothing holds them to the parts the message states; the comparison returns ids without products, so "focused" is never checked against the sample.
+**Why it happens.** The card's changes are the Lead's own, and nothing holds them
+to the parts the message states. In that run the researcher's text was a second
+`consult_user` answer under the same message: `classify_user_intent` refused the
+Lead's classification of it ("already classified as clarification_response",
+`ai/lead/lead_tools.py`), so `deps.intent` kept the first answer's parts, and the
+only record of the second answer is one `other` requirement holding the whole note
+(`ai/lead/lead_consult.py::_answer_requirement`). A `ProposedChange` carries a search
+name and wire values, and nothing links it to a stated part, so matching words
+against wire values would refuse good cards.
 
-**Fix.** `propose_changes` is refused when a stated part of the message (the classifier's asks) has no change and no question on the card; `compare_search_variants` returns each unique gene with its product.
+**Fix.** A design decision, not yet taken:
+- A card answer under the same message reopens classification, so its stated
+  parts reach `deps.intent`.
+- Each `ProposedChange` names the `Constraint.key` values it answers, and the card
+  names the keys it leaves to a question; an unknown key is refused.
+- `propose_changes` is registered with an `args_validator` (the pattern
+  `consult_user` uses) that refuses a card when a stated part is in neither list,
+  naming the part by its label. A part the spec already binds needs no change, and
+  a combination is covered when each of its terms is.
 
-**What you'd get.** A card with two changes (the phrase arm and the VSG arm under UNION), and unique genes shown with products.
+The comparison half is done: each sampled unique gene carries its product.
+
+**What you'd get.** A card with two changes (the phrase arm and the VSG arm under
+UNION) for that message, or a refusal naming the uncovered part.

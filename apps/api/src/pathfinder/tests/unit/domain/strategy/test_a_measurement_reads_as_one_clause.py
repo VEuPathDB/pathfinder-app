@@ -128,6 +128,31 @@ def test_an_unquoted_text_reads_its_word_count_beside_its_phrase_count() -> None
     ]
 
 
+def test_a_quoted_text_reads_its_phrase_count_beside_its_word_count() -> None:
+    """The tritrypdb quoted text counts 1 gene, and 12 as any of its words."""
+    words = _criterion(
+        "text_expression",
+        '"GPI anchored"',
+        "chosen",
+        Measurement(
+            kind="words_reading",
+            param="text_expression",
+            count=12,
+            reading="GPI anchored",
+        ),
+        1,
+        "Text term (use * as wildcard)",
+    )
+    uncounted = words.model_copy(update={"result_count": None})
+
+    assert [measurement_clauses(c, noun="gene") for c in (words, uncounted)] == [
+        [
+            "Text term (use * as wildcard) as the phrase: 1 gene; as any of its words: 12"
+        ],
+        ["Text term (use * as wildcard) as any of its words: 12 genes"],
+    ]
+
+
 def test_a_species_group_reads_both_ways() -> None:
     group = _criterion(
         "included_species",

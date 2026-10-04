@@ -20,12 +20,8 @@ _SERVER_ERROR_STATUS = 500
 
 
 def site_words(error: BaseException) -> str:
-    """What the site said, with its status, and with the transport error named
-    when it says nothing."""
+    """What the site said, with its status."""
     said = str(error).strip()
-    cause = error.__cause__
-    if cause is not None and not str(cause).strip():
-        said = f"{said} {type(cause).__name__}".strip()
     match error:
         case WDKError(status=status) | ExternalServiceError(status=status):
             return f"HTTP {status}: {said}"

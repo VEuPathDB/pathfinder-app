@@ -7,6 +7,7 @@ how the case arrived and when, and never a user or a thread.
 from __future__ import annotations
 
 import datetime
+from collections.abc import Iterable
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -178,6 +179,8 @@ class ExpectedOutcome(CamelModel):
     unexpressed_requirements: int | None = None
     turn_reply_mentions: dict[int, list[str]] = Field(default_factory=dict)
     turn_reply_omits: dict[int, list[str]] = Field(default_factory=dict)
+    # A later turn, and the earlier turn whose records it must show again.
+    same_records_as: dict[int, int] = Field(default_factory=dict)
     assumed_stated: int | None = Field(default=None, ge=0)
     root_count: RecordedCount | None = None
     ends_on: GateEnd | None = None
@@ -211,12 +214,15 @@ class EvalCase(CamelModel):
     attachments: dict[int, list[str]] = Field(default_factory=dict)
     new_conversation_before: list[int] = Field(default_factory=list)
 
+    def _named_turns_exist(self, turns: Iterable[int], what: str) -> None:
+        for turn in sorted(turns):
+            if not 0 <= turn < len(self.turns):
+                msg = f"{what} names turn {turn}, and the case has {len(self.turns)}"
+                raise ValueError(msg)
+
     @model_validator(mode="after")
     def _indexes_name_a_turn(self) -> EvalCase:
-        for turn in self.attachments:
-            if not 0 <= turn < len(self.turns):
-                msg = f"an attachment names turn {turn}, and the case has {len(self.turns)}"
-                raise ValueError(msg)
+        self._named_turns_exist(self.attachments, "an attachment")
         for turn in self.new_conversation_before:
             if not 0 < turn < len(self.turns):
                 msg = f"a new conversation starts before a later turn, not turn {turn}"
@@ -231,11 +237,15 @@ class EvalCase(CamelModel):
         ):
             msg = "a case that must build nothing never accepts an offer"
             raise ValueError(msg)
-        phrased = {*self.expected.turn_reply_mentions, *self.expected.turn_reply_omits}
-        for turn in sorted(phrased):
-            if not 0 <= turn < len(self.turns):
-                msg = f"a reply phrase names turn {turn}, and the case has {len(self.turns)}"
-                raise ValueError(msg)
+        expected = self.expected
+        self._named_turns_exist(
+            {*expected.turn_reply_mentions, *expected.turn_reply_omits},
+            "a reply phrase",
+        )
+        self._named_turns_exist(
+            {t for pair in expected.same_records_as.items() for t in pair},
+            "a record comparison",
+        )
         return self
 
     def _free_text(self) -> list[str]:

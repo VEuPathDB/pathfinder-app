@@ -20,6 +20,7 @@ from assistant_core.platform.db import DBSessionFactory
 from assistant_core.platform.logging import get_logger
 from veupathdb.wdk import get_strategy_api
 
+from pathfinder.domain.strategy.generated_name import named_steps
 from pathfinder.domain.strategy.revision import parse_strategy_ast
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.persistence.models import ConversationStrategyView
@@ -121,19 +122,28 @@ def name_for_the_push(graph: StrategyGraph, user_prompt: str) -> str:
 
 
 async def name_the_thread(
-    threads: ThreadNames, conversation_id: UUID, name: str
+    threads: ThreadNames,
+    conversation_id: UUID,
+    name: str,
+    *,
+    generated_over: list[str] | None,
 ) -> NamedThread | None:
     """Write the name on the thread, its stored strategy and its imported set.
 
-    The store can adjust the name to keep it unique, so the copies take the
-    name it stored. The caller holds the thread's strategy lock.
+    ``generated_over`` is None for a name a person chose, or the steps a
+    generated name covers. The store can adjust the name to keep it unique, so
+    the copies take the name it stored. The caller holds the strategy lock.
     """
     found = await threads.get_with_strategy(conversation_id)
     if found is None:
         return None
     conversation, strategy = found
     previous = conversation.name
-    written = ConversationUpdate(name=name)
+    written = ConversationUpdate(
+        name=name,
+        generated_name_steps=generated_over,
+        generated_name_steps_set=generated_over != strategy.generated_name_steps,
+    )
     await threads.update_conversation(conversation_id, written)
     stored = written.name or name
     ast = parse_strategy_ast(strategy.strategy_ast)
@@ -193,7 +203,10 @@ async def name_the_thread_as_the_graph(
         return
     async with scope as session:
         named = await name_the_thread(
-            ConversationRepository(session), deps.conversation_id, graph.name
+            ConversationRepository(session),
+            deps.conversation_id,
+            graph.name,
+            generated_over=None,
         )
     if named is not None:
         graph.name = named.name
@@ -228,7 +241,7 @@ async def rename_strategy_everywhere(
     """
     async with strategy_write_lock(conversation_id, session_factory) as locked:
         named = await name_the_thread(
-            ConversationRepository(locked), conversation_id, name
+            ConversationRepository(locked), conversation_id, name, generated_over=None
         )
     if named is None:
         return None
@@ -249,18 +262,26 @@ async def name_if_unnamed(
 ) -> TitleWrite:
     """Give an unnamed thread ``title`` on the thread and its local copies.
 
-    A named thread whose stored strategy carries another name takes the
-    thread's name back onto its strategy. The caller sends the name to WDK.
+    The title records the steps the strategy holds. A named thread whose
+    stored strategy carries another name takes the thread's name back onto its
+    strategy. The caller sends the name to WDK.
     """
     found = await threads.get_with_strategy(conversation_id)
     if found is None:
         return TitleWrite(written=False)
     conversation, strategy = found
-    if not conversation.name:
-        named = await name_the_thread(threads, conversation_id, title)
-        return TitleWrite(written=True, named=named)
     ast = parse_strategy_ast(strategy.strategy_ast)
+    if not conversation.name:
+        named = await name_the_thread(
+            threads, conversation_id, title, generated_over=named_steps(ast)
+        )
+        return TitleWrite(written=True, named=named)
     if ast is None or ast.name == conversation.name:
         return TitleWrite(written=False)
-    named = await name_the_thread(threads, conversation_id, conversation.name)
+    named = await name_the_thread(
+        threads,
+        conversation_id,
+        conversation.name,
+        generated_over=strategy.generated_name_steps,
+    )
     return TitleWrite(written=False, named=named)

@@ -16,6 +16,8 @@ from veupathdb.wdk import (
     VdiClient,
     VdiDatasetGoneError,
     VdiDatasetListEntry,
+    VdiDatasetStatus,
+    VdiImportStatus,
     VdiInstallDisposition,
     VdiServiceError,
     eda_dataset_id,
@@ -35,6 +37,9 @@ logger = get_logger(__name__)
 
 NO_REASON = "VEuPathDB could not install the dataset and gave no reason."
 NOT_VISIBLE_YET = "Installed; the study is not visible yet."
+IMPORTER_FAULTED = (
+    "The site's importer faulted on this upload; upload the same files again."
+)
 
 # The site's own page for a researcher's datasets, where uploads are made.
 _WORKSPACE_PATH = "/app/workspace/datasets"
@@ -98,7 +103,7 @@ async def own_datasets(site_id: str) -> OwnDatasets:
 async def _own(
     project_id: str, client: VdiClient, row: VdiDatasetListEntry
 ) -> OwnDataset | None:
-    """One row's state. A failed row reads the dataset, because only it holds VDI's text."""
+    """One row's state. A failed row reads the dataset, which holds VDI's text and exact status."""
     listed = OwnDataset(
         vdi_id=row.dataset_id, name=row.name, created=row.created, state="installing"
     )
@@ -108,12 +113,24 @@ async def _own(
                 details = await client.get(row.dataset_id)
             except VdiDatasetGoneError:
                 return None
-            text = " ".join(details.status.failure_messages(project_id)) or NO_REASON
-            return replace(listed, state="failed", message=text)
+            return replace(
+                listed, state="failed", message=_failure(project_id, details.status)
+            )
         case VdiInstallDisposition.INSTALLED:
             return replace(listed, state="installed")
         case _:
             return listed
+
+
+def _failure(project_id: str, status: VdiDatasetStatus) -> str:
+    """The failure as the researcher reads it.
+
+    A failed import is the site's plugin faulting, so the same files can install.
+    An invalid import is the plugin refusing the data, and VDI's text names why.
+    """
+    if status.import_ is not None and status.import_.status == VdiImportStatus.FAILED:
+        return IMPORTER_FAULTED
+    return " ".join(status.failure_messages(project_id)) or NO_REASON
 
 
 async def _readable(

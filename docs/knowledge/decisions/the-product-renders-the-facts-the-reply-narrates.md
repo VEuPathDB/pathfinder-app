@@ -25,7 +25,8 @@ It holds:
   is no caveat as well (`TurnFacts._one_drawer_per_measurement`), and a clause or a caveat
   names a pick of more than three values by its size (`measurement_clauses.shown_value`); the
   row shows it whole. An analysis row names its filters and its measured variable as the study
-  does (`AnalysisBinding.shown_subset`, `value_variable_name`, read by the export) and each
+  does (`AnalysisBinding.shown_subset`, `value_variable_name`, read by the export, or by the
+  pre-turn for a step the graph editor or the site added) and each
   chosen cut beside the count the compute holds at its other reading (`CutTallies`). While nothing is built the bound criteria of the spec
   stand in as a draft, each with the count it bound at;
 - the root count, the titles of the steps the turn deleted, and the strategy link the build
@@ -39,7 +40,9 @@ It holds:
   before a check), the gaps (with each requirement a framing pass found no search on the site
   states, `FrameResult.unstated`, in words a researcher message carries, so a turn that builds
   nothing still shows what the site lacks), the column fits, and the requirements the researcher withdrew or
-  an answer replaced (`retired_requirements`), shown as retired and never as gaps;
+  an answer replaced (`retired_requirements`), shown as retired and never as gaps; a
+  withdrawn combination shows only the sides a delete removed
+  (`RetiredRequirement.shown_requirements`), never a side a step can still answer;
 - the gene sets and control sets this turn saved, the control results it measured, a
   stopped check;
 - every record a read of the turn returned, as a `SourceFact` under the step whose listing gave

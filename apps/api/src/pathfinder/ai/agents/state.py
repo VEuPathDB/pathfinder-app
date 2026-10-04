@@ -8,7 +8,7 @@ from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
-from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.named_combine import NamedCombine
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -17,7 +17,9 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     ParameterAlternatives,
     SpecStructure,
+    structure_criteria,
 )
+from pathfinder.domain.strategy.orthology_request import OrthologyRequest
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.services.strategies.cut_picks import OptionsRead
 from pathfinder.services.strategies.measurements import TurnCounts
@@ -195,6 +197,9 @@ class AgentToolState:
     # dispatch found. A tree that moves another combine is refused.
     named_combine: NamedCombine | None = None
     held_structure: SpecStructure | None = None
+    # The orthology shape this turn's message asks for. A tree of the other
+    # shape is refused, and a carry binds the organism the message names.
+    orthology_request: OrthologyRequest | None = None
     # The combine operators this turn's message names by an operator word.
     stated_operators: frozenset[CombineOp] = frozenset()
     # The requirements the thread states. A dropped criterion holds open the one
@@ -219,6 +224,14 @@ class AgentToolState:
     # The counts read for other readings of bound values. Every pass of the
     # turn shares it, so one configuration is read once.
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
+
+    def phrasings_the_request_states(self, phrasings: Sequence[str]) -> list[str]:
+        """The phrasings a request message carries every word of."""
+        return [
+            phrasing
+            for phrasing in phrasings
+            if any(message_states(m, phrasing) for m in self.request_messages)
+        ]
 
     def pin_sheet(
         self,
@@ -310,6 +323,21 @@ class AgentToolState:
 
     def frame_set_structure(self, structure: SpecStructure) -> None:
         self.operational_spec_draft.structure = structure
+
+    @property
+    def held_criteria(self) -> frozenset[str]:
+        """The criteria the tree the dispatch found states a step for."""
+        return structure_criteria(self.held_structure)
+
+    def carried_to(self, criterion_id: str) -> str:
+        """The organism this turn's message carries a new transform to, or empty.
+
+        A criterion the found tree holds keeps the organism it runs on.
+        """
+        request = self.orthology_request
+        if request is None or request.shape != "transform":
+            return ""
+        return "" if criterion_id in self.held_criteria else request.target
 
     def frame_drop_criterion(
         self, criterion_id: str, reason: str, *, requirement: Constraint | None = None

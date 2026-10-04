@@ -11,10 +11,13 @@ status: stable
 # What was decided
 
 `ai/conversation/turn_runner.py` writes `data-conversation-title` at one point
-of every turn: after the epilogue, immediately before the `finish` chunk. The
-title task is awaited there under `_TITLE_WAIT_SECONDS` (15), and a title the
-model does not produce inside that window is dropped with a warning, so a slow
-title model cannot hold the turn open.
+of every turn: after the epilogue, immediately before the `finish` chunk, through
+`ai/conversation/turn_title.py::write_turn_name`. The title task is awaited there
+under `TITLE_WAIT_SECONDS` (15), and a title the model does not produce inside
+that window is dropped with a warning, so a slow title model cannot hold the
+turn open. A turn that writes no first title writes, at the same point, a
+generated name its edits outdated
+([a-generated-name-follows-the-steps-it-names](a-generated-name-follows-the-steps-it-names.md)).
 
 The turn therefore always ends `data-conversation-title`, `finish`, `done` when
 it names the thread, and `finish`, `done` when it does not.
@@ -83,7 +86,9 @@ the lock, and then sends the name to WDK under its own 10 s bound
 (`naming.WDK_RENAME_SECONDS`), catching every failure there. `_write_title`
 catches any failure of the write and logs it, so the worst case before `finish`
 is 15 + 10 + 10 s, and a write that fails or times out costs one title chunk:
-the next turn names the thread, and the next push sends the name to WDK.
+the next turn names the thread, and the next push sends the name to WDK. The
+check for an outdated generated name runs only when no first title was written,
+under its own 15 s ceiling.
 
 # What would change this
 

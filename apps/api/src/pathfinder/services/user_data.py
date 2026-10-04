@@ -165,7 +165,7 @@ async def purge_user_data(
 
     await session.commit()
 
-    memories = 0 if site_id else await _purge_memories(memory_store, session, user_id)
+    memories = 0 if site_id else await purge_memories(memory_store, session, user_id)
 
     strategies_handled = hard_deleted_count + dismissed_count
     logger.info(
@@ -217,7 +217,7 @@ async def _memory_keys(
         offset += _MEMORY_PAGE
 
 
-async def _purge_memories(
+async def purge_memories(
     store: MemoryStore,
     session: AsyncSession,
     user_id: UUID,

@@ -10,33 +10,37 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import JsonValue
+from veupathdb.domain import WDKRecordIdPart
 from veupathdb.domain.parameters import MultiPickValue, NumberValue, StringValue
 from veupathdb.errors import WDKError
-from veupathdb.wdk import VEuPathDBClient, WDKAnswerMeta
+from veupathdb.wdk import (
+    VEuPathDBClient,
+    WDKAnswer,
+    WDKAnswerMeta,
+    WDKRecordInstance,
+)
 
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.variant_comparison import (
+    UniqueGene,
     VariantSpec,
     run_variant_comparison,
 )
 
 
-def _answer(gene_ids: list[str]) -> Any:
-    records = []
-    for gid in gene_ids:
-        rec = MagicMock()
-        rec.id = [MagicMock(value=gid)]
-        records.append(rec)
-    answer = MagicMock()
-    answer.records = records
-    # A real meta, so the count accessor under test actually runs.
-    answer.meta = WDKAnswerMeta(
-        total_count=len(gene_ids),
-        display_total_count=len(gene_ids),
-        view_total_count=len(gene_ids),
-        display_view_total_count=len(gene_ids),
+def _answer(gene_ids: list[str]) -> WDKAnswer:
+    return WDKAnswer(
+        records=[
+            WDKRecordInstance(id=[WDKRecordIdPart(name="gene_source_id", value=gid)])
+            for gid in gene_ids
+        ],
+        meta=WDKAnswerMeta(
+            total_count=len(gene_ids),
+            display_total_count=len(gene_ids),
+            view_total_count=len(gene_ids),
+            display_view_total_count=len(gene_ids),
+        ),
     )
-    return answer
 
 
 def _patch_client(
@@ -90,9 +94,9 @@ async def test_compares_sizes_overlap_and_unique_genes(
     assert by_label["5-fold"].gene_count == 3
     # g1,g2 are unique to 2-fold; g5 unique to 5-fold.
     assert by_label["2-fold"].unique_count == 2
-    assert set(by_label["2-fold"].sample_unique_genes) == {"g1", "g2"}
+    assert [g.gene_id for g in by_label["2-fold"].sample_unique_genes] == ["g1", "g2"]
     assert by_label["5-fold"].unique_count == 1
-    assert by_label["5-fold"].sample_unique_genes == ["g5"]
+    assert [g.gene_id for g in by_label["5-fold"].sample_unique_genes] == ["g5"]
 
     assert len(result.overlaps) == 1
     ov = result.overlaps[0]
@@ -209,12 +213,26 @@ class _TranscriptSite:
         }
 
 
+def _reporting_as_sent(monkeypatch: pytest.MonkeyPatch) -> VEuPathDBClient:
+    """A client whose report sends the values as given, reading no definition."""
+    client = VEuPathDBClient("https://example.invalid/service")
+
+    async def _as_given(
+        record_type: str, search_name: str, params: dict[str, str]
+    ) -> dict[str, str]:
+        del record_type, search_name
+        return params
+
+    monkeypatch.setattr(client, "expand_tree_params_to_leaves", _as_given)
+    return client
+
+
 @pytest.mark.asyncio
 async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     site = _TranscriptSite()
-    client = VEuPathDBClient("https://example.invalid/service")
+    client = _reporting_as_sent(monkeypatch)
     monkeypatch.setattr(client, "post", site)
     monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
 
@@ -235,6 +253,122 @@ async def test_a_transcript_search_reports_one_row_per_gene_under_the_cap(
     ]
     assert result.truncated is False
     assert result.variants[0].gene_count == _GENES
+
+
+# Rows tritrypdb answers for GenesByText on T. congolense IL3000 product
+# descriptions, keyed by the text term each variant sends.
+_PRODUCT_ROWS: dict[str, list[tuple[str, str]]] = {
+    "GPI anchored": [
+        (
+            "TcIL3000_0_29570",
+            "Glucose-6-phosphate isomerase (GPI) (EC 5.3.1.9)",
+        ),
+        ("TcIL3000_10_11240", "gpi mannosyltransferase 2"),
+        ("TcIL3000.11.1490", "GPI anchored cell wall protein"),
+    ],
+    '"GPI anchored"': [
+        ("TcIL3000.11.1490", "GPI anchored cell wall protein"),
+    ],
+}
+
+
+def _product_row(gene_id: str, product: str, asked: list[str]) -> JsonValue:
+    return {
+        "id": [
+            {"name": "gene_source_id", "value": gene_id},
+            {"name": "source_id", "value": f"{gene_id}:mRNA"},
+            {"name": "project_id", "value": "TriTrypDB"},
+        ],
+        "attributes": dict.fromkeys(asked, product),
+    }
+
+
+class _ProductSite:
+    """Answers a report with each requested attribute, the way WDK does."""
+
+    def __init__(self) -> None:
+        self.bodies: list[dict[str, Any]] = []
+
+    async def __call__(
+        self, path: str, json: dict[str, Any] | None = None, **_: object
+    ) -> JsonValue:
+        body = json or {}
+        self.bodies.append(body)
+        asked = body["reportConfig"]["attributes"]
+        term = body["searchConfig"]["parameters"]["text_expression"]
+        rows = [
+            _product_row(gene_id, product, asked)
+            for gene_id, product in _PRODUCT_ROWS[term]
+        ]
+        return {
+            "records": rows,
+            "meta": {
+                "totalCount": len(rows),
+                "displayTotalCount": len(rows),
+                "viewTotalCount": len(rows),
+                "displayViewTotalCount": len(rows),
+                "responseCount": len(rows),
+                "recordClassName": "transcript",
+            },
+        }
+
+
+def _text_variants(record_type: str) -> list[VariantSpec]:
+    return [
+        VariantSpec(
+            label=label,
+            search_name="GenesByText",
+            record_type=record_type,
+            parameters={"text_expression": StringValue(value=term)},
+        )
+        for label, term in (("word", "GPI anchored"), ("phrase", '"GPI anchored"'))
+    ]
+
+
+@pytest.mark.parametrize(
+    ("record_type", "attribute"), [("transcript", "gene_product"), ("gene", "product")]
+)
+@pytest.mark.asyncio
+async def test_each_unique_gene_carries_the_product_its_record_names(
+    monkeypatch: pytest.MonkeyPatch, record_type: str, attribute: str
+) -> None:
+    site = _ProductSite()
+    client = _reporting_as_sent(monkeypatch)
+    monkeypatch.setattr(client, "post", site)
+    monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
+
+    result = await run_variant_comparison("tritrypdb", _text_variants(record_type))
+
+    assert [body["reportConfig"]["attributes"] for body in site.bodies] == [
+        [attribute],
+        [attribute],
+    ]
+    assert result.variants[0].sample_unique_genes == [
+        UniqueGene(
+            gene_id="TcIL3000_0_29570",
+            product="Glucose-6-phosphate isomerase (GPI) (EC 5.3.1.9)",
+        ),
+        UniqueGene(gene_id="TcIL3000_10_11240", product="gpi mannosyltransferase 2"),
+    ]
+    assert result.variants[1].sample_unique_genes == []
+
+
+@pytest.mark.asyncio
+async def test_a_record_type_that_names_no_product_samples_ids_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    site = _ProductSite()
+    client = _reporting_as_sent(monkeypatch)
+    monkeypatch.setattr(client, "post", site)
+    monkeypatch.setattr(variant_comparison, "get_wdk_client", lambda _site: client)
+
+    result = await run_variant_comparison("tritrypdb", _text_variants("pathway"))
+
+    assert [body["reportConfig"]["attributes"] for body in site.bodies] == [[], []]
+    assert result.variants[0].sample_unique_genes == [
+        UniqueGene(gene_id="TcIL3000_0_29570"),
+        UniqueGene(gene_id="TcIL3000_10_11240"),
+    ]
 
 
 @pytest.mark.asyncio

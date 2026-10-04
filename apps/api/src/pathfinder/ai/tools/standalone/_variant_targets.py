@@ -11,10 +11,8 @@ from difflib import get_close_matches
 
 from pydantic import TypeAdapter
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import (
     MultiPickValue,
-    ParameterCanonicalizer,
     ParamValue,
     SinglePickValue,
     match_exact_option,
@@ -23,8 +21,6 @@ from veupathdb.domain.parameters import (
 from veupathdb.domain.strategy import COMBINE_SEARCH_NAME
 from veupathdb_mcp.catalog import (
     ParameterInfo,
-    adapt_param_specs_from_search,
-    resolve_search_details,
 )
 
 from pathfinder.ai.tools.standalone._frame_proposals import (
@@ -301,36 +297,6 @@ async def checked_variants(
             else _entry_value(variant, infos[name], value)
             for name, value in variant.parameters.items()
         }
-        trees = [
-            n
-            for n, value in entries.items()
-            if infos[n].allowed_values_tree is not None
-            and held.get(n) != to_wire(value)
-        ]
-        if trees:
-            entries = {
-                **entries,
-                **await _tree_leaves(site_id, variant, entries, trees),
-            }
         entries = {**_published_defaults(variant, infos), **entries}
         checked.append(variant.model_copy(update={"parameters": entries}))
     return checked
-
-
-async def _tree_leaves(
-    site_id: str,
-    variant: VariantSpec,
-    entries: dict[str, ParamValue],
-    trees: list[str],
-) -> dict[str, ParamValue]:
-    """Each tree value as the leaves the site counts, by the canonicalizer the
-    bind runs, over the definition WDK builds from the variant's own values."""
-    resolved = await resolve_search_details(
-        SearchContext(site_id, variant.record_type, variant.search_name),
-        resolved_record_type=variant.record_type,
-        parameters=entries,
-    )
-    specs = adapt_param_specs_from_search(resolved.response.search_data)
-    return ParameterCanonicalizer(specs).canonicalize(
-        {name: entries[name] for name in trees}
-    )

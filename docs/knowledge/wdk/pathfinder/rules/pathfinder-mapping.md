@@ -340,6 +340,18 @@ would answer another organism's genes (a one-way transform) is refused with the
 round trip above
 (`domain/strategy/orthology.py:organism_move_refusal`, read by the edit
 dispatch).
+The message's words choose between the two shapes
+(`domain/strategy/orthology_request.py:OrthologyRequest`). "carry", "map",
+"translate" or "move" to orthologs in X asks for X's genes, synteny or not: one
+`GenesByOrthologs(X)` over the subtree. `set_structure` refuses a round trip for
+it, and `set_criterion` binds the transform's organism to the entry the words
+name, by the stated-organism rule of the binds; a name the transform's organism
+vocabulary lacks is refused with the nearest entries
+(`ai/tools/standalone/_frame_stated.py`). "have an ortholog in X", "with a
+syntenic ortholog in X" and "conserved in X" keep the source genes, and
+`set_structure` refuses a one-way transform for them. A transform the strategy
+already holds is not read, and wording that states neither shape, or both,
+decides nothing.
 
 Measured on plasmodb on 2026-09-24, on the seed of the cataloged thread
 (`GenesWithSignalPeptide` SignalP-6.0 INTERSECT `GenesByTransmembraneDomains` 2

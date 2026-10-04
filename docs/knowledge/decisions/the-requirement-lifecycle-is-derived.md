@@ -39,14 +39,23 @@ successor. `ThreadRequirements.record(intent, messages)`
   single-valued dimension holds (`requirement_lifecycle.withdrawn_by`). It retires
   as `replaced` by a value of the same dimension the message states, else as
   `withdrawn` on this message. A statement that names nothing held retires
-  nothing.
+  nothing. The gate records each `withdrawn` statement in the source the thread
+  recorded for the first requirement it names, live before retired
+  (`ThreadRequirements.withdrawn_as_recorded`); the classifier's own `source`
+  stands only where it names nothing recorded.
 - A value only an ask of the message carries is no requirement, and a
   `follow_up_question` is all ask (`UserIntent.researcher_asks`); a compared side
   of a `follow_up_question` is never one (the `UserIntent` validator), and a
   card sentence is never recorded as the researcher's words.
 - An approved `delete_step` retires each live requirement only the deleted
   criteria's text stated, filler words aside
-  (`retire_what_a_delete_leaves_unanswered`).
+  (`retire_what_a_delete_leaves_unanswered`). A combination a term of which
+  names a deleted criterion, by the words of that criterion's own text
+  (`combination_check.match_terms`), is withdrawn, live or already withdrawn,
+  and records those terms as its `sides` (`requirement_lifecycle.retire_dropped_sides`).
+  Its retired row names the sides alone; a withdrawn combination no delete
+  named a side of shows no row, because a step can still answer each side
+  (`RetiredRequirement.shown_requirements`).
 - A review row is dropped as a question only when its words are, in order, the
   words of an ask, of one sentence of an ask, or of a sentence a message ends with
   a question mark (`question_rows.without_questions`). An ask erases no row that
@@ -82,3 +91,9 @@ way and a text row a record shows missing were both filed as `unmet` with steps
 named, so a reader could not tell a requirement nothing answers from one the
 records leave short. The note names the combine, and the records' verdict is a
 status of its own.
+
+**A withdrawn combination's row read from the live criteria's text.** The row
+named each side whose words no live criterion's text carries. A criterion text
+paraphrases its side ("without" for "no", a Pfam name for a domain), so a side
+a live step answers read as withdrawn. The terms are matched to criteria once,
+when the delete knows which criterion left.

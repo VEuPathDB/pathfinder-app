@@ -11,6 +11,7 @@ from veupathdb.domain.parameters import WDKTreeBoxVocabNode
 from veupathdb.wdk import WDKParameter, WDKSearch
 from veupathdb_mcp.catalog import format_param_info_typed
 
+from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
@@ -87,7 +88,9 @@ def _bind_under(
         params={"organism": organisms},
     )
     infos = format_param_info_typed(definition.parameters or [])
-    refuse_what_the_words_decide(definition, call, infos, [], requirements)
+    refuse_what_the_words_decide(
+        definition, call, infos, AgentToolState(stated_requirements=requirements)
+    )
     return organisms
 
 

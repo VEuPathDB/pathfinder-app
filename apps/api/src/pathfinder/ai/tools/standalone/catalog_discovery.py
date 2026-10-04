@@ -5,6 +5,7 @@ Tools that take an opaque identifier (search name, parameter id) raise
 the same step.
 """
 
+from dataclasses import replace
 from typing import Any, Literal
 
 from assistant_core.graph.stream_events import ToolSummaryStatus
@@ -147,8 +148,9 @@ async def get_parameter_options(
         if name != parameter_id
     }
     typed_context = merged or None
-    narrowing = VocabNarrowing(
-        query=query, organism_hints=deps.agent_state.organism_hints
+    asked = VocabNarrowing(query=query, organism_hints=deps.agent_state.organism_hints)
+    narrowing = replace(
+        asked, request=deps.agent_state.phrasings_the_request_states(asked.terms)
     )
     read_key = deps.agent_state.param_read_key(
         search_name, parameter_id, context_values=typed_context, terms=narrowing.terms

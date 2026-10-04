@@ -14,7 +14,7 @@ import pytest
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
-from pathfinder.ai.conversation import turn_runner
+from pathfinder.ai.conversation import turn_runner, turn_title
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
 _PROMPT = "hi"
@@ -91,7 +91,7 @@ async def test_a_title_past_its_wait_leaves_the_turn_alone(
     """The runner waits the ceiling, cancels the title task and finishes."""
     del chat_stack
     title = _TitleTask(delay_seconds=600.0)
-    monkeypatch.setattr(turn_runner, "_TITLE_WAIT_SECONDS", ceiling_seconds)
+    monkeypatch.setattr(turn_title, "TITLE_WAIT_SECONDS", ceiling_seconds)
     monkeypatch.setattr(turn_runner, "charged_conversation_title", title)
 
     chunks = await run_one_chat_turn(

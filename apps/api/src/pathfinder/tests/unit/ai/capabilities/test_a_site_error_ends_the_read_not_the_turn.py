@@ -59,7 +59,7 @@ def _deps() -> LeadDeps:
 
 
 def _timed_out() -> WDKError:
-    error = WDKError("Request failed after retries: ", status=502)
+    error = WDKError("Request failed after retries: ReadTimeout", status=502)
     error.__cause__ = httpx.ReadTimeout("")
     return error
 

@@ -274,7 +274,7 @@ async def test_a_site_search_past_the_budget_is_recorded_unmeasured(
 
 
 @pytest.mark.asyncio
-async def test_a_quoted_phrase_of_several_words_is_counted_in_site_search_alone(
+async def test_a_quoted_phrase_of_several_words_has_no_wildcard_form(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The search reads no wildcard inside quotes, so a phrase has no wildcard form."""
@@ -285,8 +285,14 @@ async def test_a_quoted_phrase_of_several_words_is_counted_in_site_search_alone(
 
     measured = await _measure_text('"surface protein"', 21)
 
-    assert [m.kind for m in measured] == ["site_search_reach"]
-    assert (asked, site_search.asked) == ([], [('"surface protein"', [GIARDIA_WB])])
+    assert [(m.kind, m.reading) for m in measured] == [
+        ("site_search_reach", '"surface protein"'),
+        ("words_reading", "surface protein"),
+    ]
+    assert (asked, site_search.asked) == (
+        ["GenesByText"],
+        [('"surface protein"', [GIARDIA_WB])],
+    )
 
 
 @pytest.mark.asyncio

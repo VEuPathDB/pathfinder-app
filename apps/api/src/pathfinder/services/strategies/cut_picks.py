@@ -49,7 +49,10 @@ class OptionsRead(BaseModel):
         )
 
     def taken(self, picks: Sequence[str]) -> Measurement | None:
-        """How many entries of the read the pick took, and of how many."""
+        """How many entries of the read the pick took, and of how many. A read
+        that lists no entry, as a tree read lists none, counts no pick."""
+        if not self.shown:
+            return None
         if self._is_cut(picks):
             return Measurement(
                 kind="picked_from_a_cut_list",

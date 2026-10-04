@@ -45,9 +45,18 @@ its `initialDisplayValue`, so plasmodb GenesByText read under
 value, where the published sheet holds `*reductase`.
 `_frame_measure.vocabularies_under` takes only the dependent vocabularies from
 such a read into the published sheet, and `get_parameter_options` sends no
-value of the parameter it reads, so the initial value it answers is the site's. A pick at its initial value shown as one word ("any", "yes") is
+value of the parameter it reads, so the initial value it answers is the site's. A pick or a number at its initial value shown as one word ("any", "yes", "1") is
 stated only when a message writes it beside a word of the parameter's display
-name ("in any selected sample"); otherwise the site set it. A parameter the
+name ("in any selected sample", "start at 1"); otherwise the site set it, so the
+"1" of "chromosome 1" leaves GenesByLocation's `start_point` at the site default.
+An organism pick whose organisms are every leaf of a taxon a message names whole
+is stated (`_frame_sources.stated_by_their_taxa`, `named_taxa.OrganismTree`). A
+taxon is a parent entry of the organism tree or the genus its leaf labels begin
+with, since a tree can hold a genus only under its family (piroplasmadb holds
+Babesia under Babesiidae). `BoundValue.taxon` holds the taxon and its organism
+count, and the facts row shows it ("Organism: Babesia (10 organisms)"). A longer
+entry the message names at the same words, a species, names that entry and not
+the taxon. A parameter the
 parameter rules class as `site_fixed` (read-only, or hidden with no vocabulary)
 has the source rule `site`: its value is `default` whatever a message holds. `set_criterion` decides the source from that data;
 the model never declares it. A value read from a strategy that already exists
@@ -105,6 +114,13 @@ writer grouped has no such reading. The site matches any word of an unquoted
 text, so the clause and the `PhraseCaveat` show the bind's count as the words
 reading beside the phrase reading ("as any of its words: 4,497 genes; as the
 phrase: 0").
+A default or chosen quoted text, on the search the site search hands its record
+type to, is also counted with the quotes around each phrase of several words
+removed (`TextExpression.words_reading`), recorded as a `words_reading`: the
+clause shows the bind's count as the phrase reading beside the words reading
+("as the phrase: 1 gene; as any of its words: 12"). Every reading of a text is
+derived from the bound text alone; a requirement phrase is never counted as a
+reading.
 When a request message asks for the phrase ("exact phrase", "the phrase", "as a
 phrase", "in quotes", read by `text_expression.asks_for_the_phrase`), the word
 reading is not a choice: `set_criterion` refuses a free-text term of several

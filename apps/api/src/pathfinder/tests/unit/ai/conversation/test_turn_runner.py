@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from pathfinder.ai.conversation import turn_failure, turn_runner
+from pathfinder.ai.conversation import turn_failure, turn_runner, turn_title
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.tests._support.chunk_log import reduce_chunks_to_messages
 
@@ -322,11 +322,11 @@ async def test_a_pending_title_is_awaited_and_written(
         del conversation_id, title
         return True
 
-    monkeypatch.setattr(turn_runner, "name_conversation_if_unnamed", _named)
+    monkeypatch.setattr(turn_title, "name_conversation_if_unnamed", _named)
     title_task = asyncio.create_task(_slow_title())
     writer = _writer()
 
-    await turn_runner._write_title(title_task, writer.conversation_id, writer)
+    await turn_title._write_title(title_task, writer.conversation_id, writer)
 
     assert title_task.cancelled() is False
     assert [chunk["type"] for chunk in writer.chunks] == ["data-conversation-title"]
@@ -401,10 +401,10 @@ async def test_a_title_the_store_did_not_take_is_logged_and_the_turn_goes_on(
         del conversation_id, title
         raise failure
 
-    monkeypatch.setattr(turn_runner, "name_conversation_if_unnamed", _fails)
+    monkeypatch.setattr(turn_title, "name_conversation_if_unnamed", _fails)
     writer = _writer()
 
-    await turn_runner._write_title(
+    await turn_title._write_title(
         asyncio.create_task(_title()), writer.conversation_id, writer
     )
 

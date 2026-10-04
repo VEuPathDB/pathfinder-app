@@ -1,5 +1,5 @@
 """A text that leaves out the words a requirement phrase writes before it is
-chosen, not stated, and the phrase it was cut from is named."""
+chosen, not stated, and the phrase it was cut from is never a reading."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from veupathdb.wdk import SiteSearchResponse
 from veupathdb_mcp.catalog import format_param_info_typed
 
 from pathfinder.ai.tools.standalone._frame_sources import bound_values
-from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
 from pathfinder.domain.strategy.value_source import cut_from
 from pathfinder.services.strategies.measurements import (
     MeasuredBinding,
@@ -84,7 +83,23 @@ def test_only_a_text_is_cut() -> None:
     assert cut_from(MultiPickValue(values=["erythrocyte"]), _REQUIREMENTS) == ""
 
 
-def test_a_cut_text_is_bound_chosen_with_the_phrase_it_was_cut_from() -> None:
+# PiroplasmaDB GenesByText over product, Products and Notes in B. bovis T2Bo,
+# read live: the bound text counts 153 genes.
+_BOUND = 153
+
+
+@pytest.mark.asyncio
+async def test_the_phrase_a_text_was_cut_from_is_never_a_reading(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counted: list[str] = []
+
+    def _count(_search: str, params: Mapping[str, ParamValue]) -> int:
+        counted.append(wire(params, "text_expression"))
+        return _BOUND
+
+    serve_counts(monkeypatch, _count)
+    serve_site_search(monkeypatch, SiteSearchResponse())
     bound = bound_values(
         {"text_expression": StringValue(value="erythrocyte surface antigen")},
         infos=_SHEET,
@@ -94,56 +109,20 @@ def test_a_cut_text_is_bound_chosen_with_the_phrase_it_was_cut_from() -> None:
         requirement_phrases=_REQUIREMENTS,
     )
 
-    held = bound["text_expression"]
-    assert (held.source, held.stated_as) == (
-        "chosen",
-        "variant erythrocyte surface antigen",
-    )
-
-
-# PiroplasmaDB GenesByText over product, Products and Notes in B. bovis T2Bo,
-# read live: the bound text and the stated phrase each count 153 genes.
-_BOUND, _STATED = 153, 153
-
-
-def _count(_search: str, params: Mapping[str, ParamValue]) -> int:
-    return _STATED if wire(params, "text_expression").startswith("variant") else 0
-
-
-@pytest.mark.asyncio
-async def test_the_stated_phrase_a_text_was_cut_from_is_counted(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    serve_counts(monkeypatch, _count)
-    serve_site_search(monkeypatch, SiteSearchResponse())
-    params: dict[str, ParamValue] = {
-        "text_expression": StringValue(value="erythrocyte surface antigen"),
-    }
-
-    measured = await measure_binding(
+    await measure_binding(
         TurnCounts(),
         MeasuredBinding(
             site_id="piroplasmadb",
             record_type="transcript",
             search_name="GenesByText",
-            params=params,
+            params={name: held.value for name, held in bound.items()},
             count=_BOUND,
         ),
-        values={
-            "text_expression": BoundValue(
-                value=params["text_expression"],
-                source="chosen",
-                stated_as="variant erythrocyte surface antigen",
-            )
-        },
+        values=bound,
         infos=_SHEET,
     )
 
-    assert [m for m in measured if m.kind == "wildcard_phrase"] == [
-        Measurement(
-            kind="wildcard_phrase",
-            param="text_expression",
-            count=_STATED,
-            reading="variant erythrocyte surface antigen",
-        )
-    ]
+    assert (bound["text_expression"].source, counted) == (
+        "chosen",
+        ['"erythrocyte surface antigen"'],
+    )

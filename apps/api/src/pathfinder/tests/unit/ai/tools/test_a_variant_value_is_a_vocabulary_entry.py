@@ -15,17 +15,13 @@ import json
 import pytest
 from pydantic_ai import Tool
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain import SearchContext
-from veupathdb.domain.parameters import MultiPickValue, ParamValue
+from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, flatten_tree
-from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
-    ResolvedSearch,
     format_param_info_typed,
 )
 
-from pathfinder.ai.tools.standalone import _variant_targets
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.experiment import variant_comparison
@@ -78,24 +74,7 @@ def ran(monkeypatch: pytest.MonkeyPatch) -> list[VariantSpec]:
             overlaps=[],
         )
 
-    async def _resolve(
-        ctx: SearchContext,
-        *,
-        resolved_record_type: str,
-        parameters: dict[str, ParamValue],
-    ) -> ResolvedSearch:
-        del resolved_record_type, parameters
-        assert ctx.search_name == "GenesByText"
-        body = {
-            "searchData": _TEXT.model_dump(by_alias=True, mode="json"),
-            "validation": {"level": "DISPLAYABLE", "isValid": True},
-        }
-        return ResolvedSearch(
-            response=WDKSearchResponse.model_validate(body), values_were_read=True
-        )
-
     monkeypatch.setattr(variant_comparison, "search_parameters", _text_parameters)
-    monkeypatch.setattr(_variant_targets, "resolve_search_details", _resolve)
     monkeypatch.setattr(variant_comparison, "run_variant_comparison", _run)
     return specs
 

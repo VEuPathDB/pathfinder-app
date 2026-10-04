@@ -83,6 +83,13 @@ class AnalysisBinding(CamelModel):
             }
         )
 
+    def unread(self) -> bool:
+        """Whether the document holds a filter or a comparison that no read of
+        the study or the compute names or counts."""
+        return (bool(self.subset) and not self.shown_subset) or (
+            self.value_variable is not None and self.tallies is None
+        )
+
     def subset_as_shown(self) -> list[str]:
         """The subset in the study's own names, or by variable id when no read
         of the study named them."""

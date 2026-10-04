@@ -12,20 +12,27 @@ workspace is untouched and variants run in parallel.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from itertools import combinations
 
 import httpx
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import JSONObject
 from pydantic import Field
+from veupathdb import strip_html_tags
 from veupathdb.domain.parameters import ParamValue, to_wire, wire_map
 from veupathdb.domain.strategy import StrategyAst, walk
 from veupathdb.errors import VEuPathDBError, WDKError
-from veupathdb.wdk import WDKAnswer, WDKSearchConfig, get_wdk_client
+from veupathdb.wdk import (
+    WDKAnswer,
+    WDKRecordInstance,
+    WDKSearchConfig,
+    get_wdk_client,
+)
 from veupathdb_mcp.catalog import ParameterInfo, wdk_fetch_at
 from veupathdb_mcp.wdk import (
     compute_plan_step_counts,
-    extract_record_ids,
+    extract_pk,
     view_filters_for,
 )
 
@@ -34,15 +41,11 @@ from pathfinder.domain.comparison_facts import (
     ComparisonFact,
     SharedGenes,
 )
+from pathfinder.services.gene_records.attributes import product_attribute
 
 _CONCURRENCY = 4
 _MAX_RECORDS = 50_000
 _SAMPLE_UNIQUE = 8
-
-_ALL_IDS_REPORT: JSONObject = {
-    "attributes": [],
-    "pagination": {"offset": 0, "numRecords": _MAX_RECORDS},
-}
 
 
 class VariantInput(CamelModel):
@@ -66,12 +69,19 @@ class PairwiseOverlap(CamelModel):
     jaccard: float
 
 
+class UniqueGene(CamelModel):
+    """One gene only this variant returns, with the product its record names."""
+
+    gene_id: str
+    product: str | None = None
+
+
 class VariantResult(CamelModel):
     label: str
     search_name: str
     gene_count: int
     unique_count: int
-    sample_unique_genes: list[str]
+    sample_unique_genes: list[UniqueGene]
     error: str | None = None
     # The strategy's result with this variant in place of the one step that
     # runs its search; None when no single step runs it.
@@ -174,36 +184,58 @@ async def counted_in_place(
     )
 
 
-async def run_variant_search(site_id: str, spec: VariantSpec) -> WDKAnswer:
+async def run_variant_search(
+    site_id: str, spec: VariantSpec, *, attributes: Sequence[str] = ()
+) -> WDKAnswer:
     """One variant's answer, capped at ``_MAX_RECORDS`` ids and creating no step.
 
     A transcript search reports one row per gene, so the cap counts genes.
     """
     client = get_wdk_client(site_id)
+    report: JSONObject = {
+        "attributes": list(attributes),
+        "pagination": {"offset": 0, "numRecords": _MAX_RECORDS},
+    }
     return await client.run_search_report(
         spec.record_type,
         spec.search_name,
         WDKSearchConfig(parameters=wire_map(spec.parameters)),
-        report_config=_ALL_IDS_REPORT,
+        report_config=report,
         view_filters=view_filters_for(spec.record_type),
     )
 
 
+def _products(
+    records: list[WDKRecordInstance], attribute: str | None
+) -> dict[str, str | None]:
+    """Each record id with the product its record names, None when unread."""
+    return {
+        record_id: None
+        if attribute is None
+        else strip_html_tags(record.attribute_text(attribute)) or None
+        for record in records
+        if (record_id := extract_pk(record))
+    }
+
+
 async def _run_one(
     site_id: str, spec: VariantSpec, sem: asyncio.Semaphore
-) -> tuple[VariantSpec, set[str], int, str | None]:
+) -> tuple[VariantSpec, dict[str, str | None], int, str | None]:
+    attribute = product_attribute(spec.record_type)
     try:
         async with sem:
-            answer = await run_variant_search(site_id, spec)
+            answer = await run_variant_search(
+                site_id, spec, attributes=[] if attribute is None else [attribute]
+            )
     except (WDKError, httpx.HTTPError) as exc:
-        return spec, set(), 0, str(exc)
-    ids = set(extract_record_ids(answer.records))
+        return spec, {}, 0, str(exc)
+    products = _products(answer.records, attribute)
     try:
         total = answer.meta.records_returned()
     except ValueError as exc:
         # A comparison of sizes cannot substitute a number for a missing one.
-        return spec, ids, 0, str(exc)
-    return spec, ids, total, None
+        return spec, products, 0, str(exc)
+    return spec, products, total, None
 
 
 def _differs_by(specs: list[VariantSpec]) -> list[dict[str, str]]:
@@ -234,23 +266,28 @@ async def run_variant_comparison(
 
     # Only successful variants participate in overlap; errored ones are
     # reported with their message but contribute no gene set.
-    id_sets = {spec.label: ids for spec, ids, _, err in runs if err is None}
-    truncated = any(total > len(ids) for _, ids, total, err in runs if err is None)
+    id_sets = {spec.label: set(found) for spec, found, _, err in runs if err is None}
+    truncated = any(total > len(found) for _, found, total, err in runs if err is None)
 
     variants: list[VariantResult] = []
-    for (spec, ids, total, err), differs in zip(runs, _differs_by(specs), strict=True):
+    for (spec, found, total, err), differs in zip(
+        runs, _differs_by(specs), strict=True
+    ):
         others: set[str] = set()
         for label, other_ids in id_sets.items():
             if label != spec.label:
                 others |= other_ids
-        unique = sorted(ids - others)
+        unique = sorted(set(found) - others)
         variants.append(
             VariantResult(
                 label=spec.label,
                 search_name=spec.search_name,
                 gene_count=total,
                 unique_count=len(unique),
-                sample_unique_genes=unique[:_SAMPLE_UNIQUE],
+                sample_unique_genes=[
+                    UniqueGene(gene_id=gene_id, product=found[gene_id])
+                    for gene_id in unique[:_SAMPLE_UNIQUE]
+                ],
                 error=err,
                 differs_by=differs,
             )

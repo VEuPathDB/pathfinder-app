@@ -228,6 +228,9 @@ class ConversationStrategy(Base):
         nullable=False,
         default=list,
     )
+    # Null when a person chose the thread's name. A list when the name is
+    # generated: the steps the strategy held when the name was written.
+    generated_name_steps: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
 
 
 class ConversationStrategyView(BaseModel):
@@ -249,6 +252,7 @@ class ConversationStrategyView(BaseModel):
     gene_set_id: str | None = None
     gene_set_auto_imported: bool = False
     imported_saved_strategy_ids: list[int] = Field(default_factory=list)
+    generated_name_steps: list[str] | None = None
 
 
 class PersistedStrategyGraph(CamelModel):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from typing import assert_never
 
@@ -24,6 +25,9 @@ _TERMS = TypeAdapter(list[str])
 _PICKS = frozenset({"single-pick-vocabulary", "multi-pick-vocabulary"})
 _SHORTEST_CUT_LABEL = 3
 _SHORTEST_RELAXED_WORD = 6
+# The straight and the curly double quotes, by code point.
+_QUOTES = '"' + chr(0x201C) + chr(0x201D)
+_QUOTED = re.compile(f"[{_QUOTES}]([^{_QUOTES}]+)[{_QUOTES}]")
 
 
 class _NumberBounds(BaseModel):
@@ -257,13 +261,13 @@ def stated_words(
     vocabulary: Sequence[str] = (),
 ) -> str:
     """The request's words that state the value, by its texts or its labels,
-    else empty. A one-word pick at the site's initial value states only beside
-    a word of the parameter's display name."""
+    else empty. A one-word pick or number at the site's initial value states
+    only beside a word of the parameter's display name."""
     shown = list(labels) or stated_texts(value)
     one_word = all(len(words_of(text)) == 1 for text in shown)
     if (
         at_default
-        and value.type in _PICKS
+        and (value.type in _PICKS or _number_of(value) is not None)
         and one_word
         and not _names_the_parameter(shown, request_texts, display_name)
     ):
@@ -273,13 +277,31 @@ def stated_words(
     ) or stated_by_labels(labels, vocabulary, request_texts)
 
 
-def cut_from(value: ParamValue, requirement_phrases: Sequence[str]) -> str:
+def _quoted_in(text: str, request_texts: Sequence[str]) -> bool:
+    """Whether a request message writes the text between quotes, compared with
+    the quotes stripped and the case folded."""
+    wanted = words_of(text)
+    return bool(wanted) and any(
+        words_of(quoted) == wanted
+        for message in request_texts
+        for quoted in _QUOTED.findall(message)
+    )
+
+
+def cut_from(
+    value: ParamValue,
+    requirement_phrases: Sequence[str],
+    request_texts: Sequence[str] = (),
+) -> str:
     """The part of a requirement phrase a text leaves words out of, in the
     phrase's own spelling, else empty. Words written before a text modify it,
     so a phrase that holds the text's words after a word that is not filler
-    states a narrower text than the one bound."""
+    states a narrower text than the one bound. A number states a quantity, and
+    a text a request message quotes is the whole term, so neither is cut."""
     match value:
-        case StringValue(value=text):
+        case StringValue(value=text) if _number_of(value) is None and not _quoted_in(
+            text, request_texts
+        ):
             wanted = words_of(text)
         case _:
             return ""

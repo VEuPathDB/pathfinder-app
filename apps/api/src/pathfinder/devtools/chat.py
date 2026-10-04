@@ -103,6 +103,8 @@ class RunArgs(BaseModel):
     phase_models: dict[str, str] = {}
     effort: ReasoningEffort | None = None
     attachments: list[Path] = []
+    # The user every turn of the run is served as.
+    user_id: UUID = DEV_USER_ID
 
 
 class RespondArgs(RunArgs):
@@ -519,7 +521,7 @@ async def _exec_one(
             await stack.enter_async_context(capture_wdk(capture.run_dir))
         stack.enter_context(capture_llm(capture.run_dir))
         await stack.enter_async_context(attach_wdk_auth(wdk_token))
-        await stack.enter_async_context(attach_user_id(DEV_USER_ID))
+        await stack.enter_async_context(attach_user_id(args.user_id))
         # This process consumes no job, so a durable call is declined in
         # writing and the turn reaches its artifacts.
         stack.enter_context(no_durable_worker())
@@ -539,7 +541,7 @@ async def _exec_one(
         store = await stack.enter_async_context(lifespan_memory_store(settings_url))
         graph = spec.build_graph(saver)
         await run_turn(
-            request=TurnRequest(body=body, user_id=DEV_USER_ID),
+            request=TurnRequest(body=body, user_id=args.user_id),
             spec=spec,
             compiled_graph=graph,
             memory_store=store,
@@ -567,7 +569,7 @@ async def _worker_payload(
     spec = await resolve_run_assistant(args.conversation_id, args.assistant)
     return ChatTurnPayload(
         body=body,
-        user_id=DEV_USER_ID,
+        user_id=args.user_id,
         turn_id=capture.turn_id,
         veupathdb_auth_token=wdk_token,
         capture_dir=str(worker_llm_dir(capture.turn_id)),
@@ -680,11 +682,11 @@ async def drive_run(args: RunArgs) -> tuple[RunCapture, Gate]:
 
         spec = await resolve_run_assistant(args.conversation_id, args.assistant)
         async with async_session_factory() as session:
-            await UserRepository(session).get_or_create(DEV_USER_ID)
+            await UserRepository(session).get_or_create(args.user_id)
             await begin_conversation(
                 session=session,
                 conversation_id=args.conversation_id,
-                user_id=DEV_USER_ID,
+                user_id=args.user_id,
                 site_id=args.site,
                 assistant_id=spec.assistant_id,
             )
@@ -791,11 +793,11 @@ async def drive_respond(args: RespondArgs) -> tuple[RunCapture, Gate] | None:
 
         spec = await resolve_run_assistant(args.conversation_id, args.assistant)
         async with async_session_factory() as session:
-            await UserRepository(session).get_or_create(DEV_USER_ID)
+            await UserRepository(session).get_or_create(args.user_id)
             await begin_conversation(
                 session=session,
                 conversation_id=args.conversation_id,
-                user_id=DEV_USER_ID,
+                user_id=args.user_id,
                 site_id=args.site,
                 assistant_id=spec.assistant_id,
             )

@@ -86,7 +86,8 @@ def _parameter(
     criterion: Criterion, name: str, bound: BoundValue, noun: str
 ) -> ParameterFact:
     """One bound value's row. A placeholder the site left states no value, so
-    it is shown as not set and nothing measures it."""
+    it is shown as not set and nothing measures it. A pick a message names by
+    its taxon is shown as that taxon and its organism count."""
     shown = criterion.display_name_of(name)
     if bound.placeholder:
         return ParameterFact(
@@ -96,11 +97,16 @@ def _parameter(
             label="site placeholder",
             source=bound.source,
         )
+    value, label = (
+        (bound.rounded() or plain_value(bound.value), _label(criterion, name, bound))
+        if bound.taxon is None
+        else (bound.taxon.name, bound.taxon.label())
+    )
     return ParameterFact(
         name=name,
         display_name=shown,
-        value=bound.rounded() or plain_value(bound.value),
-        label=_label(criterion, name, bound),
+        value=value,
+        label=label,
         source=bound.source,
         notes=_notes(criterion, name, bound, noun),
     )
@@ -202,17 +208,22 @@ def _draft_steps(spec: OperationalSpec | None, said: Sequence[str]) -> list[Step
     ]
 
 
-def _retired(retired: RetiredRequirement, words: Mapping[str, str]) -> RetiredFact:
-    """The retired requirement, and the one that replaced it, in the words the
-    researcher stated each in; ``words`` holds them by requirement key."""
+def _retired(
+    retired: RetiredRequirement, words: Mapping[str, str]
+) -> list[RetiredFact]:
+    """The rows of the retired requirement, and the one that replaced it, in
+    the words the researcher stated each in; ``words`` holds them by key."""
     lifecycle = retired.lifecycle
-    return RetiredFact(
-        requirement=retired.constraint.requested_value,
-        state=lifecycle.state,
-        replaced_by=""
-        if lifecycle.state == "withdrawn"
-        else words.get(lifecycle.by, lifecycle.by),
-    )
+    return [
+        RetiredFact(
+            requirement=shown,
+            state=lifecycle.state,
+            replaced_by=""
+            if lifecycle.state == "withdrawn"
+            else words.get(lifecycle.by, lifecycle.by),
+        )
+        for shown in retired.shown_requirements()
+    ]
 
 
 def _retired_rows(domain: StrategyDomainState) -> list[RetiredFact]:
@@ -223,7 +234,7 @@ def _retired_rows(domain: StrategyDomainState) -> list[RetiredFact]:
             *(r.constraint for r in domain.retired_requirements),
         ]
     }
-    return [_retired(r, words) for r in domain.retired_requirements]
+    return [row for r in domain.retired_requirements for row in _retired(r, words)]
 
 
 def _gaps(deps: LeadDeps, ledger: InvestigationLedger) -> list[Gap]:

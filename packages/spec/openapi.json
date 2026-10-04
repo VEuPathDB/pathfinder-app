@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a25"
+    "version": "0.2.0a26"
   },
   "paths": {
     "/health": {
@@ -13973,6 +13973,7 @@
               "loosest_bound",
               "wildcard_phrase",
               "phrase_reading",
+              "words_reading",
               "site_search_reach",
               "any_strain",
               "all_strains",
@@ -14139,11 +14140,6 @@
             "title": "Carriedfrom",
             "type": "string"
           },
-          "statedAs": {
-            "default": "",
-            "title": "Statedas",
-            "type": "string"
-          },
           "displayName": {
             "default": "",
             "title": "Displayname",
@@ -14184,6 +14180,16 @@
               }
             ],
             "title": "Decimals"
+          },
+          "taxon": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NamedTaxon"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -17403,6 +17409,7 @@
               "loosest_bound",
               "wildcard_phrase",
               "phrase_reading",
+              "words_reading",
               "site_search_reach",
               "any_strain",
               "all_strains",
@@ -17540,6 +17547,26 @@
           }
         },
         "title": "NamedControls",
+        "type": "object"
+      },
+      "NamedTaxon": {
+        "description": "A taxon a message names, by the name the site gives it, and the count\nof organisms under it.",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "organisms": {
+            "minimum": 2,
+            "title": "Organisms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "organisms"
+        ],
+        "title": "NamedTaxon",
         "type": "object"
       },
       "NodeResult": {
@@ -19975,6 +20002,31 @@
         "title": "TurnUsage",
         "type": "object"
       },
+      "UniqueGene": {
+        "description": "One gene only this variant returns, with the product its record names.",
+        "properties": {
+          "geneId": {
+            "title": "Geneid",
+            "type": "string"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          }
+        },
+        "required": [
+          "geneId"
+        ],
+        "title": "UniqueGene",
+        "type": "object"
+      },
       "UnmeasuredValueCaveat": {
         "description": "A value the request did not state, whose other reading did not arrive.",
         "properties": {
@@ -20009,6 +20061,7 @@
               "loosest_bound",
               "wildcard_phrase",
               "phrase_reading",
+              "words_reading",
               "site_search_reach",
               "any_strain",
               "all_strains",
@@ -20226,7 +20279,7 @@
           },
           "sampleUniqueGenes": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/UniqueGene"
             },
             "title": "Sampleuniquegenes",
             "type": "array"

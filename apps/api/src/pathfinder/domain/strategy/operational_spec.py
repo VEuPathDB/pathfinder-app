@@ -17,6 +17,7 @@ from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
+from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.number_precision import rounded_number
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
@@ -56,8 +57,6 @@ class BoundValue(CamelModel):
     basis: str = ""
     # The option criterion a fold carried this value from, empty otherwise.
     carried_from: str = ""
-    # The request's longer phrase a chosen text leaves words out of, else empty.
-    stated_as: str = ""
     display_name: str = ""
     # The vocabulary's label of a pick, a filter field or a species code.
     label: str = ""
@@ -72,6 +71,8 @@ class BoundValue(CamelModel):
     number: bool = False
     # The decimal places the sheet's initial value shows, None for no number.
     decimals: int | None = None
+    # The taxon a message names whose organisms the pick takes, else None.
+    taxon: NamedTaxon | None = None
 
     @property
     def unset(self) -> bool:
@@ -90,11 +91,14 @@ class BoundValue(CamelModel):
         return self.model_copy(update={"carried_from": criterion_id})
 
     def sourced(
-        self, source: ValueSource, basis: str = "", stated_as: str = ""
+        self,
+        source: ValueSource,
+        basis: str = "",
+        taxon: NamedTaxon | None = None,
     ) -> BoundValue:
         """The value with who set it decided, and the words that decided it."""
         return self.model_copy(
-            update={"source": source, "basis": basis, "stated_as": stated_as}
+            update={"source": source, "basis": basis, "taxon": taxon}
         )
 
 
@@ -102,6 +106,7 @@ CountedKind = Literal[
     "loosest_bound",
     "wildcard_phrase",
     "phrase_reading",
+    "words_reading",
     "site_search_reach",
     "any_strain",
     "all_strains",

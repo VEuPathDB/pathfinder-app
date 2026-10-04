@@ -23,6 +23,7 @@ _READINGS: dict[CountedKind, str] = {
     "loosest_bound": "at {}",
     "wildcard_phrase": "for {}",
     "site_search_reach": "that the site search finds for {}",
+    "words_reading": "as any of its words",
     "any_strain": "with an ortholog in {}",
     "all_strains": "with an ortholog in {}",
     "site_default": "at the site's default, {}",

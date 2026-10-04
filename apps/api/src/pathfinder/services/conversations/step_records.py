@@ -16,6 +16,7 @@ from pathfinder.services.conversations.responses import (
     StepRecord,
     StepRecordsResponse,
 )
+from pathfinder.services.gene_records.attributes import product_attribute
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.gene_sets.step_genes import extract_gene_id
 from pathfinder.services.strategies.session_factory import (
@@ -32,10 +33,6 @@ class StepPage:
     step_id: str
     offset: int
     limit: int
-
-
-# The product column a gene answer names, by record type.
-_PRODUCT_ATTRIBUTE = {"transcript": "gene_product", "gene": "product"}
 
 
 def _record(site_id: str, record: WDKRecordInstance, product: str) -> StepRecord:
@@ -81,7 +78,7 @@ async def read_step_records(
             detail=f"Step {step_id!r} is not on the site yet, so it has no results.",
         )
     record_type = graph.record_type or ""
-    product = _PRODUCT_ATTRIBUTE.get(record_type)
+    product = product_attribute(record_type)
     if product is None:
         raise ValidationError(
             title="The step does not answer genes",

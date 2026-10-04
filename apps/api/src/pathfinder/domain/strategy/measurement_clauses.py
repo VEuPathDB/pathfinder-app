@@ -103,6 +103,13 @@ _AS_VALUE_READINGS = {
     "wildcard_phrase": "as {}",
     "site_default": "at the site's default, {}",
 }
+_WORDS = "as any of its words"
+_PHRASE = "as the phrase"
+# The bound text's reading, then the other reading of it, by measurement kind.
+_TEXT_READINGS = {
+    "phrase_reading": (_WORDS, _PHRASE),
+    "words_reading": (_PHRASE, _WORDS),
+}
 
 
 def _clause(criterion: Criterion, m: Measurement, noun: str) -> str:
@@ -119,8 +126,9 @@ def _clause(criterion: Criterion, m: Measurement, noun: str) -> str:
         case "wildcard_phrase" | "site_default":
             other = _AS_VALUE_READINGS[m.kind].format(m.reading)
             return _counted(criterion, m, f"as {value}", other, noun)
-        case "phrase_reading":
-            return _counted(criterion, m, "as any of its words", "as the phrase", noun)
+        case "phrase_reading" | "words_reading":
+            at, other = _TEXT_READINGS[m.kind]
+            return _counted(criterion, m, at, other, noun)
         case "site_search_reach":
             return f"the site search finds {_records(m.count, noun)} for {m.reading}"
         case _:

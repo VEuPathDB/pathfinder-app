@@ -39,6 +39,7 @@ __all__ = [
     "projected_steps",
     "restate_copies",
     "round_trip_refusal",
+    "round_trip_wiring",
     "stated_steps",
 ]
 
@@ -112,9 +113,17 @@ def organism_move_refusal(
         f"and the edited tree would answer genes of {target} where the strategy "
         f"answers genes of {source}. A one-way orthology transform returns the "
         f"other organism's genes. To keep the {source} genes that have "
-        f"orthologs in {target}, state the round trip: {_KEPT_BY_INTERSECT}, "
-        f"where the transform back to {source} takes the transform to {target} "
-        f"as its input, and the transform to {target} takes {_COPY}."
+        f"orthologs in {target}, state the round trip: "
+        f"{round_trip_wiring(source, target)}"
+    )
+
+
+def round_trip_wiring(source: str, target: str) -> str:
+    """The tree that keeps the genes of ``source`` with orthologs in ``target``."""
+    return (
+        f"{_KEPT_BY_INTERSECT}, where the transform back to {source} takes the "
+        f"transform to {target} as its input, and the transform to {target} "
+        f"takes {_COPY}."
     )
 
 

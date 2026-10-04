@@ -35,6 +35,7 @@ from pathfinder.domain.strategy.orthology import (
     round_trip_refusal,
     stated_steps,
 )
+from pathfinder.domain.strategy.orthology_request import orthology_shape_refusal
 from pathfinder.domain.strategy.spec_duplicates import (
     DuplicateDrop,
     fold_duplicate_inputs,
@@ -192,6 +193,22 @@ def _refuse_a_tree_that_leaves_out_an_analysis(
     raise ModelRetry(msg)
 
 
+def _refuse_a_tree_of_another_orthology_shape(
+    state: AgentToolState, proposed: SpecStructure
+) -> None:
+    """A message that carries the genes to an organism takes one transform, and
+    one that keeps the genes with an ortholog there takes the round trip."""
+    if state.orthology_request is None:
+        return
+    stated = state.operational_spec_draft.model_copy(update={"structure": proposed})
+    refusal = orthology_shape_refusal(
+        state.orthology_request, stated, held=state.held_criteria
+    )
+    if refusal is not None:
+        msg = f"The structure is refused: {refusal} Nothing was recorded."
+        raise ModelRetry(msg)
+
+
 def _refuse_a_tree_the_site_cannot_run(
     state: AgentToolState, proposed: SpecStructure
 ) -> None:
@@ -290,7 +307,11 @@ async def set_structure(
       criterion appears twice; the pass states it as criteria of its own.
       An orthology round trip keeps the source genes only as the source
       INTERSECT a transform back over a transform out over a copy of the
-      source, with one synteny value on both transforms.
+      source, with one synteny value on both transforms. A message that
+      carries, maps, translates or moves the genes to orthologs in X asks for
+      one transform to X, and a round trip is refused; a message that keeps
+      the genes that have an ortholog in X, or are conserved in X, asks for
+      the round trip, and a one-way transform is refused.
 
     Nest freely. When a property has several alternative evidence sources,
     UNION them into their own branch and INTERSECT that branch with the
@@ -318,6 +339,7 @@ async def set_structure(
     _refuse_a_node_the_role_contradicts(state, proposed)
     _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)
     _refuse_a_tree_the_site_cannot_run(state, proposed)
+    _refuse_a_tree_of_another_orthology_shape(state, proposed)
     await _refuse_a_transform_over_another_record_class(ctx, proposed)
     deduped = fold_duplicate_inputs(
         state.operational_spec_draft, proposed, live_step_ids=live

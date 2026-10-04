@@ -70,6 +70,10 @@ class Threads:
             self.strategy = self.strategy.model_copy(
                 update={"wdk_strategy_id": upd.wdk_strategy_id}
             )
+        if upd.generated_name_steps_set:
+            self.strategy = self.strategy.model_copy(
+                update={"generated_name_steps": upd.generated_name_steps}
+            )
 
     @property
     def ast_name(self) -> str | None:
@@ -81,6 +85,7 @@ def thread_row(
     name: str = "",
     ast_name: str | None = "New Conversation",
     gene_set_id: str | None = None,
+    generated_name_steps: list[str] | None = None,
 ) -> Threads:
     now = datetime.now(UTC)
     conversation = Conversation(
@@ -96,6 +101,7 @@ def thread_row(
         strategy_ast=ast_named(ast_name),
         gene_set_id=gene_set_id,
         gene_set_auto_imported=gene_set_id is not None,
+        generated_name_steps=generated_name_steps,
     )
     return Threads(conversation=conversation, strategy=strategy)
 

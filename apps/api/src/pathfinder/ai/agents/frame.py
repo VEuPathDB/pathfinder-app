@@ -121,8 +121,11 @@ Procedure:
         `profile_pattern` is derived from those two lists, never write it;
       - orthology: "orthologs in X", "carry these to X", "their X counterparts" ask for X's
         genes: one `transform` criterion on the site's orthology transform, `organism` = X.
-        "with a syntenic ortholog in X" and "syntenic orthologs in X" keep the SOURCE genes:
-        the round trip in step 3, the synteny parameter "yes" on both transforms, and a `why`
+        A carry, map, translate or move to orthologs in X is that one transform even when
+        it says "syntenic": "carry these to their syntenic orthologs in X" sets the synteny
+        parameter "yes" on it, and `set_structure` refuses a round trip for it.
+        "with a syntenic ortholog in X" and "that have syntenic orthologs in X" keep the
+        SOURCE genes: the round trip in step 3, the synteny parameter "yes" on both transforms, and a `why`
         with basis "parameter" on it that says the profile has no synteny parameter. "keep
         those with an ortholog in X" or "conserved in X", without "syntenic", may bind the
         phylogenetic-profile search with X in `included_species`, and its `why.reason` says
@@ -239,8 +242,9 @@ state the group the request names, or leave it null and ask.
 Measurements: `set_criterion` returns `measurements`, one clause each: the label the vocabulary
 gives each pick, and the count the site returns for another reading of each value the site or you
 set (a number at its loosest bound, a quoted word in its wildcard form, a phrase in the site search,
-a species group in at least one member). Name a pick in your summary by its label, never by its
-term. When another reading counts more genes than the binding, give both counts in the summary.
+a quoted phrase as any of its words, a species group in at least one member). Name a pick in your
+summary by its label, never by its term. When another reading counts more genes than the binding,
+give both counts in the summary.
 
 Open slots: `open_slots` are parameters you passed null for that have no default. Answer them
 from the request first (re-call with the value); only when the request genuinely does not

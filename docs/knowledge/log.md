@@ -2,6 +2,120 @@
 
 ## 2026-10-04
 
+* **A dependent pick keeps the label of the vocabulary it was bound under.**
+  `value_binding.read_again` keeps a held value's label when the sheet it reads
+  again lacks the value: plasmodb `GenesByInterproDomain.domain_typeahead` lists
+  1,509 Pfam entries under its default organism and 2,102 under Plasmodium
+  falciparum 3D7, 665 of them only there, so a domain bound for 3D7 kept no label
+  through hydration and replay before.
+
+* **A generated strategy name is generated again when an edit takes away what it
+  names; a name a person chose is never touched.**
+  `conversation_strategies.generated_name_steps` (alembic `2026_10_04_0001`) is
+  null for a chosen name, or the non-combine steps a generated name covers.
+  `name_if_unnamed` sets it, and `rename_strategy_everywhere` and
+  `name_the_thread_as_the_graph` clear it through
+  `name_the_thread(generated_over=...)`. At turn end
+  `ai/conversation/turn_title.write_turn_name` calls
+  `turns.rename_if_edits_outdated_it`: `domain/strategy/generated_name.name_outdated`
+  decides (a covered step gone, or a value the name states as a whole word left),
+  and `name_seed` (the organisms and the criterion texts, never the message) seeds
+  the title. A canvas edit regenerates nothing until the next turn end, and a
+  branch or a copy carries no marker.
+
+* **A quoted term, a value at its initial value and a named taxon each carry
+  their source.** `value_source.cut_from` never cuts a number, nor a text a request
+  message writes between quotes, case folded, so `"GPI anchored"` the researcher
+  quoted is stated; `stated_words` reads a one-word number at its initial value
+  as it reads a pick, so "chromosome 1" leaves `start_point` at the site default.
+  `named_taxa.OrganismTree` reads each parent entry and each genus of the leaf
+  labels; `_frame_sources.stated_by_their_taxa` marks an organism pick stated when
+  a message names its taxon whole and sets `BoundValue.taxon`, and the facts row
+  shows "Organism: Babesia (10 organisms)". `OptionsRead.taken` counts no pick
+  against a read that lists no entry, such as a tree read, so no "took 0 of the 0
+  entries" row appears.
+
+* **PathFinder takes `veupathdb-py` 0.1.0a22 and `veupathdb-mcp` 0.2.0a37.** A
+  search report sends a tree value as its leaves through the client, as a step
+  does, so `_variant_targets` no longer expands one itself; a request that timed
+  out names its class in the client's own text, so `site_words` adds none; a label
+  comparator on a variable whose data shape is not categorical is refused before
+  the job runs. `get_parameter_options` passes the phrasings a request message
+  states (`AgentToolState.phrasings_the_request_states`) as
+  `VocabNarrowing.request`, so the lookup ranks the entries that carry the
+  request's own words first. The vocabulary caps have one owner in the tool server.
+
+* **A retired row never names a side of a combination that a remaining step
+  answers, and a withdrawal keeps the source the thread recorded.** A delete
+  withdraws each live or withdrawn combination a term of which names a deleted
+  criterion by that criterion's own text
+  (`requirement_lifecycle.retire_dropped_sides`, `match_terms`), and records the
+  term in `RetiredRequirement.sides`; `shown_requirements` names only those sides,
+  and a withdrawn combination with no sides shows no row.
+  `ThreadRequirements.withdrawn_as_recorded` gives each statement
+  `classify_user_intent` withdraws the source the thread recorded for it
+  (`with_recorded_sources`).
+
+* **The message's words choose the orthology shape: a carry is one transform to
+  the organism it names, and a kept gene is the round trip.**
+  `domain/strategy/orthology_request.OrthologyRequest.read` reads carry, map,
+  translate or move to orthologs in X as `transform`, and have an ortholog in X,
+  with a syntenic ortholog in X or conserved in X as `round_trip`; wording that
+  states neither, or both, reads None. `set_structure` refuses the other shape
+  (`orthology_shape_refusal`), never for a transform the strategy already held,
+  and `set_criterion` binds a carried transform's organism to the entry the words
+  name, refusing a name the vocabulary lacks with the nearest entries. FRAME's
+  instructions send "carry these to their syntenic orthologs in X" to the
+  transform, with the synteny parameter on it.
+
+* **A faulted VDI import tells the researcher to upload the same files again.**
+  `services/eda/private_datasets._failure` reads the import status from the
+  dataset's own read: `failed` (the site's importer faulted) reads
+  `IMPORTER_FAULTED`; `invalid`, a failed upload and a failed install keep VDI's
+  text. The owned listing can show a faulted import as invalid, so it does not
+  decide.
+
+* **An analysis binding stated from its document alone is named by the study and
+  counted by its compute.** At the pre-turn, `ai/lead/analysis_readings
+  .read_every_unread_analysis` reads each distinct `AnalysisBinding.unread()`
+  binding on the turn's four specs once, through
+  `services/eda/export.read_beside_the_document`, so it equals the binding an
+  export PathFinder writes. A read that fails keeps the document's binding, and
+  the next turn reads it again; a step re-stated mid-turn shows ids until then.
+
+* **A comparison names each gene only one variant returns with its product.**
+  `VariantResult.sample_unique_genes` is a list of `UniqueGene` (`gene_id`,
+  `product`); `run_variant_search(attributes=...)` reads the product in the same
+  report through `services/gene_records/attributes.product_attribute`, the one
+  record-type-to-attribute rule, which `step_records` reads too. A record type
+  that names no product gives ids alone, and the card draws each unique gene with
+  its product.
+
+* **Every reading of a text is derived from the bound text alone; a requirement
+  phrase is never counted.** `measure_binding` no longer counts the phrase a chosen
+  text was cut from, and `BoundValue.stated_as` is gone with its `sourced` keyword.
+  A quoted text on the search the site search reads is also counted with the
+  quotes around each phrase of several words removed
+  (`TextExpression.words_reading`, kind `words_reading`), so its clause reads "as
+  the phrase: N; as any of its words: M", the reverse of `phrase_reading`; the
+  assumed-value caveat names it "as any of its words".
+
+* **A case can ask a later turn for the records an earlier turn showed.**
+  `TurnFacts.record_ids` names the ids a turn's listings returned, then those its
+  reads returned, each once; the corpus runner keeps them per turn
+  (`ObservedOutcome.turn_record_ids`), and `ExpectedOutcome.same_records_as` maps a
+  later turn to the earlier one whose records it must show again. A different set,
+  or an earlier turn that showed none, is a `sameRecordsAs[<turn>]` difference.
+  `uat-dry3-d-hostdb` asks its fourth turn for the third turn's sample.
+
+* **Each corpus case runs as a user of its own.** `devtools/eval_runner.run_one_case`
+  drives every turn and every card answer of a case as a fresh user
+  (`RunArgs.user_id`, default `DEV_USER_ID` for the command line) and, when the
+  case ends or raises, deletes that user's memories and tombstones
+  (`forget_user`, through `services/user_data.purge_memories`). A case reads only
+  the gene sets, memories and cases its own turns wrote; the WDK account stays
+  shared, since its strategies are named per conversation.
+
 * **A test that is not live holds no site login.** The integration tier's
   autouse `no_veupathdb` fixture also clears `WDK_DEV_EMAIL` and
   `WDK_DEV_PASSWORD`, because a mocked debugger run signs in when they are
@@ -288,7 +402,7 @@
   record per id. `get_parameter_options` sends no value of the parameter it reads.
   The per-term `vocabulary_label` measurements and `BoundValue.label` read one
   `value_label.term_labels`.
-  Backlog: [A search report sends a tree value as its leaves](backlog/a-search-report-sends-a-tree-value-as-its-leaves.md).
+  Backlog: "A search report sends a tree value as its leaves", closed on 2026-10-04.
 
 * **a19 round 5, lane 8: a count question gets its count, and a row shows what a
   researcher checks.** A reply holds each count the turn measured and the difference

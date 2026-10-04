@@ -369,17 +369,17 @@ async def read_cut_tallies(
     site_id: str,
     *,
     study_id: str,
-    analysis: EdaAnalysisDetail,
+    computation: EdaDifferentialExpressionComputation,
+    filters: Sequence[EdaFilter],
     cut: VolcanoThresholds,
 ) -> CutTallies:
-    """The counts of this cut, from the statistics the analysis's compute holds."""
-    computation = analysis_computation(analysis)
+    """The counts of this cut, from the statistics this compute holds over these filters."""
     statistics = await read_statistics(
         site_id,
         compute_name=computation.descriptor.type,
         study_id=study_id,
         config=computation.descriptor.configuration,
-        filters=analysis.descriptor.subset.descriptor,
+        filters=filters,
     )
     return cut_tallies(statistics, cut)
 

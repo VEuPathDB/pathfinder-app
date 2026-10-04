@@ -17,6 +17,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._frame_rationale import ChosenWhy, SearchChoice
 from pathfinder.domain.log2_scale import in_the_sites_scale, on_scale, scale_of
+from pathfinder.domain.strategy.named_taxa import OrganismTree
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Measurement,
@@ -31,6 +32,7 @@ from pathfinder.domain.strategy.value_source import (
     value_source,
 )
 from pathfinder.services.strategies.parameter_rules import rules_of
+from pathfinder.services.strategies.value_labels import pick_terms
 
 _NO_CARD: Mapping[str, BoundValue] = MappingProxyType({})
 _TEXT: ParamKind = "string"
@@ -52,7 +54,7 @@ def bound_values(
 ) -> dict[str, BoundValue]:
     """Each resolved value read on the published sheet, with who set it. A value
     the site supplied or only the site sets is the default; a text that leaves
-    words out of a requirement phrase is chosen, and names that phrase."""
+    words out of a requirement phrase is chosen."""
     card_wire = {name: to_wire(held.value) for name, held in card_values.items()}
     by_name = {info.name: info for info in infos}
     bound: dict[str, BoundValue] = {}
@@ -70,8 +72,9 @@ def bound_values(
                 display_name=held.display_name,
             )
         )
-        cut = cut_from(held.value, requirement_phrases)
-        if source == "stated" and cut:
+        if source == "stated" and cut_from(
+            held.value, requirement_phrases, request_texts
+        ):
             source = "chosen"
         basis = {
             "stated": stated_words(
@@ -83,9 +86,7 @@ def bound_values(
             "chosen": reason,
             "card": card_values[name].basis if name in card_values else "",
         }.get(source, "")
-        bound[name] = held.sourced(
-            source, basis, stated_as=cut if source == "chosen" else ""
-        )
+        bound[name] = held.sourced(source, basis)
     return bound
 
 
@@ -165,6 +166,26 @@ def stated_by_their_labels(
         )
         if run:
             restated[name] = held.sourced("stated", run)
+    return restated
+
+
+def stated_by_their_taxa(
+    bound: dict[str, BoundValue],
+    trees: Mapping[str, OrganismTree],
+    request_texts: list[str],
+) -> dict[str, BoundValue]:
+    """The values with each organism pick whose taxon a message names recorded
+    as stated, with that taxon and the words that name it. ``trees`` holds the
+    organism tree of each organism parameter."""
+    restated = dict(bound)
+    for name, held in bound.items():
+        tree = trees.get(name)
+        if held.source == "stated" or tree is None:
+            continue
+        named = tree.named(pick_terms(held.value), request_texts)
+        if named is not None:
+            taxon, words = named
+            restated[name] = held.sourced("stated", words, taxon=taxon)
     return restated
 
 

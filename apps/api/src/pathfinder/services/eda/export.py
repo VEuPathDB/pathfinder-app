@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from pydantic import ValidationError
 from veupathdb.domain.parameters import ParamValue, to_wire
@@ -12,6 +13,7 @@ from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
     EdaComputation,
+    EdaDifferentialExpressionComputation,
     EdaFilter,
     EdaNewAnalysis,
     EdaVisualization,
@@ -64,10 +66,47 @@ async def read_the_export(
         None
         if thresholds is None
         else await read_cut_tallies(
-            site_id, study_id=entry.study_id, analysis=analysis, cut=thresholds
+            site_id,
+            study_id=entry.study_id,
+            computation=analysis_computation(analysis),
+            filters=analysis.descriptor.subset.descriptor,
+            cut=thresholds,
         )
     )
     return ExportReading(display_names=display_names(study), tallies=tallies)
+
+
+async def read_beside_the_document(
+    site_id: str, binding: AnalysisBinding
+) -> AnalysisBinding:
+    """The binding its step's document states, with the study's names and the
+    counts of the compute it compares, at the cut the document holds."""
+    document = _document_of(binding.step_parameters)
+    if document is None:
+        return binding
+    dataset_id, spec = document
+    # Only a binding the compute plugin reads states a cut.
+    reads_a_volcano = binding.effect_size_threshold is not None
+    volcano = _the_volcano(spec.descriptor) if reads_a_volcano else None
+    entry, study = await get_study_detail_for_dataset(site_id, dataset_id)
+    tallies = (
+        None
+        if volcano is None or volcano.compared is None
+        else await read_cut_tallies(
+            site_id,
+            study_id=entry.study_id,
+            computation=volcano.compared,
+            filters=spec.descriptor.subset.descriptor,
+            cut=volcano.cut,
+        )
+    )
+    return analysis_binding(
+        dataset_id,
+        spec,
+        binding.step_parameters,
+        reads_a_volcano=reads_a_volcano,
+        reading=ExportReading(display_names=display_names(study), tallies=tallies),
+    )
 
 
 def _volcano(
@@ -172,15 +211,11 @@ def study_step_request(parameters: Mapping[str, ParamValue]) -> EdaStepRequest |
         return None
 
 
-def exported_analysis(
-    kind: AnalysisKind | None, parameters: Mapping[str, ParamValue]
-) -> AnalysisBinding | None:
-    """What a step's analysis document selects, as the plugin of its kind reads it.
-
-    None when the step has no kind, exports no analysis, or carries no document.
-    """
-    if kind is None or kind is AnalysisKind.NONE:
-        return None
+def _document_of(
+    parameters: Mapping[str, ParamValue],
+) -> tuple[str, EdaNewAnalysis] | None:
+    """The dataset and the analysis document a step carries, or None when it
+    carries no document that parses."""
     request = study_step_request(parameters)
     if request is None or not request.eda_analysis_spec:
         return None
@@ -188,12 +223,29 @@ def exported_analysis(
         spec = EdaNewAnalysis.model_validate_json(request.eda_analysis_spec)
     except ValidationError:
         return None
+    return request.eda_dataset_id, spec
+
+
+def exported_analysis(
+    kind: AnalysisKind | None, parameters: Mapping[str, ParamValue]
+) -> AnalysisBinding | None:
+    """What a step's analysis document selects, as the plugin of its kind reads it.
+
+    None when the step has no kind, exports no analysis, or carries no document.
+    No study or compute is read, so the binding holds no names and no counts.
+    """
+    if kind is None or kind is AnalysisKind.NONE:
+        return None
+    document = _document_of(parameters)
+    if document is None:
+        return None
+    dataset_id, spec = document
     return analysis_binding(
-        request.eda_dataset_id,
+        dataset_id,
         spec,
         parameters,
         reads_a_volcano=kind is AnalysisKind.COMPUTE,
-        reading=ExportReading(),
+        reading=None,
     )
 
 
@@ -203,49 +255,43 @@ def analysis_binding(
     parameters: Mapping[str, ParamValue],
     *,
     reads_a_volcano: bool,
-    reading: ExportReading,
+    reading: ExportReading | None,
 ) -> AnalysisBinding:
     """What an analysis document selects, beside the parameters that carry it,
     and what the export read of its study and its compute.
 
-    ``subset`` names each variable by its id; the words name it as the study
-    does when the export read the study.
+    ``subset`` names each variable by its id. With no reading, nothing is
+    named or counted, and the words name each variable by its id.
     """
     filters = spec.descriptor.subset.descriptor
-    shown = filter_summaries(filters, display_names=reading.display_names)
+    subset = filter_summaries(filters, display_names={})
+    names = {} if reading is None else reading.display_names
+    shown = [] if reading is None else filter_summaries(filters, display_names=names)
     stated = AnalysisBinding(
         dataset_id=dataset_id,
-        subset=filter_summaries(filters, display_names={}),
-        words=_subset_words(spec.display_name, shown),
+        subset=subset,
+        words=_subset_words(spec.display_name, shown or subset),
         step_parameters=dict(parameters),
         shown_subset=shown,
     )
-    computation = _volcano_computation(spec.descriptor) if reads_a_volcano else None
-    cut = None if computation is None else _volcano_cut(computation)
-    if computation is None or cut is None:
+    volcano = _the_volcano(spec.descriptor) if reads_a_volcano else None
+    if volcano is None:
         return stated
+    cut = volcano.cut
     stated = stated.model_copy(
         update={
-            "effect_size_label": _effect_size_label(computation),
-            "tallies": reading.tallies,
+            "effect_size_label": _effect_size_label(volcano.computation),
+            "tallies": None if reading is None else reading.tallies,
         }
     )
-    compared = next(
-        (
-            held
-            for held in differential_expression_computations(spec.descriptor)
-            if held.computation == computation
-        ),
-        None,
-    )
-    if compared is None:
+    if volcano.compared is None:
         return stated.model_copy(
             update={
                 **cut.model_dump(),
                 "words": _uncompared_words(spec.display_name, cut),
             }
         )
-    configuration = compared.descriptor.configuration
+    configuration = volcano.compared.descriptor.configuration
     comparison = comparison_of(configuration)
     method = configuration.differential_expression_method
     measured = configuration.value_variable
@@ -256,7 +302,7 @@ def analysis_binding(
             "method": method,
             "value_entity_id": measured.entity_id,
             "value_variable": measured.variable_id,
-            "value_variable_name": reading.display_names.get(
+            "value_variable_name": names.get(
                 (measured.entity_id, measured.variable_id), ""
             ),
             "words": (
@@ -265,6 +311,32 @@ def analysis_binding(
             ),
         }
     )
+
+
+class _Volcano(NamedTuple):
+    """The computation the compute plugin reads, the cut it reads, and the
+    comparison that computation holds, if it holds one."""
+
+    computation: EdaComputation
+    cut: VolcanoThresholds
+    compared: EdaDifferentialExpressionComputation | None
+
+
+def _the_volcano(descriptor: EdaAnalysisDescriptor) -> _Volcano | None:
+    """The volcano the compute plugin reads in this document, or None."""
+    computation = _volcano_computation(descriptor)
+    cut = None if computation is None else _volcano_cut(computation)
+    if computation is None or cut is None:
+        return None
+    compared = next(
+        (
+            held
+            for held in differential_expression_computations(descriptor)
+            if held.computation == computation
+        ),
+        None,
+    )
+    return _Volcano(computation=computation, cut=cut, compared=compared)
 
 
 def _subset_words(display_name: str, subset: list[str]) -> str:

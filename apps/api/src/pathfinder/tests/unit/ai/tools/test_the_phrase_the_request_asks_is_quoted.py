@@ -6,6 +6,7 @@ import pytest
 from pydantic_ai import ModelRetry
 from veupathdb_mcp.catalog import format_param_info_typed
 
+from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
 from pathfinder.tests._support.recorded_searches import suite_search
@@ -27,7 +28,10 @@ def _bind(message: str, term: str) -> str:
         params={"text_expression": term, "text_fields": ["product"]},
     )
     refuse_what_the_words_decide(
-        _TEXT, call, _INFOS, ["Polar tube protein.", message], []
+        _TEXT,
+        call,
+        _INFOS,
+        AgentToolState(request_messages=["Polar tube protein.", message]),
     )
     return term
 

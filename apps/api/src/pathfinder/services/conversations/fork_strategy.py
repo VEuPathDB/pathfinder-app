@@ -33,7 +33,7 @@ async def anchor_snapshot(
 
     ``None`` means the fork starts with no strategy. A thread that holds a
     strategy but no history at all cannot be reproduced, so it is refused
-    rather than copied at its latest state.
+    rather than copied at its latest state. A row with no tree holds no strategy.
     """
     if strategy_row is None:
         return None
@@ -42,6 +42,8 @@ async def anchor_snapshot(
         return snapshot
     if await StrategyRevisionRepository(session).has_any(source_conversation_id):
         # Every snapshot postdates the anchor: nothing was built yet.
+        return None
+    if not strategy_row.strategy_ast:
         return None
     msg = (
         "This chat predates the strategy history, so a branch cannot "

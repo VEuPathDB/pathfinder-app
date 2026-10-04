@@ -44,6 +44,9 @@
         "(Example: chr22)"
       ]
     },
+    "sameRecordsAs": {
+      "3": 2
+    },
     "assumedStated": 0,
     "rootCount": {
       "count": 9,

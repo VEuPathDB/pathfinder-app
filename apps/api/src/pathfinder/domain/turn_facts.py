@@ -326,6 +326,13 @@ class TurnFacts(CamelModel):
         """The step or criterion of that id, or None."""
         return next((s for s in self.steps if s.step_id == step_id), None)
 
+    def record_ids(self) -> list[str]:
+        """The ids this turn's listings returned, then those its reads returned,
+        each once."""
+        listed = [r.record_id for fact in self.listed for r in fact.records]
+        read = [s.record_id for s in self.sources if s.record_id]
+        return list(dict.fromkeys([*listed, *read]))
+
     def lines(self) -> list[str]:
         """Every line the facts part shows, in the order it shows them, a row
         for each compared variant and each statistic, which their cards draw."""

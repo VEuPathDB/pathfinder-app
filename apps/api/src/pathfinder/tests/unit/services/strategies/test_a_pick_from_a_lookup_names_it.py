@@ -1,12 +1,13 @@
 """A pick from a vocabulary lookup names the lookup and how many of its
 matches it took, and each picked entry whose label holds no word of the
-looked-up concept is measured."""
+looked-up concept is measured. A read that lists no entry counts no pick."""
 
 from __future__ import annotations
 
 from veupathdb.domain.parameters import MultiPickValue
-from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup
+from veupathdb_mcp.catalog import PhrasingMatch, VocabLookup, format_param_info_typed
 
+from pathfinder.ai.agents.state import ParamVocabSnapshot
 from pathfinder.domain.strategy.measurement_clauses import measurement_clauses
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
@@ -14,6 +15,10 @@ from pathfinder.domain.strategy.operational_spec import (
     Measurement,
 )
 from pathfinder.services.strategies.cut_picks import OptionsRead, read_picks
+from pathfinder.tests._support.recorded_searches import suite_search
+from pathfinder.tests.unit.domain.strategy.test_a_taxon_the_message_names_takes_its_organisms import (
+    BABESIA_LEAVES,
+)
 
 _DOMAINS = "domain_typeahead"
 _GO = "go_typeahead"
@@ -184,3 +189,37 @@ def test_a_read_with_no_lookup_measures_no_label() -> None:
     whole = OptionsRead(param=_DOMAINS, shown=shown, total=None, lookup=None)
 
     assert read_picks(_proteases(["PF00112"]), [whole]) == []
+
+
+def test_a_tree_lookup_lists_no_entry_so_it_counts_no_pick() -> None:
+    """The piroplasmadb organism tree read for Babesia, kept as the tree."""
+    [organism] = [
+        info
+        for info in format_param_info_typed(
+            suite_search("search_genes_by_taxon_piroplasmadb").parameters or []
+        )
+        if info.name == "organism"
+    ]
+    babesia = VocabLookup(
+        terms=["Babesia"],
+        matches=[
+            PhrasingMatch(
+                term="Babesia",
+                phrasing="babesia",
+                reach="phrase",
+                values=BABESIA_LEAVES,
+            )
+        ],
+    )
+    snapshot = ParamVocabSnapshot.model_validate(
+        organism.model_copy(update={"vocab_lookup": babesia}), from_attributes=True
+    )
+    read = snapshot.options_read("organism")
+    criterion = _criterion(
+        "organism", BABESIA_LEAVES, {leaf: leaf for leaf in BABESIA_LEAVES}
+    )
+
+    assert (
+        snapshot.allowed_values,
+        read_picks(criterion, [] if read is None else [read]),
+    ) == (None, [])

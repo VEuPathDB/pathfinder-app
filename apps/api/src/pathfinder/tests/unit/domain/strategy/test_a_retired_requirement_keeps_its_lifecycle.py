@@ -3,6 +3,9 @@ live record with its lifecycle."""
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from pathfinder.domain.caveats import RequirementGap, check_gaps
 from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
@@ -134,3 +137,16 @@ def test_a_declined_message_takes_back_what_it_retired() -> None:
 
     assert live == [_CUTOFF, _QUARTILE]
     assert [r.constraint for r in kept] == [_SIGNAL]
+
+
+def test_only_a_withdrawn_combination_names_the_sides_a_delete_removed() -> None:
+    with pytest.raises(ValidationError) as raised:
+        RetiredRequirement(
+            constraint=_SIGNAL,
+            lifecycle=WithdrawnLifecycle(turn_id="turn-4"),
+            sides=("signal peptide",),
+        )
+
+    assert raised.value.errors()[0]["msg"] == (
+        "Value error, only a withdrawn combination names the sides a delete removed"
+    )

@@ -38,7 +38,10 @@ lookup's phrasings and how many of its matches the pick took (`picked_from_a_loo
 of the entries a cut list could not show (`picked_from_a_cut_list`), and each picked
 entry whose label holds no word of any phrasing (`label_without_the_concept`).
 `domain/value_caveats.py::LabelGapCaveat` shows each such entry as a caveat of the facts
-part. `get_parameter_options` writes a trace line for each kind of answer: a parameter
+part. A read that lists no entry counts no pick (`OptionsRead.taken`): a tree read,
+such as an organism tree narrowed to "Cryptosporidium", returns its entries as a tree
+and no list, so a count against it would read "took 0 of the 0 entries".
+`get_parameter_options` writes a trace line for each kind of answer: a parameter
 whose parents are unbound "needs <parents> first", which is not "not on the search".
 
 # What was measured

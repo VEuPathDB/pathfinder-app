@@ -200,6 +200,8 @@ class ConversationRepository:
 
         A thread that is already gone takes no strategy row, so a write that
         lost a race with a delete is dropped instead of failing the caller.
+        The marker of a generated name is not strategy state, so a write of it
+        alone appends no snapshot.
         """
         if not values:
             return
@@ -213,7 +215,8 @@ class ConversationRepository:
                 set_=values,
             ),
         )
-        await self._record_revision(conversation_id)
+        if values.keys() - {"generated_name_steps"}:
+            await self._record_revision(conversation_id)
 
     async def _record_revision(self, conversation_id: UUID) -> None:
         """Append the resulting state to the thread's revision history."""

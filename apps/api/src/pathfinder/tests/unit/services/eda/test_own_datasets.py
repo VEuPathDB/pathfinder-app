@@ -149,6 +149,47 @@ async def test_a_rejected_import_carries_vdis_message_byte_for_byte(
     assert f"GET /datasets/{_INVALID}" in vdi.calls()
 
 
+async def test_a_faulted_import_tells_the_researcher_to_upload_the_same_files_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    vdi = RecordedVdi(
+        listing=_listing(_CRASHED),
+        statuses={_CRASHED: [vdi_body("rnaseqrc_import_failed")]},
+    )
+    _serve(
+        monkeypatch, vdi, RecordedPermissions([permissions_body(with_user_study=True)])
+    )
+
+    found = await own_datasets("plasmodb")
+
+    assert [(row.state, row.message) for row in found.datasets] == [
+        (
+            "failed",
+            "The site's importer faulted on this upload; upload the same files again.",
+        )
+    ]
+
+
+async def test_the_datasets_own_import_status_decides_over_the_listings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The owned listing can show a faulted import as invalid; the dataset's read is exact."""
+    rows = _listing(_CRASHED)
+    rows[0]["status"]["import"]["status"] = "invalid"
+    vdi = RecordedVdi(
+        listing=rows, statuses={_CRASHED: [vdi_body("rnaseqrc_import_failed")]}
+    )
+    _serve(
+        monkeypatch, vdi, RecordedPermissions([permissions_body(with_user_study=True)])
+    )
+
+    found = await own_datasets("plasmodb")
+
+    assert [row.message for row in found.datasets] == [
+        "The site's importer faulted on this upload; upload the same files again."
+    ]
+
+
 async def test_only_a_failed_row_reads_the_dataset_itself(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

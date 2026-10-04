@@ -137,6 +137,8 @@ class ObservedOutcome(CamelModel):
     facts_text: str = ""
     # The reply each turn ended on, in turn order; the last is ``reply_text``.
     turn_replies: list[str] = Field(default_factory=list)
+    # The record ids each turn's facts listed or read, in turn order.
+    turn_record_ids: list[list[str]] = Field(default_factory=list)
     # The facts part each turn showed, in turn order; empty where it showed none.
     turn_facts: list[str] = Field(default_factory=list)
     # None when no strategy was built, so no step holds a count.
@@ -378,6 +380,28 @@ def _parameters_by_search(node: ComparisonNode) -> dict[str, list[dict[str, str]
     return carried
 
 
+def _record_differences(
+    case: EvalCase,
+    observed: ObservedOutcome,
+) -> list[CaseDifference]:
+    """Each turn that shows other records than the earlier turn it names, or
+    names a turn that showed none."""
+    shown = observed.turn_record_ids
+
+    def ids(turn: int) -> list[str]:
+        return shown[turn] if turn < len(shown) else []
+
+    return [
+        CaseDifference(
+            field=f"sameRecordsAs[{turn}]",
+            expected=", ".join(ids(earlier)),
+            actual=", ".join(ids(turn)),
+        )
+        for turn, earlier in sorted(case.expected.same_records_as.items())
+        if not ids(earlier) or set(ids(turn)) != set(ids(earlier))
+    ]
+
+
 def _distance(case: EvalCase, observed: ObservedOutcome) -> StrategyDistance | None:
     wanted = _expected_tree(case)
     if wanted is None or observed.tree is None:
@@ -402,6 +426,7 @@ def score_case(case: EvalCase, observed: ObservedOutcome) -> CaseScore:
         + _phrase_differences(case, observed)
         + _title_differences(case, observed)
         + _requirement_differences(case, observed)
+        + _record_differences(case, observed)
     )
     return CaseScore(
         name=case.name,

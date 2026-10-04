@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.constraints import (
 )
 from pathfinder.domain.strategy.named_combine import NamedCombine, stated_operators
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.orthology_request import OrthologyRequest
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
@@ -71,6 +72,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             combination_requirements=combination_requirements_from(requirements),
             named_combine=NamedCombine.read(state.user_prompt),
             held_structure=None if found is None else found.structure,
+            orthology_request=OrthologyRequest.read(state.user_prompt),
             stated_operators=stated_operators(state.user_prompt),
             stated_requirements=list(state.domain.requirements),
             created_gene_sets=deps.created_gene_sets,

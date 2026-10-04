@@ -21,24 +21,32 @@ on the bind and an empty `label` on hydration and replay.
 `pick_readings._site_default` has the same shape: it counts a dependent pick
 at the published default, which the bound-parent vocabulary may not hold.
 
-**What is not measured.** No recorded pair shows a dependent vocabulary that
-changes with its parents. The giardiadb GenesByText context read
-(`search_giardiadb_genes_by_text_under_context`) holds the same 27
-`text_fields` entries as the published read.
+**What is measured.** plasmodb `GenesByInterproDomain`, `domain_typeahead`
+(`vocab_depends_on`: `organism`, `domain_database`), read live with
+`domain_database = Pfam`: the published read (default organism Haemoproteus
+tartakovskyi strain SISKIN1) holds 1,509 entries; the read under Plasmodium
+falciparum 3D7 holds 2,102, of which 665 the published read lacks (PF00013,
+PF00051, PF00084, ...) and 72 it holds that the 3D7 read lacks. A Pfam domain
+bound for 3D7 is labelled on the bind and unlabelled on hydration and replay.
 
-**Recording that settles it.** plasmodb `GenesByInterproDomain`,
-`domain_typeahead` (`vocab_depends_on`: `organism`, `domain_database`),
-read under two organisms with `domain_database = Pfam`. The published read
-holds 1509 Pfam entries under the default organism. Record the definition
-under a second organism (for example `Plasmodium falciparum 3D7`) and list
-the entries one read holds and the other does not.
+**Done.** A value the spec already holds keeps the label it was bound under when
+hydration or replay reads it again on the published sheet
+(`value_binding.read_again`), so a Pfam domain bound for 3D7 keeps "KH domain"
+(`tests/fixtures/wdk/search_genes_by_interpro_domain_under_pf3d7_pfam.json`).
 
-**Rule expected.** The label is read from the vocabulary the value was bound
-under, carried on the `BoundValue`, and never derived again: hydration and
-replay of a value the spec already holds keep its label, and a value first
-read from a strategy is labelled under its own bound parents.
+**What remains.**
+- A value first read from a strategy, such as a step the site edited
+  (`spec_replay.criterion_rebound`), is labelled on the sheet
+  `services/strategies/sheet_params.sheet_params_for_searches` reads with no
+  context, so a dependent pick only its bound parents list has no label. The fix
+  reads each such step's sheet under its own parent values (the
+  `_frame_measure.vocabularies_under` read) before replay binds it.
+- `pick_readings.site_default` counts a dependent pick at the published default.
+  The `GenesByInterproDomain.domain_typeahead` default is `[]`, so it counts
+  nothing there; a dependent pick whose published default is a term its bound
+  parents do not list has not been found yet, and finding one is the first step.
 
-**Done when.** The recording is under `tests/fixtures/wdk`, a test builds the
-same dependent pick through the bind, hydration and replay paths and gets the
-same `label`, and `_site_default` counts a dependent pick at a value the
-bound-parent vocabulary holds.
+**Done when.** A test builds the same dependent pick through a site edit's replay
+and gets the label the bind gives, and a recorded dependent pick with a non-empty
+published default shows whether the site-default count needs the bound-parent
+vocabulary.

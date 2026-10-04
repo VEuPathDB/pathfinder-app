@@ -68,6 +68,22 @@ function variantLabel(variant: VariantResult) {
   );
 }
 
+type UniqueGene = VariantResult["sampleUniqueGenes"][number];
+
+/** Each gene only one variant returned, one per line, with its product. */
+function uniqueGenes(genes: readonly UniqueGene[]) {
+  return (
+    <span className="flex flex-col">
+      {genes.map((gene) => (
+        <span key={gene.geneId} data-testid="variant-unique-gene">
+          <span className="font-mono">{gene.geneId}</span>
+          {gene.product != null && gene.product !== "" ? ` ${gene.product}` : null}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function rows(data: VariantComparison): ExhibitRow[] {
   const counted = countedInTheResult(data);
   return data.variants.map((variant) => ({
@@ -103,7 +119,7 @@ function notes(data: VariantComparison): ExhibitNote[] {
       built.push({
         key: `unique-${variant.label}`,
         label: `Only in ${variant.label}:`,
-        body: <span className="font-mono">{variant.sampleUniqueGenes.join(", ")}</span>,
+        body: uniqueGenes(variant.sampleUniqueGenes),
       });
     }
   }

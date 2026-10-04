@@ -18,10 +18,12 @@ from __future__ import annotations
 import datetime
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from assistant_core.memory.lifespan import lifespan_memory_store
+from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import ReasoningEffort
 from pydantic import TypeAdapter
@@ -64,8 +66,10 @@ from pathfinder.evals.scoring import (
 )
 from pathfinder.evals.store import attachment_paths, load_corpus
 from pathfinder.evals.summary import CaseResult, EvalRunSummary
+from pathfinder.jobs.auth_context import attach_application
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.config import get_settings
+from pathfinder.services.user_data import purge_memories
 from pathfinder.services.wdk_build import site_build
 
 HARNESS = "pydantic-evals"
@@ -142,6 +146,7 @@ class TurnsShown:
     facts: list[str]
     last_facts: TurnFacts | None = None
     requirements: RequirementCounts | None = None
+    record_ids: list[list[str]] = field(default_factory=list)
 
 
 async def observe(
@@ -178,6 +183,7 @@ async def observe(
         facts_text=last_facts,
         turn_replies=turns.replies,
         turn_facts=turns.facts,
+        turn_record_ids=turns.record_ids,
         counts_in_genes=(
             counts_in_genes(shown(last_facts, reply_text), ast)
             if ast is not None
@@ -272,6 +278,7 @@ async def _answer(
             quiet=True,
             assistant=args.assistant,
             effort=args.effort,
+            user_id=args.user_id,
             accept=picks is None and answer.accept,
             deny=picks is None and not answer.accept,
             reason=answer.comment,
@@ -280,12 +287,41 @@ async def _answer(
     )
 
 
+async def forget_user(user_id: UUID) -> None:
+    """Delete the memories a case's user wrote, and their tombstones."""
+    async with (
+        attach_application(),
+        lifespan_memory_store(get_settings().database_url) as raw,
+        async_session_factory() as session,
+    ):
+        await purge_memories(MemoryStore(store=raw), session, user_id)
+
+
 async def run_one_case(
     case: EvalCase,
     *,
     run_root: Path,
     effort: ReasoningEffort | None = None,
     via_worker: bool = False,
+) -> ObservedOutcome:
+    """Drive one case as a user of its own, whose memories go when it ends, so
+    no case reads what another case wrote."""
+    user_id = uuid4()
+    try:
+        return await _run_turns(
+            case, user_id, run_root=run_root, effort=effort, via_worker=via_worker
+        )
+    finally:
+        await forget_user(user_id)
+
+
+async def _run_turns(
+    case: EvalCase,
+    user_id: UUID,
+    *,
+    run_root: Path,
+    effort: ReasoningEffort | None,
+    via_worker: bool,
 ) -> ObservedOutcome:
     """Drive every turn of one case on a fresh thread, in order.
 
@@ -300,6 +336,7 @@ async def run_one_case(
     before: set[int] = set()
     replies: list[str] = []
     shown_facts: list[str] = []
+    record_ids: list[list[str]] = []
     last_facts: TurnFacts | None = None
     reviewed: RequirementCounts | None = None
     ended = Gate(kind="none")
@@ -323,6 +360,7 @@ async def run_one_case(
             assistant=case.assistant_id,
             effort=case.effort if effort is None else effort,
             attachments=inline,
+            user_id=user_id,
         )
         capture, ended = await drive_run(args)
         refused.extend(capture.refused_tools())
@@ -343,6 +381,7 @@ async def run_one_case(
         last_facts = facts or last_facts
         replies.append(capture.assistant_text())
         shown_facts.append(facts_text(facts))
+        record_ids.append([] if facts is None else facts.record_ids())
         counted = await reviewed_requirements(conversation_id)
         reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)
@@ -353,6 +392,7 @@ async def run_one_case(
             facts=shown_facts,
             last_facts=last_facts,
             requirements=reviewed,
+            record_ids=record_ids,
         ),
         step_ids_unchanged=(before == after) if before else None,
         ends_on=gate_end(ended),

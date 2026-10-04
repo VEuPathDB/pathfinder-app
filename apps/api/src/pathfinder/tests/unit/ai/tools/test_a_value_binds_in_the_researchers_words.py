@@ -1,6 +1,6 @@
 """set_criterion binds a value on the scale its parameter names, and records a
 value as stated when the researcher's words hold it: as an ordinal, on the
-other scale, or by the label the site gives it."""
+other scale, by the label the site gives it, or by the taxon of its organisms."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import _frame_count, frame_spec
+from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.operational_spec import BoundValue
 from pathfinder.tests._support.recorded_counts import percentile_count, serve_counts
 from pathfinder.tests._support.recorded_searches import serve_recorded, suite_search
@@ -20,6 +21,10 @@ from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     bind,
     no_validation,
     serve_site_listing,
+)
+from pathfinder.tests.unit.domain.strategy.test_a_taxon_the_message_names_takes_its_organisms import (
+    ACROSS_BABESIA,
+    BABESIA_LEAVES,
 )
 
 _PERCENTILE = suite_search("search_genes_by_rnaseq_gomez_diaz_percentile")
@@ -125,3 +130,19 @@ async def test_an_organism_the_researcher_named_without_its_rank_word_is_stated(
 
     held = bound["organism"]
     assert (held.source, held.basis) == ("stated", "Babesia microti RI")
+
+
+@pytest.mark.asyncio
+async def test_the_organisms_of_a_genus_the_researcher_named_are_stated_as_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(monkeypatch, _TAXON)
+
+    bound = await _bound(_TAXON, {"organism": BABESIA_LEAVES}, ACROSS_BABESIA)
+
+    held = bound["organism"]
+    assert (held.source, held.basis, held.taxon) == (
+        "stated",
+        "Babesia",
+        NamedTaxon(name="Babesia", organisms=10),
+    )

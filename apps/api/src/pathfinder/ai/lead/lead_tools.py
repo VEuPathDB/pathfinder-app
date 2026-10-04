@@ -206,7 +206,9 @@ async def classify_user_intent(
         if completed:
             intent = intent.model_copy(update={"explicit_constraints": constraints})
             corrections += completed
-    intent = intent.with_undo_read_from(state.user_prompt)
+    intent = state.domain.withdrawn_as_recorded(
+        intent.with_undo_read_from(state.user_prompt)
+    )
     ctx.deps.refused_classification = None
     ctx.deps.intent = intent
     state.turn_markers.intent_classified = True

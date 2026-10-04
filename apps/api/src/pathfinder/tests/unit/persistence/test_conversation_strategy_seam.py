@@ -41,6 +41,7 @@ STRATEGY_COLUMNS = {
     "gene_set_id",
     "gene_set_auto_imported",
     "imported_saved_strategy_ids",
+    "generated_name_steps",
 }
 
 
@@ -126,6 +127,7 @@ def test_an_absent_row_reads_as_a_strategy_that_was_never_built() -> None:
     assert view.gene_set_id is None
     assert view.gene_set_auto_imported is False
     assert view.imported_saved_strategy_ids == []
+    assert view.generated_name_steps is None
 
 
 def test_the_view_projects_every_column_of_the_side_row() -> None:

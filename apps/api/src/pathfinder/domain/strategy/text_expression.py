@@ -13,11 +13,18 @@ _OPERATORS = frozenset({"AND", "OR", "NOT"})
 # A text that holds one of these is grouped by its writer.
 _GROUPING = frozenset('"()')
 _WILDCARD = "*"
+_QUOTED = re.compile(r'"([^"]*)"')
 # The words a researcher uses to ask that a term match as one phrase.
 _ASKS_FOR_THE_PHRASE = re.compile(
     r"\b(?:exact\s+phrase|the\s+phrase|as\s+a\s+phrase|in\s+quotes)\b",
     re.IGNORECASE,
 )
+
+
+def _unquoted(quoted: re.Match[str]) -> str:
+    """The quoted run without its quotes when it is several words."""
+    inner = quoted.group(1)
+    return inner if len(inner.split()) > 1 else quoted.group(0)
 
 
 def _phrased(operand: list[str]) -> str:
@@ -50,6 +57,12 @@ class TextExpression(BaseModel):
             " ".join(run) if run[0] in _OPERATORS else _phrased(run) for run in runs
         )
         return None if read == " ".join(self.text.split()) else read
+
+    def words_reading(self) -> str | None:
+        """The text with the quotes around each phrase of several words removed,
+        else None when the text quotes no such phrase."""
+        read = _QUOTED.sub(_unquoted, self.text)
+        return None if read == self.text else read
 
 
 def asks_for_the_phrase(messages: Sequence[str]) -> bool:

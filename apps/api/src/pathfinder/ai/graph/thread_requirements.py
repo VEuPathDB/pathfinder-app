@@ -27,6 +27,8 @@ from pathfinder.domain.strategy.requirement_lifecycle import (
     reopened,
     restored,
     retire,
+    retire_dropped_sides,
+    with_recorded_sources,
     withdrawn_by,
 )
 from pathfinder.domain.strategy.stated_requirements import (
@@ -193,7 +195,8 @@ class ThreadRequirements(BaseModel):
         self, deleted: Sequence[Criterion], remaining: Sequence[Criterion]
     ) -> None:
         """Withdraw each live requirement a deleted criterion's text states and
-        no remaining one states. An organism or a record type scopes the whole
+        no remaining one states, and each combination a side of which names a
+        deleted criterion. An organism or a record type scopes the whole
         strategy, so a delete withdraws neither."""
 
         def stated(requirement: Constraint, criteria: Sequence[Criterion]) -> bool:
@@ -209,6 +212,25 @@ class ThreadRequirements(BaseModel):
             and stated(c, deleted)
             and not stated(c, remaining)
         )
+        self.requirements, self.retired_requirements = retire_dropped_sides(
+            self.requirements,
+            self.retired_requirements,
+            deleted=deleted,
+            remaining=remaining,
+            turn_id=self._turn_id(),
+        )
+
+    def withdrawn_as_recorded(self, intent: UserIntent) -> UserIntent:
+        """The intent, each requirement it withdraws in the source this thread
+        recorded for it. An intent this changes nothing of stays the same object."""
+        recorded = [
+            *self.requirements,
+            *(r.constraint for r in self.retired_requirements),
+        ]
+        sourced = with_recorded_sources(intent.withdrawn, recorded)
+        if sourced == intent.withdrawn:
+            return intent
+        return intent.model_copy(update={"withdrawn": sourced})
 
     def _turn_id(self) -> str:
         return str(self.turn_markers.message_id or "")

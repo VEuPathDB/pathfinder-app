@@ -18,7 +18,6 @@ lazy-create.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -30,13 +29,14 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.services.conversations.turns import name_conversation_if_unnamed
+from pathfinder.services.conversations.turns import (
+    TitleGenerator,
+    name_conversation_if_unnamed,
+)
 
 logger = get_logger(__name__)
 
 DEFAULT_NEW_CONVERSATION_NAME = ""
-
-TitleGenerator = Callable[[str], Awaitable[str]]
 
 _TITLE_TASKS: set[asyncio.Task[None]] = set()
 

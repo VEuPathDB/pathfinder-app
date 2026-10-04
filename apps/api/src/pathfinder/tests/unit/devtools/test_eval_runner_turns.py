@@ -127,10 +127,14 @@ def _install(
             refused_tools=refused_tools,
         )
 
+    async def _forget(user_id: UUID) -> None:
+        del user_id
+
     monkeypatch.setattr(eval_runner, "drive_run", _drive)
     monkeypatch.setattr(eval_runner, "persisted_wdk_step_ids", _step_ids)
     monkeypatch.setattr(eval_runner, "observe", _observe)
     monkeypatch.setattr(eval_runner, "reviewed_requirements", _reviewed)
+    monkeypatch.setattr(eval_runner, "forget_user", _forget)
     return _Installed(driven=driven, read=read, drive=_drive, step_ids=_step_ids)
 
 
@@ -1032,6 +1036,7 @@ async def test_a_turn_is_observed_as_its_reply_and_the_facts_part_beside_it(
             replies=["The count is shown beside this reply."],
             facts=["Strategy\nGO Term: 74 genes"],
             last_facts=shown,
+            record_ids=[[]],
         )
     ]
 

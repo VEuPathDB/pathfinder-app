@@ -81,15 +81,24 @@ def bind_values(
 def read_again(
     values: Mapping[str, BoundValue], sheet: Sequence[ParameterInfo]
 ) -> dict[str, BoundValue]:
-    """The values read on the sheet, each keeping who set it and why."""
+    """The values read on the sheet, each keeping who set it and why, and the
+    label of the vocabulary it was bound under, which the sheet may lack."""
     return {
-        name: bind_values({name: held.value}, held.source, sheet, held.basis)[
-            name
-        ].model_copy(
-            update={"carried_from": held.carried_from, "stated_as": held.stated_as}
+        name: _kept(
+            held, bind_values({name: held.value}, held.source, sheet, held.basis)[name]
         )
         for name, held in values.items()
     }
+
+
+def _kept(held: BoundValue, read: BoundValue) -> BoundValue:
+    return read.model_copy(
+        update={
+            "carried_from": held.carried_from,
+            "taxon": held.taxon,
+            "label": held.label or read.label,
+        }
+    )
 
 
 def plain_value(value: ParamValue) -> str:

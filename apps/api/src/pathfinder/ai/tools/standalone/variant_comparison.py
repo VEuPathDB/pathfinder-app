@@ -55,7 +55,8 @@ async def compare_search_variants(
     values / ablate a step - instead of committing to one plan. Each variant
     runs as an anonymous WDK report (no step or strategy is created, so the
     user's workspace is untouched). Returns result sizes, pairwise overlap,
-    and the genes unique to each variant, rendered as a comparison card. A
+    and the genes unique to each variant, each sampled gene with the product
+    its record names, rendered as a comparison card. A
     variant of a search one step of the strategy runs is also counted in the
     strategy's result with the variant in place (``resultCount``), which is
     the count to answer "how many of the result would remain" from. Each

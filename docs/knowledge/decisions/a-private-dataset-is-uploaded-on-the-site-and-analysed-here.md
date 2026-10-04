@@ -26,7 +26,9 @@ screen.
   token is never a substitute. Only `rnaseqrc` rows are listed, since only they become a study
   DESeq2 runs on. Each row's state comes from the client's two-axis predicate for this project:
   `installing`, `installed`, or `failed`. A failed row of the owned listing carries no messages,
-  so that row alone reads `GET /datasets/{id}` for VDI's own text, which the tab shows.
+  so that row alone reads `GET /datasets/{id}`, whose import status is exact. A `failed` import
+  is the site's plugin faulting, so the tab says to upload the same files again; an `invalid`
+  import, a failed upload and a failed install show VDI's own text.
 - **The study.** An installed row is `EDAUD_<vdiId>`. It is `installed` when this credential's
   `/eda/permissions` map holds it. A study installs after the map was read, so a miss re-reads
   the map once per listing through `catalog.refresh_permissions(site_id)`, and a row still absent
@@ -68,8 +70,8 @@ The runtime's host-started task (`declare_durable_tool(..., host_started=True)` 
 # Anchor
 
 `apps/api/src/pathfinder/services/eda/private_datasets.py`, pinned by
-`tests/unit/services/eda/test_own_datasets.py` (states, VDI's text byte for byte, the one
-permission re-read), `tests/unit/transport/test_vdi_calls_carry_the_request_token.py`,
+`tests/unit/services/eda/test_own_datasets.py` (states, the faulted import, VDI's text byte for
+byte, the one permission re-read), `tests/unit/transport/test_vdi_calls_carry_the_request_token.py`,
 `tests/unit/services/eda/test_study_cache_curated_only.py`,
 `tests/unit/ai/tools/test_eda_study_search_lists_own_datasets.py`, and the live check
 `tests/live/test_private_dataset_live.py`.

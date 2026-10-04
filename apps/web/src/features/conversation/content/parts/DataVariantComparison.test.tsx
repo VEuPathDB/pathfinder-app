@@ -18,7 +18,9 @@ const COMPARISON: VariantComparison = {
       searchName: "GenesByText",
       geneCount: 1105,
       uniqueCount: 84,
-      sampleUniqueGenes: ["PF3D7_0100100"],
+      sampleUniqueGenes: [
+        { geneId: "PF3D7_0100100", product: "erythrocyte membrane protein 1, PfEMP1" },
+      ],
     },
     {
       label: "phosphatases",
@@ -139,6 +141,46 @@ describe("DataVariantComparison", () => {
     expect(screen.getByText("Only in kinases:")).toBeInTheDocument();
     expect(screen.getByText("PF3D7_0100100")).toBeInTheDocument();
     expect(screen.getByText("kinases vs phosphatases:")).toBeInTheDocument();
+  });
+
+  it("names each gene only one variant returned with its product", () => {
+    inThread(
+      <DataVariantComparison
+        data={{
+          variants: [
+            {
+              label: "word",
+              searchName: "GenesByText",
+              geneCount: 12,
+              uniqueCount: 11,
+              sampleUniqueGenes: [
+                {
+                  geneId: "TcIL3000_0_29570",
+                  product: "Glucose-6-phosphate isomerase (GPI) (EC 5.3.1.9)",
+                },
+                { geneId: "TcIL3000_10_11240", product: "gpi mannosyltransferase 2" },
+                { geneId: "TcIL3000_10_4250", product: null },
+              ],
+            },
+            {
+              label: "phrase",
+              searchName: "GenesByText",
+              geneCount: 1,
+              uniqueCount: 0,
+              sampleUniqueGenes: [],
+            },
+          ],
+          overlaps: [],
+        }}
+      />,
+    );
+    expect(
+      screen.getAllByTestId("variant-unique-gene").map((gene) => gene.textContent),
+    ).toEqual([
+      "TcIL3000_0_29570 Glucose-6-phosphate isomerase (GPI) (EC 5.3.1.9)",
+      "TcIL3000_10_11240 gpi mannosyltransferase 2",
+      "TcIL3000_10_4250",
+    ]);
   });
 
   it("lists under each label the parameter values it differs by", () => {

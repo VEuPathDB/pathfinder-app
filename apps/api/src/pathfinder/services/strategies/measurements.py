@@ -230,7 +230,8 @@ def _phrase(value: ParamValue) -> str | None:
 async def _text_readings(
     reads: _Reads, name: str, value: ParamValue
 ) -> list[Measurement]:
-    """The site search's count of the phrase, and the count of its wildcard form.
+    """The site search's count of the phrase, the count of its wildcard form,
+    and the count of each quoted phrase as its words.
 
     Only the search the site search hands its record type to reads the site
     search's grammar. That search reads no wildcard inside quotes, so only a
@@ -266,6 +267,9 @@ async def _text_readings(
                 kind="wildcard_phrase", param=name, count=count, reading=wildcard
             )
         )
+    unquoted = TextExpression(text=phrase).words_reading()
+    if unquoted is not None:
+        found.extend(await _counted_text(reads, name, "words_reading", unquoted))
     return found
 
 
@@ -372,25 +376,18 @@ async def measure_binding(
         ]
     deadline = asyncio.get_running_loop().time() + MEASUREMENT_BUDGET_SECONDS
     reads = _Reads(counts, binding, binding.count, deadline)
-    phrased = {
-        name: bound.value
+    quoted = {
+        name: text
         for name, bound in values.items()
-        if name in by_name and text_query(by_name[name], bound)
+        if name in by_name
+        and text_query(by_name[name], bound)
+        and (text := _quoted(bound.value)) is not None
     }
-    texts: list[tuple[str, CountedKind, str]] = [
-        *(
-            (name, "phrase_reading", quoted)
-            for name, v in phrased.items()
-            if (quoted := _quoted(v)) is not None
-        ),
-        *(
-            (name, "wildcard_phrase", values[name].stated_as)
-            for name in phrased
-            if values[name].stated_as
-        ),
-    ]
     read = await asyncio.gather(
         *(_readings_of(reads, by_name[name], v, tree) for name, v in measured.items()),
-        *(_counted_text(reads, name, kind, text) for name, kind, text in texts),
+        *(
+            _counted_text(reads, name, "phrase_reading", text)
+            for name, text in quoted.items()
+        ),
     )
     return [measurement for group in read for measurement in group]

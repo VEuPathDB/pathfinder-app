@@ -16,7 +16,9 @@ from pathfinder.ai.lead.verify_dispatch import _findings
 from pathfinder.domain.caveats import RequirementGap
 from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
+    Constraint,
     ConstraintKind,
+    ConstraintSource,
     ReplacedLifecycle,
     WithdrawnLifecycle,
 )
@@ -151,6 +153,46 @@ async def test_a_no_on_the_removal_card_takes_the_withdrawal_back() -> None:
 
     assert deps.state.domain.requirements == [_SIGNAL, _CUTOFF]
     assert deps.state.domain.retired_requirements == []
+
+
+def _as_classified(held: Constraint) -> Constraint:
+    """The withdrawn requirement as the classifier typed it, with no source."""
+    return Constraint(
+        kind=held.kind, label=held.label, requested_value=held.requested_value
+    )
+
+
+async def test_a_withdrawal_keeps_the_source_the_thread_recorded() -> None:
+    genus = requirement(ConstraintKind.ORGANISM, "Organism", "Cryptosporidium")
+    domain = StrategyDomainState(requirements=[genus, _SIGNAL])
+
+    deps = await _turn(
+        domain,
+        "Drop the Cryptosporidium restriction.",
+        _intent(withdrawn=[_as_classified(genus)]),
+    )
+
+    assert deps.intent is not None
+    assert [(c.requested_value, c.source) for c in deps.intent.withdrawn] == [
+        ("Cryptosporidium", ConstraintSource.USER_EXPLICIT)
+    ]
+
+
+async def test_a_withdrawal_of_a_requirement_the_thread_lacks_keeps_its_source() -> (
+    None
+):
+    exported = _as_classified(
+        requirement(ConstraintKind.OTHER, "localisation", "exported")
+    )
+
+    deps = await _turn(
+        StrategyDomainState(requirements=[_SIGNAL]),
+        "Drop the exported requirement.",
+        _intent(withdrawn=[exported]),
+    )
+
+    assert deps.intent is not None
+    assert deps.intent.withdrawn == [exported]
 
 
 async def test_a_requirement_stated_again_is_live_again() -> None:

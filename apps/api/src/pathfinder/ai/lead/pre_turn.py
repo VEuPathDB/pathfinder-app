@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.analysis_readings import read_every_unread_analysis
 from pathfinder.ai.lead.answered_strategy import (
     analyses_of,
     live_tree,
@@ -174,6 +175,7 @@ async def refresh_live_strategy_state(
     await _answer_what_was_written_outside(working_state, context)
     await hydrate_spec_from_the_strategy(working_state, context)
     _state_every_analysis(working_state, context.strategy_session.get_graph(None))
+    await read_every_unread_analysis(working_state.domain, site_id=context.site_id)
     _record_the_spec_the_turn_started_from(working_state)
     _record_the_strategy_at_arrival(working_state, context)
     return working_state

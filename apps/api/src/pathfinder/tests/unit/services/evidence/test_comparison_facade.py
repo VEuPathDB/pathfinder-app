@@ -9,6 +9,7 @@ from pathfinder.services.experiment.scored_comparison import (
     ScoredVariant,
 )
 from pathfinder.services.experiment.variant_comparison import (
+    UniqueGene,
     VariantComparison,
     VariantResult,
     VariantSpec,
@@ -44,7 +45,7 @@ async def test_the_unscored_comparison_reaches_the_service_with_its_specs(
                     search_name="GenesByRNASeq",
                     gene_count=132,
                     unique_count=7,
-                    sample_unique_genes=["PF3D7_0102600"],
+                    sample_unique_genes=[UniqueGene(gene_id="PF3D7_0102600")],
                 )
             ],
             overlaps=[],

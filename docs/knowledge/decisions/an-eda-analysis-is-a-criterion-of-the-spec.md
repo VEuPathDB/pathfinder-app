@@ -91,7 +91,14 @@ differential expression. A `none` step, and a step with no kind, exports no
 analysis. The domain imports no `veupathdb.eda`, so the reader is in
 services.
 `ai/lead/answered_strategy.py::analyses_of` reads the live tree into a mapping
-the hydration, the replay and the one-time statement consume. The binding
+the hydration, the replay and the one-time statement consume. Those bindings
+hold no names and no counts, so the pre-turn then reads the study and the
+compute once for each binding a spec holds that way
+(`ai/lead/analysis_readings.py::read_every_unread_analysis` over
+`services/eda/export.py::read_beside_the_document`, decided by
+`AnalysisBinding.unread`). An export the graph editor or the site added then
+holds the binding an export PathFinder wrote holds; a read that fails leaves
+the document's binding, and the next turn reads it again. The binding
 names no analysis: an analysis holds one comparison beside any pass computes
 the site stored, and each compute replaces that comparison, so two exports of
 different comparisons share an id, and the document a step carries names
@@ -172,7 +179,9 @@ restated an exported comparison and left its step out of the structure.
 `domain/strategy/spec_replay.py`, `domain/strategy/spec_reconciliation.py`,
 `domain/strategy/step_words.py`, `services/eda/analysis_kinds.py`,
 `services/eda/export.py::exported_analysis`,
-`ai/tools/standalone/_frame_eda.py`, `ai/tools/standalone/_eda_step_criterion.py`,
+`services/eda/export.py::read_beside_the_document`,
+`ai/lead/analysis_readings.py`, `ai/tools/standalone/_frame_eda.py`, `ai/tools/standalone/_eda_step_criterion.py`,
 `ai/tools/standalone/_eda_step_spec.py`, `ai/lead/edit_dispatch.py`,
 `ai/lead/lead_pins.py::eda_route_blocks`,
-`tests/unit/ai/lead/test_the_measured_deseq_turn.py`.
+`tests/unit/ai/lead/test_the_measured_deseq_turn.py`,
+`tests/unit/ai/lead/test_an_export_added_outside_is_named_by_the_study.py`.

@@ -11,12 +11,16 @@ from veupathdb.domain.parameters import (
 )
 from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 
+from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
 )
 from pathfinder.domain.strategy.value_binding import bind_values, read_again
 from pathfinder.services.strategies.parameter_rules import text_query
 from pathfinder.tests._support.recorded_searches import client_search, suite_search
+from pathfinder.tests.unit.domain.strategy.test_a_taxon_the_message_names_takes_its_organisms import (
+    BABESIA_LEAVES,
+)
 
 # plasmodb GenesByText as WDK publishes it: text_expression starts at "*reductase".
 _TEXT = format_param_info_typed(
@@ -136,7 +140,6 @@ def test_a_value_read_again_keeps_who_set_it_and_why() -> None:
         source="chosen",
         basis="the model's reason",
         carried_from="c_option",
-        stated_as="thioredoxin reductase",
     )
 
     read = read_again({"text_expression": held}, _TEXT)["text_expression"]
@@ -192,3 +195,20 @@ def test_a_value_read_again_keeps_the_visibility_of_its_sheet() -> None:
     read = read_again({"profile_pattern": held}, _ORTHOLOGS)["profile_pattern"]
 
     assert (held.visible, read.visible) == (True, False)
+
+
+def test_an_organism_pick_read_again_keeps_the_taxon_that_named_it() -> None:
+    taxon = NamedTaxon(name="Babesia", organisms=10)
+    held = BoundValue(
+        value=MultiPickValue(values=BABESIA_LEAVES),
+        source="stated",
+        basis="Babesia",
+        taxon=taxon,
+    )
+    sheet = format_param_info_typed(
+        list(suite_search("search_genes_by_taxon_piroplasmadb").parameters or [])
+    )
+
+    read = read_again({"organism": held}, sheet)["organism"]
+
+    assert (read.source, read.taxon, read.display_name) == ("stated", taxon, "Organism")

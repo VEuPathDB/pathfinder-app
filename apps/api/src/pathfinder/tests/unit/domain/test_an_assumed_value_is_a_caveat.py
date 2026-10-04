@@ -109,6 +109,7 @@ def test_every_counted_kind_names_its_reading() -> None:
         ("loosest_bound", "0"),
         ("wildcard_phrase", "VSP*"),
         ("site_search_reach", '"VSP"'),
+        ("words_reading", "GPI anchored"),
         ("any_strain", "at least one of 15 species"),
         ("all_strains", "all 15 species"),
     ]
@@ -126,6 +127,7 @@ def test_every_counted_kind_names_its_reading() -> None:
         "2,000 at 0",
         "2,000 for VSP*",
         '2,000 that the site search finds for "VSP"',
+        "2,000 as any of its words",
         "2,000 with an ortholog in at least one of 15 species",
         "2,000 with an ortholog in all 15 species",
     ]

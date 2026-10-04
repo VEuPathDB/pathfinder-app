@@ -4,6 +4,7 @@ scale, then each value with who set it and the label the site gives it."""
 from __future__ import annotations
 
 from veupathdb.domain.parameters import ParamValue
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from pathfinder.ai.agents.state import AgentToolState
@@ -20,7 +21,9 @@ from pathfinder.ai.tools.standalone._frame_sources import (
     card_values_of,
     on_the_sites_scale,
     stated_by_their_labels,
+    stated_by_their_taxa,
 )
+from pathfinder.domain.strategy.named_taxa import organism_trees
 from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
 
 
@@ -39,14 +42,16 @@ async def sourced_values(
     call: CriterionCall,
     values: dict[str, ParamValue],
     *,
+    definition: WDKSearch,
     infos: list[ParameterInfo],
     fetch_at: ParamFetcher,
     site_supplied: set[str],
     reason: str,
 ) -> tuple[dict[str, BoundValue], list[Measurement]]:
     """Each value with who set it, and the label the site gives each pick; a
-    value a message names by its labels is stated. ``infos`` is the published
-    sheet, and each dependent vocabulary is read under the bound parents."""
+    value a message names by its labels or by its taxon is stated. ``infos``
+    is the published sheet, and each dependent vocabulary is read under the
+    bound parents."""
     bound = bound_values(
         values,
         infos=await vocabularies_under(fetch_at, infos, values),
@@ -58,7 +63,10 @@ async def sourced_values(
     )
     labels = await labelled_picks(fetch_at, infos, call, bound)
     restated = stated_by_their_labels(bound, labels, infos, state.request_messages)
-    return restated, labels
+    named = stated_by_their_taxa(
+        restated, organism_trees(definition), state.request_messages
+    )
+    return named, labels
 
 
 __all__ = ["proposed_call", "sourced_values"]

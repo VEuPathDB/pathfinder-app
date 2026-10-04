@@ -5,6 +5,7 @@ import contextlib
 import dataclasses
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any
 from uuid import UUID
 
@@ -14,7 +15,6 @@ from assistant_core.conversation.open_tool_calls import (
     write_tool_call_errors,
 )
 from assistant_core.graph.stream_events import (
-    conversation_title_event,
     turn_failed_event,
     turn_status_event,
     turn_stopped_event,
@@ -49,20 +49,17 @@ from pathfinder.ai.conversation.turn_failure import (
     turn_failure_text,
 )
 from pathfinder.ai.conversation.turn_stop import watch_for_cancel
+from pathfinder.ai.conversation.turn_title import write_turn_name
 from pathfinder.platform.tool_sources import source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,
-    name_conversation_if_unnamed,
+    turn_start_strategy,
 )
 
 logger = get_logger(__name__)
 
 
 _TASK_STARTED = "data-background-task-started"
-
-# A ceiling on the wait for the thread title. The turn finishes without a
-# title when the title model is slower than this.
-_TITLE_WAIT_SECONDS = 15.0
 
 
 @dataclass
@@ -209,6 +206,7 @@ async def _run_turn_with_context(
     turn_message_id = writer.turn_id
     async with turn_closed_on_failure(writer):
         turn_token = await spec.turn_prologue(body.conversation_id)
+        start_strategy = await turn_start_strategy(body.conversation_id)
         start_event_id = await writer.write(
             StartChunk(message_id=str(turn_message_id)).model_dump(
                 by_alias=True,
@@ -260,8 +258,17 @@ async def _run_turn_with_context(
     if spec.turn_epilogue is not None:
         for chunk in await spec.turn_epilogue(body.conversation_id):
             await writer.write(chunk)
-    if title_task is not None:
-        await _write_title(title_task, body.conversation_id, writer)
+    await write_turn_name(
+        title_task,
+        body.conversation_id,
+        writer,
+        start=start_strategy,
+        title_for=partial(
+            charged_conversation_title,
+            mock_model=spec.build_mock_model,
+            user_id=request.user_id,
+        ),
+    )
     await writer.write(
         FinishChunk(finish_reason=finish_reason).model_dump(
             by_alias=True,
@@ -405,41 +412,3 @@ async def _handle_custom(
     if chunk.get("type") == _TASK_STARTED:
         result.suspended = True
     await writer.write(chunk)
-
-
-async def _write_title(
-    title_task: asyncio.Task[str],
-    conversation_id: UUID,
-    writer: ChatWriter,
-) -> None:
-    """Write the thread's title as the last chunk before the turn finishes."""
-    try:
-        title = await asyncio.wait_for(title_task, _TITLE_WAIT_SECONDS)
-    except TimeoutError:
-        logger.warning(
-            "Conversation title generation exceeded its wait",
-            conversation_id=str(conversation_id),
-        )
-        return
-    except Exception:
-        logger.exception("Conversation title generation failed")
-        return
-    if not title:
-        return
-    try:
-        named = await name_conversation_if_unnamed(conversation_id, title=title)
-    except Exception:
-        # The next turn names the thread, so a failed write costs one chunk.
-        logger.exception(
-            "Naming the thread failed", conversation_id=str(conversation_id)
-        )
-        return
-    if not named:
-        return
-    await writer.write(
-        conversation_title_event(title=title).model_dump(
-            by_alias=True,
-            mode="json",
-            exclude_none=True,
-        ),
-    )

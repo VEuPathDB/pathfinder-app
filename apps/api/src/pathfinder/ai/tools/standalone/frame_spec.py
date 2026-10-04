@@ -234,9 +234,9 @@ async def set_criterion(
     ``measurements`` names, one clause each, the label the vocabulary gives
     each pick and, once the binding counts, the count of another reading of
     each value the site or you set: a number at its loosest bound, a quoted
-    word in its wildcard form, a phrase in the site search, a species group in
-    at least one member. A pick the vocabulary gives no label comes back as a
-    retry naming the labels it holds.
+    word in its wildcard form, a phrase in the site search, a quoted phrase as
+    any of its words, a species group in at least one member. A pick the
+    vocabulary gives no label comes back as a retry naming the labels it holds.
 
     ``why`` goes on the call with ``params``: why this search and not the others
     the catalog answered. Its basis is checked against the read and the values.
@@ -317,9 +317,7 @@ async def set_criterion(
         PHYLETIC_LIST_PARAMS if phyletic is not None else frozenset(),
         state,
     )
-    refuse_what_the_words_decide(
-        definition, call, infos, state.request_messages, state.stated_requirements
-    )
+    refuse_what_the_words_decide(definition, call, infos, state)
     refuse_a_pick_no_lookup_read(state, definition, call, infos)
     # A null proposal states no value, so it leaves the param to resolution.
     # The derived pattern replaces the two lists it was derived from.
@@ -386,6 +384,7 @@ async def set_criterion(
         state,
         call,
         resolved.params,
+        definition=definition,
         infos=infos,
         fetch_at=fetch_at,
         site_supplied=site_supplied,
