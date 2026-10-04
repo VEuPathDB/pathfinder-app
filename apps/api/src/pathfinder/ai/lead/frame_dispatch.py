@@ -322,6 +322,18 @@ def derived_changes(
     ]
 
 
+def unwritten_requirements_refusal(unwritten: list[str]) -> str:
+    """Why a pass whose unstated list names entries no message of the researcher
+    states is refused, with both ways to correct an entry."""
+    return (
+        f"unstated names {unwritten}, which no message of the researcher states. "
+        "Each entry is a requirement of the request that no search on the site "
+        "states, in the words the researcher wrote it in. Restate a requirement "
+        "in those words, and remove an entry that names no requirement of the "
+        "request, such as a note about a count, the build or a later step."
+    )
+
+
 def _refuse_an_unstated_requirement_the_researcher_did_not_write(
     deps: LeadDeps, delta: FrameResult
 ) -> None:
@@ -333,12 +345,7 @@ def _refuse_an_unstated_requirement_the_researcher_did_not_write(
         if not any(message_states(message, text) for message in messages)
     ]
     if unwritten:
-        refuse_and_keep_what_it_bound(
-            deps,
-            f"unstated names {unwritten}, which no message of the researcher "
-            f"states. Name each requirement no search states in the words the "
-            f"researcher wrote it in.",
-        )
+        refuse_and_keep_what_it_bound(deps, unwritten_requirements_refusal(unwritten))
 
 
 def _refuse_an_added_criterion_the_message_does_not_state(

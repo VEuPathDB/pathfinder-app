@@ -2,6 +2,24 @@
 
 ## 2026-10-04
 
+* **A read-only search run sends what a step of the search sends.**
+  `_variant_targets._published_defaults` gives every parameter a variant names no
+  value for the value the site's sheet gives it under the variant's parents
+  (`_sheet_value`), not only a pick, as the bind of a step does; hostdb
+  `GenesByLocation` answers a count only with `sequenceId` at its placeholder, and
+  refuses one without `start_point` and `end_point`
+  (`tests/integration/services/experiment/test_a_location_count_sends_the_sheets_values.py`).
+* **FRAME's unstated list holds requirements, never notes, and its refusal says
+  how to correct both.** `FrameResult.unstated` and FRAME's instructions say a note
+  about a count, the build or a later step is never listed;
+  `frame_dispatch.unwritten_requirements_refusal` asks for a requirement in the
+  researcher's words and for removing an entry that names none, since a note
+  cannot be restated and each refusal puts back what the pass changed.
+* **The corpus case `uat-dry-a-toxodb` expects only what its messages decide.** The
+  count after loosening the tachyzoite cutoff depends on which of several
+  tachyzoite RNA-Seq datasets the build reads, which no message names, so the case
+  keeps the 461 of the signal peptide and no-transmembrane steps and drops 259.
+
 * **PathFinder takes `veupathdb-mcp` 0.2.0a40: a marked tree of samples gives
   no organism scope.** `catalog.organism_parameter` names a marked parameter only
   when its leaves share an organism with the site's `GenesByTaxon`, so plasmodb

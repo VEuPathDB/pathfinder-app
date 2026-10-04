@@ -47,7 +47,9 @@ class FrameResult(CamelModel):
         default_factory=list,
         description=(
             "Each requirement of the request that no search on this site "
-            "states, in the researcher's own words. Nothing is bound for it."
+            "states, in the researcher's own words. Nothing is bound for it. "
+            "A note about a count, the build or a later step is no requirement "
+            "and is never listed."
         ),
     )
     # What the pass did to each criterion the workspace held: kept only when

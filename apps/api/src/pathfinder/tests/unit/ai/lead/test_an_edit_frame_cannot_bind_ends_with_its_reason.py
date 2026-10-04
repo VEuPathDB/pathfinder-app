@@ -24,6 +24,7 @@ from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.dispatch_context import refuse_and_restore
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
+from pathfinder.ai.lead.frame_dispatch import unwritten_requirements_refusal
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
@@ -32,12 +33,11 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 )
 
 _REASON = "Loosen the fold-change cutoff of the analysis step to 1.5-fold."
-_REFUSAL = (
-    "unstated names ['Loosen the existing computed comparison to a 1.5-fold cutoff "
-    "and verify that the resulting gene count increases.'], which no message of "
-    "the researcher states. Name each requirement no search states in the words "
-    "the researcher wrote it in."
+_NOTE = (
+    "Loosen the existing computed comparison to a 1.5-fold cutoff and verify "
+    "that the resulting gene count increases."
 )
+_REFUSAL = unwritten_requirements_refusal([_NOTE])
 _UNBOUND = (
     f"The edit was not applied: {_REASON} The planning pass refused it: {_REFUSAL}"
 )

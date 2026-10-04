@@ -230,17 +230,25 @@ def _entry_value(
     return SinglePickValue(value=entries[0])
 
 
+def _sheet_value(info: ParameterInfo) -> ParamValue | None:
+    """The value the site's sheet gives the parameter, as a step of the search
+    sends it; None for an empty value and a pick whose default takes no option."""
+    if info.param_kind in _PICKS:
+        return site_default(info)
+    return (
+        from_wire(info.param_kind, info.default_value) if info.default_value else None
+    )
+
+
 def _published_defaults(
     variant: VariantSpec, infos: dict[str, ParameterInfo]
 ) -> dict[str, ParamValue]:
-    """The site's published default of each pick the variant names no value
-    for, as the bind's reading at the site's default sends it."""
+    """The sheet's value of each parameter the variant names no value for."""
     return {
         name: default
         for name, info in infos.items()
-        if info.param_kind in _PICKS
-        and name not in variant.parameters
-        and (default := site_default(info)) is not None
+        if name not in variant.parameters
+        and (default := _sheet_value(info)) is not None
     }
 
 
@@ -271,8 +279,10 @@ async def resolved_variants(
 ) -> list[VariantSpec]:
     """The variants under the record type the catalog lists each search under,
     with each vocabulary value as the entry it names and each pick they name no
-    entry for at the site's published default. A hidden required parameter
-    runs at the value the site sets. Refuses a search the catalog
+    entry for at the site's published default, and every other parameter they
+    name no value for at the value the site's sheet gives it, as a step of the
+    search sends it. A hidden required parameter runs at the value the site
+    sets. Refuses a search the catalog
     does not list, an unknown parameter, and a value the vocabulary under the
     variant's parents lacks; a value a step holds passes as it is."""
     site_id = session.site_id
