@@ -8,10 +8,7 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone._frame_measure import (
-    labelled_picks,
-    vocabularies_under,
-)
+from pathfinder.ai.tools.standalone._frame_measure import labelled_picks
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
     left_to_the_site,
@@ -25,6 +22,7 @@ from pathfinder.ai.tools.standalone._frame_sources import (
 )
 from pathfinder.domain.strategy.named_taxa import organism_trees
 from pathfinder.domain.strategy.operational_spec import BoundValue, Measurement
+from pathfinder.services.strategies.sheet_params import vocabularies_under
 
 
 def proposed_call(

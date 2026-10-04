@@ -19,15 +19,26 @@ from pathfinder.domain.strategy.ast_diff import nodes_of
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_hydration import Analyses, Sheets
+from pathfinder.domain.strategy.spec_hydration import (
+    Analyses,
+    Sheets,
+    StepSheets,
+    read_under_their_parents,
+)
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
-from pathfinder.domain.strategy.spec_replay import spec_replaying
+from pathfinder.domain.strategy.spec_replay import (
+    spec_replaying,
+    steps_the_replay_reads,
+)
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.services.strategies.organism_params import organism_parameters
-from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
+from pathfinder.services.strategies.sheet_params import (
+    sheet_params_for_searches,
+    sheets_under_their_parents,
+)
 
 __all__ = [
     "analyses_of",
@@ -164,10 +175,12 @@ async def the_thread_wrote_the_strategy(
 
 
 class _Reading(NamedTuple):
-    """How the replay reads the live steps: their sheets, their analyses, and
-    the organism parameter each search it read marks."""
+    """How the replay reads the live steps: their sheets, the sheets their own
+    parents answer, their analyses, and the organism parameter each search it
+    read marks."""
 
     sheets: Sheets
+    under_parents: StepSheets
     analyses: Analyses
     searches: frozenset[str]
     marks: Mapping[str, str]
@@ -179,13 +192,19 @@ async def _the_replay_reading(
     changes: OutsideChanges,
     live: StrategyAst | None,
 ) -> _Reading:
-    searches = _searches_the_replay_reads(domain, changes, live)
+    stated = {c.id for spec in _every_spec(domain) for c in spec.criteria}
+    steps = steps_the_replay_reads(changes, live, stated)
+    searches = frozenset(step.node.search_name for step in steps)
     record_type = None if live is None else live.record_type
     if not searches:
-        return _Reading({}, analyses_of(live), searches, {})
+        return _Reading({}, {}, analyses_of(live), searches, {})
+    sheets = await sheet_params_for_searches(
+        site_id=site_id, record_type=record_type, search_names=sorted(searches)
+    )
     return _Reading(
-        sheets=await sheet_params_for_searches(
-            site_id=site_id, record_type=record_type, search_names=sorted(searches)
+        sheets=sheets,
+        under_parents=await sheets_under_their_parents(
+            site_id=site_id, record_type=record_type, steps=steps, sheets=sheets
         ),
         analyses=analyses_of(live),
         searches=searches,
@@ -211,6 +230,7 @@ def _replayed(
         analyses=reading.analyses,
         may_leave_out=may_leave_out,
     )
+    replayed = read_under_their_parents(replayed, reading.under_parents)
     if not reading.searches:
         return replayed
     marked = [
@@ -231,29 +251,3 @@ def _every_spec(domain: StrategyDomainState) -> list[OperationalSpec]:
         domain.spec_before_dispatch,
     )
     return [spec for spec in held if spec is not None]
-
-
-def _searches_the_replay_reads(
-    domain: StrategyDomainState,
-    changes: OutsideChanges,
-    live: StrategyAst | None,
-) -> frozenset[str]:
-    """The searches this replay states or restates.
-
-    A turn whose strategy did not move and whose specs state every live step
-    reads none of them.
-    """
-    if live is None:
-        return frozenset()
-    nodes = nodes_of(live)
-    stated = {
-        criterion.id for spec in _every_spec(domain) for criterion in spec.criteria
-    }
-    touched = {change.step_id for change in changes.changed} | {
-        node.id
-        for node in nodes.values()
-        if node.id not in stated and node.infer_kind() != "combine"
-    }
-    return frozenset(
-        nodes[step_id].search_name for step_id in touched if step_id in nodes
-    )

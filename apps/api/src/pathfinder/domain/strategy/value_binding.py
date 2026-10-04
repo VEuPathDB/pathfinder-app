@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 
 from veupathdb.domain.parameters import (
     MultiPickValue,
@@ -98,6 +98,29 @@ def _kept(held: BoundValue, read: BoundValue) -> BoundValue:
             "taxon": held.taxon,
             "label": held.label or read.label,
         }
+    )
+
+
+def parents_moved(
+    values: Mapping[str, ParamValue],
+    names: Collection[str],
+    sheet: Sequence[ParameterInfo],
+) -> bool:
+    """Whether a value with one of these names has a dependent vocabulary, and
+    one of its parents holds a value other than the published initial value.
+    The published sheet is read under those initial values."""
+    by_name = {info.name: info for info in sheet}
+    parents = {
+        parent
+        for name in names
+        if name in values and name in by_name
+        for parent in by_name[name].vocab_depends_on or ()
+    }
+    return any(
+        parent in values
+        and parent in by_name
+        and not _at_default(values[parent], by_name[parent].default_value)
+        for parent in parents
     )
 
 

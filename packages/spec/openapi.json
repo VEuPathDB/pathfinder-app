@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a26"
+    "version": "0.2.0a27"
   },
   "paths": {
     "/health": {
@@ -15489,6 +15489,13 @@
               }
             ],
             "title": "Organismparam"
+          },
+          "datasetOrganisms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Datasetorganisms",
+            "type": "array"
           },
           "resolvedParams": {
             "additionalProperties": {

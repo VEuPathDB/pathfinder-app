@@ -2,6 +2,27 @@
 
 ## 2026-10-04
 
+* **A search that marks no organism parameter runs on the organisms of the one
+  dataset that names it.** `veupathdb-mcp` 0.2.0a38 reads them from the dataset
+  record's `References` and `organism_prefix` (`catalog.dataset_organisms`); a
+  question's `properties.organisms` is one site-wide list and is not read.
+  `Criterion.dataset_organisms` is read at bind, `organism_scope.output_organisms`
+  reads it for a leaf no step on its primary path scopes, and `set_structure`
+  refuses an INTERSECT of a dataset search with a search on another species with
+  a GenesByOrthologs transform of the dataset side as the remedy. The push reads
+  the same organisms from the catalog for every tree it validates
+  (`organism_params.tree_dataset_organisms`, `validate_strategy`), so a hydrated
+  or adopted tree is refused there; same-organism dataset intersections pass.
+
+* **A dependent pick first read from a strategy is labelled on the vocabulary its
+  step's own parents answer.** `sheet_params.sheets_under_their_parents` reads one
+  sheet per step through `vocabularies_under` (moved from `_frame_measure`), only
+  when a value bound afresh has a parent other than its published initial value
+  (`value_binding.parents_moved`); replay (`spec_replay.steps_the_replay_reads`)
+  and hydration (`spec_hydration.steps_stated_by`) name those steps, and
+  `spec_hydration.read_under_their_parents` reads each one's criterion again on
+  that sheet.
+
 * **A dependent pick keeps the label of the vocabulary it was bound under.**
   `value_binding.read_again` keeps a held value's label when the sheet it reads
   again lacks the value: plasmodb `GenesByInterproDomain.domain_typeahead` lists

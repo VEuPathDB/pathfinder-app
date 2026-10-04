@@ -29,21 +29,45 @@ from pathfinder.domain.strategy.value_binding import bind_values, read_again
 
 __all__ = [
     "Sheets",
+    "StepRead",
+    "StepSheets",
     "analysis_criteria_stated",
     "criterion_analysing",
     "hidden_params_dropped",
+    "read_under_their_parents",
     "root_join_operator",
     "sheet_bound",
     "sheet_marked",
     "spec_from_ast",
     "spec_stating_the_live_tree",
+    "steps_stated_by",
 ]
 
 Analyses = Mapping[str, AnalysisBinding]
 # The parameters each search's sheet shows, by search name.
 Sheets = Mapping[str, Sequence[ParameterInfo]]
+# A sheet whose dependent vocabularies the step's own parents answer, by step id.
+StepSheets = Mapping[str, Sequence[ParameterInfo]]
 _NO_ANALYSES: Analyses = {}
 _SYMMETRIC = frozenset({CombineOp.INTERSECT, CombineOp.UNION})
+
+
+class StepRead(NamedTuple):
+    """A live step, and the names of the values a hydration or a replay binds
+    afresh on its sheet."""
+
+    node: StrategyStepNode
+    names: frozenset[str]
+
+
+def steps_stated_by(spec: OperationalSpec, ast: StrategyAst) -> list[StepRead]:
+    """Each live step a criterion of the spec states, with the values it binds."""
+    nodes = nodes_of(ast)
+    return [
+        StepRead(nodes[c.id], frozenset(c.resolved_params))
+        for c in spec.criteria
+        if c.id in nodes
+    ]
 
 
 def spec_from_ast(
@@ -239,6 +263,19 @@ def hidden_params_dropped(
     them the sheet shows.
     """
     criteria = [_sheet_stated(criterion, sheet_params) for criterion in spec.criteria]
+    return spec.model_copy(update={"criteria": criteria})
+
+
+def read_under_their_parents(
+    spec: OperationalSpec, under_parents: StepSheets
+) -> OperationalSpec:
+    """The spec with each criterion in ``under_parents`` read again on the sheet
+    its step's own parents answer, so a pick only that vocabulary lists gets
+    its label."""
+    criteria = [
+        sheet_marked(c, under_parents[c.id]) if c.id in under_parents else c
+        for c in spec.criteria
+    ]
     return spec.model_copy(update={"criteria": criteria})
 
 

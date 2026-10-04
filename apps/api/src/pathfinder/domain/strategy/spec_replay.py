@@ -25,6 +25,7 @@ from pathfinder.domain.strategy.outside_changes import OutsideChanges
 from pathfinder.domain.strategy.spec_hydration import (
     Analyses,
     Sheets,
+    StepRead,
     criterion_analysing,
     sheet_bound,
     sheet_marked,
@@ -33,7 +34,12 @@ from pathfinder.domain.strategy.spec_hydration import (
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.domain.strategy.value_binding import bind_values
 
-__all__ = ["criterion_rebound", "criterion_restated", "spec_replaying"]
+__all__ = [
+    "criterion_rebound",
+    "criterion_restated",
+    "spec_replaying",
+    "steps_the_replay_reads",
+]
 
 
 def criterion_restated(
@@ -125,6 +131,36 @@ def spec_replaying(
         shape_moved=changes.structure_moved,
         may_leave_out=may_leave_out,
     )
+
+
+def steps_the_replay_reads(
+    changes: OutsideChanges, live: StrategyAst | None, stated: Collection[str]
+) -> list[StepRead]:
+    """The live steps a replay states or restates, with the values it binds.
+
+    A step no spec in ``stated`` names, or whose search moved, binds every
+    value; any other step binds the values that moved on it.
+    """
+    if live is None:
+        return []
+    nodes = nodes_of(live)
+    names: dict[str, set[str]] = {
+        node.id: set(node.parameters)
+        for node in nodes.values()
+        if node.id not in stated and node.infer_kind() != "combine"
+    }
+    for change in changes.changed:
+        if change.step_id not in nodes:
+            continue
+        moved = (
+            nodes[change.step_id].parameters
+            if change.search_after is not None
+            else {p.name: p for p in change.params}
+        )
+        names.setdefault(change.step_id, set()).update(moved)
+    return [
+        StepRead(nodes[step_id], frozenset(held)) for step_id, held in names.items()
+    ]
 
 
 class _StepReading(NamedTuple):

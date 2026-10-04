@@ -29,7 +29,11 @@ from pathfinder.domain.strategy.operational_spec import (
     criteria_under,
     structure_criteria,
 )
-from pathfinder.domain.strategy.organism_scope import organism_params_of, universe_key
+from pathfinder.domain.strategy.organism_scope import (
+    dataset_organisms_of,
+    organism_params_of,
+    universe_key,
+)
 from pathfinder.domain.strategy.orthology import (
     copy_refusal,
     round_trip_refusal,
@@ -218,8 +222,15 @@ def _refuse_a_tree_the_site_cannot_run(
     refusal = copy_refusal(proposed.root) or round_trip_refusal(stated)
     if refusal is None:
         steps = stated_steps(stated)
-        marked = organism_params_of(stated.criteria)
-        refusal = None if steps is None else first_cross_organism_refusal(steps, marked)
+        refusal = (
+            None
+            if steps is None
+            else first_cross_organism_refusal(
+                steps,
+                organism_params_of(stated.criteria),
+                dataset_organisms_of(stated.criteria),
+            )
+        )
     if refusal is not None:
         msg = f"The structure is refused: {refusal} Nothing was recorded."
         raise ModelRetry(msg)

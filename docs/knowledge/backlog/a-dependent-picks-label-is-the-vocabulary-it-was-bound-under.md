@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A dependent pick's label is the vocabulary it was bound under
-description: The bind labels a dependent pick against the vocabulary read under its bound parents, while hydration and replay label it against the published vocabulary, so one value may carry a label on one path and none on another; unmeasured until a recording shows the two vocabularies differ.
+description: A dependent pick is labelled on the vocabulary its own parents answer on the bind, on hydration and on replay; the site-default count still reads a dependent pick at the published default, unmeasured until a recording shows a published default its bound parents do not list.
 tags: [parameters, frame, hydration, wdk]
 generated: { by: claude-code/opus-5.5, at: 2026-09-30T00:00:00Z }
 status: proposed
@@ -10,43 +10,34 @@ status: proposed
 # A dependent pick's label is the vocabulary it was bound under
 
 **What is known.** `set_criterion` builds each `BoundValue` through
-`operational_spec.bind_values` on `_frame_measure.vocabularies_under`: the
+`operational_spec.bind_values` on `sheet_params.vocabularies_under`: the
 published sheet with each dependent vocabulary taken from a read under the
-bound parents. Hydration (`spec_hydration.sheet_marked`) and replay
-(`spec_replay.criterion_restated`, `criterion_rebound`) read the sheet from
-`services/strategies/sheet_params.sheet_params_for_searches`, which reads the
-search definition with no context. For a parameter with `vocab_depends_on`,
-an entry that only the bound-parent vocabulary holds therefore gets a `label`
-on the bind and an empty `label` on hydration and replay.
-`pick_readings._site_default` has the same shape: it counts a dependent pick
-at the published default, which the bound-parent vocabulary may not hold.
+bound parents. `pick_readings.site_default` counts a dependent pick at the
+published default, which the bound-parent vocabulary may not hold.
 
 **What is measured.** plasmodb `GenesByInterproDomain`, `domain_typeahead`
 (`vocab_depends_on`: `organism`, `domain_database`), read live with
 `domain_database = Pfam`: the published read (default organism Haemoproteus
 tartakovskyi strain SISKIN1) holds 1,509 entries; the read under Plasmodium
 falciparum 3D7 holds 2,102, of which 665 the published read lacks (PF00013,
-PF00051, PF00084, ...) and 72 it holds that the 3D7 read lacks. A Pfam domain
-bound for 3D7 is labelled on the bind and unlabelled on hydration and replay.
+PF00051, PF00084, ...) and 72 it holds that the 3D7 read lacks.
 
 **Done.** A value the spec already holds keeps the label it was bound under when
 hydration or replay reads it again on the published sheet
 (`value_binding.read_again`), so a Pfam domain bound for 3D7 keeps "KH domain"
 (`tests/fixtures/wdk/search_genes_by_interpro_domain_under_pf3d7_pfam.json`).
+A value first read from a strategy (a step the site edited, moved onto another
+search or added, and a hydrated strategy) is labelled on the sheet its step's
+own parents answer: `sheet_params.sheets_under_their_parents` reads that sheet
+once for each step whose dependent pick has a parent other than the published
+value (`value_binding.parents_moved`), and `spec_hydration.read_under_their_parents`
+reads the criterion again on it.
 
 **What remains.**
-- A value first read from a strategy, such as a step the site edited
-  (`spec_replay.criterion_rebound`), is labelled on the sheet
-  `services/strategies/sheet_params.sheet_params_for_searches` reads with no
-  context, so a dependent pick only its bound parents list has no label. The fix
-  reads each such step's sheet under its own parent values (the
-  `_frame_measure.vocabularies_under` read) before replay binds it.
 - `pick_readings.site_default` counts a dependent pick at the published default.
   The `GenesByInterproDomain.domain_typeahead` default is `[]`, so it counts
   nothing there; a dependent pick whose published default is a term its bound
   parents do not list has not been found yet, and finding one is the first step.
 
-**Done when.** A test builds the same dependent pick through a site edit's replay
-and gets the label the bind gives, and a recorded dependent pick with a non-empty
-published default shows whether the site-default count needs the bound-parent
-vocabulary.
+**Done when.** A recorded dependent pick with a non-empty published default
+shows whether the site-default count needs the bound-parent vocabulary.

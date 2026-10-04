@@ -13,9 +13,9 @@ from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, format_param_info
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.tools.standalone import _frame_count, frame_spec
-from pathfinder.ai.tools.standalone._frame_measure import vocabularies_under
 from pathfinder.domain.caveats import phrase_caveats
 from pathfinder.domain.strategy.operational_spec import Measurement
+from pathfinder.services.strategies.sheet_params import vocabularies_under
 from pathfinder.tests._support.recorded_counts import (
     serve_counts,
     serve_site_search,

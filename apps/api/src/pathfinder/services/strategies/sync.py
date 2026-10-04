@@ -29,7 +29,10 @@ from pathfinder.domain.strategy.validate import validate_strategy
 from pathfinder.platform.errors import StrategyCompilationError
 from pathfinder.services.strategies.build import RootResolutionError, resolve_root_step
 from pathfinder.services.strategies.naming import name_for_the_push
-from pathfinder.services.strategies.organism_params import tree_organism_parameters
+from pathfinder.services.strategies.organism_params import (
+    tree_dataset_organisms,
+    tree_organism_parameters,
+)
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 logger = get_logger(__name__)
@@ -285,7 +288,10 @@ async def sync_strategy_for_site(
     sync_state.organism_params = await tree_organism_parameters(
         site_id, graph.record_type, root_step
     )
-    _validate_graph(root_step, graph.record_type, sync_state.organism_params)
+    datasets = await tree_dataset_organisms(
+        site_id, root_step, sync_state.organism_params
+    )
+    _validate_graph(root_step, graph.record_type, sync_state.organism_params, datasets)
 
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
@@ -339,11 +345,14 @@ def _validate_graph(
     root_step: StrategyStepNode,
     record_type: str | None,
     organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]],
 ) -> None:
     """Validate the strategy structure when a record type is known."""
     if not record_type:
         return
-    validation_result = validate_strategy(root_step, record_type, organism_params)
+    validation_result = validate_strategy(
+        root_step, record_type, organism_params, dataset_organisms
+    )
     if not validation_result.valid:
         errors = [
             {"path": e.path, "message": e.message} for e in validation_result.errors

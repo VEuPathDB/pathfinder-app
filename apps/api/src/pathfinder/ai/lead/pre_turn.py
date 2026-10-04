@@ -34,7 +34,9 @@ from pathfinder.domain.strategy.spec_hydration import (
     Analyses,
     analysis_criteria_stated,
     hidden_params_dropped,
+    read_under_their_parents,
     spec_from_ast,
+    steps_stated_by,
 )
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_the_strategy_holds,
@@ -50,7 +52,10 @@ from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.organism_params import organism_parameters
 from pathfinder.services.strategies.revision_ops import last_change
-from pathfinder.services.strategies.sheet_params import sheet_params_for_searches
+from pathfinder.services.strategies.sheet_params import (
+    sheet_params_for_searches,
+    sheets_under_their_parents,
+)
 from pathfinder.services.strategies.site_changes import read_the_site_into_the_thread
 
 __all__ = [
@@ -322,7 +327,7 @@ async def stated_spec_of(
     ast: StrategyAst, *, site_id: str, goal: str
 ) -> OperationalSpec:
     """The spec a strategy tree states, with each criterion holding only the
-    parameters its search's sheet shows and the organism parameter it marks."""
+    parameters its step's sheet shows and the organism parameter it marks."""
     hydrated = spec_from_ast(ast, goal=goal, analyses=analyses_of(ast))
     search_names = [c.search_name for c in hydrated.criteria if c.search_name]
     sheets = await sheet_params_for_searches(
@@ -330,9 +335,17 @@ async def stated_spec_of(
         record_type=ast.record_type,
         search_names=search_names,
     )
+    under_parents = await sheets_under_their_parents(
+        site_id=site_id,
+        record_type=ast.record_type,
+        steps=steps_stated_by(hydrated, ast),
+        sheets=sheets,
+    )
     marks = await organism_parameters(site_id, ast.record_type, search_names)
     hydrated.criteria = [
         c.model_copy(update={"organism_param": marks.get(c.search_name)})
         for c in hydrated.criteria
     ]
-    return hidden_params_dropped(hydrated, sheet_params=sheets)
+    return read_under_their_parents(
+        hidden_params_dropped(hydrated, sheet_params=sheets), under_parents
+    )

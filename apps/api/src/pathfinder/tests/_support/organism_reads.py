@@ -8,7 +8,7 @@ import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.wdk import WDKRecordType
 
-from pathfinder.ai.tools.standalone import frame_structure
+from pathfinder.ai.tools.standalone import frame_spec, frame_structure
 from pathfinder.services.strategies import organism_params, organism_universe
 
 # The transcript record type as every genomic site publishes it.
@@ -37,9 +37,21 @@ MARKS = {
     "GenesByMassSpec": "ms_assay",
 }
 
+# The organisms of the one dataset that names each search, as cryptodb and
+# amoebadb answer it; a search not named here runs on no one dataset.
+DATASETS = {
+    "GenesByRNASeqchomTU502_Widmer_oocysts_ebi_rnaSeq_RSRCPercentile": [
+        "Cryptosporidium hominis TU502"
+    ],
+    "GenesByRNASeqehisHM1IMSS_Trophozoite_transcriptome_ebi_rnaSeq_RSRCPercentile": [
+        "Entamoeba histolytica HM-1:IMSS"
+    ],
+}
+
 
 def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answer the organism parameter of each search from ``MARKS``."""
+    """Answer the organism parameter of each search from ``MARKS``, and the
+    organisms of the dataset it runs on from ``DATASETS``."""
 
     async def _record_type(_site: str, _search: str, hint: str | None) -> str:
         return hint or "transcript"
@@ -47,8 +59,13 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _marked(_site: str, _record_type: str, search_name: str) -> str | None:
         return MARKS.get(search_name)
 
+    async def _datasets(_site: str, search_name: str) -> list[str]:
+        return DATASETS.get(search_name, [])
+
     monkeypatch.setattr(organism_params, "resolve_search_record_type", _record_type)
     monkeypatch.setattr(organism_params, "organism_parameter", _marked)
+    monkeypatch.setattr(frame_spec, "dataset_organisms", _datasets)
+    monkeypatch.setattr(organism_params, "dataset_organisms", _datasets)
 
 
 def serve_organism_reads(

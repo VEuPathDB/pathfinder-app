@@ -256,7 +256,7 @@ class TestTheCrossOrganismRemedy:
         below = combine("c", _genus_seeds(), _taxon("f", _PF))
         root = _orthologs("t", _PF, below)
 
-        assert cross_organism_refusal(below, root, _MARKED) == _refusal(
+        assert cross_organism_refusal(below, root, _MARKED, {}) == _refusal(
             _GENUS,
             _PF,
             f"Move the {_PF} criteria above the GenesByOrthologs transform.",
@@ -265,7 +265,7 @@ class TestTheCrossOrganismRemedy:
     def test_without_a_transform_the_seeds_are_scoped(self) -> None:
         root = combine("c", _taxon("a", _GENUS), _taxon("b", _PF))
 
-        assert cross_organism_refusal(root, root, _MARKED) == _refusal(
+        assert cross_organism_refusal(root, root, _MARKED, {}) == _refusal(
             _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
         )
 
@@ -273,14 +273,14 @@ class TestTheCrossOrganismRemedy:
         """Widening one side to the other's genus does not make them meet."""
         swapped = combine("c", _taxon("a", _PF), _taxon("b", _GENUS))
 
-        assert cross_organism_refusal(swapped, swapped, _MARKED) == _refusal(
+        assert cross_organism_refusal(swapped, swapped, _MARKED, {}) == _refusal(
             _PF, _GENUS, f"Scope every seed to one organism: {_PF} or {_GENUS}."
         )
 
     def test_a_shared_scope_has_no_refusal(self) -> None:
         root = combine("c", _taxon("a", _PF), _taxon("b", _PF))
 
-        assert cross_organism_refusal(root, root, _MARKED) is None
+        assert cross_organism_refusal(root, root, _MARKED, {}) is None
         assert _verdict(validate_strategy(root, "transcript", _MARKED)) == (True, [])
 
     def test_a_transform_that_keeps_the_scope_is_not_the_remedy(self) -> None:
@@ -290,7 +290,7 @@ class TestTheCrossOrganismRemedy:
             id="t", search_name="GenesByWeight", primary_input=below
         )
 
-        assert cross_organism_refusal(below, root, _MARKED) == _refusal(
+        assert cross_organism_refusal(below, root, _MARKED, {}) == _refusal(
             _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
         )
 
@@ -299,7 +299,7 @@ class TestTheCrossOrganismRemedy:
         beside = _orthologs("t", _PF, _taxon("b", _TG))
         root = combine("c", _taxon("a", _GENUS), beside)
 
-        assert cross_organism_refusal(root, root, _MARKED) == _refusal(
+        assert cross_organism_refusal(root, root, _MARKED, {}) == _refusal(
             _GENUS, _PF, f"Scope every seed to one organism: {_GENUS} or {_PF}."
         )
 

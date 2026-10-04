@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from pydantic_ai import ModelRetry, RunContext
-from veupathdb.domain.parameters import ParamValue, to_wire
+from veupathdb.domain.parameters import ParamValue
 from veupathdb.wdk import WDKSearch, phyletic_tree_of
 from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, ResolvedParams
 
@@ -28,39 +28,8 @@ from pathfinder.services.strategies.measurements import (
     MeasuredBinding,
     measure_binding,
 )
+from pathfinder.services.strategies.sheet_params import vocabularies_under
 from pathfinder.services.strategies.value_labels import vocabulary_labels
-
-
-def _with_vocabulary(info: ParameterInfo, read: ParameterInfo) -> ParameterInfo:
-    """The published entry holding the vocabulary another read answers."""
-    return info.model_copy(
-        update={
-            "allowed_values": read.allowed_values,
-            "allowed_values_total": read.allowed_values_total,
-            "allowed_values_tree": read.allowed_values_tree,
-            "allowed_values_note": read.allowed_values_note,
-            "prompt_values": read.prompt_values,
-            "vocab_leaves": read.vocab_leaves,
-        }
-    )
-
-
-async def vocabularies_under(
-    fetch_at: ParamFetcher, infos: list[ParameterInfo], values: Mapping[str, ParamValue]
-) -> list[ParameterInfo]:
-    """The published sheet with each dependent vocabulary as the bound parents
-    answer it. WDK answers each sent value as its parameter's initial value, so
-    the read gives vocabularies and nothing else."""
-    if not any(info.vocab_depends_on for info in infos):
-        return infos
-    read = await fetch_at({name: to_wire(value) for name, value in values.items()})
-    answered = {info.name: info for info in read}
-    return [
-        _with_vocabulary(info, answered[info.name])
-        if info.vocab_depends_on and info.name in answered
-        else info
-        for info in infos
-    ]
 
 
 async def labelled_picks(

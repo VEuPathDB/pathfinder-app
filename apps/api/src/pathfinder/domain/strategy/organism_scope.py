@@ -1,9 +1,9 @@
 """The organism a bound criterion runs on, read from the parameter its search
-marks as the organism."""
+marks as the organism, or from the dataset of a search that marks none."""
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable
+from collections.abc import Collection, Iterable, Mapping
 
 from veupathdb.domain.strategy import StrategyStepNode, extract_output_organisms
 
@@ -17,6 +17,46 @@ def organism_params_of(criteria: Iterable[Criterion]) -> dict[str, str]:
         for c in criteria
         if c.search_name and c.organism_param is not None
     }
+
+
+def dataset_organisms_of(criteria: Iterable[Criterion]) -> dict[str, frozenset[str]]:
+    """Each bound search that marks no organism parameter, and the organisms of
+    the dataset it runs on."""
+    return {
+        c.search_name: frozenset(c.dataset_organisms)
+        for c in criteria
+        if c.search_name and c.organism_param is None and c.dataset_organisms
+    }
+
+
+def dataset_leaf(
+    step: StrategyStepNode,
+    organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]],
+) -> StrategyStepNode | None:
+    """The leaf whose dataset states the organism of the step, or None.
+
+    A step on the primary path that marks an organism parameter states the
+    organism itself.
+    """
+    path = [step]
+    while (below := path[-1].primary_input) is not None:
+        path.append(below)
+    if any(node.search_name in organism_params for node in path):
+        return None
+    return path[-1] if path[-1].search_name in dataset_organisms else None
+
+
+def output_organisms(
+    step: StrategyStepNode,
+    organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]],
+) -> set[str] | None:
+    """The organism scope of the output of the step, or None when it is unknown."""
+    leaf = dataset_leaf(step, organism_params, dataset_organisms)
+    if leaf is None:
+        return extract_output_organisms(step, organism_params)
+    return set(dataset_organisms[leaf.search_name])
 
 
 def selected_organisms(criterion: Criterion) -> frozenset[str]:

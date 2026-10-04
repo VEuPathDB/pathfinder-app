@@ -43,8 +43,9 @@ is never the sheet a value is judged against: WDK answers every sent value as
 its `initialDisplayValue`, so plasmodb GenesByText read under
 `text_expression = "cysteine-rich protein"` answers that text as the initial
 value, where the published sheet holds `*reductase`.
-`_frame_measure.vocabularies_under` takes only the dependent vocabularies from
-such a read into the published sheet, and `get_parameter_options` sends no
+`sheet_params.vocabularies_under` takes only the dependent vocabularies from
+such a read into the published sheet, for a bind and for a step that hydration
+or replay reads under its own parents, and `get_parameter_options` sends no
 value of the parameter it reads, so the initial value it answers is the site's. A pick or a number at its initial value shown as one word ("any", "yes", "1") is
 stated only when a message writes it beside a word of the parameter's display
 name ("in any selected sample", "start at 1"); otherwise the site set it, so the
@@ -250,8 +251,9 @@ words than the vocabulary's, so a chosen half is shown with its source instead.
 `domain/strategy/value_source.py`; `bind_values`, `read_again` and
 `BoundValue.unset` in `domain/strategy/operational_spec.py`; `value_label` and
 `term_labels` in `domain/strategy/value_label.py`; `get_parameter_options` in
-`ai/tools/standalone/catalog_discovery.py`; `vocabularies_under` in
-`ai/tools/standalone/_frame_measure.py`; `stated_words` in
+`ai/tools/standalone/catalog_discovery.py`; `vocabularies_under` and
+`sheets_under_their_parents` in `services/strategies/sheet_params.py`;
+`stated_words` in
 `domain/strategy/value_source.py`; `ParameterRules.source`
 and `text_query` in `services/strategies/parameter_rules.py`; `bound_values` in
 `ai/tools/standalone/_frame_sources.py`; `assumption_constraints` in

@@ -5,12 +5,10 @@ from dataclasses import dataclass
 
 from pydantic import ConfigDict, JsonValue
 from veupathdb.domain.parameters import to_decoded_map
-from veupathdb.domain.strategy import (
-    CombineOp,
-    StrategyStepNode,
-    extract_output_organisms,
-)
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.model import CamelModel
+
+from pathfinder.domain.strategy.organism_scope import dataset_leaf, output_organisms
 
 
 def _scope_text(scope: set[str]) -> str:
@@ -29,7 +27,10 @@ def _path_to(node: StrategyStepNode, step_id: str) -> list[StrategyStepNode] | N
 
 
 def _transforms_above(
-    root: StrategyStepNode, combine: StrategyStepNode, marked: Mapping[str, str]
+    root: StrategyStepNode,
+    combine: StrategyStepNode,
+    marked: Mapping[str, str],
+    datasets: Mapping[str, frozenset[str]],
 ) -> list[tuple[str, set[str]]]:
     """The transforms the combine sits under that change the organism, nearest
     first. A transform beside the combine cannot hold the combine's criteria."""
@@ -38,30 +39,59 @@ def _transforms_above(
         source = node.primary_input
         if node.infer_kind() != "transform" or source is None:
             continue
-        output = extract_output_organisms(node, marked)
-        if output is not None and output != extract_output_organisms(source, marked):
+        output = output_organisms(node, marked, datasets)
+        if output is not None and output != output_organisms(source, marked, datasets):
             found.append((node.search_name, output))
     return found
+
+
+def _dataset_remedy(
+    combine: StrategyStepNode,
+    scopes: tuple[set[str], set[str]],
+    marked: Mapping[str, str],
+    datasets: Mapping[str, frozenset[str]],
+) -> str | None:
+    """The transform that maps a side whose dataset fixes its organism, or None
+    when no side runs on a dataset."""
+    leaves = [dataset_leaf(side, marked, datasets) for side in combine.inputs()]
+    if all(leaf is not None for leaf in leaves):
+        return (
+            "Each side runs on an experiment, and no parameter changes its "
+            "organism. Map one side to the organism of the other with a "
+            "GenesByOrthologs transform."
+        )
+    for leaf, own, other in zip(leaves, scopes, reversed(scopes), strict=True):
+        if leaf is not None:
+            return (
+                f"The {leaf.search_name} search runs on an experiment of "
+                f"{_scope_text(own)}, and no parameter changes that organism. "
+                f"Map that side to {_scope_text(other)} with a GenesByOrthologs "
+                f"transform."
+            )
+    return None
 
 
 def _remedy(
     root: StrategyStepNode,
     combine: StrategyStepNode,
-    primary: set[str],
-    secondary: set[str],
+    scopes: tuple[set[str], set[str]],
     marked: Mapping[str, str],
+    datasets: Mapping[str, frozenset[str]],
 ) -> str:
     """The edit that makes the two scopes meet."""
-    for search_name, output in _transforms_above(root, combine, marked):
-        for side in (primary, secondary):
+    for search_name, output in _transforms_above(root, combine, marked, datasets):
+        for side in scopes:
             if output == side:
                 return (
                     f"Move the {_scope_text(side)} criteria above the "
                     f"{search_name} transform."
                 )
+    by_dataset = _dataset_remedy(combine, scopes, marked, datasets)
+    if by_dataset is not None:
+        return by_dataset
     return (
-        f"Scope every seed to one organism: {_scope_text(primary)} or "
-        f"{_scope_text(secondary)}."
+        f"Scope every seed to one organism: {_scope_text(scopes[0])} or "
+        f"{_scope_text(scopes[1])}."
     )
 
 
@@ -69,35 +99,45 @@ def cross_organism_refusal(
     combine: StrategyStepNode,
     root: StrategyStepNode,
     organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]],
 ) -> str | None:
     """Why the combine returns nothing, or None when its inputs can meet.
 
     Gene ids from different species never match, so an INTERSECT of two known
-    and disjoint scopes is always empty. ``organism_params`` names the
-    parameter each search marks as its organism.
+    and disjoint scopes is always empty. A search reads its organism from the
+    parameter it marks, or from its dataset when it marks none.
     """
     if combine.operator is not CombineOp.INTERSECT:
         return None
     if combine.primary_input is None or combine.secondary_input is None:
         return None
-    primary = extract_output_organisms(combine.primary_input, organism_params)
-    secondary = extract_output_organisms(combine.secondary_input, organism_params)
+    primary = output_organisms(
+        combine.primary_input, organism_params, dataset_organisms
+    )
+    secondary = output_organisms(
+        combine.secondary_input, organism_params, dataset_organisms
+    )
     if primary is None or secondary is None or not primary.isdisjoint(secondary):
         return None
+    remedy = _remedy(
+        root, combine, (primary, secondary), organism_params, dataset_organisms
+    )
     return (
         f"Cannot INTERSECT steps with different organism scopes "
         f"({_scope_text(primary)} vs {_scope_text(secondary)}). Gene IDs from "
         f"different species never match, so this always returns 0 results. "
-        f"{_remedy(root, combine, primary, secondary, organism_params)}"
+        f"{remedy}"
     )
 
 
 def first_cross_organism_refusal(
-    root: StrategyStepNode, organism_params: Mapping[str, str]
+    root: StrategyStepNode,
+    organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]],
 ) -> str | None:
     """Why the first INTERSECT of the tree that can never meet is refused, or None."""
     for node in _nodes(root):
-        refusal = cross_organism_refusal(node, root, organism_params)
+        refusal = cross_organism_refusal(node, root, organism_params, dataset_organisms)
         if refusal is not None:
             return refusal
     return None
@@ -203,11 +243,15 @@ class StrategyValidator:
         organism_params: Mapping[str, str],
         available_searches: dict[str, list[str]] | None = None,
         available_transforms: list[str] | None = None,
+        *,
+        dataset_organisms: Mapping[str, frozenset[str]] | None = None,
     ) -> None:
-        """Builds a validator. Searches are keyed by record type."""
+        """Builds a validator. Searches are keyed by record type, and
+        ``dataset_organisms`` names the organisms of each search's dataset."""
         self.organism_params = organism_params
         self.available_searches = available_searches or {}
         self.available_transforms = available_transforms or []
+        self.dataset_organisms = dataset_organisms or {}
 
     def validate(self, root: StrategyStepNode, record_type: str) -> ValidationResult:
         """Validates a strategy tree against a record type."""
@@ -278,7 +322,9 @@ class StrategyValidator:
         errors: list[StepValidationIssue],
     ) -> None:
         """Rejects an INTERSECT between disjoint organism scopes."""
-        message = cross_organism_refusal(node, root, self.organism_params)
+        message = cross_organism_refusal(
+            node, root, self.organism_params, self.dataset_organisms
+        )
         if message is None:
             return
         errors.append(
@@ -383,7 +429,11 @@ class StrategyValidator:
 
 
 def validate_strategy(
-    root: StrategyStepNode, record_type: str, organism_params: Mapping[str, str]
+    root: StrategyStepNode,
+    record_type: str,
+    organism_params: Mapping[str, str],
+    dataset_organisms: Mapping[str, frozenset[str]] | None = None,
 ) -> ValidationResult:
     """Validates a strategy tree with the default validator."""
-    return StrategyValidator(organism_params).validate(root, record_type)
+    validator = StrategyValidator(organism_params, dataset_organisms=dataset_organisms)
+    return validator.validate(root, record_type)

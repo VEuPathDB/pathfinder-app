@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode, walk
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.catalog import organism_parameter, resolve_search_record_type
+from veupathdb_mcp.catalog import (
+    dataset_organisms,
+    organism_parameter,
+    resolve_search_record_type,
+)
 
 logger = get_logger(__name__)
 
@@ -39,6 +43,39 @@ async def organism_parameters(
     return marks
 
 
+def _reads_an_organism(nodes: list[StrategyStepNode]) -> bool:
+    """Only an INTERSECT or a transform reads an organism."""
+    return any(
+        node.operator is CombineOp.INTERSECT or node.infer_kind() == "transform"
+        for node in nodes
+    )
+
+
+async def tree_dataset_organisms(
+    site_id: str, root: StrategyStepNode, organism_params: Mapping[str, str]
+) -> dict[str, frozenset[str]]:
+    """The organisms of the dataset each search of a step tree runs on, for the
+    searches that mark no organism parameter. A tree that reads no organism
+    reads nothing."""
+    nodes = walk(root)
+    if not _reads_an_organism(nodes):
+        return {}
+    unmarked = sorted(
+        {
+            node.search_name
+            for node in nodes
+            if node.infer_kind() != "combine"
+            and node.search_name not in organism_params
+        }
+    )
+    found: dict[str, frozenset[str]] = {}
+    for search_name in unmarked:
+        organisms = await dataset_organisms(site_id, search_name)
+        if organisms:
+            found[search_name] = frozenset(organisms)
+    return found
+
+
 async def tree_organism_parameters(
     site_id: str, record_type: str | None, root: StrategyStepNode
 ) -> dict[str, str]:
@@ -48,10 +85,7 @@ async def tree_organism_parameters(
     reads nothing.
     """
     nodes = walk(root)
-    if not any(
-        node.operator is CombineOp.INTERSECT or node.infer_kind() == "transform"
-        for node in nodes
-    ):
+    if not _reads_an_organism(nodes):
         return {}
     return await organism_parameters(
         site_id,
