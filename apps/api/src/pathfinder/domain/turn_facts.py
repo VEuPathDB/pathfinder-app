@@ -15,6 +15,8 @@ from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.count_words import counted
 from pathfinder.domain.evidence import ColumnFit, GeneFit
 from pathfinder.domain.last_change import LastChange
+from pathfinder.domain.membership_facts import MembershipFact
+from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.value_caveats import (
@@ -169,15 +171,6 @@ class SourceFact(CamelModel):
         )
 
 
-class ListedRecord(CamelModel):
-    """One id a listing returned, and the site's page of its record."""
-
-    model_config = ConfigDict(frozen=True)
-
-    record_id: str
-    url: str
-
-
 class ListedFact(CamelModel):
     """The ids a listing or a sample of one step returned, under that step."""
 
@@ -269,6 +262,9 @@ class TurnFacts(CamelModel):
     # The genes the message names that the site resolved to its records.
     named_genes: list[SourceFact] = Field(default_factory=list)
     comparisons: list[ComparisonFact] = Field(default_factory=list)
+    # Which of the asked genes each membership check of this turn found held.
+    # The reply's record references render them.
+    memberships: list[MembershipFact] = Field(default_factory=list, exclude=True)
     # The statistics the EDA service computed on the thread. Their card shows them.
     statistics: list[StatisticFact] = Field(default_factory=list)
     stopped_check: str = ""
@@ -326,10 +322,18 @@ class TurnFacts(CamelModel):
         """The step or criterion of that id, or None."""
         return next((s for s in self.steps if s.step_id == step_id), None)
 
+    def listed_records(self) -> list[ListedRecord]:
+        """The ids this turn's listings returned, then those its membership
+        checks asked about, each with its page."""
+        return [
+            *(r for fact in self.listed for r in fact.records),
+            *(r for m in self.memberships for r in m.records),
+        ]
+
     def record_ids(self) -> list[str]:
-        """The ids this turn's listings returned, then those its reads returned,
-        each once."""
-        listed = [r.record_id for fact in self.listed for r in fact.records]
+        """The ids this turn's listings returned and its checks asked about, then
+        those its reads returned, each once."""
+        listed = [r.record_id for r in self.listed_records()]
         read = [s.record_id for s in self.sources if s.record_id]
         return list(dict.fromkeys([*listed, *read]))
 
@@ -357,6 +361,7 @@ class TurnFacts(CamelModel):
             *(saved.line() for saved in self.saved),
             *(result.sentence for result in self.control_results),
             *(v.row(noun) for c in self.comparisons for v in c.variants),
+            *(line for m in self.memberships for line in m.lines()),
             *(line for s in self.statistics for line in s.lines()),
             *(s.line() for s in self.sources if not s.step_id),
             *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
@@ -419,6 +424,7 @@ class TurnFacts(CamelModel):
                 "listed": [listed.redacted(redact) for listed in self.listed],
                 "named_genes": [gene.redacted(redact) for gene in self.named_genes],
                 "comparisons": [c.redacted(redact) for c in self.comparisons],
+                "memberships": [m.redacted(redact) for m in self.memberships],
                 "statistics": [s.redacted(redact) for s in self.statistics],
                 "stopped_check": redact(self.stopped_check),
                 "refusal": redact(self.refusal),
@@ -458,7 +464,6 @@ def uncarried_assumptions(
 
 __all__ = [
     "ListedFact",
-    "ListedRecord",
     "ParameterFact",
     "RetiredFact",
     "SavedSetFact",

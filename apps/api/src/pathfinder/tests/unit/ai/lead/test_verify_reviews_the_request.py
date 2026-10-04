@@ -104,7 +104,7 @@ def test_the_scope_numbers_every_message_of_the_request() -> None:
     assert scope.stated == [
         (
             "organism (organism): 'Plasmodium falciparum 3D7' -> grounded "
-            "(from an earlier message)"
+            "(from an earlier message); key organism:Plasmodium falciparum 3D7"
         )
     ]
 

@@ -32,6 +32,7 @@ from pathfinder.domain.strategy.spec_tree import (
     build_step_tree,
     renumber_criteria,
 )
+from pathfinder.services.strategies import data_marks
 from pathfinder.services.strategies.commit import CommitResult, live_strategy_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.bound_values import bound
@@ -170,3 +171,19 @@ async def test_the_root_s_count_before_the_edit_is_its_count_at_arrival(
 
     facts = turn_facts(deps)
     assert (facts.root_count, facts.root_count_before) == (_WRITTEN_THROUGH, 80)
+
+
+@pytest.mark.asyncio
+async def test_an_edit_reads_the_assay_of_each_search_it_leaves(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A data-type requirement grounds against the strategy the edit wrote."""
+
+    async def _assay(_site: str, search_name: str) -> str | None:
+        return "RNASeq" if search_name == _SEARCH else None
+
+    monkeypatch.setattr(data_marks, "dataset_assay", _assay)
+
+    deps = await _edited(monkeypatch)
+
+    assert deps.state.domain.data_marks.searches == {_SEARCH: "RNASeq"}

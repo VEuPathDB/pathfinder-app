@@ -6,12 +6,24 @@ from __future__ import annotations
 import jsonschema_rs
 import pytest
 from pydantic_ai import Tool
+from pydantic_ai.messages import ModelMessage, ModelRequest, ToolReturnPart
 
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
+from pathfinder.ai.lead.intent import (
+    ClassifiedIntent,
+    IntentClassification,
+    UserIntent,
+)
 from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.models.mock import edit_arcs
 from pathfinder.ai.models.mock.registry import ARCS
 from pathfinder.ai.tools.standalone.optimization import optimize_search_parameters
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from pathfinder.tests.unit.ai.models._mock_pins import framed_pins
 from pathfinder.tests.unit.ai.models._mock_turns import (
     Scene,
@@ -54,4 +66,37 @@ def test_the_proposal_card_is_checked() -> None:
 
     assert [c.tool_name for c in calls if c.tool_name in CARD_TOOLS] == [
         "propose_changes"
+    ]
+
+
+def test_the_proposal_card_names_the_key_of_each_stated_requirement() -> None:
+    stated = Constraint(
+        kind=ConstraintKind.OTHER,
+        label="Transmembrane domains",
+        requested_value="transmembrane domains",
+        source=ConstraintSource.USER_EXPLICIT,
+    )
+    classified = ClassifiedIntent(
+        intent=UserIntent(
+            classification=IntentClassification.EXTEND_STRATEGY,
+            inferred_goal="add a transmembrane filter",
+            explicit_constraints=[stated],
+        )
+    )
+    messages: list[ModelMessage] = [
+        ModelRequest(
+            parts=[
+                ToolReturnPart(
+                    tool_name="classify_user_intent",
+                    content=classified,
+                    tool_call_id="call_classify",
+                )
+            ]
+        )
+    ]
+
+    [card] = [c for c in edit_arcs.proposal(messages) if c.tool_name in CARD_TOOLS]
+
+    assert [change["answers"] for change in card.args_as_dict()["proposedChanges"]] == [
+        ["other:transmembrane domains"]
     ]

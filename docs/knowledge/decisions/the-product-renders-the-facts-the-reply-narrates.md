@@ -58,7 +58,12 @@ It holds:
   result in place, the wire value of each parameter whose value differs between the variants,
   and the genes each pair shares); the comparison card shows them, so the facts part draws no
   row for them, and the text form of the facts (`TurnFacts.lines`) gives each variant a row with
-  the values it differs by beside its count;
+  the values it differs by beside its count; `count_search` records its count as a comparison
+  of one variant (`SearchCount.fact`), and `genes_in_search` records the asked genes and the
+  search as two sets that share the genes held (`SearchMembership.fact`);
+- which of the asked genes each membership check held (`memberships`, a
+  `domain/membership_facts.py::MembershipFact`), each gene linked to its record page so
+  `[record:<id>]` renders it; the field stays off the wire, so the facts part draws no row for it;
 - the provider's or the site's refusal whole, with only a link's query left out because a
   query can carry a credential.
 

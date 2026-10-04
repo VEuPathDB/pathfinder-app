@@ -23,6 +23,16 @@ adds no step. The comparison card is the provenance of both numbers. FRAME's
 holds to an arm the turn adds is refused unless the researcher stated an OR over those
 arms (`combination_check.unstated_union`), and the refusal names the comparison.
 
+`compare_search_variants` counts each variant in place in the strategy's result, so it
+takes only searches a step runs. A count of any other catalog search is `count_search`,
+and "which of these genes also ..." over genes the conversation showed is
+`genes_in_search` (`ai/tools/standalone/search_reads.py`): each runs one search as the
+same anonymous report and adds no step. The genes it checks by default are the records
+this turn's facts list, else those the latest facts part listed
+(`StrategyDomainState.shown_record_ids`). A search name the catalog does not list is
+refused with what the catalog lookup finds for it, so a search is reported absent only
+when that lookup finds nothing.
+
 # What was measured
 
 "Compare the number of annotated protein-coding genes across P. falciparum 3D7, T. gondii

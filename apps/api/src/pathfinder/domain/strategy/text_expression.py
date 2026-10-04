@@ -70,4 +70,18 @@ def asks_for_the_phrase(messages: Sequence[str]) -> bool:
     return any(_ASKS_FOR_THE_PHRASE.search(message) for message in messages)
 
 
-__all__ = ["TextExpression", "asks_for_the_phrase"]
+def unquoted_phrase_refusal(
+    name: str, search_name: str, text: str, messages: Sequence[str]
+) -> str | None:
+    """Why a text term of several words sent unquoted is refused when a message
+    asks for the phrase, else None."""
+    quoted = TextExpression(text=text).phrase_reading()
+    if quoted is None or not asks_for_the_phrase(messages):
+        return None
+    return (
+        f"{name} on {search_name}: the request asks for the phrase, so the term "
+        f"is quoted: {quoted}; an unquoted term matches any of its words."
+    )
+
+
+__all__ = ["TextExpression", "asks_for_the_phrase", "unquoted_phrase_refusal"]

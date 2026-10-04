@@ -49,7 +49,7 @@ _DATASETS = {
 
 _PREAMBLE = (
     "Cannot INTERSECT steps with different organism scopes "
-    "({primary} vs {secondary}). Gene IDs from different species never match, "
+    "({primary} vs {secondary}). Gene IDs from different organisms never match, "
     "so this always returns 0 results. "
 )
 

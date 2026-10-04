@@ -6,12 +6,12 @@
  ],
  "siteId": "toxodb",
  "assistantId": "pathfinder",
- "rationale": "An edit that names a sibling strain of the one the first turn named binds that strain: the earlier name is a requirement the later message replaced, so no guard holds the bind to it. The domain search carries the new strain, the expression search keeps its direction and threshold, and the intersection keeps its shape.",
+ "rationale": "An edit that names a sibling strain of the one the first turn named binds that strain: the earlier name is a requirement the later message replaced, so no guard holds the bind to it. The domain search carries the new strain, the expression search keeps its direction and threshold, and the intersection keeps its shape. The expression search runs on an ME49 experiment no parameter moves, so its side reaches GT1 through one orthology transform.",
  "expected": {
   "buildsStrategy": true,
   "structure": null,
   "recordType": null,
-  "stepCount": 3,
+  "stepCount": 4,
   "verified": null,
   "stepIdsUnchanged": null,
   "parameters": {

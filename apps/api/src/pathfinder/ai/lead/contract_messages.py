@@ -329,6 +329,12 @@ def _fault_sentence(fault: ProseFault) -> str:
     placed = _placement_sentence(fault)
     if placed is not None:
         return placed
+    if fault.kind == "source_word" and fault.references:
+        written = " or ".join(f"``{r}``" for r in fault.references)
+        return (
+            f"``{fault.token}``: put {written} in place of the word, which renders "
+            "who set the value, or take the word out."
+        )
     if fault.references:
         written = " or ".join(f"``{r}``" for r in fault.references)
         return f"``{fault.token}``: write {written}, which renders it."

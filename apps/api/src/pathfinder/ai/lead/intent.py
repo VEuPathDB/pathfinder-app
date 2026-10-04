@@ -365,5 +365,5 @@ def already_classified_message(classification: IntentClassification) -> str:
     return (
         f"This turn is already classified as {classification.value}. Call "
         "classify_user_intent once per turn, and again only to change the "
-        "classification; go on with the turn."
+        "classification or to classify a new card answer; go on with the turn."
     )

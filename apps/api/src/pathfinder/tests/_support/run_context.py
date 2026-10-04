@@ -49,6 +49,7 @@ def turn_runtime(
 
 def lead_run_context(
     *,
+    site_id: str = "plasmodb",
     user_prompt: str = "find kinases",
     conversation_id: UUID | None = None,
     strategy_session: StrategySession | None = None,
@@ -59,11 +60,12 @@ def lead_run_context(
     state = PipelineState(
         conversation_id=conversation_id or uuid4(),
         user_id=uuid4(),
-        site_id="plasmodb",
+        site_id=site_id,
         mode="strategy",
         user_prompt=user_prompt,
     )
     runtime = turn_runtime(
+        site_id=site_id,
         db_session_factory=db_session_factory,
         strategy_session=strategy_session,
         user_id=state.user_id,

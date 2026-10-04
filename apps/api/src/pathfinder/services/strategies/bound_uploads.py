@@ -53,19 +53,25 @@ def uploads_run_on(
     return found
 
 
-async def uploads_the_spec_runs_on(
-    site_id: str, spec: OperationalSpec | None, sheets: Mapping[str, WDKSearch]
+async def uploads_the_specs_run_on(
+    site_id: str,
+    specs: Sequence[OperationalSpec | None],
+    sheets: Mapping[str, WDKSearch],
 ) -> dict[str, OwnedUpload]:
-    """Each criterion's upload, with the uploads read from the site under the
-    researcher's token. A listing the site does not answer names no upload."""
-    if spec is None or not any(_bound_ids(c, sheets) for c in spec.criteria):
+    """Each criterion's upload, with the uploads read once from the site under
+    the researcher's token. A listing the site does not answer names no upload."""
+    held = [spec for spec in specs if spec is not None]
+    if not any(_bound_ids(c, sheets) for spec in held for c in spec.criteria):
         return {}
     try:
         uploads = await owned_uploads(site_id)
     except (VEuPathDBError, OSError) as exc:
         logger.warning("uploads unreadable", site_id=site_id, error=str(exc))
         return {}
-    return uploads_run_on(spec, sheets, uploads)
+    found: dict[str, OwnedUpload] = {}
+    for spec in held:
+        found |= uploads_run_on(spec, sheets, uploads)
+    return found
 
 
-__all__ = ["uploads_run_on", "uploads_the_spec_runs_on"]
+__all__ = ["uploads_run_on", "uploads_the_specs_run_on"]

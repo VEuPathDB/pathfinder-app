@@ -8,9 +8,6 @@ them.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from types import MappingProxyType
-
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import to_wire
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, walk
@@ -21,6 +18,7 @@ from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintStatus,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.outside_changes import OutsideChanges, outside_changes
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
@@ -155,26 +153,32 @@ def _analysis_line(drift: AnalysisDrift) -> str:
     return f"- the open analysis ({drift.dataset_id}) {ANALYSIS_CHANGED_AFTER_THE_CARD}"
 
 
+_NO_MARKS = DataMarks()
+
+
 def compose_turn_briefing(
     activity: ThreadActivity,
     *,
     requirements: list[Constraint],
     answered: StrategyAst | None = None,
     live: StrategyAst | None = None,
-    upload_types: Mapping[str, str] = MappingProxyType({}),
+    marks: DataMarks = _NO_MARKS,
 ) -> TurnBriefing:
     """Turn one thread's activity into the briefing the Lead reads.
 
     ``answered`` is the tree the thread's spec answered to and ``live`` the
     tree the strategy holds now, so what moved is read graph against graph.
-    ``upload_types`` holds the type of the upload each step runs on.
+    ``marks`` holds what the site says each step runs on.
     """
     return TurnBriefing(
         strategy=outside_changes(answered, live),
         tasks=list(activity.finished_tasks),
         analysis=activity.analysis,
         constraints=_regrounded(
-            requirements, before=answered, after=live, upload_types=upload_types
+            requirements,
+            before=answered,
+            after=live,
+            marks=marks,
         ),
     )
 
@@ -184,13 +188,13 @@ def _regrounded(
     *,
     before: StrategyAst | None,
     after: StrategyAst | None,
-    upload_types: Mapping[str, str],
+    marks: DataMarks,
 ) -> list[ConstraintShift]:
     """Requirements whose grounding differs between the two states."""
     if not requirements or before is None or after is None:
         return []
-    was = _statuses(requirements, before, upload_types)
-    now = _statuses(requirements, after, upload_types)
+    was = _statuses(requirements, before, marks)
+    now = _statuses(requirements, after, marks)
     return [
         ConstraintShift(label=requirement.label, before=was[index], after=now[index])
         for index, requirement in enumerate(requirements)
@@ -201,7 +205,7 @@ def _regrounded(
 def _statuses(
     requirements: list[Constraint],
     ast: StrategyAst,
-    upload_types: Mapping[str, str],
+    marks: DataMarks,
 ) -> list[ConstraintStatus]:
     nodes = list(walk(ast.root))
     for detached in ast.detached_roots:
@@ -218,7 +222,7 @@ def _statuses(
                 param_values=values,
                 structure=spec.structure,
                 criteria=spec.criteria,
-                upload_types=dict(upload_types),
+                marks=marks,
             ),
         )
     ]

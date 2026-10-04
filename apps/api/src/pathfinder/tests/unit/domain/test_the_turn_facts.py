@@ -2,6 +2,8 @@
 
 from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
 from pathfinder.domain.control_result_facts import ControlResultFact
+from pathfinder.domain.membership_facts import MembershipFact
+from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.turn_facts import (
     ParameterFact,
     RetiredFact,
@@ -197,3 +199,21 @@ def test_a_compared_variant_that_differs_by_nothing_shows_its_count() -> None:
     )
 
     assert facts.lines() == ["As built: 1 gene", "Again: 1,665 genes"]
+
+
+def test_a_membership_check_shows_the_genes_held_and_not_held() -> None:
+    asked = ["TcIL3000_0_26385", "TcIL3000_0_01550", "TcIL3000_0_34210"]
+    membership = MembershipFact(
+        search_label="Signal peptide",
+        records=[ListedRecord(record_id=g, url=f"https://site/{g}") for g in asked],
+        held=asked[1:],
+    )
+
+    facts = TurnFacts(memberships=[membership])
+
+    assert facts.lines() == [
+        "Held by Signal peptide: TcIL3000_0_01550, TcIL3000_0_34210",
+        "Not held by Signal peptide: TcIL3000_0_26385",
+    ]
+    assert facts.record_ids() == asked
+    assert "memberships" not in facts.model_dump(by_alias=True)

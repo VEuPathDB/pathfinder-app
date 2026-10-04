@@ -23,10 +23,7 @@ from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.organism_phrases import stated_organisms
-from pathfinder.domain.strategy.text_expression import (
-    TextExpression,
-    asks_for_the_phrase,
-)
+from pathfinder.domain.strategy.text_expression import unquoted_phrase_refusal
 from pathfinder.domain.strategy.words import words_of
 from pathfinder.services.strategies.parameter_rules import parameter_class
 
@@ -171,16 +168,13 @@ def _refuse_an_unquoted_phrase(
     asks for the phrase."""
     match call.params.get(info.name):
         case str() as text if not info.is_placeholder(text):
-            quoted = TextExpression(text=text).phrase_reading()
+            refusal = unquoted_phrase_refusal(
+                info.name, call.search_name, text, messages
+            )
         case _:
             return
-    if quoted is not None and asks_for_the_phrase(messages):
-        msg = (
-            f"{info.name} on {call.search_name}: the request asks for the phrase, "
-            f"so the term is quoted: {quoted}; an unquoted term matches any of its "
-            "words."
-        )
-        raise ModelRetry(msg)
+    if refusal is not None:
+        raise ModelRetry(refusal)
 
 
 def refuse_what_the_words_decide(

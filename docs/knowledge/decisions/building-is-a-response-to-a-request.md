@@ -22,9 +22,9 @@ turn that does: `new_strategy`, `extend_strategy`, `edit_strategy`,
 filters in order.
 
 **Until this turn is classified**, the list holds `UNCLASSIFIED_TOOLS` and
-nothing else: `classify_user_intent`, the two reads of what the thread holds
-(`read_ledger_section`, `get_live_strategy_state`), the two literature reads
-(`web_search`, `literature_search`) and `remember`. A turn is classified when
+nothing else: `classify_user_intent`, the two offer cards a typed yes accepts,
+and the reads and saves that change no strategy (among them the record, step,
+count and membership reads and the two research reads). A turn is classified when
 `LeadDeps.intent` is set AND `PipelineState.turn_markers.intent_classified` is
 true for the message this turn answers, so a classification recorded by an
 earlier message unlocks nothing.

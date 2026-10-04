@@ -89,7 +89,7 @@ class TestAnIntersectWithADatasetSearch:
         assert str(exc.value) == (
             "The structure is refused: Cannot INTERSECT steps with different "
             "organism scopes (Cryptosporidium meleagridis strain UKMEL1 vs "
-            "Cryptosporidium hominis TU502). Gene IDs from different species never "
+            "Cryptosporidium hominis TU502). Gene IDs from different organisms never "
             "match, so this always returns 0 results. The "
             f"{_OOCYSTS} search runs on an experiment of Cryptosporidium hominis "
             "TU502, and no parameter changes that organism. Map that side to "

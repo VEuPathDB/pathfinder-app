@@ -192,6 +192,20 @@ def test_a_card_turn_shows_the_facts_once_and_renders_only_the_shown_card() -> N
     assert facts is capture.facts
 
 
+def test_the_records_a_facts_part_lists_are_kept_for_a_later_message() -> None:
+    session = _session()
+    session.sync_state = WDKSyncState(
+        step_counts={"step_sp": 66, "step_orth": 129, "step_join": 9},
+        wdk_step_ids={"step_sp": 101, "step_orth": 102, "step_join": 103},
+    )
+    deps = lead_deps(pipeline_state("microsporidiadb"), strategy_session=session)
+    deps.state.turn_markers.record_listed_genes(103, ["Eint_010010", "Eint_020050"])
+
+    show_the_facts([].append, deps, _LeadRunCapture())
+
+    assert deps.state.domain.shown_record_ids == ["Eint_010010", "Eint_020050"]
+
+
 def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged() -> (
     None
 ):

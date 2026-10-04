@@ -4,12 +4,13 @@ record, which renders from the listing the facts part shows under its step."""
 from __future__ import annotations
 
 from pathfinder.ai.models.mock.facts_arcs import LISTED
+from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
     prose_faults,
     render_reply,
 )
-from pathfinder.domain.turn_facts import ListedFact, ListedRecord, StepFact, TurnFacts
+from pathfinder.domain.turn_facts import ListedFact, StepFact, TurnFacts
 from pathfinder.tests.unit.ai.models._mock_turns import Scene, args_of, names, play
 
 # The first ids of the Hammondia microneme result, as the listing read them.

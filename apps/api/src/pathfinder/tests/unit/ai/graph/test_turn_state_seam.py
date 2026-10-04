@@ -65,6 +65,7 @@ DOMAIN_FIELDS = {
     "eda_analysis",
     "open_eda_analysis",
     "statistics",
+    "shown_record_ids",
     "requirements",
     "retired_requirements",
     "answered_questions",
@@ -79,7 +80,7 @@ DOMAIN_FIELDS = {
     "separation_offers",
     "attached_controls",
     "control_sets",
-    "upload_types",
+    "data_marks",
 }
 
 STRATEGY_RESOURCES = {

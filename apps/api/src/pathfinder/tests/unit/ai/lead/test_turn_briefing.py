@@ -16,10 +16,26 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintKind,
     ConstraintSource,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.services.conversations.thread_activity import (
     AnalysisDrift,
     FinishedTask,
     ThreadActivity,
+)
+
+# Two curated plasmodb percentile searches and the assay of the one dataset
+# record that names each.
+_RNA_SEQ_PERCENTILE = (
+    "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile"
+)
+_MICROARRAY_PERCENTILE = (
+    "GenesByMicroarraypfal3D7_microarrayExpression_Derisi_TimeSeries_RSRCPercentile"
+)
+_MARKS = DataMarks(
+    searches={
+        _RNA_SEQ_PERCENTILE: "RNASeq",
+        _MICROARRAY_PERCENTILE: "DNA Microarray Assay",
+    }
 )
 
 
@@ -28,9 +44,7 @@ def _expression_ast(percentile: int, *, rnaseq: bool = True) -> StrategyAst:
         record_type="transcript",
         root=StrategyStepNode(
             id="step_expr",
-            search_name=(
-                "GenesByRNASeqEvidence" if rnaseq else "GenesByMicroarrayEvidence"
-            ),
+            search_name=_RNA_SEQ_PERCENTILE if rnaseq else _MICROARRAY_PERCENTILE,
             parameters={
                 "min_expression_percentile": NumberValue(value=percentile),
                 "p_value": NumberValue(value=0.05),
@@ -95,6 +109,7 @@ def test_a_constraint_that_lost_its_grounding_is_named() -> None:
         requirements=[requirement],
         answered=_expression_ast(90),
         live=_expression_ast(90, rnaseq=False),
+        marks=_MARKS,
     )
 
     rendered = briefing.render()
@@ -227,7 +242,7 @@ def test_a_step_moved_onto_an_rna_seq_upload_keeps_the_rna_seq_grounding() -> No
         requirements=[requirement],
         answered=_expression_ast(90),
         live=on_the_upload,
-        upload_types={"step_expr": "rnaseqrc"},
+        marks=_MARKS.model_copy(update={"uploads": {"step_expr": "rnaseqrc"}}),
     )
 
     assert briefing.constraints == []

@@ -2,6 +2,68 @@
 
 ## 2026-10-04
 
+* **PathFinder takes `veupathdb-mcp` 0.2.0a40: a marked tree of samples gives
+  no organism scope.** `catalog.organism_parameter` names a marked parameter only
+  when its leaves share an organism with the site's `GenesByTaxon`, so plasmodb
+  `GenesByMassSpec.ms_assay`, whose leaves are samples under organism branches, is
+  no organism parameter, and an INTERSECT of it with a dataset search of one
+  organism is no longer refused as a cross-organism combine
+  (`tests/integration/services/strategies/test_a_mass_spec_search_scopes_no_organism.py`).
+* **A read-only count or membership check sends every hidden required parameter
+  at the value the site sets, and refuses an unquoted phrase the message asks
+  for.** `_variant_targets._site_set` fills each hidden required parameter at its
+  `default_value` and replaces a value a variant names for one, as the site's own
+  form sends it; `GenesByText.document_type` is one. `search_reads` refuses a text
+  term of several words sent unquoted when this turn's message asks for the exact
+  phrase, through `text_expression.unquoted_phrase_refusal`, which
+  `_frame_stated` now shares, since the site reads an unquoted term as any of its
+  words.
+* **A pick off the request's words is judged on word stems, and a broad request
+  binds on its concept word.** `_frame_lookups._refuse_a_pick_off_the_request_words`
+  compares `_qualifier_words.stem` of each word, so "kinases" in an EC label meets
+  "kinase" in the request. When every word the looked-up terms share with the
+  request is common among the labels, those words count as uncommon: a request
+  that names its concept only by a word every matched entry carries binds any of
+  them, and a word that tells the entries apart still refuses an entry without it.
+* **A correction for a source word says to put the reference in its place or
+  take the word out.** `contract_messages._fault_sentence` words a `source_word`
+  fault apart from a number, so the word itself leaves the reply.
+* **A count reference with no strategy counts genes, and the INTERSECT refusal
+  names different organisms.** `turn_facts` falls back to the gene noun when no
+  graph holds a record type, and `validate.cross_organism_refusal` says gene ids
+  of different organisms never match, which holds for two strains of a species.
+
+* **A count or a membership question about a catalog search is answered
+  read-only, with no step.** `count_search` and `genes_in_search`
+  (`ai/tools/standalone/search_reads.py`, `services/experiment/search_reads.py`) run
+  one search through `run_variant_search`, resolving its values with
+  `resolved_variants`; both are READ and offered before the turn is classified. A
+  count renders as `[compare:<label>]`; a membership records `MembershipFact`
+  (`[record:<id>]`) and `[compare:asked genes,<label>:shared]`. The genes checked
+  by default are this turn's `TurnFacts.record_ids()`, else
+  `StrategyDomainState.shown_record_ids`; an unlisted search name is refused with
+  what the catalog lookup finds.
+
+* **A card answer under the same message is classified once more, and a proposal
+  card answers each requirement the message states.** `consult_user` records
+  `TurnMarkers.answered_card`, and `classify_user_intent` takes a repeat of the held
+  classification while that card differs from `classified_card`. Each
+  `ProposedChange` names `answers` and `Proposal.left_to_ask` the requirements left
+  to a question, both `Constraint.key` values the Constraints section now prints
+  beside each requirement. `refuse_a_card_that_leaves_a_part`, the `args_validator`
+  of `propose_changes`, refuses an unknown key and any live stated requirement of
+  the message neither list names; `card_coverage.uncovered_requirements` counts
+  what the strategy holds as covered, and a combination when each term is.
+
+* **A data-type requirement is grounded by what the site marks a step as running
+  on, never by the search name.** `DataMarks` holds each criterion's upload type,
+  the assay of each curated study and the assay of each search
+  (`veupathdb-mcp` 0.2.0a39 `catalog.dataset_assay` and `study_assay`: the dataset
+  record's category, and for a search the category every dataset that names it
+  agrees on). `StrategyDomainState.data_marks` replaces `upload_types` and is read
+  when a build, an edit or an EDA export binds a step, at the end of the pre-turn
+  and before VERIFY.
+
 * **A search that marks no organism parameter runs on the organisms of the one
   dataset that names it.** `veupathdb-mcp` 0.2.0a38 reads them from the dataset
   record's `References` and `organism_prefix` (`catalog.dataset_organisms`); a

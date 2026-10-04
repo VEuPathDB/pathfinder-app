@@ -28,7 +28,7 @@ REPLY_REFERENCES = (
     "value with its label, [source:<step_id>.<param>] who set it, "
     "[compare:<variant>] the genes a comparison of this turn returned for a "
     "variant (add :unique or :result; [compare:<a>,<b>:shared] for the genes "
-    "two share), [record:<record_id>] a record this turn read or listed, [url] "
+    "two share), [record:<record_id>] a record this turn read, listed or checked, [url] "
     f"the strategy's link. {PLACEMENT_RULES}"
 )
 

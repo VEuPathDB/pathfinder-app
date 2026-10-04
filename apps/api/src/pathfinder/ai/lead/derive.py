@@ -159,7 +159,7 @@ def _derive_constraint_section(
             *(
                 g
                 for g in ground_against_spec(
-                    merged, spec, upload_types=state.domain.upload_types
+                    merged, spec, marks=state.domain.data_marks
                 )
                 if g.constraint.key not in held_open
             ),

@@ -319,7 +319,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
     )
     verdict = state.turn_verdict
     stop = deps.last_phase_stop
-    noun = counted_noun(graph.record_type) if graph else "gene"
+    noun = counted_noun(graph.record_type) if graph and graph.record_type else "gene"
     sources = read_sources(
         markers,
         built,
@@ -371,6 +371,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         ),
         named_genes=named_genes(markers),
         comparisons=list(markers.comparisons),
+        memberships=list(markers.memberships),
         statistics=list(domain.statistics),
         stopped_check=""
         if stop is None or stop.role != "verification"

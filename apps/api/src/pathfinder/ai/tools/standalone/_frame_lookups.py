@@ -13,7 +13,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.agents.state import AgentToolState, LookupRecord
 from pathfinder.ai.tools.standalone._frame_proposals import CriterionCall
-from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
+from pathfinder.ai.tools.standalone._qualifier_words import proposal_values, stem
 from pathfinder.domain.strategy.constraints import content_words
 from pathfinder.domain.strategy.operational_spec import BoundValue
 from pathfinder.domain.strategy.value_label import label_term
@@ -195,8 +195,12 @@ def _refuse_a_pick_beside_the_exact_term(
             raise ModelRetry(msg)
 
 
+def _stems(text: str) -> frozenset[str]:
+    return frozenset(stem(word) for word in content_words(text))
+
+
 def _label_words(labels: dict[str, str]) -> dict[str, frozenset[str]]:
-    return {v: content_words(label_term(v, display)) for v, display in labels.items()}
+    return {v: _stems(label_term(v, display)) for v, display in labels.items()}
 
 
 def _common_words(words: dict[str, frozenset[str]]) -> frozenset[str]:
@@ -245,11 +249,16 @@ def _refuse_a_pick_off_the_request_words(
     elsewhere: str,
 ) -> None:
     """Refuse a new pick whose label shares no uncommon content word with the
-    request messages, unless the request writes the picked label out. The
+    request messages, unless the request writes the picked label out. A request
+    whose looked-up concept words are all common counts them as uncommon. The
     refusal names the matched entries whose labels do carry those words."""
     words = _label_words(labels)
-    asked = frozenset().union(*map(content_words, state.request_messages))
-    uncommon = asked - _common_words(words)
+    asked = frozenset().union(*map(_stems, state.request_messages))
+    common = _common_words(words)
+    concept = asked & frozenset().union(*map(_stems, set(record.matched.values())))
+    uncommon = asked - common
+    if concept and concept <= common:
+        uncommon |= concept
     strays = [
         v
         for v in new

@@ -32,6 +32,10 @@ _VALUES = Field(
     min_length=1,
     description="Each parameter it sets, by name, to the wire value the site takes.",
 )
+_ANSWERS = (
+    "The key of each requirement this change answers, copied from the key the "
+    "Constraints section lists for it."
+)
 
 
 class SetValuesChange(CamelModel):
@@ -43,6 +47,7 @@ class SetValuesChange(CamelModel):
     sentence: str = _SENTENCE
     criterion_id: str = _CRITERION
     params: dict[str, str] = _VALUES
+    answers: list[str] = Field(default_factory=list, description=_ANSWERS)
 
     def binding(self) -> str:
         sets = ", ".join(f'{name} to "{value}"' for name, value in self.params.items())
@@ -63,6 +68,7 @@ class AddCriterionChange(CamelModel):
         default_factory=dict,
         description="Each parameter the search takes a stated value for, by name.",
     )
+    answers: list[str] = Field(default_factory=list, description=_ANSWERS)
 
     def binding(self) -> str:
         sets = "".join(f', {name} "{value}"' for name, value in self.params.items())
@@ -99,6 +105,19 @@ class Proposal(CamelModel):
             "refused."
         ),
     )
+    left_to_ask: list[str] = Field(
+        default_factory=list,
+        description=(
+            "The key of each requirement of this message that no change answers "
+            "and the reply asks the researcher about, written as in a change's "
+            "answers."
+        ),
+    )
+
+    def named_keys(self) -> list[str]:
+        """Each requirement key the card names, once, in the order it names them."""
+        named = [k for c in self.proposed_changes for k in c.answers]
+        return list(dict.fromkeys([*named, *self.left_to_ask]))
 
     def brief(self, note: str) -> str:
         """The edit's work order: the accepted changes and the researcher's note."""

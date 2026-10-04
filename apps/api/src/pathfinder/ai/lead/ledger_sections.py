@@ -358,6 +358,7 @@ class ConstraintSection(CamelModel):
                     if (g.constraint.kind, g.constraint.requested_value) in carried
                     else ""
                 )
+                + f"; key {g.constraint.key}"
                 for g in stated
             ],
             how="stated",

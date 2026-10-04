@@ -8,8 +8,9 @@ from collections.abc import Sequence
 
 from pathfinder.ai.graph.turn_records import ReadRecord, TurnMarkers
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.domain.turn_facts import ListedFact, ListedRecord, SourceFact, StepFact
+from pathfinder.domain.turn_facts import ListedFact, SourceFact, StepFact
 from pathfinder.services.gene_records.read import gene_record_url
 
 

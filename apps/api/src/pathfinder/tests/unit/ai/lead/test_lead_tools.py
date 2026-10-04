@@ -435,6 +435,12 @@ def test_the_record_read_is_offered_before_the_turn_is_classified() -> None:
     assert "read_gene_record" not in BUILDING_TOOLS
 
 
+def test_the_catalog_search_reads_are_offered_before_the_turn_is_classified() -> None:
+    """A count or a membership check changes nothing, so it needs no classification."""
+    assert {"count_search", "genes_in_search"} <= UNCLASSIFIED_TOOLS
+    assert {"count_search", "genes_in_search"}.isdisjoint(BUILDING_TOOLS)
+
+
 def test_the_classifier_is_told_a_question_a_search_answers_is_a_build() -> None:
     doc = lead_tools.classify_user_intent.__doc__ or ""
 

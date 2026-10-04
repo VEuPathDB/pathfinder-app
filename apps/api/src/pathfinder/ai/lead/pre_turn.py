@@ -49,6 +49,7 @@ from pathfinder.services.conversations.thread_activity import (
 )
 from pathfinder.services.eda.analysis_kinds import read_the_unread_kinds
 from pathfinder.services.eda.binding import open_analysis_in
+from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.organism_params import organism_parameters
 from pathfinder.services.strategies.revision_ops import last_change
@@ -119,7 +120,7 @@ def attach_turn_briefing(
         requirements=state.domain.requirements,
         answered=answered,
         live=live_tree(context.strategy_session.get_graph(None)),
-        upload_types=state.domain.upload_types,
+        marks=state.domain.data_marks,
     ).render()
     return state
 
@@ -155,8 +156,9 @@ async def refresh_live_strategy_state(
     context: Context,
 ) -> PipelineState:
     """Return the state the turn runs on, with staleness measured live, what
-    was written outside played onto every spec, and the spec reconstructed
-    when the strategy has one and the checkpoint does not."""
+    was written outside played onto every spec, the spec reconstructed when
+    the strategy has one and the checkpoint does not, and what each step of
+    the spec and of the tree last answered runs on."""
     working_state = state.model_copy(deep=True)
     # The site's own edits reach the stored graph first, so the replay below
     # plays them onto the spec like any change written outside the thread.
@@ -183,6 +185,14 @@ async def refresh_live_strategy_state(
     await read_every_unread_analysis(working_state.domain, site_id=context.site_id)
     _record_the_spec_the_turn_started_from(working_state)
     _record_the_strategy_at_arrival(working_state, context)
+    answered = state.domain.answered_graph
+    working_state.domain.data_marks = await read_data_marks(
+        context.site_id,
+        [
+            None if answered is None else spec_from_ast(answered, goal=""),
+            working_state.domain.operational_spec,
+        ],
+    )
     return working_state
 
 

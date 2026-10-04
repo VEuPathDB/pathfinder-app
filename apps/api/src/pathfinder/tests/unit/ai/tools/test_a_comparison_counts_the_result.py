@@ -255,5 +255,6 @@ async def test_a_search_no_step_runs_is_refused_with_each_steps_search() -> None
         "strategy's result. The steps: "
         f"step_33f64941 runs {_APICOPLAST} (495 genes); "
         f"step_4dfb1df9 runs {_TM} (1,490 genes). "
-        "The count of a criterion's removal is the count of the step that stays."
+        "The count of a criterion's removal is the count of the step that stays. "
+        "A search no step runs is counted alone with count_search."
     )

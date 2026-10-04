@@ -17,6 +17,7 @@ from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.constraints import ConstraintKind, ConstraintStatus
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies import bound_uploads
@@ -113,11 +114,11 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
 
     monkeypatch.setattr(bound_uploads, "owned_uploads", _uploads)
     deps = lead_deps(_deseq_state(), strategy_session=_session())
-    seen: list[dict[str, str]] = []
+    seen: list[DataMarks] = []
 
     def _answer(messages: list[ModelMessage]) -> ToolCallPart:
         del messages
-        seen.append(dict(deps.state.domain.upload_types))
+        seen.append(deps.state.domain.data_marks)
         return final_result_part(_DIGEST)
 
     monkeypatch.setattr(
@@ -136,7 +137,7 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
     assert isinstance(delta, VerificationDelta)
     [grounded] = derive_ledger(deps.state, None).constraints.grounded
     assert (seen, grounded.status, grounded.realized_value, delta.digest.success) == (
-        [{_STEP: "rnaseqrc"}],
+        [DataMarks(uploads={_STEP: "rnaseqrc"})],
         ConstraintStatus.GROUNDED,
         "rna-seq",
         True,

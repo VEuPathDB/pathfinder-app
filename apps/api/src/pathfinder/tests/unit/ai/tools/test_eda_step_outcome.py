@@ -14,6 +14,12 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
 from pathfinder.domain.strategy.build_outcome import StepPushFailure, built_counts
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+    ConstraintStatus,
+)
 from pathfinder.domain.strategy.operations.apply import apply_operation
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.platform.errors import ErrorCode
@@ -227,3 +233,34 @@ async def test_a_draft_export_the_site_never_took_records_no_build(
     state = lead_ctx.deps.state
     assert state.domain.last_build_outcome is None
     assert state.turn_markers.built is False
+
+
+async def test_the_export_reads_the_assay_of_its_study(
+    monkeypatch: pytest.MonkeyPatch, lead_ctx: RunContext[LeadDeps]
+) -> None:
+    """The ledger grounds an RNA-Seq requirement on the export before a check."""
+    session = lead_ctx.deps.runtime.strategy_session
+    state = lead_ctx.deps.state
+    state.domain.requirements = [
+        Constraint(
+            kind=ConstraintKind.DATA_TYPE,
+            label="RNA-Seq dataset",
+            requested_value="RNA-Seq",
+            source=ConstraintSource.USER_EXPLICIT,
+        )
+    ]
+    _wire(
+        monkeypatch,
+        detail=de_analysis(filters=[sample_filter()], with_computation=True),
+        commit=pushing_commit([], session=session, count=212),
+    )
+
+    await eda_step.create_eda_step(
+        lead_ctx, effect_size_threshold=1.5, significance_threshold=0.01
+    )
+
+    [grounded] = derive_ledger(state, None).constraints.grounded
+    assert (state.domain.data_marks.studies, grounded.status) == (
+        {DE_DATASET: "RNASeq"},
+        ConstraintStatus.GROUNDED,
+    )

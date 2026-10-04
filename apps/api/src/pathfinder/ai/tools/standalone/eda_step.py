@@ -67,6 +67,7 @@ from pathfinder.services.strategies.commit import (
     apply_operations_and_commit,
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import ensure_sync_state
@@ -361,6 +362,9 @@ async def create_eda_step(
         restate_the_structure(ctx, graph)
     the_strategy_now_answers_to(
         ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
+    )
+    ctx.deps.state.domain.data_marks = await read_data_marks(
+        ctx.deps.site_id, [ctx.deps.state.domain.operational_spec]
     )
     sync = result.sync_result
     metadata = _export_metadata(session, graph, sync)

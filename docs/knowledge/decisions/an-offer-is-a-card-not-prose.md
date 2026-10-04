@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An offer is a card, not prose
-description: The Lead offers further work on a proposal card (`propose_changes`) that parks the turn like a consult. A yes runs the edit from the card's own changes and the researcher's note, a no ends the turn with no model call and records the declined card on the ledger, and the turn contract refuses any reply that ends on a question it did not record. A contract rule for approval turns alone and a proposal kind on the runtime's consult question were rejected.
+description: The Lead offers further work on a proposal card (`propose_changes`) that parks the turn like a consult, and answers each requirement the message states with a change or a question, by its key. A yes runs the edit from the card's own changes and the researcher's note, a no ends the turn with no model call and records the declined card on the ledger, and the turn contract refuses any reply that ends on a question it did not record. A contract rule for approval turns alone and a proposal kind on the runtime's consult question were rejected.
 tags: [agents, lead, honesty, approvals, contract]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 status: stable
@@ -18,6 +18,18 @@ Lead asks in prose.
   realises. The Lead's reply is an argument of the card call and streams before the card; the
   turn parks on the approval exactly as a `consult_user` turn does. The web draws it as
   `ProposalCard` (the question, the changes, Yes, No and a note field that is always shown).
+- **Each stated part has a change or a question.** Each `ProposedChange` names in `answers`
+  the `Constraint.key` of every requirement it answers, and `Proposal.left_to_ask` names each
+  requirement no change answers and the reply asks about. `lead_proposal.refuse_a_card_that_leaves_a_part`,
+  the tool's `args_validator`, refuses the card before the researcher reads it when a key names
+  no requirement the thread holds, or when a live, user-explicit requirement the classifier
+  recorded for this message (`TurnMarkers.requirements_added`) is in neither list, naming it by
+  its label. `domain/strategy/card_coverage.py::uncovered_requirements` decides coverage: a
+  requirement the strategy holds needs no change (a record type the spec counts, an organism the
+  scope or a step's values name, a data type, a threshold, a fold change or a percentile the
+  grounding holds, any value a criterion's words or values state), and a
+  combination is covered when each of its terms is. A call the researcher approved runs as
+  approved. Words are not matched against wire values: the keys are the link.
 - **Yes.** The approval resumes the run and pydantic-ai executes the tool body, which dispatches
   `run_edit` with `Proposal.brief(note)` as the edit's work order: the question, every change,
   and the note the card sent as a `data-user-question-answers` answer. The model never has to

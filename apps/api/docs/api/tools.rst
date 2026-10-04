@@ -155,8 +155,9 @@ Verification Tools
 ------------------
 
 **Purpose:** Test a strategy. Control tests against positive and negative
-gene sets, parameter optimization, variant comparison, and scored comparison
-against a saved control set.
+gene sets, parameter optimization, variant comparison, scored comparison
+against a saved control set, and the read-only count and membership check of
+one catalog search.
 
 .. automodule:: pathfinder.ai.tools.standalone.experiment
    :members:
@@ -179,6 +180,11 @@ against a saved control set.
    :show-inheritance:
 
 .. automodule:: pathfinder.ai.tools.standalone.scored_comparison
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: pathfinder.ai.tools.standalone.search_reads
    :members:
    :undoc-members:
    :show-inheritance:

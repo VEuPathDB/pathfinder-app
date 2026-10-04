@@ -80,6 +80,7 @@ from pathfinder.domain.strategy.step_words import added_searches
 from pathfinder.services.strategies.commit import (
     apply_operations_and_commit,
 )
+from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.graph_outcome import live_outcome
 from pathfinder.services.strategies.revision_ops import previous_revision
 
@@ -284,6 +285,7 @@ async def _push_the_edit(
     # The spec the thread carries states the option on the step that runs it,
     # exactly as the spec a build leaves behind does.
     deps.state.domain.operational_spec = after
+    deps.state.domain.data_marks = await read_data_marks(agent_deps.site_id, [after])
     the_strategy_now_answers_to(
         deps.state, after, agent_deps.strategy_session.get_graph(None)
     )

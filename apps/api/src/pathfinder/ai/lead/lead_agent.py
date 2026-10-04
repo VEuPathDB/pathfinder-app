@@ -45,7 +45,10 @@ from pathfinder.ai.lead.lead_pins import (
     pinned_user_intent,
     pinned_user_prompt,
 )
-from pathfinder.ai.lead.lead_proposal import propose_changes
+from pathfinder.ai.lead.lead_proposal import (
+    propose_changes,
+    refuse_a_card_that_leaves_a_part,
+)
 from pathfinder.ai.lead.lead_reads import get_live_strategy_state, read_ledger_section
 from pathfinder.ai.lead.lead_tools import (
     classify_user_intent,
@@ -81,6 +84,7 @@ from pathfinder.ai.tools.standalone.optimization import (
     sweep_can_run,
 )
 from pathfinder.ai.tools.standalone.scored_comparison import compare_variants_scored
+from pathfinder.ai.tools.standalone.search_reads import count_search, genes_in_search
 from pathfinder.ai.tools.standalone.separation import separate_controls
 from pathfinder.ai.tools.standalone.step_ids import read_step_ids
 from pathfinder.ai.tools.standalone.strategy_rename import rename_strategy
@@ -153,6 +157,8 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(recover_failed_steps),
             Tool(verify_strategy),
             Tool(compare_search_variants),
+            Tool(count_search),
+            Tool(genes_in_search),
             Tool(build_control_set),
             Tool(list_control_sets),
             Tool(read_control_set),
@@ -168,7 +174,11 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
                 requires_approval=True,
                 args_validator=refuse_a_card_that_binds_nothing,
             ),
-            Tool(propose_changes, requires_approval=True),
+            Tool(
+                propose_changes,
+                requires_approval=True,
+                args_validator=refuse_a_card_that_leaves_a_part,
+            ),
             Tool(
                 separate_controls,
                 sequential=True,

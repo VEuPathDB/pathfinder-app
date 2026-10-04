@@ -29,6 +29,8 @@ from pathfinder.ai.lead.sub_agent_tools import (
     SubAgentCallUsage,
     sub_agent_model_id,
 )
+from pathfinder.domain.strategy.card_coverage import uncovered_requirements
+from pathfinder.domain.strategy.constraints import ConstraintSource
 
 _EDIT_TOOL = "edit_strategy"
 _EDIT_ROLE = "frame"
@@ -80,6 +82,53 @@ def _edit_card(
     )
 
 
+def refuse_a_card_that_leaves_a_part(
+    ctx: RunContext[LeadDeps], proposal: CardProposal
+) -> None:
+    """Refuse a card that names a key the thread does not hold, or that leaves a
+    requirement this message states with no change and no question.
+
+    A requirement the strategy already holds needs neither. The check holds the
+    card before the researcher reads it, so a card they accepted runs as accepted.
+    """
+    if ctx.tool_call_approved:
+        return
+    state = ctx.deps.state
+    held = {c.key: c for c in state.domain.requirements}
+    named = proposal.named_keys()
+    unknown = [key for key in named if key not in held]
+    stated = [
+        c
+        for c in state.turn_markers.requirements_added
+        if c.key in held and c.source is ConstraintSource.USER_EXPLICIT
+    ]
+    left = uncovered_requirements(
+        stated,
+        named=named,
+        held=list(held.values()),
+        spec=state.domain.operational_spec,
+        marks=state.domain.data_marks,
+    )
+    if not unknown and not left:
+        return
+    problems = []
+    if unknown:
+        keys = ", ".join(held) or "none"
+        problems.append(
+            f"These keys name no requirement the conversation holds: "
+            f"{', '.join(unknown)}. The keys it holds are: {keys}."
+        )
+    if left:
+        parts = ", ".join(f'"{c.label}" ({c.key})' for c in left)
+        problems.append(
+            f"The card leaves these requirements of this message with no change "
+            f"and no question: {parts}. Add a change that answers each one and "
+            f"name its key in that change's answers, or name the key in "
+            f"leftToAsk and ask about it in the reply."
+        )
+    raise ModelRetry(" ".join(problems))
+
+
 async def propose_changes(
     ctx: RunContext[LeadDeps], proposal: CardProposal
 ) -> EditDelta:
@@ -90,8 +139,13 @@ async def propose_changes(
     question. The reply is this call's ``reply``: it streams above the card,
     so write the whole answer to the message there and nothing as text.
     Each change is typed by what it binds: values set on a criterion the
-    ledger lists, or a criterion added with the search it runs. A removal is
-    ``delete_step``, whose card lists what it removes. The researcher answers
+    ledger lists, or a criterion added with the search it runs. Each change
+    names in ``answers`` the key of each requirement it answers, and
+    ``leftToAsk`` names each requirement of this message that no change
+    answers and the reply asks about. A card that leaves out a requirement
+    this message states is refused, naming it; one the strategy already holds
+    needs no change. A removal is ``delete_step``, whose card lists what it
+    removes. The researcher answers
     Yes or No and can add a comment. A yes records the comment as the
     researcher's words and runs the edit with ``proposedChanges`` and the
     comment as its brief, and the ``EditDelta``
@@ -124,4 +178,4 @@ async def propose_changes(
     return result
 
 
-__all__ = ["accepted_brief", "propose_changes"]
+__all__ = ["accepted_brief", "propose_changes", "refuse_a_card_that_leaves_a_part"]

@@ -12,7 +12,8 @@ from pydantic import ValidationError
 from pathfinder.devtools import eval_runner
 from pathfinder.devtools.chat import RunArgs
 from pathfinder.devtools.gates import Gate
-from pathfinder.domain.turn_facts import ListedFact, ListedRecord, SourceFact, TurnFacts
+from pathfinder.domain.record_page import ListedRecord
+from pathfinder.domain.turn_facts import ListedFact, SourceFact, TurnFacts
 from pathfinder.evals.case import (
     CaseProvenance,
     EvalCase,

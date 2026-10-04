@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
     is_blocking,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     SpecStructure,
@@ -21,10 +22,12 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.realized_spec import RealizedSpec
 
-# The realized facts of a single microarray fold-change leaf.
+# The realized facts of a single microarray fold-change leaf, and the assay
+# vectorbase's dataset record names for its search.
 _MICROARRAY_SEARCH = (
     "GenesByMicroarrayaaegLVP_AGWG_microarrayExpression_GSE22339_male_vs_female_RSRC"
 )
+_MICROARRAY_MARKS = DataMarks(searches={_MICROARRAY_SEARCH: "DNA Microarray Assay"})
 
 
 def _explicit(kind: ConstraintKind, value: str, label: str) -> Constraint:
@@ -43,6 +46,10 @@ def _ground_on_microarray(constraint: Constraint) -> GroundedConstraint:
             search_names=[_MICROARRAY_SEARCH],
             param_names=frozenset({"fold_change"}),
             param_values={"fold_change": "2"},
+            criteria=[
+                Criterion(id="c1", text="fold change", search_name=_MICROARRAY_SEARCH)
+            ],
+            marks=_MICROARRAY_MARKS,
         ),
     )
     return grounded

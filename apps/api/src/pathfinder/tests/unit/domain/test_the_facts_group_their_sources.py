@@ -1,9 +1,9 @@
 """The facts show each source under the step it was read from, with the fit
 the check found, and each count an edit moved beside the count it held before."""
 
+from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.turn_facts import (
     ListedFact,
-    ListedRecord,
     SourceFact,
     StepFact,
     TurnFacts,

@@ -35,7 +35,7 @@ Measured: a question, no build: "VEuPathDB does not provide a dedicated search f
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | New conversation | Send `Intersect the Plasmodium falciparum 3D7 genes that have a predicted signal peptide with the Plasmodium vivax P01 genes that have a predicted signal peptide.` | No strategy is built; the reply says gene ids of two species never match, so the INTERSECT always returns 0, and offers the orthology route (the P. vivax P01 orthologs of the 3D7 set, or the reverse) |
-| 2 | Progress panel, `Building` tab | Read, if a build ran | The sentence `Cannot INTERSECT steps with different organism scopes (Plasmodium falciparum 3D7 vs Plasmodium vivax P01). Gene IDs from different species never match, so this always returns 0 results. Scope every seed to one organism: Plasmodium falciparum 3D7 or Plasmodium vivax P01.` |
+| 2 | Progress panel, `Building` tab | Read, if a build ran | The sentence `Cannot INTERSECT steps with different organism scopes (Plasmodium falciparum 3D7 vs Plasmodium vivax P01). Gene IDs from different organisms never match, so this always returns 0 results. Scope every seed to one organism: Plasmodium falciparum 3D7 or Plasmodium vivax P01.` |
 
 Measured today: the refusal came after three steps were created on the site; the thread shows `Strategy updated` with `3 steps, count not available` and an evidence card `Not supported`; the orthology offer was dropped (FND-4, major). 101 s, $0.081.
 

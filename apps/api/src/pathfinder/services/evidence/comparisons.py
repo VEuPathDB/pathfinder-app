@@ -4,7 +4,25 @@ and without a control set."""
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.services.experiment import scored_comparison, variant_comparison
+from pathfinder.services.experiment import (
+    scored_comparison,
+    search_reads,
+    variant_comparison,
+)
+
+
+async def run_search_count(
+    site_id: str, spec: variant_comparison.VariantSpec
+) -> search_reads.SearchCount:
+    """How many genes one search returns. No step is created."""
+    return await search_reads.search_count(site_id, spec)
+
+
+async def run_search_membership(
+    site_id: str, spec: variant_comparison.VariantSpec, gene_ids: list[str]
+) -> search_reads.SearchMembership:
+    """Which of the gene ids one search holds. No step is created."""
+    return await search_reads.search_membership(site_id, spec, gene_ids)
 
 
 async def run_variant_comparison(

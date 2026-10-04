@@ -16,7 +16,7 @@ from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSp
 from pathfinder.services.strategies import bound_uploads
 from pathfinder.services.strategies.bound_uploads import (
     uploads_run_on,
-    uploads_the_spec_runs_on,
+    uploads_the_specs_run_on,
 )
 from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
 from pathfinder.tests._support.bound_values import bound
@@ -90,7 +90,7 @@ async def test_an_unreadable_upload_listing_answers_no_row(
     monkeypatch.setattr(bound_uploads, "owned_uploads", _refused)
     spec = OperationalSpec(goal="deseq", criteria=[_DESEQ])
 
-    assert await uploads_the_spec_runs_on("plasmodb", spec, _searches()) == {}
+    assert await uploads_the_specs_run_on("plasmodb", [spec], _searches()) == {}
 
 
 async def test_a_spec_on_no_upload_reads_no_listing(
@@ -111,8 +111,25 @@ async def test_a_spec_on_no_upload_reads_no_listing(
         }
     )
 
-    found = await uploads_the_spec_runs_on(
-        "plasmodb", OperationalSpec(goal="public", criteria=[public]), _searches()
+    found = await uploads_the_specs_run_on(
+        "plasmodb", [OperationalSpec(goal="public", criteria=[public])], _searches()
     )
 
     assert (found, listed) == ({}, [])
+
+
+async def test_several_specs_read_the_listing_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    listed: list[str] = []
+
+    async def _listing(site_id: str) -> list[OwnedUpload]:
+        listed.append(site_id)
+        return list(_UPLOADS)
+
+    monkeypatch.setattr(bound_uploads, "owned_uploads", _listing)
+    spec = OperationalSpec(goal="deseq", criteria=[_DESEQ])
+
+    found = await uploads_the_specs_run_on("plasmodb", [spec, None, spec], _searches())
+
+    assert (sorted(found), listed) == ([_DESEQ.id], ["plasmodb"])

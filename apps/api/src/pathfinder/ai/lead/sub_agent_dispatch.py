@@ -78,6 +78,7 @@ from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
+from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
     node_results,
@@ -163,6 +164,9 @@ async def build_the_minted(deps: LeadDeps, minted: MintedSpec) -> ExecuteDelta:
     )
     renumbered = renumber_criteria(spec, built.step_id_by_criterion)
     deps.state.domain.operational_spec = renumbered
+    deps.state.domain.data_marks = await read_data_marks(
+        agent_deps.site_id, [renumbered]
+    )
     deps.state.record_build(outcome)
     added = added_searches(renumbered, built.step_id_by_criterion.values())
     deps.state.turn_markers.record_added_searches(added)

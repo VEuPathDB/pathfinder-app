@@ -181,10 +181,7 @@ def _record(facts: TurnFacts, record_id: str) -> str | None:
     if read is not None:
         product = f" ({read.product})" if read.product else ""
         return f"[{record_id}]({read.url}){product}"
-    listed = next(
-        (r for fact in facts.listed for r in fact.records if r.record_id == record_id),
-        None,
-    )
+    listed = next((r for r in facts.listed_records() if r.record_id == record_id), None)
     return None if listed is None else f"[{record_id}]({listed.url})"
 
 
@@ -312,7 +309,7 @@ def _number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
 def _record_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
     ids = {
         *(s.record_id for s in (*facts.sources, *facts.named_genes)),
-        *(r.record_id for fact in facts.listed for r in fact.records),
+        *(r.record_id for r in facts.listed_records()),
     }
     return (f"[record:{token}]",) if token in ids else ()
 

@@ -54,7 +54,9 @@ async def classify_user_intent(
     """Classify the user's intent for this turn. Call this exactly once,
     before any other sub-agent call. A second call on the same turn is
     only to change the classification, and only before the turn changed the
-    strategy; one that repeats it, or comes after a write, is refused.
+    strategy; one that repeats it, or comes after a write, is refused. An
+    answer the researcher gives on a card of yours under this message is
+    classified once more, with the requirements that answer states.
 
     The message classified is this turn's own, which is pinned in your
     instructions; it is never passed here. Construct a ``UserIntent``
@@ -184,10 +186,12 @@ async def classify_user_intent(
     question = held_as_question(state, intent)
     notes = [] if question is None else [recorded_as_question_message()]
     intent = question or intent
-    if state.turn_markers.intent_classified and held is not None:
-        if held.classification is intent.classification:
+    markers = state.turn_markers
+    if markers.intent_classified and held is not None:
+        same = held.classification is intent.classification
+        if same and markers.classified_card == markers.answered_card:
             raise ToolFailed(already_classified_message(held.classification))
-        if state.turn_markers.changed_strategy:
+        if not same and markers.changed_strategy:
             raise ToolFailed(_written_turn_message(held.classification))
     refused = ctx.deps.refused_classification
     if refused is not None and refused.intent == intent:
@@ -211,8 +215,8 @@ async def classify_user_intent(
     )
     ctx.deps.refused_classification = None
     ctx.deps.intent = intent
-    state.turn_markers.intent_classified = True
-    markers = state.turn_markers
+    markers.intent_classified = True
+    markers.classified_card = markers.answered_card
     # A new request sets the old one aside until this turn frames, consults
     # or writes; after that, a change of mind keeps the work the turn did.
     worked = markers.framed or markers.consulted or markers.changed_strategy

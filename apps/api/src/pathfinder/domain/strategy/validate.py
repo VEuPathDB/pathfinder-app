@@ -103,7 +103,7 @@ def cross_organism_refusal(
 ) -> str | None:
     """Why the combine returns nothing, or None when its inputs can meet.
 
-    Gene ids from different species never match, so an INTERSECT of two known
+    Gene ids from different organisms never match, so an INTERSECT of two known
     and disjoint scopes is always empty. A search reads its organism from the
     parameter it marks, or from its dataset when it marks none.
     """
@@ -125,7 +125,7 @@ def cross_organism_refusal(
     return (
         f"Cannot INTERSECT steps with different organism scopes "
         f"({_scope_text(primary)} vs {_scope_text(secondary)}). Gene IDs from "
-        f"different species never match, so this always returns 0 results. "
+        f"different organisms never match, so this always returns 0 results. "
         f"{remedy}"
     )
 

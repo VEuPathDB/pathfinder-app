@@ -218,7 +218,7 @@ def test_the_summary_caps_the_requirement_list() -> None:
 
     summary = derive_ledger(state, intent).render_summary()
 
-    assert summary.count("requirement ") == 20
+    assert summary.count("-> provisional") == 20
     assert "10 more stated earlier" in summary
 
 

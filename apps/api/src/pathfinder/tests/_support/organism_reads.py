@@ -1,4 +1,4 @@
-"""The catalog reads that name a search's organism parameter, served offline."""
+"""The catalog reads that mark a search's organism and assay, served offline."""
 
 from __future__ import annotations
 
@@ -6,10 +6,16 @@ from collections.abc import Mapping, Sequence
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
-from veupathdb.wdk import WDKRecordType
+from veupathdb.errors import WDKError
+from veupathdb.wdk import WDKRecordType, WDKSearch
 
 from pathfinder.ai.tools.standalone import frame_spec, frame_structure
-from pathfinder.services.strategies import organism_params, organism_universe
+from pathfinder.services.strategies import (
+    data_marks,
+    organism_params,
+    organism_universe,
+    text_queries,
+)
 
 # The transcript record type as every genomic site publishes it.
 TRANSCRIPT = WDKRecordType(
@@ -49,9 +55,22 @@ DATASETS = {
 }
 
 
+# The assay each curated search or study runs on, as plasmodb answers it; a
+# search or a study not named here has no mark.
+SEARCH_ASSAYS: dict[str, str] = {
+    "GenesByRNASeqpfal3D7_Gomez-Diaz_asexual_stages_ebi_rnaSeq_RSRCPercentile": "RNASeq",
+    "GenesByProfileSimilarity": "DNA Microarray Assay",
+}
+STUDY_ASSAYS: dict[str, str] = dict.fromkeys(
+    ("DS_eeca6a5476", "DS_e973eadd57"), "RNASeq"
+)
+
+
 def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Answer the organism parameter of each search from ``MARKS``, and the
-    organisms of the dataset it runs on from ``DATASETS``."""
+    """Answer the organism parameter of each search from ``MARKS``, the
+    organisms of the dataset it runs on from ``DATASETS``, and the assay of a
+    curated search or study from ``SEARCH_ASSAYS`` and ``STUDY_ASSAYS``. No
+    search sheet is served: a test that reads one serves it."""
 
     async def _record_type(_site: str, _search: str, hint: str | None) -> str:
         return hint or "transcript"
@@ -66,6 +85,22 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(organism_params, "organism_parameter", _marked)
     monkeypatch.setattr(frame_spec, "dataset_organisms", _datasets)
     monkeypatch.setattr(organism_params, "dataset_organisms", _datasets)
+
+    async def _search_assay(_site: str, search_name: str) -> str | None:
+        return SEARCH_ASSAYS.get(search_name)
+
+    async def _study_assay(_site: str, dataset_id: str) -> str | None:
+        return STUDY_ASSAYS.get(dataset_id)
+
+    monkeypatch.setattr(data_marks, "dataset_assay", _search_assay)
+    monkeypatch.setattr(data_marks, "study_assay", _study_assay)
+
+    async def _no_sheet(_site: str, _record_type: str, search_name: str) -> WDKSearch:
+        msg = f"the unit tier serves no sheet for {search_name}"
+        raise WDKError(msg)
+
+    monkeypatch.setattr(text_queries, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(text_queries, "read_search_definition", _no_sheet)
 
 
 def serve_organism_reads(

@@ -15,6 +15,7 @@ from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
     SinglePickValue,
+    from_wire,
     match_exact_option,
     to_wire,
 )
@@ -106,7 +107,8 @@ def _refuse_a_search_no_step_runs(
     msg = (
         f"{named} is no search a step of this strategy runs, and each variant is "
         f"counted in place in the strategy's result. The steps: {steps}. The count "
-        "of a criterion's removal is the count of the step that stays."
+        "of a criterion's removal is the count of the step that stays. A search "
+        "no step runs is counted alone with count_search."
     )
     raise ModelRetry(msg)
 
@@ -242,18 +244,37 @@ def _published_defaults(
     }
 
 
+def _site_set(infos: dict[str, ParameterInfo]) -> dict[str, ParamValue]:
+    """Each hidden required parameter at the value the site sets, which no
+    caller chooses."""
+    return {
+        name: from_wire(info.param_kind, info.default_value)
+        for name, info in infos.items()
+        if not info.is_visible and info.required and info.default_value is not None
+    }
+
+
 type _Search = tuple[str, str]
 
 
 async def checked_variants(
     session: StrategySession, stated: list[VariantInput]
 ) -> list[VariantSpec]:
+    """The variants as ``resolved_variants`` reads them. Refuses a variant of a
+    search no step of the strategy runs, since each one is counted in place."""
+    _refuse_a_search_no_step_runs(stated, session)
+    return await resolved_variants(session, stated)
+
+
+async def resolved_variants(
+    session: StrategySession, stated: list[VariantInput]
+) -> list[VariantSpec]:
     """The variants under the record type the catalog lists each search under,
     with each vocabulary value as the entry it names and each pick they name no
-    entry for at the site's published default. Refuses a search no step runs or
-    the catalog does not list, an unknown parameter, and a value the vocabulary
-    under the variant's parents lacks; a value the step holds passes as it is."""
-    _refuse_a_search_no_step_runs(stated, session)
+    entry for at the site's published default. A hidden required parameter
+    runs at the value the site sets. Refuses a search the catalog
+    does not list, an unknown parameter, and a value the vocabulary under the
+    variant's parents lacks; a value a step holds passes as it is."""
     site_id = session.site_id
     variants = await _listed_under(site_id, stated)
     read: dict[tuple[_Search, tuple[tuple[str, str], ...]], list[ParameterInfo]] = {}
@@ -291,12 +312,14 @@ async def checked_variants(
             if info.controls_vocab_of and info.name in variant.parameters
         }
         infos = {info.name: info for info in await infos_at(search, parents)}
+        site_set = _site_set(infos)
         entries = {
             name: value
             if held.get(name) == to_wire(value)
             else _entry_value(variant, infos[name], value)
             for name, value in variant.parameters.items()
+            if name not in site_set
         }
-        entries = {**_published_defaults(variant, infos), **entries}
+        entries = {**_published_defaults(variant, infos), **entries, **site_set}
         checked.append(variant.model_copy(update={"parameters": entries}))
     return checked

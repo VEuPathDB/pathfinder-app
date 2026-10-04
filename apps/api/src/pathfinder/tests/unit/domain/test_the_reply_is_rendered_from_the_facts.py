@@ -11,6 +11,7 @@ from pathfinder.domain.comparison_facts import (
     ComparisonFact,
     SharedGenes,
 )
+from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
     UnheldReferenceError,
@@ -20,7 +21,6 @@ from pathfinder.domain.reply_references import (
 )
 from pathfinder.domain.turn_facts import (
     ListedFact,
-    ListedRecord,
     ParameterFact,
     SourceFact,
     StepFact,

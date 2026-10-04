@@ -4,9 +4,10 @@ tune the strategy's root."""
 from __future__ import annotations
 
 from assistant_core.models.scripted import scripted_call
+from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import classify, lead_final, narrated
+from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final, narrated
 from pathfinder.ai.models.mock.lead_flow import (
     BUILD,
     FACTS_BESIDE,
@@ -24,6 +25,7 @@ from pathfinder.ai.models.mock.reads import (
     text_return,
 )
 from pathfinder.ai.models.mock.strategy_specs import TM_DOMAINS
+from pathfinder.domain.strategy.constraints import Constraint
 
 _CLEARED_PROSE = "The current strategy has been cleared."
 _UNCHANGED_PROSE = "The strategy is unchanged."
@@ -48,17 +50,32 @@ DELETED_PROSE = (
     "signal peptide step is the strategy now."
 )
 _NO_STEP_PROSE = "The strategy holds no transmembrane domains step to remove."
-_PROPOSAL = {
-    "question": "Add one more search to make this strategy more specific?",
-    "proposedChanges": [
-        {
-            "kind": "add_criterion",
-            "sentence": "Keep only the genes another search of the site returns",
-            "searchName": "GenesByTransmembraneDomains",
-        }
-    ],
-    "reply": "[mock] One change would make this strategy more specific.",
-}
+
+
+class _Stated(ToolAnswer):
+    explicit_constraints: list[Constraint] = Field(default_factory=list)
+
+
+class _Classified(ToolAnswer):
+    intent: _Stated
+
+
+def _proposal(messages: list[ModelMessage]) -> dict[str, object]:
+    """The card, its change naming the key of each requirement the turn stated."""
+    classified = last_return(messages, CLASSIFY, _Classified)
+    stated = [] if classified is None else classified.intent.explicit_constraints
+    return {
+        "question": "Add one more search to make this strategy more specific?",
+        "proposedChanges": [
+            {
+                "kind": "add_criterion",
+                "sentence": "Keep only the genes another search of the site returns",
+                "searchName": "GenesByTransmembraneDomains",
+                "answers": [c.key for c in stated],
+            }
+        ],
+        "reply": "[mock] One change would make this strategy more specific.",
+    }
 
 
 class _Cleared(ToolAnswer):
@@ -91,7 +108,7 @@ def proposal(messages: list[ModelMessage]) -> list[ToolCallPart]:
     applied = last_return(messages, "propose_changes", _Edited) is not None
     return [
         classify("follow_up_question"),
-        scripted_call("propose_changes", _PROPOSAL),
+        scripted_call("propose_changes", _proposal(messages)),
         lead_final(_PROPOSED_PROSE, "await_user", strategy_changed=True)
         if applied
         else lead_final(_UNCHANGED_PROSE, "await_user"),

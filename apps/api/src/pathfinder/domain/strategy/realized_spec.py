@@ -14,6 +14,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintStatus,
     GroundedConstraint,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import Criterion, SpecStructure
 
 type AnalysisCut = Callable[[AnalysisBinding], float | None]
@@ -22,15 +23,15 @@ type AnalysisCut = Callable[[AnalysisBinding], float | None]
 class RealizedSpec(CamelModel):
     """The bound facts a constraint is grounded against: the criteria's WDK
     search names, the union of their parameter names, the values bound to them,
-    the tree the criteria are combined in, and the type of the upload each
-    criterion runs on, by criterion id."""
+    the tree the criteria are combined in, and what the site says each
+    criterion runs on."""
 
     search_names: list[str] = Field(default_factory=list)
     param_names: frozenset[str] = Field(default_factory=frozenset)
     param_values: dict[str, str] = Field(default_factory=dict)
     structure: SpecStructure | None = None
     criteria: list[Criterion] = Field(default_factory=list)
-    upload_types: dict[str, str] = Field(default_factory=dict)
+    marks: DataMarks = Field(default_factory=DataMarks)
 
     @property
     def realizes_nothing(self) -> bool:

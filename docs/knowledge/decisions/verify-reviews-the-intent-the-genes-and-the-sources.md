@@ -119,11 +119,17 @@ three typed lists, and the evidence card carries the same review.
 - A data-type requirement is grounded by the data a step runs on, never by
   a search's name: the VDI type of the upload the step reads (the one a
   user-dataset search's dataset parameter binds, or the study its analysis
-  reads) for a step on an upload, and the curated expression search it runs
-  for any other step. The check reads each step's upload before the checker
-  runs and keeps the types on the state (`StrategyDomainState.upload_types`),
-  so the ledger the checker and the Lead read grounds "RNA-Seq" on a DESeq
-  step over an `rnaseqrc` upload (`constraint_grounding._ground_data_type`).
+  reads) for a step on an upload, else the assay the site's dataset record
+  names for the curated study its analysis reads or for the one dataset that
+  names its search (`veupathdb_mcp.catalog.study_assay` and `dataset_assay`,
+  the record's category). A step the site marks with none of these grounds
+  nothing. The marks are read when a build or an analysis export binds a
+  step, when the turn opens (for the spec and for the tree the thread last
+  answered) and before the checker runs, and are kept on the state
+  (`StrategyDomainState.data_marks`, `services/strategies/data_marks.py`), so
+  the ledger grounds "RNA-Seq" on a DESeq step over an `rnaseqrc` upload and
+  on a curated RNA-Seq search before any check (`DataMarks.run_on`,
+  `constraint_grounding._ground_data_type`).
 
 `review_held_to_the_turn` (`ai/lead/verify_review.py`) runs on every returned
 digest before the verdict is recorded:

@@ -23,6 +23,7 @@ def show_the_facts(writer: Any, deps: LeadDeps, capture: _LeadRunCapture) -> Tur
     capture.facts_shown = True
     refusal = shown_refusal(capture.run_error) or deps.state.turn_markers.unbound_edit
     capture.facts = turn_facts(deps, refusal=refusal)
+    deps.state.domain.record_shown(capture.facts.record_ids())
     if not capture.facts.empty():
         emit_chunk(writer, facts_event(capture.facts))
     return capture.facts

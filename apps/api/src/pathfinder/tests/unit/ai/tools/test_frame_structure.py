@@ -400,7 +400,7 @@ class TestAnIntersectOfTwoOrganismsIsRefusedBeforeTheBuild:
         assert str(exc.value) == (
             "The structure is refused: Cannot INTERSECT steps with different "
             "organism scopes (Plasmodium falciparum 3D7 vs Plasmodium vivax P01). "
-            "Gene IDs from different species never match, so this always returns "
+            "Gene IDs from different organisms never match, so this always returns "
             "0 results. Scope every seed to one organism: Plasmodium falciparum "
             "3D7 or Plasmodium vivax P01. Nothing was recorded."
         )

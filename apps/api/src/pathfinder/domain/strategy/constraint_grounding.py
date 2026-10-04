@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
-from types import MappingProxyType
+from collections.abc import Sequence
 
 from veupathdb.domain.parameters import to_wire
 
@@ -27,6 +26,7 @@ from pathfinder.domain.strategy.constraints import (
     GroundedConstraint,
     PercentileRequest,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.fold_grounding import FOLD_PARAM, ground_fold_change
 from pathfinder.domain.strategy.operational_spec import OperationalSpec, SpecStructure
 from pathfinder.domain.strategy.realized_spec import RealizedSpec, awaiting_analysis
@@ -40,15 +40,9 @@ _EXPRESSION_DATA_RE = re.compile(r"rnaseq|microarray", re.IGNORECASE)
 
 
 def _data_run_on(realized: RealizedSpec) -> list[str]:
-    """The data each step runs on: the type of the upload it reads, else the
-    curated search it runs."""
-    on_uploads = {
-        k.search_name for k in realized.criteria if k.id in realized.upload_types
-    }
-    return [
-        *realized.upload_types.values(),
-        *(s for s in realized.search_names if s not in on_uploads),
-    ]
+    """The data each criterion runs on, as the site marks it."""
+    marked = (realized.marks.run_on(criterion) for criterion in realized.criteria)
+    return [data for data in marked if data is not None]
 
 
 def _ground_data_type(c: Constraint, realized: RealizedSpec) -> GroundedConstraint:
@@ -240,7 +234,7 @@ def _ground_combination(c: Constraint, realized: RealizedSpec) -> GroundedConstr
     )
 
 
-_NO_UPLOADS: Mapping[str, str] = MappingProxyType({})
+_NO_MARKS = DataMarks()
 
 _HANDLERS = {
     ConstraintKind.DATA_TYPE: _ground_data_type,
@@ -290,10 +284,10 @@ def ground_against_spec(
     constraints: Sequence[Constraint],
     spec: OperationalSpec,
     *,
-    upload_types: Mapping[str, str] = _NO_UPLOADS,
+    marks: DataMarks = _NO_MARKS,
 ) -> list[GroundedConstraint]:
-    """Ground each constraint against the facts this spec realizes and the type
-    of the upload each criterion runs on."""
+    """Ground each constraint against the facts this spec realizes and what the
+    site says each criterion runs on."""
     return ground_constraints(
         list(constraints),
         RealizedSpec(
@@ -306,6 +300,6 @@ def ground_against_spec(
             },
             structure=spec.structure,
             criteria=spec.criteria,
-            upload_types=dict(upload_types),
+            marks=marks,
         ),
     )

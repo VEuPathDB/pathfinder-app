@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -40,6 +40,7 @@ from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -215,6 +216,9 @@ class StrategyDomainState(ThreadRequirements):
     # The statistics the EDA service computed on this thread, the latest read of
     # each id. A later turn's reply references them.
     statistics: list[StatisticFact] = Field(default_factory=list)
+    # The record ids the latest facts part that listed records showed. A later
+    # message reads them as the genes this conversation showed.
+    shown_record_ids: list[str] = Field(default_factory=list)
     # The request the thread is answering, as the user wrote it.
     original_request: str = ""
     # Every message the researcher wrote for that request, oldest first.
@@ -239,9 +243,9 @@ class StrategyDomainState(ThreadRequirements):
     # The saved control sets attached to this conversation. A control test,
     # a sweep or a scored comparison runs on no other set.
     control_sets: list[NamedControlSet] = Field(default_factory=list)
-    # The type of the upload each criterion runs on, by criterion id, as the
-    # last check read it from the site.
-    upload_types: dict[str, str] = Field(default_factory=dict)
+    # What the site says each criterion runs on, read when a step binds, when
+    # the turn opens and when a check runs.
+    data_marks: DataMarks = Field(default_factory=DataMarks)
 
     def attach_control_set(self, attached: NamedControlSet) -> None:
         """Attach a saved control set; a set attached before is held once."""
@@ -307,6 +311,12 @@ class StrategyDomainState(ThreadRequirements):
                 questions_at_arrival=[q.question for q in self.open_questions],
             )
         return self.turn_markers
+
+    def record_shown(self, record_ids: Sequence[str]) -> None:
+        """Keep the ids a facts part showed. A part that shows none keeps the
+        ids an earlier part showed."""
+        if record_ids:
+            self.shown_record_ids = list(record_ids)
 
     def record_statistics(self, statistics: Iterable[StatisticFact]) -> None:
         """Keep each statistic, a later read of one id in place of the earlier."""

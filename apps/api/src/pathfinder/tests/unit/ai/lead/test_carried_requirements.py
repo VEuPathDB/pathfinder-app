@@ -293,7 +293,10 @@ def test_the_summary_marks_a_requirement_carried_from_an_earlier_message() -> No
         f"- protease evidence combination (combination): {_COMBINATION!r} -> "
         "provisional (from an earlier message)"
     ) in summary
-    assert "- RNA-seq study (data_type): 'the second one' -> provisional\n" in summary
+    assert (
+        "- RNA-seq study (data_type): 'the second one' -> provisional; "
+        "key data_type:the second one\n"
+    ) in summary
 
 
 def _frame_questions() -> list[OpenQuestion]:

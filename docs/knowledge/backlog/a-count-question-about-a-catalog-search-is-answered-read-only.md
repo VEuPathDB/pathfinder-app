@@ -15,8 +15,28 @@ status: proposed
 
 **Why that's wrong.** Two count questions get no number, the researcher is told a search does not exist, and a count the conversation measured is withheld.
 
-**Why it happens.** The comparison tool takes variants of the strategy's own searches only, the Lead writes search names without a catalog lookup, and the refusal is reported as a catalog absence.
+**Done.** `count_search` and `genes_in_search` (`ai/tools/standalone/search_reads.py`)
+count a catalog search and test gene ids against it read-only, with no step; an
+unlisted search name is refused with what the catalog lookup finds, and
+`compare_search_variants` points a search no step runs to `count_search`.
 
-**Fix.** A read-only count of a catalog search resolved through `search_for_searches` and the parameter lookup (an anonymous report, no step); a reply may say a search is absent only when a catalog lookup of this turn returned nothing; the counts this conversation measured stay answerable through `[count:]` on the facts.
+**What remains.** A reply may still say a search is absent when no catalog lookup
+of the turn returned nothing for it. The Lead runs no `search_for_searches` of its
+own, FRAME runs it inside the sub-agent where the Lead's turn record does not see
+it, and an absence claim names no search ("that search is not available"), so a
+check would need loose phrase matching that refuses good replies after a FRAME
+lookup. The fix records each catalog lookup a sub-agent ran, with its query and
+its hits, on the turn record the reply check reads, and refuses an absence clause
+only when the turn holds no lookup at all.
 
-**What you'd get.** "The InterPro domain search finds N genes; your first product text search found 70; the current strategy holds 1. Nothing was changed."
+**What you'd get.** A reply that says a search is absent only after a lookup of
+the turn found nothing.
+
+**Also remaining.** On tritrypdb, asked which of 8 sampled Trypanosoma congolense
+IL3000 kinases have a predicted signal peptide. `genes_in_search` read
+`GenesWithSignalPeptide` (1,094 genes) and held none of the 8; the reply read "no
+shared genes were returned 0 genes", the shared count standing after a clause that
+already says none. The tool names its references but not how a check that holds
+no gene is said. The fix states it in `genes_in_search`: name each held gene with
+`[record:<id>]`, and when none is held say so, with `[compare:asked genes]` and no
+shared count.

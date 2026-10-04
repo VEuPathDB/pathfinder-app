@@ -20,6 +20,7 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
     ConstraintStatus,
 )
+from pathfinder.domain.strategy.data_marks import DataMarks
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -62,11 +63,15 @@ def _microarray_spec(constraints: list[Constraint]) -> OperationalSpec:
     )
 
 
+# The assay vectorbase's dataset record names for the microarray search.
+_MARKS = DataMarks(searches={_MICROARRAY_SEARCH: "DNA Microarray Assay"})
+
+
 def _vectorbase_state(spec: OperationalSpec | None = None) -> PipelineState:
     domain = (
         StrategyDomainState()
         if spec is None
-        else StrategyDomainState(operational_spec=spec)
+        else StrategyDomainState(operational_spec=spec, data_marks=_MARKS)
     )
     return pipeline_state("vectorbase", domain=domain)
 

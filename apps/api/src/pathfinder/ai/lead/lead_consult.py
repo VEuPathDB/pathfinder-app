@@ -365,11 +365,8 @@ async def consult_user(
     del reply
     state = ctx.deps.state
     pending = state.pending_approval
-    answers = (
-        list(state.user_question_answers.get(pending.tool_call_id, []))
-        if pending is not None
-        else []
-    )
+    card = "" if pending is None else pending.tool_call_id
+    answers = list(state.user_question_answers.get(card, []))
     asked = with_summary(
         answers,
         f"{len(questions)} questions asked",
@@ -380,6 +377,7 @@ async def consult_user(
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False
         state.turn_markers.consulted = True
+        state.turn_markers.answered_card = card
         apply_option_bindings(
             state, answers, questions, sheets=await _card_sheets(state, answers)
         )

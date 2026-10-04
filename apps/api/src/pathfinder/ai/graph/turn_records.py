@@ -16,6 +16,7 @@ from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
 from pathfinder.domain.last_change import LastChange
+from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
@@ -205,6 +206,8 @@ class TurnMarkers(CamelModel):
     resolved_genes: list[ReadRecord] = Field(default_factory=list)
     # The counts each completed comparison of this turn returned, in order.
     comparisons: list[ComparisonFact] = Field(default_factory=list)
+    # Which of the asked genes each membership check of this turn found held.
+    memberships: list[MembershipFact] = Field(default_factory=list)
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -233,6 +236,10 @@ class TurnMarkers(CamelModel):
     answered: AnsweredQuestions | None = None
     # The researcher answered a consult, or accepted a proposal, under this message.
     consulted: bool = False
+    # The consult card this message last had an answer to, and the one whose
+    # answer the latest classification read, by tool call id.
+    answered_card: str = ""
+    classified_card: str = ""
     accepted_proposal: bool = False
     # The calls refused since the last call that ran; a call that runs clears them.
     refused_calls: list[RefusedCall] = Field(default_factory=list)
@@ -361,6 +368,10 @@ class TurnMarkers(CamelModel):
     def record_comparison(self, comparison: ComparisonFact) -> None:
         """Keep the counts one completed comparison returned."""
         self.comparisons.append(comparison)
+
+    def record_membership(self, membership: MembershipFact) -> None:
+        """Keep which of the asked genes one membership check found held."""
+        self.memberships.append(membership)
 
     def record_sampled_genes(self, gene_ids: Iterable[str]) -> None:
         """Record each gene a sample returned, once."""

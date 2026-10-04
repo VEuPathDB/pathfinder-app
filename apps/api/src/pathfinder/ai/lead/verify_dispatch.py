@@ -63,7 +63,8 @@ from pathfinder.domain.shown_requirements import (
 )
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
-from pathfinder.services.strategies.bound_uploads import uploads_the_spec_runs_on
+from pathfinder.services.strategies.bound_uploads import uploads_the_specs_run_on
+from pathfinder.services.strategies.data_marks import marks_with_uploads
 from pathfinder.services.strategies.text_queries import (
     search_definitions,
     text_query_criteria,
@@ -188,8 +189,10 @@ async def run_verification(
     domain = deps.state.domain
     site_id = deps.runtime.site_id
     sheets = await search_definitions(site_id, domain.operational_spec)
-    uploads = await uploads_the_spec_runs_on(site_id, domain.operational_spec, sheets)
-    domain.upload_types = {c: u.type_name for c, u in uploads.items()}
+    uploads = await uploads_the_specs_run_on(site_id, [domain.operational_spec], sheets)
+    domain.data_marks = await marks_with_uploads(
+        site_id, [domain.operational_spec], uploads
+    )
     run = PhaseRun(
         "verification", work_order(reason, scope.controls, root_sample(deps))
     )
