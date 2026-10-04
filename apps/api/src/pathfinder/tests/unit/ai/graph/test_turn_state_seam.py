@@ -64,6 +64,7 @@ DOMAIN_FIELDS = {
     "open_eda_sheet",
     "eda_analysis",
     "open_eda_analysis",
+    "statistics",
     "requirements",
     "retired_requirements",
     "answered_questions",

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
@@ -36,6 +36,7 @@ from pathfinder.domain.evidence import (
 from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
+from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.build_outcome import (
     BuildOutcome,
 )
@@ -211,6 +212,9 @@ class StrategyDomainState(ThreadRequirements):
     # The analysis the thread holds open, read from the binding at turn entry.
     # Never persisted: another surface can close or replace it between turns.
     open_eda_analysis: OpenEdaAnalysis | None = None
+    # The statistics the EDA service computed on this thread, the latest read of
+    # each id. A later turn's reply references them.
+    statistics: list[StatisticFact] = Field(default_factory=list)
     # The request the thread is answering, as the user wrote it.
     original_request: str = ""
     # Every message the researcher wrote for that request, oldest first.
@@ -303,6 +307,12 @@ class StrategyDomainState(ThreadRequirements):
                 questions_at_arrival=[q.question for q in self.open_questions],
             )
         return self.turn_markers
+
+    def record_statistics(self, statistics: Iterable[StatisticFact]) -> None:
+        """Keep each statistic, a later read of one id in place of the earlier."""
+        held = {statistic.id: statistic for statistic in self.statistics}
+        held.update({statistic.id: statistic for statistic in statistics})
+        self.statistics = list(held.values())
 
     def record_verdict(self, digest: VerificationDigest, *, revision: str) -> None:
         """Keep a check's digest with the revision of the strategy it judged."""

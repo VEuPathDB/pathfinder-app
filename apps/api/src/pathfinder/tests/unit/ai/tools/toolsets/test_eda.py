@@ -26,26 +26,23 @@ _EDA_TOOLS = {
     "set_eda_filters",
     "preview_eda_subset",
     "run_eda_compute",
+    "run_eda_dimensionality_reduction",
+    "read_eda_statistics",
     "create_eda_step",
 }
 
 
-def test_the_toolset_carries_exactly_the_seven_contract_tools() -> None:
+def test_the_toolset_carries_exactly_the_nine_contract_tools() -> None:
     tools = unwrap_function_toolset(build_toolset()).tools
     assert set(tools) == _EDA_TOOLS
 
 
-def test_the_durable_tool_is_registered_sequential() -> None:
-    """One parked durable call is checkpointed per turn."""
-    tools = unwrap_function_toolset(build_toolset()).tools
-    assert tools["run_eda_compute"].sequential is True
-
-
-def test_no_other_eda_tool_is_sequential() -> None:
-    """A barrier on a plain tool costs a round trip for nothing."""
+def test_only_the_durable_tools_are_registered_sequential() -> None:
+    """One parked durable call is checkpointed per turn, and a barrier on a
+    plain tool costs a round trip for nothing."""
     tools = unwrap_function_toolset(build_toolset()).tools
     sequential = {name for name, tool in tools.items() if tool.sequential}
-    assert sequential == {"run_eda_compute"}
+    assert sequential == {"run_eda_compute", "run_eda_dimensionality_reduction"}
 
 
 _THRESHOLD_ARGUMENTS = (
@@ -63,10 +60,15 @@ def test_create_eda_step_prose_names_its_three_threshold_arguments() -> None:
     assert missing == []
 
 
-def test_both_plot_tools_declare_a_caption_argument() -> None:
+def test_every_plot_tool_declares_a_caption_argument() -> None:
     """The model writes the figure's caption, so the schema must offer it."""
     tools = unwrap_function_toolset(build_toolset()).tools
-    for name in ("preview_eda_subset", "run_eda_compute"):
+    for name in (
+        "preview_eda_subset",
+        "run_eda_compute",
+        "run_eda_dimensionality_reduction",
+        "read_eda_statistics",
+    ):
         properties = tools[name].function_schema.json_schema["properties"]
         assert "caption" in properties, name
 

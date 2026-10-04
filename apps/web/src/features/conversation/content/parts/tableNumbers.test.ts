@@ -6,6 +6,7 @@ import type {
   VariantComparison,
 } from "@pathfinder/shared";
 
+import { EDA_BOXPLOT_FIXTURE, EDA_CONTINGENCY_FIXTURE } from "./edaPartFixtures";
 import { tableNumberFor, tablePartFor } from "./tableNumbers";
 
 type Part = UIMessage["parts"][number];
@@ -84,6 +85,28 @@ describe("tableNumberFor", () => {
     const plot = { chart: "volcano" };
     const messages = messagesOf([part("data-eda.viz", plot)]);
     expect(tableNumberFor(messages, CONTROLS)).toBe(null);
+  });
+
+  it("numbers a tabular statistic among the tables and leaves a box plot out", () => {
+    const messages = messagesOf([
+      part("data-eda.statistics", EDA_BOXPLOT_FIXTURE),
+      part("data-control-test-results", CONTROLS),
+      part("data-eda.statistics", EDA_CONTINGENCY_FIXTURE),
+    ]);
+
+    expect(tableNumberFor(messages, EDA_CONTINGENCY_FIXTURE)).toBe(2);
+    expect(tableNumberFor(messages, EDA_BOXPLOT_FIXTURE)).toBe(null);
+  });
+
+  it("does not number a statistic an earlier version wrote", () => {
+    const { title, ...stale } = EDA_CONTINGENCY_FIXTURE;
+    const messages = messagesOf([
+      part("data-eda.statistics", stale),
+      part("data-control-test-results", CONTROLS),
+    ]);
+
+    expect(title).toBe("Contingency table of genotype by temperature_condition");
+    expect(tableNumberFor(messages, CONTROLS)).toBe(1);
   });
 
   it("answers null when the thread does not carry the exhibit", () => {

@@ -2,13 +2,13 @@
   "plasmodb": [
     "Which P. falciparum genes are upregulated in gametocytes compared to asexual blood stages?",
     "Plasmodium falciparum 3D7 genes with a Pfam protein kinase domain and at least 2 transmembrane domains.",
-    "Plasmodium berghei ANKA genes more abundant in female than in male gametocytes, using the 'Female and male gametocyte' RNA-Seq study.",
+    "Open the 'Female and male gametocyte' study on PlasmoDB, run a PCA of the samples colored by sex, and tell me whether female and male gametocytes separate and on which component.",
     "Which Plasmodium genes have orthologs in both P. berghei and P. knowlesi but no ortholog in Toxoplasma gondii?"
   ],
   "toxodb": [
     "Which T. gondii genes are upregulated in mouse-brain bradyzoites compared to tachyzoites?",
     "Toxoplasma gondii ME49 genes annotated with the GO term 'protein kinase activity' that also have a predicted signal peptide.",
-    "Toxoplasma gondii ME49 genes upregulated at 120 days compared with 28 days post infection, using the mouse brain bradyzoite time course RNA-Seq study.",
+    "Open the mouse brain bradyzoite time course study on ToxoDB, run a PCA of the samples colored by days post infection, and tell me how much variance the first two components explain.",
     "Which T. gondii genes have an ortholog in Neospora caninum and at least one transmembrane domain?"
   ],
   "cryptodb": [
@@ -20,13 +20,13 @@
   "piroplasmadb": [
     "Which B. bovis genes are differentially expressed during development?",
     "Babesia bovis T2Bo genes with a Pfam protein kinase domain and no transmembrane domain.",
-    "Babesia bigemina strain BOND genes more abundant in the tick kinete stage than in calf blood stages, using the 'Calf blood stage vs tick kinete stage' RNA-Seq study.",
+    "Open the 'Calf blood stage vs tick kinete stage' B. bigemina study on PiroplasmaDB, run a PCA of the samples colored by stage, and tell me whether the stages separate.",
     "Which piroplasm genes have orthologs in Babesia and Theileria but no ortholog in Toxoplasma?"
   ],
   "giardiadb": [
     "Which Giardia genes change over time in axenic trophozoite cultures?",
     "Giardia Assemblage A isolate WB genes annotated with the GO term 'cysteine-type peptidase activity'.",
-    "Giardia Assemblage A isolate WB genes upregulated late in encystation compared with trophozoites, using the 'Giardia Encystation Time Course' RNA-Seq study.",
+    "Open the 'Giardia Encystation Time Course' study on GiardiaDB, run a PCA of the samples colored by time point, and tell me which component tracks encystation.",
     "Which Giardia genes have an ortholog in Cryptosporidium but no ortholog in Toxoplasma?"
   ],
   "amoebadb": [
@@ -44,13 +44,13 @@
   "tritrypdb": [
     "Which T. brucei genes are differentially expressed between procyclic and bloodstream forms?",
     "Trypanosoma brucei brucei TREU927 genes with a Pfam protein kinase domain and at least 3 transmembrane domains.",
-    "Trypanosoma brucei brucei TREU927 genes upregulated in metacyclic compared with procyclic forms, using the 'Metacyclic vs Procyclic form transcriptomes (2020)' study.",
+    "Open the 'Metacyclic vs Procyclic form transcriptomes (2020)' study on TriTrypDB, run a PCA of the samples colored by life cycle form, and tell me whether the forms separate.",
     "Which TriTryp genes have orthologs in T. brucei, T. cruzi, and Leishmania and at least one transmembrane domain?"
   ],
   "fungidb": [
     "Which A. fumigatus genes are upregulated under hypoxia vs normoxia?",
     "Candida albicans SC5314 genes annotated with the GO term 'DNA-binding transcription factor activity' with at least 2 exons.",
-    "Cryptococcus neoformans H99 genes upregulated at 37 degrees compared with 30 degrees, using the WT input 37C and WT input 30C samples of the temperature RNA-Seq study.",
+    "Open the host temperature stress study for Cryptococcus neoformans H99 on FungiDB, run a PCA of the samples colored by temperature, and tell me whether 30C and 37C separate.",
     "Find fungal genes with orthologs in C. albicans, A. fumigatus, and C. neoformans and at least one transmembrane domain."
   ],
   "hostdb": [
@@ -62,13 +62,13 @@
   "vectorbase": [
     "Which A. gambiae midgut genes are upregulated in P. falciparum-infected vs uninfected mosquitoes?",
     "Anopheles gambiae PEST genes annotated with the GO term 'odorant binding' that also have a predicted signal peptide.",
-    "Anopheles gambiae genes upregulated after an HMBPP-supplemented blood meal compared with a plain blood meal, using the 'HMBPP-supplemented blood meal' study.",
+    "Open the 'HMBPP-supplemented blood meal' study on VectorBase, run a PCA of the samples colored by blood meal type, and tell me whether the meals separate.",
     "Which A. gambiae whole-body genes change after a bloodmeal?"
   ],
   "trichdb": [
     "Trichomonas vaginalis G3 genes with a Pfam protein kinase domain and at least one transmembrane domain.",
     "Trichomonas vaginalis G3 genes annotated with the GO term 'cysteine-type peptidase activity'.",
-    "Trichomonas vaginalis G3 genes upregulated after metronidazole treatment compared with untreated trophozoites, using the 'T vaginalis transcriptome response to metronidazole' RNA-Seq study.",
+    "Open the 'T vaginalis transcriptome response to metronidazole' study on TrichDB, run a PCA of the samples colored by treatment, and tell me whether treated and untreated samples separate.",
     "Which Trichomonas genes have an ortholog in Giardia but no ortholog in Entamoeba?"
   ],
   "orthomcl": [

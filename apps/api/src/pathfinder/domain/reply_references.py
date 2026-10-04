@@ -13,6 +13,7 @@ from pydantic import ConfigDict
 
 from pathfinder.domain.comparison_facts import ComparedVariant
 from pathfinder.domain.count_words import counted
+from pathfinder.domain.list_items import without_item_numbers
 from pathfinder.domain.reference_grammar import (
     A_REFERENCE,
     COUNTED_REFERENCES,
@@ -22,12 +23,11 @@ from pathfinder.domain.reference_grammar import (
 )
 from pathfinder.domain.reference_placement import misplacements
 from pathfinder.domain.scratchpad_facts import hard_facts
+from pathfinder.domain.statistic_facts import statistic_references, statistic_value
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 
 _A_LINK = re.compile(r"(?:https?://|www\.)[^\s<>()\[\]\"'`]+")
-# An ordered list's item number is the list's mark, not a fact.
-_AN_ITEM_NUMBER = re.compile(r"^\s*(\d+)[.)](?=\s)", re.MULTILINE)
 _A_TOKEN = re.compile(r"[\w:./,%+-]+")
 _EDGE_MARKS = ".,:;/+-_"
 _A_UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", re.IGNORECASE)
@@ -224,6 +224,7 @@ _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "value": _value,
     "source": _source,
     "record": _record,
+    "stat": lambda facts, body: statistic_value(facts.statistics, body),
 }
 
 
@@ -284,7 +285,7 @@ def _shown(side: str) -> str:
 
 def _number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
     """The references that render the number: a count, a difference of two
-    counts, the genes two variants share, or a value."""
+    counts, the genes two variants share, a value, or a statistic."""
     counts = list(_count_references(facts))
     held = [_shown(side) for side, n in counts if str(n) == number]
     held.extend(
@@ -304,6 +305,7 @@ def _number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
         for p in step.parameters
         if p.value == number
     )
+    held.extend(statistic_references(facts.statistics, number))
     return tuple(dict.fromkeys(held))
 
 
@@ -409,25 +411,9 @@ def _token_faults(text: str, facts: TurnFacts) -> Iterator[ProseFault]:
         )
 
 
-def _without_item_numbers(text: str) -> str:
-    """The text with each ordered list's item numbers taken out. An item number
-    is one that starts a list or follows the item number before it."""
-    previous = 0
-
-    def exempt(match: re.Match[str]) -> str:
-        nonlocal previous
-        number = int(match.group(1))
-        if number not in (1, previous + 1):
-            return match.group()
-        previous = number
-        return " "
-
-    return _AN_ITEM_NUMBER.sub(exempt, text)
-
-
 def _outside(prose: str) -> str:
     """The prose with each reference and each list item number taken out."""
-    return _without_item_numbers(A_REFERENCE.sub(" ", prose))
+    return without_item_numbers(A_REFERENCE.sub(" ", prose))
 
 
 def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]:

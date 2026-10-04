@@ -40,6 +40,7 @@ from pathfinder.ai.lead.lead_pins import (
     pinned_eda_sheet,
     pinned_ledger_summary,
     pinned_operational_spec,
+    pinned_statistics,
     pinned_turn_briefing,
     pinned_user_intent,
     pinned_user_prompt,
@@ -226,6 +227,7 @@ def build_lead_agent() -> LeadAgent:
         pinned_operational_spec,
         pinned_eda_sheet,
         pinned_ledger_summary,
+        pinned_statistics,
         pinned_run_budget,
     ):
         agent.instructions(fn)

@@ -1,12 +1,18 @@
 import type { UIMessage } from "ai";
 import type {
   ControlTestResults,
+  EdaStatisticsPart,
   ScoredComparison,
   VariantComparison,
 } from "@pathfinder/shared";
+import { edaStatisticsPartSchema } from "@pathfinder/shared/generated/zod/edaStatisticsPartSchema";
+
+import { isCurrentWire } from "../currentWire";
+import { statisticExhibitKind } from "./statisticExhibit";
 
 /** A part the thread numbers as a paper table. */
-export type TableExhibit = ControlTestResults | ScoredComparison | VariantComparison;
+export type TableExhibit =
+  ControlTestResults | EdaStatisticsPart | ScoredComparison | VariantComparison;
 
 /** The one table kind a durable task produces. */
 const CONTROL_TESTS = "data-control-test-results";
@@ -16,6 +22,20 @@ const TABLE_KINDS: ReadonlySet<string> = new Set([
   "data-scored-comparison",
   "data-variant-comparison",
 ]);
+
+const STATISTICS = "data-eda.statistics";
+
+/** Whether the part reads as a table. A statistic does when it charts nothing
+ * and the current wire carries it. */
+function isTable(type: string, data: unknown): data is object {
+  if (type === STATISTICS) {
+    return (
+      isCurrentWire(edaStatisticsPartSchema, data) &&
+      statisticExhibitKind(data) === "table"
+    );
+  }
+  return TABLE_KINDS.has(type) && typeof data === "object" && data !== null;
+}
 
 /** What one durable task's exhibit answers: its number, and the call whose
  * summary line describes it. */
@@ -29,8 +49,7 @@ function tablesOf(messages: readonly UIMessage[]): { type: string; data: object 
   const tables: { type: string; data: object }[] = [];
   for (const message of messages) {
     for (const part of message.parts) {
-      if (!("data" in part) || !TABLE_KINDS.has(part.type)) continue;
-      if (typeof part.data !== "object" || part.data === null) continue;
+      if (!("data" in part) || !isTable(part.type, part.data)) continue;
       tables.push({ type: part.type, data: part.data });
     }
   }

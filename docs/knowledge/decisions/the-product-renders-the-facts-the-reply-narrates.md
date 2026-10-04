@@ -75,6 +75,7 @@ and `domain/reply_references.py::render_reply` replaces each with the fact it na
 | `[value:<step_id>.<param>]` | the bound value with its label (`ParameterFact.shown`); a label that repeats the value is dropped on the type |
 | `[source:<step_id>.<param>]` | who set it: "you stated", "your answer on a card", "the site's default", "chosen", "held by the strategy" |
 | `[compare:<variant>]` | the variant's genes; `:unique`, `:result`, and `[compare:<a>,<b>:shared]` |
+| `[stat:<id>.<row>]` | one value of a statistic the EDA service computed on the thread: a component's share of variance, a test's value, p-value or interval, a group's median, a count with its noun (`domain/statistic_facts.py`) |
 | `[record:<record_id>]` | a read, listed or resolved record's id linked to its page, with its product |
 | `[url]` | the strategy's link |
 

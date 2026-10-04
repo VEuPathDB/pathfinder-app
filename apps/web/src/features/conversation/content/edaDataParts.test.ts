@@ -10,6 +10,8 @@ const EDA_KINDS = [
   "data-eda.analysis-state",
   "data-eda.subset-preview",
   "data-eda.viz",
+  "data-eda.pca",
+  "data-eda.statistics",
 ] as const;
 
 describe("eda data parts", () => {

@@ -28,6 +28,7 @@ from pathfinder.ai.agents.verification import build_verification_agent
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.tools.standalone import (
     eda_compute,
+    eda_statistics,
     experiment,
     optimization,
     separation,
@@ -69,12 +70,13 @@ _SHARED_BODIES: dict[str, Callable[..., Any]] = {
     "delete_step": strategy_edits.delete_the_step
 }
 
-# The four durable tools never run their own body: the summary is built from
+# The five durable tools never run their own body: the summary is built from
 # the resumed payload instead, so it is driven rather than read.
 _DURABLE_BUILDERS: dict[str, Callable[[Any, UUID, str | None], list[BaseChunk]]] = {
     "run_control_tests_on_step": experiment._control_test_chunks_from_result,
     "optimize_search_parameters": optimization._sweep_chunks_from_result,
     "run_eda_compute": eda_compute._compute_chunks_from_result,
+    "run_eda_dimensionality_reduction": eda_statistics._pca_chunks_from_result,
     "separate_controls": separation._separation_chunks_from_result,
 }
 
@@ -340,6 +342,19 @@ _RESUMED: dict[str, dict[str, Any]] = {
         "retainedUp": 900,
         "retainedDown": 643,
         "comparison": {"groupA": ["normal"], "groupB": ["febrile"]},
+    },
+    "run_eda_dimensionality_reduction": {
+        "statistic": {
+            "id": "stat_1c2d3e4f",
+            "kind": "pca",
+            "title": "PCA of 12 samples",
+            "rows": [
+                {"name": "PC1", "value": "PC 1 (54.35% variance)"},
+                {"name": "PC2", "value": "PC 2 (12.79% variance)"},
+                {"name": "samples", "value": "12 samples"},
+                {"name": "groups", "value": "3 groups"},
+            ],
+        }
     },
 }
 

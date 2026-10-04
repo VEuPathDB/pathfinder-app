@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
+from assistant_core.platform.pydantic_base import computed
 from pydantic import Field, JsonValue, model_serializer, model_validator
 from pydantic_core.core_schema import SerializerFunctionWrapHandler
 from veupathdb.model import CamelModel
@@ -216,3 +218,136 @@ class EdaVizPart(CamelModel):
             "that carry none."
         ),
     )
+
+
+EdaStatisticKind = Literal["two_by_two", "contingency", "boxplot", "trend"]
+
+
+# The share a component's label states, as in "PC 1 (54.35% variance)".
+_STATED_SHARE = re.compile(r"\((\d+(?:\.\d+)?%)(?: variance)?\)\s*$")
+
+
+class EdaPcaAxis(CamelModel):
+    """One principal component, by the name the compute gives it."""
+
+    variable_id: str
+    display_name: str
+
+    @property
+    def stated_share(self) -> str:
+        """The share of variance the label states, or the label when it states none."""
+        found = _STATED_SHARE.search(self.display_name)
+        return self.display_name if found is None else found.group(1)
+
+
+class EdaPcaSeries(CamelModel):
+    """The samples of one overlay value, each at its place on the two axes.
+
+    The service sends each coordinate as text, and the fields read it as a number.
+    """
+
+    label: str
+    x: list[float]
+    y: list[float]
+    sample_ids: list[str]
+
+    @model_validator(mode="after")
+    def _one_place_per_sample(self) -> EdaPcaSeries:
+        if not len(self.x) == len(self.y) == len(self.sample_ids):
+            msg = "x, y and sample_ids must be the same length"
+            raise ValueError(msg)
+        return self
+
+
+class EdaPcaPart(CamelModel):
+    """The samples on the first two components of a dimensionality reduction."""
+
+    statistic_id: str
+    dataset_id: str
+    analysis_id: str
+    axes: list[EdaPcaAxis] = Field(min_length=2, max_length=2)
+    series: list[EdaPcaSeries]
+    caption: str = ""
+
+    @computed
+    def sample_count(self) -> int:
+        return sum(len(series.sample_ids) for series in self.series)
+
+    @computed
+    def group_count(self) -> int:
+        return len(self.series)
+
+
+class EdaStatisticRow(CamelModel):
+    """One statistic the service returned, in the text the service gave it. A
+    test the service reports only a p-value for has no value."""
+
+    name: str
+    value: str | None
+    p_value: str | None
+    confidence_interval: str | None
+
+
+class EdaCountTable(CamelModel):
+    """The records of each pair of values: ``matrix[i][j]`` counts x label ``i``
+    with y label ``j``."""
+
+    x_labels: list[str]
+    y_labels: list[str]
+    matrix: list[list[int]]
+
+    @model_validator(mode="after")
+    def _one_cell_per_pair(self) -> EdaCountTable:
+        widths = {len(row) for row in self.matrix}
+        if len(self.matrix) != len(self.x_labels) or widths - {len(self.y_labels)}:
+            msg = "matrix must hold one row per x label and one cell per y label"
+            raise ValueError(msg)
+        return self
+
+
+class EdaBoxplotBox(CamelModel):
+    """The five numbers of one group, its mean when asked, and its outliers."""
+
+    label: str
+    lower_fence: float
+    q1: float
+    median: float
+    q3: float
+    upper_fence: float
+    mean: float | None
+    outlier_count: int = Field(ge=0)
+
+
+class EdaTrend(CamelModel):
+    """The points of two continuous variables and the line fit through them,
+    with each axis named as the study names its variable.
+
+    The service sends the coordinates as text, and the fields read them as numbers.
+    """
+
+    x_label: str
+    y_label: str
+    x: list[float]
+    y: list[float]
+    line_x: list[float]
+    line_y: list[float]
+
+
+class EdaStatisticsReading(CamelModel):
+    """What one statistics read of the service returned."""
+
+    rows: list[EdaStatisticRow]
+    table: EdaCountTable | None
+    boxes: list[EdaBoxplotBox]
+    trend: EdaTrend | None
+
+
+class EdaStatisticsPart(EdaStatisticsReading):
+    """A statistic the service computed on the open analysis, with its title."""
+
+    statistic_id: str
+    dataset_id: str
+    analysis_id: str
+    kind: EdaStatisticKind
+    title: str
+    caption: str = ""

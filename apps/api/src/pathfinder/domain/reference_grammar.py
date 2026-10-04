@@ -16,6 +16,7 @@ REFERENCE_KINDS = (
     "compare",
     "record",
     "last_change",
+    "stat",
 )
 BARE_REFERENCES = ("root_before", "root", "url")
 A_REFERENCE = re.compile(

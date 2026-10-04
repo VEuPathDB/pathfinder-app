@@ -50,8 +50,8 @@ def deferring_tool_names() -> Mapping[str, str]:
 def durable_call_refusal(tool_name: str) -> str:
     """What the model reads in place of a durable call nothing can run."""
     return (
-        f"{tool_name} runs on a worker this process cannot reach. Nothing "
-        f"started. Say it was not available and report what you have."
+        f"{tool_name} needs a worker this process cannot reach. Nothing "
+        f"started. Say it was unavailable and report what you have."
     )
 
 

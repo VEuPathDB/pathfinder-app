@@ -11,6 +11,8 @@ from pathfinder.domain.eda_parts import (
     EdaComparison,
     EdaEffectDirection,
     EdaEntityCount,
+    EdaPcaPart,
+    EdaStatisticsPart,
     EdaSubsetPreviewPart,
     EdaVizPart,
     EdaVolcanoPoint,
@@ -129,4 +131,23 @@ def eda_viz_chunk(
     return DataChunk(
         type="data-eda.viz",
         data=payload.model_dump(by_alias=True, mode="json"),
+    )
+
+
+def eda_pca_chunk(part: EdaPcaPart) -> DataChunk:
+    """The samples on the first two components. The id is the statistic's, so a
+    second read of the same reduction in one message replaces the first."""
+    return DataChunk(
+        type="data-eda.pca",
+        id=part.statistic_id,
+        data=part.model_dump(by_alias=True, mode="json"),
+    )
+
+
+def eda_statistics_chunk(part: EdaStatisticsPart) -> DataChunk:
+    """One statistic the service computed, keyed by its id like the reduction."""
+    return DataChunk(
+        type="data-eda.statistics",
+        id=part.statistic_id,
+        data=part.model_dump(by_alias=True, mode="json"),
     )

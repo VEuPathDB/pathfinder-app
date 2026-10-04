@@ -31,6 +31,7 @@ BUILDING_TOOLS: frozenset[str] = frozenset(
         "open_eda_analysis",
         "set_eda_filters",
         "run_eda_compute",
+        "run_eda_dimensionality_reduction",
         "create_eda_step",
     }
 )

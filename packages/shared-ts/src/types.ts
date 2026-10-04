@@ -15,6 +15,8 @@ import type {
   EdaAnalysisState,
   EdaDistributionSeries,
   EdaEntityCount,
+  EdaPcaPart,
+  EdaStatisticsPart,
   EdaSubsetPreviewPart,
   EdaVizPart,
   EdaVolcanoPoint,
@@ -307,6 +309,8 @@ export type {
   EdaAnalysisState,
   EdaDistributionSeries,
   EdaEntityCount,
+  EdaPcaPart,
+  EdaStatisticsPart,
   EdaVolcanoPoint,
 };
 export type EdaSubsetPreview = EdaSubsetPreviewPart;
@@ -375,6 +379,8 @@ export type KnownDataPartKind =
   | "data-eda.analysis-state"
   | "data-eda.subset-preview"
   | "data-eda.viz"
+  | "data-eda.pca"
+  | "data-eda.statistics"
   | "data-research.sources";
 
 /**
@@ -416,5 +422,7 @@ export interface DataPartPayloadMap {
   "data-eda.analysis-state": EdaAnalysisState;
   "data-eda.subset-preview": EdaSubsetPreviewPart;
   "data-eda.viz": EdaVizPart;
+  "data-eda.pca": EdaPcaPart;
+  "data-eda.statistics": EdaStatisticsPart;
   "data-research.sources": ResearchSourcesPayload;
 }

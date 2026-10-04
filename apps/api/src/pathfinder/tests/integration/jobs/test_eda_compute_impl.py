@@ -14,7 +14,7 @@ from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.jobs.impls import eda_compute_impl
+from pathfinder.jobs.impls import eda_thread_io
 from pathfinder.jobs.impls.eda_compute_impl import run_eda_compute_impl
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests.integration.jobs import _eda_wire
@@ -233,7 +233,7 @@ async def test_a_thread_with_no_open_analysis_names_the_tool_that_opens_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     installed = wire("complete")
-    monkeypatch.setattr(eda_compute_impl, "bound_conversation_analysis", _unbound)
+    monkeypatch.setattr(eda_thread_io, "bound_conversation_analysis", _unbound)
 
     with pytest.raises(ValueError, match="open_eda_analysis") as excinfo:
         await run_eda_compute_impl(

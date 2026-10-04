@@ -1,6 +1,7 @@
 "use client";
 
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
+import { format } from "echarts/core";
 
 import { EChart } from "./EChart";
 import { readChartTokens } from "./chartTheme";
@@ -9,6 +10,7 @@ import type { EdaAxisLabel, EdaScatterSeries } from "./types";
 
 export interface ScatterChartProps {
   series: readonly EdaScatterSeries[];
+  line?: EdaScatterSeries;
   xAxis: EdaAxisLabel;
   yAxis: EdaAxisLabel;
   height: number;
@@ -32,6 +34,7 @@ export function ScatterChart(props: ScatterChartProps) {
   const tokens = readChartTokens();
   const model = buildScatterOption({
     series: props.series,
+    line: props.line,
     xAxis: props.xAxis,
     yAxis: props.yAxis,
     tokens,
@@ -52,7 +55,7 @@ export function ScatterChart(props: ScatterChartProps) {
       nameLocation: "middle",
       nameGap: 40,
     },
-    ...(model.series.length > 1
+    ...(model.series.length + (model.line === null ? 0 : 1) > 1
       ? { legend: { top: 0, right: 0, icon: "circle" } }
       : {}),
     tooltip: {
@@ -61,22 +64,37 @@ export function ScatterChart(props: ScatterChartProps) {
         const point = readPoint(params);
         if (point === null) return "";
         const [x, y, label] = point;
-        return `${label}<br/>${model.xAxisName} ${String(x)}<br/>${model.yAxisName} ${String(y)}`;
+        return `${format.encodeHTML(label)}<br/>${model.xAxisName} ${String(x)}<br/>${model.yAxisName} ${String(y)}`;
       },
     },
     dataZoom: [
       { type: "inside", xAxisIndex: 0 },
       { type: "inside", yAxisIndex: 0 },
     ],
-    series: model.series.map((s) => ({
-      type: "scatter" as const,
-      name: s.name,
-      data: s.points,
-      symbolSize: 6,
-      large: true,
-      largeThreshold: 2000,
-      itemStyle: { color: s.color, opacity: 0.75 },
-    })),
+    series: [
+      ...model.series.map((s) => ({
+        type: "scatter" as const,
+        name: s.name,
+        data: s.points,
+        symbolSize: 6,
+        large: true,
+        largeThreshold: 2000,
+        itemStyle: { color: s.color, opacity: 0.75 },
+      })),
+      ...(model.line === null
+        ? []
+        : [
+            {
+              type: "line" as const,
+              name: model.line.name,
+              data: model.line.points,
+              showSymbol: false,
+              silent: true,
+              itemStyle: { color: model.line.color },
+              lineStyle: { color: model.line.color, width: 1.5 },
+            },
+          ]),
+    ],
   };
 
   const plotted = model.series.reduce((total, s) => total + s.points.length, 0);

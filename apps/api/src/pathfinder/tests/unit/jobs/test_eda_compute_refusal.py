@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from veupathdb.eda import EdaComputeJob
 
-from pathfinder.jobs.impls.eda_compute_impl import refusal_of
+from pathfinder.services.eda.compute_jobs import refusal_of
 
 JOB_ID = "113dec29c65e6ad1b0c1707fa1549593"
 
 
 def _message(status: str) -> str:
     job = EdaComputeJob.model_validate({"jobID": JOB_ID, "status": status})
-    return str(refusal_of(job))
+    return str(refusal_of(job, job_name="differential-expression"))
 
 
 def test_a_failed_job_says_the_site_gives_no_reason() -> None:

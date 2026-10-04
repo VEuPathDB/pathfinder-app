@@ -58,6 +58,18 @@ describe("VolcanoChart", () => {
     ).toBe("PF3D7_0100200<br/>effect 3.944<br/>-log10(p) 3.86");
   });
 
+  it("escapes the gene id it writes into the tooltip", async () => {
+    setOption.mockClear();
+    render(<VolcanoChart {...props} />);
+    await flush();
+    const option = setOption.mock.calls[0]?.[0] as {
+      tooltip: { formatter: (params: unknown) => string };
+    };
+    expect(option.tooltip.formatter({ value: [1, 2, "<i>PF3D7_0100200</i>"] })).toBe(
+      "&lt;i&gt;PF3D7_0100200&lt;/i&gt;<br/>effect 1.000<br/>-log10(p) 2.00",
+    );
+  });
+
   it("says how many points it could not plot", () => {
     const { getByTestId } = render(<VolcanoChart {...props} />);
     expect(getByTestId("eda-viz-volcano-dropped")).toHaveTextContent(

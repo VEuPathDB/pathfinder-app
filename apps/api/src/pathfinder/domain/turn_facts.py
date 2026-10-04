@@ -11,9 +11,11 @@ from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
 from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat, SampleCaveat
 from pathfinder.domain.comparison_facts import ComparisonFact
+from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.count_words import counted
-from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence, GeneFit
+from pathfinder.domain.evidence import ColumnFit, GeneFit
 from pathfinder.domain.last_change import LastChange
+from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
@@ -235,48 +237,10 @@ class SavedSetFact(CamelModel):
         return self.model_copy(update={"name": redact(self.name)})
 
 
-class ControlResultFact(CamelModel):
-    """How many of each control set one test of this turn returned."""
-
-    model_config = ConfigDict(frozen=True)
-
-    tested_label: str
-    positives_returned: int | None = None
-    positives_total: int | None = None
-    negatives_returned: int | None = None
-    negatives_total: int | None = None
-
-    @computed
-    def sentence(self) -> str:
-        clauses = [
-            f"{returned} of {total} {kind} controls returned"
-            for kind, returned, total in (
-                ("positive", self.positives_returned, self.positives_total),
-                ("negative", self.negatives_returned, self.negatives_total),
-            )
-            if total is not None
-        ]
-        return f"{self.tested_label}: {'; '.join(clauses)}"
-
-    def redacted(self, redact: Callable[[str], str]) -> ControlResultFact:
-        return self.model_copy(update={"tested_label": redact(self.tested_label)})
-
-
-def control_result_fact(test: ControlTestEvidence) -> ControlResultFact:
-    """The counts one control test measured, without the ids it filed."""
-    positive, negative = test.positive, test.negative
-    return ControlResultFact(
-        tested_label=test.tested_label,
-        positives_returned=None if positive is None else positive.returned_count,
-        positives_total=None if positive is None else positive.controls_count,
-        negatives_returned=None if negative is None else negative.returned_count,
-        negatives_total=None if negative is None else negative.controls_count,
-    )
-
-
 class TurnFacts(CamelModel):
     """Everything a turn shows beside its reply, and every fact a reference of
-    the reply renders. ``comparisons`` alone make no facts part: their card shows them."""
+    the reply renders. ``comparisons`` and ``statistics`` alone make no facts
+    part: their cards show them."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -305,6 +269,8 @@ class TurnFacts(CamelModel):
     # The genes the message names that the site resolved to its records.
     named_genes: list[SourceFact] = Field(default_factory=list)
     comparisons: list[ComparisonFact] = Field(default_factory=list)
+    # The statistics the EDA service computed on the thread. Their card shows them.
+    statistics: list[StatisticFact] = Field(default_factory=list)
     stopped_check: str = ""
     refusal: str = ""
     # The researcher's messages of the thread. A number they write is their word.
@@ -361,8 +327,8 @@ class TurnFacts(CamelModel):
         return next((s for s in self.steps if s.step_id == step_id), None)
 
     def lines(self) -> list[str]:
-        """Every line the facts part shows, in the order it shows them, and a row
-        for each compared variant, which the comparison card draws."""
+        """Every line the facts part shows, in the order it shows them, a row
+        for each compared variant and each statistic, which their cards draw."""
         noun = self.record_noun
         root = (
             []
@@ -384,6 +350,7 @@ class TurnFacts(CamelModel):
             *(saved.line() for saved in self.saved),
             *(result.sentence for result in self.control_results),
             *(v.row(noun) for c in self.comparisons for v in c.variants),
+            *(line for s in self.statistics for line in s.lines()),
             *(s.line() for s in self.sources if not s.step_id),
             *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
             *([self.stopped_check] if self.stopped_check else []),
@@ -445,6 +412,7 @@ class TurnFacts(CamelModel):
                 "listed": [listed.redacted(redact) for listed in self.listed],
                 "named_genes": [gene.redacted(redact) for gene in self.named_genes],
                 "comparisons": [c.redacted(redact) for c in self.comparisons],
+                "statistics": [s.redacted(redact) for s in self.statistics],
                 "stopped_check": redact(self.stopped_check),
                 "refusal": redact(self.refusal),
             }
@@ -482,7 +450,6 @@ def uncarried_assumptions(
 
 
 __all__ = [
-    "ControlResultFact",
     "ListedFact",
     "ListedRecord",
     "ParameterFact",
@@ -491,7 +458,6 @@ __all__ = [
     "SourceFact",
     "StepFact",
     "TurnFacts",
-    "control_result_fact",
     "counted",
     "uncarried_assumptions",
 ]

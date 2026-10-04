@@ -228,8 +228,7 @@ async def preview_subset(
         case EdaEntity() as entity:
             pass
         case _:
-            msg = f"Study {entry.study_id} has no entity {entity_id}."
-            raise ValueError(msg)
+            raise UnknownEntityError(study, entity_id)
     filtered = await client.count(
         study_id=entry.study_id, entity_id=entity_id, filters=filters
     )
@@ -281,6 +280,19 @@ def distribution_series(
         num_missing_cases=statistics.num_missing_cases,
         is_multi_valued=is_multi_valued,
     )
+
+
+class UnknownEntityError(ValidationError):
+    """An entity id the study does not declare, with the ids it does declare."""
+
+    def __init__(self, study: EdaStudyDetail, entity_id: str) -> None:
+        declared = ", ".join(
+            f"{e.id} ({e.display_name})" for e in walk_entities(study.root_entity)
+        )
+        self.message = (
+            f"Study {study.id} has no entity {entity_id}. Its entities are: {declared}."
+        )
+        super().__init__(title="Unknown entity", detail=self.message)
 
 
 class SubsetRejectedError(ValidationError):

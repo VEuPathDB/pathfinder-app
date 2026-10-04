@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from assistant_core.platform.pydantic_base import CamelModel
 from veupathdb.eda import (
     EdaAnalysisDetail,
+    EdaComputeConfig,
     EdaComputeJob,
     EdaDifferentialExpressionComputation,
     EdaDifferentialExpressionConfig,
@@ -254,7 +255,7 @@ async def lookup_job(
     *,
     compute_name: str,
     study_id: str,
-    config: EdaDifferentialExpressionConfig,
+    config: EdaComputeConfig,
     filters: Sequence[EdaFilter],
 ) -> EdaComputeJob:
     """Ask whether this configuration has been computed, without starting it."""
@@ -272,7 +273,7 @@ async def submit_compute(
     *,
     compute_name: str,
     study_id: str,
-    config: EdaDifferentialExpressionConfig,
+    config: EdaComputeConfig,
     filters: Sequence[EdaFilter],
 ) -> EdaComputeJob:
     """Start the job, or adopt the one this configuration already addresses."""

@@ -1,0 +1,39 @@
+{
+  "name": "pca-separates-the-gametocyte-sexes-plasmodb",
+  "turns": [
+    "Open the 'Female and male gametocyte' study on PlasmoDB and run a PCA of the samples colored by sex.",
+    "Which component separates the sexes, and how much variance does it explain?"
+  ],
+  "siteId": "plasmodb",
+  "assistantId": "pathfinder",
+  "rationale": "A PCA is a computation the site's EDA service runs on the samples of the open analysis, so the reply names the component the plot separates the sexes along and states its variance only through the statistic's reference. No strategy is built and no card is left open.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "countsInGenes": null,
+    "turnReplyMentions": {},
+    "endsOn": "none"
+  },
+  "provenance": {
+    "site": "plasmodb",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-03",
+    "stagingId": "",
+    "reference": "decisions/statistics-are-the-services-computations.md",
+    "curatorNote": "The variance of each component is the text the compute names the component by."
+  },
+  "effort": "medium",
+  "gates": {
+    "policy": "leave"
+  },
+  "attachments": {},
+  "newConversationBefore": []
+}

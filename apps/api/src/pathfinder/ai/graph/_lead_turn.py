@@ -46,6 +46,7 @@ from pathfinder.ai.graph._lead_durable import (
     outer_durable_calls,
     separations_answered,
     split_durable_answers,
+    statistics_answered,
     with_briefs,
     with_reports,
 )
@@ -241,6 +242,7 @@ async def _resume_durable_call(
     deps.state.turn_markers.record_control_tests(
         control_results_answered(parked, answers),
     )
+    deps.state.domain.record_statistics(statistics_answered(parked, answers))
     answered = with_briefs(parked, durable_tool_results(parked, answers), reports)
     sub_agent = parked.sub_agent
     if sub_agent is None:

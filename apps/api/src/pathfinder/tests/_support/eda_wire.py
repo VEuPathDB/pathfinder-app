@@ -23,7 +23,15 @@ from veupathdb.eda import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb.wdk import get_site
 
-from pathfinder.services.eda import authoring, binding, catalog, compute, gene_subset
+from pathfinder.services.eda import (
+    authoring,
+    binding,
+    catalog,
+    compute,
+    gene_subset,
+    reduction,
+    statistics,
+)
 
 BASE_URL = "https://plasmodb.org/eda"
 EDA_USER_ID = "9001"
@@ -147,6 +155,22 @@ def distribution_response(
     return None
 
 
+# The recorded reductions and plots of the RNA-Seq study, by the route each answers.
+_RECORDED_STATISTICS = {
+    "/eda/computes/dimensionalityreduction/meta": (
+        "computed_variables_dimensionalityreduction"
+    ),
+    "/eda/apps/dimensionalityreduction/visualizations/scatterplot": (
+        "scatterplot_dimensionalityreduction"
+    ),
+    "/eda/apps/pass/visualizations/conttable": "conttable_genotype_by_temperature",
+    "/eda/apps/pass/visualizations/boxplot": "boxplot_sense_reads_by_genotype",
+    "/eda/apps/pass/visualizations/scatterplot": (
+        "scatterplot_best_fit_sense_antisense"
+    ),
+}
+
+
 def _recorded(path: str, study_id: str, study_fixture: str) -> str | None:
     """The fixture a read path answers with, or None when it is not a read."""
     if path.endswith("/permissions"):
@@ -157,7 +181,7 @@ def _recorded(path: str, study_id: str, study_fixture: str) -> str | None:
         return study_fixture
     if path.endswith("/statistics"):
         return "volcano_statistics"
-    return None
+    return _RECORDED_STATISTICS.get(path)
 
 
 def eda_transport(
@@ -200,7 +224,7 @@ def wire_eda_client(monkeypatch: pytest.MonkeyPatch, client: EdaClient) -> None:
     def analyses(site_id: str) -> EdaAnalysesClient:
         return EdaAnalysesClient(client=client, project_id=get_site(site_id).project_id)
 
-    for module in (catalog, authoring, compute, gene_subset):
+    for module in (catalog, authoring, compute, gene_subset, reduction, statistics):
         monkeypatch.setattr(module, "get_eda_client", lambda _site: client)
     for module in (authoring, binding):
         monkeypatch.setattr(module, "get_eda_analyses_client", analyses)

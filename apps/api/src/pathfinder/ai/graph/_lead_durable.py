@@ -25,6 +25,7 @@ from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 
 from pathfinder.ai.graph.turn_records import ControlTestRun, TurnMarkers
 from pathfinder.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
+from pathfinder.ai.tools.standalone.eda_statistics import EDA_PCA, pca_statistic
 from pathfinder.ai.tools.standalone.experiment import CONTROL_TESTS, control_test_run
 from pathfinder.ai.tools.standalone.optimization import (
     PARAMETER_SWEEP,
@@ -33,6 +34,7 @@ from pathfinder.ai.tools.standalone.optimization import (
 from pathfinder.ai.tools.standalone.separation import SEPARATION, separation_chunks
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.separation_brief import brief_of
+from pathfinder.domain.statistic_facts import StatisticFact
 
 __all__ = [
     "ConcurrentDurableDispatchError",
@@ -43,6 +45,7 @@ __all__ = [
     "pending_durable_call",
     "separations_answered",
     "split_durable_answers",
+    "statistics_answered",
     "with_briefs",
     "with_reports",
 ]
@@ -66,6 +69,19 @@ def control_results_answered(
                 sweep_control_runs(answer.result, tool_call_id=call.tool_call_id)
             )
     return runs
+
+
+def statistics_answered(
+    parked: PendingDurableCall,
+    answers: Mapping[UUID, DurableTaskResult],
+) -> list[StatisticFact]:
+    """Every statistic a finished reduction computed."""
+    return [
+        pca_statistic(answers[call.task_id].result)
+        for call in parked.durable_calls
+        if call.durable_tool_name == EDA_PCA.tool_name
+        and answers[call.task_id].status == "success"
+    ]
 
 
 def separations_answered(

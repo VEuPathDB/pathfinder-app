@@ -1,4 +1,4 @@
-import { BarChart, LineChart, ScatterChart } from "echarts/charts";
+import { BarChart, BoxplotChart, LineChart, ScatterChart } from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
@@ -13,6 +13,7 @@ import { buildChartTheme, readChartTokens } from "./chartTheme";
 
 echartsCore.use([
   BarChart,
+  BoxplotChart,
   LineChart,
   ScatterChart,
   DataZoomComponent,

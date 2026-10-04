@@ -27,8 +27,8 @@ from veupathdb.eda import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.domain.eda_thread import ConversationAnalysisView
-from pathfinder.jobs.impls import eda_compute_impl
-from pathfinder.services.eda import authoring, binding
+from pathfinder.jobs.impls import eda_thread_io
+from pathfinder.services.eda import authoring, binding, compute_jobs
 from pathfinder.tests._support.eda_wire import (
     DE_ENTITY_SIZES,
     AnalysisStore,
@@ -209,8 +209,8 @@ def install(
         return len(chunks)
 
     if not real_binding:
-        monkeypatch.setattr(eda_compute_impl, "bound_conversation_analysis", bound)
-        monkeypatch.setattr(eda_compute_impl, "bump_analysis_revision", bump)
-        monkeypatch.setattr(eda_compute_impl, "append_chunk", record)
-    monkeypatch.setattr(eda_compute_impl, "_POLL_SECONDS", 0.0)
+        monkeypatch.setattr(eda_thread_io, "bound_conversation_analysis", bound)
+        monkeypatch.setattr(eda_thread_io, "bump_analysis_revision", bump)
+        monkeypatch.setattr(eda_thread_io, "append_chunk", record)
+    monkeypatch.setattr(compute_jobs, "POLL_SECONDS", 0.0)
     return Wire(client=client, calls=calls, store=store, chunks=chunks)

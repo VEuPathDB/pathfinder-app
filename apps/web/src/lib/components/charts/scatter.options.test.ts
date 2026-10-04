@@ -67,6 +67,37 @@ describe("buildScatterOption", () => {
     expect(option.yAxisName).toBe("-log10(p-value)");
   });
 
+  it("keeps the line's finite vertices in its own series, drawn in ink", () => {
+    const option = buildScatterOption({
+      ...args,
+      line: {
+        name: "Best-fit line",
+        x: [0, 1, Number.NaN],
+        y: [5.5487, 5.5713, 5.5939],
+      },
+    });
+    expect(option.line).toEqual({
+      name: "Best-fit line",
+      points: [
+        [0, 5.5487, "Best-fit line"],
+        [1, 5.5713, "Best-fit line"],
+      ],
+      color: DISTINCT_CHART_TOKENS.foreground,
+    });
+  });
+
+  it("counts a line vertex it leaves out as no dropped point", () => {
+    const option = buildScatterOption({
+      ...args,
+      line: { name: "Best-fit line", x: [Number.NaN], y: [1] },
+    });
+    expect(option.droppedPointCount).toBe(1);
+  });
+
+  it("has no line when none is given", () => {
+    expect(buildScatterOption(args).line).toBe(null);
+  });
+
   it("colors series by token order", () => {
     const option = buildScatterOption(args);
     expect(option.series.map((s) => s.color)).toEqual([

@@ -35,6 +35,7 @@ from pathfinder.services.eda import EdaFilter, EdaStudyDetail
 from pathfinder.services.eda.authoring import (
     SubsetPreview,
     SubsetRejectedError,
+    UnknownEntityError,
     preview_subset,
 )
 from pathfinder.services.eda.binding import (
@@ -347,13 +348,17 @@ async def preview_eda_subset(
         raise ModelRetry(msg)
     analysis = await read_analysis(site_id, analysis_id=bound.analysis_id)
     filters = analysis.descriptor.subset.descriptor
-    preview = await preview_subset(
-        site_id,
-        dataset_id=bound.dataset_id,
-        entity_id=entity_id,
-        filters=filters,
-        distribution_variable_id=distribution_variable_id,
-    )
+    try:
+        preview = await preview_subset(
+            site_id,
+            dataset_id=bound.dataset_id,
+            entity_id=entity_id,
+            filters=filters,
+            distribution_variable_id=distribution_variable_id,
+        )
+    except UnknownEntityError as exc:
+        msg = f"{exc.message} Call preview_eda_subset again with one of them."
+        raise ModelRetry(msg) from exc
     await record_subset_preview(conversation_id=ctx.deps.state.conversation_id)
     ctx.deps.state.domain.open_eda_analysis = OpenEdaAnalysis(
         dataset_id=bound.dataset_id,

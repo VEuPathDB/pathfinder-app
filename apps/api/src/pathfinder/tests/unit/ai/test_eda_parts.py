@@ -1,4 +1,4 @@
-"""The three data-eda parts, their payloads, and their registration."""
+"""The data-eda parts, their payloads, and their registration."""
 
 from __future__ import annotations
 
@@ -13,10 +13,18 @@ from pathfinder.ai.eda_stream_parts import register_eda_stream_parts
 from pathfinder.ai.strategy_stream_parts import register_strategy_stream_parts
 from pathfinder.domain.eda_parts import (
     EdaAnalysisState,
+    EdaBoxplotBox,
     EdaComparison,
+    EdaCountTable,
     EdaDistributionSeries,
     EdaEntityCount,
+    EdaPcaAxis,
+    EdaPcaPart,
+    EdaPcaSeries,
+    EdaStatisticRow,
+    EdaStatisticsPart,
     EdaSubsetPreviewPart,
+    EdaTrend,
     EdaVizPart,
     EdaVolcanoPoint,
 )
@@ -25,6 +33,8 @@ _KINDS = {
     "data-eda.analysis-state",
     "data-eda.subset-preview",
     "data-eda.viz",
+    "data-eda.pca",
+    "data-eda.statistics",
 }
 
 _ANALYSIS_STATE_KEYS = [
@@ -44,7 +54,7 @@ _ANALYSIS_STATE_KEYS = [
 ]
 
 
-def test_the_three_kinds_register() -> None:
+def test_the_five_kinds_register() -> None:
     registry = StreamPartRegistry()
     register_eda_stream_parts(registry)
     assert registry.kinds() == _KINDS
@@ -54,7 +64,13 @@ def test_the_dotted_kinds_map_to_python_identifiers() -> None:
     registry = StreamPartRegistry()
     register_eda_stream_parts(registry)
     names = {entry.schema_name for entry in registry.entries()}
-    assert names == {"eda_analysis_state", "eda_subset_preview", "eda_viz"}
+    assert names == {
+        "eda_analysis_state",
+        "eda_subset_preview",
+        "eda_viz",
+        "eda_pca",
+        "eda_statistics",
+    }
 
 
 def test_the_eda_kinds_do_not_collide_with_the_runtime_or_the_strategy_parts() -> None:
@@ -69,7 +85,13 @@ def test_the_schema_index_exposes_every_eda_payload() -> None:
     registry = StreamPartRegistry()
     register_eda_stream_parts(registry)
     fields = set(registry.schema_index_model().model_fields)
-    assert {"eda_analysis_state", "eda_subset_preview", "eda_viz"} <= fields
+    assert {
+        "eda_analysis_state",
+        "eda_subset_preview",
+        "eda_viz",
+        "eda_pca",
+        "eda_statistics",
+    } <= fields
 
 
 def test_every_analysis_state_field_is_required_on_the_wire() -> None:
@@ -94,6 +116,8 @@ def test_the_analysis_state_link_is_optional_because_the_log_holds_parts_without
 _OPTIONAL_ON_THE_WIRE = {
     EdaSubsetPreviewPart: {"caption"},
     EdaVizPart: {"caption", "comparison"},
+    EdaPcaPart: {"caption"},
+    EdaStatisticsPart: {"caption"},
 }
 
 
@@ -105,6 +129,14 @@ _OPTIONAL_ON_THE_WIRE = {
         EdaSubsetPreviewPart,
         EdaVizPart,
         EdaVolcanoPoint,
+        EdaPcaAxis,
+        EdaPcaSeries,
+        EdaPcaPart,
+        EdaStatisticRow,
+        EdaCountTable,
+        EdaBoxplotBox,
+        EdaTrend,
+        EdaStatisticsPart,
     ],
     ids=lambda model: model.__name__,
 )
@@ -346,3 +378,58 @@ def test_the_viz_chart_union_refuses_a_kind_no_renderer_draws() -> None:
                 "points": [],
             }
         )
+
+
+def test_a_pca_series_holds_one_place_per_sample() -> None:
+    with pytest.raises(ValidationError, match="the same length"):
+        EdaPcaSeries(label="female", x=[1.0, 2.0], y=[1.0], sample_ids=["S1", "S2"])
+
+
+def test_a_pca_series_reads_the_service_s_text_coordinates_as_numbers() -> None:
+    series = EdaPcaSeries.model_validate(
+        {
+            "label": "wildtype",
+            "x": ["-7.2548330125957"],
+            "y": ["-19.2972293300329"],
+            "sample_ids": ["WT_37C_Rep1"],
+        }
+    )
+
+    assert (series.x, series.y) == ([-7.2548330125957], [-19.2972293300329])
+
+
+def test_a_pca_part_counts_its_samples_and_groups_on_the_wire() -> None:
+    part = EdaPcaPart(
+        statistic_id="stat_1c2d3e4f",
+        dataset_id="DS_e973eadd57",
+        analysis_id="t4fszEJ",
+        axes=[
+            EdaPcaAxis(variable_id="PC1", display_name="PC 1 (54.35% variance)"),
+            EdaPcaAxis(variable_id="PC2", display_name="PC 2 (12.79% variance)"),
+        ],
+        series=[
+            EdaPcaSeries(
+                label="a", x=[1.0, 2.0], y=[0.5, 0.25], sample_ids=["S1", "S2"]
+            ),
+            EdaPcaSeries(label="b", x=[3.0], y=[0.0], sample_ids=["S3"]),
+        ],
+    )
+
+    dumped = part.model_dump(by_alias=True, mode="json")
+    assert (dumped["sampleCount"], dumped["groupCount"]) == (3, 2)
+
+
+def test_a_pca_part_has_exactly_two_axes() -> None:
+    with pytest.raises(ValidationError, match="at least 2 items"):
+        EdaPcaPart(
+            statistic_id="stat_1c2d3e4f",
+            dataset_id="DS_e973eadd57",
+            analysis_id="t4fszEJ",
+            axes=[EdaPcaAxis(variable_id="PC1", display_name="PC 1 (54.35% variance)")],
+            series=[],
+        )
+
+
+def test_a_count_table_holds_one_cell_per_pair_of_labels() -> None:
+    with pytest.raises(ValidationError, match="one row per x label"):
+        EdaCountTable(x_labels=["febrile", "normal"], y_labels=["a"], matrix=[[3]])

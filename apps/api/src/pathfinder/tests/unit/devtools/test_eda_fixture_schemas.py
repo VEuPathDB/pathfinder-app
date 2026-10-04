@@ -7,7 +7,11 @@ from typing import Any
 
 import pytest
 from pydantic import JsonValue, TypeAdapter, ValidationError
-from veupathdb.devtools.eda_capture import ANALYSIS_CAPTURES, DISTRIBUTION_CAPTURES
+from veupathdb.devtools.eda_capture import (
+    ANALYSIS_CAPTURES,
+    DISTRIBUTION_CAPTURES,
+    POST_CAPTURES,
+)
 from veupathdb.devtools.eda_schemas import (
     BINDINGS,
     LIBRARY_FILE,
@@ -69,17 +73,19 @@ def test_every_recorded_fixture_binds_a_type_the_library_declares() -> None:
 
 
 def test_the_binding_table_is_total_over_the_fixture_manifest() -> None:
-    """The client records the analyses and the distributions, this manifest the rest."""
+    """The client records the analyses, the distributions and the computes and
+    plots it posts, this manifest the rest."""
     assert {binding.fixture for binding in BINDINGS} == (
         {fixture.name for fixture in FIXTURES}
         | {capture.name for capture in ANALYSIS_CAPTURES}
         | {capture.name for capture in DISTRIBUTION_CAPTURES}
+        | {capture.name for capture in POST_CAPTURES}
     )
 
 
-def test_the_bound_types_reach_fifty_one_of_the_pinned_library() -> None:
+def test_the_bound_types_reach_the_pinned_library_s_measured_share() -> None:
     bound = tuple(binding.raml_type for binding in BINDINGS)
-    assert len(reached_types(bound)) == 51
+    assert len(reached_types(bound)) == 71
 
 
 def test_every_recorded_fixture_passes_the_type_its_endpoint_returns() -> None:
@@ -200,6 +206,9 @@ def test_the_declared_library_reports_the_defects_the_wire_document_absorbs() ->
         "volcano_statistics": 203,
         "permissions": 24,
         "analysis_detail_pass_and_de": 1,
+        "scatterplot_dimensionalityreduction": 2,
+        "conttable_genotype_by_temperature": 4,
+        "boxplot_sense_reads_by_genotype": 2,
     }
 
 

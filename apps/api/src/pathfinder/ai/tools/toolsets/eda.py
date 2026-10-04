@@ -18,16 +18,20 @@ from pathfinder.ai.tools.standalone.eda_compute import (
     refuse_shared_labels,
     run_eda_compute,
 )
+from pathfinder.ai.tools.standalone.eda_statistics import (
+    read_eda_statistics,
+    run_eda_dimensionality_reduction,
+)
 from pathfinder.ai.tools.standalone.eda_step import create_eda_step
 from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 
 
 def build_toolset() -> AbstractToolset[LeadDeps]:
-    """The seven EDA tools the Lead calls.
+    """The nine EDA tools the Lead calls.
 
-    ``run_eda_compute`` is registered sequential: one parked durable call is
-    checkpointed per turn, so a batch that fires two of them would leave the
-    second unanswered.
+    The two durable computes are registered sequential: one parked durable
+    call is checkpointed per turn, so a batch that fires two of them would
+    leave the second unanswered.
     """
     toolset: FunctionToolset[LeadDeps] = FunctionToolset(
         max_retries=3,
@@ -43,6 +47,8 @@ def build_toolset() -> AbstractToolset[LeadDeps]:
                 max_retries=3,
                 args_validator=refuse_shared_labels,
             ),
+            Tool(run_eda_dimensionality_reduction, sequential=True, max_retries=3),
+            read_eda_statistics,
             create_eda_step,
         ],
     )

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a22
+  version: 0.2.0a23
 paths:
   /health:
     get:
@@ -10377,6 +10377,75 @@ components:
       - reason
       title: DroppedCriterion
       type: object
+    EdaBoxplotBox:
+      description: The five numbers of one group, its mean when asked, and its outliers.
+      properties:
+        label:
+          title: Label
+          type: string
+        lowerFence:
+          title: Lowerfence
+          type: number
+        q1:
+          title: Q1
+          type: number
+        median:
+          title: Median
+          type: number
+        q3:
+          title: Q3
+          type: number
+        upperFence:
+          title: Upperfence
+          type: number
+        mean:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Mean
+        outlierCount:
+          minimum: 0
+          title: Outliercount
+          type: integer
+      required:
+      - label
+      - lowerFence
+      - q1
+      - median
+      - q3
+      - upperFence
+      - mean
+      - outlierCount
+      title: EdaBoxplotBox
+      type: object
+    EdaCountTable:
+      description: 'The records of each pair of values: ``matrix[i][j]`` counts x label ``i``
+
+        with y label ``j``.'
+      properties:
+        xLabels:
+          items:
+            type: string
+          title: Xlabels
+          type: array
+        yLabels:
+          items:
+            type: string
+          title: Ylabels
+          type: array
+        matrix:
+          items:
+            items:
+              type: integer
+            type: array
+          title: Matrix
+          type: array
+      required:
+      - xLabels
+      - yLabels
+      - matrix
+      title: EdaCountTable
+      type: object
     EdaDistributionSeries:
       description: 'One variable''s histogram under the current subset.
 
@@ -10427,6 +10496,184 @@ components:
       - isMultiValued
       title: EdaDistributionSeries
       type: object
+    EdaPcaAxis:
+      description: One principal component, by the name the compute gives it.
+      properties:
+        variableId:
+          title: Variableid
+          type: string
+        displayName:
+          title: Displayname
+          type: string
+      required:
+      - variableId
+      - displayName
+      title: EdaPcaAxis
+      type: object
+    EdaPcaPart:
+      description: The samples on the first two components of a dimensionality reduction.
+      properties:
+        statisticId:
+          title: Statisticid
+          type: string
+        datasetId:
+          title: Datasetid
+          type: string
+        analysisId:
+          title: Analysisid
+          type: string
+        axes:
+          items:
+            $ref: '#/components/schemas/EdaPcaAxis'
+          maxItems: 2
+          minItems: 2
+          title: Axes
+          type: array
+        series:
+          items:
+            $ref: '#/components/schemas/EdaPcaSeries'
+          title: Series
+          type: array
+        caption:
+          default: ''
+          title: Caption
+          type: string
+        sampleCount:
+          readOnly: true
+          title: Samplecount
+          type: integer
+        groupCount:
+          readOnly: true
+          title: Groupcount
+          type: integer
+      required:
+      - statisticId
+      - datasetId
+      - analysisId
+      - axes
+      - series
+      - sampleCount
+      - groupCount
+      title: EdaPcaPart
+      type: object
+    EdaPcaSeries:
+      description: 'The samples of one overlay value, each at its place on the two axes.
+
+
+        The service sends each coordinate as text, and the fields read it as a number.'
+      properties:
+        label:
+          title: Label
+          type: string
+        x:
+          items:
+            type: number
+          title: X
+          type: array
+        y:
+          items:
+            type: number
+          title: Y
+          type: array
+        sampleIds:
+          items:
+            type: string
+          title: Sampleids
+          type: array
+      required:
+      - label
+      - x
+      - y
+      - sampleIds
+      title: EdaPcaSeries
+      type: object
+    EdaStatisticRow:
+      description: 'One statistic the service returned, in the text the service gave it. A
+
+        test the service reports only a p-value for has no value.'
+      properties:
+        name:
+          title: Name
+          type: string
+        value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Value
+        pValue:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pvalue
+        confidenceInterval:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidenceinterval
+      required:
+      - name
+      - value
+      - pValue
+      - confidenceInterval
+      title: EdaStatisticRow
+      type: object
+    EdaStatisticsPart:
+      description: A statistic the service computed on the open analysis, with its title.
+      properties:
+        rows:
+          items:
+            $ref: '#/components/schemas/EdaStatisticRow'
+          title: Rows
+          type: array
+        table:
+          anyOf:
+          - $ref: '#/components/schemas/EdaCountTable'
+          - type: 'null'
+        boxes:
+          items:
+            $ref: '#/components/schemas/EdaBoxplotBox'
+          title: Boxes
+          type: array
+        trend:
+          anyOf:
+          - $ref: '#/components/schemas/EdaTrend'
+          - type: 'null'
+        statisticId:
+          title: Statisticid
+          type: string
+        datasetId:
+          title: Datasetid
+          type: string
+        analysisId:
+          title: Analysisid
+          type: string
+        kind:
+          enum:
+          - two_by_two
+          - contingency
+          - boxplot
+          - trend
+          title: Kind
+          type: string
+        title:
+          title: Title
+          type: string
+        caption:
+          default: ''
+          title: Caption
+          type: string
+      required:
+      - rows
+      - table
+      - boxes
+      - trend
+      - statisticId
+      - datasetId
+      - analysisId
+      - kind
+      - title
+      title: EdaStatisticsPart
+      type: object
     EdaSubsetPreviewPart:
       description: What the current filters select, with one variable's shape.
       properties:
@@ -10463,6 +10710,49 @@ components:
       - distribution
       - distributionNote
       title: EdaSubsetPreviewPart
+      type: object
+    EdaTrend:
+      description: 'The points of two continuous variables and the line fit through them,
+
+        with each axis named as the study names its variable.
+
+
+        The service sends the coordinates as text, and the fields read them as numbers.'
+      properties:
+        xLabel:
+          title: Xlabel
+          type: string
+        yLabel:
+          title: Ylabel
+          type: string
+        x:
+          items:
+            type: number
+          title: X
+          type: array
+        y:
+          items:
+            type: number
+          title: Y
+          type: array
+        lineX:
+          items:
+            type: number
+          title: Linex
+          type: array
+        lineY:
+          items:
+            type: number
+          title: Liney
+          type: array
+      required:
+      - xLabel
+      - yLabel
+      - x
+      - y
+      - lineX
+      - lineY
+      title: EdaTrend
       type: object
     EdaVizPart:
       description: Server-computed plot data, sized for one chart.
@@ -12448,6 +12738,50 @@ components:
           type: array
       title: StaleBuild
       type: object
+    StatisticFact:
+      description: One statistic the service computed on the open analysis.
+      properties:
+        id:
+          title: Id
+          type: string
+        kind:
+          $ref: '#/components/schemas/StatisticKind'
+        title:
+          title: Title
+          type: string
+        rows:
+          items:
+            $ref: '#/components/schemas/StatisticRowFact'
+          title: Rows
+          type: array
+      required:
+      - id
+      - kind
+      - title
+      title: StatisticFact
+      type: object
+    StatisticKind:
+      enum:
+      - pca
+      - two_by_two
+      - contingency
+      - boxplot
+      - trend
+      type: string
+    StatisticRowFact:
+      description: One value of a statistic, under the name a reference gives it.
+      properties:
+        name:
+          title: Name
+          type: string
+        value:
+          title: Value
+          type: string
+      required:
+      - name
+      - value
+      title: StatisticRowFact
+      type: object
     StepFact:
       description: 'One step of the strategy, or of the draft while nothing is built.
 
@@ -12873,7 +13207,9 @@ components:
     TurnFacts:
       description: 'Everything a turn shows beside its reply, and every fact a reference of
 
-        the reply renders. ``comparisons`` alone make no facts part: their card shows them.'
+        the reply renders. ``comparisons`` and ``statistics`` alone make no facts
+
+        part: their cards show them.'
       properties:
         recordNoun:
           default: gene
@@ -12995,6 +13331,11 @@ components:
           items:
             $ref: '#/components/schemas/ComparisonFact'
           title: Comparisons
+          type: array
+        statistics:
+          items:
+            $ref: '#/components/schemas/StatisticFact'
+          title: Statistics
           type: array
         stoppedCheck:
           default: ''
@@ -13629,6 +13970,14 @@ components:
           anyOf:
           - $ref: '#/components/schemas/EdaAnalysisState'
           - type: 'null'
+        edaPca:
+          anyOf:
+          - $ref: '#/components/schemas/EdaPcaPart'
+          - type: 'null'
+        edaStatistics:
+          anyOf:
+          - $ref: '#/components/schemas/EdaStatisticsPart'
+          - type: 'null'
         edaSubsetPreview:
           anyOf:
           - $ref: '#/components/schemas/EdaSubsetPreviewPart'
@@ -13821,6 +14170,7 @@ components:
     EdaComputeDescriptor:
       anyOf:
       - $ref: '#/components/schemas/EdaDifferentialExpressionDescriptor'
+      - $ref: '#/components/schemas/EdaDimensionalityReductionDescriptor'
       - $ref: '#/components/schemas/EdaPassDescriptor'
       - $ref: '#/components/schemas/EdaOtherComputeDescriptor'
     EdaDateRangeFilter:
@@ -13916,6 +14266,41 @@ components:
       required:
       - configuration
       title: EdaDifferentialExpressionDescriptor
+      type: object
+    EdaDimensionalityReductionConfig:
+      additionalProperties: true
+      description: The PCA compute's configuration. Both variables are on one entity.
+      properties:
+        identifierVariable:
+          $ref: '#/components/schemas/EdaVariableSpec'
+        valueVariable:
+          $ref: '#/components/schemas/EdaVariableSpec'
+        dataFormat:
+          default: normalizedValues
+          enum:
+          - rawCounts
+          - normalizedValues
+          title: Dataformat
+          type: string
+      required:
+      - identifierVariable
+      - valueVariable
+      title: EdaDimensionalityReductionConfig
+      type: object
+    EdaDimensionalityReductionDescriptor:
+      additionalProperties: true
+      description: A dimensionality-reduction compute whose configuration is complete.
+      properties:
+        type:
+          const: dimensionalityreduction
+          default: dimensionalityreduction
+          title: Type
+          type: string
+        configuration:
+          $ref: '#/components/schemas/EdaDimensionalityReductionConfig'
+      required:
+      - configuration
+      title: EdaDimensionalityReductionDescriptor
       type: object
     EdaFilter:
       discriminator:
@@ -14084,7 +14469,7 @@ components:
       type: object
     EdaOtherComputeDescriptor:
       additionalProperties: true
-      description: Any other compute plugin, or a DE compute the UI has not finished configuring.
+      description: Any other compute plugin, or a typed compute the UI has not finished configuring.
       properties:
         type:
           title: Type

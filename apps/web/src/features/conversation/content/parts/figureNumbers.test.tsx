@@ -23,7 +23,11 @@ import { figureNumberFor } from "./figureNumbers";
 import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 import {
   EDA_ANALYSIS_STATE_FIXTURE,
+  EDA_BOXPLOT_FIXTURE,
+  EDA_CONTINGENCY_FIXTURE,
+  EDA_PCA_FIXTURE,
   EDA_SUBSET_PREVIEW_FIXTURE,
+  EDA_TREND_FIXTURE,
   EDA_VOLCANO_VIZ_FIXTURE,
 } from "./edaPartFixtures";
 
@@ -94,6 +98,27 @@ describe("figureNumberFor", () => {
     const { retainedPointIds, ...stale } = VOLCANO;
     const messages = messagesOf([vizPart(stale), vizPart(VOLCANO)]);
     expect(retainedPointIds).toEqual(["PF3D7_0100200"]);
+    expect(figureNumberFor(messages, VOLCANO)).toBe(1);
+  });
+
+  it("numbers a reduction and a charted statistic among the plots", () => {
+    const messages = messagesOf([
+      vizPart(VOLCANO),
+      threadPart("data-eda.pca", EDA_PCA_FIXTURE),
+      threadPart("data-eda.statistics", EDA_CONTINGENCY_FIXTURE),
+      threadPart("data-eda.statistics", EDA_BOXPLOT_FIXTURE),
+      threadPart("data-eda.statistics", EDA_TREND_FIXTURE),
+    ]);
+    expect(figureNumberFor(messages, EDA_PCA_FIXTURE)).toBe(2);
+    expect(figureNumberFor(messages, EDA_CONTINGENCY_FIXTURE)).toBe(null);
+    expect(figureNumberFor(messages, EDA_BOXPLOT_FIXTURE)).toBe(3);
+    expect(figureNumberFor(messages, EDA_TREND_FIXTURE)).toBe(4);
+  });
+
+  it("gives no number to a reduction an earlier version wrote", () => {
+    const { groupCount, ...stale } = EDA_PCA_FIXTURE;
+    const messages = messagesOf([threadPart("data-eda.pca", stale), vizPart(VOLCANO)]);
+    expect(groupCount).toBe(3);
     expect(figureNumberFor(messages, VOLCANO)).toBe(1);
   });
 

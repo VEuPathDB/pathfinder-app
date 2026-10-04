@@ -36,6 +36,7 @@ __all__ = [
     "pinned_eda_sheet",
     "pinned_ledger_summary",
     "pinned_operational_spec",
+    "pinned_statistics",
     "pinned_turn_briefing",
     "pinned_user_intent",
     "pinned_user_prompt",
@@ -281,6 +282,24 @@ def pinned_turn_briefing(ctx: RunContext[LeadDeps]) -> str | None:
     if turn_is_off_topic(ctx.deps):
         blocks.append(_OFF_TOPIC_REDIRECT)
     return "\n\n".join(block for block in blocks if block) or None
+
+
+def pinned_statistics(ctx: RunContext[LeadDeps]) -> str | None:
+    """Every statistic the thread computed, each value under its reference."""
+    statistics = ctx.deps.state.domain.statistics
+    if not statistics:
+        return None
+    lines = [
+        "## Statistics this conversation computed",
+        "Write each number below as its reference, never as the bare number.",
+    ]
+    for statistic in statistics:
+        lines.append(f"- {statistic.title}")
+        lines.extend(
+            f"  - [stat:{statistic.id}.{row.name}] = {row.value}"
+            for row in statistic.rows
+        )
+    return "\n".join(lines)
 
 
 def pinned_user_prompt(ctx: RunContext[LeadDeps]) -> str | None:

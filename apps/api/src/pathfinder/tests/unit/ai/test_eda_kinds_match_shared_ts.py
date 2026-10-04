@@ -46,11 +46,13 @@ def test_the_typescript_union_declares_no_eda_kind_the_backend_does_not_emit() -
     assert _declared_kinds() <= _registered_kinds()
 
 
-def test_the_three_pinned_kinds_are_registered() -> None:
+def test_the_five_pinned_kinds_are_registered() -> None:
     assert _registered_kinds() == {
         "data-eda.analysis-state",
         "data-eda.subset-preview",
         "data-eda.viz",
+        "data-eda.pca",
+        "data-eda.statistics",
     }
 
 

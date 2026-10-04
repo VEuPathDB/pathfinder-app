@@ -1,8 +1,8 @@
 """The facts a turn shows beside its reply, as lines and as carried values."""
 
 from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
+from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.turn_facts import (
-    ControlResultFact,
     ParameterFact,
     RetiredFact,
     SavedSetFact,

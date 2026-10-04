@@ -85,6 +85,7 @@ def test_every_declared_durable_tool_defers_under_a_recorded_name() -> None:
         "run_control_tests_on_step": "run_control_tests_on_step",
         "optimize_search_parameters": "optimize_search_parameters",
         "run_eda_compute": "run_eda_compute",
+        "run_eda_dimensionality_reduction": "run_eda_dimensionality_reduction",
         "separate_controls": "separate_controls",
     }
     assert set(deferring_tool_names().values()) == {
@@ -95,8 +96,8 @@ def test_every_declared_durable_tool_defers_under_a_recorded_name() -> None:
 def test_the_refusal_says_what_it_says() -> None:
     """The model reads this sentence in place of the call, so it is pinned."""
     assert durable_call_refusal("run_eda_compute") == (
-        "run_eda_compute runs on a worker this process cannot reach. Nothing "
-        "started. Say it was not available and report what you have."
+        "run_eda_compute needs a worker this process cannot reach. Nothing "
+        "started. Say it was unavailable and report what you have."
     )
 
 

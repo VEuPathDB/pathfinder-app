@@ -1,6 +1,38 @@
 # Log
 
+## 2026-10-04
+
+* **A statistic belongs to the thread.** `StrategyDomainState.statistics` holds
+  every statistic the EDA service computed on the thread, the latest read of each
+  id, so a follow-up message's reply references a PCA an earlier message ran; the
+  Lead's instructions list each value under its reference
+  (`lead_pins.pinned_statistics`). The turn's own copy is gone.
+
+* **An entity the study does not declare is a refusal, and a component is its
+  share.** `preview_eda_subset` turns an entity id the study does not declare into
+  a refusal that lists the study's entities (`services/eda/authoring.py`,
+  `UnknownEntityError`), so a mistyped id is corrected on the next call instead of
+  ending the turn. A PCA's `PC1` and `PC2` rows hold the share of variance each
+  component's label states (`EdaPcaAxis.stated_share`), so a reply writes "PC1
+  explains [stat:...] of the variance"; the plot keeps the full axis label. The
+  PCA's value variable must be an expression measurement
+  (`veupathdb.domain.GENE_EXPRESSION_VALUE_IDS`), and the trend part names both
+  axes as the study names its variables.
+
 ## 2026-10-03
+
+* **A statistic is a computation the EDA service ran.** A PCA of the open
+  analysis's samples runs the service's `dimensionalityreduction` compute on
+  the worker (`run_eda_dimensionality_reduction`, `jobs/impls/eda_pca_impl.py`),
+  through the one settling path differential expression also takes
+  (`services/eda/compute_jobs.py`), and puts a `data-eda.pca` part on the
+  thread; a two-by-two table, a contingency table, a boxplot or a fitted line
+  is the service's own visualization, read at once (`read_eda_statistics`,
+  `services/eda/statistics.py`) into a `data-eda.statistics` part. Each is a
+  `StatisticFact` of the turn, and the reply states its values only through
+  `[stat:<id>.<row>]` (`domain/statistic_facts.py`). A two-by-two the service
+  cannot evaluate is refused with the contingency table as the way on.
+  See `decisions/statistics-are-the-services-computations.md`.
 
 * **An identity read is handed to a site that answers.** The sites an identity
   call reads are the named site, then one loaded site

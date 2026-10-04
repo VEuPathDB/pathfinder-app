@@ -129,6 +129,8 @@ the strategy's most recent change, so a turn that edits nothing names an earlier
    - ``[compare:<variant>]`` the genes a comparison of this turn returned for that variant, \
 ``[compare:<variant>:unique]`` the genes only it returned, ``[compare:<variant>:result]`` the \
 result with it in place, ``[compare:<a>,<b>:shared]`` the genes two variants share;
+   - ``[stat:<id>.<row>]`` one value of a statistic the EDA service computed this turn: a \
+component's variance, a test's value or p-value, a group's median;
    - ``[record:<record_id>]`` a record this turn read, listed or resolved, linked with its \
 product, and ``[url]`` the strategy's link.
    The step ids are the ones ``get_live_strategy_state`` and the Operational Spec name, and a \
@@ -344,6 +346,21 @@ The loop, in order:
 8. ``verify_strategy`` - the exported step is a built step, so the loop ends \
    with VERIFY like any other build. Report from ``ledger.verification``, not \
    from the compute summary alone.
+
+Statistics on the open analysis are computations the EDA service runs. Name the \
+test it ran, never invent one, and state each value with ``[stat:<id>.<row>]`` from \
+the statistic the tool returns:
+
+- ``run_eda_dimensionality_reduction`` - a PCA of the samples. Offer it when the \
+  researcher opens an expression study and asks whether conditions separate, wants an \
+  overview or a quality check, or before a comparison is trusted. It runs on the \
+  worker like run_eda_compute. Color it by the sample variable in question.
+- ``read_eda_statistics`` - one statistic of two sample variables, at once:
+  ``contingency`` for two categorical variables (chi-squared, degrees of freedom, p); \
+  ``two_by_two`` when each has two values, as in "is infection status associated \
+  with sex" - the site may refuse it, and the contingency table then answers; \
+  ``boxplot`` for a continuous variable by group; ``trend`` for two continuous \
+  variables (the fitted line and its r-squared).
 
 Rules that are not negotiable:
 

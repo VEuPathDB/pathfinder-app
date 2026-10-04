@@ -41,14 +41,18 @@ const props = {
 type ScatterOption = {
   xAxis: { name: string };
   yAxis: { name: string };
+  legend?: object;
   tooltip: { formatter: (params: unknown) => string };
   series: {
     type: string;
     name: string;
     data: [number, number, string][];
     itemStyle: { color: string };
+    silent?: boolean;
   }[];
 };
+
+const line = { name: "Best-fit line", x: [0, 437], y: [5.5487, 15.4285] };
 
 beforeEach(applyDistinctChartTokens);
 afterEach(clearDistinctChartTokens);
@@ -84,6 +88,48 @@ describe("ScatterChart", () => {
     expect(option.tooltip.formatter({ value: [-2.5, 3, "PF3D7_0100300"] })).toBe(
       "PF3D7_0100300<br/>log2(Fold Change) -2.5<br/>-log10(p-value) 3",
     );
+  });
+
+  it("escapes the point label it writes into the tooltip", async () => {
+    setOption.mockClear();
+    render(<ScatterChart {...props} />);
+    await flush();
+    const option = setOption.mock.calls[0]?.[0] as ScatterOption;
+    expect(option.tooltip.formatter({ value: [1, 2, "<b>WT_37C_Rep1</b>"] })).toBe(
+      "&lt;b&gt;WT_37C_Rep1&lt;/b&gt;<br/>log2(Fold Change) 1<br/>-log10(p-value) 2",
+    );
+  });
+
+  it("draws a given line as a silent line series after the points", async () => {
+    setOption.mockClear();
+    render(<ScatterChart {...props} line={line} />);
+    await flush();
+    const option = setOption.mock.calls[0]?.[0] as ScatterOption;
+    expect(option.series.map((s) => [s.type, s.name])).toEqual([
+      ["scatter", "Genes"],
+      ["line", "Best-fit line"],
+    ]);
+    expect(option.series[1]?.data).toEqual([
+      [0, 5.5487, "Best-fit line"],
+      [437, 15.4285, "Best-fit line"],
+    ]);
+    expect(option.series[1]?.silent).toBe(true);
+  });
+
+  it("shows the legend when the points share the plot with a line", async () => {
+    setOption.mockClear();
+    render(<ScatterChart {...props} line={line} />);
+    await flush();
+    const option = setOption.mock.calls[0]?.[0] as ScatterOption;
+    expect(option.legend).toEqual({ top: 0, right: 0, icon: "circle" });
+  });
+
+  it("shows no legend for one series and no line", async () => {
+    setOption.mockClear();
+    render(<ScatterChart {...props} />);
+    await flush();
+    const option = setOption.mock.calls[0]?.[0] as ScatterOption;
+    expect("legend" in option).toBe(false);
   });
 
   it("says how many points it could not plot", () => {

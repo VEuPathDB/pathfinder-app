@@ -30,6 +30,7 @@ from pathfinder.domain.caveats import (
     edit_direction_caveats,
 )
 from pathfinder.domain.constraint_check import shortfalls
+from pathfinder.domain.control_result_facts import control_result_fact
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.last_change import LastChange, change_since
 from pathfinder.domain.log2_scale import fold_label
@@ -54,7 +55,6 @@ from pathfinder.domain.turn_facts import (
     SavedSetFact,
     StepFact,
     TurnFacts,
-    control_result_fact,
 )
 from pathfinder.domain.zero_combine import zero_combine_caveats
 from pathfinder.services.strategies.commit import live_strategy_url
@@ -360,6 +360,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         ),
         named_genes=named_genes(markers),
         comparisons=list(markers.comparisons),
+        statistics=list(domain.statistics),
         stopped_check=""
         if stop is None or stop.role != "verification"
         else stop.render(),

@@ -1,6 +1,7 @@
 "use client";
 
 import type { EChartsOption, TooltipComponentFormatterCallbackParams } from "echarts";
+import { format } from "echarts/core";
 import type { EdaComparison } from "@pathfinder/shared/generated/types/EdaComparison";
 
 import { EChart } from "./EChart";
@@ -16,7 +17,7 @@ function volcanoTooltip(params: TooltipComponentFormatterCallbackParams): string
   const [effect, significance, pointId] = value;
   if (typeof effect !== "number" || typeof significance !== "number") return "";
   if (typeof pointId !== "string") return "";
-  return `${pointId}<br/>effect ${effect.toFixed(3)}<br/>-log10(p) ${significance.toFixed(2)}`;
+  return `${format.encodeHTML(pointId)}<br/>effect ${effect.toFixed(3)}<br/>-log10(p) ${significance.toFixed(2)}`;
 }
 
 export interface VolcanoChartProps {

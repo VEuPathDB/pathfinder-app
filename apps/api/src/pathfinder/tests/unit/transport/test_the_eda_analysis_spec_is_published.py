@@ -47,6 +47,7 @@ def test_a_computation_holds_any_compute_the_site_offers(
         {"$ref": _REF.format(name)}
         for name in (
             "EdaDifferentialExpressionDescriptor",
+            "EdaDimensionalityReductionDescriptor",
             "EdaPassDescriptor",
             "EdaOtherComputeDescriptor",
         )
