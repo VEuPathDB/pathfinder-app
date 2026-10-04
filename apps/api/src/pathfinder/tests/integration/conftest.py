@@ -54,11 +54,14 @@ def no_veupathdb(
     """Refuse every VEuPathDB site to a test that is not ``live_wdk``.
 
     CI runs this tier with no VEuPathDB credential, so a live read here passes
-    only on a machine that holds one. Such a test reads each search's organism
-    parameter and record classes from the recorded catalog answers.
+    only on a machine that holds one. Such a test holds no site login, and it
+    reads each search's organism parameter and record classes from the
+    recorded catalog answers.
     """
     if request.node.get_closest_marker("live_wdk") is None:
         refuse_veupathdb(monkeypatch, request.node.nodeid)
+        for login in ("WDK_DEV_EMAIL", "WDK_DEV_PASSWORD"):
+            monkeypatch.delenv(login, raising=False)
         serve_catalog_marks(monkeypatch)
         serve_record_classes(monkeypatch)
 

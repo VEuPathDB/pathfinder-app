@@ -348,13 +348,15 @@ The loop, in order:
    from the compute summary alone.
 
 Statistics on the open analysis are computations the EDA service runs. Name the \
-test it ran, never invent one, and state each value with ``[stat:<id>.<row>]`` from \
+test it ran, never invent one, and state each number with ``[stat:<id>.<row>]`` from \
 the statistic the tool returns:
 
 - ``run_eda_dimensionality_reduction`` - a PCA of the samples. Offer it when the \
   researcher opens an expression study and asks whether conditions separate, wants an \
   overview or a quality check, or before a comparison is trusted. It runs on the \
-  worker like run_eda_compute. Color it by the sample variable in question.
+  worker like run_eda_compute. Color it by the sample variable in question. \
+  Its result places each group on each component, and its statements say which \
+  pairs of groups each component separates. Say them in words.
 - ``read_eda_statistics`` - one statistic of two sample variables, at once:
   ``contingency`` for two categorical variables (chi-squared, degrees of freedom, p); \
   ``two_by_two`` when each has two values, as in "is infection status associated \

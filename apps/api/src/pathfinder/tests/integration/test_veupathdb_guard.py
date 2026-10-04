@@ -1,6 +1,7 @@
 """The integration tier refuses VEuPathDB to a test that is not ``live_wdk``."""
 
 import asyncio
+import os
 import socket
 
 import pytest
@@ -41,6 +42,11 @@ def test_a_host_that_is_no_site_stays_open() -> None:
         socket.create_connection(server.getsockname()) as conn,
     ):
         assert conn.getpeername() == server.getsockname()
+
+
+def test_a_test_that_is_not_live_holds_no_site_login() -> None:
+    """A login in the host environment would sign a mocked debugger run in."""
+    assert [v for v in ("WDK_DEV_EMAIL", "WDK_DEV_PASSWORD") if v in os.environ] == []
 
 
 @pytest.mark.live_wdk

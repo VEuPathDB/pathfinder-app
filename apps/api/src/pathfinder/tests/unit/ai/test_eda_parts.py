@@ -385,6 +385,18 @@ def test_a_pca_series_holds_one_place_per_sample() -> None:
         EdaPcaSeries(label="female", x=[1.0, 2.0], y=[1.0], sample_ids=["S1", "S2"])
 
 
+def test_a_pca_series_holds_at_least_one_sample() -> None:
+    with pytest.raises(ValidationError, match="at least 1 item"):
+        EdaPcaSeries(label="female", x=[], y=[], sample_ids=[])
+
+
+def test_a_pca_coordinate_is_a_finite_number() -> None:
+    with pytest.raises(ValidationError, match="finite number"):
+        EdaPcaSeries.model_validate(
+            {"label": "female", "x": ["NaN"], "y": ["1.5"], "sample_ids": ["S1"]}
+        )
+
+
 def test_a_pca_series_reads_the_service_s_text_coordinates_as_numbers() -> None:
     series = EdaPcaSeries.model_validate(
         {

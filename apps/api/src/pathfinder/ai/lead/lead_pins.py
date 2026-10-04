@@ -299,6 +299,7 @@ def pinned_statistics(ctx: RunContext[LeadDeps]) -> str | None:
             f"  - [stat:{statistic.id}.{row.name}] = {row.value}"
             for row in statistic.rows
         )
+        lines.extend(f"  - {statement}" for statement in statistic.statements)
     return "\n".join(lines)
 
 

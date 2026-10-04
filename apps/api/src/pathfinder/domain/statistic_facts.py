@@ -6,6 +6,8 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable, Iterator, Sequence
+from itertools import combinations
+from statistics import fmean
 from typing import Literal
 
 from assistant_core.graph.tool_summary import count_noun
@@ -15,9 +17,11 @@ from pydantic import ConfigDict, Field
 from pathfinder.domain.eda_parts import (
     EdaBoxplotBox,
     EdaPcaPart,
+    EdaPcaSeries,
     EdaStatisticRow,
     EdaStatisticsPart,
 )
+from pathfinder.domain.strategy.number_precision import significant_number
 
 type StatisticKind = Literal["pca", "two_by_two", "contingency", "boxplot", "trend"]
 
@@ -52,12 +56,18 @@ class StatisticFact(CamelModel):
     kind: StatisticKind
     title: str
     rows: list[StatisticRowFact] = Field(default_factory=list)
+    # What the values show, which a reply says in words and no reference names.
+    statements: list[str] = Field(default_factory=list)
 
     def value(self, name: str) -> str | None:
         return next((row.value for row in self.rows if row.name == name), None)
 
     def lines(self) -> list[str]:
-        return [self.title, *(f"{row.name}: {row.value}" for row in self.rows)]
+        return [
+            self.title,
+            *(f"{row.name}: {row.value}" for row in self.rows),
+            *self.statements,
+        ]
 
     def redacted(self, redact: Callable[[str], str]) -> StatisticFact:
         return self.model_copy(update={"title": redact(self.title)})
@@ -79,8 +89,53 @@ def statistic_references(
                 yield f"[stat:{statistic.id}.{row.name}]"
 
 
+def _span(values: Sequence[float]) -> str:
+    """The lowest and the highest value, or the one value when they are equal."""
+    low, high = significant_number(min(values)), significant_number(max(values))
+    return low if low == high else f"{low} to {high}"
+
+
+def _group_rows(series: EdaPcaSeries) -> Iterator[StatisticRowFact]:
+    """The range and the mean of the group's samples on each component."""
+    for index, values in enumerate(series.places, start=1):
+        yield StatisticRowFact(
+            name=f"{series.label} PC{index} range", value=_span(values)
+        )
+        yield StatisticRowFact(
+            name=f"{series.label} PC{index} mean",
+            value=significant_number(fmean(values)),
+        )
+
+
+def _apart(a: Sequence[float], b: Sequence[float]) -> bool:
+    return max(a) < min(b) or max(b) < min(a)
+
+
+def _separations(part: EdaPcaPart) -> Iterator[str]:
+    """Each pair of groups a component separates, as their ranges on it do not
+    overlap, or that it separates none. A single group has no pair."""
+    pairs = list(combinations(part.series, 2))
+    if not pairs:
+        return
+    for index in range(1, len(part.axes) + 1):
+        apart = [
+            (a, b) for a, b in pairs if _apart(a.places[index - 1], b.places[index - 1])
+        ]
+        if not apart:
+            yield (
+                f"PC{index} separates no pair of groups; every pair's ranges on "
+                f"PC{index} overlap."
+            )
+        for a, b in apart:
+            yield (
+                f"PC{index} separates {a.label} from {b.label}; their ranges on "
+                f"PC{index} do not overlap."
+            )
+
+
 def pca_fact(part: EdaPcaPart) -> StatisticFact:
-    """Each component's share of variance, and what the reduction plotted."""
+    """Each component's share of variance, what the reduction plotted and where
+    each group's samples sit, with the pairs of groups each component separates."""
     return StatisticFact(
         id=part.statistic_id,
         kind="pca",
@@ -96,7 +151,9 @@ def pca_fact(part: EdaPcaPart) -> StatisticFact:
             StatisticRowFact(
                 name="groups", value=count_noun(part.group_count, "group")
             ),
+            *(row for series in part.series for row in _group_rows(series)),
         ],
+        statements=list(_separations(part)),
     )
 
 

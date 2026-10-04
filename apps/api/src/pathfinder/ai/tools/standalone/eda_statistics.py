@@ -34,9 +34,10 @@ from pathfinder.services.eda.statistics import (
 _ESTIMATED_SECONDS = 120
 
 STATISTIC_GUIDANCE = (
-    "State each value with [stat:<id>.<row name>], using the id and the row "
-    "names of the statistic above. Name the test the service ran; the card "
-    "shows the table and every value."
+    "State each number with [stat:<id>.<row name>], using the id and the row "
+    "names of the statistic above. Say a row that holds no number in your own "
+    "words. Name the test the service ran; the card shows the table and every "
+    "value."
 )
 
 
@@ -109,7 +110,11 @@ async def run_eda_dimensionality_reduction(
     The result names the two components with the variance each explains, the
     samples and the groups, under a statistic id. State each with
     ``[stat:<id>.PC1]``, ``[stat:<id>.PC2]``, ``[stat:<id>.samples]`` and
-    ``[stat:<id>.groups]``. Always write ``caption``: one sentence, in the
+    ``[stat:<id>.groups]``. It also places each group on each component:
+    ``[stat:<id>.<group> PC1 range]`` and ``[stat:<id>.<group> PC1 mean]``,
+    and the same for PC2. Its statements say which pairs of groups each
+    component separates, as their ranges on it do not overlap. Say them in
+    your own words. Always write ``caption``: one sentence, in the
     researcher's words, saying what the plot shows.
 
     Args:

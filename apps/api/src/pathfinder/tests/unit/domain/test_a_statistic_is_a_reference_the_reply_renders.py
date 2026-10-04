@@ -72,7 +72,7 @@ def test_a_statistic_id_is_the_same_for_the_same_variables() -> None:
     assert len(statistic_id("trend", ["E.a"])) == len("stat_") + 8
 
 
-def test_a_reduction_is_its_axes_as_the_compute_names_them() -> None:
+def test_a_reduction_is_its_axes_where_each_group_sits_and_what_separates() -> None:
     assert pca_fact(_PCA) == StatisticFact(
         id=_PCA_ID,
         kind="pca",
@@ -82,6 +82,18 @@ def test_a_reduction_is_its_axes_as_the_compute_names_them() -> None:
             StatisticRowFact(name="PC2", value="17.8%"),
             StatisticRowFact(name="samples", value="4 samples"),
             StatisticRowFact(name="groups", value="2 groups"),
+            StatisticRowFact(name="female PC1 range", value="-12.5 to -11"),
+            StatisticRowFact(name="female PC1 mean", value="-11.75"),
+            StatisticRowFact(name="female PC2 range", value="-0.5 to 1.5"),
+            StatisticRowFact(name="female PC2 mean", value="0.5"),
+            StatisticRowFact(name="male PC1 range", value="10 to 13.5"),
+            StatisticRowFact(name="male PC1 mean", value="11.75"),
+            StatisticRowFact(name="male PC2 range", value="-1 to 0.25"),
+            StatisticRowFact(name="male PC2 mean", value="-0.375"),
+        ],
+        statements=[
+            "PC1 separates female from male; their ranges on PC1 do not overlap.",
+            "PC2 separates no pair of groups; every pair's ranges on PC2 overlap.",
         ],
     )
 
@@ -179,3 +191,113 @@ def test_an_axis_without_a_stated_variance_keeps_its_label() -> None:
     )
 
     assert [r.value for r in pca_fact(unlabeled).rows[:2]] == ["PC 1", "17.8%"]
+
+
+_SEXES = _PCA.model_copy(
+    update={
+        "axes": [
+            EdaPcaAxis(variable_id="PC1", display_name="PC 1 (94.26% variance)"),
+            EdaPcaAxis(variable_id="PC2", display_name="PC 2 (3.09% variance)"),
+        ],
+        "series": [
+            EdaPcaSeries(
+                label="Female gametocytes",
+                x=[79.3054615368446, 81.1705703065748, 86.5176389923973],
+                y=[5.91792635563997, 8.22802619966753, -17.0296652427709],
+                sample_ids=["F1", "F2", "F3"],
+            ),
+            EdaPcaSeries(
+                label="Male gametocytes",
+                x=[-79.9466671333113, -70.4438849147234, -96.6031187877825],
+                y=[7.54157414782451, 18.6981295405845, -23.3559910009457],
+                sample_ids=["M1", "M2", "M3"],
+            ),
+        ],
+    }
+)
+
+
+def test_a_reply_states_where_each_group_sits() -> None:
+    facts = TurnFacts(statistics=[pca_fact(_SEXES)])
+    prose = (
+        f"Female samples sit at [stat:{_PCA_ID}.Female gametocytes PC1 range] and "
+        f"male samples at [stat:{_PCA_ID}.Male gametocytes PC1 range] on PC1, which "
+        f"explains [stat:{_PCA_ID}.PC1]."
+    )
+
+    assert prose_faults(prose, facts) == []
+    assert render_reply(prose, facts) == (
+        "Female samples sit at 79.31 to 86.52 and male samples at -96.6 to -70.44 "
+        "on PC1, which explains 94.26%."
+    )
+
+
+def test_what_separates_is_a_statement_no_reference_names() -> None:
+    fact = pca_fact(_SEXES)
+
+    assert fact.statements == [
+        (
+            "PC1 separates Female gametocytes from Male gametocytes; their ranges "
+            "on PC1 do not overlap."
+        ),
+        "PC2 separates no pair of groups; every pair's ranges on PC2 overlap.",
+    ]
+    assert fact.lines()[-2:] == fact.statements
+    assert [r.name for r in fact.rows if "separat" in r.name] == []
+
+
+def test_a_bare_group_position_is_a_fault_that_names_its_reference() -> None:
+    facts = TurnFacts(statistics=[pca_fact(_SEXES)])
+
+    assert prose_faults("Male samples reach -96.6 on PC1.", facts) == [
+        ProseFault(
+            token="96.6",
+            kind="number",
+            references=(f"[stat:{_PCA_ID}.Male gametocytes PC1 range]",),
+        )
+    ]
+
+
+def test_one_group_has_no_pairs_and_one_sample_has_no_span() -> None:
+    alone = _PCA.model_copy(
+        update={
+            "series": [
+                EdaPcaSeries(label="study", x=[2.5], y=[-0.125], sample_ids=["S1"])
+            ]
+        }
+    )
+
+    fact = pca_fact(alone)
+
+    assert [(r.name, r.value) for r in fact.rows[4:]] == [
+        ("study PC1 range", "2.5"),
+        ("study PC1 mean", "2.5"),
+        ("study PC2 range", "-0.125"),
+        ("study PC2 mean", "-0.125"),
+    ]
+    assert fact.statements == []
+
+
+def test_each_pair_a_component_separates_is_a_statement_of_its_own() -> None:
+    three = _PCA.model_copy(
+        update={
+            "series": [
+                EdaPcaSeries(
+                    label="a", x=[0.5, 1.0], y=[0.0, 2.0], sample_ids=["1", "2"]
+                ),
+                EdaPcaSeries(
+                    label="b", x=[5.0, 6.0], y=[1.0, 3.0], sample_ids=["3", "4"]
+                ),
+                EdaPcaSeries(
+                    label="c", x=[9.0, 9.5], y=[0.5, 1.5], sample_ids=["5", "6"]
+                ),
+            ]
+        }
+    )
+
+    assert pca_fact(three).statements == [
+        "PC1 separates a from b; their ranges on PC1 do not overlap.",
+        "PC1 separates a from c; their ranges on PC1 do not overlap.",
+        "PC1 separates b from c; their ranges on PC1 do not overlap.",
+        "PC2 separates no pair of groups; every pair's ranges on PC2 overlap.",
+    ]

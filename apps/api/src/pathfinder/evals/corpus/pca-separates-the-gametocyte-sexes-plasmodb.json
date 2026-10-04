@@ -18,7 +18,16 @@
     "replyMentions": [],
     "replyOmits": [],
     "countsInGenes": null,
-    "turnReplyMentions": {},
+    "turnReplyMentions": {
+      "1": [
+        "PC1"
+      ]
+    },
+    "turnReplyOmits": {
+      "1": [
+        "does not establish"
+      ]
+    },
     "endsOn": "none"
   },
   "provenance": {

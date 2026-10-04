@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0a24"
+    "version": "0.2.0a25"
   },
   "paths": {
     "/health": {
@@ -16075,6 +16075,7 @@
             "items": {
               "type": "string"
             },
+            "minItems": 1,
             "title": "Sampleids",
             "type": "array"
           }
@@ -19026,6 +19027,13 @@
               "$ref": "#/components/schemas/StatisticRowFact"
             },
             "title": "Rows",
+            "type": "array"
+          },
+          "statements": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Statements",
             "type": "array"
           }
         },

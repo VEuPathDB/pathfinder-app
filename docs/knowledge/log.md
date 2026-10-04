@@ -2,6 +2,26 @@
 
 ## 2026-10-04
 
+* **A test that is not live holds no site login.** The integration tier's
+  autouse `no_veupathdb` fixture also clears `WDK_DEV_EMAIL` and
+  `WDK_DEV_PASSWORD`, because a mocked debugger run signs in when they are
+  set; the tier now passes from a shell that holds them, where the `live_wdk`
+  tests run too. The live bind measurements bind through `bind_values` on the
+  published sheet, so a value at the site's initial value is read as at the
+  default, and the study-list test empties the card table before and after it
+  runs.
+
+* **A PCA says where each group sits and what separates.** The PCA statistic
+  holds, for each colored group, its range and its mean on each component as
+  rows a `stat` reference names, and one statement for each pair of groups a
+  component separates, as their ranges on it do not overlap, or that it
+  separates none (`domain/statistic_facts.py::pca_fact`). A statement holds no
+  number and no reference names it, so the reply says it in words
+  (`StatisticFact.statements`, listed by `lead_pins.pinned_statistics`). A
+  statistic's guidance asks for each number as its reference. Each value shows
+  four significant digits (`number_precision.significant_number`). A PCA series
+  holds at least one sample, and every coordinate is a finite number.
+
 * **No route builds strategies in a researcher's account on request.** The seed
   route, its runner and its progress events, the Settings `Seeding` tab, and the
   typed-event stream helpers that only it used (`transport/http/sse_utils.py`,

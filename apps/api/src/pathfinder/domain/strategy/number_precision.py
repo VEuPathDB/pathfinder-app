@@ -1,5 +1,5 @@
-"""The precision a number value shows: the decimals of the parameter's
-published initial value, never more than four significant digits."""
+"""The precision a number shows: a parameter value at the decimals of its
+published initial value, and a computed number at four significant digits."""
 
 from __future__ import annotations
 
@@ -32,6 +32,15 @@ def rounded_number(text: str, decimals: int | None) -> str | None:
     number = Decimal(text)
     if number == number.to_integral_value():
         return text
+    return _written(number, decimals)
+
+
+def significant_number(value: float) -> str:
+    """The number at four significant digits, its whole part in full."""
+    return _written(Decimal(str(value)), None)
+
+
+def _written(number: Decimal, decimals: int | None) -> str:
     significant = max(0, _SIGNIFICANT - 1 - number.adjusted())
     shown = _at(number, significant if decimals is None else min(decimals, significant))
     if shown == 0:
@@ -40,4 +49,4 @@ def rounded_number(text: str, decimals: int | None) -> str | None:
     return written.rstrip("0").rstrip(".") if "." in written else written
 
 
-__all__ = ["rounded_number", "shown_decimals"]
+__all__ = ["rounded_number", "shown_decimals", "significant_number"]

@@ -19,11 +19,18 @@ pytestmark = pytest.mark.asyncio
 __all__ = ["api_client", "eda_wired"]
 
 
+async def _no_cards(db_engine: AsyncEngine) -> None:
+    async with db_engine.begin() as conn:
+        await conn.exec_driver_sql("TRUNCATE TABLE experiment_cards")
+
+
 @pytest.fixture
 async def tritrypdb_holds_the_isolates(
     db_engine: AsyncEngine, patch_app_db_engine: None
 ) -> AsyncGenerator[None]:
+    """The card table holds the isolates card alone while the test runs."""
     del patch_app_db_engine
+    await _no_cards(db_engine)
     card = LEISHMANIA_ISOLATES_CARD
     async with embedding_session() as session:
         session.add(
@@ -35,8 +42,7 @@ async def tritrypdb_holds_the_isolates(
         )
         await session.commit()
     yield
-    async with db_engine.begin() as conn:
-        await conn.exec_driver_sql("TRUNCATE TABLE experiment_cards")
+    await _no_cards(db_engine)
 
 
 async def test_the_browsed_list_labels_each_study_with_its_sites(

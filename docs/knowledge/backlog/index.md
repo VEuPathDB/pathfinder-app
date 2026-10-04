@@ -29,6 +29,7 @@ what left.
 24. [A genus the message names is stated on its species](a-genus-the-message-names-is-stated-on-its-species.md) - "Cryptosporidium" binds as 30 chosen species with a stale took-0-of-0 row; the parent the message names is stated.
 27. [A carry to orthologs is one transform](a-carry-to-orthologs-is-one-transform.md) - "carry these to their orthologs in X" is built as a round trip that keeps the source organism; the words choose the shape.
 28. [A lookup ranks the request's own words first](a-lookup-ranks-the-requests-own-words-first.md) - a capped lookup list hides the entries that carry the request's words behind the pass's synonyms; the library's `read_options` ranks them first.
+29. [A decision model is chosen on our own scorecards](a-decision-model-is-chosen-on-our-own-scorecards.md) - PARKED: Cloudflare's open-weight Clef and Clef-flash take Jev's request shape; the five Jev scorecards are rerun on both, on hosted Workers AI, before any decision model is wired.
 
 ## Known and accepted
 

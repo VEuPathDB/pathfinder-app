@@ -14,9 +14,14 @@ from veupathdb.domain.parameters import (
     StringValue,
 )
 from veupathdb.wdk import phyletic_tree_of
-from veupathdb_mcp.catalog import format_param_info_typed, read_search_definition
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    format_param_info_typed,
+    read_search_definition,
+)
 
 from pathfinder.domain.strategy.operational_spec import BoundValue, ValueSource
+from pathfinder.domain.strategy.value_binding import bind_values
 from pathfinder.services.strategies.measurements import (
     MEASUREMENT_BUDGET_SECONDS,
     MeasuredBinding,
@@ -51,10 +56,16 @@ def registered(require_wdk_creds: str) -> Generator[None]:
 
 
 def _bound(
-    params: dict[str, ParamValue], measured: str, source: ValueSource
+    params: dict[str, ParamValue],
+    measured: str,
+    source: ValueSource,
+    sheet: list[ParameterInfo],
 ) -> dict[str, BoundValue]:
+    """Each value bound on the published sheet, as a turn binds it."""
     return {
-        name: BoundValue(value=value, source=source if name == measured else "stated")
+        name: bind_values(
+            {name: value}, source if name == measured else "stated", sheet
+        )[name]
         for name, value in params.items()
     }
 
@@ -68,6 +79,7 @@ async def _measured(
 ) -> tuple[int | None, list[tuple[str, int | None, str]]]:
     """The bound count, then each measurement as kind, count and reading."""
     definition = await read_search_definition(site_id, "transcript", search_name)
+    sheet = format_param_info_typed(list(definition.parameters or []))
     counts = TurnCounts()
     count = await counts.count(
         site_id,
@@ -87,8 +99,8 @@ async def _measured(
             count=count,
             organism_param=organism_param,
         ),
-        values=_bound(params, measured, "default"),
-        infos=format_param_info_typed(list(definition.parameters or [])),
+        values=_bound(params, measured, "default", sheet),
+        infos=sheet,
         tree=phyletic_tree_of(list(definition.parameters or [])),
     )
     return count, [(m.kind, m.count, m.reading) for m in found]
@@ -204,10 +216,8 @@ async def test_each_pick_is_labelled_from_the_live_vocabulary() -> None:
         "plasmodb", "transcript", PERCENTILE_SEARCH
     )
 
-    labels = vocabulary_labels(
-        _bound(_percentile(), "", "stated"),
-        format_param_info_typed(list(definition.parameters or [])),
-    )
+    sheet = format_param_info_typed(list(definition.parameters or []))
+    labels = vocabulary_labels(_bound(_percentile(), "", "stated", sheet), sheet)
 
     assert {m.param: m.label for m in labels.labels}["protein_coding_only"] == (
         "protein coding"
@@ -268,10 +278,8 @@ async def test_each_phyletic_code_is_labelled_and_counted_live() -> None:
         "plasmodb", "transcript", "GenesByOrthologPattern"
     )
 
-    labels = vocabulary_labels(
-        _bound(params, "", "stated"),
-        format_param_info_typed(list(definition.parameters or [])),
-    )
+    sheet = format_param_info_typed(list(definition.parameters or []))
+    labels = vocabulary_labels(_bound(params, "", "stated", sheet), sheet)
     measured = await _measured(
         "plasmodb", "GenesByOrthologPattern", params, "excluded_species"
     )

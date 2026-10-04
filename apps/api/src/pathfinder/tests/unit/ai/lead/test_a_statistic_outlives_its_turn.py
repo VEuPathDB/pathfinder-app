@@ -23,6 +23,9 @@ _PCA = StatisticFact(
         StatisticRowFact(name="samples", value="12 samples"),
         StatisticRowFact(name="groups", value="3 groups"),
     ],
+    statements=[
+        "PC1 separates no pair of groups; every pair's ranges on PC1 overlap.",
+    ],
 )
 
 
@@ -58,7 +61,8 @@ def test_the_lead_reads_each_statistic_by_its_reference() -> None:
         "  - [stat:stat_1c2d3e4f.PC1] = 54.35%\n"
         "  - [stat:stat_1c2d3e4f.PC2] = 12.79%\n"
         "  - [stat:stat_1c2d3e4f.samples] = 12 samples\n"
-        "  - [stat:stat_1c2d3e4f.groups] = 3 groups"
+        "  - [stat:stat_1c2d3e4f.groups] = 3 groups\n"
+        "  - PC1 separates no pair of groups; every pair's ranges on PC1 overlap."
     )
 
 

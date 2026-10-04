@@ -165,6 +165,25 @@ async def test_the_result_is_the_statistic_the_lead_references(
             {"name": "PC2", "value": "12.79%"},
             {"name": "samples", "value": "12 samples"},
             {"name": "groups", "value": "3 groups"},
+            {"name": "delta-DHC mutant PC1 range", "value": "-45.33 to 37.3"},
+            {"name": "delta-DHC mutant PC1 mean", "value": "-5.847"},
+            {"name": "delta-DHC mutant PC2 range", "value": "-23.49 to -13.23"},
+            {"name": "delta-DHC mutant PC2 mean", "value": "-19.48"},
+            {"name": "delta-LRR5 mutant PC1 range", "value": "-61.44 to 45.46"},
+            {"name": "delta-LRR5 mutant PC1 mean", "value": "-16.44"},
+            {"name": "delta-LRR5 mutant PC2 range", "value": "1.928 to 43.08"},
+            {"name": "delta-LRR5 mutant PC2 mean", "value": "15.27"},
+            {"name": "wildtype PC1 range", "value": "-26.88 to 63.54"},
+            {"name": "wildtype PC1 mean", "value": "22.29"},
+            {"name": "wildtype PC2 range", "value": "-19.3 to 22.75"},
+            {"name": "wildtype PC2 mean", "value": "4.21"},
+        ],
+        "statements": [
+            "PC1 separates no pair of groups; every pair's ranges on PC1 overlap.",
+            (
+                "PC2 separates delta-DHC mutant from delta-LRR5 mutant; their "
+                "ranges on PC2 do not overlap."
+            ),
         ],
     }
 

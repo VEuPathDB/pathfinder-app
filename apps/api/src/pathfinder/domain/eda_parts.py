@@ -6,7 +6,13 @@ import re
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
-from pydantic import Field, JsonValue, model_serializer, model_validator
+from pydantic import (
+    Field,
+    FiniteFloat,
+    JsonValue,
+    model_serializer,
+    model_validator,
+)
 from pydantic_core.core_schema import SerializerFunctionWrapHandler
 from veupathdb.model import CamelModel
 
@@ -247,9 +253,9 @@ class EdaPcaSeries(CamelModel):
     """
 
     label: str
-    x: list[float]
-    y: list[float]
-    sample_ids: list[str]
+    x: list[FiniteFloat]
+    y: list[FiniteFloat]
+    sample_ids: list[str] = Field(min_length=1)
 
     @model_validator(mode="after")
     def _one_place_per_sample(self) -> EdaPcaSeries:
@@ -257,6 +263,11 @@ class EdaPcaSeries(CamelModel):
             msg = "x, y and sample_ids must be the same length"
             raise ValueError(msg)
         return self
+
+    @property
+    def places(self) -> tuple[list[float], list[float]]:
+        """The samples' coordinates on each component, in component order."""
+        return self.x, self.y
 
 
 class EdaPcaPart(CamelModel):
