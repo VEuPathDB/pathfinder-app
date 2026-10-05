@@ -51,14 +51,14 @@ def classify(classification: str) -> ToolCallPart:
 
 
 def narrated(text: str) -> str:
-    """The sentences of ``text`` that write no number, identifier, link or
-    source word, which a reply writes only as a reference."""
+    """The sentences of ``text`` that write no number, identifier or link, which
+    a reply writes only as a reference."""
     sentences = _SENTENCE_END.split(text.strip())
     return " ".join(s for s in sentences if s and not shape_faults(s))
 
 
 def spoken(text: str) -> str:
-    """``text`` with each number, identifier, link and source word taken out."""
+    """``text`` with each number, identifier and link taken out."""
     for fault in shape_faults(text):
         text = re.sub(rf"(?<!\w){re.escape(fault.token)}(?!\w)", "", text)
     return " ".join(text.split())

@@ -1106,3 +1106,25 @@ async def test_a_new_conversation_drops_the_review_of_the_last_one(
     observed = await eval_runner.run_one_case(case, run_root=tmp_path)
 
     assert [observed.requirements] == [None]
+
+
+async def test_a_case_runs_where_no_earlier_run_left_its_events(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """An answer replays the events of its run directory, so none may be stale."""
+    stale = tmp_path / "a-case" / "turn-1" / "answer-1" / "events.jsonl"
+    stale.parent.mkdir(parents=True)
+    stale.write_text('{"type":"text-delta","delta":"an earlier run"}\n')
+    installed = _install(monkeypatch, [{100, 200}, {100, 200}])
+    seen: list[bool] = []
+
+    async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
+        seen.append(stale.exists())
+        return await installed.drive(args)
+
+    monkeypatch.setattr(eval_runner, "drive_run", _drive)
+    await eval_runner.run_one_case(
+        _case("build it", "now change one thing"), run_root=tmp_path
+    )
+
+    assert seen == [False, False]

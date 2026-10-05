@@ -9,6 +9,8 @@ from pathfinder.evals.case import ExpectedOutcome
 from pathfinder.evals.difference import CaseDifference
 
 _SPACING = re.compile(r"[\s-]+")
+# A phrase whose right wordings differ joins them with this mark.
+_OR = " | "
 # A phrase a reply must carry counts where the facts part shows it; a phrase it
 # must omit is a claim of the prose, so the facts part is not read.
 _MENTIONS_READ = "the facts part and the reply"
@@ -43,12 +45,17 @@ def _phrase_form(text: str) -> str:
     return _SPACING.sub(" ", text.casefold())
 
 
+def _shows(phrase: str, read: str) -> bool:
+    """Whether the read text holds the phrase, or any wording it joins with ``_OR``."""
+    return any(_phrase_form(wording) in read for wording in phrase.split(_OR))
+
+
 def _phrase_check(
     field: str, phrases: list[str], text: str, *, omits: bool
 ) -> list[CaseDifference]:
     """The phrases *text* lacks, or holds when *omits*, as one difference."""
     read = _phrase_form(text)
-    wrong = [p for p in phrases if (_phrase_form(p) in read) == omits]
+    wrong = [p for p in phrases if _shows(p, read) == omits]
     if not wrong:
         return []
     return [

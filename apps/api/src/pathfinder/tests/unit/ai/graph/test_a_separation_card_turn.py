@@ -121,7 +121,7 @@ async def test_no_ends_the_turn_without_a_model_call_and_keeps_the_offer(
 
     offer = recorded_offer()
     assert len(calls) == 1
-    assert final_reply(capture, None, changed=False) is None
+    assert final_reply(capture, None, change="unchanged") is None
     assert deps.state.domain.separation_offers == {str(TASK_ID): offer}
     declined = deps.state.domain.declined_proposal
     assert declined is not None

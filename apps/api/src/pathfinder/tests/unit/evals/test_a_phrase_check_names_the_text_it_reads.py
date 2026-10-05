@@ -87,3 +87,29 @@ def test_each_phrase_difference_names_the_text_it_read() -> None:
             read="the reply",
         ),
     ]
+
+
+def test_a_phrase_of_alternatives_holds_when_any_of_them_is_shown() -> None:
+    """Two right wordings of one fact are one phrase: either one satisfies it."""
+    held = _case(
+        ExpectedOutcome(
+            builds_strategy=True,
+            turn_reply_mentions={1: ["minimum | at least 10 reads"]},
+        )
+    )
+    lacking = _case(
+        ExpectedOutcome(
+            builds_strategy=True,
+            turn_reply_mentions={1: ["minimum | at most 10 reads"]},
+        )
+    )
+    omitted = _case(
+        ExpectedOutcome(
+            builds_strategy=True,
+            turn_reply_omits={1: ["maximum | at least 10 reads"]},
+        )
+    )
+
+    assert [
+        score_case(case, _observed()).passed for case in (held, lacking, omitted)
+    ] == [True, False, False]

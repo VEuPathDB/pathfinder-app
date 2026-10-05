@@ -1,12 +1,12 @@
 {
   "name": "an-assent-to-build-builds",
   "turns": [
-    "I'm investigating stage-specific expression in Plasmodium falciparum.",
+    "I'm investigating stage-specific expression in Plasmodium falciparum. Suggest one site search for genes with high gametocyte expression, but don't build anything yet.",
     "Yes, go ahead and build it."
   ],
   "siteId": "plasmodb",
   "assistantId": "pathfinder",
-  "rationale": "Assent to the assistant's own offer is a request to build. Such an assent is not a question: the turn keeps the building tools and does not answer that the step is unavailable. This is the counterpart of question-turns-do-not-build: the first turn's offer is left open, and the next message that says yes must persist a strategy AST.",
+  "rationale": "Assent to the assistant's own offer is a request to build. Such an assent is not a question: the turn keeps the building tools and does not answer that the step is unavailable. This is the counterpart of question-turns-do-not-build: the first turn asks for one site search and no build, so its offer is left open, the next message that says yes must persist a strategy AST, and a design card that turn raises is answered with its recommendation.",
   "expected": {
     "buildsStrategy": true,
     "structure": null,
@@ -30,6 +30,6 @@
     "curatorNote": "The first turn's offer is left unanswered; the second turn's words decide the build."
   },
   "gates": {
-    "policy": "leave"
+    "policy": "auto"
   }
 }

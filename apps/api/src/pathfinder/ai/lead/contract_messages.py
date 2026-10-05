@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from assistant_core.graph.tool_summary import count_noun
 
 from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
+from pathfinder.ai.lead.edit_messages import recut_call
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.reply_references import ProseFault
@@ -329,12 +330,6 @@ def _fault_sentence(fault: ProseFault) -> str:
     placed = _placement_sentence(fault)
     if placed is not None:
         return placed
-    if fault.kind == "source_word" and fault.references:
-        written = " or ".join(f"``{r}``" for r in fault.references)
-        return (
-            f"``{fault.token}``: put {written} in place of the word, which renders "
-            "who set the value, or take the word out."
-        )
     if fault.references:
         written = " or ".join(f"``{r}``" for r in fault.references)
         return f"``{fault.token}``: write {written}, which renders it."
@@ -359,20 +354,41 @@ def failed_check_message(reason: str) -> str:
     )
 
 
-def unmade_change_message(withdrawn: Sequence[str], stated: Sequence[str]) -> str:
-    """Why an edit turn that made no change, raised no card and stated no reason is refused."""
+def _named(values: Sequence[str]) -> str:
+    return ", ".join(f"'{value}'" for value in values)
+
+
+def unmade_change_message(
+    withdrawn: Sequence[str], stated: Sequence[str], exports: Sequence[str]
+) -> str:
+    """Why an edit turn that made no change, raised no card and stated no reason is refused.
+
+    A withdrawal with no value stated is a removal; with values stated it is a
+    replacement, which an edit or the recut of an analysis export makes.
+    """
+    if withdrawn and not stated:
+        them = "it" if len(withdrawn) == 1 else "them"
+        return (
+            f"The message asks to remove {_named(withdrawn)} and this turn made no "
+            f"change and raised no card: remove {them} through delete_step, or say "
+            f"in the reply why {them} cannot be removed."
+        )
     if withdrawn:
-        values, ask, act, how = withdrawn, "to remove", "remove", "delete_step"
-        done = "removed"
+        ask = f"to replace {_named(withdrawn)} with {_named(stated)}"
+        change = "the change"
     else:
-        values, ask, act, how = stated, "for", "make", "edit_strategy"
-        done = "made"
-    named = ", ".join(f"'{value}'" for value in values)
-    them = "it" if len(values) == 1 else "them"
+        ask = f"for {_named(stated)}"
+        change = "it" if len(stated) == 1 else "them"
+    how = (
+        f"edit_strategy, or through {recut_call(exports)} for a change to an "
+        "analysis export's cut, which needs no card"
+        if exports
+        else "edit_strategy"
+    )
     return (
-        f"The message asks {ask} {named} and this turn made no change and raised "
-        f"no card: {act} {them} through {how}, or say in the reply why {them} "
-        f"cannot be {done}."
+        f"The message asks {ask} and this turn made no change and raised no card: "
+        f"make {change} through {how}, or say in the reply why {change} cannot be "
+        "made."
     )
 
 

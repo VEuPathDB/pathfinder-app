@@ -280,7 +280,9 @@ def _unmade_change(report: LeadResponse, record: TurnRecord) -> str | None:
         return None
     if all(denies(report.prose, value) for value in asked):
         return None
-    return unmade_change_message(record.withdrawn_values, record.stated_values)
+    return unmade_change_message(
+        record.withdrawn_values, record.stated_values, record.export_step_ids
+    )
 
 
 def _unbacked_absence(report: LeadResponse, record: TurnRecord) -> str | None:

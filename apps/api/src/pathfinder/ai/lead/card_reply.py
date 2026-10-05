@@ -22,8 +22,8 @@ CITABLE_RECORDS = (
     "records the conversation showed last"
 )
 REPLY_REFERENCES = (
-    "It writes no number, identifier, link or source word itself: each fact is "
-    "a reference the product renders from the facts beside the reply. "
+    "It writes no number, identifier or link itself: each fact is a "
+    "reference the product renders from the facts beside the reply. "
     "[count:<step_id>] a step's count, [before:<step_id>] its count before this "
     "turn's edit, [root] and [root_before] the result's, [last_change:before] "
     "and [last_change:after] the result's before and after the strategy's most "

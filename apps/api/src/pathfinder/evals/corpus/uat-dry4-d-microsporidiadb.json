@@ -6,7 +6,7 @@
   ],
   "siteId": "microsporidiadb",
   "assistantId": "pathfinder",
-  "rationale": "A count question is answered with its count: the signal peptide step holds 66 genes and the result 9, so the reply may say the ortholog filter removes 57, and it never answers with no number.",
+  "rationale": "A count question on a step a filter leaves out: without the ortholog filter the signal peptide step holds 66 genes and the result 9, and the facts part beside the reply shows the 66.",
   "expected": {
     "buildsStrategy": true,
     "structure": "(GenesWithSignalPeptide INTERSECT GenesByOrthologPattern)",
@@ -28,7 +28,7 @@
     "unexpressedRequirements": null,
     "turnReplyMentions": {
       "1": [
-        "57"
+        "66 genes"
       ]
     },
     "turnReplyOmits": {

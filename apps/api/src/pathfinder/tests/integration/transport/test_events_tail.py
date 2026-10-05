@@ -6,6 +6,7 @@ import asyncio
 from uuid import UUID, uuid4
 
 import httpx
+import pytest
 from assistant_core.conversation.event_writer import ChatEventWriter
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
 from assistant_core.graph.stream_events import turn_status_event
@@ -13,12 +14,15 @@ from assistant_core.persistence.models import Conversation
 from assistant_core.platform import db
 from assistant_core.tasks.chat_turn import defer_chat_turn
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.jobs.app import procrastinate_app
+from pathfinder.services.conversations.turn_liveness import turn_is_in_flight
 from pathfinder.tests._support.worker_heartbeat import (
     clear_workers,
     insert_worker_heartbeat,
 )
+from pathfinder.transport.http.routers.conversations import events
 
 _TAIL_CEILING_SECONDS = 10.0
 
@@ -82,11 +86,25 @@ async def _tail(
 async def _tail_until_done(
     api_client: httpx.AsyncClient,
     writer: ChatEventWriter,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> httpx.Response:
-    """Tail the thread while a second task terminates the turn."""
+    """Tail the thread, and terminate the turn once the tail has decided that
+    the turn is in flight."""
+    decided = asyncio.Event()
+
+    async def _deciding(
+        session: AsyncSession, *, conversation_id: UUID, user_id: UUID
+    ) -> bool:
+        in_flight = await turn_is_in_flight(
+            session, conversation_id=conversation_id, user_id=user_id
+        )
+        decided.set()
+        return in_flight
+
+    monkeypatch.setattr(events, "turn_is_in_flight", _deciding)
 
     async def _finish() -> None:
-        await asyncio.sleep(0.3)
+        await asyncio.wait_for(decided.wait(), timeout=_TAIL_CEILING_SECONDS)
         await writer.write({"type": "done"})
 
     finisher = asyncio.create_task(_finish())
@@ -136,6 +154,7 @@ async def test_a_tail_streams_while_the_turns_job_waits(
     patch_app_db_engine: None,
     api_client: httpx.AsyncClient,
     conversation: Conversation,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The same open log streams while its chat turn is still queued."""
     del patch_app_db_engine
@@ -145,7 +164,7 @@ async def test_a_tail_streams_while_the_turns_job_waits(
 
     async with procrastinate_app.open_async():
         await _queue_turn_job(writer)
-        response = await _tail_until_done(api_client, writer)
+        response = await _tail_until_done(api_client, writer, monkeypatch)
 
     await clear_workers()
     assert response.status_code == 200
@@ -156,6 +175,7 @@ async def test_a_tail_streams_while_the_turns_job_runs(
     patch_app_db_engine: None,
     api_client: httpx.AsyncClient,
     conversation: Conversation,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A job a live worker has taken streams too, not only a queued one."""
     del patch_app_db_engine
@@ -166,7 +186,7 @@ async def test_a_tail_streams_while_the_turns_job_runs(
     async with procrastinate_app.open_async():
         await _queue_turn_job(writer)
         await _take_job(conversation.id)
-        response = await _tail_until_done(api_client, writer)
+        response = await _tail_until_done(api_client, writer, monkeypatch)
 
     await clear_workers()
     assert response.status_code == 200

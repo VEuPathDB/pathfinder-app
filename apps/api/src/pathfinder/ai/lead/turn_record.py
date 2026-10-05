@@ -32,6 +32,7 @@ from pathfinder.domain.strategy.build_outcome import BuildOutcome
 from pathfinder.domain.strategy.operational_spec import Criterion, pending_analyses
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.services.eda.export import open_analysis_exports
 
 # The tools the Lead calls to do the turn's work. ``build_strategy`` runs no
 # sub-agent, and an accepted offer runs an edit or a build; each is refused the
@@ -76,6 +77,8 @@ class TurnRecord(CamelModel):
     # The values an accepted edit classification takes back and states.
     withdrawn_values: tuple[str, ...] = ()
     stated_values: tuple[str, ...] = ()
+    # The steps of the strategy that hold an analysis export.
+    export_step_ids: tuple[str, ...] = ()
     # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
     looked_up_the_catalog: bool = False
 
@@ -152,6 +155,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     classified = turn_is_classified(deps)
     ledger = derive_ledger(deps.state, deps.intent)
     withdrawn, stated = _edit_values(deps)
+    graph = deps.runtime.strategy_session.get_graph(None)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
         build_unverified=markers.build_unverified,
@@ -176,5 +180,8 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         else None,
         withdrawn_values=withdrawn,
         stated_values=stated,
+        export_step_ids=tuple(
+            open_analysis_exports(graph, deps.state.domain.open_eda_analysis)
+        ),
         looked_up_the_catalog=markers.catalog_looked_up,
     )

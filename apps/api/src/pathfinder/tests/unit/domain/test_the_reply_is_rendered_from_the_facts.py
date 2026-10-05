@@ -264,24 +264,14 @@ def test_a_link_outside_a_reference_names_its_reference() -> None:
     ]
 
 
-def test_a_source_word_outside_a_reference_names_the_rows_it_could_mean() -> None:
-    faults = prose_faults(
-        "The pattern is the default, and the organism is what you asked for.",
-        _MICRO,
+def test_who_set_a_value_is_prose_the_reply_may_write() -> None:
+    prose = (
+        "The pattern is the default, and the organism is what you asked for. "
+        "Every gene in that step falls within the stated domain range, and a "
+        "control test would show whether the chosen searches recover them."
     )
 
-    assert faults == [
-        ProseFault(
-            token="default",
-            kind="source_word",
-            references=("[source:step_orth.phyletic_indicator]",),
-        ),
-        ProseFault(
-            token="you asked",
-            kind="source_word",
-            references=("[source:step_sp.organism]",),
-        ),
-    ]
+    assert prose_faults(prose, _MICRO) == []
 
 
 def test_prose_that_writes_every_fact_by_reference_holds_no_fault() -> None:

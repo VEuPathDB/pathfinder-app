@@ -11,7 +11,7 @@ from veupathdb.domain.strategy import CombineOp
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import EditDelta
-from pathfinder.ai.lead.edit_messages import edit_work_order
+from pathfinder.ai.lead.edit_messages import EditMessage, edit_work_order
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
@@ -185,11 +185,10 @@ def test_an_edit_order_with_no_answer_names_no_question() -> None:
     spec = built_spec()
     order = edit_work_order(
         "swap the organism",
-        "use P. vivax",
+        EditMessage(prompt="use P. vivax"),
         spec,
         pending=SpecDiff(),
         answered=spec,
-        answer=None,
     )
 
     assert order.splitlines()[:3] == [

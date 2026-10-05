@@ -1,5 +1,5 @@
 """The reply of every arc is one the real turn contract accepts: it writes no
-number, identifier, link or source word outside a reference. A check of a
+number, identifier or link outside a reference. A check of a
 built thread is accepted as a turn that wrote nothing."""
 
 from __future__ import annotations

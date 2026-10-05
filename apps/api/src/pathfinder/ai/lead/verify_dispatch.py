@@ -180,7 +180,8 @@ async def run_verification(
     """Run verification and record its digest, on a fresh or a resumed dispatch."""
     markers = deps.state.turn_markers
     markers.verification_dispatched = True
-    markers.verification_stopped = False
+    # A check counts as stopped until its digest is recorded.
+    markers.verification_stopped = True
     agent_deps = agent_deps_for(deps)
     scope = verification_scope(deps, check_id=parent_tool_call_id)
     agent_deps.verification_scope = scope
@@ -217,7 +218,6 @@ async def run_verification(
         return delta
     apply_agent_state(deps, agent_deps)
     if delta is None:
-        markers.verification_stopped = True
         return verification_stopped(deps.last_phase_stop)
     graph = deps.runtime.strategy_session.get_graph(None)
     # The pending checks are the strategy's to state, never the checker's.
@@ -250,7 +250,8 @@ async def run_verification(
     )
     revision = strategy_revision(live_tree(graph))
     deps.state.domain.record_verdict(digest, revision=revision)
-    deps.state.turn_markers.verified = digest.passed
+    markers.verification_stopped = False
+    markers.verified = digest.passed
     await publish_evidence_card(
         deps,
         check_id=parent_tool_call_id,

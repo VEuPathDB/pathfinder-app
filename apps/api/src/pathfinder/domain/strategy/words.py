@@ -117,7 +117,8 @@ _NUMERALS = {
 _ORDINAL = re.compile(r"(\d+)(?:st|nd|rd|th)")
 
 
-def _numeral(word: str) -> str:
+def numeral(word: str) -> str:
+    """The digits a number word or an ordinal reads as, else the word itself."""
     ordinal = _ORDINAL.fullmatch(word)
     return ordinal.group(1) if ordinal else _NUMERALS.get(word, word)
 
@@ -126,9 +127,9 @@ def whole_run_of(prose: str, phrase: str) -> str:
     """The run of the prose that holds every word of the phrase in order, in the
     prose's own spelling. A number word or an ordinal reads as its digits. Empty
     when no run holds the whole phrase."""
-    wanted = [_numeral(word) for word in words_of(phrase)]
+    wanted = [numeral(word) for word in words_of(phrase)]
     tokens = list(WORD.finditer(prose))
-    held = [_numeral(token.group().casefold()) for token in tokens]
+    held = [numeral(token.group().casefold()) for token in tokens]
     size = len(wanted)
     start = next(
         (
@@ -153,6 +154,7 @@ __all__ = [
     "FILLER_WORDS",
     "WORD",
     "names_a_run_of",
+    "numeral",
     "spelled_words",
     "stated_run_of",
     "whole_run_of",

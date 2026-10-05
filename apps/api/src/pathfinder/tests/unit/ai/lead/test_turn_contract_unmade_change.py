@@ -74,10 +74,11 @@ def test_the_same_edit_that_ends_on_a_delete_card_stands() -> None:
 
 
 def test_a_follow_up_question_that_changes_nothing_stands() -> None:
+    """A question's stated value is no change the turn owes."""
     question = UserIntent(
         classification=IntentClassification.FOLLOW_UP_QUESTION,
         inferred_goal="Report the count.",
-        withdrawn=[_HYPHAL],
+        explicit_constraints=[_HYPHAL],
     )
 
     assert _found(_deps(question), _CHANGED_NOTHING) == []

@@ -68,6 +68,7 @@ from pathfinder.ai.graph._lead_stops import (
     final_reply,
     guard_stop_of,
     stop_response,
+    strategy_change,
 )
 from pathfinder.ai.graph._lead_turn import (
     TurnResumption,
@@ -383,9 +384,7 @@ async def _run_lead_turn(
     )
 
     capture.response = final_reply(
-        capture,
-        deps.unanswered_stage,
-        changed=deps.state.turn_markers.changed_strategy,
+        capture, deps.unanswered_stage, change=strategy_change(deps.state)
     )
 
     if capture.response is not None:

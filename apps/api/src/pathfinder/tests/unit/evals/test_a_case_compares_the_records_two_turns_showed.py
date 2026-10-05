@@ -1,6 +1,6 @@
 """A case can name a turn that must show the records an earlier turn showed, and
-the runner keeps the record ids every turn showed: those its facts list and read,
-then those its reply links."""
+the runner keeps the record ids every turn gave as its answer: those its reply
+links, else those its facts list."""
 
 from __future__ import annotations
 
@@ -145,8 +145,8 @@ def _linked(*ids: str) -> str:
         pytest.param(
             [_listed(*_SAMPLE), _listed()],
             [_linked(*_SAMPLE[:2]), _linked(*_SAMPLE)],
-            [_SAMPLE, _SAMPLE],
-            id="a later reply links the records it did not list",
+            [_SAMPLE[:2], _SAMPLE],
+            id="a reply that links records answers with the records it links",
         ),
         pytest.param(
             [_checked(*_SAMPLE), _listed()],

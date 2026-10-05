@@ -164,7 +164,7 @@ async def test_no_ends_the_turn_without_a_model_call(
     assert edits == []
     assert capture.parked_call_answered is True
     assert capture.pending_approval is None
-    assert final_reply(capture, None, changed=False) is None
+    assert final_reply(capture, None, change="unchanged") is None
     assert deps.state.domain.declined_proposal == DeclinedProposal(
         question=QUESTION, proposed_changes=CHANGES, note="Not now."
     )

@@ -24,6 +24,7 @@ from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
+    edit_message,
     record_the_spec_the_dispatch_found,
     refuse_and_restore,
     refuse_without_retry,
@@ -78,6 +79,7 @@ from pathfinder.domain.strategy.spec_to_operations import (
     operations_for,
 )
 from pathfinder.domain.strategy.step_words import added_searches
+from pathfinder.services.eda.export import open_analysis_exports
 from pathfinder.services.strategies.commit import (
     apply_operations_and_commit,
 )
@@ -120,12 +122,7 @@ async def run_edit(
         deps=deps,
         parent_tool_call_id=parent_tool_call_id,
         work_order=edit_work_order(
-            reason,
-            deps.state.user_prompt,
-            found,
-            pending=pending,
-            answered=answered,
-            answer=deps.state.turn_markers.answered,
+            reason, edit_message(deps), found, pending=pending, answered=answered
         ),
         expected_criteria=len(found.criteria),
         resume=resume,
@@ -261,12 +258,11 @@ async def _push_the_edit(
         refuse_without_retry(deps, undo_moves_nothing_message())
     if not ops:
         the_strategy_now_answers_to(deps.state, after, graph)
-        exports = sorted(
-            s for s in graph.steps if graph.analysis_kind_of(s) is not None
-        )
         return EditDelta(
             diff=diff,
-            description=edit_moves_nothing_message(exports),
+            description=edit_moves_nothing_message(
+                open_analysis_exports(graph, deps.state.domain.open_eda_analysis)
+            ),
             preserved_step_ids=preserved,
         )
     current = strategy_revision(graph.to_strategy_ast())

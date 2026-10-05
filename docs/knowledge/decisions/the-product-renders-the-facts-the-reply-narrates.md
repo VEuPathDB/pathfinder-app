@@ -107,8 +107,7 @@ line is the list's mark only when it is 1 or follows the item number before it),
 identifier shape (`domain/scratchpad_facts.hard_facts` gene ids and search names such as
 `PF3D7_0908300`, `PKNH_1234500`, `TGME49_233460`, `LmjF.36.0010`; `_AN_ACCESSION`, the Pfam,
 InterPro and Ensembl accessions; a snake_case, colon-joined or uuid token, so a GO term and a
-step id), a link, a
-source word ("default", "chosen", "stated", "you asked"), a reference that names nothing
+step id), a link, a reference that names nothing
 the facts hold, and a bracket outside a reference that nests, opens with a reference's name
 (`[count:]`, `[URL]`) or is never closed. A bracketed word that names no reference (`[mock]`)
 is prose and renders as written. A name that mixes letters and digits in neither shape is
@@ -129,8 +128,8 @@ next after a count reference, or after only continuation words ("more", "fewer",
 "matching"), is refused, since the reference renders with its
 noun. Elsewhere a small count of steps in words is structure. Its correction
 (`contract_messages.unrendered_prose_message`) names each token with the references that
-render it: a count, a difference of two counts, a comparison count, a value, a record, the link
-or the source of a row; a number that a read record's product holds names that record's
+render it: a count, a difference of two counts, a comparison count, a value, a record or the
+link; a number that a read record's product holds names that record's
 `[record:]`, which renders the product. It is refused on every answer and takes no part in
 the one correction the other rules share (`to_correct`). Every card's reply of a response is
 read whole (`to_correct(..., replies)`), so no reply is rendered that the check did not read. The
@@ -172,6 +171,15 @@ thing left to check is whether the prose writes a fact itself.
   and record-text rules). Its tokens were guessed from shapes, so a thousands separator, a unit,
   an ordinal, a hyphen, a record's own words and a question's options each needed a rule, and a
   true count outside the held set was refused.
+- **Refusing a source word outside a reference.** The check once refused "default", "chosen",
+  "stated" and "you asked" anywhere in the prose and offered the `[source:]` references of the
+  rows of that source. Who set each value is a fact the facts part shows on its row, and
+  `[source:]` renders it; the four words are ordinary English, so the rule refused true
+  sentences ("the site's default SignalP-6.0") and words that state no source ("the chosen
+  searches"), and a correction that offers a reference to put in place of an adjective does not
+  converge. Measured over 2,607 replies: 251 were sent back for a source word, 229 of the 278
+  words matched a value of that source, and 13 of the 14 turns that ran out of output retries
+  ran out on it, the same correction three times.
 - **Widening the prose guard to accept differences and comparison counts.** Another rule on
   prose, with the same false-positive shape.
 - **A validation context on the output type.** The check needs the turn's facts, which only the

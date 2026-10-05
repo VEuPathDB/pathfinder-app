@@ -132,25 +132,6 @@ def test_the_correction_names_the_token_and_the_reference() -> None:
     ]
 
 
-def test_a_source_word_is_replaced_by_its_reference_or_taken_out() -> None:
-    message = unrendered_prose_message(
-        [
-            ProseFault(
-                token="stated",
-                kind="source_word",
-                references=("[source:step_a.text_expression]",),
-            )
-        ]
-    )
-
-    assert message.splitlines()[1:] == [
-        (
-            "- ``stated``: put ``[source:step_a.text_expression]`` in place of the "
-            "word, which renders who set the value, or take the word out."
-        ),
-    ]
-
-
 def test_the_correction_says_a_malformed_reference_is_no_reference() -> None:
     message = unrendered_prose_message(
         [ProseFault(token="[count:]", kind="malformed_reference")]

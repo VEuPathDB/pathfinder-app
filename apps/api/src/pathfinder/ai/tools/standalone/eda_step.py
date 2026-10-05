@@ -25,6 +25,7 @@ from pathfinder.ai.tools.standalone._eda_step_criterion import (
 from pathfinder.ai.tools.standalone._eda_step_cut import VolcanoAsk, the_cut
 from pathfinder.ai.tools.standalone._eda_step_guard import (
     compared_groups,
+    refuse_a_recut_of_another_dataset,
     refuse_half_a_cut,
 )
 from pathfinder.ai.tools.standalone._eda_step_spec import (
@@ -262,8 +263,12 @@ async def create_eda_step(
     Set ``replace_step_id`` to put the export in the place of a step the
     strategy already holds: it takes that step's slot in its parent combine, or
     becomes the root when it replaces the root, and the replaced subtree leaves
-    the strategy. Use it for a step this analysis states better. It never
-    travels with ``attach_to_step_id`` or ``slot``, which name another target.
+    the strategy. Use it to recut an export of the open analysis: new
+    thresholds or a new direction read the completed compute again, and new
+    groups run ``run_eda_compute`` first. That recut is the change the
+    researcher asked for, so it needs no card. Use it also for a step this
+    analysis states better. It never travels with ``attach_to_step_id`` or
+    ``slot``, which name another target.
 
     Set ``combine_with_root`` to join the export to the strategy the researcher
     already has: the export is added and a new combine over the old root and
@@ -316,6 +321,8 @@ async def create_eda_step(
 
     session = ctx.deps.runtime.strategy_session
     graph = _the_graph(session)
+    if replace_step_id is not None:
+        refuse_a_recut_of_another_dataset(graph, replace_step_id, binding.dataset_id)
     root_before = graph.primary_root_id()
     spec = ctx.deps.state.domain.operational_spec
     waiting = export_placement(

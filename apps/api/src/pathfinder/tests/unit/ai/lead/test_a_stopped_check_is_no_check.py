@@ -144,3 +144,27 @@ def test_the_dispatch_card_of_a_stopped_check_says_it_stopped(serialized: bool) 
     assert _summarize_sub_agent_result("verify_strategy", part) == (
         "Stopped past its call budget for read_gene_record"
     )
+
+
+class _CheckRaisedError(Exception):
+    """A failure of the check before it returns its digest."""
+
+
+async def test_a_check_that_raises_leaves_the_turn_unchecked(
+    monkeypatch: pytest.MonkeyPatch, collector: ChunkCollector
+) -> None:
+    """An earlier verdict on the same strategy is not this turn's finding."""
+    del collector
+    state, session = _checked_earlier()
+    deps = lead_deps(state, strategy_session=session)
+
+    async def raises(**_kwargs: object) -> VerificationDelta | None:
+        raise _CheckRaisedError
+
+    monkeypatch.setattr(verify_dispatch, "stream_sub_agent", raises)
+    with pytest.raises(_CheckRaisedError):
+        await run_verification(
+            deps=deps, parent_tool_call_id="call_verify", reason="check the strategy"
+        )
+
+    assert (state.turn_verdict, state.checked_verdict) == (_EARLIER, None)

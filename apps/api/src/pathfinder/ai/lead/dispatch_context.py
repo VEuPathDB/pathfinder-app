@@ -16,6 +16,7 @@ from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.edit_messages import EditMessage
 from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, SubAgentDurablePark
@@ -46,6 +47,22 @@ def framing_goal(state: PipelineState) -> str:
     if not latest:
         return original
     return f"{original}\n\nThe user then clarified: {latest}"
+
+
+def message_asks(deps: LeadDeps) -> list[str]:
+    """The parts of this turn's message the Lead answers; none is a requirement."""
+    if deps.intent is None:
+        return []
+    return [ask.text for ask in deps.intent.researcher_asks(deps.state.user_prompt)]
+
+
+def edit_message(deps: LeadDeps) -> EditMessage:
+    """The message this turn's edit pass answers."""
+    return EditMessage(
+        prompt=deps.state.user_prompt,
+        asks=tuple(message_asks(deps)),
+        answer=deps.state.turn_markers.answered,
+    )
 
 
 def agent_deps_for(deps: LeadDeps) -> AgentDeps:

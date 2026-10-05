@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.strategy.words import (
     FILLER_WORDS,
     WORD,
+    numeral,
     whole_run_of,
     words_of,
 )
@@ -220,15 +221,22 @@ def stated_by_labels(
     return ""
 
 
-def _stem(word: str) -> str:
-    return word.removesuffix("s")
+def _reading(word: str) -> str:
+    """A word as the gate compares it: a number word as its digits, a plural as
+    its singular."""
+    return numeral(word).removesuffix("s")
+
+
+# The words the gate looks past beside a value: filler, and "at", which names no
+# parameter although a display name such as "Start at" holds it.
+_PASSED_OVER = FILLER_WORDS | {"at"}
 
 
 def _beside(words: list[str], at: int, step: int) -> str:
-    """The first word that is not filler from ``at`` in the direction of
-    ``step``, else empty."""
+    """The first word the gate does not look past from ``at`` in the direction
+    of ``step``, else empty."""
     k = at + step
-    while 0 <= k < len(words) and words[k] in FILLER_WORDS:
+    while 0 <= k < len(words) and words[k] in _PASSED_OVER:
         k += step
     return words[k] if 0 <= k < len(words) else ""
 
@@ -238,14 +246,14 @@ def _names_the_parameter(
 ) -> bool:
     """Whether a message writes one of the shown words beside a word of the
     parameter's display name that is none of them."""
-    own = {_stem(word) for text in shown for word in words_of(text)}
-    named = {_stem(word) for word in words_of(display_name)} - own - {""}
+    own = {_reading(word) for text in shown for word in words_of(text)}
+    named = {_reading(word) for word in words_of(display_name)} - own - {""}
     for message in request_texts:
         words = words_of(message)
         for at, word in enumerate(words):
-            if _stem(word) in own and (
-                _stem(_beside(words, at, -1)) in named
-                or _stem(_beside(words, at, 1)) in named
+            if _reading(word) in own and (
+                _reading(_beside(words, at, -1)) in named
+                or _reading(_beside(words, at, 1)) in named
             ):
                 return True
     return False

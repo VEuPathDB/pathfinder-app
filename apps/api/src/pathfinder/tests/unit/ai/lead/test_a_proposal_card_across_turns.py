@@ -160,7 +160,7 @@ async def test_no_leaves_the_strategy_and_the_reply_untouched(
     assert ended is True
     assert thread.committed == []
     assert thread.facts() == before
-    assert final_reply(capture, None, changed=False) is None
+    assert final_reply(capture, None, change="unchanged") is None
     assert [p["chunk"]["type"] for p in written] == [
         "tool-input-start",
         "tool-input-available",

@@ -77,6 +77,19 @@ def stop_heading(stop: PhaseStop) -> str:
     return f"the previous pass {stop_phrase(stop)}"
 
 
+def asks_lines(asks: Sequence[str]) -> list[str]:
+    """The line that tells a pass which parts of the message the Lead answers."""
+    if not asks:
+        return []
+    named = "; ".join(f"'{ask}'" for ask in asks)
+    return [
+        (
+            f"The Lead answers the message's asks after this pass: {named}. An ask "
+            "states no requirement, so no criterion and no `unstated` entry holds one."
+        )
+    ]
+
+
 def refusal_lines(stop: PhaseStop) -> list[str]:
     """The refusal that stopped the pass, which its continuation answers first."""
     if not stop.refusal:
@@ -84,7 +97,9 @@ def refusal_lines(stop: PhaseStop) -> list[str]:
     return [f"{stop.tool_name} answered: {stop.refusal} Answer that on the first call."]
 
 
-def stopped_pass_work_order(spec: OperationalSpec, prompt: str, stop: PhaseStop) -> str:
+def stopped_pass_work_order(
+    spec: OperationalSpec, prompt: str, stop: PhaseStop, *, asks: Sequence[str]
+) -> str:
     """The order for a pass that continues a draft a stopped pass bound.
 
     The bound criteria are printed so the pass spends its calls on the rest
@@ -95,6 +110,7 @@ def stopped_pass_work_order(spec: OperationalSpec, prompt: str, stop: PhaseStop)
         f"FRAME work order: {stop_heading(stop)}. {_CONTINUE}",
         *refusal_lines(stop),
         f"User's goal: {prompt}",
+        *asks_lines(asks),
         "",
         (
             f"{len(bound)} criteria are bound already and stay exactly as they are. "
@@ -118,13 +134,14 @@ def answered_question_work_order(
     *,
     answer: str,
     brief: str,
+    asks: Sequence[str],
 ) -> str:
     """The order for a pass that resolves the answer to its draft's question."""
     heading = (
         "FRAME work order: the previous pass ended with a question the "
         f"researcher has now answered. {_CONTINUE}"
     )
-    stated = answered_lines(questions, answer)
+    stated = [*answered_lines(questions, answer), *asks_lines(asks)]
     return _resumed_work_order(spec, heading, goal, "answer", stated, brief)
 
 
@@ -134,14 +151,19 @@ def answered_lines(questions: Sequence[OpenQuestion], answer: str) -> list[str]:
 
 
 def earlier_turn_work_order(
-    spec: OperationalSpec, goal: str, *, message: str, brief: str
+    spec: OperationalSpec,
+    goal: str,
+    *,
+    message: str,
+    brief: str,
+    asks: Sequence[str],
 ) -> str:
     """The order for a pass that a new message opens over an unbuilt draft."""
     heading = (
         "FRAME work order: an earlier turn bound the criteria below and no "
         f"strategy is built from them yet. {_CONTINUE}"
     )
-    stated = [f"The user's message: {message}"]
+    stated = [f"The user's message: {message}", *asks_lines(asks)]
     return _resumed_work_order(spec, heading, goal, "message", stated, brief)
 
 

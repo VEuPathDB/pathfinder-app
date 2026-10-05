@@ -15,7 +15,7 @@ from pathfinder.ai.lead.dispatch_context import (
     framing_goal,
     the_edit_the_strategy_owes,
 )
-from pathfinder.ai.lead.edit_messages import edit_work_order
+from pathfinder.ai.lead.edit_messages import EditMessage, edit_work_order
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
@@ -60,11 +60,10 @@ def _edit_order(deps: LeadDeps, spec: OperationalSpec) -> str:
     answered, pending = the_edit_the_strategy_owes(deps.state, spec)
     return edit_work_order(
         "edit to the new request",
-        _NEW,
+        EditMessage(prompt=_NEW, answer=deps.state.turn_markers.answered),
         spec,
         pending=pending,
         answered=answered,
-        answer=deps.state.turn_markers.answered,
     )
 
 

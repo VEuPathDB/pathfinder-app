@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import datetime
 import re
+import shutil
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -107,11 +108,14 @@ def facts_text(facts: TurnFacts | None) -> str:
     return "" if facts is None else "\n".join(facts_lines(facts))
 
 
-def _records_shown(facts: TurnFacts | None, reply: str) -> list[str]:
-    """The ids a turn showed as its answer: those its facts list, then those its
-    reply links, once each. A record a check only read is no answer."""
-    listed = [] if facts is None else facts.listed_record_ids()
-    return list(dict.fromkeys([*listed, *linked_records(reply)]))
+def records_shown(facts: TurnFacts | None, reply: str) -> list[str]:
+    """The ids a turn gave as its answer: the records its reply links, else
+    the ids its facts list. A check's sample beside a reply that links its own
+    records is evidence, not the answer."""
+    linked = linked_records(reply)
+    if linked:
+        return linked
+    return [] if facts is None else facts.listed_record_ids()
 
 
 async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
@@ -313,7 +317,9 @@ async def run_one_case(
     via_worker: bool = False,
 ) -> ObservedOutcome:
     """Drive one case as a user of its own, whose memories go when it ends, so
-    no case reads what another case wrote."""
+    no case reads what another case wrote, in a run directory no earlier run
+    left events in, since a card answer replays the events its directory holds."""
+    shutil.rmtree(run_root / case.name, ignore_errors=True)
     user_id = uuid4()
     try:
         return await _run_turns(
@@ -389,7 +395,7 @@ async def _run_turns(
         last_facts = facts or last_facts
         replies.append(capture.assistant_text())
         shown_facts.append(facts_text(facts))
-        record_ids.append(_records_shown(facts, replies[-1]))
+        record_ids.append(records_shown(facts, replies[-1]))
         counted = await reviewed_requirements(conversation_id)
         reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)

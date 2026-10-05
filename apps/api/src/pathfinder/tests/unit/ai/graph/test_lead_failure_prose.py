@@ -34,6 +34,11 @@ _RATE_LIMIT = ModelHTTPError(
 )
 
 
+_CHECKED = (
+    "The change shown beside this reply landed and was checked; what the check "
+    "found is shown beside it."
+)
+
 _CHOSEN_MODEL = DEFAULT_MODEL
 _CHOSEN_MODEL_NAME = display_name(DEFAULT_MODEL)
 
@@ -70,7 +75,7 @@ def _stage_named(prose: str) -> str:
 
 
 def test_a_provider_error_names_its_status_and_not_its_body() -> None:
-    prose = fallback_prose(_failed(str(_RATE_LIMIT)), None, changed=False)
+    prose = fallback_prose(_failed(str(_RATE_LIMIT)), None, change="unchanged")
 
     assert prose == (
         "I stopped this turn on an error I could not recover from; what it "
@@ -82,7 +87,7 @@ def test_a_provider_error_names_its_status_and_not_its_body() -> None:
 
 
 def test_a_transport_failure_still_names_what_happened() -> None:
-    prose = fallback_prose(_failed("peer closed connection"), None, changed=False)
+    prose = fallback_prose(_failed("peer closed connection"), None, change="unchanged")
 
     assert prose == (
         "I stopped this turn on an error I could not recover from; what it "
@@ -107,7 +112,7 @@ def test_a_provider_refusal_is_shown_with_its_own_sentence() -> None:
 
 
 def test_a_run_that_ended_without_a_reply_and_without_an_error_asks_for_more() -> None:
-    assert fallback_prose(_LeadRunCapture(), None, changed=False) == (
+    assert fallback_prose(_LeadRunCapture(), None, change="unchanged") == (
         "I couldn't produce a response for this turn. Please rephrase or provide "
         "more context and I'll try again."
     )
@@ -118,7 +123,7 @@ class TestTheModelTheTurnCouldNotReach:
 
     def test_the_reply_names_the_model_and_its_stage(self) -> None:
         prose = fallback_prose(
-            _never_answered("Connection error."), None, changed=False
+            _never_answered("Connection error."), None, change="unchanged"
         )
 
         assert prose == (
@@ -131,7 +136,9 @@ class TestTheModelTheTurnCouldNotReach:
         )
 
     def test_naming_the_model_brings_no_response_body_with_it(self) -> None:
-        prose = fallback_prose(_never_answered(str(_RATE_LIMIT)), None, changed=False)
+        prose = fallback_prose(
+            _never_answered(str(_RATE_LIMIT)), None, change="unchanged"
+        )
 
         assert prose == (
             "I stopped this turn on an error I could not recover from; what it "
@@ -151,7 +158,7 @@ class TestTheModelTheTurnCouldNotReach:
                 "request to https://api.example/v1/chat?key=sk-live-9f2 failed",
             ),
             None,
-            changed=False,
+            change="unchanged",
         )
 
         assert prose == (
@@ -168,7 +175,7 @@ class TestTheModelTheTurnCouldNotReach:
         capture = _never_answered("peer closed connection")
         capture.model_answered = True
 
-        assert fallback_prose(capture, None, changed=False) == (
+        assert fallback_prose(capture, None, change="unchanged") == (
             "I stopped this turn on an error I could not recover from; what it "
             "answered is shown beside this reply. Send the message again and I "
             "will start over from it."
@@ -179,7 +186,9 @@ class TestTheModelTheTurnCouldNotReach:
     ) -> None:
         """The catalog is what a stage picker offers, so nothing else is a choice."""
         prose = fallback_prose(
-            _never_answered("Connection error.", model="mock:lead"), None, changed=False
+            _never_answered("Connection error.", model="mock:lead"),
+            None,
+            change="unchanged",
         )
 
         assert prose == (
@@ -197,7 +206,7 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
         prose = fallback_prose(
             _after_the_lead_answered("Connection error."),
             _stage("frame"),
-            changed=False,
+            change="unchanged",
         )
 
         assert prose == (
@@ -215,7 +224,7 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
                 fallback_prose(
                     _after_the_lead_answered("Connection error."),
                     _stage(role),
-                    changed=False,
+                    change="unchanged",
                 ),
             )
             for role in ("lead", "frame", "execution", "verification")
@@ -227,7 +236,7 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
         prose = fallback_prose(
             _after_the_lead_answered(str(_RATE_LIMIT)),
             _stage("verification"),
-            changed=False,
+            change="unchanged",
         )
 
         assert prose == (
@@ -248,7 +257,7 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
                 "request to https://api.example/v1/chat?key=sk-live-9f2 failed",
             ),
             _stage("execution"),
-            changed=False,
+            change="unchanged",
         )
 
         assert prose == (
@@ -263,7 +272,7 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
 
     def test_a_failure_after_every_model_answered_keeps_the_terse_shape(self) -> None:
         prose = fallback_prose(
-            _after_the_lead_answered("peer closed connection"), None, changed=False
+            _after_the_lead_answered("peer closed connection"), None, change="unchanged"
         )
 
         assert prose == (
@@ -276,7 +285,7 @@ class TestTheSubAgentStageTheTurnCouldNotReach:
         prose = fallback_prose(
             _after_the_lead_answered("Connection error."),
             _stage("frame", "mock:frame"),
-            changed=False,
+            change="unchanged",
         )
 
         assert prose == (
@@ -295,11 +304,11 @@ def test_a_turn_that_answered_keeps_its_answer_although_a_chunk_carried_an_error
     answered = LeadResponse(prose="Here are the 132 genes.", strategy_changed=True)
     capture.response = answered
 
-    assert final_reply(capture, None, changed=True) is answered
+    assert final_reply(capture, None, change="unchecked") is answered
 
 
 def test_a_turn_with_no_reply_at_all_gets_the_failure_reply() -> None:
-    reply = final_reply(_failed("peer closed connection"), None, changed=False)
+    reply = final_reply(_failed("peer closed connection"), None, change="unchanged")
 
     assert reply is not None
     assert reply.prose.startswith("I stopped this turn on an error")
@@ -310,7 +319,7 @@ class TestATurnWhoseChangeLanded:
     """A change the facts show landed is never sent again from the start."""
 
     def test_a_refusal_after_a_landed_delete_asks_for_the_check(self) -> None:
-        prose = fallback_prose(_failed(str(_RATE_LIMIT)), None, changed=True)
+        prose = fallback_prose(_failed(str(_RATE_LIMIT)), None, change="unchecked")
 
         assert "Send the message again" not in prose
         assert "start over" not in prose
@@ -322,7 +331,9 @@ class TestATurnWhoseChangeLanded:
     def test_a_model_that_did_not_answer_after_the_change_keeps_the_change(
         self,
     ) -> None:
-        prose = fallback_prose(_never_answered("Connection error."), None, changed=True)
+        prose = fallback_prose(
+            _never_answered("Connection error."), None, change="unchecked"
+        )
 
         assert "Choose a different model for that stage in Settings" in prose
         assert "send the message again" not in prose
@@ -331,13 +342,36 @@ class TestATurnWhoseChangeLanded:
         )
 
     def test_a_run_with_no_reply_and_no_error_states_what_landed(self) -> None:
-        prose = fallback_prose(_LeadRunCapture(), None, changed=True)
+        prose = fallback_prose(_LeadRunCapture(), None, change="unchecked")
 
         assert "rephrase" not in prose
         assert "The change shown beside this reply landed" in prose
 
+    def test_a_model_that_did_not_answer_after_a_checked_change_asks_to_go_on(
+        self,
+    ) -> None:
+        prose = fallback_prose(
+            _never_answered("Connection error."), None, change="checked"
+        )
+
+        assert prose.endswith(
+            "then ask me to go on from the change shown beside this reply, which "
+            "landed and was checked."
+        )
+
+    def test_a_change_its_check_judged_is_said_to_be_checked(self) -> None:
+        prose = [
+            fallback_prose(capture, None, change="checked")
+            for capture in (_failed(str(_RATE_LIMIT)), _LeadRunCapture())
+        ]
+
+        assert [p.endswith(_CHECKED) and "not checked" not in p for p in prose] == [
+            True,
+            True,
+        ]
+
     def test_the_reply_the_turn_writes_carries_the_change(self) -> None:
-        reply = final_reply(_failed("peer closed connection"), None, changed=True)
+        reply = final_reply(_failed("peer closed connection"), None, change="unchecked")
 
         assert reply is not None
         assert reply.strategy_changed

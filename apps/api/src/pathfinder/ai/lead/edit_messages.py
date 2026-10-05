@@ -8,12 +8,14 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping, Sequence
 
+from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.parameters import to_wire
 
 from pathfinder.ai.agents.criterion_lines import criterion_label, criterion_runs
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, NamedStep
 from pathfinder.ai.lead.dispatch_messages import (
     answered_lines,
+    asks_lines,
     refusal_lines,
     stop_heading,
 )
@@ -28,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 
 __all__ = [
+    "EditMessage",
     "changed_revision_message",
     "delta_disagrees_with_the_strategy_message",
     "edit_bound_nothing_message",
@@ -38,11 +41,23 @@ __all__ = [
     "no_earlier_revision_message",
     "no_strategy_to_edit_message",
     "nothing_to_undo_message",
+    "recut_call",
     "removal_is_the_cards_message",
     "undo_moves_nothing_message",
     "unsupported_edit_message",
     "wdk_refused_the_written_step_message",
 ]
+
+
+class EditMessage(BaseModel):
+    """The researcher's message an edit pass answers: its words, the asks the
+    Lead answers, and the questions of an earlier pass it answers."""
+
+    model_config = ConfigDict(frozen=True)
+
+    prompt: str
+    asks: tuple[str, ...] = ()
+    answer: AnsweredQuestions | None = None
 
 
 def pending_lines(
@@ -105,21 +120,22 @@ def _pending_line(
 
 def edit_work_order(
     reason: str,
-    prompt: str,
+    message: EditMessage,
     before: OperationalSpec,
     *,
     pending: SpecDiff,
     answered: OperationalSpec,
-    answer: AnsweredQuestions | None,
 ) -> str:
     """The FRAME work order for an edit, carrying every bound value.
 
     A message that answers what an earlier pass asked carries the questions
     it answers, so the pass reads the answer against them.
     """
+    prompt, answer = message.prompt, message.answer
     lines = [
         f"EDIT work order: {reason}",
         f"The user's message: {prompt}",
+        *asks_lines(message.asks),
         *(
             [
                 "The message answers what the previous pass asked:",
@@ -180,11 +196,10 @@ def edit_work_order(
 
 def edit_continuation_work_order(
     before: OperationalSpec,
-    prompt: str,
+    message: EditMessage,
     *,
     pending: SpecDiff,
     answered: OperationalSpec,
-    answer: AnsweredQuestions | None,
     stop: PhaseStop,
 ) -> str:
     """The work order for the pass that continues a stopped edit.
@@ -194,11 +209,10 @@ def edit_continuation_work_order(
     """
     return edit_work_order(
         " ".join([f"{stop_heading(stop)}; continue that edit", *refusal_lines(stop)]),
-        prompt,
+        message,
         before,
         pending=pending,
         answered=answered,
-        answer=answer,
     )
 
 
@@ -280,21 +294,25 @@ def edit_bound_nothing_message() -> str:
     )
 
 
+def recut_call(exports: Sequence[str]) -> str:
+    """The call that recuts one of the strategy's analysis exports."""
+    ids = " or ".join(f"'{step_id}'" for step_id in exports)
+    if len(exports) == 1:
+        return f"create_eda_step(replace_step_id={ids})"
+    return f"create_eda_step(replace_step_id=<one of {ids}>)"
+
+
 def edit_moves_nothing_message(exports: Sequence[str]) -> str:
     """What an edit that moves no step says, naming the recut of any analysis
     export the strategy holds: FRAME binds no export's cut."""
     if not exports:
         return "The strategy already states everything the edit asks for."
-    ids = " or ".join(f"'{step_id}'" for step_id in exports)
-    call = (
-        f"create_eda_step(replace_step_id={ids})"
-        if len(exports) == 1
-        else f"create_eda_step(replace_step_id=<one of {ids}>)"
-    )
     return (
-        "The edit changes no step FRAME binds. A change to an analysis export's cut "
-        f"is {call} with the new thresholds, direction or groups; any other request "
-        "the strategy already states."
+        "The edit changes no step FRAME binds: FRAME keeps an analysis export as it "
+        f"is. A change to the export's thresholds or direction is {recut_call(exports)}, "
+        "which reads the completed compute again; new groups run run_eda_compute "
+        "first. That recut is the change the researcher asked for, so it needs no "
+        "card: make it. Any other request the strategy already states."
     )
 
 

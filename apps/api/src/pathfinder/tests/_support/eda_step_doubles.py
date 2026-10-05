@@ -12,6 +12,8 @@ from types import ModuleType
 from typing import Any
 
 import pytest
+from veupathdb.domain.parameters import StringValue
+from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.eda import (
     EdaAnalysisDescriptor,
     EdaAnalysisDetail,
@@ -34,6 +36,7 @@ from veupathdb.eda import (
     VolcanoStatsResponse,
 )
 from veupathdb.testing.eda_fixtures import recorded_distribution
+from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.domain.strategy.operations.apply import apply_operation
@@ -385,3 +388,21 @@ def wire_export_reads(
 
     monkeypatch.setattr(export, "get_study_detail_for_dataset", study)
     monkeypatch.setattr(compute, "read_statistics", _statistics)
+
+
+def export_step(step_id: str, dataset_id: str) -> StrategyStepNode:
+    """A compute export of the RNA-Seq analysis whose document names ``dataset_id``."""
+    request = export.eda_step_request(
+        de_analysis(filters=[sample_filter()], with_computation=True),
+        dataset_id=dataset_id,
+        effect_size_threshold=1.0,
+        significance_threshold=0.05,
+    )
+    return StrategyStepNode(
+        id=step_id,
+        search_name=COMPUTE_QUERY,
+        parameters={
+            name: StringValue(value=value)
+            for name, value in request.wdk_parameters().items()
+        },
+    )

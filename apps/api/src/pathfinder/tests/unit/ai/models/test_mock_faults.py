@@ -177,7 +177,7 @@ def test_the_pass_that_continues_a_stopped_pass_binds_as_the_arc_does() -> None:
         ],
     )
     stop = PhaseStop(role="frame", reason=PhaseStopReason.TOOL_RETRIES)
-    order = stopped_pass_work_order(spec, "secreted membrane genes", stop)
+    order = stopped_pass_work_order(spec, "secreted membrane genes", stop, asks=[])
 
     calls = _frame("intersect", "long-reason", work_order=order)
 

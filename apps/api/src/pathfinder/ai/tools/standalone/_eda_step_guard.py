@@ -6,12 +6,14 @@ from pydantic_ai.exceptions import ModelRetry
 from veupathdb.eda import EdaAnalysisDetail, differential_expression_computations
 
 from pathfinder.domain.eda_parts import EdaComparison, EdaEffectDirection
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.eda.compute import VolcanoThresholds, analysis_comparison
 from pathfinder.services.eda.direction import (
     caption_verdict,
     direction_sentence,
     sign_sentence,
 )
+from pathfinder.services.eda.export import exported_dataset
 
 
 def refuse_a_direction_without_a_volcano(
@@ -134,3 +136,20 @@ def volcano_thresholds(
         significance_threshold=significance_threshold,
         effect_direction=effect_direction or "upAndDown",
     )
+
+
+def refuse_a_recut_of_another_dataset(
+    graph: StrategyGraph, replace_step_id: str, dataset_id: str
+) -> None:
+    """An export reads the open analysis, so it takes no export of another
+    dataset's place."""
+    exported = exported_dataset(graph, replace_step_id)
+    if exported is None or exported == dataset_id:
+        return
+    msg = (
+        f"{replace_step_id} exports an analysis of dataset {exported}, and the open "
+        f"analysis is on dataset {dataset_id}: an export reads the open analysis, "
+        f"so it cannot take that step's place. Open the analysis on {exported} to "
+        "recut it, or name a step this analysis exports."
+    )
+    raise ModelRetry(msg)

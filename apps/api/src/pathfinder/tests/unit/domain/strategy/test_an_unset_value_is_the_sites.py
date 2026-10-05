@@ -29,10 +29,22 @@ _KNOWLESI = (
     "Plasmodium knowlesi strain H genes with a Plasmodium-specific domain that "
     "have no ortholog in Homo sapiens."
 )
+_AT_LEAST_ONE = (
+    "Find Plasmodium falciparum 3D7 genes that have a signal peptide and at least "
+    "one transmembrane domain."
+)
 
 
 def _param(fixture: str, name: str) -> ParameterInfo:
     sheet = format_param_info_typed(suite_search(fixture).parameters or [])
+    return next(info for info in sheet if info.name == name)
+
+
+def _location(name: str) -> ParameterInfo:
+    """A parameter of plasmodb GenesByLocation as the client library recorded it."""
+    sheet = format_param_info_typed(
+        client_search("search_genes_by_location").parameters or []
+    )
     return next(info for info in sheet if info.name == name)
 
 
@@ -45,7 +57,6 @@ def _unset(value: ParamValue, info: ParameterInfo) -> bool:
 
 
 def _source(
-    name: str,
     value: ParamValue,
     info: ParameterInfo,
     texts: list[str],
@@ -71,10 +82,7 @@ def test_the_radio_off_value_is_unset_under_an_empty_sheet_default() -> None:
 
 
 def test_a_site_placeholder_is_unset_whatever_it_names() -> None:
-    sheet = format_param_info_typed(
-        client_search("search_genes_by_location").parameters or []
-    )
-    sequence = next(info for info in sheet if info.name == "sequenceId")
+    sequence = _location("sequenceId")
 
     assert [
         _read(StringValue(value=text), sequence).placeholder
@@ -99,7 +107,7 @@ def test_a_term_the_vocabulary_offers_is_never_a_placeholder() -> None:
     )
 
     assert _unset(SinglePickValue(value="N/A"), status) is False
-    assert _source("status", SinglePickValue(value="N/A"), status, []) == "chosen"
+    assert _source(SinglePickValue(value="N/A"), status, []) == "chosen"
 
 
 def test_a_value_at_the_sheet_default_is_unset() -> None:
@@ -114,10 +122,7 @@ def test_a_value_at_the_sheet_default_is_unset() -> None:
 def test_the_radio_off_value_is_the_sites_even_under_an_empty_default() -> None:
     accession = _param("search_genes_by_interpro_domain", "domain_accession")
 
-    assert (
-        _source("domain_accession", StringValue(value="N/A"), accession, ["N/A"])
-        == "default"
-    )
+    assert _source(StringValue(value="N/A"), accession, ["N/A"]) == "default"
 
 
 def test_a_one_word_pick_at_its_default_is_the_sites_when_the_message_names_no_parameter() -> (
@@ -127,7 +132,7 @@ def test_a_one_word_pick_at_its_default_is_the_sites_when_the_message_names_no_p
 
     assert (
         any_or_all.display_name,
-        _source("any_or_all", SinglePickValue(value="any"), any_or_all, [_ANY_DATASET]),
+        _source(SinglePickValue(value="any"), any_or_all, [_ANY_DATASET]),
     ) == (_ANY_OR_ALL, "default")
 
 
@@ -135,7 +140,7 @@ def test_a_one_word_pick_the_message_writes_beside_the_parameter_is_stated() -> 
     any_or_all = _param("search_genes_by_rnaseq_gomez_diaz_percentile", "any_or_all")
 
     assert [
-        _source("any_or_all", SinglePickValue(value="any"), any_or_all, [text])
+        _source(SinglePickValue(value="any"), any_or_all, [text])
         for text in (
             "expressed above 80 in any selected sample",
             "keep genes expressed in any of the samples",
@@ -143,12 +148,25 @@ def test_a_one_word_pick_the_message_writes_beside_the_parameter_is_stated() -> 
     ] == ["stated", "stated"]
 
 
+def test_a_number_word_beside_the_parameter_states_its_default() -> None:
+    min_tm = _param("search_genes_by_transmembrane_domains", "min_tm")
+    start = _location("start_point")
+    one = StringValue(value="1")
+
+    assert [
+        _read(one, min_tm).at_default,
+        _source(one, min_tm, [_AT_LEAST_ONE]),
+        _source(one, min_tm, ["Find one set of P. falciparum 3D7 genes with a TM."]),
+        _source(one, start, ["Find genes at one end of chromosome 3."]),
+        _source(one, start, ["Start at one and stop at 5000 on chromosome 3."]),
+    ] == [True, "stated", "default", "default", "stated"]
+
+
 def test_a_one_word_pick_off_its_default_the_message_writes_is_stated() -> None:
     any_or_all = _param("search_genes_by_rnaseq_gomez_diaz_percentile", "any_or_all")
 
     assert (
         _source(
-            "any_or_all",
             SinglePickValue(value="all"),
             any_or_all,
             ["genes above 80 in all samples"],
@@ -167,5 +185,5 @@ def test_a_pick_of_several_words_at_its_default_the_message_holds_is_stated() ->
 
     assert (
         _read(value, knowlesi).at_default,
-        _source("organism", value, knowlesi, [_KNOWLESI]),
+        _source(value, knowlesi, [_KNOWLESI]),
     ) == (True, "stated")

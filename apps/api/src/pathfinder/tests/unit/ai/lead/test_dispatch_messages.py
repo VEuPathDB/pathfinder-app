@@ -177,7 +177,9 @@ def test_a_continuation_keeps_a_criterion_waiting_for_its_analysis() -> None:
         ],
     )
 
-    lines = stopped_pass_work_order(spec, "24 h over 36 h", _BUDGET_STOP).splitlines()
+    lines = stopped_pass_work_order(
+        spec, "24 h over 36 h", _BUDGET_STOP, asks=[]
+    ).splitlines()
 
     assert "- [c1] kinases -> GenesByGoTerm" in lines
     assert (

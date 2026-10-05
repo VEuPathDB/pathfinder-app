@@ -45,10 +45,10 @@ The two answer one failure from opposite ends: the pass that asks about nothing,
 that reports what the pass never wrote.
 
 `unrendered_prose` is the rule for what the prose may hold, and the only check on its content.
-The prose writes each count, value, source word, record and link as a reference the emitter
-renders from the turn's `TurnFacts` (`domain/reply_references.py`). The rule refuses a reply
-that writes a digit, an identifier shape, a link or a source word outside a reference, or a
-reference that names nothing the facts hold, and its correction names each token with the
+The prose writes each count, value, record and link as a reference the emitter renders from
+the turn's `TurnFacts` (`domain/reply_references.py`). The rule refuses a reply that writes a
+digit, an identifier shape or a link outside a reference, or a reference that names nothing the
+facts hold, and its correction names each token with the
 reference that renders it. It is refused on every answer, a card's reply included; it takes no
 part in the one latch below. See
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).
@@ -81,7 +81,11 @@ or not the turn built; a stopped check records no verdict, so nothing else on th
 `unmade_change` reads the values an accepted `edit_strategy` classification withdraws or states:
 a turn that changed nothing, ended on no card, recorded no question and carries no refusal is
 refused, unless the reply names each value in a clause that takes the change back and says why.
-The correction names `delete_step` for a removal and `edit_strategy` for a stated value.
+The correction names `delete_step` for a bare withdrawal; a withdrawal with the values that
+replace it is a replacement (`contract_messages.unmade_change_message`), made through
+`edit_strategy` or, for an analysis export's cut, through `create_eda_step(replace_step_id=...)`
+on an export of the open analysis (`services/eda/export.open_analysis_exports`), as is a
+stated value.
 
 # Why
 

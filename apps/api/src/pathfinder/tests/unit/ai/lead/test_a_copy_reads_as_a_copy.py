@@ -3,7 +3,7 @@ leaves with what it copies."""
 
 from __future__ import annotations
 
-from pathfinder.ai.lead.edit_messages import edit_work_order
+from pathfinder.ai.lead.edit_messages import EditMessage, edit_work_order
 from pathfinder.ai.lead.ledger_sections import render_structure
 from pathfinder.domain.strategy.spec_diff import SpecDiff
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
@@ -28,11 +28,12 @@ def test_the_edit_work_order_draws_the_copy_as_a_node() -> None:
 
     order = edit_work_order(
         "keep the syntenic orthologs",
-        "keep only those with syntenic orthologs in Plasmodium vivax P01",
+        EditMessage(
+            prompt="keep only those with syntenic orthologs in Plasmodium vivax P01"
+        ),
         spec,
         pending=SpecDiff(),
         answered=spec,
-        answer=None,
     )
 
     assert "        COPY\n" in order

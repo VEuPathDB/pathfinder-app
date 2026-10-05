@@ -28,7 +28,7 @@ from pydantic_ai.models.function import AgentInfo
 from pydantic_ai.tools import ToolDefinition
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 
-from pathfinder.ai.lead.edit_messages import edit_work_order
+from pathfinder.ai.lead.edit_messages import EditMessage, edit_work_order
 from pathfinder.ai.models.mock import PATHFINDER_SCRIPT
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
 from pathfinder.domain.strategy.operational_spec import (
@@ -100,11 +100,10 @@ def _edit_order() -> str:
     )
     return edit_work_order(
         "change the domain range",
-        _EDIT_TEXT,
+        EditMessage(prompt=_EDIT_TEXT),
         spec,
         pending=SpecDiff(),
         answered=spec,
-        answer=None,
     )
 
 

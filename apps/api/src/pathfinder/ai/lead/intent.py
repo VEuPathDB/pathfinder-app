@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import CamelModel
@@ -343,6 +344,23 @@ def nothing_to_answer_message() -> str:
         "No question of yours is open on this conversation and no card waits, "
         "so this message answers none. Classify it as what it asks for: one "
         f"of {applies}."
+    )
+
+
+def question_withdraws_message(
+    withdrawn: Sequence[str], *, states_a_change: bool
+) -> str:
+    """The refusal of a question classification that withdraws a requirement:
+    a message that states the change outside its questions asks for it."""
+    named = ", ".join(f"'{value}'" for value in withdrawn)
+    refused = f"The classification withdraws {named}, and a question withdraws nothing."
+    if not states_a_change:
+        return f"{refused} The message only asks what a change would do, so withdraw nothing."
+    return (
+        f"{refused} The message states the change outside its questions, so it asks "
+        "for it: classify it as the request it is (edit_strategy for a change to the "
+        "strategy), state each value it asks for in explicit_constraints and keep its "
+        "question in asks."
     )
 
 

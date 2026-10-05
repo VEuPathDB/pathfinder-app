@@ -319,8 +319,6 @@ def test_a_bracketed_word_that_names_no_reference_is_prose() -> None:
             "See https://toxodb.org now.",
             ProseFault(token="https://toxodb.org", kind="link"),
         ),
-        ("The site default.", ProseFault(token="default", kind="source_word")),
-        ("What you asked for.", ProseFault(token="you asked", kind="source_word")),
     ],
 )
 def test_a_fact_written_outside_a_reference_is_refused(

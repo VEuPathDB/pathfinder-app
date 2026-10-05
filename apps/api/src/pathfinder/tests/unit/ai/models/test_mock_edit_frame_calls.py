@@ -10,7 +10,7 @@ from pydantic_ai.messages import ToolCallPart
 from veupathdb.domain.parameters import MultiPickValue, StringValue
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.lead.edit_messages import edit_work_order
+from pathfinder.ai.lead.edit_messages import EditMessage, edit_work_order
 from pathfinder.ai.models.mock.edit_frame import (
     param_edit_call,
     workspace_criteria,
@@ -72,11 +72,10 @@ def _order() -> str:
     spec = _spec()
     return edit_work_order(
         "change the domain range",
-        "Change the transmembrane range to 1 to 99.",
+        EditMessage(prompt="Change the transmembrane range to 1 to 99."),
         spec,
         pending=SpecDiff(),
         answered=spec,
-        answer=None,
     )
 
 

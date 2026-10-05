@@ -9,7 +9,11 @@ from __future__ import annotations
 from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp
 
-from pathfinder.ai.lead.edit_messages import edit_work_order, unsupported_edit_message
+from pathfinder.ai.lead.edit_messages import (
+    EditMessage,
+    edit_work_order,
+    unsupported_edit_message,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -61,7 +65,7 @@ def _spec() -> OperationalSpec:
 def _order_over(spec: OperationalSpec, reason: str, prompt: str) -> str:
     """The order over a strategy that holds every criterion the spec states."""
     return edit_work_order(
-        reason, prompt, spec, pending=SpecDiff(), answered=spec, answer=None
+        reason, EditMessage(prompt=prompt), spec, pending=SpecDiff(), answered=spec
     )
 
 

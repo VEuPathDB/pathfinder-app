@@ -184,7 +184,9 @@ async def test_a_bound_draft_with_no_question_is_continued_from_the_message() ->
 
 
 def test_the_order_after_a_budget_stop_keeps_its_words() -> None:
-    order = stopped_pass_work_order(framed(None), "find surface proteins", _BUDGET_STOP)
+    order = stopped_pass_work_order(
+        framed(None), "find surface proteins", _BUDGET_STOP, asks=[]
+    )
 
     assert order.startswith(
         "FRAME work order: the previous pass ran out of its tool budget. "

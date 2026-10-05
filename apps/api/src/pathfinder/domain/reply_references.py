@@ -31,7 +31,6 @@ _A_LINK = re.compile(r"(?:https?://|www\.)[^\s<>()\[\]\"'`]+")
 _A_TOKEN = re.compile(r"[\w:./,%+-]+")
 _EDGE_MARKS = ".,:;/+-_"
 _A_UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", re.IGNORECASE)
-_A_SOURCE_WORD = re.compile(r"\b(?:default|chosen|stated|you asked)\b", re.IGNORECASE)
 _THE_DIGITS = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _NUM = r"\d[\d,]*(?:\.\d+)?(?:[eE][+-]?\d+)?"
 # A count or a value: a number, a range or ratio of numbers, with a percent or a
@@ -51,19 +50,11 @@ _SOURCE_WORDS: dict[ValueSource, str] = {
     "chosen": "chosen",
     "held": "held by the strategy",
 }
-# The value sources each source word of a reply says.
-_SAID_BY: dict[str, frozenset[ValueSource]] = {
-    "default": frozenset({"default"}),
-    "chosen": frozenset({"chosen"}),
-    "stated": frozenset({"stated", "card"}),
-    "you asked": frozenset({"stated", "card"}),
-}
 
 type FaultKind = Literal[
     "number",
     "identifier",
     "link",
-    "source_word",
     "unheld_reference",
     "malformed_reference",
     "number_word",
@@ -325,16 +316,6 @@ def _link_references(facts: TurnFacts, link: str) -> tuple[str, ...]:
     )
 
 
-def _source_references(facts: TurnFacts, word: str) -> tuple[str, ...]:
-    said = _SAID_BY[" ".join(word.casefold().split())]
-    return tuple(
-        f"[source:{step.step_id}.{p.name}]"
-        for step in facts.steps
-        for p in step.parameters
-        if p.source in said
-    )
-
-
 def _an_identifier(token: str) -> bool:
     """A site's gene id, a domain or Ensembl accession, a search name, or a
     snake_case, colon-joined or uuid token. A count is never an identifier."""
@@ -414,22 +395,14 @@ def _outside(prose: str) -> str:
 
 
 def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]:
-    """Each link, number, identifier and source word the prose writes outside a
-    reference, and each misplaced reference, with the references of ``facts``
-    that render it."""
+    """Each link, number and identifier the prose writes outside a reference,
+    and each misplaced reference, with the references of ``facts`` that render
+    it."""
     held = TurnFacts() if facts is None else facts
     text = _outside(prose)
     links = [
         ProseFault(token=link, kind="link", references=_link_references(held, link))
         for link in _A_LINK.findall(text)
-    ]
-    words = [
-        ProseFault(
-            token=word.group(),
-            kind="source_word",
-            references=_source_references(held, word.group()),
-        )
-        for word in _A_SOURCE_WORD.finditer(text)
     ]
     tokens = list(_token_faults(_A_LINK.sub(" ", text), held))
     brackets = [
@@ -440,7 +413,7 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
         for m in misplacements(prose, held.record_noun)
     ]
-    return list(dict.fromkeys([*brackets, *links, *tokens, *words, *placed]))
+    return list(dict.fromkeys([*brackets, *links, *tokens, *placed]))
 
 
 def unheld_references(prose: str, facts: TurnFacts) -> list[str]:

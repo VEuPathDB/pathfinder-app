@@ -48,7 +48,10 @@ such a read into the published sheet, for a bind and for a step that hydration
 or replay reads under its own parents, and `get_parameter_options` sends no
 value of the parameter it reads, so the initial value it answers is the site's. A pick or a number at its initial value shown as one word ("any", "yes", "1") is
 stated only when a message writes it beside a word of the parameter's display
-name ("in any selected sample", "start at 1"); otherwise the site set it, so the
+name ("in any selected sample", "start at 1"), a number word read as its digits there too
+("at least one transmembrane domain" states plasmodb's `min_tm` of 1) and filler and "at"
+looked past, so "genes at one end of chromosome 3" states no `start_point` ("Start at");
+otherwise the site set it, so the
 "1" of "chromosome 1" leaves GenesByLocation's `start_point` at the site default.
 An organism pick whose organisms are every leaf of a taxon a message names whole
 is stated (`_frame_sources.stated_by_their_taxa`, `named_taxa.OrganismTree`). A

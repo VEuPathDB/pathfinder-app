@@ -1,5 +1,78 @@
 # Log
 
+## 2026-10-05
+
+* **A source word is prose.** The reply check no longer refuses "default", "chosen",
+  "stated" or "you asked" outside a reference (`reply_references.shape_faults`); who set
+  each value is the facts row's, and `[source:]` renders it
+  ([the decision](decisions/the-product-renders-the-facts-the-reply-narrates.md)).
+
+* **A number word beside a parameter's name states its default.** The one-word gate of
+  `value_source.stated_words` reads a number word as its digits (`words.numeral`), so "at
+  least one transmembrane domain" states `min_tm` 1 and no longer reads as the site's
+  default; the gate looks past "at" as it does past filler, so "at one end" states no
+  `start_point` ([the decision](decisions/an-assumed-value-is-recorded-not-narrated.md)).
+
+* **A stopped turn says whether its change was checked.** `_lead_stops.strategy_change`
+  reads `PipelineState.checked_verdict`: a change a check of this turn judged to its end
+  reads "landed and was checked", any other change "landed and was not checked". A check
+  counts as stopped until its digest is recorded (`verify_dispatch.run_verification`), so a
+  check that raises leaves an earlier verdict on the same strategy no finding of this turn.
+
+* **An eval case runs in a run directory of its own.** `eval_runner.run_one_case`
+  removes the case's run directory before its first turn: a card answer replays the
+  events its directory holds (`chat._replay_run_dir`), so an earlier run's events
+  reached the replies and the facts a rerun scored.
+
+* **A question withdraws nothing.** `classification_gate.classification_refusal`
+  refuses a `follow_up_question` that withdraws a requirement: a message that commands
+  a change and asks a question is an edit with the question in `asks`, and a message
+  that only asks what a change would do withdraws nothing (`question_withdraws_message`).
+
+* **A pass is told the message's asks.** The frame and edit work orders carry the parts
+  of the message the Lead answers (`dispatch_context.message_asks`,
+  `edit_messages.asks_lines`, `EditMessage`), so a pass records no ask as a criterion or
+  an unstated requirement.
+
+* **A replacement is not a removal.** `unmade_change_message` corrects a withdrawal with
+  the values that replace it as a replacement, made through `edit_strategy` or the recut
+  of an export of the open analysis (`recut_call`, `export.open_analysis_exports`); only a bare
+  withdrawal names `delete_step`.
+
+* **The recut rule is stated once.** The Lead's EDA step 7, `create_eda_step` and the
+  edit that moves no step (`edit_moves_nothing_message`) say `replace_step_id` recuts an
+  export of the open analysis: new thresholds or a new direction read the completed
+  compute again, new groups run `run_eda_compute` first, and the recut is the
+  researcher's request, so it needs no card. A recut reads the open analysis, so
+  `create_eda_step` refuses to take the place of an export of another dataset
+  (`_eda_step_guard.refuse_a_recut_of_another_dataset`, `export.exported_dataset`).
+
+* **A question that states its change asks for it.** The question-withdraws refusal
+  reads the words outside the message's asks (`classification_gate._words_outside_the_asks`):
+  words that state the change make the message a request, and none leave it a question
+  that withdraws nothing. The frame continuations (`earlier_turn_work_order`,
+  `answered_question_work_order`, `stopped_pass_work_order`) carry the asks too
+  (`dispatch_messages.asks_lines`).
+
+* **The same sample again is the sample the thread showed.** A request to show an earlier
+  sample again is answered from the records the conversation showed last
+  (`TurnFacts.shown_before`, cited as `[record:]`): on `uat-dry3-d-hostdb` the fourth turn
+  listed the five ids the third turn listed, on three runs. The backlog item is closed.
+
+* **A turn answers with the records its reply links.** `eval_runner.records_shown` reads
+  the reply's record links, else the ids the facts list, so a check's sample beside a
+  reply that links its own records is no part of the answer `sameRecordsAs` compares.
+
+* **A phrase can join its right wordings.** A case phrase written `a | b` holds when any
+  wording shows (`evals.phrases`); `pca-separates-the-gametocyte-sexes-plasmodb` takes
+  "PC1 | first principal component". Three cases stop pinning one of several right
+  answers: `uat-dry4-d-microsporidiadb` pins the 66 the question asks for in place of an
+  optional difference; `uat-dry-d-vectorbase` drops its structure, root count and reply
+  pins, pins the SRP171130 search by its `profileset_generic`, words its third turn as a
+  request and answers a card with its recommendation; `an-assent-to-build-builds` asks for
+  one site search for gametocyte expression and no build first, so its offer is one
+  strategy, and answers a design card of the assent turn with its recommendation.
+
 ## 2026-10-04
 
 * **An analysis export is recut by `create_eda_step`, never by an edit.** FRAME binds

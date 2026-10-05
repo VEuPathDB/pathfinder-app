@@ -12,7 +12,9 @@ from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
     dispatch_call_id,
+    edit_message,
     framing_goal,
+    message_asks,
     record_the_spec_the_dispatch_found,
     refuse_and_keep_what_it_bound,
     refuse_and_restore,
@@ -20,6 +22,7 @@ from pathfinder.ai.lead.dispatch_context import (
 )
 from pathfinder.ai.lead.dispatch_messages import (
     answered_question_work_order,
+    asks_lines,
     earlier_turn_work_order,
     frame_bound_nothing_result,
     frame_claimed_more_than_it_bound,
@@ -71,16 +74,30 @@ def frame_work_order(reason: str, deps: LeadDeps) -> str:
         answered = state.turn_markers.answered
         if answered is None:
             return earlier_turn_work_order(
-                spec, goal, message=state.user_prompt, brief=reason
+                spec,
+                goal,
+                message=state.user_prompt,
+                brief=reason,
+                asks=message_asks(deps),
             )
         return answered_question_work_order(
-            spec, goal, answered.questions, answer=answered.answer, brief=reason
+            spec,
+            goal,
+            answered.questions,
+            answer=answered.answer,
+            brief=reason,
+            asks=message_asks(deps),
         )
-    return (
-        f"FRAME work order: {reason}\n"
-        f"User's goal: {framing_goal(state)}\n"
-        "Operationalize into criteria, bind each to a real WDK search, resolve "
-        "params, set the structure. Return a FrameResult."
+    return "\n".join(
+        [
+            f"FRAME work order: {reason}",
+            f"User's goal: {framing_goal(state)}",
+            *asks_lines(message_asks(deps)),
+            (
+                "Operationalize into criteria, bind each to a real WDK search, "
+                "resolve params, set the structure. Return a FrameResult."
+            ),
+        ]
     )
 
 
@@ -150,14 +167,11 @@ def _continuation_work_order(
     if before is not None and before.criteria and deps.step_count > 0:
         answered, pending = the_edit_the_strategy_owes(deps.state, before)
         return edit_continuation_work_order(
-            before,
-            deps.state.user_prompt,
-            pending=pending,
-            answered=answered,
-            answer=deps.state.turn_markers.answered,
-            stop=stop,
+            before, edit_message(deps), pending=pending, answered=answered, stop=stop
         )
-    return stopped_pass_work_order(draft, deps.state.user_prompt, stop)
+    return stopped_pass_work_order(
+        draft, deps.state.user_prompt, stop, asks=message_asks(deps)
+    )
 
 
 async def run_frame(

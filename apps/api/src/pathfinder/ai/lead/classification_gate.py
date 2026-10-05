@@ -16,6 +16,7 @@ from pathfinder.ai.lead.intent import (
     UserIntent,
     named_ids,
     nothing_to_answer_message,
+    question_withdraws_message,
     unstated_ids_message,
     unstated_operator_refusal,
     untyped_ids,
@@ -161,6 +162,14 @@ def _content_words(text: str) -> set[str]:
     return {word for word in words_of(text) if word not in FILLER_WORDS}
 
 
+def _words_outside_the_asks(state: PipelineState, intent: UserIntent) -> set[str]:
+    """The content words of the message that none of its asks holds."""
+    rest = state.user_prompt.casefold()
+    for ask in intent.asks:
+        rest = rest.replace(ask.casefold(), " ")
+    return _content_words(rest)
+
+
 def held_as_question(state: PipelineState, intent: UserIntent) -> UserIntent | None:
     """The question form of a change the intent records, or None.
 
@@ -174,10 +183,7 @@ def held_as_question(state: PipelineState, intent: UserIntent) -> UserIntent | N
         return None
     if intent.edit_direction != "other" or intent.withdrawn:
         return None
-    rest = state.user_prompt.casefold()
-    for ask in intent.asks:
-        rest = rest.replace(ask.casefold(), " ")
-    outside = _content_words(rest)
+    outside = _words_outside_the_asks(state, intent)
     stated = {
         w
         for c in intent.explicit_constraints
@@ -196,6 +202,13 @@ def classification_refusal(
     operator = unstated_operator_refusal(intent, message)
     if operator is not None:
         return operator
+    if intent.classification is IntentClassification.FOLLOW_UP_QUESTION and (
+        intent.withdrawn
+    ):
+        return question_withdraws_message(
+            [c.requested_value for c in intent.withdrawn],
+            states_a_change=bool(_words_outside_the_asks(state, intent)),
+        )
     if _answers_nothing(state, intent):
         return nothing_to_answer_message()
     unheld = _unheld_ids(state, intent, site)

@@ -10,7 +10,7 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.agents._instructions import pinned_user_memories
-from pathfinder.ai.lead.edit_messages import edit_work_order
+from pathfinder.ai.lead.edit_messages import EditMessage, edit_work_order
 from pathfinder.ai.lead.lead_pins import pinned_operational_spec
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.domain.strategy.operational_spec import (
@@ -89,9 +89,8 @@ def edit_order(site_id: str) -> str:
     )
     return edit_work_order(
         "mock edit",
-        "Change it",
+        EditMessage(prompt="Change it"),
         before,
         pending=SpecDiff(),
         answered=before,
-        answer=None,
     )

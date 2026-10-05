@@ -243,13 +243,22 @@ def test_the_vectorbase_case_leaves_no_gap_for_the_settled_question() -> None:
     case = _BY_NAME["uat-dry-d-vectorbase"]
     expected = case.expected
 
-    assert (len(case.turns), case.gates) == (4, _LEAVE)
+    assert (len(case.turns), case.gates) == (4, GatePlan(policy="auto"))
     assert (
         expected.root_operator,
         expected.unexpressed_requirements,
         expected.step_count,
         expected.root_count,
-    ) == ("MINUS", 0, 5, _count(12))
+        expected.structure,
+        sorted(expected.parameters),
+    ) == (
+        "MINUS",
+        0,
+        5,
+        None,
+        None,
+        ["GenesByRNASeqaaegLVP_AGWG_SRP171130_ebi_rnaSeq_RSRCPercentile"],
+    )
 
 
 def test_the_amoebadb_case_builds_the_definition_the_message_states() -> None:

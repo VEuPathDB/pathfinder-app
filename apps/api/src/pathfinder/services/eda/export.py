@@ -25,11 +25,13 @@ from veupathdb.eda import (
 from veupathdb_mcp.catalog import EdaStepRequest
 
 from pathfinder.domain.eda_parts import EdaEffectDirection
+from pathfinder.domain.eda_thread import OpenEdaAnalysis
 from pathfinder.domain.strategy.analysis_binding import (
     AnalysisBinding,
     AnalysisKind,
     CutTallies,
 )
+from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.services.eda.authoring import serialize_spec
 from pathfinder.services.eda.catalog import get_study_detail_for_dataset
 from pathfinder.services.eda.compute import (
@@ -224,6 +226,30 @@ def _document_of(
     except ValidationError:
         return None
     return request.eda_dataset_id, spec
+
+
+def exported_dataset(graph: StrategyGraph, step_id: str) -> str | None:
+    """The dataset an export step's document names, or None for a step that
+    exports nothing."""
+    step = graph.steps.get(step_id)
+    if step is None or graph.analysis_kind_of(step_id) in (None, AnalysisKind.NONE):
+        return None
+    document = _document_of(step.parameters)
+    return None if document is None else document[0]
+
+
+def exports_of(graph: StrategyGraph, dataset_id: str) -> list[str]:
+    """The steps that export an analysis whose document names this dataset."""
+    return [s for s in sorted(graph.steps) if exported_dataset(graph, s) == dataset_id]
+
+
+def open_analysis_exports(
+    graph: StrategyGraph | None, open_analysis: OpenEdaAnalysis | None
+) -> list[str]:
+    """The exports a recut of the open analysis can replace."""
+    if graph is None or open_analysis is None:
+        return []
+    return exports_of(graph, open_analysis.dataset_id)
 
 
 def exported_analysis(
