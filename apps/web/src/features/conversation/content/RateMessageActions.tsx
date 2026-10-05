@@ -66,14 +66,14 @@ function RateButtons({ conversationId, messageId }: RateButtonsProps) {
         aria-pressed={shown === "like"}
         onClick={() => toggle("like")}
       >
-        <ThumbsUp />
+        <ThumbsUp fill={shown === "like" ? "currentColor" : "none"} />
       </MessageAction>
       <MessageAction
         tooltip="Bad response"
         aria-pressed={shown === "dislike"}
         onClick={() => toggle("dislike")}
       >
-        <ThumbsDown />
+        <ThumbsDown fill={shown === "dislike" ? "currentColor" : "none"} />
       </MessageAction>
     </>
   );

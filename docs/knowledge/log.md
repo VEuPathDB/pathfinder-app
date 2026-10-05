@@ -2,6 +2,20 @@
 
 ## 2026-10-05
 
+* **An off-topic turn ends with its own reply.** Its 40000-token ceiling is gone: two Lead
+  requests read about 57,000 tokens of instructions, so every off-topic reply met it. The
+  empty tool list and the one essay refusal bound the turn, and the whole-turn ceiling
+  still applies ([the decision](decisions/an-off-topic-turn-reaches-no-tool.md)).
+
+* **A stopped turn reports what it spent.** The Lead's tokens and cost come from the
+  `RunUsage` its run accumulates into (`_LeadRunCapture.record_run_spend`), not from the
+  run's result, so a guard or budget stop no longer reports 0 tokens.
+
+* **A named organism is no substitution.** The organism check of `set_criterion`
+  (`_frame_stated`) refuses a sibling or an ancestor of a named entry only when the bound
+  entry is not itself named or under a named entry, so "Plasmodium genes with orthologs in
+  P. berghei and P. knowlesi" binds the genus.
+
 * **A source word is prose.** The reply check no longer refuses "default", "chosen",
   "stated" or "you asked" outside a reference (`reply_references.shape_faults`); who set
   each value is the facts row's, and `[source:]` renders it

@@ -24,7 +24,6 @@ from assistant_core.conversation.vercel_adapter import (
     DeferredToolHint,
     PhaseStreamEmitter,
 )
-from assistant_core.cost import cost_for_run
 from assistant_core.graph import approvals
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.pre_turn import PreTurnHook
@@ -98,7 +97,6 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import (
     budget_stop_report,
     lead_usage_limits,
-    off_topic_budget_stop,
 )
 from pathfinder.ai.lead.turn_contract import LeadResponse
 
@@ -157,14 +155,6 @@ def _absorb_run_result(
                 deps=deps,
                 messages=messages,
             )
-    usage = run_result.usage
-    capture.tokens = usage.total_tokens
-    capture.cost_usd = cost_for_run(
-        usage=usage,
-        model_name=response.model_name,
-        provider_name=response.provider_name,
-        provider_url=response.provider_url,
-    )
 
 
 async def _ask_about_what_it_parks(
@@ -180,33 +170,12 @@ def _stream_ends_after(
     event: AgentStreamEvent | AgentRunResultEvent[Any],
     guard: ToolRepetitionGuard,
     capture: _LeadRunCapture,
-    usage: RunUsage,
-    deps: LeadDeps,
 ) -> bool:
     """Whether this event is the last one the turn takes from the run."""
     stop = guard_stop_of(event, guard)
-    if stop is not None:
-        capture.guard_stop = stop
-        return True
-    return _off_topic_budget_ends_the_turn(capture, usage, deps)
-
-
-def _off_topic_budget_ends_the_turn(
-    capture: _LeadRunCapture,
-    usage: RunUsage,
-    deps: LeadDeps,
-) -> bool:
-    """Whether an out-of-scope turn has spent what such a turn may spend.
-
-    A turn that already holds its answer is finished, so the budget takes
-    nothing from it.
-    """
-    if capture.response is not None:
-        return False
-    stop = off_topic_budget_stop(usage, deps.intent)
     if stop is None:
         return False
-    capture.response = stop_response(stop, changed=False)
+    capture.guard_stop = stop
     return True
 
 
@@ -297,7 +266,7 @@ async def _drive_lead_stream(
                         agent_model,
                     )
                     yield event
-                    if _stream_ends_after(event, guard, capture, usage_acc, deps):
+                    if _stream_ends_after(event, guard, capture):
                         return
         except UsageLimitExceeded as exc:
             logger.warning(
@@ -314,6 +283,8 @@ async def _drive_lead_stream(
                 ),
                 changed=deps.state.turn_markers.changed_strategy,
             )
+        finally:
+            capture.record_run_spend(usage_acc)
 
     try:
         with lead_model.override:

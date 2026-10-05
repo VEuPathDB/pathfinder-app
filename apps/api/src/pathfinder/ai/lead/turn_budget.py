@@ -6,11 +6,10 @@ import re
 from collections.abc import Sequence
 
 from assistant_core.graph.tool_summary import count_noun
-from pydantic_ai.usage import RunUsage, UsageLimits
+from pydantic_ai.usage import UsageLimits
 
 from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.reply_claims import machine_words
 from pathfinder.ai.tools.standalone.graph_helpers import (
@@ -27,9 +26,6 @@ from pathfinder.services.strategies.commit import live_strategy_url
 # One turn's ceiling on the Lead's own model requests, and on the tool calls
 # they make. A sub-agent pass runs under a ceiling of its own.
 LEAD_TURN_CALL_LIMIT = 80
-# A turn outside PathFinder's scope answers in two sentences and reaches no
-# tool, so it never needs what an investigation spends.
-OFF_TOPIC_TURN_TOKEN_LIMIT = 40_000
 
 
 def lead_usage_limits() -> UsageLimits:
@@ -41,19 +37,12 @@ def lead_usage_limits() -> UsageLimits:
     )
 
 
-def _budget_reached_message(*, calls: int, tokens: int) -> str:
-    return (
-        f"I stopped this turn at its budget of {calls} model calls and "
-        f"{tokens} tokens. Narrow the request and send it again, and I will "
-        f"start a fresh turn on it."
-    )
-
-
 def lead_turn_budget_message() -> str:
     """What the user reads when a turn spends the ceiling it runs under."""
-    return _budget_reached_message(
-        calls=LEAD_TURN_CALL_LIMIT,
-        tokens=get_settings().lead_turn_token_limit,
+    return (
+        f"I stopped this turn at its budget of {LEAD_TURN_CALL_LIMIT} model calls "
+        f"and {get_settings().lead_turn_token_limit} tokens. Narrow the request "
+        f"and send it again, and I will start a fresh turn on it."
     )
 
 
@@ -159,19 +148,3 @@ def budget_stop_report(
         lead_turn_budget_message(),
     ]
     return "\n\n".join(parts)
-
-
-def off_topic_budget_stop(usage: RunUsage, intent: UserIntent | None) -> str | None:
-    """The reply an out-of-scope turn ends with once it passes its budget.
-
-    The run accumulates into the ``RunUsage`` the turn handed it, so reading
-    that object after each event is what tells the turn it has spent enough.
-    """
-    if intent is None or intent.classification is not IntentClassification.OFF_TOPIC:
-        return None
-    if usage.total_tokens <= OFF_TOPIC_TURN_TOKEN_LIMIT:
-        return None
-    return _budget_reached_message(
-        calls=LEAD_TURN_CALL_LIMIT,
-        tokens=OFF_TOPIC_TURN_TOKEN_LIMIT,
-    )

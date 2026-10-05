@@ -197,3 +197,21 @@ def test_a_requirement_of_another_kind_names_no_organism() -> None:
     )
 
     assert _bind_under(_CRYPTO, [other], [_TU1867]) == [_TU1867]
+
+
+def test_a_bind_of_a_named_genus_substitutes_for_no_species_it_holds() -> None:
+    """The species an orthology profile names leave the genus the request
+    asks for free to bind."""
+    assert _bind(
+        _PLASMO,
+        ["Plasmodium", "P. berghei", "P. knowlesi", "Toxoplasma gondii"],
+        ["Plasmodium"],
+    ) == ["Plasmodium"]
+
+
+def test_a_bind_of_a_named_strain_substitutes_for_no_sibling_strain() -> None:
+    assert _bind(
+        _PLASMO,
+        ["Plasmodium falciparum 3D7", "Plasmodium falciparum HB3"],
+        ["Plasmodium falciparum 3D7"],
+    ) == ["Plasmodium falciparum 3D7"]

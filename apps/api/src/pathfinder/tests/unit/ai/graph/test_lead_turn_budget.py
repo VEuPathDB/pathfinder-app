@@ -1,19 +1,27 @@
-"""A turn that reaches its budget ends with a sentence that names it.
-
-The off-topic ceiling is lowered here so one scripted response passes it; what
-the tests read is that the classification binds the rest of the run and that
-the user gets a sentence instead of an exception.
-"""
+"""A turn that reaches its budget ends with a sentence that names it, and an
+off-topic turn ends with its own reply whatever its requests spend."""
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
 from typing import Any
 from uuid import uuid4
 
 import pytest
-from pydantic_ai.messages import ModelMessage, ToolCallPart
-from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    ToolCallPart,
+)
+from pydantic_ai.models.function import (
+    AgentInfo,
+    DeltaThinkingCalls,
+    DeltaThinkingPart,
+    DeltaToolCall,
+    DeltaToolCalls,
+    FunctionModel,
+)
 from pydantic_ai.usage import UsageLimits
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +37,6 @@ from pathfinder.ai.lead import (
     sub_agent_dispatch,
     sub_agent_stream,
     sub_agent_tools,
-    turn_budget,
 )
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -66,8 +73,10 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 _PROMPT = "Write me a Python script that reverses a linked list."
 _ANSWER = "answered"
 _BUILD_PROMPT = "Find Aedes genes up at 24 h against 18 h and 36 h."
-# Small enough that the first scripted response passes it.
-_TINY_OFF_TOPIC_CAP = 5
+# Each scripted request thinks this many words, so two requests spend what a
+# production Lead request re-reads of its instructions.
+_THOUGHT_WORDS = 30_000
+_THOUGHT = " ".join(["word"] * _THOUGHT_WORDS)
 
 
 def _quota_offline() -> AsyncSession:
@@ -126,13 +135,36 @@ def _classify_then_answer(classification: str) -> FunctionModel:
             tool_call_id="call_classify",
         )
 
-    return scripted_model(_part)
+    return _thinking_model(_part)
+
+
+def _thinking_model(part_for: Any) -> FunctionModel:
+    """A scripted model whose every request thinks ``_THOUGHT`` before its call."""
+
+    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del info
+        return ModelResponse(parts=[part_for(messages)])
+
+    async def _stream(
+        messages: list[ModelMessage], info: AgentInfo
+    ) -> AsyncIterator[DeltaThinkingCalls | DeltaToolCalls]:
+        del info
+        part: ToolCallPart = part_for(messages)
+        yield {0: DeltaThinkingPart(content=_THOUGHT)}
+        yield {
+            1: DeltaToolCall(
+                name=part.tool_name,
+                json_args=part.args_as_json_str(),
+                tool_call_id=part.tool_call_id,
+            )
+        }
+
+    return FunctionModel(_fn, stream_function=_stream, model_name="scripted")
 
 
 def _drive(
     monkeypatch: pytest.MonkeyPatch, classification: str
 ) -> tuple[_LeadRunCapture, Collector]:
-    monkeypatch.setattr(turn_budget, "OFF_TOPIC_TURN_TOKEN_LIMIT", _TINY_OFF_TOPIC_CAP)
     model = _classify_then_answer(classification)
     monkeypatch.setattr(_lead_model, "get_mock_model", lambda: model)
     state = _state()
@@ -152,27 +184,37 @@ def _drive(
     return capture, writer
 
 
-def test_an_off_topic_turn_stops_at_the_off_topic_budget(
+def test_an_off_topic_turn_ends_with_its_own_reply(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Its classification and its reply spend what any two Lead requests spend."""
+    capture, writer = _drive(monkeypatch, "off_topic")
+
+    assert capture.response is not None
+    assert capture.response.prose == _ANSWER
+    assert writer.chunks_of("error") == []
+
+
+def test_the_turn_reports_what_its_run_spent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     capture, _ = _drive(monkeypatch, "off_topic")
 
-    assert capture.response is not None
-    assert capture.response.prose == (
-        f"I stopped this turn at its budget of 80 model calls and "
-        f"{_TINY_OFF_TOPIC_CAP} tokens. Narrow the request and send it again, "
-        f"and I will start a fresh turn on it."
-    )
+    assert capture.tokens >= 2 * _THOUGHT_WORDS
 
 
-def test_the_budget_stop_says_nothing_about_a_safety_cap(
+def test_a_turn_stopped_at_its_budget_reports_what_its_run_spent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The user reads a budget, not an error chunk carrying the library's words."""
-    capture, writer = _drive(monkeypatch, "off_topic")
+    """A run that never reaches a result still spent its requests."""
+    monkeypatch.setattr(
+        lead_node, "lead_usage_limits", lambda: UsageLimits(request_limit=1)
+    )
+    capture, writer = _drive(monkeypatch, "follow_up_question")
 
     assert capture.response is not None
-    assert "Exceeded the total_tokens_limit" not in capture.response.prose
+    assert capture.response.prose.endswith(BUDGET)
+    assert capture.tokens >= _THOUGHT_WORDS
     assert writer.chunks_of("error") == []
 
 

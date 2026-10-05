@@ -1,10 +1,10 @@
 ---
 type: Decision
 title: An off-topic turn reaches no tool
-description: The classification the Lead makes first is what puts a request outside PathFinder's scope, and that turn is offered no tool, is pinned a two-sentence redirect, is refused if it answers anyway, and stops at a token ceiling of its own. A prompt-only redirect, a pre-turn topic classifier and lowering the run's live UsageLimits were rejected.
+description: The classification the Lead makes first is what puts a request outside PathFinder's scope, and that turn is offered no tool, is pinned a two-sentence redirect and is refused if it answers anyway; the whole-turn ceiling is its only budget. A prompt-only redirect, a pre-turn topic classifier and a token ceiling of its own were rejected.
 tags: [agents, intent, scope, budget]
 generated: { by: claude-code/opus-5, at: 2026-09-13T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-10-05T00:00:00Z }
 status: stable
 ---
 
@@ -50,12 +50,12 @@ changed nothing." It prints a verdict only while the strategy holds the
 revision a check judged, and otherwise says "The strategy was not verified
 this turn."
 
-**An out-of-scope turn stops at 40000 tokens.** `off_topic_budget_stop` reads
-the `RunUsage` the turn handed the run, once per streamed event, and the turn
-ends itself with the budget sentence when an off-topic classification has
-passed `OFF_TOPIC_TURN_TOKEN_LIMIT`. It is the same exit the repetition guard
-uses: the event generator returns, so the emitter closes the stream and the
-reply the turn holds is the one the user reads.
+**An out-of-scope turn has no ceiling of its own.** It reaches no tool and the
+essay rule refuses once, so its run ends after the classification, the reply and
+at most one refusal. The whole-turn ceiling above still covers it. The turn
+reports what its run spent from the `RunUsage` the run accumulates into
+(`_LeadRunCapture.record_run_spend`), so a run that stops before its result
+reports its spend too.
 
 **The scope line has one home.** The classifier's own criteria are in the
 docstring of `classify_user_intent`, which is what the model reads when it
@@ -73,12 +73,15 @@ ledger, the full tool list, and the freedom to write whatever it liked. The
 request is classified either way, so the classification is free; spending a
 strategy turn's context on it after that is not.
 
-**Lowering the run's live `UsageLimits` mid-run.** `RunContext.usage_limits`
-is the object the run enforces against, and mutating a field on it does change
-what later requests are judged by. Its own docstring says to treat it as
-read-only, so the ceiling would rest on a field the library reserves the right
-to copy. Reading `RunUsage` costs one comparison per event and asks the library
-for nothing it does not publish.
+**A token ceiling of its own.** Every Lead request reads the Lead's
+instructions again, about 28,500 tokens, so the classification and the reply
+alone come to about 57,000 tokens. A ceiling of 40000 tokens summed over the
+turn's requests is below that floor: the turn replaced every off-topic reply
+with the budget sentence, and the sentence named a call ceiling the turn never
+reached. A ceiling counted in requests adds nothing to the bound the empty tool
+list already sets. Lowering the run's live `UsageLimits` mid-run was the other
+way to set one, and it rests on `RunContext.usage_limits`, a field whose own
+docstring says to treat it as read-only.
 
 **A pre-turn topic classifier.** A separate model call before the Lead, over
 the message alone. It cannot see the thread, and the thread is what decides

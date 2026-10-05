@@ -66,6 +66,11 @@ Times are the measured wall time of the same turns with `openai:gpt-5.6-luna` at
 
 ## Bug template
 
+A bug is filed with the `Report a problem` form on the repository's issue page
+(`.github/ISSUE_TEMPLATE/report-a-problem.yml`), which asks for the first two
+headings below, the site, the flow and the severity. A thumbs down on the reply
+keeps that conversation as an eval case.
+
 The six headings of the engineering bug format. A runner who is not an engineer fills the first three; the last three are optional and the engineer who takes the bug writes them.
 
 ```

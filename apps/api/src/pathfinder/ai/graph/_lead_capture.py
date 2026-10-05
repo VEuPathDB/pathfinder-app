@@ -162,6 +162,18 @@ class _LeadRunCapture:
             own_key_cost=self.own_key_sub_agent_cost,
         )
 
+    def record_run_spend(self, usage: RunUsage) -> None:
+        """Take the Lead run's spend from the usage it accumulates into, so a
+        run that stops before its result still reports what it spent."""
+        provider_name, model_name = _split_agent_model(self.lead_model)
+        self.tokens = usage.total_tokens
+        self.cost_usd = cost_for_run(
+            usage=usage,
+            model_name=model_name,
+            provider_name=provider_name,
+            provider_url=None,
+        )
+
     def residual_totals(self, state: PipelineState) -> tuple[int, str]:
         """Final turn totals using the captured (not charged) lead tokens."""
         return (

@@ -1,0 +1,95 @@
+name: Report a problem
+description: Something PathFinder did that was wrong, confusing or broken.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing PathFinder. One report per problem, please.
+        Never paste a password, a token or an API key into this form.
+  - type: input
+    id: conversation
+    attributes:
+      label: Conversation link
+      description: Copy the address bar of the conversation page. It holds the conversation id, which lets us read the whole turn.
+      placeholder: https://<pathfinder address>/plasmodb/conversation/<id>
+    validations:
+      required: true
+  - type: dropdown
+    id: site
+    attributes:
+      label: Site
+      options:
+        - PlasmoDB
+        - ToxoDB
+        - CryptoDB
+        - GiardiaDB
+        - AmoebaDB
+        - MicrosporidiaDB
+        - PiroplasmaDB
+        - TriTrypDB
+        - TrichDB
+        - FungiDB
+        - VectorBase
+        - HostDB
+        - Not about one site
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad is it?
+      options:
+        - "Blocker: a wrong count shown as right, lost data, another person's data, or a flow that cannot finish"
+        - "Major: the flow finishes, but a step is wrong, a message misleads, or the layout hides something"
+        - "Minor: wording, spacing, or a glitch that blocks nothing"
+    validations:
+      required: true
+  - type: input
+    id: flow
+    attributes:
+      label: UAT flow
+      description: The flow id from the UAT script, if you were following one.
+      placeholder: S3
+  - type: textarea
+    id: asked
+    attributes:
+      label: What you asked
+      description: Paste the message you sent, or describe what you clicked.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: got
+    attributes:
+      label: What you got
+      description: Paste the reply or the error, and say which part is wrong.
+    validations:
+      required: true
+  - type: dropdown
+    id: rated
+    attributes:
+      label: Did you mark the reply with a thumbs down?
+      description: A thumbs down on the reply keeps that conversation for us to replay.
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag an image here if the problem is on the page itself.
+  - type: checkboxes
+    id: private
+    attributes:
+      label: Private data
+      options:
+        - label: This report holds no password, token, API key or unpublished data.
+          required: true

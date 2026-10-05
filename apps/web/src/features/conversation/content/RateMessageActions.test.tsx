@@ -121,6 +121,16 @@ describe("RateMessageActions", () => {
     expect(like()).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("fills the icon of the pressed control and leaves the other outlined", async () => {
+    installHandlers(stubs({ saved: "dislike" }));
+    renderActions();
+
+    await waitFor(() => {
+      expect(dislike().querySelector("svg")).toHaveAttribute("fill", "currentColor");
+    });
+    expect(like().querySelector("svg")).toHaveAttribute("fill", "none");
+  });
+
   it("presses like while the PUT is still pending", async () => {
     const state = stubs({ putDelayMs: { like: 400 } });
     installHandlers(state);

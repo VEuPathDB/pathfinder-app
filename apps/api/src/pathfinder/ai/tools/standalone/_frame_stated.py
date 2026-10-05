@@ -101,8 +101,10 @@ def _refuse_an_organism_the_request_does_not_name(
 
     The request names the organisms its live requirements state: a value a
     later message replaced or withdrew is no longer named. A named entry is
-    covered by itself and by any entry under it. An entry of another lineage
-    belongs to another criterion and is never refused.
+    covered by itself and by any entry under it. A bound entry the request
+    names, or one under it, is the request's own value and substitutes for
+    nothing. An entry of another lineage belongs to another criterion and is
+    never refused.
     """
     options = info.vocabulary()
     proposed = proposal_values(call.params.get(info.name))
@@ -113,11 +115,12 @@ def _refuse_an_organism_the_request_does_not_name(
         displays,
     )
     tree = _organism_tree(definition, info.name)
+    unnamed = [b for b in bound if not any(b == n or tree.above(n, b) for n in named)]
     substituted = [
         n
         for n in named
         if not any(b == n or tree.above(n, b) for b in bound)
-        and any(tree.siblings(n, b) or tree.above(b, n) for b in bound)
+        and any(tree.siblings(n, b) or tree.above(b, n) for b in unnamed)
     ]
     if substituted:
         msg = (

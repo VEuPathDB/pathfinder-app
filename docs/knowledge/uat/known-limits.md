@@ -3,7 +3,7 @@ type: Reference
 title: UAT known limits
 description: What UAT does not count as a bug, because it is decided or already on the backlog - each with the flow where a runner meets it and how it shows.
 tags: [uat, known-limits, decisions, backlog]
-generated: { by: claude-code/opus-5.5, at: 2026-09-24T00:00:00Z }
+generated: { by: claude-code/opus-5.5, at: 2026-10-05T00:00:00Z }
 status: draft
 ---
 
@@ -34,16 +34,13 @@ A runner who meets one of these records the flow as `pass` (or `blocked` where n
 
 ## On the backlog
 
-Named as in the [backlog](../backlog/index.md) on 2026-09-24; the list moves as items close, so read it at UAT start.
+Named as in the [backlog](../backlog/index.md) on 2026-10-05; the list moves as items close, so read it at UAT start.
 
 | Item | What a runner sees | Flow |
 |---|---|---|
-| The sample of a large transcript step outlasts the read deadline | On a genome-sized result the check says the genes were not sampled (the read is cut at 20 s) | V1 on a large result |
-| A site edit reaches the Lead's briefing | After an edit on the site, the tab is right but the assistant may describe the old analysis | E5 step 4 |
+| A message that commands a change is an edit when it also asks a question | "Change X to Y. How does the count change?" may get an answer and no edit; "apply it" makes the edit | S9 to S12 |
+| A dependent pick's label is the vocabulary it was bound under | The site-default count of a dependent pick (an InterPro domain under an organism) may read the published default instead of the bound parents | U8, UA-plasmodb |
 | The Claude models are probed for images and documents | The Anthropic and Google models are not part of UAT; only the OpenAI models are tested | A1, C13 |
-| A search report pages transcripts under a gene cap | A variant comparison near 50,000 rows may say it was cut short | V7 |
-| The title and the compactor are metered | The quota pill is short by those two calls | A3 |
-| A thread on a site the deployment does not serve breaks the list | A deployment that drops a site shows an empty conversation list when a conversation of that site exists | F4 |
 
 ## Not in this release
 

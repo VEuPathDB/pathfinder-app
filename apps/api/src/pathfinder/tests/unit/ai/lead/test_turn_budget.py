@@ -5,12 +5,10 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 
 import pytest
-from pydantic_ai.usage import RunUsage
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_sections import (
     BuildSection,
@@ -19,11 +17,9 @@ from pathfinder.ai.lead.ledger_sections import (
 )
 from pathfinder.ai.lead.reply_claims import machine_words
 from pathfinder.ai.lead.turn_budget import (
-    OFF_TOPIC_TURN_TOKEN_LIMIT,
     budget_stop_report,
     lead_turn_budget_message,
     lead_usage_limits,
-    off_topic_budget_stop,
 )
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.session import StrategySession
@@ -52,7 +48,6 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     built_session,
     objection,
 )
-from pathfinder.tests.unit.ai.lead.conftest import user_intent
 
 _CONFIGURED_LIMIT = 123456
 _DEFAULT_LIMIT = 600_000
@@ -66,14 +61,6 @@ def configured_limit(monkeypatch: pytest.MonkeyPatch) -> Iterator[int]:
     get_settings.cache_clear()
     yield _CONFIGURED_LIMIT
     get_settings.cache_clear()
-
-
-def _usage(total_tokens: int) -> RunUsage:
-    return RunUsage(input_tokens=total_tokens)
-
-
-def _off_topic() -> UserIntent:
-    return user_intent(IntentClassification.OFF_TOPIC)
 
 
 def test_the_turn_budget_is_the_configured_token_ceiling(
@@ -102,38 +89,6 @@ def test_the_turn_budget_message_names_the_whole_turn_ceiling() -> None:
         f"I stopped this turn at its budget of 80 model calls and "
         f"{_DEFAULT_LIMIT} tokens. {_TAIL}"
     )
-
-
-def test_the_off_topic_stop_names_the_ceiling_it_stopped_at() -> None:
-    assert off_topic_budget_stop(
-        _usage(OFF_TOPIC_TURN_TOKEN_LIMIT + 1), _off_topic()
-    ) == (
-        f"I stopped this turn at its budget of 80 model calls and "
-        f"{OFF_TOPIC_TURN_TOKEN_LIMIT} tokens. {_TAIL}"
-    )
-
-
-def test_the_stop_fires_only_for_an_off_topic_turn_over_its_ceiling() -> None:
-    at = OFF_TOPIC_TURN_TOKEN_LIMIT
-    fired = {
-        "off topic, one token over": off_topic_budget_stop(_usage(at + 1), _off_topic())
-        is not None,
-        "off topic, at the ceiling": off_topic_budget_stop(_usage(at), _off_topic())
-        is not None,
-        "a question about the data, far over": off_topic_budget_stop(
-            _usage(at * 2), user_intent(IntentClassification.FOLLOW_UP_QUESTION)
-        )
-        is not None,
-        "not classified yet, far over": off_topic_budget_stop(_usage(at * 2), None)
-        is not None,
-    }
-
-    assert fired == {
-        "off topic, one token over": True,
-        "off topic, at the ceiling": False,
-        "a question about the data, far over": False,
-        "not classified yet, far over": False,
-    }
 
 
 def _ledger(
