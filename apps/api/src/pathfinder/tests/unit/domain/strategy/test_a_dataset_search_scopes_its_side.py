@@ -41,10 +41,17 @@ _MARKED = {
     "GenesByGoTerm": "organism",
     "GenesByOrthologs": "organism",
 }
-_DATASETS = {
+_TREU927 = "Trypanosoma brucei brucei TREU927"
+_LVP_AGWG = "Aedes aegypti LVP_AGWG"
+_PROCYCLIC = "GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC"
+_ANTENNAE = "GenesByRNASeqaaegLVP_AGWG_SRP171130_ebi_rnaSeq_RSRCPercentile"
+# The organisms of the one dataset each dataset search runs on.
+_DATASET_ORGANISMS = {
     _OOCYSTS: frozenset({_HOMINIS}),
     _LIPPUNER: frozenset({_PARVUM}),
     _TROPHOZOITES: frozenset({_HM1}),
+    _PROCYCLIC: frozenset({_TREU927}),
+    _ANTENNAE: frozenset({_LVP_AGWG}),
 }
 
 _PREAMBLE = (
@@ -52,6 +59,15 @@ _PREAMBLE = (
     "({primary} vs {secondary}). Gene IDs from different organisms never match, "
     "so this always returns 0 results. "
 )
+
+
+def _datasets(root: StrategyStepNode) -> dict[str, frozenset[str]]:
+    """The organisms of the dataset each step of the tree runs on, by step id."""
+    return {
+        node.id: _DATASET_ORGANISMS[node.search_name]
+        for node in walk(root)
+        if node.search_name in _DATASET_ORGANISMS
+    }
 
 
 def _marked(step_id: str, search_name: str, organism: str) -> StrategyStepNode:
@@ -74,14 +90,14 @@ class TestTheScopeOfAStep:
     def test_a_search_that_marks_no_organism_has_its_datasets(self) -> None:
         step = _dataset_step("p", _OOCYSTS)
 
-        assert output_organisms(step, _MARKED, _DATASETS) == {_HOMINIS}
+        assert output_organisms(step, _MARKED, _datasets(step)) == {_HOMINIS}
 
     def test_without_its_dataset_the_scope_is_unknown(self) -> None:
         step = _dataset_step("p", _OOCYSTS)
 
         assert [
             output_organisms(step, _MARKED, {}),
-            output_organisms(step, _MARKED, _DATASETS),
+            output_organisms(step, _MARKED, _datasets(step)),
         ] == [None, {_HOMINIS}]
 
     def test_a_transform_that_marks_an_organism_states_the_scope(self) -> None:
@@ -92,7 +108,7 @@ class TestTheScopeOfAStep:
             primary_input=_dataset_step("p", _OOCYSTS),
         )
 
-        assert output_organisms(step, _MARKED, _DATASETS) == {_UKMEL1}
+        assert output_organisms(step, _MARKED, _datasets(step)) == {_UKMEL1}
 
     def test_a_transform_that_marks_none_keeps_the_datasets(self) -> None:
         step = StrategyStepNode(
@@ -101,7 +117,7 @@ class TestTheScopeOfAStep:
             primary_input=_dataset_step("p", _OOCYSTS),
         )
 
-        assert output_organisms(step, _MARKED, _DATASETS) == {_HOMINIS}
+        assert output_organisms(step, _MARKED, _datasets(step)) == {_HOMINIS}
 
 
 def _criterion(
@@ -129,7 +145,7 @@ class TestTheDatasetsOfTheCriteria:
             _criterion("c_text", "GenesByText", None, []),
         ]
 
-        assert dataset_organisms_of(criteria) == {_OOCYSTS: frozenset({_HOMINIS})}
+        assert dataset_organisms_of(criteria) == {"c_oocysts": frozenset({_HOMINIS})}
 
 
 class TestAnIntersectWithADatasetSearch:
@@ -140,7 +156,7 @@ class TestAnIntersectWithADatasetSearch:
             _dataset_step("p", _OOCYSTS),
         )
 
-        assert cross_organism_refusal(root, root, _MARKED, _DATASETS) == (
+        assert cross_organism_refusal(root, root, _MARKED, _datasets(root)) == (
             _PREAMBLE.format(primary=_UKMEL1, secondary=_HOMINIS)
             + f"The {_OOCYSTS} search runs on an experiment of {_HOMINIS}, and no "
             f"parameter changes that organism. Map that side to {_UKMEL1} with a "
@@ -153,15 +169,15 @@ class TestAnIntersectWithADatasetSearch:
         root = combine("c", go_term, trophozoites)
 
         assert [
-            output_organisms(go_term, _MARKED, _DATASETS),
-            output_organisms(trophozoites, _MARKED, _DATASETS),
-            cross_organism_refusal(root, root, _MARKED, _DATASETS),
+            output_organisms(go_term, _MARKED, _datasets(root)),
+            output_organisms(trophozoites, _MARKED, _datasets(root)),
+            cross_organism_refusal(root, root, _MARKED, _datasets(root)),
         ] == [{_HM1}, {_HM1}, None]
 
     def test_two_experiments_of_two_species_map_one_side(self) -> None:
         root = combine("c", _dataset_step("a", _OOCYSTS), _dataset_step("b", _LIPPUNER))
 
-        assert cross_organism_refusal(root, root, _MARKED, _DATASETS) == (
+        assert cross_organism_refusal(root, root, _MARKED, _datasets(root)) == (
             _PREAMBLE.format(primary=_HOMINIS, secondary=_PARVUM)
             + "Each side runs on an experiment, and no parameter changes its "
             "organism. Map one side to the organism of the other with a "
@@ -176,12 +192,6 @@ class TestAnIntersectWithADatasetSearch:
             output_organisms(oocysts, _MARKED, {}),
             cross_organism_refusal(root, root, _MARKED, {}),
         ] == [None, None]
-
-
-_TREU927 = "Trypanosoma brucei brucei TREU927"
-_LVP_AGWG = "Aedes aegypti LVP_AGWG"
-_PROCYCLIC = "GenesByRNASeqtbruTREU927_Naguleswaran_procyclic_ebi_rnaSeq_RSRC"
-_ANTENNAE = "GenesByRNASeqaaegLVP_AGWG_SRP171130_ebi_rnaSeq_RSRCPercentile"
 
 
 def _amoebadb() -> StrategyStepNode:
@@ -217,12 +227,8 @@ def test_a_dataset_search_on_the_organism_of_its_partner_builds(
     tree: Callable[[], StrategyStepNode], leaves: list[set[str]]
 ) -> None:
     marked = {**_MARKED, "GenesByInterproDomain": "organism"}
-    datasets = {
-        **_DATASETS,
-        _PROCYCLIC: frozenset({_TREU927}),
-        _ANTENNAE: frozenset({_LVP_AGWG}),
-    }
     root = tree()
+    datasets = _datasets(root)
     scopes = [
         output_organisms(node, marked, datasets)
         for node in walk(root)

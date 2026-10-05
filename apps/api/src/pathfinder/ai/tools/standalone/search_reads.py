@@ -38,9 +38,12 @@ _LOOKUP_LIMIT = 5
 _WORD_START = re.compile(r"(?<=[a-z])(?=[A-Z])")
 
 
-async def _refuse_an_unlisted_search(site_id: str, search: VariantInput) -> None:
+async def _refuse_an_unlisted_search(
+    ctx: RunContext[LeadDeps], search: VariantInput
+) -> None:
     """Raises ModelRetry for a search the catalog does not list, with the
     searches the catalog lookup finds for its name."""
+    site_id = ctx.deps.site_id
     name = search.search_name
     if name in await search_record_types(site_id, [name]):
         return
@@ -51,6 +54,7 @@ async def _refuse_an_unlisted_search(site_id: str, search: VariantInput) -> None
         )
     except VagueSearchQueryError:
         found = []
+    ctx.deps.state.turn_markers.catalog_looked_up = True
     unlisted = f"{site_id} lists no search {name} ({search.label})."
     if not found:
         msg = (
@@ -87,7 +91,7 @@ async def _resolved(ctx: RunContext[LeadDeps], search: VariantInput) -> VariantS
     value as the entry its vocabulary names."""
     reject_combine_variants([search])
     _refuse_an_unquoted_phrase(ctx, search)
-    await _refuse_an_unlisted_search(ctx.deps.site_id, search)
+    await _refuse_an_unlisted_search(ctx, search)
     specs = await resolved_variants(ctx.deps.runtime.strategy_session, [search])
     return specs[0]
 
@@ -120,7 +124,8 @@ async def count_search(
 
 def _shown_record_ids(deps: LeadDeps) -> list[str]:
     """The records this turn's facts list, else those the conversation last showed."""
-    return turn_facts(deps).record_ids() or list(deps.state.domain.shown_record_ids)
+    facts = turn_facts(deps)
+    return facts.record_ids() or [s.record_id for s in facts.shown_before]
 
 
 async def genes_in_search(

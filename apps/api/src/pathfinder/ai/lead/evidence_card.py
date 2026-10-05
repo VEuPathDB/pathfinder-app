@@ -15,7 +15,6 @@ from pathfinder.ai.graph.turn_records import ControlTestRun
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.control_repeats import merged_control_tests
-from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
 from pathfinder.domain.evidence import (
     CheckedStepCount,
     ControlTestEvidence,
@@ -159,7 +158,7 @@ def _sources(
         labels={}
         if graph is None
         else {step_id: step.display_label for step_id, step in graph.steps.items()},
-        live_wdk_step_ids=frozenset(live_wdk_step_ids(session)),
+        live_wdk_step_ids=frozenset(session.wdk_step_ids()),
         wdk_strategy_id=None if sync is None else sync.wdk_strategy_id,
         root_wdk_step_id=None if sync is None else sync.wdk_root_step_id,
         node_results=derive_ledger(deps.state, deps.intent).build.node_results,

@@ -91,7 +91,6 @@ describe("rolesForAssistant", () => {
     expect(rolesForAssistant(PRESETS, "pathfinder", "openai")).toEqual([
       "lead",
       "frame",
-      "execution",
       "verification",
     ]);
     expect(rolesForAssistant(PRESETS, "site_help", "openai")).toEqual(["site_help"]);
@@ -103,18 +102,16 @@ describe("rolesForAssistant", () => {
 });
 
 describe("applyTierPreset", () => {
-  it("sets every role's model and effort from the preset", () => {
+  it("sets the model and effort of every role the researcher picks", () => {
     expect(applyTierPreset(QUALITY_TIER)).toEqual({
       models: {
         lead: OPENAI_FLAGSHIP.id,
         frame: OPENAI_FLAGSHIP.id,
-        execution: DEFAULT_MODEL.id,
         verification: DEFAULT_MODEL.id,
       },
       reasoning: {
         lead: "high",
         frame: "high",
-        execution: "medium",
         verification: "medium",
       },
     });
@@ -202,9 +199,27 @@ describe("deriveActiveTier", () => {
     ).toBe("quality");
   });
 
+  it("recognises a preset when every role the researcher picks matches it", () => {
+    // The repair role differs between quality and the deployment's default,
+    // and the researcher has no row to pin it on.
+    const models = {
+      lead: OPENAI_FLAGSHIP.id,
+      frame: OPENAI_FLAGSHIP.id,
+      verification: DEFAULT_MODEL.id,
+    };
+    const reasoning = {
+      lead: "high" as const,
+      frame: "high" as const,
+      verification: "medium" as const,
+    };
+    expect(
+      deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "default"),
+    ).toBe("quality");
+  });
+
   it("is custom when a single role model is changed", () => {
     const applied = applyTierPreset(QUALITY_TIER);
-    const models = { ...applied.models, execution: OPENAI_FLAGSHIP.id };
+    const models = { ...applied.models, verification: OPENAI_FLAGSHIP.id };
     expect(
       deriveActiveTier(
         PRESETS,
@@ -258,8 +273,8 @@ describe("deriveActiveTier", () => {
         PRESETS,
         "pathfinder",
         "openai",
-        { execution: OPENAI_FLAGSHIP.id },
-        { execution: "high" },
+        { verification: OPENAI_FLAGSHIP.id },
+        { verification: "high" },
         "balanced",
       ),
     ).toBe(CUSTOM_TIER);
@@ -281,9 +296,9 @@ describe("deriveActiveTier", () => {
 
   it("fills a role no pin names from the deployment tier", () => {
     // The planning roles are unpinned, so the deployment tier decides whether
-    // the pinned worker roles complete the quality preset.
-    const models = { execution: DEFAULT_MODEL.id, verification: DEFAULT_MODEL.id };
-    const reasoning = { execution: "medium" as const, verification: "medium" as const };
+    // the pinned checking role completes the quality preset.
+    const models = { verification: DEFAULT_MODEL.id };
+    const reasoning = { verification: "medium" as const };
     expect(
       deriveActiveTier(PRESETS, "pathfinder", "openai", models, reasoning, "quality"),
     ).toBe("quality");

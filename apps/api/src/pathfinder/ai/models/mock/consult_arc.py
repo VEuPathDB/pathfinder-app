@@ -31,7 +31,7 @@ from pathfinder.ai.models.mock.reads import (
     frame_summary,
     instructions_of,
     last_return,
-    pinned_on,
+    pinned_briefings,
 )
 from pathfinder.ai.models.mock.sheets import sheet_entries
 from pathfinder.ai.models.mock.site_values import SiteValues
@@ -110,8 +110,8 @@ def _sheet_vocabulary(messages: list[ModelMessage], crit: CriterionSpec) -> list
     """Every value the sheet lists for the organism, from the newest request
     that pinned it: binding the criterion closes the sheet."""
     pinned = (
-        sheet_entries(pinned_on(message) or "", crit.criterion_id)
-        for message in reversed(messages)
+        sheet_entries(briefing, crit.criterion_id)
+        for briefing in reversed(pinned_briefings(messages))
     )
     entries = next((found for found in pinned if found), [])
     return [

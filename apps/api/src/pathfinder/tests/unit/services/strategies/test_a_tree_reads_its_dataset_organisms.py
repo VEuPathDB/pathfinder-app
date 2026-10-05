@@ -1,5 +1,6 @@
-"""A pushed tree reads the dataset organisms of the searches that mark no
-organism parameter, and a tree with no INTERSECT or transform reads none."""
+"""A pushed tree reads the dataset organisms of the steps whose search marks no
+organism parameter, by step id, and a tree with no INTERSECT or transform reads
+none."""
 
 from __future__ import annotations
 
@@ -48,7 +49,7 @@ async def test_only_a_search_that_marks_no_organism_is_read(asked: list[str]) ->
         "cryptodb", root, {"GenesWithSignalPeptide": "organism"}
     )
 
-    assert found == {_OOCYSTS: frozenset({_HOMINIS})}
+    assert found == {"oocysts": frozenset({_HOMINIS})}
     assert asked == [_OOCYSTS]
 
 

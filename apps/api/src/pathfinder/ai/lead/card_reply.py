@@ -15,6 +15,12 @@ PLACEMENT_RULES = (
     "word (one to twelve, twice, two-fold) never stands in the clause of "
     "a count or value reference, which stands in place of the number."
 )
+# The records a record reference cites. The schema and the Lead's instruction
+# both state it.
+CITABLE_RECORDS = (
+    "a record this turn read, listed, checked or resolved, or one of the "
+    "records the conversation showed last"
+)
 REPLY_REFERENCES = (
     "It writes no number, identifier, link or source word itself: each fact is "
     "a reference the product renders from the facts beside the reply. "
@@ -28,8 +34,8 @@ REPLY_REFERENCES = (
     "value with its label, [source:<step_id>.<param>] who set it, "
     "[compare:<variant>] the genes a comparison of this turn returned for a "
     "variant (add :unique or :result; [compare:<a>,<b>:shared] for the genes "
-    "two share), [record:<record_id>] a record this turn read, listed or checked, [url] "
-    f"the strategy's link. {PLACEMENT_RULES}"
+    f"two share), [record:<record_id>] {CITABLE_RECORDS}, [url] the strategy's "
+    f"link. {PLACEMENT_RULES}"
 )
 
 CardReply = Annotated[
@@ -48,6 +54,10 @@ CardReply = Annotated[
 ]
 
 
+# A refused card never reached the researcher, so no reply speaks of it.
+CARD_NOT_SHOWN = "The researcher never saw this card, so the reply does not mention it."
+
+
 class CardCallReply(CamelModel):
     """The reply one card call carries, read off its arguments."""
 
@@ -57,6 +67,8 @@ class CardCallReply(CamelModel):
 
 
 __all__ = [
+    "CARD_NOT_SHOWN",
+    "CITABLE_RECORDS",
     "PLACEMENT_RULES",
     "PROSE_MAX_CHARS",
     "REPLY_REFERENCES",

@@ -4,11 +4,15 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from assistant_core.scratchpad.toolset import build_scratchpad_toolset
+from assistant_core.capabilities.allowed_tools import AllowedTools
+from assistant_core.scratchpad.toolset import (
+    build_scratchpad_toolset,
+    withhold_scratchpad_tools,
+)
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import CombinedCapability
 from pydantic_ai.toolsets.abstract import AbstractToolset
 from pydantic_ai.toolsets.function import FunctionToolset
-from pydantic_ai.toolsets.prepared import PreparedToolset
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.agents.execution import build_execution_agent
@@ -44,9 +48,18 @@ def test_scratchpad_toolset_lists_all_tools() -> None:
         assert required in names, f"{required} missing from build_scratchpad_toolset"
 
 
-def test_scratchpad_toolset_is_prepared_for_dynamic_filtering() -> None:
-    ts = build_scratchpad_toolset(promoted_kind=PROMOTED_NOTE_KIND)
-    assert isinstance(ts, PreparedToolset)
+@pytest.mark.parametrize(
+    "build", [build_frame_agent, build_verification_agent, build_execution_agent]
+)
+def test_an_agent_with_a_scratchpad_withholds_its_tools_by_the_scratchpad_rule(
+    build: Callable[[], Agent[Any, Any]],
+) -> None:
+    """The scratchpad's tools stay listed; its rule says which the model may call."""
+    root = build().root_capability
+    assert isinstance(root, CombinedCapability)
+    [gate] = [c for c in root.capabilities if isinstance(c, AllowedTools)]
+
+    assert list(gate.rules) == [withhold_scratchpad_tools]
 
 
 def _caller_toolsets(

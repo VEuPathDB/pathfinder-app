@@ -593,7 +593,7 @@ async def test_f8_a_branch_owns_its_gene_set(
 
 def _memory(name: str, summary: str) -> MemoryValue:
     return MemoryValue(
-        kind="knowledge",
+        kind="preference",
         name=name,
         summary=summary,
         tags=[],

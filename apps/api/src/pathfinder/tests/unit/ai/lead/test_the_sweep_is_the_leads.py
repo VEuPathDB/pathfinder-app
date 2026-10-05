@@ -78,7 +78,7 @@ def test_the_budget_carries_the_ceiling_the_config_states() -> None:
     assert (budget["minimum"], budget["maximum"]) == (2, SWEEP_BUDGET_MAX)
 
 
-async def test_the_step_id_is_an_enum_of_the_strategys_live_steps() -> None:
+async def test_the_step_id_is_an_integer_whatever_the_strategy_holds() -> None:
     session = StrategySession(site_id="plasmodb")
     session.sync_state = WDKSyncState(wdk_step_ids={"a": 440230693, "b": 440230653})
     [mounted] = [
@@ -92,7 +92,8 @@ async def test_the_step_id_is_an_enum_of_the_strategys_live_steps() -> None:
     )
     schema = offered[SWEEP].tool_def.parameters_json_schema
 
-    assert schema["properties"]["wdk_step_id"]["enum"] == [440230653, 440230693]
+    assert schema["properties"]["wdk_step_id"]["type"] == "integer"
+    assert "enum" not in schema["properties"]["wdk_step_id"]
 
 
 def test_the_floors_are_the_numbers_the_design_named() -> None:

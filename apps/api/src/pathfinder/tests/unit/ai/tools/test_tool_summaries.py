@@ -30,6 +30,7 @@ from pathfinder.ai.tools.standalone import (
     eda_compute,
     eda_statistics,
     experiment,
+    memory_tools,
     optimization,
     separation,
     strategy_edits,
@@ -64,10 +65,11 @@ _SUB_AGENT_DISPATCH_MODULES = frozenset(
 # which names the same call.
 _DELEGATES = {"request_search_inspection": "get_search_overview"}
 
-# Two surfaces mount one delete, which writes the summary both return, so the
-# line is read where that shared body defines it.
+# Two surfaces share one body that writes the summary both return, so the line
+# is read where that shared body defines it.
 _SHARED_BODIES: dict[str, Callable[..., Any]] = {
-    "delete_step": strategy_edits.delete_the_step
+    "delete_step": strategy_edits.delete_the_step,
+    "search_memory": memory_tools.recalled_return,
 }
 
 # The five durable tools never run their own body: the summary is built from

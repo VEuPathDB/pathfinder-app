@@ -14,7 +14,7 @@ from pydantic_ai.tools import (
     ToolDenied,
 )
 
-from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, CardCallReply
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, PROSE_MAX_CHARS, CardCallReply
 from pathfinder.ai.lead.deleted_steps import DELETE_TOOL
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -39,7 +39,7 @@ CARD_TOOLS: frozenset[str] = frozenset(
     }
 )
 
-_NOT_SHOWN = "The card was not shown to the researcher. Answer again with the card."
+_NOT_SHOWN = f"{CARD_NOT_SHOWN} Answer again with the card."
 
 
 def _replies_beside_the_cards(requests: DeferredToolRequests) -> list[str]:

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from assistant_core.capabilities.allowed_tools import AllowedTools
+from assistant_core.capabilities.stable_instructions import StableInstructions
 from assistant_core.conversation.history import HISTORY_PROCESSORS
-from assistant_core.scratchpad.toolset import build_scratchpad_toolset
+from assistant_core.scratchpad.toolset import (
+    build_scratchpad_toolset,
+    withhold_scratchpad_tools,
+)
 from pydantic_ai import Agent, DeferredToolRequests
-from pydantic_ai.capabilities import ProcessHistory, Thinking
+from pydantic_ai.capabilities import ProcessHistory
 
 from pathfinder.ai.agents._instructions import (
     pinned_run_budget,
@@ -203,6 +208,7 @@ def build_execution_agent() -> ExecutionAgent:
     Each dispatch gets its own instance, so an override entered for one run
     never reaches another.
     """
+    stable = StableInstructions[AgentDeps]()
     agent: ExecutionAgent = Agent(
         EXECUTION_MODEL,
         output_type=[RecoveryDelta, DeferredToolRequests],
@@ -218,7 +224,8 @@ def build_execution_agent() -> ExecutionAgent:
         capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
-                Thinking(effort="medium"),
+                AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),
+                stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
         ),
@@ -241,5 +248,5 @@ def build_execution_agent() -> ExecutionAgent:
         pinned_discovered_searches,
         pinned_run_budget,
     ):
-        agent.instructions(fn)
+        agent.instructions(stable.section(fn))
     return agent

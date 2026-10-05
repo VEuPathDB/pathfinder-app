@@ -7,18 +7,28 @@ change a strategy are not on the model's list for those turns.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from typing import Any
 
 import pytest
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from assistant_core.capabilities.stable_instructions import SECTION_UPDATE_LEAD
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    UserPromptPart,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
+from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.intent import IntentClassification
-from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS
+from pathfinder.ai.lead.intent_gate import BUILDING_TOOLS, withheld_tools_pin
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.eda_thread import OpenEdaAnalysis
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     OfferedTools,
     lead_deps,
@@ -213,6 +223,13 @@ def test_a_context_statement_turn_answers_in_prose() -> None:
 
 def _reclassifying_model(prompt: str, seen: OfferedTools) -> FunctionModel:
     """A turn that classifies a build as a question, then corrects itself."""
+    return FunctionModel(_reclassifying(prompt, seen), model_name="scripted")
+
+
+def _reclassifying(
+    prompt: str, seen: OfferedTools
+) -> Callable[[list[ModelMessage], AgentInfo], ModelResponse]:
+    """The script of a turn that classifies a build as a question, then corrects itself."""
     scripted = {
         1: IntentClassification.FOLLOW_UP_QUESTION,
         2: IntentClassification.EXTEND_STRATEGY,
@@ -234,7 +251,7 @@ def _reclassifying_model(prompt: str, seen: OfferedTools) -> FunctionModel:
             ],
         )
 
-    return FunctionModel(_fn, model_name="scripted")
+    return _fn
 
 
 def test_a_corrected_classification_unhides_the_building_tools() -> None:
@@ -345,3 +362,65 @@ def test_a_count_question_builds_and_an_explanation_question_reads() -> None:
     assert counting.steps[1] >= UNLOCKED_ON_A_FRESH_THREAD
     assert not (explaining.steps[1] & BUILDING_TOOLS)
     assert "read_gene_record" in explaining.steps[1]
+
+
+def test_the_lead_is_listed_the_same_tools_on_every_step() -> None:
+    """A gated tool stays listed, so a classification rewrites no request."""
+    prompt = (
+        "Yes, rerun the differential expression and then create the strategy "
+        "step from the genes that pass."
+    )
+    seen = OfferedTools()
+
+    asyncio.run(
+        build_lead_agent().run(
+            prompt, deps=_deps(prompt), model=_reclassifying_model(prompt, seen)
+        ),
+    )
+
+    assert len(set(seen.listed)) == 1
+    assert set(seen.listed[0]) >= BUILDING_TOOLS
+
+
+def test_an_unclassified_turn_is_told_the_tools_it_cannot_call() -> None:
+    prompt = "I'm investigating virulence factors in Leishmania major"
+    pin = withheld_tools_pin(registered_tools(build_lead_agent().toolsets))
+
+    rendered = pin(run_context_for(_deps(prompt)))
+
+    assert rendered is not None
+    assert rendered.startswith("## Tools you cannot call now\n")
+    assert "build_strategy" in rendered
+    assert "classify_user_intent" not in rendered
+
+
+def test_a_classification_rewrites_no_instruction_and_follows_its_result() -> None:
+    """The intent a call records reaches the Lead after that call, not above the history."""
+    prompt = (
+        "Yes, rerun the differential expression and then create the strategy "
+        "step from the genes that pass."
+    )
+    pinned: list[str] = []
+    updates: list[str] = []
+    scripted = _reclassifying(prompt, OfferedTools())
+
+    def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        request = messages[-1]
+        assert isinstance(request, ModelRequest)
+        pinned.append(request.instructions or "")
+        updates.extend(
+            str(part.content)
+            for part in request.parts
+            if isinstance(part, UserPromptPart)
+            and SECTION_UPDATE_LEAD in str(part.content)
+        )
+        return scripted(messages, info)
+
+    asyncio.run(
+        build_lead_agent().run(
+            prompt, deps=_deps(prompt), model=FunctionModel(_fn, model_name="scripted")
+        ),
+    )
+
+    assert len(set(pinned)) == 1
+    assert any("## User Intent" in update for update in updates)

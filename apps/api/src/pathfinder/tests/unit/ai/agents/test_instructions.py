@@ -1,9 +1,5 @@
-"""The run's budget is disclosed to the model that spends it.
-
-``UsageLimits`` bound every run, and nothing showed the model what it had
-left. The meter renders the run's own ceiling from the context the run
-already carries.
-"""
+"""The run's ceilings are disclosed to the model that spends them, in text that
+stays the same for every request of the run."""
 
 from __future__ import annotations
 
@@ -44,29 +40,32 @@ def _ctx(usage: RunUsage, limits: UsageLimits | None) -> RunContext[None]:
     return RunContext(deps=None, model=TestModel(), usage=usage, usage_limits=limits)
 
 
-def test_the_meter_names_both_ceilings_and_what_is_spent() -> None:
+def test_the_budget_names_both_ceilings_and_no_spend() -> None:
     rendered = pinned_run_budget(
         _ctx(RunUsage(tool_calls=7, input_tokens=120_000, output_tokens=5_000), _LIMITS)
     )
-    assert rendered is not None
-    assert "tools 7/80" in rendered
-    assert "tokens 125,000/4,000,000" in rendered
+    assert rendered == (
+        "## Run budget\nThis run stops at 80 tool calls or 4,000,000 tokens, "
+        "whichever comes first, mid-task. Count the calls you have made and "
+        "spend what is left on the move that answers the question."
+    )
 
 
-def test_the_meter_is_empty_when_the_run_enforces_no_limits() -> None:
+def test_the_budget_is_empty_when_the_run_enforces_no_limits() -> None:
     """A bare context is not backed by a run, so there is no budget to report."""
     unlimited = pinned_run_budget(_ctx(RunUsage(tool_calls=3), None))
     limited = pinned_run_budget(_ctx(RunUsage(tool_calls=3), _LIMITS))
     assert (unlimited, limited is None) == (None, False)
 
 
-def test_the_meter_reports_only_the_ceilings_the_run_sets() -> None:
+def test_the_budget_names_only_the_ceilings_the_run_sets() -> None:
     rendered = pinned_run_budget(
         _ctx(RunUsage(tool_calls=2), UsageLimits(tool_calls_limit=9))
     )
-    assert rendered is not None
-    assert "tools 2/9" in rendered
-    assert "tokens" not in rendered
+    assert rendered == (
+        "## Run budget\nThis run stops at 9 tool calls, mid-task. Count the calls "
+        "you have made and spend what is left on the move that answers the question."
+    )
 
 
 def test_a_run_with_only_a_request_limit_renders_nothing() -> None:
@@ -75,8 +74,8 @@ def test_a_run_with_only_a_request_limit_renders_nothing() -> None:
     assert (requests_only, tools_too is None) == (None, False)
 
 
-async def test_the_meter_moves_between_steps_of_one_run() -> None:
-    """The card's pin: the model sees the counter change as it spends."""
+async def test_the_budget_is_the_same_for_every_request_of_one_run() -> None:
+    """Instructions that change between requests leave nothing a later request reuses."""
     seen: list[str] = []
 
     def _fn(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
@@ -100,8 +99,8 @@ async def test_the_meter_moves_between_steps_of_one_run() -> None:
         usage_limits=UsageLimits(request_limit=5, tool_calls_limit=6),
     )
     assert len(seen) == 2
-    assert "tools 0/6" in seen[0]
-    assert "tools 1/6" in seen[1]
+    assert seen[0] == seen[1]
+    assert "6 tool calls" in seen[0]
 
 
 def test_every_agent_that_runs_under_a_limit_pins_the_meter() -> None:

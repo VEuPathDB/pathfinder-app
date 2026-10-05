@@ -25,7 +25,7 @@ from pathfinder.ai.graph.state import (
     VerificationDigest,
 )
 from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
-from pathfinder.ai.lead.card_reply import REPLY_REFERENCES
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, REPLY_REFERENCES
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
@@ -217,6 +217,7 @@ def test_a_cards_reply_is_held_to_the_references() -> None:
     denial = results.approvals["call_card"]
     assert isinstance(denial, ToolDenied)
     assert "``57``: write ``[diff:step_sp,step_join]``" in denial.message
+    assert denial.message.endswith(f"{CARD_NOT_SHOWN} Answer again with the card.")
 
 
 def test_every_cards_reply_is_held_whole_past_the_joined_length() -> None:

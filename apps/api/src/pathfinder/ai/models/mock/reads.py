@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from assistant_core.capabilities.stable_instructions import briefing_now
 from assistant_core.models.scripted import (
     current_turn,
     retry_prompt_parts,
@@ -78,10 +79,20 @@ def pinned_on(message: ModelMessage) -> str | None:
             return None
 
 
+def pinned_briefings(messages: list[ModelMessage]) -> list[str]:
+    """The briefing each request of the run read: its instructions with every
+    section update the run sent by then, oldest request first."""
+    return [
+        briefing_now(text, messages[: index + 1])
+        for index, message in enumerate(messages)
+        if (text := pinned_on(message)) is not None
+    ]
+
+
 def instructions_of(messages: list[ModelMessage]) -> str:
-    """The instructions pinned on the newest request of the run."""
-    pinned = [text for msg in messages if (text := pinned_on(msg)) is not None]
-    return pinned[-1] if pinned else ""
+    """The briefing the newest request of the run read."""
+    read = pinned_briefings(messages)
+    return read[-1] if read else ""
 
 
 class _Step(ToolAnswer):

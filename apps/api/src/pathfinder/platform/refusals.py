@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from assistant_core.platform.observability import ReasoningEffortOnSpan
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai.capabilities import AgentCapability
 from pydantic_ai.capabilities.abstract import AbstractCapability
@@ -106,6 +107,7 @@ def agent_capabilities(
     return [
         ServiceRefusalRetry[AgentDepsT](),
         DurableCallsRefused[AgentDepsT](),
+        ReasoningEffortOnSpan(),
         *carried,
     ]
 

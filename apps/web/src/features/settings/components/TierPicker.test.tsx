@@ -73,6 +73,20 @@ describe("TierPicker", () => {
     expect(container.textContent).toBe("");
   });
 
+  it("hints only at the stages a preset fills in", () => {
+    render(
+      <TierPicker
+        presets={{ balanced: uniform(DEFAULT_MODEL.id, "medium") }}
+        activeTier="balanced"
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Balanced" })).toHaveAttribute(
+      "title",
+      "A mid-tier model for planning, a cheaper one for checking.",
+    );
+  });
+
   it("falls back to the raw key for a tier it has no label for", () => {
     render(
       <TierPicker

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from assistant_core.graph.tool_summary import with_summary
 from assistant_core.memory.retrieval import rerank_by_hybrid_score
@@ -36,6 +37,46 @@ def _standing_key(kind: MemoryKind, name: str) -> str | None:
         raise ModelRetry(msg) from unnamed
 
 
+async def recall(
+    ctx: RunContext[AgentDeps],
+    query: str,
+    kind: MemoryKind | None = None,
+    top_k: int = 5,
+) -> list[StoredMemory]:
+    """The user's memories nearest ``query``, ``top_k`` of them across the kinds
+    or of one kind, reranked globally by the hybrid score."""
+    store_raw = ctx.deps.memory_store
+    user_id = ctx.deps.user_id
+    if store_raw is None or user_id is None:
+        return []
+    mem_store = MemoryStore(store=store_raw)
+    kinds: tuple[str, ...] = (kind,) if kind is not None else MEMORY_KINDS
+    per_kind = max(1, top_k) if len(kinds) == 1 else max(1, top_k // len(kinds))
+    all_hits: list[StoredMemory] = []
+    for k in kinds:
+        hits = await mem_store.semantic_search(
+            user_id=user_id,
+            kind=k,
+            query=query,
+            top_k=per_kind,
+        )
+        all_hits.extend(hits)
+    return rerank_by_hybrid_score(all_hits)[:top_k]
+
+
+def recalled_return(
+    ctx: RunContext[Any], query: str, recalled: list[StoredMemory]
+) -> ToolReturn[list[dict[str, object]]]:
+    """The recalled memories as the model reads them."""
+    found = [stored.value.model_dump(mode="json") for stored in recalled]
+    return with_summary(
+        found,
+        f"{len(found)} memories for {query}",
+        ctx=ctx,
+        status="ok" if found else "empty",
+    )
+
+
 async def search_memory(
     ctx: RunContext[AgentDeps],
     query: str,
@@ -52,36 +93,7 @@ async def search_memory(
     relevant hits across namespaces come first. ``kind="case"`` returns the
     goals past runs verified, with the searches, params and counts that landed.
     """
-    store_raw = ctx.deps.memory_store
-    user_id = ctx.deps.user_id
-    if store_raw is None or user_id is None:
-        return with_summary(
-            [],
-            f"0 memories for {query}",
-            ctx=ctx,
-            status="empty",
-        )
-    mem_store = MemoryStore(store=store_raw)
-    kinds: tuple[str, ...] = (kind,) if kind is not None else MEMORY_KINDS
-    per_kind = max(1, top_k) if len(kinds) == 1 else max(1, top_k // len(kinds))
-
-    all_hits: list[StoredMemory] = []
-    for k in kinds:
-        hits = await mem_store.semantic_search(
-            user_id=user_id,
-            kind=k,
-            query=query,
-            top_k=per_kind,
-        )
-        all_hits.extend(hits)
-    reranked = rerank_by_hybrid_score(all_hits)
-    found = [stored.value.model_dump(mode="json") for stored in reranked[:top_k]]
-    return with_summary(
-        found,
-        f"{len(found)} memories for {query}",
-        ctx=ctx,
-        status="ok" if found else "empty",
-    )
+    return recalled_return(ctx, query, await recall(ctx, query, kind, top_k))
 
 
 async def remember(

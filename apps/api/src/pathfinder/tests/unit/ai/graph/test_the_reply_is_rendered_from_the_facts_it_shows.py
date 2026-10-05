@@ -37,7 +37,8 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.turn_facts import StepFact, TurnFacts
+from pathfinder.domain.turn_facts import SourceFact, StepFact, TurnFacts
+from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -192,7 +193,7 @@ def test_a_card_turn_shows_the_facts_once_and_renders_only_the_shown_card() -> N
     assert facts is capture.facts
 
 
-def test_the_records_a_facts_part_lists_are_kept_for_a_later_message() -> None:
+def test_the_records_a_facts_part_lists_are_kept_with_their_pages() -> None:
     session = _session()
     session.sync_state = WDKSyncState(
         step_counts={"step_sp": 66, "step_orth": 129, "step_join": 9},
@@ -203,7 +204,10 @@ def test_the_records_a_facts_part_lists_are_kept_for_a_later_message() -> None:
 
     show_the_facts([].append, deps, _LeadRunCapture())
 
-    assert deps.state.domain.shown_record_ids == ["Eint_010010", "Eint_020050"]
+    assert deps.state.domain.shown_records == [
+        SourceFact(url=gene_record_url("microsporidiadb", g), record_id=g)
+        for g in ("Eint_010010", "Eint_020050")
+    ]
 
 
 def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged() -> (

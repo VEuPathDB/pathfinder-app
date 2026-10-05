@@ -22,7 +22,7 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_words import StampedKind, StepWords
 from pathfinder.persistence.models import PersistedStrategyGraph
 from pathfinder.services.strategies import wdk_sync
-from pathfinder.services.strategies.commit import graph_labels, restore_graph
+from pathfinder.services.strategies.graph_rollback import graph_labels, restore_graph
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.wdk_sync import fetch_and_convert
 from pathfinder.tests._support.analysis_catalog import (

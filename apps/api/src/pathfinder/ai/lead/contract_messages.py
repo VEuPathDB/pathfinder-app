@@ -374,3 +374,11 @@ def unmade_change_message(withdrawn: Sequence[str], stated: Sequence[str]) -> st
         f"no card: {act} {them} through {how}, or say in the reply why {them} "
         f"cannot be {done}."
     )
+
+
+UNBACKED_ABSENCE = (
+    "Your reply says a search is absent, and this turn looked nothing up in the "
+    "catalog. Call count_search with the search's name: a name the catalog does "
+    "not list comes back with the searches the catalog lookup finds, and a search "
+    "is absent only when that lookup finds none."
+)

@@ -12,7 +12,7 @@ const TIER_LABELS: Record<string, string> = {
 
 const TIER_HINTS: Record<string, string> = {
   quality: "Best models on the reasoning phases; slower and pricier.",
-  balanced: "A mid-tier model for reasoning, cheaper for step building.",
+  balanced: "A mid-tier model for planning, a cheaper one for checking.",
   default: "One capable, inexpensive model everywhere.",
   fast: "Same model at low reasoning effort; quickest turnaround.",
 };

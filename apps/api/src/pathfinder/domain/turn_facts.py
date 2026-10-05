@@ -261,6 +261,9 @@ class TurnFacts(CamelModel):
     listed: list[ListedFact] = Field(default_factory=list)
     # The genes the message names that the site resolved to its records.
     named_genes: list[SourceFact] = Field(default_factory=list)
+    # The records the conversation showed last, before this turn. A record
+    # reference renders them; the facts part draws no row for them.
+    shown_before: list[SourceFact] = Field(default_factory=list, exclude=True)
     comparisons: list[ComparisonFact] = Field(default_factory=list)
     # Which of the asked genes each membership check of this turn found held.
     # The reply's record references render them.
@@ -322,20 +325,36 @@ class TurnFacts(CamelModel):
         """The step or criterion of that id, or None."""
         return next((s for s in self.steps if s.step_id == step_id), None)
 
-    def listed_records(self) -> list[ListedRecord]:
+    def _listed_records(self) -> list[SourceFact]:
         """The ids this turn's listings returned, then those its membership
         checks asked about, each with its page."""
-        return [
+        records = [
             *(r for fact in self.listed for r in fact.records),
             *(r for m in self.memberships for r in m.records),
         ]
+        return [SourceFact(url=r.url, record_id=r.record_id) for r in records]
+
+    def listed_record_ids(self) -> list[str]:
+        """The ids this turn's listings returned and its checks asked about, once."""
+        return list(dict.fromkeys(s.record_id for s in self._listed_records()))
+
+    def shown_records(self) -> list[SourceFact]:
+        """The records this turn's listings returned and its checks asked about,
+        then those its reads returned, each once and as its read shows it."""
+        listed = {s.record_id: s for s in self._listed_records()}
+        read = {s.record_id: s for s in self.sources if s.record_id}
+        return list({**listed, **read}.values())
 
     def record_ids(self) -> list[str]:
-        """The ids this turn's listings returned and its checks asked about, then
-        those its reads returned, each once."""
-        listed = [r.record_id for r in self.listed_records()]
-        read = [s.record_id for s in self.sources if s.record_id]
-        return list(dict.fromkeys([*listed, *read]))
+        """The ids of the records this turn shows, in the order it shows them."""
+        return [s.record_id for s in self.shown_records()]
+
+    def citable_records(self) -> list[SourceFact]:
+        """Every record a record reference renders: this turn's reads and the
+        genes the message names, this turn's listings, then the records shown
+        before. The first record of an id renders."""
+        read = [s for s in (*self.sources, *self.named_genes) if s.record_id]
+        return [*read, *self._listed_records(), *self.shown_before]
 
     def lines(self) -> list[str]:
         """Every line the facts part shows, in the order it shows them, a row
@@ -423,6 +442,7 @@ class TurnFacts(CamelModel):
                 "sources": [source.redacted(redact) for source in self.sources],
                 "listed": [listed.redacted(redact) for listed in self.listed],
                 "named_genes": [gene.redacted(redact) for gene in self.named_genes],
+                "shown_before": [s.redacted(redact) for s in self.shown_before],
                 "comparisons": [c.redacted(redact) for c in self.comparisons],
                 "memberships": [m.redacted(redact) for m in self.memberships],
                 "statistics": [s.redacted(redact) for s in self.statistics],

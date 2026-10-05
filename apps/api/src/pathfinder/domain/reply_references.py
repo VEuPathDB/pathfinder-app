@@ -41,6 +41,8 @@ _A_NUMBER = re.compile(rf"[+-]?{_NUM}(?:[-/]{_NUM})*(?:%|-?[A-Za-z]{{1,4}})?|log
 _AN_ACCESSION = re.compile(r"PF\d{5}|IPR\d{6}|ENS[A-Z]*[GTP]\d{11}")
 # The count a comparison reference names after its variant.
 _COMPARED = ("unique", "result", "shared")
+# The link a record reference renders: the record's id, then its page.
+_A_RECORD_LINK = re.compile(r"\[(?P<record_id>[^\[\]\s]+)\]\([^()\s]+\)")
 
 _SOURCE_WORDS: dict[ValueSource, str] = {
     "stated": "you stated",
@@ -174,15 +176,17 @@ def _difference(facts: TurnFacts, body: str) -> int | None:
 
 def _record(facts: TurnFacts, record_id: str) -> str | None:
     """The record's id linked to its page, with its product."""
-    read = next(
-        (s for s in (*facts.sources, *facts.named_genes) if s.record_id == record_id),
-        None,
-    )
-    if read is not None:
-        product = f" ({read.product})" if read.product else ""
-        return f"[{record_id}]({read.url}){product}"
-    listed = next((r for r in facts.listed_records() if r.record_id == record_id), None)
-    return None if listed is None else f"[{record_id}]({listed.url})"
+    held = next((s for s in facts.citable_records() if s.record_id == record_id), None)
+    if held is None:
+        return None
+    product = f" ({held.product})" if held.product else ""
+    return f"[{record_id}]({held.url}){product}"
+
+
+def linked_records(rendered: str) -> list[str]:
+    """The ids of the records a rendered reply links, once each, in order."""
+    found = (m.group("record_id") for m in _A_RECORD_LINK.finditer(rendered))
+    return list(dict.fromkeys(found))
 
 
 def _with_noun(count: int | None, facts: TurnFacts) -> str | None:
@@ -307,10 +311,7 @@ def _number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
 
 
 def _record_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
-    ids = {
-        *(s.record_id for s in (*facts.sources, *facts.named_genes)),
-        *(r.record_id for r in facts.listed_records()),
-    }
+    ids = {s.record_id for s in facts.citable_records()}
     return (f"[record:{token}]",) if token in ids else ()
 
 
@@ -318,9 +319,9 @@ def _link_references(facts: TurnFacts, link: str) -> tuple[str, ...]:
     if link == facts.strategy_url:
         return ("[url]",)
     return tuple(
-        f"[record:{s.record_id}]"
-        for s in (*facts.sources, *facts.named_genes)
-        if s.record_id and s.url == link
+        dict.fromkeys(
+            f"[record:{s.record_id}]" for s in facts.citable_records() if s.url == link
+        )
     )
 
 
@@ -358,9 +359,8 @@ def _product_of(facts: TurnFacts, token: str) -> str:
     return next(
         (
             s.record_id
-            for s in (*facts.sources, *facts.named_genes)
-            if s.record_id
-            and token in (w.strip(_EDGE_MARKS) for w in _A_TOKEN.findall(s.product))
+            for s in facts.citable_records()
+            if token in (w.strip(_EDGE_MARKS) for w in _A_TOKEN.findall(s.product))
         ),
         "",
     )
@@ -465,6 +465,7 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
 __all__ = [
     "ProseFault",
     "UnheldReferenceError",
+    "linked_records",
     "prose_faults",
     "render_reply",
     "shape_faults",

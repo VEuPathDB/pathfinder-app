@@ -53,8 +53,24 @@ def test_a_resumed_gate_keeps_the_effort(tmp_path: Path) -> None:
 def test_an_effort_the_request_body_does_not_take_is_refused(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         chat.parse_run_args(
-            ["hi", "--site", "plasmodb", "--run-dir", str(tmp_path), "--effort", "max"]
+            [
+                "hi",
+                "--site",
+                "plasmodb",
+                "--run-dir",
+                str(tmp_path),
+                "--effort",
+                "extreme",
+            ]
         )
+
+
+def test_the_top_effort_is_taken(tmp_path: Path) -> None:
+    args = chat.parse_run_args(
+        ["hi", "--site", "plasmodb", "--run-dir", str(tmp_path), "--effort", "max"]
+    )
+
+    assert args.effort == "max"
 
 
 def test_the_run_directory_records_the_effort(tmp_path: Path) -> None:

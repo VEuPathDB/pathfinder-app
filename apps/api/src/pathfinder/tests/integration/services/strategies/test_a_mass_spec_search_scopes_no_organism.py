@@ -36,7 +36,7 @@ def _tree() -> StrategyStepNode:
     return StrategyStepNode(
         search_name="boolean_question_TranscriptRecordClasses_TranscriptRecordClass",
         operator=CombineOp.INTERSECT,
-        primary_input=StrategyStepNode(search_name=_SCHIZONT_RNASEQ),
+        primary_input=StrategyStepNode(id="schizont", search_name=_SCHIZONT_RNASEQ),
         secondary_input=mass_spec,
     )
 
@@ -46,13 +46,14 @@ async def test_a_mass_spec_search_marks_no_organism_and_its_intersect_stands(
     patch_app_db_engine: None,
 ) -> None:
     del patch_app_db_engine
+    tree = _tree()
     handle = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
-        marks = await tree_organism_parameters("plasmodb", "transcript", _tree())
-        datasets = await tree_dataset_organisms("plasmodb", _tree(), marks)
+        marks = await tree_organism_parameters("plasmodb", "transcript", tree)
+        datasets = await tree_dataset_organisms("plasmodb", tree, marks)
     finally:
         veupathdb_auth_token_ctx.reset(handle)
 
     assert "GenesByMassSpec" not in marks
-    assert datasets[_SCHIZONT_RNASEQ] == frozenset({"Plasmodium falciparum 3D7"})
-    assert first_cross_organism_refusal(_tree(), marks, datasets) is None
+    assert datasets["schizont"] == frozenset({"Plasmodium falciparum 3D7"})
+    assert first_cross_organism_refusal(tree, marks, datasets) is None

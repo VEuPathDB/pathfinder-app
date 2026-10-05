@@ -16,7 +16,7 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.persistence.models import PersistedStrategyGraph
 from pathfinder.services.strategies import spec_build
-from pathfinder.services.strategies.commit import graph_labels, restore_graph
+from pathfinder.services.strategies.graph_rollback import graph_labels, restore_graph
 from pathfinder.services.strategies.schemas import step_response_from_strategy_ast
 from pathfinder.services.strategies.session_factory import build_strategy_session
 from pathfinder.services.strategies.sync_state import WDKSyncState

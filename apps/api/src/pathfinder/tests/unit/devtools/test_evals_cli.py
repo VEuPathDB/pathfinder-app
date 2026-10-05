@@ -88,9 +88,9 @@ def test_run_takes_one_effort_for_every_role() -> None:
     parser = _build_parser()
 
     assert parser.parse_args(["run"]).effort is None
-    assert parser.parse_args(["run", "--effort", "high"]).effort == "high"
+    assert parser.parse_args(["run", "--effort", "max"]).effort == "max"
     with pytest.raises(SystemExit):
-        parser.parse_args(["run", "--effort", "max"])
+        parser.parse_args(["run", "--effort", "extreme"])
 
 
 def test_a_command_is_required() -> None:

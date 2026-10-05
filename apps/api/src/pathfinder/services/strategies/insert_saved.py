@@ -39,8 +39,8 @@ from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
 from pathfinder.platform.errors import ErrorCode, NotFoundError
-from pathfinder.services.strategies.commit import graph_labels, restore_graph
 from pathfinder.services.strategies.context import StrategyMutationContext
+from pathfinder.services.strategies.graph_rollback import graph_labels, restore_graph
 from pathfinder.services.strategies.spec_build import (
     build_strategy_from_spec,
 )

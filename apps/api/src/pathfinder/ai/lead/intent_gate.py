@@ -8,10 +8,9 @@ this turn's own record either meet or do not.
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection, Sequence
 
 from pydantic_ai import RunContext
-from pydantic_ai.tools import ToolDefinition
 
 from pathfinder.ai.graph._lead_answers import is_pure_approval
 from pathfinder.ai.lead.derive import derive_ledger
@@ -49,6 +48,7 @@ UNCLASSIFIED_TOOLS: frozenset[str] = frozenset(
         "research_web_search",
         "research_literature_search",
         "remember",
+        "search_memory",
         "save_gene_set",
         "list_gene_sets",
         "read_step_ids",
@@ -194,23 +194,44 @@ def tools_the_turn_offers(deps: LeadDeps, names: Collection[str]) -> frozenset[s
     return frozenset(name for name in names if name not in unmet)
 
 
-def apply_tool_preconditions(
-    ctx: RunContext[LeadDeps],
-    tool_defs: list[ToolDefinition],
-) -> list[ToolDefinition]:
-    """Drop every tool this turn's state does not allow."""
-    offered = tools_the_turn_offers(ctx.deps, [td.name for td in tool_defs])
-    return [td for td in tool_defs if td.name in offered]
+def withhold_by_turn_state(
+    ctx: RunContext[LeadDeps], names: Sequence[str]
+) -> frozenset[str]:
+    """The tools of ``names`` this turn's state does not let the Lead call."""
+    return frozenset(names) - tools_the_turn_offers(ctx.deps, names)
+
+
+WITHHELD_TOOLS_HEADING = "## Tools you cannot call now"
+
+
+def withheld_tools_pin(
+    names: Collection[str],
+) -> Callable[[RunContext[LeadDeps]], str | None]:
+    """The section that names the Lead's tools this turn's state withholds."""
+    known = sorted(names)
+
+    def pinned_withheld_tools(ctx: RunContext[LeadDeps]) -> str | None:
+        withheld = sorted(withhold_by_turn_state(ctx, known))
+        if not withheld:
+            return None
+        return (
+            f"{WITHHELD_TOOLS_HEADING}\n{', '.join(withheld)}. They are on your list, "
+            "and this turn's state does not let you call them now."
+        )
+
+    return pinned_withheld_tools
 
 
 __all__ = [
     "BUILDING_TOOLS",
     "DECLINED_OFFER_REFUSAL",
     "UNCLASSIFIED_TOOLS",
-    "apply_tool_preconditions",
+    "WITHHELD_TOOLS_HEADING",
     "bare_assent_refusal",
     "tools_the_turn_offers",
     "turn_builds",
     "turn_is_off_topic",
     "unmet_preconditions",
+    "withheld_tools_pin",
+    "withhold_by_turn_state",
 ]

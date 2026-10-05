@@ -151,7 +151,10 @@ class UserIntent(CamelModel):
             "Typed constraints the user STATED in this message. One of "
             f"{CONSTRAINT_KINDS}. Captured fresh each turn from the literal "
             "message - these are user-explicit by construction and override "
-            "scoping's provisional assumptions for the same dimension."
+            "scoping's provisional assumptions for the same dimension. A "
+            "constraint that points at an earlier reply, such as the experiment "
+            "you recommended or the third gene you listed, is written as what "
+            'that reply named, read from "The conversation so far".'
         ),
     )
     withdrawn: list[Constraint] = Field(

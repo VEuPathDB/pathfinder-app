@@ -29,6 +29,7 @@ from pathfinder.ai.tools.standalone._eda_step_guard import (
 )
 from pathfinder.ai.tools.standalone._eda_step_spec import (
     restate_the_structure,
+    scope_the_exported_criterion,
     spec_after_the_replacement,
     spec_binding_the_export,
     state_the_exported_step,
@@ -69,6 +70,7 @@ from pathfinder.services.strategies.commit import (
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
+from pathfinder.services.strategies.organism_params import step_dataset_organisms
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 
@@ -360,6 +362,13 @@ async def create_eda_step(
         ctx.deps.state.domain.operational_spec = stated
     if restate:
         restate_the_structure(ctx, graph)
+    scope_the_exported_criterion(
+        ctx,
+        node.id,
+        await step_dataset_organisms(
+            ctx.deps.site_id, node.search_name, node.parameters
+        ),
+    )
     the_strategy_now_answers_to(
         ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
     )

@@ -247,7 +247,7 @@ class StrategyValidator:
         dataset_organisms: Mapping[str, frozenset[str]] | None = None,
     ) -> None:
         """Builds a validator. Searches are keyed by record type, and
-        ``dataset_organisms`` names the organisms of each search's dataset."""
+        ``dataset_organisms`` names the organisms of each step's dataset by step id."""
         self.organism_params = organism_params
         self.available_searches = available_searches or {}
         self.available_transforms = available_transforms or []

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0a29
+  version: 0.2.0a30
 paths:
   /health:
     get:
@@ -6577,6 +6577,8 @@ components:
       - low
       - medium
       - high
+      - xhigh
+      - max
     ReasoningUIPart:
       properties:
         type:
@@ -13559,6 +13561,8 @@ components:
           description: Typed constraints the user STATED in this message. One of data_type, statistical_threshold, fold_change,
             comparator, organism, record_type, percentile, combination, other. Captured fresh each turn from the literal message
             - these are user-explicit by construction and override scoping's provisional assumptions for the same dimension.
+            A constraint that points at an earlier reply, such as the experiment you recommended or the third gene you listed,
+            is written as what that reply named, read from "The conversation so far".
           items:
             $ref: '#/components/schemas/Constraint'
           title: Explicitconstraints

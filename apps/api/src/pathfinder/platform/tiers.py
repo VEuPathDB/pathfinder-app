@@ -79,7 +79,7 @@ _RANKS_DOWN: tuple[ModelRank, ...] = ("flagship", "standard", "small")
 _SHAPES: dict[TierName, tuple[_Slot, _Slot]] = {
     "quality": (("flagship", "high"), ("standard", "medium")),
     "balanced": (("standard", "medium"), ("small", "medium")),
-    "default": (("default", "medium"), ("small", "medium")),
+    "default": (("default", "medium"), ("default", "medium")),
     "fast": (("small", "low"), ("small", "low")),
 }
 
@@ -133,6 +133,11 @@ _BY_PROVIDER: dict[ModelProvider, dict[TierName, _Tier]] = {
 }
 
 
+# VERIFY holds each claim to the reads of the turn, so it checks at this effort
+# in every tier.
+_VERIFY_EFFORT: ReasoningEffort = "high"
+
+
 def _pathfinder_preset(tier: _Tier) -> TierPreset:
     """Spend on the Lead and FRAME, which plan the turn, and run BUILD and
     VERIFY on the cheaper model."""
@@ -141,7 +146,9 @@ def _pathfinder_preset(tier: _Tier) -> TierPreset:
             "lead": tier.thinker,
             "frame": tier.thinker,
             "execution": tier.worker,
-            "verification": tier.worker,
+            "verification": tier.worker.model_copy(
+                update={"reasoning_effort": _VERIFY_EFFORT}
+            ),
         },
     )
 

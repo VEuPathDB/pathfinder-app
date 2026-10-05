@@ -8,13 +8,12 @@ from pathfinder.ai.graph.runtime import VerificationScope
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_review import ReviewRecord, breached_rows
-from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
 from pathfinder.services.gene_records.read import gene_record_url
 
 
 def review_record(deps: LeadDeps, messages: list[str]) -> ReviewRecord:
     """What this turn holds that the check's review is held to."""
-    live = frozenset(live_wdk_step_ids(deps.runtime.strategy_session))
+    live = frozenset(deps.runtime.strategy_session.wdk_step_ids())
     return ReviewRecord(
         messages=messages,
         requirements=deps.state.domain.requirements,

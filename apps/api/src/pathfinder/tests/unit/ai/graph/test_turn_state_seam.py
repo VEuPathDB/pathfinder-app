@@ -65,7 +65,7 @@ DOMAIN_FIELDS = {
     "eda_analysis",
     "open_eda_analysis",
     "statistics",
-    "shown_record_ids",
+    "shown_records",
     "requirements",
     "retired_requirements",
     "answered_questions",
@@ -74,6 +74,9 @@ DOMAIN_FIELDS = {
     "original_request",
     "request_messages",
     "researcher_asks",
+    "exchanges",
+    "memory_index",
+    "shown_memories",
     "turn_briefing",
     "zero_result_history",
     "declined_proposal",
@@ -92,6 +95,7 @@ STRATEGY_RESOURCES = {
     "service_outage",
     "user_prompt",
     "verification_scope",
+    "exchanges",
 }
 
 

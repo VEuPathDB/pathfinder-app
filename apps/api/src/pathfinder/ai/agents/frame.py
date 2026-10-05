@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from assistant_core.capabilities.allowed_tools import AllowedTools
+from assistant_core.capabilities.stable_instructions import StableInstructions
 from assistant_core.conversation.history import HISTORY_PROCESSORS
-from assistant_core.scratchpad.toolset import build_scratchpad_toolset
+from assistant_core.scratchpad.toolset import (
+    build_scratchpad_toolset,
+    withhold_scratchpad_tools,
+)
 from pydantic_ai import Agent, DeferredToolRequests
-from pydantic_ai.capabilities import ProcessHistory, Thinking
+from pydantic_ai.capabilities import ProcessHistory
 
 from pathfinder.ai.agents._instructions import (
+    pinned_conversation_so_far,
     pinned_run_budget,
     pinned_scratchpad,
     pinned_user_memories,
@@ -41,7 +47,8 @@ Procedure:
 0. Before step 1, read what already worked: `search_memory(query, kind="case")` returns
    cases from this user's verified runs - each names the searches, the params and the count
    that landed - and `search_example_plans(query)` returns public VEuPathDB strategies ranked
-   against the goal. Both are reading; neither binds a criterion.
+   against the goal. Both are reading; neither binds a criterion. A requirement that points at an
+   earlier reply means what "The conversation so far" shows that reply named.
 1. Decompose the goal into its DISTINCT required properties - the conditions a gene must each
    satisfy. Use as few as the goal demands; resist inventing extra filters. ANDing many narrow
    filters tends to return zero genes, so keep the set tight. A choice INSIDE one search - a
@@ -277,6 +284,7 @@ def build_frame_agent() -> FrameAgent:
     Each dispatch gets its own instance, so an override entered for one run
     never reaches another.
     """
+    stable = StableInstructions[AgentDeps]()
     agent: FrameAgent = Agent(
         FRAME_MODEL,
         output_type=[FrameResult, DeferredToolRequests],
@@ -293,7 +301,8 @@ def build_frame_agent() -> FrameAgent:
         capabilities=agent_capabilities(
             [
                 ToolResilience(search_lookup_tools=SEARCH_LOOKUP_TOOLS),
-                Thinking(effort="medium"),
+                AllowedTools[AgentDeps](rules=[withhold_scratchpad_tools]),
+                stable,
                 *(ProcessHistory[AgentDeps](p) for p in HISTORY_PROCESSORS),
             ],
         ),
@@ -309,10 +318,11 @@ def build_frame_agent() -> FrameAgent:
     for fn in (
         base_system_prompt,
         pinned_user_memories,
+        pinned_conversation_so_far,
         pinned_scratchpad,
         pinned_frame_workspace,
         pinned_frame_sheets,
         pinned_run_budget,
     ):
-        agent.instructions(fn)
+        agent.instructions(stable.section(fn))
     return agent

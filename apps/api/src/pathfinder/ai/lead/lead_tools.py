@@ -33,7 +33,6 @@ from pathfinder.ai.tools.standalone import (
     conversation,
     export,
     gene_sets,
-    memory_tools,
     strategy_edits,
 )
 from pathfinder.ai.tools.standalone.conversation_models import ClearStrategyResult
@@ -42,7 +41,6 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedResponse,
     GeneSetListResponse,
 )
-from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.strategy.organism_phrases import complete_organisms
 from pathfinder.services.strategies.graph_outcome import live_outcome
 
@@ -238,36 +236,6 @@ def _written_turn_message(classification: IntentClassification) -> str:
         f"This turn is classified as {classification.value}, and it already "
         "changed the strategy under that classification. The classification "
         "that did the work governs the turn: keep it and go on with the turn."
-    )
-
-
-async def remember(
-    ctx: RunContext[LeadDeps],
-    kind: MemoryKind,
-    name: str,
-    summary: str,
-    content: dict[str, object],
-    tags: list[str] | None = None,
-) -> ToolReturn[str]:
-    """Store one thing the user asked you to keep for future conversations.
-
-    Use it for a stated preference (a default organism, a preferred dataset)
-    and for a fact they taught you. One call per thing remembered. Storing a
-    preference is the whole answer to that request: do not build a strategy to
-    "validate" it.
-
-    It stores a note. A gene set the user asks you to save is created with
-    ``save_gene_set``, and ``gene_set_note`` is a note about a set
-    that already exists.
-    """
-    inner = inner_context(ctx)
-    return await memory_tools.remember(
-        inner,
-        kind=kind,
-        name=name,
-        summary=summary,
-        content=content,
-        tags=tags,
     )
 
 

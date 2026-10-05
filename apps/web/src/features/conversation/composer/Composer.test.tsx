@@ -241,6 +241,37 @@ describe("the conversation usage footer names its scope", () => {
   });
 });
 
+describe("the composer says the assistant can make mistakes", () => {
+  const NOTICE =
+    "PathFinder is an AI assistant and can make mistakes. Double-check important results.";
+
+  it("shows the notice before the conversation has any usage", () => {
+    renderComposer(true);
+    expect(screen.getByTestId("ai-notice")).toHaveTextContent(NOTICE);
+  });
+
+  it("keeps the notice beside the usage line", () => {
+    renderComposer(true, {
+      messages: [
+        {
+          id: "m1",
+          role: "assistant",
+          parts: [
+            {
+              type: "data-lead-usage",
+              data: { tokens: 1000, costUsd: "0.01", modelId: "openai:gpt" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(screen.getByTestId("ai-notice")).toHaveTextContent(NOTICE);
+    expect(screen.getByTestId("conversation-usage")).toHaveTextContent(
+      "Conversation · 1K tokens · $0.01",
+    );
+  });
+});
+
 describe("a slash command takes the Enter key alone", () => {
   function typeAndEnter(value: string): HTMLElement {
     const input = screen.getByTestId("message-input");

@@ -21,6 +21,7 @@ from veupathdb_mcp.catalog import ParameterInfo, format_param_info_typed
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import lead_consult
 from pathfinder.ai.lead.card_question import CardQuestion
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN
 from pathfinder.ai.lead.guarantees import registered_tools
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.lead_consult import (
@@ -238,6 +239,13 @@ class TestTheCardOffersWhatFrameRecorded:
 
         assert _DETECTED in refusal
         assert "How strictly must the genes be expressed" in refusal
+
+    def test_a_refused_card_says_the_researcher_never_saw_it(self) -> None:
+        refusal = _refusal(
+            _floor_question(), [CardQuestion(id="q1", prompt="Anything else?")]
+        )
+
+        assert refusal.endswith(CARD_NOT_SHOWN)
 
     def test_a_card_that_rewrites_the_options_is_refused(self) -> None:
         question = _floor_question()

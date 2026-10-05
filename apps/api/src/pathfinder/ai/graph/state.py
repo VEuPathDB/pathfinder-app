@@ -7,6 +7,7 @@ from uuid import UUID
 
 from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
+from assistant_core.memory.store import StoredMemory
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
@@ -33,6 +34,8 @@ from pathfinder.domain.evidence import (
     NamedControlSet,
     VerificationReview,
 )
+from pathfinder.domain.exchanges import Exchange, kept_exchanges
+from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
@@ -50,6 +53,7 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.staleness import StaleBuild
+from pathfinder.domain.turn_facts import SourceFact
 
 PhaseName = Literal[
     "frame",
@@ -216,15 +220,21 @@ class StrategyDomainState(ThreadRequirements):
     # The statistics the EDA service computed on this thread, the latest read of
     # each id. A later turn's reply references them.
     statistics: list[StatisticFact] = Field(default_factory=list)
-    # The record ids the latest facts part that listed records showed. A later
-    # message reads them as the genes this conversation showed.
-    shown_record_ids: list[str] = Field(default_factory=list)
+    # The records the latest facts part that showed records showed, each with
+    # its page. A later turn cites them and reads them as the genes shown.
+    shown_records: list[SourceFact] = Field(default_factory=list)
     # The request the thread is answering, as the user wrote it.
     original_request: str = ""
     # Every message the researcher wrote for that request, oldest first.
     request_messages: list[str] = Field(default_factory=list)
     # The parts of those messages the intent gate read as asking for an answer.
     researcher_asks: list[ResearcherAsk] = Field(default_factory=list)
+    # The last exchanges of the conversation as the researcher read them.
+    exchanges: list[Exchange] = Field(default_factory=list)
+    # How many memories of each kind the Lead can recall, read when a turn opens.
+    memory_index: dict[MemoryKind, int] = Field(default_factory=dict)
+    # The memories a card of this conversation has shown, each as kind:key.
+    shown_memories: list[str] = Field(default_factory=list)
     # What moved on the thread since its last answer, as the pre-turn hook
     # rendered it. Empty when nothing moved.
     turn_briefing: str = ""
@@ -312,11 +322,24 @@ class StrategyDomainState(ThreadRequirements):
             )
         return self.turn_markers
 
-    def record_shown(self, record_ids: Sequence[str]) -> None:
-        """Keep the ids a facts part showed. A part that shows none keeps the
-        ids an earlier part showed."""
-        if record_ids:
-            self.shown_record_ids = list(record_ids)
+    def record_shown(self, records: Sequence[SourceFact]) -> None:
+        """Keep the records a facts part showed. A part that shows none keeps
+        the records an earlier part showed."""
+        if records:
+            self.shown_records = list(records)
+
+    def memories_to_show(self, recalled: Sequence[StoredMemory]) -> list[StoredMemory]:
+        """The recalled memories no card of this conversation has shown, which
+        count as shown from now on."""
+        fresh = [
+            m for m in recalled if f"{m.value.kind}:{m.key}" not in self.shown_memories
+        ]
+        self.shown_memories += [f"{m.value.kind}:{m.key}" for m in fresh]
+        return fresh
+
+    def record_exchange(self, exchange: Exchange) -> None:
+        """Keep the exchange as the newest of the conversation's last exchanges."""
+        self.exchanges = kept_exchanges(self.exchanges, exchange)
 
     def record_statistics(self, statistics: Iterable[StatisticFact]) -> None:
         """Keep each statistic, a later read of one id in place of the earlier."""

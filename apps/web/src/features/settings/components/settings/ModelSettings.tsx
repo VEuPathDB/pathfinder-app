@@ -10,7 +10,11 @@ import { assistantLabel } from "@/lib/assistants";
 import { useActiveAssistantId } from "@/features/settings/useActiveAssistantId";
 import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
 import { withPayers } from "@/lib/models/payers";
-import { phaseDescription, phaseLabel } from "@/lib/models/phaseRoles";
+import {
+  phaseDescription,
+  phaseLabel,
+  type PickableRole,
+} from "@/lib/models/phaseRoles";
 import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 import { ModelPicker } from "@/features/settings/components/ModelPicker";
 import { TierPicker } from "@/features/settings/components/TierPicker";
@@ -116,7 +120,7 @@ export function ModelSettings() {
 }
 
 interface PhaseRowProps {
-  role: string;
+  role: PickableRole;
   models: ModelCatalogEntry[];
   defaultModelId: string | null;
   selectedModelId: string | null;

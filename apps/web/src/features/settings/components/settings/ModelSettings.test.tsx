@@ -114,6 +114,63 @@ describe("ModelSettings providers", () => {
   });
 });
 
+describe("ModelSettings stages", () => {
+  it("shows a row for Assistant, Planning and Checking, and none for the repair role", async () => {
+    renderSettings();
+
+    const rows = await screen.findAllByTestId(/^phase-row-/);
+    expect(rows.map((row) => row.getAttribute("data-testid"))).toEqual([
+      "phase-row-lead",
+      "phase-row-frame",
+      "phase-row-verification",
+    ]);
+    expect(rows[0]).toHaveTextContent(/^Assistant/);
+    expect(rows[1]).toHaveTextContent(/^Planning/);
+    expect(rows[2]).toHaveTextContent(/^Checking/);
+    expect(screen.queryByText("Building")).toBeNull();
+  });
+});
+
+describe("ModelSettings preset match", () => {
+  it("marks a preset as active when the three rows match it", async () => {
+    const high = { modelId: DEFAULT_MODEL.id, reasoningEffort: "high" };
+    server.use(
+      http.get(`${BASE}/api/v1/tiers`, () =>
+        HttpResponse.json({
+          presets: {
+            pathfinder: {
+              openai: {
+                default: uniform(DEFAULT_MODEL.id),
+                quality: {
+                  roles: {
+                    lead: high,
+                    frame: high,
+                    execution: { modelId: DEFAULT_MODEL.id, reasoningEffort: "low" },
+                    verification: high,
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ),
+    );
+    const picks = {
+      lead: DEFAULT_MODEL.id,
+      frame: DEFAULT_MODEL.id,
+      verification: DEFAULT_MODEL.id,
+    };
+    useSettingsStore
+      .getState()
+      .applyPhasePreset(picks, { lead: "high", frame: "high", verification: "high" });
+    renderSettings();
+
+    const quality = await screen.findByRole("button", { name: "Quality" });
+    expect(quality).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText(/don't match a preset/)).toBeNull();
+  });
+});
+
 describe("ModelSettings stage defaults", () => {
   it("names a stage's default model by its display name", async () => {
     renderSettings();

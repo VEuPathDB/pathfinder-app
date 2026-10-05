@@ -8,14 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from assistant_core.capabilities.allowed_tools import AllowedTools
+from assistant_core.capabilities.stable_instructions import StableInstructions
 from assistant_core.conversation.history import HISTORY_PROCESSORS
 from pydantic_ai import Agent, DeferredToolRequests, RunContext, Tool
-from pydantic_ai.capabilities import (
-    HandleDeferredToolCalls,
-    PrepareTools,
-    ProcessHistory,
-    Thinking,
-)
+from pydantic_ai.capabilities import HandleDeferredToolCalls, ProcessHistory
 from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
 
 from pathfinder.ai.agents._instructions import (
@@ -29,16 +26,19 @@ from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
 from pathfinder.ai.lead.edit_dispatch import edit_strategy
 from pathfinder.ai.lead.frame_dispatch import frame_problem
-from pathfinder.ai.lead.guarantees import machine_guarantees_pin
-from pathfinder.ai.lead.intent_gate import apply_tool_preconditions
+from pathfinder.ai.lead.guarantees import machine_guarantees_pin, registered_tools
+from pathfinder.ai.lead.intent_gate import withheld_tools_pin, withhold_by_turn_state
 from pathfinder.ai.lead.lead_adoption import adopt_separating_strategy
 from pathfinder.ai.lead.lead_consult import (
     consult_user,
     refuse_a_card_that_binds_nothing,
 )
+from pathfinder.ai.lead.lead_memory_tools import remember, search_memory
 from pathfinder.ai.lead.lead_pins import (
+    pinned_conversation,
     pinned_eda_sheet,
     pinned_ledger_summary,
+    pinned_memory_index,
     pinned_operational_spec,
     pinned_statistics,
     pinned_turn_briefing,
@@ -56,7 +56,6 @@ from pathfinder.ai.lead.lead_tools import (
     delete_step,
     export_gene_set,
     list_gene_sets,
-    remember,
     save_gene_set,
 )
 from pathfinder.ai.lead.retrieval_toolset import recording_retrievals
@@ -90,11 +89,6 @@ from pathfinder.ai.tools.standalone.step_ids import read_step_ids
 from pathfinder.ai.tools.standalone.strategy_rename import rename_strategy
 from pathfinder.ai.tools.standalone.variant_comparison import compare_search_variants
 from pathfinder.ai.tools.toolsets import eda
-from pathfinder.ai.tools.toolsets._dynamic import (
-    DynamicEnumToolset,
-    EnumOverrides,
-    live_wdk_step_ids,
-)
 from pathfinder.ai.tools.toolsets._read_once import ReadOnceToolset
 from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
 from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
@@ -106,22 +100,8 @@ def turn_tool_sources(ctx: RunContext[LeadDeps]) -> AbstractToolset[Any] | None:
     return recording_retrievals(one_toolset(ctx.deps.runtime.tool_sources), ctx.deps)
 
 
-SWEEP_TOOL = "optimize_search_parameters"
-
-
-def _sweep_enum_overrides(ctx: RunContext[LeadDeps]) -> EnumOverrides:
-    """Constrain the sweep's ``wdk_step_id`` to the steps that exist in WDK.
-
-    A stale id is otherwise approved by the user and refused by the worker.
-    """
-    wdk_ids = live_wdk_step_ids(ctx.deps.runtime.strategy_session)
-    if not wdk_ids:
-        return {}
-    return {(SWEEP_TOOL, "wdk_step_id"): list(wdk_ids)}
-
-
 def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
-    """The sweep, over an enum of the strategy's live step ids."""
+    """The sweep, its schema the same whatever the strategy holds."""
     base: FunctionToolset[LeadDeps] = FunctionToolset(
         tools=[
             Tool(
@@ -133,9 +113,7 @@ def build_sweep_toolset() -> AbstractToolset[LeadDeps]:
             ),
         ],
     )
-    return RefusalMemoryToolset(
-        wrapped=DynamicEnumToolset(wrapped=base, build_overrides=_sweep_enum_overrides)
-    )
+    return RefusalMemoryToolset(wrapped=base)
 
 
 def build_lead_toolset() -> AbstractToolset[LeadDeps]:
@@ -144,6 +122,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
         tools=[
             Tool(classify_user_intent),
             Tool(remember),
+            Tool(search_memory),
             Tool(save_gene_set),
             Tool(list_gene_sets),
             Tool(read_step_ids),
@@ -205,6 +184,7 @@ def build_lead_agent() -> LeadAgent:
     Each turn gets its own instance, so a per-turn model override never
     reaches another turn.
     """
+    stable = StableInstructions[LeadDeps]()
     agent: LeadAgent = Agent(
         LEAD_MODEL,
         output_type=[LeadResponse, DeferredToolRequests],
@@ -218,8 +198,8 @@ def build_lead_agent() -> LeadAgent:
         ],
         capabilities=agent_capabilities(
             [
-                Thinking(effort="medium"),
-                PrepareTools[LeadDeps](apply_tool_preconditions),
+                AllowedTools[LeadDeps](rules=[withhold_by_turn_state]),
+                stable,
                 HandleDeferredToolCalls[LeadDeps](handler=hold_the_contract_on_a_card),
                 SiteReadFailures[LeadDeps](reads=READ_ONLY_TOOLS),
                 *(ProcessHistory[LeadDeps](p) for p in HISTORY_PROCESSORS),
@@ -232,6 +212,8 @@ def build_lead_agent() -> LeadAgent:
     )
     for fn in (
         pinned_user_memories,
+        pinned_memory_index,
+        pinned_conversation,
         pinned_user_prompt,
         pinned_user_intent,
         pinned_operational_spec,
@@ -240,8 +222,11 @@ def build_lead_agent() -> LeadAgent:
         pinned_statistics,
         pinned_run_budget,
     ):
-        agent.instructions(fn)
+        agent.instructions(stable.section(fn))
     agent.instructions(machine_guarantees_pin(agent.toolsets))
-    agent.instructions(pinned_turn_briefing)
+    agent.instructions(
+        stable.section(withheld_tools_pin(registered_tools(agent.toolsets)))
+    )
+    agent.instructions(stable.section(pinned_turn_briefing))
     agent.output_validator(hold_the_turn_contract)
     return agent

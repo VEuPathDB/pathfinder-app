@@ -61,7 +61,11 @@ export function createStore<T>(
 export function createPersistedStore<T>(
   name: string,
   initializer: StateCreator<T, PersistMutators>,
-  storage: { name: string; partialize: (state: T) => Partial<T> },
+  storage: {
+    name: string;
+    partialize: (state: T) => Partial<T>;
+    merge?: (stored: unknown, current: T) => T;
+  },
 ) {
   const storageName = `${storage.name}-${PERSIST_STORAGE_EPOCH}`;
   clearOldPathfinderLocalStorage();

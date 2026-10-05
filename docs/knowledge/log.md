@@ -2,6 +2,108 @@
 
 ## 2026-10-04
 
+* **An analysis export is recut by `create_eda_step`, never by an edit.** FRAME binds
+  no export's cut, so `edit_dispatch`'s edit that moves no step names
+  `create_eda_step(replace_step_id=...)` for each export the strategy holds
+  (`edit_messages.edit_moves_nothing_message`, read through
+  `StrategyGraph.analysis_kind_of`), and the Lead's EDA loop, step 7, routes a
+  change to an export's thresholds, direction or groups there directly.
+
+* **A briefing update is a system note.** assistant-core 0.3.0a24 sends each section
+  update as a system message in place, never in the user's voice, and the Lead
+  classifies once per researcher message (`_lead_instructions`, rule 1); the
+  unclassified intent pin names no call.
+
+* **A run's state reaches the model without rewriting its prompt.** The Lead,
+  FRAME, VERIFY and recovery agents register every dynamic pin through
+  `StableInstructions` and carry `AllowedTools`: the Lead's tool gate
+  (`intent_gate.withhold_by_turn_state`) and the scratchpad's
+  (`withhold_scratchpad_tools`) say which listed tools the model may call, and
+  the Lead pins "Tools you cannot call now". `sweep_can_run` refuses a step id
+  the strategy does not hold, which `StrategySession.wdk_step_ids` lists. Every
+  agent writes its reasoning effort on its model spans (`ReasoningEffortOnSpan`).
+  ([the decision](decisions/a-runs-prompt-only-grows.md)).
+
+* **A run's prompt only grows.** `pinned_run_budget` names the run's ceilings, not
+  its spend, so every request of a run reads the same instructions; the runtime
+  digests old tool results in blocks ([the decision](decisions/a-runs-prompt-only-grows.md)).
+  The default tier runs every role on the provider's default model, and Settings
+  offers no pick for BUILD, whose role runs only `recover_failed_steps`.
+
+* **VERIFY checks at high in every tier.** `platform/tiers.py` gives the verification
+  role the tier's cheaper model at `_VERIFY_EFFORT`; the default stays medium for the
+  other roles ([the decision](decisions/the-default-effort-is-medium-and-verify-checks-at-high.md)).
+
+* **A reply says a search is absent only after a catalog lookup of the turn.** Every
+  catalog read a sub-agent runs goes through `AgentDeps.record_catalog_read`, which
+  marks `TurnMarkers.catalog_looked_up`; the Lead's unlisted-name check in
+  `search_reads._refuse_an_unlisted_search` marks it too. The turn contract's
+  `unbacked_absence` rule refuses a reply that `reply_claims.says_a_search_is_absent`
+  reads as absence when the turn holds no lookup, and names `count_search` as the
+  lookup to run. A membership check that holds none of the asked genes says so with
+  `[compare:asked genes]` and states no shared count.
+
+* **The composer says the assistant can make mistakes.** The row under the input
+  (`composer/Composer.tsx`, `ComposerFooter`) always carries one generic notice, for
+  every assistant: PathFinder is an AI assistant, and important results are
+  double-checked. The conversation's usage line sits beside it once there is usage.
+
+* **Every agent runs at the effort its turn resolved.** The Lead, FRAME, BUILD and
+  VERIFY carry no `Thinking` capability. pydantic-ai layers a capability's settings over
+  the run's override, so a level fixed on the agent outranks the tier and the
+  researcher's pick. The effort reaches the model only through `build_model_settings`,
+  called by `sub_agent_tools.phase_override_kwargs` and
+  `_lead_model.resolve_lead_model_context`.
+
+* **A turn pins the researcher's preferences and the Lead recalls the rest.**
+  `ai/graph/_lead_turn._turn_scope` reads only `STANDING_MEMORY_KINDS` into a turn;
+  `memory_index` counts every other kind on the site into
+  `StrategyDomainState.memory_index`, which `lead_pins.pinned_memory_index` names, and
+  the Lead's own `search_memory` (reachable before classification) reads one. A
+  "Recalled memories" card shows a memory once per conversation
+  (`StrategyDomainState.memories_to_show`)
+  ([the decision](decisions/standing-memories-are-pinned-and-the-rest-recalled.md)).
+
+* **A record the conversation showed last stays citable in a later turn.**
+  `StrategyDomainState.shown_records` keeps the records of the latest facts part that
+  showed any (`TurnFacts.shown_records`), each with its page and the product its read
+  carried, and `ai/lead/turn_facts.py` hands them to the next turn as
+  `TurnFacts.shown_before`. `TurnFacts.citable_records` is the one list `[record:<id>]`
+  renders from and the faults name references from: this turn's reads and named genes,
+  its listings, then `shown_before`. `shown_before` stays off the wire and out of
+  `lines` and `record_ids`, so it is no fact of this turn. `card_reply.CITABLE_RECORDS`
+  states the grammar once for the schema and the Lead's instruction. The corpus
+  compares the records a turn showed as its answer for `sameRecordsAs`: those its
+  facts list (`TurnFacts.listed_record_ids`) and those its reply links
+  (`reply_references.linked_records`), never a record a check only read.
+* **The Lead reads the conversation's last exchanges.** `StrategyDomainState.exchanges`
+  keeps the last six (`domain/exchanges.py`, `EXCHANGE_WINDOW`): the researcher's
+  message or card answer, the reply as `render_reply` rendered it, and the card a
+  turn ended on. `ai/graph/_lead_exchange.turn_exchange` builds one at the end of
+  each Lead run and `lead_pins.pinned_conversation` pins them before the latest
+  message; the Lead's instructions send a message that points at an earlier reply
+  there ([the decision](decisions/the-lead-reads-the-conversations-last-exchanges.md)).
+* **A refused card says the researcher never saw it.** `card_reply.CARD_NOT_SHOWN`
+  ends the refusals of `consult_user` and `propose_changes` and the card contract's
+  denial, so a reply never narrates a card the turn refused and replaced.
+* **The corpus reads an INTERSECT or a UNION without the order of its inputs.**
+  `evals/scoring.canonical_structure` writes the two inputs of each order-free
+  combine in a fixed order on both sides of the structure comparison; MINUS keeps
+  its order.
+
+* **No commit holds an INTERSECT of two known, disjoint organism scopes, and a
+  study step is scoped by its study.** `commit.apply_operations_and_commit` runs
+  `organism_params.tree_cross_organism_refusal` on the tree it offers WDK before
+  any step push, on every commit and not only on one that re-roots the strategy,
+  and a refusal rolls the batch back as an `ApplyError` that carries the orthology
+  remedy. `organism_params.step_dataset_organisms` reads the organisms of the
+  study a step's `EDA_DATASET_ID_PARAM` names (`veupathdb-mcp` 0.2.0a41
+  `catalog.study_organisms`, the study's dataset record in the catalog the build
+  posts) or of the one dataset that names its search; the push, `set_criterion`
+  (`_frame_measure.record_bound_criterion`) and the EDA export
+  (`_eda_step_spec.scope_the_exported_criterion`) all read through it. Dataset
+  scopes are keyed by step id, since one generic search runs every study
+  (`tests/integration/services/strategies/test_a_study_step_scopes_its_side_on_the_site.py`).
 * **A read-only search run sends what a step of the search sends.**
   `_variant_targets._published_defaults` gives every parameter a variant names no
   value for the value the site's sheet gives it under the variant's parents

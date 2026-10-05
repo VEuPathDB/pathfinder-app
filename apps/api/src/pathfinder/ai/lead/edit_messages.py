@@ -32,6 +32,7 @@ __all__ = [
     "delta_disagrees_with_the_strategy_message",
     "edit_bound_nothing_message",
     "edit_continuation_work_order",
+    "edit_moves_nothing_message",
     "edit_operation_refused_message",
     "edit_work_order",
     "no_earlier_revision_message",
@@ -276,6 +277,24 @@ def edit_bound_nothing_message() -> str:
         "against the strategy. Nothing was applied: the strategy is exactly as "
         "this turn found it. Dispatch edit_strategy again and tell it to "
         "record its work with set_criterion and drop_criterion."
+    )
+
+
+def edit_moves_nothing_message(exports: Sequence[str]) -> str:
+    """What an edit that moves no step says, naming the recut of any analysis
+    export the strategy holds: FRAME binds no export's cut."""
+    if not exports:
+        return "The strategy already states everything the edit asks for."
+    ids = " or ".join(f"'{step_id}'" for step_id in exports)
+    call = (
+        f"create_eda_step(replace_step_id={ids})"
+        if len(exports) == 1
+        else f"create_eda_step(replace_step_id=<one of {ids}>)"
+    )
+    return (
+        "The edit changes no step FRAME binds. A change to an analysis export's cut "
+        f"is {call} with the new thresholds, direction or groups; any other request "
+        "the strategy already states."
     )
 
 

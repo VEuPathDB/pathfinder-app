@@ -60,6 +60,7 @@ from pathfinder.ai.graph._lead_emit import emit_each, release_the_cards
 from pathfinder.ai.graph._lead_events import (
     handle_sub_agent_event,
 )
+from pathfinder.ai.graph._lead_exchange import turn_exchange
 from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.graph._lead_stops import (
@@ -70,6 +71,7 @@ from pathfinder.ai.graph._lead_stops import (
 )
 from pathfinder.ai.graph._lead_turn import (
     TurnResumption,
+    memory_index,
     pending_approval,
     resolve_turn_resumption,
     retrieve_memories,
@@ -235,6 +237,7 @@ async def _drive_lead_stream(
     deferred_results = resumption.results
     capture.parked_call_answered = deferred_results is not None
     resume_prompt = _run_prompt(state, resumption)
+    capture.answered_call = parked if resume_prompt is None else None
     resume_messages = approvals.resume_history(parked) if parked is not None else None
     bind_scripted_scope(deps.runtime.site_id, state.user_prompt)
     usage_acc = RunUsage()
@@ -346,13 +349,16 @@ async def _run_lead_turn(
         working_state = await pre_turn(state, runtime.context)
     else:
         emit_chunk(writer, turn_step_status(RECALLING_AND_READING))
-        stored, working_state = await asyncio.gather(
+        stored, index, working_state = await asyncio.gather(
             retrieve_memories(state, runtime),
+            memory_index(state, runtime),
             pre_turn(state, runtime.context),
         )
         memories = [s.value for s in stored]
-        if stored:
-            emit_chunk(writer, recalled_memories_event(memories=stored))
+        working_state.domain.memory_index = index
+        fresh = working_state.domain.memories_to_show(stored)
+        if fresh:
+            emit_chunk(writer, recalled_memories_event(memories=fresh))
     capture = _LeadRunCapture()
     message_id = uuid4()
 
@@ -385,6 +391,7 @@ async def _run_lead_turn(
     if capture.response is not None:
         show_the_facts(writer, deps, capture)
     _emit_residual_prose(writer, capture, message_id=message_id)
+    deps.state.domain.record_exchange(turn_exchange(deps.state, capture))
     residual_tokens, residual_cost = capture.residual_totals(state)
     await _persist_residual_quota(runtime.context, state, capture)
     emit_turn_usage(writer, residual_tokens, residual_cost)

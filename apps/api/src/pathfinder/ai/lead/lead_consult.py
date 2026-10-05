@@ -13,7 +13,7 @@ from veupathdb_mcp.catalog import ParameterInfo
 
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.card_question import CardQuestion
-from pathfinder.ai.lead.card_reply import CardReply
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardReply
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.card_answers import params_held, spec_bound_by_card
 from pathfinder.domain.strategy.constraint_grounding import dimension_of_parameter
@@ -165,7 +165,7 @@ def refuse_a_card_that_binds_nothing(
         f"A value a "
         f"parameter sets is asked by the pass that binds it: dispatch "
         f"edit_strategy, or frame_problem over a spec with no built step, with "
-        f"the question, and ask the card its result carries."
+        f"the question, and ask the card its result carries. {CARD_NOT_SHOWN}"
     )
     raise ModelRetry(msg)
 

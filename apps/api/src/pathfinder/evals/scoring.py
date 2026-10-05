@@ -46,6 +46,29 @@ def structure_signature(ast: StrategyAst) -> str:
     return fold(ast.root, _node_signature)
 
 
+# The combines whose result does not depend on which input comes first.
+_ORDER_FREE = frozenset({"INTERSECT", "UNION"})
+
+
+def _canonical(node: ComparisonNode) -> str:
+    inputs = [_canonical(child) for child in node.children]
+    if node.is_combine:
+        if node.operator in _ORDER_FREE:
+            inputs.sort()
+        return f"({inputs[0]} {node.operator} {inputs[1]})"
+    if inputs:
+        return f"{node.search_name}({inputs[0]})"
+    return node.search_name
+
+
+def canonical_structure(signature: str) -> str:
+    """The signature with the two inputs of each INTERSECT and UNION in a fixed
+    order, so two builds that differ only in that order compare equal."""
+    if signature == NO_STRATEGY:
+        return signature
+    return _canonical(tree_from_signature(signature))
+
+
 def step_titles(ast: StrategyAst) -> list[str]:
     """The title of every step that runs a search, combines left out."""
     nodes = [*walk(ast.root)]
@@ -137,7 +160,8 @@ class ObservedOutcome(CamelModel):
     facts_text: str = ""
     # The reply each turn ended on, in turn order; the last is ``reply_text``.
     turn_replies: list[str] = Field(default_factory=list)
-    # The record ids each turn's facts listed or read, in turn order.
+    # The record ids each turn's facts listed or read, then those its reply
+    # linked, in turn order.
     turn_record_ids: list[list[str]] = Field(default_factory=list)
     # The facts part each turn showed, in turn order; empty where it showed none.
     turn_facts: list[str] = Field(default_factory=list)
@@ -188,7 +212,13 @@ def _value_differences(
 ) -> list[CaseDifference]:
     expected = case.expected
     compared: tuple[tuple[str, object | None, object | None], ...] = (
-        ("structure", expected.structure, observed.structure or NO_STRATEGY),
+        (
+            "structure",
+            None
+            if expected.structure is None
+            else canonical_structure(expected.structure),
+            canonical_structure(observed.structure or NO_STRATEGY),
+        ),
         ("recordType", expected.record_type, observed.record_type),
         ("stepCount", expected.step_count, observed.step_count),
         ("verified", expected.verified, observed.verified),
@@ -441,6 +471,7 @@ __all__ = [
     "CaseScore",
     "ObservedOutcome",
     "RequirementCounts",
+    "canonical_structure",
     "final_count_below_every_input",
     "requirement_counts",
     "root_count",

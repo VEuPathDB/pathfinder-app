@@ -34,6 +34,7 @@ from pathfinder.ai.lead.edit_messages import (
     changed_revision_message,
     delta_disagrees_with_the_strategy_message,
     edit_bound_nothing_message,
+    edit_moves_nothing_message,
     edit_operation_refused_message,
     edit_work_order,
     no_earlier_revision_message,
@@ -260,9 +261,12 @@ async def _push_the_edit(
         refuse_without_retry(deps, undo_moves_nothing_message())
     if not ops:
         the_strategy_now_answers_to(deps.state, after, graph)
+        exports = sorted(
+            s for s in graph.steps if graph.analysis_kind_of(s) is not None
+        )
         return EditDelta(
             diff=diff,
-            description="The strategy already states everything the edit asks for.",
+            description=edit_moves_nothing_message(exports),
             preserved_step_ids=preserved,
         )
     current = strategy_revision(graph.to_strategy_ast())

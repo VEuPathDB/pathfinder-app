@@ -23,6 +23,7 @@ from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.intent_gate import turn_builds, turn_is_off_topic
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
+from pathfinder.domain.exchanges import exchanges_section
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -127,9 +128,7 @@ def pinned_operational_spec(ctx: RunContext[LeadDeps]) -> str | None:
 def pinned_user_intent(ctx: RunContext[LeadDeps]) -> str | None:
     intent = ctx.deps.intent
     if intent is None:
-        return (
-            "## User Intent\nNot classified yet. Call ``classify_user_intent`` first."
-        )
+        return "## User Intent\nNot classified yet."
     lines = [
         "## User Intent",
         f"- classification: {intent.classification.value}",
@@ -301,6 +300,23 @@ def pinned_statistics(ctx: RunContext[LeadDeps]) -> str | None:
         )
         lines.extend(f"  - {statement}" for statement in statistic.statements)
     return "\n".join(lines)
+
+
+def pinned_memory_index(ctx: RunContext[LeadDeps]) -> str | None:
+    index = ctx.deps.state.domain.memory_index
+    if not index:
+        return None
+    counts = ", ".join(f"{n} {kind}" for kind, n in index.items())
+    return (
+        "## What you can recall about this user\n"
+        f"Memories of this user's other conversations, not read into this turn: "
+        f"{counts}. Call search_memory(query, kind) when the request points at "
+        "earlier work or what you know of this user would change the answer."
+    )
+
+
+def pinned_conversation(ctx: RunContext[LeadDeps]) -> str | None:
+    return exchanges_section(ctx.deps.state.domain.exchanges)
 
 
 def pinned_user_prompt(ctx: RunContext[LeadDeps]) -> str | None:

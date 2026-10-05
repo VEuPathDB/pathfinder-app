@@ -370,6 +370,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
             deps.runtime.site_id, markers, built, session.sync_state, sources
         ),
         named_genes=named_genes(markers),
+        shown_before=list(domain.shown_records),
         comparisons=list(markers.comparisons),
         memberships=list(markers.memberships),
         statistics=list(domain.statistics),

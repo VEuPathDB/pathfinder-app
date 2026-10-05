@@ -85,6 +85,11 @@ def test_research_is_reachable_before_the_turn_is_classified() -> None:
     assert not UNCLASSIFIED_TOOLS & BUILDING_TOOLS
 
 
+def test_a_memory_is_recalled_before_the_turn_is_classified() -> None:
+    """A request that points at earlier work is read before it is classified."""
+    assert "search_memory" in UNCLASSIFIED_TOOLS
+
+
 def test_the_classifier_takes_no_message_text_from_the_model() -> None:
     """The classified message is the turn's own, so no text is passed in."""
     assert sorted(UserIntent.model_fields) == [

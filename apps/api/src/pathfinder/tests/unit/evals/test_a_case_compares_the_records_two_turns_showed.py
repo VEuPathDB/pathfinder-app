@@ -1,5 +1,6 @@
 """A case can name a turn that must show the records an earlier turn showed, and
-the runner keeps the record ids every turn showed."""
+the runner keeps the record ids every turn showed: those its facts list and read,
+then those its reply links."""
 
 from __future__ import annotations
 
@@ -37,6 +38,16 @@ def _listed(*ids: str) -> TurnFacts:
                 records=[ListedRecord(record_id=i, url=f"https://x/{i}") for i in ids],
             )
         ]
+    )
+
+
+def _checked(*ids: str) -> TurnFacts:
+    """The listing, beside two records the turn's check read."""
+    read = ["ENSMUSG00000061232", "ENSMUSG00000073409"]
+    return _listed(*ids).model_copy(
+        update={
+            "sources": [SourceFact(url=f"https://x/{i}", record_id=i) for i in read]
+        }
     )
 
 
@@ -118,18 +129,50 @@ def test_the_hostdb_case_asks_the_fourth_turn_for_the_third_turns_sample() -> No
     assert case.expected.same_records_as == {3: 2}
 
 
+def _linked(*ids: str) -> str:
+    return "The sample is " + ", ".join(f"[{i}](https://x/{i})" for i in ids) + "."
+
+
+@pytest.mark.parametrize(
+    ("shown", "replies", "kept"),
+    [
+        pytest.param(
+            [_listed(*_SAMPLE), None],
+            ["a reply", "a reply"],
+            [_SAMPLE, []],
+            id="the facts list them",
+        ),
+        pytest.param(
+            [_listed(*_SAMPLE), _listed()],
+            [_linked(*_SAMPLE[:2]), _linked(*_SAMPLE)],
+            [_SAMPLE, _SAMPLE],
+            id="a later reply links the records it did not list",
+        ),
+        pytest.param(
+            [_checked(*_SAMPLE), _listed()],
+            [_linked(*_SAMPLE), _linked(*_SAMPLE)],
+            [_SAMPLE, _SAMPLE],
+            id="a record a check read is no record the turn showed as its answer",
+        ),
+    ],
+)
 async def test_the_runner_keeps_the_records_each_turn_showed(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    shown: list[TurnFacts | None],
+    replies: list[str],
+    kept: list[list[str]],
 ) -> None:
-    shown = [_listed(*_SAMPLE), None]
-    kept: list[list[list[str]]] = []
+    turns: list[tuple[TurnFacts | None, str]] = list(zip(shown, replies, strict=True))
+    observed: list[list[list[str]]] = []
 
     class _Capture:
-        def __init__(self, facts: TurnFacts | None) -> None:
+        def __init__(self, facts: TurnFacts | None, reply: str) -> None:
             self._facts = facts
+            self._reply = reply
 
         def assistant_text(self) -> str:
-            return "a reply"
+            return self._reply
 
         def turn_facts(self) -> TurnFacts | None:
             return self._facts
@@ -139,7 +182,7 @@ async def test_the_runner_keeps_the_records_each_turn_showed(
 
     async def _drive(args: RunArgs) -> tuple[_Capture, Gate]:
         del args
-        return _Capture(shown.pop(0)), Gate(kind="none")
+        return _Capture(*turns.pop(0)), Gate(kind="none")
 
     async def _nothing(conversation_id: UUID) -> None:
         del conversation_id
@@ -157,7 +200,7 @@ async def test_the_runner_keeps_the_records_each_turn_showed(
         refused_tools: list[str],
     ) -> ObservedOutcome:
         del conversation_id, step_ids_unchanged, ends_on, refused_tools
-        kept.append(turns.record_ids)
+        observed.append(turns.record_ids)
         return ObservedOutcome(built_strategy=True)
 
     async def _forget(user_id: UUID) -> None:
@@ -170,7 +213,7 @@ async def test_the_runner_keeps_the_records_each_turn_showed(
     monkeypatch.setattr(eval_runner, "forget_user", _forget)
 
     await eval_runner.run_one_case(
-        _case("sample five", "say hello", same={}), run_root=tmp_path
+        _case("sample five", "that sample again", same={}), run_root=tmp_path
     )
 
-    assert kept == [[_SAMPLE, []]]
+    assert observed == [kept]

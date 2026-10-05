@@ -46,6 +46,7 @@ from pathfinder.devtools.chat import (
 )
 from pathfinder.devtools.gates import Gate
 from pathfinder.devtools.transcript import facts_lines
+from pathfinder.domain.reply_references import linked_records
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
 from pathfinder.evals.difference import CaseDifference
@@ -104,6 +105,13 @@ def facts_text(facts: TurnFacts | None) -> str:
     """The facts part as the turn showed it, each value with who set it; empty
     when it showed none."""
     return "" if facts is None else "\n".join(facts_lines(facts))
+
+
+def _records_shown(facts: TurnFacts | None, reply: str) -> list[str]:
+    """The ids a turn showed as its answer: those its facts list, then those its
+    reply links, once each. A record a check only read is no answer."""
+    listed = [] if facts is None else facts.listed_record_ids()
+    return list(dict.fromkeys([*listed, *linked_records(reply)]))
 
 
 async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
@@ -381,7 +389,7 @@ async def _run_turns(
         last_facts = facts or last_facts
         replies.append(capture.assistant_text())
         shown_facts.append(facts_text(facts))
-        record_ids.append([] if facts is None else facts.record_ids())
+        record_ids.append(_records_shown(facts, replies[-1]))
         counted = await reviewed_requirements(conversation_id)
         reviewed = reviewed if counted is None else counted
     after = await persisted_wdk_step_ids(conversation_id)

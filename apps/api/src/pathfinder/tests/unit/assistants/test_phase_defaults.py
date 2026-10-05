@@ -78,8 +78,8 @@ def test_one_assistant_runs_each_of_its_roles_on_the_pick_or_the_default(
     assert roles == {
         "lead": ANTHROPIC_SMALL,
         "frame": DEFAULT_MODEL,
-        "execution": OPENAI_SMALL,
-        "verification": OPENAI_SMALL,
+        "execution": DEFAULT_MODEL,
+        "verification": DEFAULT_MODEL,
     }
 
 

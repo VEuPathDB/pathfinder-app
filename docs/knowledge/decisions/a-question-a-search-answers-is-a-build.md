@@ -28,10 +28,10 @@ takes only searches a step runs. A count of any other catalog search is `count_s
 and "which of these genes also ..." over genes the conversation showed is
 `genes_in_search` (`ai/tools/standalone/search_reads.py`): each runs one search as the
 same anonymous report and adds no step. The genes it checks by default are the records
-this turn's facts list, else those the latest facts part listed
-(`StrategyDomainState.shown_record_ids`). A search name the catalog does not list is
-refused with what the catalog lookup finds for it, so a search is reported absent only
-when that lookup finds nothing.
+this turn's facts list, else those the latest facts part that showed records showed
+(`TurnFacts.shown_before`, kept as `StrategyDomainState.shown_records`). A search name
+the catalog does not list is refused with what the catalog lookup finds for it, so a
+search is reported absent only when that lookup finds nothing.
 
 # What was measured
 

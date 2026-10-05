@@ -10,6 +10,7 @@ from veupathdb.domain.parameters import MultiPickValue, StringValue
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.lead.lead_consult import consult_user
@@ -237,3 +238,14 @@ def test_the_lead_toolset_checks_the_card_before_it_defers() -> None:
     tools = unwrap_function_toolset(build_lead_toolset()).tools
 
     assert tools["propose_changes"].args_validator is refuse_a_card_that_leaves_a_part
+
+
+async def test_a_refused_card_says_the_researcher_never_saw_it() -> None:
+    deps = await _answered(_PHRASE, _VSG)
+
+    with pytest.raises(ModelRetry) as refused:
+        refuse_a_card_that_leaves_a_part(
+            run_context_for(deps, "call_card"), _card(_phrase_change())
+        )
+
+    assert refused.value.message.endswith(CARD_NOT_SHOWN)

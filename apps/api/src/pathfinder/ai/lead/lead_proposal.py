@@ -18,6 +18,7 @@ from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.dispatch_context import defer_dispatch, dispatch_call_id
 from pathfinder.ai.lead.edit_dispatch import run_edit
@@ -126,7 +127,7 @@ def refuse_a_card_that_leaves_a_part(
             f"name its key in that change's answers, or name the key in "
             f"leftToAsk and ask about it in the reply."
         )
-    raise ModelRetry(" ".join(problems))
+    raise ModelRetry(" ".join([*problems, CARD_NOT_SHOWN]))
 
 
 async def propose_changes(

@@ -64,6 +64,10 @@ It holds:
 - which of the asked genes each membership check held (`memberships`, a
   `domain/membership_facts.py::MembershipFact`), each gene linked to its record page so
   `[record:<id>]` renders it; the field stays off the wire, so the facts part draws no row for it;
+- the records the conversation showed last (`shown_before`, the `TurnFacts.shown_records` of
+  the latest facts part that showed any, kept as `StrategyDomainState.shown_records`), each
+  as that part showed it, so `[record:<id>]` renders it in a later turn; the field stays off
+  the wire and out of `lines` and `record_ids`, so it is no fact of this turn;
 - the provider's or the site's refusal whole, with only a link's query left out because a
   query can carry a credential.
 
@@ -84,7 +88,7 @@ and `domain/reply_references.py::render_reply` replaces each with the fact it na
 | `[source:<step_id>.<param>]` | who set it: "you stated", "your answer on a card", "the site's default", "chosen", "held by the strategy" |
 | `[compare:<variant>]` | the variant's genes; `:unique`, `:result`, and `[compare:<a>,<b>:shared]` |
 | `[stat:<id>.<row>]` | one value of a statistic the EDA service computed on the thread: a component's share of variance, a test's value, p-value or interval, a group's median, a count with its noun (`domain/statistic_facts.py`) |
-| `[record:<record_id>]` | a read, listed or resolved record's id linked to its page, with its product |
+| `[record:<record_id>]` | a read, listed, checked or resolved record's id, or one the conversation showed last, linked to its page, with its product (`TurnFacts.citable_records`) |
 | `[url]` | the strategy's link |
 
 The emitter renders once, from the facts object the turn shows:

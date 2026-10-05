@@ -73,6 +73,31 @@ describe("state/useSettingsStore", () => {
     expect(s.phaseReasoning).toEqual({});
   });
 
+  it("reads back no stored pick for a role the researcher cannot pick", async () => {
+    window.localStorage.setItem(
+      "pathfinder-settings-20260625",
+      JSON.stringify({
+        state: {
+          showRawToolCalls: true,
+          showTokenUsage: true,
+          deleteFromWdk: false,
+          firstRunHintDismissed: true,
+          phaseModels: { lead: OPENAI_FLAGSHIP.id, execution: ANTHROPIC_SMALL.id },
+          phaseReasoning: { lead: "high", execution: "low" },
+        },
+        version: 0,
+      }),
+    );
+
+    await useSettingsStore.persist.rehydrate();
+
+    const s = useSettingsStore.getState();
+    expect(s.phaseModels).toEqual({ lead: OPENAI_FLAGSHIP.id });
+    expect(s.phaseReasoning).toEqual({ lead: "high" });
+    expect(s.showRawToolCalls).toBe(true);
+    expect(s.firstRunHintDismissed).toBe(true);
+  });
+
   it("resetAllPersistedSettings removes the stored model picks", () => {
     useSettingsStore.getState().setPhaseModel("lead", OPENAI_FLAGSHIP.id);
     expect(window.localStorage.getItem("pathfinder-settings-20260625")).toContain(

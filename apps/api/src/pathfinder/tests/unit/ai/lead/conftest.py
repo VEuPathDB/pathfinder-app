@@ -16,6 +16,7 @@ from pydantic_ai.messages import (
     ToolCallPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
+from pydantic_ai.settings import ToolOrOutput
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
 from pathfinder.ai.graph.runtime import Context
@@ -177,13 +178,21 @@ def collector(monkeypatch: pytest.MonkeyPatch) -> ChunkCollector:
 
 
 class OfferedTools:
-    """The tool names the model was offered, one entry per model step."""
+    """The tools the model could call, and the tools it was listed, per model step."""
 
     def __init__(self) -> None:
         self.steps: list[frozenset[str]] = []
+        self.listed: list[tuple[str, ...]] = []
 
     def record(self, info: AgentInfo) -> int:
-        self.steps.append(frozenset(tool.name for tool in info.function_tools))
+        listed = tuple(tool.name for tool in info.function_tools)
+        match (info.model_settings or {}).get("tool_choice"):
+            case ToolOrOutput(function_tools=allowed):
+                callable_now = frozenset(allowed)
+            case _:
+                callable_now = frozenset(listed)
+        self.steps.append(callable_now)
+        self.listed.append(listed)
         return len(self.steps)
 
 

@@ -11,7 +11,6 @@ from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.domain.strategy.session import StrategySession
 
 EnumOverrides = dict[tuple[str, str], list[Any]]
 EnumOverrideBuilder = Callable[[RunContext[AgentDepsT]], EnumOverrides]
@@ -121,23 +120,10 @@ def live_step_ids(deps: AgentDeps) -> list[str]:
     return sorted(graph.steps.keys())
 
 
-def live_wdk_step_ids(session: StrategySession) -> list[int]:
-    # ``wdk_step_id`` is only assigned after the step has been pushed to
-    # WDK and built - local-only steps are excluded.
-    sync_state = session.sync_state
-    if sync_state is None:
-        return []
-    mapping = sync_state.wdk_step_ids
-    if not mapping:
-        return []
-    return sorted(set(mapping.values()))
-
-
 __all__ = [
     "DynamicEnumToolset",
     "EnumOverrideBuilder",
     "EnumOverrides",
     "ValidatingEnumToolset",
     "live_step_ids",
-    "live_wdk_step_ids",
 ]

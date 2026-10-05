@@ -82,11 +82,14 @@ LEAD_TOOL_NAMES = frozenset(
         "propose_changes",
         "separate_controls",
         "adopt_separating_strategy",
+        "search_memory",
     }
 )
 
 PINNED_INSTRUCTIONS = [
     "pinned_user_memories",
+    "pinned_memory_index",
+    "pinned_conversation",
     "pinned_user_prompt",
     "pinned_user_intent",
     "pinned_operational_spec",
@@ -95,6 +98,7 @@ PINNED_INSTRUCTIONS = [
     "pinned_statistics",
     "pinned_run_budget",
     "pinned_machine_guarantees",
+    "pinned_withheld_tools",
     "pinned_turn_briefing",
 ]
 

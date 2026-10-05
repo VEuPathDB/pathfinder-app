@@ -57,6 +57,7 @@ def test_agent_deps_is_pydantic_and_lists_live_fields() -> None:
         "tool_repetition_guard",
         "user_prompt",
         "verification_scope",
+        "exchanges",
         "cancel_event",
         "memory_store",
         "retrieved_memories",

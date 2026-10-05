@@ -35,6 +35,23 @@ _A_CRITERION = r".{0,40}?\b(?:criterion|criteria|filter)\b"
 _TO_THE_PLAN = r".{0,60}?\bto the (?:plan|spec)\b"
 CLAIMED_A_FRAME = re.compile(_FRAMED + f"(?:{_A_CRITERION}|{_TO_THE_PLAN})")
 
+# A clause that says a search is not on the site. Each form names a search, so
+# a count or a step the reply calls unavailable is not read as one.
+_SEARCH = r"\bsearch(?:es)?\b"
+_NOT = r"(?: not|n't)"
+_NOT_SERVED = (
+    rf"(?:is|are|was|were){_NOT}\s+(?:available|offered|listed|served"
+    r"|in the (?:current )?catalog|on (?:this|the) site)\b"
+    r"|(?:is|are)\s+unavailable\b"
+    rf"|(?:does|do){_NOT}\s+exist\b"
+)
+_A_SEARCH_IS_ABSENT = re.compile(
+    rf"{_SEARCH}[^.!?;\n]{{0,80}}?\b(?:{_NOT_SERVED})"
+    r"|\bno (?:such )?search(?:es)? (?:for|of|named|called|that|on)\b"
+    rf"|\b(?:does|do){_NOT} (?:offer|have|list|serve) (?:a|an|any)\b"
+    rf"[^.!?;\n]{{0,60}}?{_SEARCH}"
+)
+
 # The tools a reply can name by their identifier. Every one carries an
 # underscore, so the plain words for the same act read as ordinary prose.
 TOOL_IDENTIFIERS: frozenset[str] = frozenset(TOOL_TO_PHASE_ROLE) | {
@@ -66,6 +83,11 @@ def claims(prose: str, made: re.Pattern[str]) -> bool:
         for clause in _CLAUSE_END.split(prose.casefold())
         if not _DENIED.search(clause)
     )
+
+
+def says_a_search_is_absent(prose: str) -> bool:
+    """Whether a clause of this reply says a search is not on the site."""
+    return _A_SEARCH_IS_ABSENT.search(prose.casefold()) is not None
 
 
 def denies(prose: str, text: str) -> bool:

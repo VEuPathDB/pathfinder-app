@@ -8,6 +8,7 @@ belongs to ``_lead_answers``, the durable park and its partition to
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -61,16 +62,30 @@ from pathfinder.ai.lead.dispatch_resume import SubAgentOutcome, resume_sub_agent
 from pathfinder.ai.lead.intent_gate import bare_assent_refusal
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import WIRE_PHASE_BY_ROLE, LeadDeps
-from pathfinder.domain.memory import MEMORY_KINDS, STANDING_MEMORY_KINDS
+from pathfinder.domain.memory import MEMORY_KINDS, STANDING_MEMORY_KINDS, MemoryKind
 
 logger = get_logger(__name__)
+
+
+# The memories of one kind the index reads; the index says only how many there are.
+_INDEXED_PER_KIND = 100
+
+
+def _turn_scope(site_id: str) -> RetrievalScope:
+    """The memories a turn of this site reads: the standing kinds whole, and no
+    other kind ranked, since the Lead recalls those with search_memory."""
+    return RetrievalScope(
+        kinds=(),
+        always_kinds=STANDING_MEMORY_KINDS,
+        keep=lambda memory: memory.site_id in (None, site_id),
+    )
 
 
 async def retrieve_memories(
     state: PipelineState,
     runtime: Runtime[Context],
 ) -> list[StoredMemory]:
-    """Fresh-turn cross-thread retrieval."""
+    """The standing memories a fresh turn pins, the researcher's preferences."""
     if runtime.context is None or runtime.context.memory_store is None:
         return []
     if not state.user_prompt.strip():
@@ -82,12 +97,7 @@ async def retrieve_memories(
                 store=mem_store,
                 user_id=state.user_id,
                 query=state.user_prompt,
-                scope=RetrievalScope(
-                    kinds=MEMORY_KINDS,
-                    always_kinds=STANDING_MEMORY_KINDS,
-                    keep=lambda memory: memory.site_id in (None, state.site_id),
-                    top_k=8,
-                ),
+                scope=_turn_scope(state.site_id),
             )
     except MemoryStoreTimeoutError as exc:
         logger.warning(
@@ -96,6 +106,43 @@ async def retrieve_memories(
             seconds=exc.seconds,
         )
         return []
+
+
+async def memory_index(
+    state: PipelineState,
+    runtime: Runtime[Context],
+) -> dict[MemoryKind, int]:
+    """How many memories of each kind but the standing ones the Lead can recall
+    on this site, a kind with none left out."""
+    if runtime.context is None or runtime.context.memory_store is None:
+        return {}
+    mem_store = MemoryStore(store=runtime.context.memory_store)
+    scope = _turn_scope(state.site_id)
+    kinds: list[MemoryKind] = [
+        k for k in MEMORY_KINDS if k not in STANDING_MEMORY_KINDS
+    ]
+    try:
+        async with memory_store_deadline("memory index"):
+            listed = await asyncio.gather(
+                *(
+                    mem_store.list_all(
+                        user_id=state.user_id, kind=k, limit=_INDEXED_PER_KIND
+                    )
+                    for k in kinds
+                )
+            )
+    except MemoryStoreTimeoutError as exc:
+        logger.warning(
+            "memory index timed out; the turn names no memory to recall",
+            conversation_id=str(state.conversation_id),
+            seconds=exc.seconds,
+        )
+        return {}
+    counts: dict[MemoryKind, int] = {
+        kind: sum(1 for stored in found if scope.admits(stored.value))
+        for kind, found in zip(kinds, listed, strict=True)
+    }
+    return {kind: n for kind, n in counts.items() if n}
 
 
 class ConcurrentSubAgentApprovalsError(RuntimeError):

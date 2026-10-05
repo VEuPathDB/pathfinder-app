@@ -6,6 +6,7 @@ import asyncio
 from uuid import UUID, uuid4
 
 from assistant_core.platform.db import DBSessionFactory
+from langgraph.store.postgres.aio import AsyncPostgresStore
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
@@ -36,6 +37,7 @@ def turn_runtime(
     db_session_factory: DBSessionFactory = no_database,
     strategy_session: StrategySession | None = None,
     user_id: UUID | None = None,
+    memory_store: AsyncPostgresStore | None = None,
 ) -> Context:
     """The runtime one turn carries, on the site a test names."""
     return Context(
@@ -44,6 +46,7 @@ def turn_runtime(
         strategy_session=strategy_session or StrategySession(site_id=site_id),
         db_session_factory=db_session_factory,
         cancel_event=asyncio.Event(),
+        memory_store=memory_store,
     )
 
 

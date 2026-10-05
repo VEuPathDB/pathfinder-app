@@ -137,8 +137,8 @@ wheels = [
 
 [[package]]
 name = "assistant-core"
-version = "0.3.0a21"
-source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a21#2e1d20a1023f3043df0e4c4c56409d5810efe273" }
+version = "0.3.0a25"
+source = { git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a25#8cb6ef65e1cd7dff6ee3a9b7a9e322ef5ea51793" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -2449,7 +2449,7 @@ wheels = [
 
 [[package]]
 name = "pathfinder-api"
-version = "0.2.0a29"
+version = "0.2.0a30"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -2516,7 +2516,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = ">=1.18.0" },
-    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a21" },
+    { name = "assistant-core", git = "https://github.com/VEuPathDB/ai-assistant-platform?subdirectory=packages%2Fassistant-core&tag=v0.3.0a25" },
     { name = "asyncpg", specifier = ">=0.31.0" },
     { name = "cachetools", specifier = ">=7.0.5" },
     { name = "cryptography", specifier = ">=50.0.0" },
@@ -2544,7 +2544,7 @@ requires-dist = [
     { name = "structlog", specifier = ">=25.0.0" },
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a40" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a41" },
     { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0a22" },
 ]
 
@@ -4069,8 +4069,8 @@ wheels = [
 
 [[package]]
 name = "veupathdb-mcp"
-version = "0.2.0a40"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a40#e836953c7cc8ae6471b777eaa588d53a2da6ad11" }
+version = "0.2.0a41"
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0a41#4b53fa5022eabf5d11139d3f0ae6b3f886f520ca" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },

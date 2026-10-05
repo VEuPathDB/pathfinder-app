@@ -1,11 +1,12 @@
 import type { ReasoningEffort } from "@pathfinder/shared";
+import { reasoningEffortSchema } from "@pathfinder/shared/generated/zod/reasoningEffortSchema";
+import { z } from "zod";
+import { pickableOnly, type PickableRole } from "@/lib/models/phaseRoles";
 import { createPersistedStore } from "./middleware";
 import { useLeftSidebarStore, useRightRailStore } from "./useRightRailStore";
 
-// Roles are data the tier presets name, so the picks are keyed by plain role
-// names rather than by a role set this store declares.
-export type PhaseModelMap = Record<string, string>;
-export type PhaseReasoningMap = Record<string, ReasoningEffort>;
+export type PhaseModelMap = Partial<Record<PickableRole, string>>;
+export type PhaseReasoningMap = Partial<Record<PickableRole, ReasoningEffort>>;
 
 interface SettingsState {
   showRawToolCalls: boolean;
@@ -19,8 +20,8 @@ interface SettingsState {
   setShowTokenUsage: (show: boolean) => void;
   setDeleteFromWdk: (v: boolean) => void;
   dismissFirstRunHint: () => void;
-  setPhaseModel: (role: string, id: string | null) => void;
-  setPhaseReasoning: (role: string, effort: ReasoningEffort | null) => void;
+  setPhaseModel: (role: PickableRole, id: string | null) => void;
+  setPhaseReasoning: (role: PickableRole, effort: ReasoningEffort | null) => void;
   applyPhasePreset: (models: PhaseModelMap, reasoning: PhaseReasoningMap) => void;
   resetToDefaults: () => void;
 }
@@ -34,7 +35,24 @@ const DEFAULTS = {
   phaseReasoning: {} as PhaseReasoningMap,
 };
 
-function withoutKey<V>(map: Record<string, V>, key: string): Record<string, V> {
+// The fields a browser keeps. A stored pick for a role the researcher cannot
+// pick is dropped when the fields are read back.
+const storedSettings = z.object({
+  showRawToolCalls: z.boolean().default(DEFAULTS.showRawToolCalls),
+  showTokenUsage: z.boolean().default(DEFAULTS.showTokenUsage),
+  deleteFromWdk: z.boolean().default(DEFAULTS.deleteFromWdk),
+  firstRunHintDismissed: z.boolean().default(DEFAULTS.firstRunHintDismissed),
+  phaseModels: z.record(z.string(), z.string()).transform(pickableOnly).default({}),
+  phaseReasoning: z
+    .record(z.string(), reasoningEffortSchema)
+    .transform(pickableOnly)
+    .default({}),
+});
+
+function withoutKey<V>(
+  map: Partial<Record<PickableRole, V>>,
+  key: PickableRole,
+): Partial<Record<PickableRole, V>> {
   const next = { ...map };
   delete next[key];
   return next;
@@ -75,13 +93,10 @@ export const useSettingsStore = createPersistedStore<SettingsState>(
   }),
   {
     name: "pathfinder-settings",
-    partialize: (s) => ({
-      showRawToolCalls: s.showRawToolCalls,
-      showTokenUsage: s.showTokenUsage,
-      deleteFromWdk: s.deleteFromWdk,
-      firstRunHintDismissed: s.firstRunHintDismissed,
-      phaseModels: s.phaseModels,
-      phaseReasoning: s.phaseReasoning,
+    partialize: (s) => storedSettings.parse(s),
+    merge: (stored, current) => ({
+      ...current,
+      ...storedSettings.optional().parse(stored),
     }),
   },
 );

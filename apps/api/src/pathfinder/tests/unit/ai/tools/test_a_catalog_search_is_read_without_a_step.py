@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
@@ -25,7 +26,7 @@ from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.turn_facts import SourceFact, TurnFacts
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.search_reads import SearchCount, SearchMembership
 from pathfinder.services.experiment.variant_comparison import VariantInput
@@ -49,6 +50,9 @@ _SAMPLED = [
     "TcIL3000_0_17170",
     "TcIL3000_0_57830",
     "TcIL3000_0_41230",
+]
+_SHOWN = [
+    SourceFact(url=gene_record_url("tritrypdb", g), record_id=g) for g in _SAMPLED
 ]
 _HELD = _SAMPLED[2:]
 _NOT_HELD = _SAMPLED[:2]
@@ -279,6 +283,22 @@ async def test_a_search_the_catalog_does_not_list_names_what_the_lookup_finds(
     assert reports.ran == []
 
 
+async def test_an_unlisted_name_marks_the_turn_as_looked_up(
+    reports: _Reports, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(catalog, "search_for_searches", AsyncMock(return_value=[]))
+    ctx = lead_run_context()
+    domain = VariantInput(
+        label="Protein domain", search_name="GenesByProteinDomain", parameters={}
+    )
+
+    with pytest.raises(ModelRetry):
+        await count_search(ctx, domain)
+
+    assert ctx.deps.state.turn_markers.catalog_looked_up is True
+    assert reports.ran == []
+
+
 async def test_the_signal_peptide_search_holds_six_of_the_eight_sampled_genes(
     reports: _Reports,
 ) -> None:
@@ -301,7 +321,7 @@ async def test_the_genes_default_to_the_records_the_conversation_showed(
     reports: _Reports,
 ) -> None:
     ctx = lead_run_context(site_id="tritrypdb", strategy_session=_tritrypdb())
-    ctx.deps.state.domain.record_shown(_SAMPLED)
+    ctx.deps.state.domain.record_shown(_SHOWN)
 
     result = await genes_in_search(ctx, _signal_peptide())
 
@@ -380,11 +400,11 @@ async def test_ids_past_the_capped_read_are_unread_not_absent(
     )
 
 
-def test_a_facts_part_that_shows_no_record_keeps_the_earlier_ids() -> None:
+def test_a_facts_part_that_shows_no_record_keeps_the_earlier_records() -> None:
     ctx = lead_run_context()
     domain = ctx.deps.state.domain
 
-    domain.record_shown(_SAMPLED)
+    domain.record_shown(_SHOWN)
     domain.record_shown([])
 
-    assert domain.shown_record_ids == _SAMPLED
+    assert domain.shown_records == _SHOWN

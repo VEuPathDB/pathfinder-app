@@ -165,12 +165,8 @@ test.describe("Settings and account", () => {
     await expect(dialog).toContainText(
       `${assistantLabel(DEFAULT_ASSISTANT_ID)} runs each stage below on its own model.`,
     );
-    expect(roles.map(phaseLabel)).toEqual([
-      "Assistant",
-      "Planning",
-      "Building",
-      "Checking",
-    ]);
+    expect(roles.map(phaseLabel)).toEqual(["Assistant", "Planning", "Checking"]);
+    await expect(dialog.locator('[data-testid^="phase-row-"]')).toHaveCount(3);
     for (const role of roles) {
       const fallback = models.models.find((m) => m.id === models.phaseDefaults[role]);
       expect(fallback?.name, `the default model of ${role}`).not.toBe(undefined);

@@ -13,6 +13,7 @@ import {
   useConversationDetail,
   useConversationExists,
 } from "@/state/useConversationExists";
+import { cn } from "@/lib/utils/cn";
 import { useSessionStore } from "@/state/useSessionStore";
 
 import {
@@ -31,7 +32,7 @@ import {
   formatCost,
   formatUsage,
 } from "@/features/conversation/usageFormat";
-import { threadUsage } from "@veupathdb/assistant-client";
+import { type ThreadUsage, threadUsage } from "@veupathdb/assistant-client";
 import { useChatHelpers } from "@/features/conversation/runtime/chatHelpersContext";
 import {
   Tooltip,
@@ -47,50 +48,68 @@ export function stopClickBlocked(lastSendAt: number, now: number): boolean {
   return lastSendAt > 0 && now - lastSendAt < SEND_TO_STOP_GUARD_MS;
 }
 
-function ConversationUsageFooter() {
+const AI_NOTICE =
+  "PathFinder is an AI assistant and can make mistakes. Double-check important results.";
+
+function ComposerFooter() {
   const chat = useChatHelpers();
   const usage = threadUsage(chat.messages);
-  if (usage.total.tokens === 0 && usage.total.costUsd === 0) return null;
+  const hasUsage = usage.total.tokens > 0 || usage.total.costUsd > 0;
   return (
-    <div className="flex items-center gap-2 px-1 pt-1">
-      <TooltipProvider delayDuration={150}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span
-              data-testid="conversation-usage"
-              tabIndex={0}
-              className="cursor-help text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2"
-            >
-              Conversation · {formatTokens(usage.total.tokens)} tokens ·{" "}
-              {formatCost(usage.total.costUsd)}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="space-y-0.5 text-[11px]">
-            <div className="text-muted-foreground">
-              This conversation&apos;s total across all turns.
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Assistant</span>
-              <span className="font-mono tabular-nums">
-                {formatUsage(usage.lead.tokens, usage.lead.costUsd)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-muted-foreground">Sub-agents</span>
-              <span className="font-mono tabular-nums">
-                {formatUsage(usage.subAgents.tokens, usage.subAgents.costUsd)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4 border-t border-border/60 pt-0.5 font-medium">
-              <span>Total</span>
-              <span className="font-mono tabular-nums">
-                {formatUsage(usage.total.tokens, usage.total.costUsd)}
-              </span>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+    <div className="flex items-center gap-3 px-1 pt-1">
+      {hasUsage && <ConversationUsage usage={usage} />}
+      <p
+        data-testid="ai-notice"
+        className={cn(
+          "flex-1 text-[11px] text-muted-foreground",
+          hasUsage ? "text-right" : "text-center",
+        )}
+      >
+        {AI_NOTICE}
+      </p>
     </div>
+  );
+}
+
+function ConversationUsage({ usage }: { usage: ThreadUsage }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            data-testid="conversation-usage"
+            tabIndex={0}
+            className="cursor-help text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2"
+          >
+            Conversation · {formatTokens(usage.total.tokens)} tokens ·{" "}
+            {formatCost(usage.total.costUsd)}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="space-y-0.5 text-[11px]">
+          <div className="text-muted-foreground">
+            This conversation&apos;s total across all turns.
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Assistant</span>
+            <span className="font-mono tabular-nums">
+              {formatUsage(usage.lead.tokens, usage.lead.costUsd)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Sub-agents</span>
+            <span className="font-mono tabular-nums">
+              {formatUsage(usage.subAgents.tokens, usage.subAgents.costUsd)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-4 border-t border-border/60 pt-0.5 font-medium">
+            <span>Total</span>
+            <span className="font-mono tabular-nums">
+              {formatUsage(usage.total.tokens, usage.total.costUsd)}
+            </span>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -216,7 +235,7 @@ export function Composer({
           )}
         </div>
       </div>
-      <ConversationUsageFooter />
+      <ComposerFooter />
     </ComposerPrimitive.Root>
   );
 }

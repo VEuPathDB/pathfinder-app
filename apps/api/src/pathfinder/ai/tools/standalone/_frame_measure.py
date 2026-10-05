@@ -28,6 +28,7 @@ from pathfinder.services.strategies.measurements import (
     MeasuredBinding,
     measure_binding,
 )
+from pathfinder.services.strategies.organism_params import step_dataset_organisms
 from pathfinder.services.strategies.sheet_params import vocabularies_under
 from pathfinder.services.strategies.value_labels import vocabulary_labels
 
@@ -125,8 +126,12 @@ async def record_bound_criterion(
     fetch_at: ParamFetcher,
     infos: list[ParameterInfo],
 ) -> tuple[int | None, list[ParameterAlternatives], list[str]]:
-    """Record the criterion, count it, then measure its other readings under
-    the sheet its bound parents answer."""
+    """Record the criterion with the organisms of the dataset it runs on, count
+    it, then measure its other readings under the sheet its bound parents answer."""
+    organisms = await step_dataset_organisms(
+        ctx.deps.site_id, criterion.search_name, criterion.param_values
+    )
+    criterion = criterion.model_copy(update={"dataset_organisms": organisms})
     count, alternatives = await record_and_count_criterion(
         ctx,
         criterion,

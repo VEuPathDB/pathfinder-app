@@ -1,5 +1,5 @@
-"""A turn writes what it recalled once, one row per memory, with what tells
-two memories of one name apart and the conversation each came from."""
+"""A turn recalls the researcher's preferences into one part, one row per
+memory; a case or a strategy waits until the Lead recalls it."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 
+from pathfinder.domain.memory import standing_memory_key
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.tests._support.recorded_searches import (
     serve_recorded_plasmodb,
@@ -72,17 +73,37 @@ async def _recalled_rows() -> list[dict[str, Any]]:
     return [c for c in chunks if c["type"] == "data-memory-retrieved"]
 
 
+def _preference(name: str, summary: str) -> MemoryValue:
+    return MemoryValue(
+        kind="preference",
+        name=name,
+        summary=summary,
+        content={"preference": summary},
+        created_at=_EARLIER,
+    )
+
+
 @pytest.fixture
 async def seeded(
     app_memory_store: MemoryStore,
     authed_user_id: UUID,
 ) -> dict[str, UUID]:
-    """Two cases for one goal from two threads, and the strategy of one."""
+    """Two preferences, two cases for one goal from two threads, and the
+    strategy of one."""
     store = MemoryStore(
         store=app_memory_store.store,
         application_id=PATHFINDER_APPLICATION_ID,
     )
     first, second = uuid4(), uuid4()
+    for name, summary in (
+        ("Default organism", "Plasmodium falciparum 3D7"),
+        ("SignalP version", "SignalP-6.0"),
+    ):
+        await store.put(
+            user_id=authed_user_id,
+            value=_preference(name, summary),
+            key=standing_memory_key(name),
+        )
     await store.put(
         user_id=authed_user_id,
         value=_case(count=3, created_at=_EARLIER, source=first),
@@ -120,30 +141,8 @@ async def test_one_turn_writes_one_recalled_part_with_one_row_per_memory(
     assert len(parts) == 1
     keys = Counter(m["key"] for m in parts[0]["data"]["memories"])
     assert keys == Counter(
-        ["case:earlier", "case:later", f"strategy:{seeded['second'].hex}"],
+        [
+            standing_memory_key("Default organism"),
+            standing_memory_key("SignalP version"),
+        ],
     )
-
-
-async def test_two_memories_of_one_name_carry_their_dates_and_threads(
-    app: FastAPI,
-    authed_user_id: UUID,
-    in_memory_jobs: InMemoryConnector,
-    signed_in_to_veupathdb: None,
-    seeded: dict[str, UUID],
-) -> None:
-    del signed_in_to_veupathdb
-    await run_one_chat_turn(
-        app=app,
-        user_id=authed_user_id,
-        connector=in_memory_jobs,
-        prompt=_GOAL,
-    )
-
-    (part,) = await _recalled_rows()
-    by_key = {m["key"]: m for m in part["data"]["memories"]}
-    assert by_key["case:earlier"]["name"] == by_key["case:later"]["name"]
-    assert by_key["case:earlier"]["createdAt"] == "2026-09-13T16:44:00Z"
-    assert by_key["case:later"]["createdAt"] == "2026-09-16T12:23:00Z"
-    assert by_key["case:earlier"]["sourceConversationId"] == str(seeded["first"])
-    strategy = by_key[f"strategy:{seeded['second'].hex}"]
-    assert strategy["sourceConversationId"] == str(seeded["second"])

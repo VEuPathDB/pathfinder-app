@@ -125,7 +125,7 @@ async def search_for_searches(
     results: list[JSONObject] = cast(
         "list[JSONObject]", [m.to_dict() for m in answered]
     )
-    ctx.deps.agent_state.record_catalog_read(
+    ctx.deps.record_catalog_read(
         CatalogRead(
             tool_call_id=ctx.tool_call_id or "",
             tool="search_for_searches",
@@ -232,7 +232,7 @@ def record_a_listing(
     listed: Sequence[SearchListing | TransformListing],
 ) -> None:
     """Record a listing the model was shown, in its order and with no scores."""
-    ctx.deps.agent_state.record_catalog_read(
+    ctx.deps.record_catalog_read(
         CatalogRead(
             tool_call_id=ctx.tool_call_id or "",
             tool=tool,

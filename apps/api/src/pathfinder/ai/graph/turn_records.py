@@ -167,6 +167,8 @@ class TurnMarkers(CamelModel):
     # these and never a question asked later under the same message.
     questions_at_arrival: list[str] = Field(default_factory=list)
     intent_classified: bool = False
+    # A catalog lookup of this turn ran, so a reply may say a search is absent.
+    catalog_looked_up: bool = False
     framed: bool = False
     built: bool = False
     # A write this turn made outside a build: a clear, or an export the site

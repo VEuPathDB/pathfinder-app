@@ -33,7 +33,7 @@ _DECIDED: dict[ModelProvider, Table] = {
         ),
         "default": (
             ("openai:gpt-5.6-luna", "medium"),
-            ("openai:gpt-6-luna", "medium"),
+            ("openai:gpt-5.6-luna", "medium"),
         ),
         "fast": (("openai:gpt-6-luna", "low"), ("openai:gpt-6-luna", "low")),
     },
@@ -48,7 +48,7 @@ _DECIDED: dict[ModelProvider, Table] = {
         ),
         "default": (
             ("google:gemini-3.8-flash", "medium"),
-            ("google:gemini-3.5-flash-lite", "medium"),
+            ("google:gemini-3.8-flash", "medium"),
         ),
         "fast": (
             ("google:gemini-3.5-flash-lite", "low"),
@@ -93,7 +93,7 @@ def test_a_missing_rank_takes_the_next_one_down() -> None:
     assert _table("openai", entries) == {
         "quality": (("openai:big", "high"), ("openai:tiny", "medium")),
         "balanced": (("openai:tiny", "medium"), ("openai:tiny", "medium")),
-        "default": (("openai:big", "medium"), ("openai:tiny", "medium")),
+        "default": (("openai:big", "medium"), ("openai:big", "medium")),
         "fast": (("openai:tiny", "low"), ("openai:tiny", "low")),
     }
 

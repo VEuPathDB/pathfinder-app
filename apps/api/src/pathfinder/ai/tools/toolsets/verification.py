@@ -36,7 +36,6 @@ from pathfinder.ai.tools.standalone.think import think
 from pathfinder.ai.tools.toolsets._dynamic import (
     DynamicEnumToolset,
     EnumOverrides,
-    live_wdk_step_ids,
 )
 from pathfinder.ai.tools.toolsets._read_once import ReadOnceToolset
 from pathfinder.ai.tools.toolsets._refusals import RefusalMemoryToolset
@@ -52,7 +51,7 @@ def _verification_enum_overrides(
     ``strategy_session.sync_state.wdk_step_ids``.
     """
     overrides: EnumOverrides = {}
-    wdk_ids = live_wdk_step_ids(ctx.deps.strategy_session)
+    wdk_ids = ctx.deps.strategy_session.wdk_step_ids()
     if wdk_ids:
         for tool in (
             "get_estimated_size",

@@ -237,6 +237,7 @@ STRATEGY_RENDERERS = {
 
 GENERIC_RENDERERS = {
     "pinned_user_memories",
+    "pinned_conversation_so_far",
     "pinned_scratchpad",
     "pinned_run_budget",
 }
@@ -245,6 +246,7 @@ INSTRUCTION_ORDER = {
     "frame": [
         "base_system_prompt",
         "pinned_user_memories",
+        "pinned_conversation_so_far",
         "pinned_scratchpad",
         "pinned_frame_workspace",
         "pinned_frame_sheets",
@@ -264,6 +266,7 @@ INSTRUCTION_ORDER = {
         "pinned_researcher_request",
         "pinned_graph_state",
         "pinned_user_memories",
+        "pinned_conversation_so_far",
         "pinned_scratchpad",
         "pinned_ledger",
         "pinned_discovered_searches",

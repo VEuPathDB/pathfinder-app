@@ -13,6 +13,7 @@ from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.ai.lead.card_reply import PROSE_MAX_CHARS, REPLY_REFERENCES
 from pathfinder.ai.lead.contract_messages import (
+    UNBACKED_ABSENCE,
     blamed_the_site_message,
     claimed_change_message,
     claimed_frame_message,
@@ -36,6 +37,7 @@ from pathfinder.ai.lead.reply_claims import (
     denies,
     ends_with_a_question,
     names_an_organism,
+    says_a_search_is_absent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import TurnRecord, turn_record
@@ -106,6 +108,7 @@ MismatchKind = Literal[
     "unrendered_prose",
     "failed_check",
     "unmade_change",
+    "unbacked_absence",
 ]
 
 
@@ -280,6 +283,13 @@ def _unmade_change(report: LeadResponse, record: TurnRecord) -> str | None:
     return unmade_change_message(record.withdrawn_values, record.stated_values)
 
 
+def _unbacked_absence(report: LeadResponse, record: TurnRecord) -> str | None:
+    """A search is said absent only after a catalog lookup of this turn."""
+    if record.looked_up_the_catalog or not says_a_search_is_absent(report.prose):
+        return None
+    return UNBACKED_ABSENCE
+
+
 _RULES: tuple[
     tuple[MismatchKind, Callable[[LeadResponse, TurnRecord], str | None]], ...
 ] = (
@@ -298,6 +308,7 @@ _RULES: tuple[
     ("unnamed_record_organism", _unnamed_record_organism),
     ("failed_check", _failed_check),
     ("unmade_change", _unmade_change),
+    ("unbacked_absence", _unbacked_absence),
 )
 
 

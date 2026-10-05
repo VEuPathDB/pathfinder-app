@@ -9,7 +9,7 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKRecordType, WDKSearch
 
-from pathfinder.ai.tools.standalone import frame_spec, frame_structure
+from pathfinder.ai.tools.standalone import frame_structure
 from pathfinder.services.strategies import (
     data_marks,
     organism_params,
@@ -55,6 +55,18 @@ DATASETS = {
 }
 
 
+# Two strains of toxodb, and the toxodb study of the first of them.
+ME49 = "Toxoplasma gondii ME49"
+GT1 = "Toxoplasma gondii GT1"
+ME49_STUDY = "DS_749cb10dcf"
+# A dataset id the catalog publishes no record for.
+UNKNOWN_STUDY = "DS_0000000000"
+
+# The organisms of each study the catalog publishes a dataset record for, as
+# toxodb publishes them.
+STUDIES: dict[str, list[str]] = {ME49_STUDY: [ME49]}
+
+
 # The assay each curated search or study runs on, as plasmodb answers it; a
 # search or a study not named here has no mark.
 SEARCH_ASSAYS: dict[str, str] = {
@@ -68,9 +80,10 @@ STUDY_ASSAYS: dict[str, str] = dict.fromkeys(
 
 def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     """Answer the organism parameter of each search from ``MARKS``, the
-    organisms of the dataset it runs on from ``DATASETS``, and the assay of a
-    curated search or study from ``SEARCH_ASSAYS`` and ``STUDY_ASSAYS``. No
-    search sheet is served: a test that reads one serves it."""
+    organisms of the dataset it runs on from ``DATASETS``, the organisms of a
+    study from ``STUDIES``, and the assay of a curated search or study from
+    ``SEARCH_ASSAYS`` and ``STUDY_ASSAYS``. No search sheet is served: a test
+    that reads one serves it."""
 
     async def _record_type(_site: str, _search: str, hint: str | None) -> str:
         return hint or "transcript"
@@ -83,8 +96,12 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(organism_params, "resolve_search_record_type", _record_type)
     monkeypatch.setattr(organism_params, "organism_parameter", _marked)
-    monkeypatch.setattr(frame_spec, "dataset_organisms", _datasets)
     monkeypatch.setattr(organism_params, "dataset_organisms", _datasets)
+
+    async def _study(_site: str, dataset_id: str) -> list[str]:
+        return STUDIES.get(dataset_id, [])
+
+    monkeypatch.setattr(organism_params, "study_organisms", _study)
 
     async def _search_assay(_site: str, search_name: str) -> str | None:
         return SEARCH_ASSAYS.get(search_name)

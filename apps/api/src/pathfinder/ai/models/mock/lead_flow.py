@@ -73,9 +73,9 @@ EDIT_PROSE = (
 BUILD = "build_strategy"
 # The substring of ``build_would_replace_the_strategy`` that names the refusal.
 BUILD_REFUSED_MARKER = "build_strategy replaces it"
-# The precondition layer withholds the tool on a thread that has a strategy, so
-# the turn can meet the same refusal as an absence.
-_BUILD_ABSENT_MARKER = "Unknown tool name"
+# The gate withholds the tool on a thread that has a strategy, so the turn can
+# meet the same refusal as a withheld call.
+_BUILD_ABSENT_MARKER = "build_strategy cannot be called now"
 # The substring of ``build_not_ready_message`` for a spec that waits on analyses.
 _ANALYSIS_MARKER = "waits for the analysis workflow"
 # The Lead's pinned spec, and the words it holds while nothing is framed.

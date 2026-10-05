@@ -11,10 +11,11 @@ from pydantic import Field, SkipValidation
 from pydantic_ai.tools import RunContext
 from pydantic_ai.toolsets import AbstractToolset, CombinedToolset
 
-from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.agents.state import AgentToolState, CatalogRead
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.evidence import EvidenceCard, NamedControlSet
+from pathfinder.domain.exchanges import Exchange
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
@@ -121,6 +122,13 @@ class AgentDeps(AssistantDeps):
     # The request the thread answers, the name of a push with no name yet.
     user_prompt: str = ""
     verification_scope: VerificationScope = Field(default_factory=VerificationScope)
+    # The conversation's last exchanges, as the researcher read them.
+    exchanges: list[Exchange] = Field(default_factory=list)
+
+    def record_catalog_read(self, read: CatalogRead) -> None:
+        """Keep a catalog read for this agent and mark the turn as looked up."""
+        self.agent_state.record_catalog_read(read)
+        self.turn_markers.catalog_looked_up = True
 
     def to_strategy_context(self) -> StrategyMutationContext:
         """Narrow this container down to what strategy-mutation services need."""

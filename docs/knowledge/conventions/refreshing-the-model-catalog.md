@@ -21,8 +21,9 @@ every role's compile-time model and the injection judge read it.
 the planning roles (Lead, FRAME) and one for the worker roles (BUILD, VERIFY,
 site help): quality runs the flagship at high over the standard entry at
 medium; balanced the standard entry over the small one, both at medium;
-default the provider's default entry over the small one, both at medium; fast
-runs the small entry at low for every role.
+default runs the provider's default entry at medium for every role; fast
+runs the small entry at low for every role. VERIFY checks at high on the
+worker model in every tier.
 A missing rank takes the next rank down, and a tier whose roles land on one
 entry runs it at the planning roles' effort. Tests read ids through
 `tests/_support/models.py`, the web tests through

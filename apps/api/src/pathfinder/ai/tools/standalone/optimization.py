@@ -244,6 +244,14 @@ async def sweep_can_run(
 ) -> None:
     """Refuse a sweep call the worker would refuse, before its card is drawn."""
     del reply, budget
+    held = ctx.deps.runtime.strategy_session.wdk_step_ids()
+    if held and wdk_step_id not in held:
+        msg = (
+            f"Step {wdk_step_id} is no step of this strategy on the site. Its steps "
+            f"are {', '.join(str(i) for i in held)}. Nothing was started and no card "
+            "was shown."
+        )
+        raise ModelRetry(msg)
     refused = unattached_set(control_set_id, ctx.deps.state.domain.control_sets)
     if refused is not None:
         msg = f"{refused} {ATTACH_A_SET} Nothing was started and no card was shown."

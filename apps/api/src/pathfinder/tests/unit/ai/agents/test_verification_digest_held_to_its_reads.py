@@ -10,7 +10,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
-from pathfinder.ai.agents.verification import hold_the_digest_to_the_evidence
+from pathfinder.ai.agents.verification_digest import hold_the_digest_to_the_evidence
 from pathfinder.ai.graph.runtime import AgentDeps, VerificationScope
 from pathfinder.ai.lead.deltas import VerificationDelta
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession

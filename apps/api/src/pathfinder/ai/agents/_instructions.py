@@ -12,6 +12,7 @@ from assistant_core.scratchpad.rendering import render_scratchpad
 from pydantic_ai.tools import RunContext
 
 from pathfinder.ai.agents.scratchpad_guidance import PATHFINDER_SCRATCHPAD_GUIDANCE
+from pathfinder.domain.exchanges import Exchange, exchanges_section
 
 
 class CarriesMemories(Protocol):
@@ -35,6 +36,16 @@ def pinned_user_memories(ctx: RunContext[CarriesMemories]) -> str | None:
     return "\n".join(lines)
 
 
+class CarriesExchanges(Protocol):
+    """Deps that hold the conversation's last exchanges."""
+
+    exchanges: list[Exchange]
+
+
+def pinned_conversation_so_far(ctx: RunContext[CarriesExchanges]) -> str | None:
+    return exchanges_section(ctx.deps.exchanges)
+
+
 async def pinned_scratchpad(ctx: RunContext[AssistantDeps]) -> str | None:
     """Render the conversation's scratchpad index for the phase agent."""
     if ctx.deps.db_session_factory is None or ctx.deps.conversation_id is None:
@@ -51,13 +62,13 @@ async def pinned_scratchpad(ctx: RunContext[AssistantDeps]) -> str | None:
 
 
 _BUDGET_NOTE = (
-    "The run stops the moment either ceiling is reached, mid-task. Spend what "
-    "is left on the move that answers the question."
+    "Count the calls you have made and spend what is left on the move that "
+    "answers the question."
 )
 
 
 def pinned_run_budget(ctx: RunContext[object]) -> str | None:
-    """The ceiling this run enforces, against what it has already spent.
+    """The ceilings this run enforces, in text every request of the run shares.
 
     A context that no run backs carries no limits, and a run that limits only
     its request count has nothing the model can steer by.
@@ -65,13 +76,13 @@ def pinned_run_budget(ctx: RunContext[object]) -> str | None:
     limits = ctx.usage_limits
     if limits is None:
         return None
-    meters: list[str] = []
+    ceilings: list[str] = []
     if limits.tool_calls_limit is not None:
-        meters.append(f"tools {ctx.usage.tool_calls:,}/{limits.tool_calls_limit:,}")
+        ceilings.append(f"{limits.tool_calls_limit:,} tool calls")
     if limits.total_tokens_limit is not None:
-        meters.append(
-            f"tokens {ctx.usage.total_tokens:,}/{limits.total_tokens_limit:,}"
-        )
-    if not meters:
+        ceilings.append(f"{limits.total_tokens_limit:,} tokens")
+    if not ceilings:
         return None
-    return f"## Run budget\n{' - '.join(meters)}\n{_BUDGET_NOTE}"
+    first = ", whichever comes first" if len(ceilings) > 1 else ""
+    reach = " or ".join(ceilings) + first
+    return f"## Run budget\nThis run stops at {reach}, mid-task. {_BUDGET_NOTE}"

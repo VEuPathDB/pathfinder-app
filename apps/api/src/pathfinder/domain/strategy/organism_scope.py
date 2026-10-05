@@ -20,10 +20,10 @@ def organism_params_of(criteria: Iterable[Criterion]) -> dict[str, str]:
 
 
 def dataset_organisms_of(criteria: Iterable[Criterion]) -> dict[str, frozenset[str]]:
-    """Each bound search that marks no organism parameter, and the organisms of
-    the dataset it runs on."""
+    """The organisms of the dataset each bound criterion runs on, by criterion id,
+    for the criteria whose search marks no organism parameter."""
     return {
-        c.search_name: frozenset(c.dataset_organisms)
+        c.id: frozenset(c.dataset_organisms)
         for c in criteria
         if c.search_name and c.organism_param is None and c.dataset_organisms
     }
@@ -36,15 +36,16 @@ def dataset_leaf(
 ) -> StrategyStepNode | None:
     """The leaf whose dataset states the organism of the step, or None.
 
-    A step on the primary path that marks an organism parameter states the
-    organism itself.
+    ``dataset_organisms`` is keyed by step id: one generic search runs every
+    study, so its name does not name a dataset. A step on the primary path that
+    marks an organism parameter states the organism itself.
     """
     path = [step]
     while (below := path[-1].primary_input) is not None:
         path.append(below)
     if any(node.search_name in organism_params for node in path):
         return None
-    return path[-1] if path[-1].search_name in dataset_organisms else None
+    return path[-1] if path[-1].id in dataset_organisms else None
 
 
 def output_organisms(
@@ -56,7 +57,7 @@ def output_organisms(
     leaf = dataset_leaf(step, organism_params, dataset_organisms)
     if leaf is None:
         return extract_output_organisms(step, organism_params)
-    return set(dataset_organisms[leaf.search_name])
+    return set(dataset_organisms[leaf.id])
 
 
 def selected_organisms(criterion: Criterion) -> frozenset[str]:

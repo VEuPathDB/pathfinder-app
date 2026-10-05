@@ -76,6 +76,8 @@ class TurnRecord(CamelModel):
     # The values an accepted edit classification takes back and states.
     withdrawn_values: tuple[str, ...] = ()
     stated_values: tuple[str, ...] = ()
+    # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
+    looked_up_the_catalog: bool = False
 
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
@@ -174,4 +176,5 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
         else None,
         withdrawn_values=withdrawn,
         stated_values=stated,
+        looked_up_the_catalog=markers.catalog_looked_up,
     )

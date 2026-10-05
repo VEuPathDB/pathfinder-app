@@ -14,7 +14,7 @@ _OOCYSTS = "GenesByRNASeqchomTU502_Widmer_oocysts_ebi_rnaSeq_RSRCPercentile"
 _HOMINIS = "Cryptosporidium hominis TU502"
 _UKMEL1 = "Cryptosporidium meleagridis strain UKMEL1"
 _MARKED = {"GenesWithSignalPeptide": "organism"}
-_DATASETS = {_OOCYSTS: frozenset({_HOMINIS})}
+_DATASETS = {"oocysts": frozenset({_HOMINIS})}
 
 
 def _intersect(organism: str) -> StrategyStepNode:

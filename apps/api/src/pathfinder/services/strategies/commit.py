@@ -2,10 +2,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from assistant_core.platform.logging import get_logger
-from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.strategy import (
     StrategyAst,
-    flatten_tree,
     pushable_root_id,
     wdk_search_name,
 )
@@ -16,7 +14,6 @@ from pathfinder.domain.strategy.build_outcome import StepPushFailure
 from pathfinder.domain.strategy.combine_naming import name_the_combines
 from pathfinder.domain.strategy.operations import (
     GraphOperation,
-    ReplaceStrategyOp,
     ReplaceSubtreeOp,
 )
 from pathfinder.domain.strategy.operations.apply import (
@@ -30,7 +27,6 @@ from pathfinder.domain.strategy.stated_shape import (
     SlotWrite,
     overwritten_slot,
 )
-from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.strategies.batch_refusal import (
     entry_state,
@@ -38,8 +34,16 @@ from pathfinder.services.strategies.batch_refusal import (
 )
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.gene_set_refresh import defer_the_gene_set_refresh
+from pathfinder.services.strategies.graph_rollback import (
+    GraphLabels,
+    graph_labels,
+    restore_graph,
+)
 from pathfinder.services.strategies.live_counts import replace_counts_with_wdks
 from pathfinder.services.strategies.naming import name_the_thread_as_the_graph
+from pathfinder.services.strategies.organism_params import (
+    tree_cross_organism_refusal,
+)
 from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
@@ -106,51 +110,6 @@ async def apply_and_commit(
     return await apply_operations_and_commit(deps=deps, ops=[op])
 
 
-class GraphLabels(BaseModel):
-    """What a batch writes on the graph itself, beside its steps."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    description: str | None = None
-    last_step_id: str | None = None
-    words: StepWords = Field(default_factory=StepWords)
-
-
-def graph_labels(graph: StrategyGraph) -> GraphLabels:
-    """The name, the description, the write cursor and the words it carries now."""
-    return GraphLabels(
-        name=graph.name,
-        description=graph.description,
-        last_step_id=graph.last_step_id,
-        words=graph.words,
-    )
-
-
-def restore_graph(
-    graph: StrategyGraph, old_ast: StrategyAst | None, entry: GraphLabels
-) -> None:
-    """Put the graph back the way it was before a failed batch.
-
-    ``apply_operation`` edits the live nodes, so a batch that fails partway
-    has already changed the graph. Replaying the pre-batch tree and the labels
-    it carried is what makes a rejected batch a no-op rather than a
-    half-applied edit. A graph with no tree to replay takes its labels back
-    the same way.
-    """
-    graph.steps.clear()
-    graph.roots.clear()
-    if old_ast is not None:
-        apply_operation(graph, ReplaceStrategyOp(root=old_ast.root))
-        for detached in old_ast.detached_roots:
-            graph.steps.update(flatten_tree(detached))
-        graph.recompute_roots()
-    graph.name = entry.name
-    graph.description = entry.description
-    graph.last_step_id = entry.last_step_id
-    graph.words = entry.words
-
-
 def _the_tree_the_batch_leaves(
     graph: StrategyGraph,
     old_ast: StrategyAst | None,
@@ -174,6 +133,44 @@ def _the_tree_the_batch_leaves(
             f"operations were rolled back: {reason}"
         )
         raise ApplyError(msg) from exc
+
+
+def _the_tree_wdk_is_offered(
+    graph: StrategyGraph, new_ast: StrategyAst | None, sync_state: WDKSyncState
+) -> StrategyAst | None:
+    """The computable part of the tree, which is all WDK is offered.
+
+    A combine that lost an input stays on the canvas and in the persisted AST,
+    but WDK refuses it, so the plan is built from the surviving branch.
+    """
+    pushable_id = (
+        pushable_root_id(new_ast.root.id, graph.steps) if new_ast is not None else None
+    )
+    if pushable_id is None:
+        return None
+    return graph.to_strategy_ast(
+        pushable_id, sync_state=sync_state, include_detached=False
+    )
+
+
+async def _refuse_an_intersect_of_two_organisms(
+    deps: StrategyMutationContext,
+    graph: StrategyGraph,
+    wdk_ast: StrategyAst | None,
+    *,
+    rollback: tuple[StrategyAst | None, GraphLabels],
+) -> None:
+    """Refuse the batch, before any push, when an INTERSECT of the tree it leaves
+    joins two known and disjoint organism scopes. Every commit runs this check,
+    so a tree that keeps its shape is checked like one that moves."""
+    if wdk_ast is None:
+        return
+    refusal = await tree_cross_organism_refusal(
+        deps.site_id, graph.record_type, wdk_ast.root
+    )
+    if refusal is not None:
+        restore_graph(graph, *rollback)
+        raise ApplyError(refusal)
 
 
 def _replaces_a_subtree(op: GraphOperation) -> bool:
@@ -249,21 +246,12 @@ async def apply_operations_and_commit(
         dropped_step_ids=sorted(set(dropped_step_ids)),
     )
     new_ast = _the_tree_the_batch_leaves(graph, old_ast, sync_state, entry_labels)
+    wdk_ast = _the_tree_wdk_is_offered(graph, new_ast, sync_state)
+    await _refuse_an_intersect_of_two_organisms(
+        deps, graph, wdk_ast, rollback=(old_ast, entry_labels)
+    )
     if graph.steps:
         graph.save_history(result.description)
-    # WDK is only offered the computable part of the graph. A combine that
-    # lost an input stays on the canvas and in the persisted AST, but pushing
-    # it would be rejected, so the plan is built from the surviving branch.
-    pushable_id = (
-        pushable_root_id(new_ast.root.id, graph.steps) if new_ast is not None else None
-    )
-    wdk_ast = (
-        graph.to_strategy_ast(
-            pushable_id, sync_state=sync_state, include_detached=False
-        )
-        if pushable_id is not None
-        else None
-    )
 
     try:
         sync_result = await _commit_to_wdk(

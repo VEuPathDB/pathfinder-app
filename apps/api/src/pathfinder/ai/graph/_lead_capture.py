@@ -14,7 +14,11 @@ from assistant_core.capabilities.repetition_guard import BlockRule
 from assistant_core.conversation.stream_parts.agent_topology import lead_usage_event
 from assistant_core.cost import cost_for_run
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
-from assistant_core.graph.turn_state import PendingApproval, PendingDurableCall
+from assistant_core.graph.turn_state import (
+    ParkedCall,
+    PendingApproval,
+    PendingDurableCall,
+)
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import PaidBy, ReasoningEffort
 from pydantic_ai.messages import AgentStreamEvent, ModelMessage, PartStartEvent
@@ -112,6 +116,8 @@ class _LeadRunCapture:
     pending_approval: PendingApproval | None = None
     pending_durable_call: PendingDurableCall | None = None
     parked_call_answered: bool = False
+    # The parked call this run's answer resumed, when no new message came with it.
+    answered_call: ParkedCall | None = None
     # The researcher declined an offer card, so the turn writes no reply.
     offer_declined: bool = False
     # The facts part is written once, before the first reply of the turn, and

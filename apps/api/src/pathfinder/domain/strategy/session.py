@@ -214,6 +214,15 @@ class StrategySession:
             return
         self.graph = graph
 
+    def wdk_step_ids(self) -> list[int]:
+        """The WDK ids of the steps this session pushed, each once, in order.
+
+        A step gets its id when it is pushed, so a step held only here has none.
+        """
+        if self.sync_state is None:
+            return []
+        return sorted(set(self.sync_state.wdk_step_ids.values()))
+
     def get_graph(self, graph_id: str | None) -> StrategyGraph | None:
         """Return the graph with this id, or the active graph when the id is
         ``None``."""

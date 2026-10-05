@@ -27,6 +27,12 @@ const OPENAI = DEFAULT_MODEL.id;
 const ANTHROPIC = ANTHROPIC_SMALL.id;
 const ROLES = ["lead", "frame", "execution", "verification"];
 
+const PICKS_ON_ANTHROPIC = {
+  lead: ANTHROPIC,
+  frame: ANTHROPIC,
+  verification: ANTHROPIC,
+};
+
 function preset(modelId: string) {
   const config = { modelId, reasoningEffort: "medium" };
   return { roles: Object.fromEntries(ROLES.map((role) => [role, config])) };
@@ -116,15 +122,26 @@ describe("the composer's payment block", () => {
     keys = {
       enabled: true,
       keys: [],
-      payers: { openai: "deployment", anthropic: "user" },
+      payers: { openai: "user", anthropic: "user" },
     };
-    useSettingsStore
-      .getState()
-      .applyPhasePreset(Object.fromEntries(ROLES.map((role) => [role, ANTHROPIC])), {});
+    useSettingsStore.getState().applyPhasePreset(PICKS_ON_ANTHROPIC, {});
     await renderProbe();
 
     expect(screen.getByTestId("blocked")).toHaveTextContent("false");
     expect(screen.queryByTestId("quota-exhausted-banner")).toBeNull();
+  });
+
+  it("blocks a spent allowance while a stage with no row runs on the deployment", async () => {
+    keys = {
+      enabled: true,
+      keys: [],
+      payers: { openai: "deployment", anthropic: "user" },
+    };
+    useSettingsStore.getState().applyPhasePreset(PICKS_ON_ANTHROPIC, {});
+    await renderProbe();
+
+    expect(screen.getByTestId("blocked")).toHaveTextContent("true");
+    expect(screen.getByTestId("quota-exhausted-banner")).toBeInTheDocument();
   });
 
   it("blocks a turn a refused key would pay for, and says which key", async () => {

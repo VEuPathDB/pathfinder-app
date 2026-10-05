@@ -84,6 +84,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
         cancel_event=runtime.cancel_event,
         memory_store=runtime.memory_store,
         retrieved_memories=deps.retrieved_memories,
+        exchanges=list(state.domain.exchanges),
         conversation_id=state.conversation_id,
         db_session_factory=runtime.db_session_factory,
         user_prompt=state.request_the_thread_answers,

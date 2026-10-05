@@ -3,6 +3,8 @@ binding it carries, in the place the spec or the strategy gives it."""
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic_ai import RunContext
 from veupathdb.domain.strategy import StrategyStepNode, subtree_ids
 
@@ -73,6 +75,25 @@ def state_the_exported_step(
         )
         return
     domain.record_criterion(_exported_criterion(node, binding))
+
+
+def scope_the_exported_criterion(
+    ctx: RunContext[LeadDeps], step_id: str, organisms: Sequence[str]
+) -> None:
+    """Record the organisms of the export's study on the criterion that states it.
+
+    The structure check reads them, so an INTERSECT with a step of another
+    organism is refused before anything is pushed.
+    """
+    spec = ctx.deps.state.domain.operational_spec
+    if spec is None:
+        return
+    spec.criteria = [
+        c.model_copy(update={"dataset_organisms": list(organisms)})
+        if c.id == step_id
+        else c
+        for c in spec.criteria
+    ]
 
 
 def spec_binding_the_export(

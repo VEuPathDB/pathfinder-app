@@ -45,7 +45,6 @@ from pathfinder.ai.lead.verification_scope import review_record, verification_sc
 from pathfinder.ai.lead.verify_review import (
     review_held_to_the_turn,
 )
-from pathfinder.ai.tools.toolsets._dynamic import live_wdk_step_ids
 from pathfinder.domain.caveats import (
     BuildCaveat,
     Caveat,
@@ -336,7 +335,7 @@ def _findings(
         ],
         build=build_contradiction(
             ledger.build,
-            built_step_count=len(live_wdk_step_ids(deps.runtime.strategy_session)),
+            built_step_count=len(deps.runtime.strategy_session.wdk_step_ids()),
         ),
     )
 
@@ -350,7 +349,7 @@ def _caveats(
         build=build,
         controls=judged_control_tests(
             deps.state.turn_markers.control_tests,
-            frozenset(live_wdk_step_ids(session)),
+            frozenset(session.wdk_step_ids()),
         ),
         column_fits=review.column_fits,
     )
