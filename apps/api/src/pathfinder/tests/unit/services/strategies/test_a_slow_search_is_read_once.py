@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Mapping
 
 import pytest
-from cachetools import LRUCache
+from cachetools import TTLCache
 from veupathdb.domain.parameters import (
     MultiPickValue,
     ParamValue,
@@ -36,9 +36,23 @@ _PROFILESET = (
 )
 
 
+class _Clock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
 @pytest.fixture(autouse=True)
-def no_search_is_slow_yet(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(slow_searches, "_SLOW_SEARCHES", LRUCache(maxsize=8))
+def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
+    held = _Clock()
+    monkeypatch.setattr(
+        slow_searches,
+        "_SLOW_SEARCHES",
+        TTLCache(maxsize=8, ttl=slow_searches.SLOW_MARK_SECONDS, timer=held),
+    )
+    return held
 
 
 def _params(min_value: str) -> dict[str, ParamValue]:
@@ -200,3 +214,18 @@ async def test_the_binds_own_configuration_is_not_counted_again(
 
     assert again == recorded_count("report_percentile_min_80")
     assert asked == [PERCENTILE_SEARCH]
+
+
+@pytest.mark.asyncio
+async def test_a_slow_mark_lapses_so_a_passing_slowdown_heals(
+    monkeypatch: pytest.MonkeyPatch, clock: _Clock
+) -> None:
+    monkeypatch.setattr(slow_searches, "SLOW_COUNT_SECONDS", 0.01)
+    monkeypatch.setattr(wdk_counts, "count_search_answer", _slow_count)
+    await count_bound_criterion(
+        "plasmodb", "transcript", PERCENTILE_SEARCH, _params("80")
+    )
+
+    clock.now = slow_searches.SLOW_MARK_SECONDS + 1
+
+    assert counts_slowly("plasmodb", PERCENTILE_SEARCH) is False

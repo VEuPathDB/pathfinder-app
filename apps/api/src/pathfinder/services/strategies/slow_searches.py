@@ -3,11 +3,14 @@ from __future__ import annotations
 import time
 from collections.abc import Awaitable
 
-from cachetools import LRUCache
+from cachetools import TTLCache
 
 SLOW_COUNT_SECONDS = 10.0
+SLOW_MARK_SECONDS = 3600.0
 
-_SLOW_SEARCHES: LRUCache[tuple[str, str], bool] = LRUCache(maxsize=512)
+_SLOW_SEARCHES: TTLCache[tuple[str, str], bool, float] = TTLCache(
+    maxsize=512, ttl=SLOW_MARK_SECONDS, timer=time.monotonic
+)
 
 
 def counts_slowly(site_id: str, search_name: str) -> bool:

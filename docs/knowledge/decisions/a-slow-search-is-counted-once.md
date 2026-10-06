@@ -14,7 +14,10 @@ status: stable
 wraps the bind's own count (`wdk_counts.count_bound_criterion`) and every
 measured reading (`measurements.TurnCounts`). A count that takes
 `SLOW_COUNT_SECONDS` or more, or that is cancelled after that long, records
-`(site, search)` in a process cache.
+`(site, search)` in a process cache for `SLOW_MARK_SECONDS` (an hour). The mark is
+shared by every researcher on the process, because the cost on the site belongs to
+the search; it lapses, so a slowdown that passes, or a slow count one request
+provoked, costs the readings of that search for an hour and no longer.
 
 **A slow search reads no other value.** `measure_binding` records each value it
 would have measured as `not_measurable` with the reason that the site counts the
