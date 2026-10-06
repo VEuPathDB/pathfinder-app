@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils/cn";
 
 import { useChatHelpers, type ChatHelpers } from "../../runtime/chatHelpersContext";
 import { handleConsultSkip, handleConsultSubmit } from "../../rail/consultActions";
-import { ConsultRecapView } from "./ConsultRecap";
+import { answeredInALaterMessage } from "./cardAnswers";
+import { ConsultRecapView, ConsultSetAsideView } from "./ConsultRecap";
 import {
   type PendingConsult,
   findConsultRecap,
@@ -40,6 +41,9 @@ export function ConsultCarousel({ toolCallId }: { toolCallId?: string }) {
   }
   const pending = findPendingConsult(message);
   if (pending !== null && pending.questions.length > 0) {
+    if (answeredInALaterMessage(chat.messages, message.id)) {
+      return <ConsultSetAsideView questions={pending.questions} />;
+    }
     return <ConsultCarouselView pending={pending} chat={chat} />;
   }
   const recap = findConsultRecap(message);

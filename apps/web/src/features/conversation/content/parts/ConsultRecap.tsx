@@ -2,6 +2,7 @@
 
 import { HelpCircle } from "lucide-react";
 
+import type { ConsultQuestion } from "@pathfinder/shared/generated/types/ConsultQuestion";
 import type { UserQuestionAnswer } from "@pathfinder/shared/generated/types/UserQuestionAnswer";
 
 import type { ConsultRecap } from "./consultData";
@@ -39,6 +40,27 @@ export function ConsultRecapView({ recap }: { recap: ConsultRecap }) {
               <span className="font-medium text-muted-foreground">A:</span>{" "}
               {answerText(answerByQuestion.get(q.id))}
             </p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function ConsultSetAsideView({ questions }: { questions: ConsultQuestion[] }) {
+  return (
+    <div
+      data-testid="consult-set-aside"
+      className="space-y-2 rounded-lg border border-border bg-card/60 p-2"
+    >
+      <div className="flex items-center gap-2 px-1 text-sm font-medium">
+        <HelpCircle className="size-4 text-muted-foreground" aria-hidden />
+        You answered in your next message.
+      </div>
+      <ul className="space-y-1 rounded-md border border-border bg-background/60 p-2.5 text-xs">
+        {questions.map((q) => (
+          <li key={q.id} className="leading-snug text-muted-foreground">
+            {q.prompt}
           </li>
         ))}
       </ul>

@@ -190,7 +190,9 @@ async def test_a_value_set_while_a_call_was_parked_costs_the_resumed_pass_nothin
     thread.frames(with_the_proteome(2))
 
     delta = await thread.edit(
-        resume=SubAgentResume(messages=[], results=DeferredToolResults())
+        resume=SubAgentResume(
+            messages=[], results=DeferredToolResults(), on_the_card=frozenset()
+        )
     )
 
     assert isinstance(delta, EditDelta)

@@ -1,5 +1,22 @@
 # Log
 
+## 2026-10-06
+
+* **A typed answer to a card writes nothing for the card's call.** A message typed while a card
+  waits opens a new message. The Lead's turn wrote the card's `tool-input-start`,
+  `tool-input-available` and `tool-output-denied` into that message, so the client built a part
+  in `output-denied` with no approval, and the thread failed to render. A typed reply past a
+  sub-agent's card wrote a bare outcome for a call the message did not hold, and the live
+  stream stopped. The turn now writes no chunk for a call an earlier message announced
+  (`PROTOCOL.md` section 6.2), and a sub-agent closes only the calls a click answered
+  ([the decision](decisions/an-offer-is-a-card-not-prose.md)).
+
+* **A card that a later message answered offers no answer.** The question, proposal,
+  separation and approval cards read a card that a user message follows as answered in that
+  message, and its trace row as stopped, so the turn no longer reads "Waiting for you". A trace
+  anchor draws the run of its own message, so the work a typed yes starts draws under the turn
+  that ran it.
+
 ## 2026-10-05
 
 * **An off-topic turn ends with its own reply.** Its 40000-token ceiling is gone: two Lead

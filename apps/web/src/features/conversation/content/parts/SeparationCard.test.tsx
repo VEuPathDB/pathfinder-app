@@ -110,6 +110,24 @@ describe("the separation card", () => {
     expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
   });
 
+  it("offers no answer on a card the researcher answered by typing", () => {
+    const typed: UIMessage = {
+      id: "u2",
+      role: "user",
+      parts: [{ type: "text", text: "Keep the strategy I have." }],
+    };
+    render(
+      <ChatHelpersProvider value={chatHelpersFor([...messages(PENDING), typed])}>
+        <SeparationCard toolCallId={CALL_ID} />
+      </ChatHelpersProvider>,
+    );
+
+    expect(screen.getByTestId("separation-decision").textContent).toBe(
+      "You answered in your next message.",
+    );
+    expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
+  });
+
   it("reads no card when no result carries the task", () => {
     const other: ThreadPart = { ...PENDING, input: { task_id: "another-task" } };
 

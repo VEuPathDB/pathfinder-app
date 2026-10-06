@@ -4,10 +4,12 @@ import { getToolName, isToolUIPart, type UIMessage } from "ai";
 import { z } from "zod";
 
 import { ADOPTION_TOOL_NAME } from "../../rail/consultActions";
+import { answeredInALaterMessage } from "./cardAnswers";
 import { answeredDecision } from "./consultData";
 
 export type SeparationCardData = { offer: SeparationOffer } & (
-  { decision: "pending"; approvalId: string } | { decision: "accepted" | "declined" }
+  | { decision: "pending"; approvalId: string }
+  | { decision: "accepted" | "declined" | "answered" }
 );
 
 const adoptionInputSchema = z.object({ task_id: z.string() });
@@ -43,7 +45,9 @@ export function findAdoption(
     const offer = input.success ? offerOf(messages, input.data.task_id) : null;
     if (offer === null) return null;
     if (part.state === "approval-requested") {
-      return { offer, decision: "pending", approvalId: part.approval.id };
+      return answeredInALaterMessage(messages, messageId)
+        ? { offer, decision: "answered" }
+        : { offer, decision: "pending", approvalId: part.approval.id };
     }
     const decision = answeredDecision(part.state, part.approval?.approved);
     return decision === null ? null : { offer, decision };

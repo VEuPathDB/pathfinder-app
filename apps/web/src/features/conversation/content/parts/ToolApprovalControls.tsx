@@ -23,6 +23,7 @@ import {
 } from "../../rail/consultActions";
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { useThreadDevMode } from "../../thread/useThreadDevMode";
+import { answeredInALaterMessage } from "./cardAnswers";
 
 /** The tools whose approval their own card answers. */
 const CARD_TOOLS: ReadonlySet<string> = new Set([
@@ -90,7 +91,11 @@ export function findToolApproval(
         approvalId: approval.id,
         toolName: getToolName(part),
         input: part.input,
-        decision: decisionOf(part.state, approval.approved),
+        decision:
+          part.state === "approval-requested" &&
+          answeredInALaterMessage(messages, message.id)
+            ? "answered"
+            : decisionOf(part.state, approval.approved),
         asked: firstSummaryLine(messages, toolCallId),
         removes: removedSteps(messages, toolCallId),
       };

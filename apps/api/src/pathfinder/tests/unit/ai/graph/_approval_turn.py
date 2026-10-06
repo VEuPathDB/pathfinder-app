@@ -176,6 +176,15 @@ class Collector:
             if "chunk" in p and p["chunk"].get("type") == chunk_type
         ]
 
+    def tool_chunks_for(self, tool_call_id: str) -> list[str]:
+        return [
+            p["chunk"]["type"]
+            for p in self.payloads
+            if "chunk" in p
+            and str(p["chunk"].get("type", "")).startswith("tool-")
+            and p["chunk"].get("toolCallId") == tool_call_id
+        ]
+
 
 def _quota_offline() -> AsyncSession:
     """Quota accumulation tolerates a database that is not there."""

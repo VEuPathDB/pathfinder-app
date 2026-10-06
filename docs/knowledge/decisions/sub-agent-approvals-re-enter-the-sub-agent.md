@@ -32,7 +32,9 @@ suspended rather than discarded:
    sub-agent's own message history with
    `DeferredToolResults(approvals={inner_id: True | ToolDenied(...)})`, streams
    the continuation, and closes the inner tool part with
-   `tool-output-available` or `tool-output-denied`.
+   `tool-output-available` or `tool-output-denied` when the answer is a click
+   (`SubAgentResume.on_the_card`). A typed answer closes nothing on the wire:
+   its turn writes a new message, which holds no part for the inner call.
 4. **Then the Lead resumes.** The finished delta is handed back as
    `DeferredToolResults(calls={dispatch_call_id: delta})`, which is exactly what
    the wrapper would have returned, so the rest of the turn is unchanged. A

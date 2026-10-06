@@ -143,6 +143,7 @@ def _approval_resume(
             waiting.pending.messages_json,
         ),
         results=results,
+        on_the_card=frozenset(results.approvals),
     )
 
 

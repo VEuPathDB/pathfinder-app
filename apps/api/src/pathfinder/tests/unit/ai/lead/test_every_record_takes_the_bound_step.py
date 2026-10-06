@@ -87,7 +87,9 @@ async def test_a_resumed_edit_whose_record_predates_the_export_keeps_the_step(
     thread.frames(lambda found: found)
 
     delta = await thread.edit(
-        resume=SubAgentResume(messages=[], results=DeferredToolResults())
+        resume=SubAgentResume(
+            messages=[], results=DeferredToolResults(), on_the_card=frozenset()
+        )
     )
 
     assert isinstance(delta, EditDelta)

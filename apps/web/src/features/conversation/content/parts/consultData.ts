@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 
 import { CONSULT_TOOL_NAME, PROPOSAL_TOOL_NAME } from "../../rail/consultActions";
+import { answeredInALaterMessage } from "./cardAnswers";
 
 export interface PendingConsult {
   approvalId: string;
@@ -66,7 +67,8 @@ export function findPendingConsult(message: UIMessage): PendingConsult | null {
 }
 
 export type ProposalCardData = { proposal: Proposal } & (
-  { decision: "pending"; approvalId: string } | { decision: "accepted" | "declined" }
+  | { decision: "pending"; approvalId: string }
+  | { decision: "accepted" | "declined" | "answered" }
 );
 
 /** The decision a card's tool part records once the researcher answered it. */
@@ -91,15 +93,20 @@ export function answeredDecision(
 
 /** The proposal card this tool call carries, once its approval is asked. */
 export function findProposal(
-  message: UIMessage,
+  messages: UIMessage[],
+  messageId: string,
   toolCallId: string,
 ): ProposalCardData | null {
-  for (const part of message.parts) {
+  const message = messages.find((m) => m.id === messageId);
+  for (const part of message?.parts ?? []) {
     if (!isToolUIPart(part) || part.toolCallId !== toolCallId) continue;
     if (getToolName(part) !== PROPOSAL_TOOL_NAME) return null;
     const parsed = proposalSchema.safeParse(part.input);
     if (!parsed.success) return null;
     if (part.state === "approval-requested") {
+      if (answeredInALaterMessage(messages, messageId)) {
+        return { proposal: parsed.data, decision: "answered" };
+      }
       return {
         proposal: parsed.data,
         decision: "pending",

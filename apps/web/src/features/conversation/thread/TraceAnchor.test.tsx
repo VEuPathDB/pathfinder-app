@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import type { UIMessage } from "ai";
 import { reduceSnapshot, type MessagePart } from "@veupathdb/assistant-client";
@@ -13,6 +13,17 @@ import { ChatHelpersProvider, type ChatHelpers } from "../runtime/chatHelpersCon
 import { SubAgentTraceAnchor, TraceAnchor } from "./TraceAnchor";
 import recordedTurn from "../__fixtures__/recordedTurn.json";
 import { DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
+
+const current = vi.hoisted(() => ({ messageId: "m1" }));
+
+vi.mock("@assistant-ui/react", () => ({
+  useAuiState: (select: (s: { message: { id: string } }) => unknown) =>
+    select({ message: { id: current.messageId } }),
+}));
+
+beforeEach(() => {
+  current.messageId = "m1";
+});
 
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn(), message: vi.fn() },
@@ -135,6 +146,84 @@ function anchorFor(toolCallId: string, toolName: string, parts = turnParts()) {
     </ChatHelpersProvider>,
   );
 }
+
+const TYPED: UIMessage = {
+  id: "u2",
+  role: "user",
+  parts: [{ type: "text", text: "No, keep that step." }],
+};
+
+function threadChat(messages: UIMessage[]): ChatHelpers {
+  return { ...chatWith([]), messages };
+}
+
+describe("a card the researcher answered by typing", () => {
+  it("reads its row as stopped and the turn as no longer waiting", () => {
+    useSettingsStore.setState({ showRawToolCalls: false, showTokenUsage: true });
+    const card: UIMessage = {
+      id: "m1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-delete_step",
+          toolCallId: "call_delete",
+          state: "approval-requested",
+          input: { step_id: "s2" },
+          approval: { id: "call_delete" },
+        },
+      ],
+    };
+    const view = render(
+      <ChatHelpersProvider value={threadChat([card, TYPED])}>
+        <TraceAnchor
+          toolName="delete_step"
+          toolCallId="call_delete"
+          args={{}}
+          result={undefined}
+          status={{ type: "requires-action" }}
+        />
+      </ChatHelpersProvider>,
+    );
+
+    expect(view.getByTestId("turn-trace-summary")).toHaveTextContent("1 step");
+    expect(view.queryByTestId("approval-card")).toBeNull();
+    expect(view.getByTestId("tool-approval-decision")).toHaveTextContent(
+      "Answered in your next message",
+    );
+  });
+});
+
+describe("an anchor whose call id an earlier message also holds", () => {
+  it("draws the run of its own message", () => {
+    useSettingsStore.setState({ showRawToolCalls: false, showTokenUsage: true });
+    const card: UIMessage = {
+      id: "m1",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-propose_changes",
+          toolCallId: "sa_9",
+          state: "approval-requested",
+          input: {},
+          approval: { id: "sa_9" },
+        },
+      ],
+    };
+    const build: UIMessage = {
+      id: "m3",
+      role: "assistant",
+      parts: openDispatch(),
+    };
+    current.messageId = "m3";
+    const view = render(
+      <ChatHelpersProvider value={threadChat([card, TYPED, build])}>
+        <SubAgentTraceAnchor data={DISPATCH} />
+      </ChatHelpersProvider>,
+    );
+
+    expect(view.getByTestId("turn-trace")).toHaveTextContent("Choose a search");
+  });
+});
 
 describe("TraceAnchor", () => {
   it("draws the whole run once, at the run's first row-bearing part", () => {

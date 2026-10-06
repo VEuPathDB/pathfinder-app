@@ -185,20 +185,18 @@ async def test_a_resumed_run_writes_the_card_it_answers_as_it_arrives(
     first, pending = await _parked_turn(monkeypatch, writer, calls)
     parked_run = len(writer.payloads)
     state = _resumed(first, pending)
-    state.user_message_id = uuid4()
-    state.user_prompt = "Show me the orthology step instead."
+    state.approval_responses = {
+        CALL_ID: ToolApprovalResponded(id=CALL_ID, approved=True),
+    }
 
     await drive_lead(state=state, deps=lead_deps(state), writer=writer)
 
     resumed = [p["chunk"] for p in writer.payloads[parked_run:] if "chunk" in p]
-    assert [c["type"] for c in resumed][:5] == [
-        "data-turn-status",
-        "tool-input-start",
-        "tool-input-available",
-        "tool-output-denied",
-        "start-step",
+    assert [(c["type"], c.get("toolCallId")) for c in resumed][:3] == [
+        ("data-turn-status", None),
+        ("tool-input-available", CALL_ID),
+        ("tool-output-error", CALL_ID),
     ]
-    assert [c["toolCallId"] for c in resumed[1:4]] == [CALL_ID] * 3
     assert edits == []
 
 
@@ -310,6 +308,7 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
     state.user_message_id = uuid4()
     state.user_prompt = "Show me the orthology step instead."
     deps = lead_deps(state)
+    writer.payloads.clear()
 
     capture = await drive_lead(state=state, deps=deps, writer=writer)
 
@@ -319,9 +318,7 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
     declined = deps.state.domain.declined_proposal
     assert declined is not None
     assert declined.proposed_changes == CHANGES
-    assert [c["toolCallId"] for c in writer.chunks_of("tool-output-denied")] == [
-        CALL_ID
-    ]
+    assert writer.tool_chunks_for(CALL_ID) == []
 
 
 async def test_an_unanswered_card_stays_parked(

@@ -139,13 +139,41 @@ describe("findProposal", () => {
       },
     ]);
 
-    expect(findProposal(message, "call-7")).toEqual({
+    expect(findProposal([message], "m1", "call-7")).toEqual({
       proposal: {
         question: "Add one more search to make this strategy more specific?",
         proposedChanges: [KEEP_ONLY],
       },
       decision: "pending",
       approvalId: "appr-7",
+    });
+  });
+
+  it("reads a card the researcher answered by typing as answered, not pending", () => {
+    const message = assistant([
+      {
+        type: "tool-propose_changes",
+        toolCallId: "call-7",
+        state: "approval-requested",
+        approval: { id: "appr-7" },
+        input: {
+          question: "Add one more search to make this strategy more specific?",
+          proposedChanges: [KEEP_ONLY],
+        },
+      },
+    ]);
+    const typed: UIMessage = {
+      id: "u2",
+      role: "user",
+      parts: [{ type: "text", text: "No, keep it as it is." }],
+    };
+
+    expect(findProposal([message, typed], "m1", "call-7")).toEqual({
+      proposal: {
+        question: "Add one more search to make this strategy more specific?",
+        proposedChanges: [KEEP_ONLY],
+      },
+      decision: "answered",
     });
   });
 });

@@ -8,9 +8,17 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useConsultAnswersStore } from "@/state/useConsultAnswersStore";
 
 import { buildChatRequestBody } from "../../runtime/buildRequestBody";
-import type { ChatHelpers } from "../../runtime/chatHelpersContext";
-import { ConsultCarouselView } from "./ConsultCarousel";
+import {
+  ChatHelpersProvider,
+  type ChatHelpers,
+} from "../../runtime/chatHelpersContext";
+import { ConsultCarousel, ConsultCarouselView } from "./ConsultCarousel";
 import { findPendingConsult, type PendingConsult } from "./consultData";
+
+vi.mock("@assistant-ui/react", () => ({
+  useAuiState: (select: (s: { message: { id: string } }) => unknown) =>
+    select({ message: { id: "m1" } }),
+}));
 
 const COMBINE_PROMPT = "How should I combine the two gene sets?";
 
@@ -76,6 +84,29 @@ function renderCarousel(): void {
     <ConsultCarouselView pending={pendingOf(pendingMessage())} chat={chatStub()} />,
   );
 }
+
+describe("a consult the researcher answered by typing", () => {
+  it("lists its questions under the typed answer and offers no carousel", () => {
+    const typed: UIMessage = {
+      id: "u2",
+      role: "user",
+      parts: [{ type: "text", text: "Use the default range for both searches." }],
+    };
+    render(
+      <ChatHelpersProvider
+        value={{ ...chatStub(), messages: [pendingMessage(), typed] }}
+      >
+        <ConsultCarousel />
+      </ChatHelpersProvider>,
+    );
+
+    const card = screen.getByTestId("consult-set-aside");
+    expect(card).toHaveTextContent("You answered in your next message.");
+    expect(card).toHaveTextContent(COMBINE_PROMPT);
+    expect(screen.queryByTestId("consult-next")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Union" })).toBeNull();
+  });
+});
 
 describe("the consult card names its own controls", () => {
   it("names each option button by its label alone", () => {

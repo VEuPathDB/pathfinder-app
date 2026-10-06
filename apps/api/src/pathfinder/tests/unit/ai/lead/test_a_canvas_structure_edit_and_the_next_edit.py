@@ -257,7 +257,9 @@ async def test_a_step_added_while_a_call_was_parked_is_stated_by_the_resumed_tur
     thread.frames(with_the_proteome(2))
 
     delta = await thread.edit(
-        resume=SubAgentResume(messages=[], results=DeferredToolResults())
+        resume=SubAgentResume(
+            messages=[], results=DeferredToolResults(), on_the_card=frozenset()
+        )
     )
 
     assert isinstance(delta, EditDelta)

@@ -3,16 +3,48 @@ suppressed, and the held cards are written after the facts they stand beside."""
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Any
 
 from assistant_core.graph.emit import emit_chunk
-from pydantic_ai.ui.vercel_ai.response_types import BaseChunk, ErrorChunk
+from pydantic_ai.ui.vercel_ai.response_types import (
+    BaseChunk,
+    ErrorChunk,
+    ToolApprovalRequestChunk,
+    ToolInputAvailableChunk,
+    ToolInputDeltaChunk,
+    ToolInputErrorChunk,
+    ToolInputStartChunk,
+    ToolOutputAvailableChunk,
+    ToolOutputDeniedChunk,
+    ToolOutputErrorChunk,
+)
 
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.graph._lead_events import is_suppressed_sub_agent_chunk
 from pathfinder.ai.graph._lead_facts import show_the_facts
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+
+_CALL_CHUNKS = (
+    ToolInputStartChunk,
+    ToolInputDeltaChunk,
+    ToolInputAvailableChunk,
+    ToolInputErrorChunk,
+    ToolApprovalRequestChunk,
+    ToolOutputAvailableChunk,
+    ToolOutputErrorChunk,
+    ToolOutputDeniedChunk,
+)
+
+
+async def without_calls_of(
+    earlier_calls: frozenset[str], chunks: AsyncIterator[BaseChunk]
+) -> AsyncIterator[BaseChunk]:
+    async for chunk in chunks:
+        if isinstance(chunk, _CALL_CHUNKS) and chunk.tool_call_id in earlier_calls:
+            continue
+        yield chunk
 
 
 def _emit_unless_suppressed(

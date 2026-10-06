@@ -14,9 +14,7 @@ import { findProposal, type ProposalCardData } from "./consultData";
 export function ProposalCard({ toolCallId }: { toolCallId: string }) {
   const currentId = useAuiState((s) => s.message.id);
   const chat = useChatHelpers();
-  const message = chat.messages.find((m) => m.id === currentId);
-  if (message?.role !== "assistant") return null;
-  const card = findProposal(message, toolCallId);
+  const card = findProposal(chat.messages, currentId, toolCallId);
   if (card === null) return null;
   return <ProposalCardView card={card} chat={chat} />;
 }
@@ -24,6 +22,7 @@ export function ProposalCard({ toolCallId }: { toolCallId: string }) {
 const DECISION_TEXT = {
   accepted: "You said yes.",
   declined: "You said no.",
+  answered: "You answered in your next message.",
 } as const;
 
 function ProposalCardView({

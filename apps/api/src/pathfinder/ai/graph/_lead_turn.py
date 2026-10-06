@@ -38,6 +38,7 @@ from pydantic_ai.tools import (
 from pathfinder.ai.graph._lead_answers import (
     answers_for,
     sibling_answers,
+    typed_reply,
     unanswered_inner,
 )
 from pathfinder.ai.graph._lead_capture import _LeadRunCapture
@@ -305,6 +306,7 @@ async def _resume_durable_call(
                     sub_agent.messages_json
                 ),
                 results=inner,
+                on_the_card=frozenset(inner.approvals),
             ),
         )
     except ModelRetry as retry:
@@ -374,6 +376,9 @@ async def _resolve_pending_approval(
                     sub_agent.messages_json
                 ),
                 results=DeferredToolResults(approvals=answers),
+                on_the_card=frozenset()
+                if typed_reply(state) is not None
+                else frozenset(answers),
             ),
         )
     except ModelRetry as retry:

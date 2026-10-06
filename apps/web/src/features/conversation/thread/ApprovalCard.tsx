@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, ShieldAlert, X } from "lucide-react";
+import { Check, MessageSquare, ShieldAlert, X } from "lucide-react";
 import type { ReactElement } from "react";
 
 import { ToolInput } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
 
-export type ApprovalDecision = "pending" | "approved" | "denied";
+export type ApprovalDecision = "pending" | "approved" | "denied" | "answered";
 
 export interface ApprovalCardProps {
   prompt: string;
@@ -21,26 +21,31 @@ export interface ApprovalCardProps {
   removes?: readonly string[];
 }
 
+const DECIDED = {
+  approved: { Icon: Check, label: "Approved", className: "text-success" },
+  denied: { Icon: X, label: "Denied", className: "text-destructive" },
+  answered: {
+    Icon: MessageSquare,
+    label: "Answered in your next message",
+    className: "text-muted-foreground",
+  },
+} as const;
+
 function Decision({
-  approved,
+  decision,
   subject,
 }: {
-  approved: boolean;
+  decision: keyof typeof DECIDED;
   subject: string | null;
 }): ReactElement {
+  const { Icon, label, className } = DECIDED[decision];
   return (
     <div
       data-testid="tool-approval-decision"
-      className={`flex items-center gap-1.5 py-1 text-xs ${
-        approved ? "text-success" : "text-destructive"
-      }`}
+      className={`flex items-center gap-1.5 py-1 text-xs ${className}`}
     >
-      {approved ? (
-        <Check className="size-3.5" aria-hidden />
-      ) : (
-        <X className="size-3.5" aria-hidden />
-      )}
-      {approved ? "Approved" : "Denied"}
+      <Icon className="size-3.5" aria-hidden />
+      {label}
       {subject === null ? null : `: ${subject}`}
     </div>
   );
@@ -58,7 +63,7 @@ export function ApprovalCard({
   removes = [],
 }: ApprovalCardProps): ReactElement {
   if (decision !== "pending") {
-    return <Decision approved={decision === "approved"} subject={subject} />;
+    return <Decision decision={decision} subject={subject} />;
   }
   return (
     <div

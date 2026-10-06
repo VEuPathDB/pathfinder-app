@@ -14,6 +14,7 @@ import { findAdoption } from "./separationCardData";
 const DECISION_TEXT = {
   accepted: "You said yes.",
   declined: "You said no.",
+  answered: "You answered in your next message.",
 } as const;
 
 /** The card that offers a separation run's strategy. Its question is the

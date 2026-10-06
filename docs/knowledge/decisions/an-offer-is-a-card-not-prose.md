@@ -66,6 +66,10 @@ Lead asks in prose.
   `adopt_separating_strategy`) the decline is recorded as a clicked no is. A clicked no on any
   card that is not an offer resumes the run with the denial. `propose_changes` is in
   `UNCLASSIFIED_TOOLS`, so a typed yes validates before the new message is classified.
+  A typed answer writes no chunk for the card's call (`lead_node._calls_of_an_earlier_message`):
+  a click continues the card's message, but a typed message opens a new one, and a new message
+  holds no part for that call (`PROTOCOL.md` section 6.2). The web reads a card that a later user
+  message follows as answered in that message (`content/parts/cardAnswers.ts`), with no controls.
 - **The record.** A declined offer is `StrategyDomainState.declined_proposal`, carried on the
   ledger (`InvestigationLedger.declined_proposal`, a `## Declined proposal` block in the summary)
   until a later card is accepted. A bare yes on a later turn does not accept it: when a declined

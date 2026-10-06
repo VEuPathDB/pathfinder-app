@@ -90,6 +90,7 @@ async def _answered(
     state.user_message_id = first.user_message_id
     state.pending_approval = parked.pending_approval
     answer(state)
+    writer.payloads.clear()
     deps = holding_a_strategy(lead_deps(state))
     capture = await drive_lead(state=state, deps=deps, writer=writer)
     return deps, capture, calls
@@ -140,8 +141,7 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
     assert capture.response is not None
     assert deps.runtime.strategy_session.get_graph(None) is not None
     assert deps.state.domain.declined_proposal is None
-    denied = [c["toolCallId"] for c in writer.chunks_of("tool-output-denied")]
-    assert denied == [CALL_ID]
+    assert writer.tool_chunks_for(CALL_ID) == []
 
 
 async def test_a_skipped_question_card_reaches_the_lead_as_declined(
@@ -157,8 +157,11 @@ async def test_a_skipped_question_card_reaches_the_lead_as_declined(
     assert deps.state.domain.requirements == []
     assert deps.state.turn_markers.consulted is False
     assert capture.response is not None
-    denied = [c["toolCallId"] for c in writer.chunks_of("tool-output-denied")]
-    assert denied == [CALL_ID]
+    assert writer.tool_chunks_for(CALL_ID) == [
+        "tool-input-start",
+        "tool-input-available",
+        "tool-output-denied",
+    ]
 
 
 async def test_a_bare_yes_after_a_declined_offer_ends_on_the_refusal(

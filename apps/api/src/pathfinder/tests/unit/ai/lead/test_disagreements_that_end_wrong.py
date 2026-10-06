@@ -95,7 +95,11 @@ async def test_a_resumed_edit_does_not_rebuild_a_step_deleted_while_it_was_parke
     await thread.next_turn(resumes_parked_call=True)
     thread.frames(with_the_proteome(2))
 
-    await thread.edit(resume=SubAgentResume(messages=[], results=DeferredToolResults()))
+    await thread.edit(
+        resume=SubAgentResume(
+            messages=[], results=DeferredToolResults(), on_the_card=frozenset()
+        )
+    )
 
     assert [step_id for step_id in thread.graph.steps if step_id == STAGE] == []
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuiState } from "@assistant-ui/react";
 import type { UIMessage } from "ai";
 import type { ReactElement, ReactNode } from "react";
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/features/conversation/thread/Trace";
 import { humanizeToolName } from "@/features/conversation/toolNames";
 
+import { answeredInALaterMessage } from "../content/parts/cardAnswers";
 import { ToolApprovalControls } from "../content/parts/ToolApprovalControls";
 import { useChatHelpers, type ChatHelpers } from "../runtime/chatHelpersContext";
 import { traceRenderingKinds } from "./traceRenderingKinds";
@@ -140,37 +142,54 @@ function turnEnded(chat: ChatHelpers, message: UIMessage): boolean {
   return chat.messages.at(-1) !== message;
 }
 
+function withNoWait(run: Run): Run {
+  const groups = run.groups.map((group) => ({
+    ...group,
+    rows: group.rows.map((row) =>
+      row.status === "awaiting-approval" ? { ...row, status: "stopped" as const } : row,
+    ),
+  }));
+  return {
+    ...run,
+    groups,
+    running: groups.some((group) => group.rows.some((row) => row.status === "running")),
+  };
+}
+
 /**
  * Draw the whole run the anchored part belongs to, and only at the run's first
  * row-bearing part, so a turn's calls read as one block wherever they arrived.
  */
 function anchored(
   chat: ChatHelpers,
+  messageId: string,
   anchorId: string,
   dev: ThreadDevMode,
 ): ReactElement | null {
-  for (const message of chat.messages) {
-    const parts = toTraceParts(message.parts);
-    if (!parts.some((part) => anchorIdOf(part) === anchorId)) continue;
-    const runs = buildTrace(parts, {
-      renderingKinds: traceRenderingKinds(),
-      turnEnded: turnEnded(chat, message),
-    });
-    const index = runs.findIndex((each) => idsOf(each).has(anchorId));
-    const run = runs[index];
-    if (run === undefined) return null;
-    if (firstAnchorOf(parts, idsOf(run)) !== anchorId) return null;
-    // The turn's totals close the turn, so they ride its last run alone.
-    const usage = index === runs.length - 1 ? turnUsageOf(parts) : null;
-    return drawRun(run, dev, usage);
-  }
-  return null;
+  const message = chat.messages.find((each) => each.id === messageId);
+  if (message === undefined) return null;
+  const parts = toTraceParts(message.parts);
+  const built = buildTrace(parts, {
+    renderingKinds: traceRenderingKinds(),
+    turnEnded: turnEnded(chat, message),
+  });
+  const runs = answeredInALaterMessage(chat.messages, messageId)
+    ? built.map(withNoWait)
+    : built;
+  const index = runs.findIndex((each) => idsOf(each).has(anchorId));
+  const run = runs[index];
+  if (run === undefined) return null;
+  if (firstAnchorOf(parts, idsOf(run)) !== anchorId) return null;
+  // The turn's totals close the turn, so they ride its last run alone.
+  const usage = index === runs.length - 1 ? turnUsageOf(parts) : null;
+  return drawRun(run, dev, usage);
 }
 
 export function TraceAnchor(props: TraceAnchorProps): ReactElement | null {
   const chat = useChatHelpers();
   const dev = useThreadDevMode();
-  return anchored(chat, props.toolCallId, dev);
+  const messageId = useAuiState((s) => s.message.id);
+  return anchored(chat, messageId, props.toolCallId, dev);
 }
 
 export function SubAgentTraceAnchor({
@@ -180,7 +199,8 @@ export function SubAgentTraceAnchor({
 }): ReactElement | null {
   const chat = useChatHelpers();
   const dev = useThreadDevMode();
+  const messageId = useAuiState((s) => s.message.id);
   const call = readSubAgentCall(data);
   if (call === null) return null;
-  return anchored(chat, call.toolCallId, dev);
+  return anchored(chat, messageId, call.toolCallId, dev);
 }

@@ -178,6 +178,26 @@ describe("the proposal card shows the offer", () => {
     expect(screen.getByTestId("proposal-decision")).toHaveTextContent("You said yes.");
   });
 
+  it("offers no answer on a card the researcher answered by typing", () => {
+    const typed: UIMessage = {
+      id: "u2",
+      role: "user",
+      parts: [{ type: "text", text: "Show me the orthology step instead." }],
+    };
+    render(
+      <ChatHelpersProvider
+        value={{ ...chatStub(PENDING, []), messages: [message(PENDING), typed] }}
+      >
+        <ProposalCard toolCallId={CALL_ID} />
+      </ChatHelpersProvider>,
+    );
+
+    expect(screen.getByTestId("proposal-decision")).toHaveTextContent(
+      "You answered in your next message.",
+    );
+    expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
+  });
+
   it("reads no card off a call of another tool", () => {
     const other: Part = {
       ...CARD,
@@ -185,7 +205,7 @@ describe("the proposal card shows the offer", () => {
       state: "approval-requested",
       approval: { id: "approval-7" },
     };
-    expect(findProposal(message(other), CALL_ID)).toBe(null);
+    expect(findProposal([message(other)], "m1", CALL_ID)).toBe(null);
   });
 });
 

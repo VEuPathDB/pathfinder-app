@@ -41,6 +41,7 @@ from pydantic_ai.messages import AgentStreamEvent, UserContent
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.usage import RunUsage
 
+from pathfinder.ai.graph._lead_answers import typed_reply
 from pathfinder.ai.graph._lead_capture import (
     _charge_token_delta,
     _emit_residual_prose,
@@ -55,7 +56,11 @@ from pathfinder.ai.graph._lead_durable import (
     durable_resume_hints,
     pending_durable_call,
 )
-from pathfinder.ai.graph._lead_emit import emit_each, release_the_cards
+from pathfinder.ai.graph._lead_emit import (
+    emit_each,
+    release_the_cards,
+    without_calls_of,
+)
 from pathfinder.ai.graph._lead_events import (
     handle_sub_agent_event,
 )
@@ -188,6 +193,16 @@ def _resume_hints(parked: ParkedCall | None) -> list[DeferredToolHint]:
     return [approvals.deferred_hint(parked)]
 
 
+def _calls_of_an_earlier_message(
+    state: PipelineState,
+    parked: ParkedCall | None,
+    hints: list[DeferredToolHint],
+) -> frozenset[str]:
+    if isinstance(parked, PendingDurableCall) or typed_reply(state) is None:
+        return frozenset()
+    return frozenset(hint.tool_call_id for hint in hints)
+
+
 async def _drive_lead_stream(
     *,
     state: PipelineState,
@@ -288,7 +303,10 @@ async def _drive_lead_stream(
 
     try:
         with lead_model.override:
-            async for v6_chunk in emitter.chunks(_agent_events()):
+            async for v6_chunk in without_calls_of(
+                _calls_of_an_earlier_message(state, parked, hints),
+                emitter.chunks(_agent_events()),
+            ):
                 emit_each(writer, hold.admit(v6_chunk), sub_agent_tool_calls, capture)
             release_the_cards(writer, hold, deps, capture, sub_agent_tool_calls)
     # The emitter re-raises the graph's control-flow signal and answers every

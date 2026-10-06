@@ -100,6 +100,7 @@ class SubAgentResume:
 
     messages: list[ModelMessage]
     results: DeferredToolResults
+    on_the_card: frozenset[str]
 
 
 @dataclass(frozen=True)
@@ -363,7 +364,7 @@ class _RunInputs:
             None,
             resume.messages,
             resume.results,
-            frozenset(resume.results.approvals),
+            resume.on_the_card,
         )
 
 

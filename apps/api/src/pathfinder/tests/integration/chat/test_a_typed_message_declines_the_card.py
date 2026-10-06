@@ -127,6 +127,14 @@ def _call_ids(chunks: list[dict[str, Any]], chunk_type: str) -> list[str]:
     return [str(c["toolCallId"]) for c in chunks if c["type"] == chunk_type]
 
 
+def _tool_chunks_for(chunks: list[dict[str, Any]], tool_call_id: str) -> list[str]:
+    return [
+        str(c["type"])
+        for c in chunks
+        if str(c["type"]).startswith("tool-") and c.get("toolCallId") == tool_call_id
+    ]
+
+
 @_WITH_THE_STACK
 @pytest.mark.parametrize("card", CARDS, ids=[name for name, _ in CARDS])
 async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
@@ -150,7 +158,7 @@ async def test_a_typed_message_declines_the_card_and_reaches_the_lead(
 
     assert _call_ids(asked, "tool-approval-request") == [CALL_ID]
     assert _call_ids(typed, "tool-approval-request") == []
-    assert _call_ids(typed, "tool-output-denied") == [CALL_ID]
+    assert _tool_chunks_for(typed, CALL_ID) == []
     assert seen[calls_before:] == [[("return", DECLINED_BY_REPLY), ("prompt", TYPED)]]
 
 
@@ -176,5 +184,5 @@ async def test_a_typed_yes_runs_the_card_before_any_classification(
     )
 
     assert _call_ids(typed, "tool-input-error") == []
-    assert CALL_ID in _call_ids(typed, "tool-output-available")
+    assert _tool_chunks_for(typed, CALL_ID) == []
     assert "data-graph-cleared" in [c["type"] for c in typed]

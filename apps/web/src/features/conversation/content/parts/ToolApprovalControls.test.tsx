@@ -137,6 +137,41 @@ describe("findToolApproval", () => {
     expect(output?.decision).toBe("denied");
   });
 
+  it("reports answered for a card the researcher answered by typing", () => {
+    const typed: UIMessage = {
+      id: "u2",
+      role: "user",
+      parts: [{ type: "text", text: "No, keep that step." }],
+    };
+    const view = findToolApproval(
+      [assistantMessage([pendingPart("tool-delete_step")]), typed],
+      "call-1",
+    );
+    expect(view?.decision).toBe("answered");
+  });
+
+  it("offers no buttons on a card the researcher answered by typing", () => {
+    const typed: UIMessage = {
+      id: "u2",
+      role: "user",
+      parts: [{ type: "text", text: "No, keep that step." }],
+    };
+    const chat = makeChat(
+      [assistantMessage([pendingPart("tool-delete_step")]), typed],
+      () => {},
+    );
+    render(
+      <ChatHelpersProvider value={chat}>
+        <ToolApprovalControls toolCallId="call-1" />
+      </ChatHelpersProvider>,
+    );
+
+    expect(screen.getByTestId("tool-approval-decision")).toHaveTextContent(
+      "Answered in your next message",
+    );
+    expect(screen.queryByTestId("tool-approval-approve")).toBeNull();
+  });
+
   it("ignores tool parts that carry no approval and unmatched call ids", () => {
     const parts: UIMessage["parts"] = [
       {

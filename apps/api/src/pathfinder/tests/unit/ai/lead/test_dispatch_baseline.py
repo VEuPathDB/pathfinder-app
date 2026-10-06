@@ -35,7 +35,9 @@ def _deps(spec: OperationalSpec | None) -> LeadDeps:
 
 
 def _resumed() -> SubAgentResume:
-    return SubAgentResume(messages=[], results=DeferredToolResults())
+    return SubAgentResume(
+        messages=[], results=DeferredToolResults(), on_the_card=frozenset()
+    )
 
 
 def test_a_fresh_dispatch_records_the_spec_the_strategy_answers_to() -> None:
