@@ -24,6 +24,8 @@ def test_the_client_settings_keep_the_environment_variable_names() -> None:
         "veupathdb_auth_token",
         "veupathdb_oauth_url",
         "veupathdb_internal_strategy_name_prefix",
+        "veupathdb_user_agent",
+        "veupathdb_concurrent_searches_per_site",
     }
 
 

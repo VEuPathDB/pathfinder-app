@@ -1,8 +1,7 @@
 """Result counts from WDK: one bound criterion, and a whole plan.
 
 The counting itself is the library's; this module holds the session
-bookkeeping around it, the budget one criterion reads under, and the name a
-plan count writes.
+bookkeeping around it and the name a plan count writes.
 """
 
 import hashlib
@@ -16,14 +15,10 @@ from veupathdb_mcp.wdk import compute_plan_step_counts, count_search_answer
 
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.platform.identity import STEP_COUNTS_STRATEGY_NAME
+from pathfinder.services.strategies.slow_searches import timed
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
 _STEP_COUNTS_CACHE: LRUCache[str, dict[str, int | None]] = LRUCache(maxsize=20)
-
-# The count informs a binding and never gates one, so it expires rather than
-# hold the bind open. The budget sits above every measured read of this shape
-# and well under the client's own per-component timeout.
-COUNT_BUDGET_SECONDS = 5.0
 
 
 async def count_bound_criterion(
@@ -32,13 +27,15 @@ async def count_bound_criterion(
     search_name: str,
     params: Mapping[str, ParamValue],
 ) -> int | None:
-    """The records the bound search answers, or None when no count arrives."""
-    return await count_search_answer(
+    """The records the bound search answers, or None when no count arrives.
+
+    The count waits as long as the client does: the site keeps running a search
+    the client stops waiting for.
+    """
+    return await timed(
         site_id,
-        record_type,
         search_name,
-        params,
-        timeout_seconds=COUNT_BUDGET_SECONDS,
+        count_search_answer(site_id, record_type, search_name, params),
     )
 
 

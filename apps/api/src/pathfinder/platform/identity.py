@@ -6,9 +6,15 @@ strategies this deployment writes into a WDK account are named here too,
 because a run and the cleanup that matches it must read one string.
 """
 
+from pathfinder import __version__
+
 PATHFINDER_APPLICATION_ID = "pathfinder"
 PATHFINDER_ASSISTANT_ID = "pathfinder"
 SITE_HELP_ASSISTANT_ID = "site_help"
+
+VEUPATHDB_USER_AGENT = (
+    f"PathFinder/{__version__} (+https://github.com/VEuPathDB/pathfinder-app)"
+)
 
 # The prefix every helper strategy this deployment writes already carries.
 INTERNAL_STRATEGY_NAME_PREFIX = "__pathfinder_internal__:"

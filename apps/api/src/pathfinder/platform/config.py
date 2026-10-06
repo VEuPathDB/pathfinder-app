@@ -25,7 +25,10 @@ from veupathdb_mcp import ServiceTokenRegistry
 from veupathdb_mcp.embeddings import EmbeddingSettings, use_embedding_settings_source
 from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
 
-from pathfinder.platform.identity import INTERNAL_STRATEGY_NAME_PREFIX
+from pathfinder.platform.identity import (
+    INTERNAL_STRATEGY_NAME_PREFIX,
+    VEUPATHDB_USER_AGENT,
+)
 from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.paths import API_DIR, REPO_ROOT
 from pathfinder.platform.provider_key_cipher import SECRET_BYTES, ProviderKeyCipher
@@ -125,6 +128,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     # The client's default names no product. Every helper strategy already in a
     # researcher's account carries this prefix, so it is what a run matches.
     veupathdb_internal_strategy_name_prefix: str = INTERNAL_STRATEGY_NAME_PREFIX
+    veupathdb_user_agent: str = VEUPATHDB_USER_AGENT
     site_preload_timeout_seconds: int = Field(
         default=30,
         ge=1,

@@ -264,6 +264,10 @@ docker compose --env-file .env.dev exec -T api uv run python -m pathfinder.devto
 `extract` runs one extraction pass by hand; the worker runs it daily on the
 `maintenance` queue.
 
+**Run one corpus process at a time.** The cases run against the live sites, and
+the client gives each site a few search slots per process; parallel runs in
+separate processes each get their own.
+
 **A run is always on the configured provider.** The mock routes by an explicit
 marker, so a corpus prompt reaches no arc there; the e2e suite and the unit tier
 hold what the pipeline checks. A run needs a VEuPathDB login

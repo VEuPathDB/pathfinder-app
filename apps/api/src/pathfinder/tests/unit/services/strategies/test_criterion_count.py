@@ -1,4 +1,4 @@
-"""``count_bound_criterion``: the tool server's count, under this product's budget.
+"""``count_bound_criterion``: the tool server's count, which waits as long as the client does.
 
 What the count itself does with a refusal, a missing total or an expiry is the
 tool server's own behaviour and is tested there.
@@ -13,10 +13,7 @@ import pytest
 from veupathdb.domain.parameters import ParamValue, StringValue
 
 from pathfinder.services.strategies import wdk_counts
-from pathfinder.services.strategies.wdk_counts import (
-    COUNT_BUDGET_SECONDS,
-    count_bound_criterion,
-)
+from pathfinder.services.strategies.wdk_counts import count_bound_criterion
 
 
 def _params() -> dict[str, ParamValue]:
@@ -72,15 +69,22 @@ async def test_the_bound_configuration_is_what_gets_counted(
 
 
 @pytest.mark.asyncio
-async def test_the_count_is_read_under_this_products_budget(
+async def test_the_count_waits_as_long_as_the_client_does(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     asked = _serve(monkeypatch, 128)
 
     await count_bound_criterion("piroplasmadb", "transcript", "GenesByText", _params())
 
-    assert asked[0]["timeoutSeconds"] == COUNT_BUDGET_SECONDS
-    assert COUNT_BUDGET_SECONDS == 5.0
+    assert asked == [
+        {
+            "siteId": "piroplasmadb",
+            "recordType": "transcript",
+            "searchName": "GenesByText",
+            "parameters": _params(),
+            "timeoutSeconds": None,
+        }
+    ]
 
 
 @pytest.mark.asyncio

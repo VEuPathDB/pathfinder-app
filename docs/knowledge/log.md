@@ -2,6 +2,13 @@
 
 ## 2026-10-06
 
+* **A slow search is counted once.** A count that takes ten seconds or more marks its
+  search slow for the process, and a bind of a slow search reads no other value; the bind's
+  own count waits as long as the client does, and one configuration in flight is sent once
+  ([the decision](decisions/a-slow-search-is-counted-once.md)). `veupathdb-py` 0.1.0b2 gives
+  each site a few search slots, sends a search once, and every request names PathFinder and
+  its version in its User-Agent.
+
 * **A typed answer to a card writes nothing for the card's call.** A message typed while a card
   waits opens a new message. The Lead's turn wrote the card's `tool-input-start`,
   `tool-input-available` and `tool-output-denied` into that message, so the client built a part

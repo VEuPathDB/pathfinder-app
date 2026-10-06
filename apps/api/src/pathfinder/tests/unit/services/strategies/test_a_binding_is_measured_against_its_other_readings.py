@@ -34,7 +34,6 @@ from pathfinder.services.strategies.measurements import (
     TurnCounts,
     measure_binding,
 )
-from pathfinder.services.strategies.wdk_counts import COUNT_BUDGET_SECONDS
 from pathfinder.tests._support.recorded_counts import (
     CRYPTO_IOWA,
     GIARDIA_WB,
@@ -168,10 +167,7 @@ async def test_every_read_has_the_measurement_budget_and_not_the_binds(
     await _measure_percentile("chosen")
 
     assert len(budgets) == 1
-    assert all(
-        b is not None and COUNT_BUDGET_SECONDS < b <= MEASUREMENT_BUDGET_SECONDS
-        for b in budgets
-    )
+    assert all(b is not None and 0 < b <= MEASUREMENT_BUDGET_SECONDS for b in budgets)
 
 
 def _text_params(expression: str) -> dict[str, ParamValue]:

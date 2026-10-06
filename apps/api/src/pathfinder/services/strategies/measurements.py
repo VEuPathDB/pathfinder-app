@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.text_expression import TextExpression
 from pathfinder.services.strategies.parameter_rules import rules_of, text_query
 from pathfinder.services.strategies.pick_readings import default_reading, tree_note
+from pathfinder.services.strategies.slow_searches import counts_slowly, timed
 from pathfinder.services.strategies.species_readings import species_readings
 from pathfinder.services.strategies.value_labels import pick_terms
 
@@ -45,6 +46,7 @@ _UNBOUNDED_READING = 0.0
 # they run beside each other, and a reading that has not arrived by then is
 # recorded as not measured.
 MEASUREMENT_BUDGET_SECONDS = 20.0
+_SLOW_SEARCH = "the site counts this search too slowly to count its other readings"
 
 
 @dataclass
@@ -56,6 +58,29 @@ class TurnCounts:
 
     counts: dict[CountKey, int] = field(default_factory=dict)
     reaches: dict[ReachKey, SiteSearchResponse] = field(default_factory=dict)
+    pending: dict[CountKey, asyncio.Task[int | None]] = field(default_factory=dict)
+
+    @staticmethod
+    def _key(
+        site_id: str,
+        record_type: str,
+        search_name: str,
+        params: Mapping[str, ParamValue],
+    ) -> CountKey:
+        config = json.dumps(
+            {name: to_wire(value) for name, value in params.items()}, sort_keys=True
+        )
+        return (site_id, record_type, search_name, config)
+
+    def remember(
+        self,
+        site_id: str,
+        record_type: str,
+        search_name: str,
+        params: Mapping[str, ParamValue],
+        count: int,
+    ) -> None:
+        self.counts[self._key(site_id, record_type, search_name, params)] = count
 
     async def count(
         self,
@@ -68,26 +93,43 @@ class TurnCounts:
     ) -> int | None:
         """The records one configuration of the search answers, None when the
         service did not answer it."""
-        config = json.dumps(
-            {name: to_wire(value) for name, value in params.items()}, sort_keys=True
-        )
-        key = (site_id, record_type, search_name, config)
-        if key not in self.counts:
-            try:
-                counted = await count_search_answer(
+        key = self._key(site_id, record_type, search_name, params)
+        if key in self.counts:
+            return self.counts[key]
+        if key not in self.pending:
+            self.pending[key] = asyncio.create_task(
+                self._ask(key, params, timeout_seconds=timeout_seconds)
+            )
+        return await self.pending[key]
+
+    async def _ask(
+        self,
+        key: CountKey,
+        params: Mapping[str, ParamValue],
+        *,
+        timeout_seconds: float,
+    ) -> int | None:
+        site_id, record_type, search_name, _ = key
+        try:
+            counted = await timed(
+                site_id,
+                search_name,
+                count_search_answer(
                     site_id,
                     record_type,
                     search_name,
                     params,
                     timeout_seconds=timeout_seconds,
-                )
-            except WDKError as exc:
-                logger.warning("Count did not answer", site_id=site_id, error=str(exc))
-                return None
-            if counted is None:
-                return None
+                ),
+            )
+        except WDKError as exc:
+            logger.warning("Count did not answer", site_id=site_id, error=str(exc))
+            return None
+        finally:
+            self.pending.pop(key, None)
+        if counted is not None:
             self.counts[key] = counted
-        return self.counts[key]
+        return counted
 
     async def reach(
         self,
@@ -374,6 +416,15 @@ async def measure_binding(
         return [
             m for name, b in measured.items() for m in _unread(by_name[name], b.value)
         ]
+    if counts_slowly(binding.site_id, binding.search_name):
+        return [_not_measurable(name, _SLOW_SEARCH) for name in measured]
+    counts.remember(
+        binding.site_id,
+        binding.record_type,
+        binding.search_name,
+        binding.params,
+        binding.count,
+    )
     deadline = asyncio.get_running_loop().time() + MEASUREMENT_BUDGET_SECONDS
     reads = _Reads(counts, binding, binding.count, deadline)
     quoted = {
