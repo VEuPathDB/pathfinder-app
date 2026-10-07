@@ -15,7 +15,7 @@ const PORTAL_DOWN: SiteResponse = {
   name: "VEuPathDB",
   displayName: "VEuPathDB Portal (All organisms)",
   baseUrl: "https://veupathdb.org/veupathdb",
-  projectId: "EuPathDB",
+  projectId: "UniDB",
   isPortal: true,
   available: false,
   unavailableReason: "TimeoutError",

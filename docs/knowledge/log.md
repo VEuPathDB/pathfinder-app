@@ -1,5 +1,22 @@
 # Log
 
+## 2026-10-07
+
+* **The portal is project UniDB.** `veupathdb-py` 0.1.0b3 names the portal's project
+  `UniDB`, the id its WDK, its page and VDI report; under `EuPathDB` the portal's EDA
+  analysis list answered 404, site search found no searches, datasets, pathways or
+  compounds, and a VDI upload named a target VDI does not install to. `veupathdb-mcp`
+  0.2.0b3 keys the AI expression summary by the gene record's declared primary key
+  columns, so the portal sends the source id alone and stops answering 422.
+
+* **A response has an output cap.** `assistant-core` 0.3.0b2 sets `max_tokens` on every
+  role: 32,000, and 64,000 at `xhigh` and `max`, where reasoning counts against it. A model
+  that looped inside one response streamed to the model's own 128,000-token limit, because
+  the client's read timeout ends a silent stream and not one that keeps sending; a Lead
+  response wrote 128,000 tokens of a `delete_step` argument over 759 s. It now ends at the
+  cap and the run reads it as a truncated call. Claude responses, held at pydantic-ai's
+  4,096 default before, take the same cap.
+
 ## 2026-10-06
 
 * **A slow search is counted once.** A count that takes ten seconds or more marks its

@@ -47,11 +47,22 @@ class _Transport:
         return self._body
 
 
+async def _component_gene_record(path: str, **_: object) -> JsonValue:
+    del path
+    return {"urlSegment": "gene", "primaryKeyColumnRefs": ["source_id", "project_id"]}
+
+
+@pytest.fixture(autouse=True)
+def no_record_type_read_yet(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ai_expression, "_GENE_KEY_COLUMNS", {})
+
+
 def _serve(monkeypatch: pytest.MonkeyPatch, fixture: str) -> _Transport:
     """Answer the reporter with a recorded body, through the real client."""
     transport = _Transport(load_recorded(fixture).json_body())
     client = VEuPathDBClient("https://example.invalid/service")
     monkeypatch.setattr(client, "post", transport)
+    monkeypatch.setattr(client, "get", _component_gene_record)
     monkeypatch.setattr(ai_expression, "get_wdk_client", lambda _site: client)
     return transport
 
@@ -117,6 +128,7 @@ async def test_a_summary_built_on_part_of_the_data_says_so(
     transport = _Transport(body)
     client = VEuPathDBClient("https://example.invalid/service")
     monkeypatch.setattr(client, "post", transport)
+    monkeypatch.setattr(client, "get", _component_gene_record)
     monkeypatch.setattr(ai_expression, "get_wdk_client", lambda _site: client)
     ctx = agent_run_context()
 
