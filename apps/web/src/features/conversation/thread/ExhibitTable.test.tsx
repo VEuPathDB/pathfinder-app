@@ -13,6 +13,16 @@ const COLUMNS = [
 ];
 
 describe("ExhibitTable", () => {
+  it("lets a keyboard reach and scroll a table wider than its column", () => {
+    render(<ExhibitTable testId="controls" columns={COLUMNS} rows={[]} />);
+
+    const region = screen.getByRole("region", {
+      name: "Table: Control set, Controls, Returned",
+    });
+    expect(region.tabIndex).toBe(0);
+    expect(region.className).toContain("overflow-x-auto");
+  });
+
   it("heads every column and reads one row per record", () => {
     render(
       <ExhibitTable

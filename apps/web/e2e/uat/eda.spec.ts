@@ -7,6 +7,8 @@
 import type { Locator, Page } from "@playwright/test";
 import { siteShortName, type SiteResponse } from "@pathfinder/shared";
 
+import { BASE_PATH } from "@/lib/basePath";
+
 import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import type { ApiClient } from "../fixtures/api-client";
@@ -228,13 +230,13 @@ test.describe("Studies", () => {
       "Ask the assistant to explore a study, and the subset and its plots appear here.",
     );
 
-    await page.goto(`/${siteId}/conversation/${id}/eda`);
+    await page.goto(`${siteId}/conversation/${id}/eda`);
     const tab = page.getByTestId("eda-workbench");
     const header = tab.getByTestId("eda-workbench-header");
     await expect(header).toContainText("No study selected", { timeout: 60_000 });
     await expect(
       header.getByRole("link", { name: "Back to conversation" }),
-    ).toHaveAttribute("href", `/${siteId}/conversation/${id}`);
+    ).toHaveAttribute("href", `${BASE_PATH}/${siteId}/conversation/${id}`);
     const datasets = tab.getByTestId("eda-your-datasets");
     await expect(
       datasets.getByRole("heading", { name: "Your datasets" }),
@@ -346,9 +348,12 @@ test.describe("Studies", () => {
         .getByTestId("data-eda-analysis-state")
         .getByRole("button", { name: "Open study", exact: true })
         .click();
-      await expect(page).toHaveURL(new RegExp(`/${siteId}/conversation/${id}/eda$`), {
-        timeout: 60_000,
-      });
+      await expect(page).toHaveURL(
+        new RegExp(`/pathfinder/${siteId}/conversation/${id}/eda$`),
+        {
+          timeout: 60_000,
+        },
+      );
       const tab = page.getByTestId("eda-workbench");
       await expect(tab.getByTestId("eda-workbench-title")).toHaveText(
         analysis.studyDisplayName,
@@ -405,7 +410,7 @@ test.describe("Studies", () => {
       await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
       expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
 
-      await page.goto(`/${siteId}/conversation/${id}/eda`);
+      await page.goto(`${siteId}/conversation/${id}/eda`);
       const tab = page.getByTestId("eda-workbench");
       const exportButton = tab.getByRole("button", { name: "Export as step" });
       await expect(exportButton).toBeEnabled({ timeout: 60_000 });
@@ -416,7 +421,7 @@ test.describe("Studies", () => {
       });
       await expect(
         began.getByRole("link", { name: "Open the strategy canvas" }),
-      ).toHaveAttribute("href", `/${siteId}/conversation/${id}/strategy`);
+      ).toHaveAttribute("href", `${BASE_PATH}/${siteId}/conversation/${id}/strategy`);
       await expect(tab.getByTestId("eda-export-step-name")).toHaveText(
         `Exported: ${exportedStepName(viz)}`,
       );
@@ -449,7 +454,7 @@ test.describe("Studies", () => {
       await chatPage.sendAndSettle(prompt("eda-other-site", question));
       const id = conversationOf(chatPage);
 
-      const sites = await apiClient.get("/api/v1/sites");
+      const sites = await apiClient.get("api/v1/sites");
       expect(sites.status()).toBe(200);
       const others = ((await sites.json()) as SiteResponse[])
         .filter((site) => site.id !== siteId)

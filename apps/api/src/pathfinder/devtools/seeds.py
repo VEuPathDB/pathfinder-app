@@ -1,18 +1,12 @@
-"""Measure each seed's own step tree against its control set on the live site.
-
-Each seed's tree is built as one internal strategy on the account, its root is
-read with a control test of the seed's positives and negatives, and the counts
-are written into the seed as ``measured``, dated with the site's build. The
-strategy is deleted, and the run confirms the account holds none it left.
+"""Measure each seed's step tree against its control set on a live site.
 
 Usage::
 
     python -m pathfinder.devtools.seeds measure --site plasmodb
     python -m pathfinder.devtools.seeds marks
 
-``measure`` signs in as the dev account the environment names. ``marks``
-records the parameter each search the seeds run marks as its organism, which
-the mock arcs read.
+``measure`` signs in as the dev account of the settings. ``marks`` records the
+organism parameter of each search the seeds run.
 """
 
 from __future__ import annotations
@@ -21,7 +15,6 @@ import argparse
 import asyncio
 import datetime
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -46,6 +39,7 @@ from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 
 from pathfinder.ai.models.mock.site_values import MARKS_FILE
 from pathfinder.jobs.auth_context import attach_wdk_auth
+from pathfinder.platform.config import get_settings
 from pathfinder.services.experiment.seed.catalog import (
     SEED_DATABASES,
     SEEDS_DIR,
@@ -178,8 +172,9 @@ async def measure_site(site_id: str) -> list[SeedDef]:
 
 async def dev_login(site_id: str) -> str:
     """The dev account's WDK token on ``site_id``."""
-    email = os.environ.get("WDK_DEV_EMAIL", "")
-    password = os.environ.get("WDK_DEV_PASSWORD", "")
+    settings = get_settings()
+    email = settings.wdk_dev_email
+    password = settings.wdk_dev_password.get_secret_value()
     token = await password_login(site_id, email, password) if email else None
     if not token:
         msg = f"the dev login did not sign in on {site_id}"

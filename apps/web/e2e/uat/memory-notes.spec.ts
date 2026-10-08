@@ -8,7 +8,9 @@ import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
 import type { MemoryItem, MemoryListResponse } from "@pathfinder/shared";
 import type { Note } from "@pathfinder/shared/generated/types/Note";
 
-import { test, expect, BASE_URL } from "../fixtures/test";
+import { BASE_PATH } from "@/lib/basePath";
+
+import { test, expect, APP_ROOT, BASE_URL, addWebsiteLogin } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import { type ApiClient, CSRF_HEADERS, clearUserData } from "../fixtures/api-client";
 import { LAYOUTS } from "../fixtures/arc-layouts";
@@ -19,7 +21,6 @@ import {
   traceRows,
 } from "../fixtures/build-checks";
 import { printed, readConversation, siteOrganism } from "../fixtures/site-reads";
-import { wdkTestToken } from "../fixtures/wdk-account";
 import { ChatPage } from "../pages/chat.page";
 import type { SettingsPage } from "../pages/settings.page";
 
@@ -51,12 +52,12 @@ function escaped(text: string): string {
 
 /** Delete every memory and tombstone of the account, as a clean account has none. */
 async function startClean(api: ApiClient) {
-  const resp = await api.delete("/api/v1/user/data");
+  const resp = await api.delete("api/v1/user/data");
   expect(resp.status(), `purge ${await resp.text()}`).toBe(200);
 }
 
 async function listMemories(api: ApiClient): Promise<MemoryListResponse> {
-  const resp = await api.get("/api/v1/memories?limit=200");
+  const resp = await api.get("api/v1/memories?limit=200");
   expect(resp.status()).toBe(200);
   return (await resp.json()) as MemoryListResponse;
 }
@@ -153,10 +154,8 @@ function memoryRows(dialog: Locator, text: string): Locator {
 
 /** Sign a second PathFinder user in, on the same VEuPathDB login, with no memories. */
 async function secondUser(browser: Browser, userId: string): Promise<BrowserContext> {
-  const context = await browser.newContext({ baseURL: BASE_URL });
-  await context.addCookies([
-    { name: "Authorization", value: wdkTestToken(), url: BASE_URL },
-  ]);
+  const context = await browser.newContext({ baseURL: APP_ROOT });
+  await addWebsiteLogin(context);
   const login = await context.request.post(
     `${BASE_URL}/api/v1/dev/login?user_id=${userId}`,
     { headers: CSRF_HEADERS },
@@ -228,7 +227,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expect(recalled).toHaveCount(1);
     await expect(recalled).toContainText("Case");
 
-    await page.goto(`/${siteId}/conversation/${first}`);
+    await page.goto(`${siteId}/conversation/${first}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     const liked = chatPage.replyCounting(counts.root);
     await expect(liked.getByRole("button", { name: "Good response" })).toHaveAttribute(
@@ -320,7 +319,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     const outcome = await writtenBy(apiClient, "cases", built);
     // Two memories that share one name each show when they were written.
     const renamed = await apiClient.patch(
-      `/api/v1/memories/${encodeURIComponent(strategy.key)}?kind=strategy`,
+      `api/v1/memories/${encodeURIComponent(strategy.key)}?kind=strategy`,
       { data: { name: outcome.value.name } },
     );
     expect(renamed.status()).toBe(200);
@@ -346,7 +345,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expect(strategyLink).toHaveAttribute("title", outcome.value.name);
     await expect(strategyLink).toHaveAttribute(
       "href",
-      `/${siteId}/conversation/${built}`,
+      `${BASE_PATH}/${siteId}/conversation/${built}`,
     );
 
     await preferenceRow.getByRole("button", { name: preference.value.name }).click();
@@ -377,7 +376,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expect(traceRows(reply, "Save note")).not.toHaveCount(0);
     await expect(traceRows(reply, "Pin note")).not.toHaveCount(0);
 
-    const listed = await apiClient.get(`/api/v1/conversations/${id}/scratchpad/notes`);
+    const listed = await apiClient.get(`api/v1/conversations/${id}/scratchpad/notes`);
     expect(listed.status()).toBe(200);
     const pinned = ((await listed.json()) as Note[]).filter(
       (note) => note.pinned === true,

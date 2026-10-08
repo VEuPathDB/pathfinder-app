@@ -234,7 +234,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     await dialog.getByTestId("save-substrategy-confirm").click();
     await expect(dialog).toHaveCount(0, { timeout: 60_000 });
 
-    await page.goto(`/${siteId}/saved`);
+    await page.goto(`${siteId}/saved`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Saved strategies",
     );
@@ -263,7 +263,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       timeout: 60_000,
     });
 
-    await page.goto(`/${siteId}/saved`);
+    await page.goto(`${siteId}/saved`);
     await expect(savedRow(page, name)).toContainText("Used in 2 conversations", {
       timeout: 30_000,
     });
@@ -293,10 +293,10 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       (await readConversation(apiClient, madeIn)).wdkStrategyId ?? 0;
     expect(wdkStrategyId).toBeGreaterThan(0);
     // The conversation goes and the strategy stays in the account, as one made on the site.
-    const dropped = await apiClient.delete(`/api/v1/conversations/${madeIn}`);
+    const dropped = await apiClient.delete(`api/v1/conversations/${madeIn}`);
     expect(dropped.ok(), `delete ${dropped.status()}`).toBe(true);
 
-    await page.goto(`/${siteId}/conversation`);
+    await page.goto(`${siteId}/conversation`);
     await page.getByTestId("conversations-new-assistant-button").click();
     await page.getByTestId("open-wdk-strategy-menu-item").click();
     const dialog = page.getByTestId("open-wdk-strategy-dialog");
@@ -388,7 +388,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       )
       .toBe(paramText(tmBefore, "min_tm"));
 
-    await page.goto(`/${siteId}/conversation/${id}`);
+    await page.goto(`${siteId}/conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     const handEdited = await expectCountAnswered(chatPage, apiClient, id, siteId);
     expect(handEdited).not.toBe(edited.root);
@@ -614,7 +614,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
     const built = await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
     const combine = await combineNode(
-      await apiClient.get(`/api/v1/conversations/${id}/ast`),
+      await apiClient.get(`api/v1/conversations/${id}/ast`),
     );
 
     await openCanvas(graphPage, siteId, id);
@@ -629,7 +629,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(union.root).toBeGreaterThanOrEqual(built.root);
     expect(layoutOf(await readNodes(apiClient, id))).toEqual(LAYOUTS.union);
 
-    await page.goto(`/${siteId}/conversation/${id}`);
+    await page.goto(`${siteId}/conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     expect(await expectCountAnswered(chatPage, apiClient, id, siteId)).toBe(union.root);
   });

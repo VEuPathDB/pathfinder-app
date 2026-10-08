@@ -1,8 +1,7 @@
-"""What a served search cost stays in the turn total after the quota is written.
+"""What the sub-agents cost stays in the turn total after the quota is written.
 
 The usage event the user reads, the amount the monthly quota receives and the
-number the checkpoint keeps are one accounting; a thread that drops the tool
-charge from the checkpoint restarts the next turn from a smaller total.
+number the checkpoint keeps are one accounting.
 """
 
 from __future__ import annotations
@@ -22,20 +21,18 @@ from pathfinder.ai.graph._lead_capture import (
     SpendOutsideTheLead,
     _LeadRunCapture,
     _persist_residual_quota,
-    absorb_tool_charge,
 )
 from pathfinder.ai.graph._lead_delta import _build_state_delta
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps, ToolCharge
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.database import detached_session
 
-_CHARGE = Decimal("0.005")
 _LEAD_COST = Decimal("1.100")
 _SUB_AGENT_COST = Decimal("0.020")
 _SUB_AGENT_TOKENS = 500
-_TURN_COST = Decimal("1.125")
+_TURN_COST = Decimal("1.120")
 
 
 def _state() -> PipelineState:
@@ -79,7 +76,7 @@ def _deps(
 
 
 def _charged_capture() -> _LeadRunCapture:
-    """A turn whose Lead calls are already billed, with a pass and a paid search."""
+    """A turn whose Lead calls are already billed, with one sub-agent pass."""
     capture = _LeadRunCapture()
     capture.tokens = 10
     capture.cost_usd = _LEAD_COST
@@ -87,9 +84,6 @@ def _charged_capture() -> _LeadRunCapture:
     capture.charged_cost = _LEAD_COST
     capture.sub_agent_tokens = _SUB_AGENT_TOKENS
     capture.sub_agent_cost = _SUB_AGENT_COST
-    absorb_tool_charge(
-        capture, ToolCharge(tool_name="research_web_search", cost_usd=_CHARGE)
-    )
     return capture
 
 
@@ -125,8 +119,8 @@ async def test_the_usage_event_the_quota_and_the_checkpoint_agree(
     await _persist_residual_quota(deps.runtime, state, capture)
     delta = _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
-    assert (shown_tokens, shown) == (510, "1.125")
-    assert billed == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
+    assert (shown_tokens, shown) == (510, "1.120")
+    assert billed == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST)]
     assert delta["turn_total_cost_usd"] == _TURN_COST
     assert delta["turn_total_tokens"] == 510
 
@@ -162,13 +156,10 @@ async def test_a_refused_quota_write_bills_nothing_and_keeps_the_turn_total(
     await _persist_residual_quota(deps.runtime, state, capture)
     delta = _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
-    assert attempted == [
-        (PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)
-    ]
+    assert attempted == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST)]
     assert capture.billed_outside_the_lead == SpendOutsideTheLead()
     assert capture.charged_cost == _LEAD_COST
-    assert capture.tool_cost == _CHARGE
-    assert capture.residual_totals(state) == (510, "1.125")
+    assert capture.residual_totals(state) == (510, "1.120")
     assert delta["turn_total_cost_usd"] == _TURN_COST
     assert delta["turn_total_tokens"] == 510
 
@@ -189,16 +180,14 @@ async def test_a_commit_the_database_refuses_ends_the_write_and_not_the_turn(
     await _persist_residual_quota(deps.runtime, state, capture)
     delta = _build_state_delta(state=state, deps=deps, capture=capture, memories=[])
 
-    assert attempted == [
-        (PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)
-    ]
+    assert attempted == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST)]
     assert capture.billed_outside_the_lead == SpendOutsideTheLead()
     assert capture.charged_cost == _LEAD_COST
     assert delta["turn_total_cost_usd"] == _TURN_COST
     assert delta["turn_total_tokens"] == 510
 
 
-async def test_one_search_is_billed_to_the_quota_once(
+async def test_one_pass_is_billed_to_the_quota_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     state = _state()
@@ -209,5 +198,5 @@ async def test_one_search_is_billed_to_the_quota_once(
     await _persist_residual_quota(deps.runtime, state, capture)
     await _persist_residual_quota(deps.runtime, state, capture)
 
-    assert billed == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST + _CHARGE)]
+    assert billed == [(PaidBy.DEPLOYMENT, _SUB_AGENT_TOKENS, _SUB_AGENT_COST)]
     assert capture.spend_outside_the_lead() == capture.billed_outside_the_lead

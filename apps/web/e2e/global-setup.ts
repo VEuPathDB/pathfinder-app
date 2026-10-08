@@ -1,6 +1,9 @@
 import { expect, request } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
 
+import { BASE_PATH } from "../src/lib/basePath";
+import { siteLoginToken } from "./fixtures/wdk-account";
+
 /**
  * One request per route pattern the suite enters, on every site a project
  * opens. The production server loads a route's module graph and renders it
@@ -20,16 +23,16 @@ function projectSites(): string[] {
 
 function siteRoutes(site: string): string[] {
   return [
-    `/${site}/conversation`,
-    `/${site}/conversation/${ID}`,
-    `/${site}/conversation/${ID}/strategy`,
-    `/${site}/conversation/${ID}/strategy/step/${ID}`,
-    `/${site}/conversation/${ID}/eda`,
-    `/${site}/saved`,
+    `${site}/conversation`,
+    `${site}/conversation/${ID}`,
+    `${site}/conversation/${ID}/strategy`,
+    `${site}/conversation/${ID}/strategy/step/${ID}`,
+    `${site}/conversation/${ID}/eda`,
+    `${site}/saved`,
   ];
 }
 
-const ROUTES = ["/", "/conversation", ...projectSites().flatMap(siteRoutes)];
+const ROUTES = ["./", "conversation", ...projectSites().flatMap(siteRoutes)];
 
 const COLD_RENDER_BUDGET_MS = 180_000;
 const LISTEN_BUDGET_MS = 120_000;
@@ -38,7 +41,7 @@ const LISTEN_BUDGET_MS = 120_000;
  *  resets the socket until its server binds the port. */
 async function waitForServer(api: APIRequestContext): Promise<void> {
   await expect(async () => {
-    const response = await api.get("/", { timeout: 30_000 });
+    const response = await api.get("./", { timeout: 30_000 });
     expect(response.status()).toBeLessThan(500);
   }).toPass({ timeout: LISTEN_BUDGET_MS, intervals: [1_000, 2_000, 5_000] });
 }
@@ -55,7 +58,7 @@ async function waitForSiteCatalogs(api: APIRequestContext): Promise<void> {
   const deadline = Date.now() + CATALOG_BUDGET_MS;
   let degraded: string[] = [];
   while (Date.now() < deadline) {
-    const response = await api.get("/api/v1/sites", { timeout: 30_000 });
+    const response = await api.get("api/v1/sites", { timeout: 30_000 });
     if (response.ok()) {
       const rows = (await response.json()) as { id: string; available: boolean }[];
       degraded = rows.filter((row) => !row.available).map((row) => row.id);
@@ -74,8 +77,9 @@ const LOGIN_SITE = "plasmodb";
  * Every worker acts as one registered VEuPathDB account through the
  * `Authorization` cookie. A shell that exports `WDK_TEST_TOKEN` supplies it
  * directly; a shell that exports the account's email and password instead
- * signs in once here, and the cookie the API sets becomes the token the
- * fixtures read. Environment set in global setup reaches every test.
+ * signs in once here at the site's own login, as the website does, and that
+ * token becomes the one the fixtures read. Environment set in global setup
+ * reaches every test.
  */
 async function mintWdkTestToken(api: APIRequestContext): Promise<void> {
   if ((process.env["WDK_TEST_TOKEN"] ?? "") !== "") {
@@ -86,26 +90,21 @@ async function mintWdkTestToken(api: APIRequestContext): Promise<void> {
   if (email === "" || password === "") {
     return;
   }
-  const response = await api.post("/api/v1/veupathdb/auth/login", {
-    params: { siteId: LOGIN_SITE },
-    data: { email, password },
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-  });
+  const response = await api.get("api/v1/sites");
   if (!response.ok()) {
-    throw new Error(
-      `VEuPathDB login for the e2e account answered ${response.status()}`,
-    );
+    throw new Error(`the site list answered ${response.status()}`);
   }
-  const state = await api.storageState();
-  const cookie = state.cookies.find((c) => c.name === "Authorization");
-  if (cookie === undefined || cookie.value === "") {
-    throw new Error("VEuPathDB login set no Authorization cookie");
+  const rows = (await response.json()) as { id: string; baseUrl: string }[];
+  const site = rows.find((row) => row.id === LOGIN_SITE);
+  if (site === undefined) {
+    throw new Error(`the api lists no site ${LOGIN_SITE}`);
   }
-  process.env["WDK_TEST_TOKEN"] = cookie.value;
+  process.env["WDK_TEST_TOKEN"] = await siteLoginToken(site.baseUrl, email, password);
 }
 
 export default async function warmRoutes(): Promise<void> {
-  const baseURL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
+  const origin = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
+  const baseURL = `${origin}${BASE_PATH}/`;
   const api = await request.newContext({ baseURL });
   try {
     await waitForServer(api);

@@ -35,18 +35,15 @@ jobs:
           # The two MCP images build from their own repository at the release
           # docker-compose.yml names. The two tags must stay equal.
           - image: pathfinder-wdk-mcp
-            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0b3
+            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b4
           - image: pathfinder-research-mcp
-            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0b3
-            target: research
+            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b4
+            dockerfile: Dockerfile.research
     steps:
       - uses: actions/checkout@v4
 
-      # Settings shows the version the api reports, so the tag must name it.
-      - name: Check the tag is the version the api reports
-        run: |
-          grep -qxF "version = \"${GITHUB_REF_NAME#v}\"" apps/api/pyproject.toml
-          grep -qxF "__version__ = \"${GITHUB_REF_NAME#v}\"" apps/api/src/pathfinder/__init__.py
+      - name: Check the tag names the api version and the MCP release
+        run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
 
       - uses: docker/setup-buildx-action@v3
 
@@ -55,16 +52,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      # The api is built against the release it imports, so the served tools
-      # must come from the same one.
-      - name: Check the MCP release is the one docker-compose.yml names
-        if: contains(matrix.context, 'ai-wdk-mcp.git')
-        env:
-          CONTEXT: ${{ matrix.context }}
-        run: |
-          grep -qF "context: $CONTEXT" docker-compose.yml
-          grep -qF "tag = \"${CONTEXT##*#}\"" apps/api/pyproject.toml
 
       - name: Read the short commit sha
         id: commit

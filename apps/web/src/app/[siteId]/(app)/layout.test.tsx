@@ -1,23 +1,30 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const pushMock = vi.fn();
+const address = vi.hoisted(() => ({ query: "" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(address.query),
   usePathname: () => "/veupathdb/conversation",
 }));
+vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent: vi.fn() }));
 
+const session = vi.hoisted(() => ({ authRefreshed: true }));
 vi.mock("@/lib/query/hooks/useAuthRefresh", () => ({
-  useAuthRefresh: () => undefined,
+  useAuthRefresh: () => ({ authRefreshed: session.authRefreshed }),
 }));
 vi.mock("@/features/sites/hooks/useSiteTheme", () => ({
   useSiteTheme: () => undefined,
 }));
 vi.mock("@/app/hooks/useSystemConfig", () => ({
-  useSystemConfig: () => ({ setupRequired: false, retry: vi.fn() }),
+  useSystemConfig: () => ({
+    setupRequired: false,
+    siteSignInUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login",
+    retry: vi.fn(),
+  }),
 }));
 vi.mock("@/app/hooks/useAutoCollapsePanels", () => ({
   useAutoCollapsePanels: () => undefined,
@@ -38,16 +45,6 @@ vi.mock("@/app/hooks/useModalState", () => ({
     closeSettings: vi.fn(),
   }),
 }));
-vi.mock("@/app/components/VeupathdbSignInGate", () => ({
-  VeupathdbSignInGate: ({ onSiteChange }: { onSiteChange: (site: string) => void }) => (
-    <button type="button" onClick={() => onSiteChange("toxodb")}>
-      Switch site
-    </button>
-  ),
-}));
-vi.mock("@/app/components/TopBar", () => ({
-  TopBar: () => <div data-testid="top-bar" />,
-}));
 vi.mock("@/features/sidebar/components/ConversationSidebar", () => ({
   ConversationSidebar: () => <div data-testid="conversation-sidebar" />,
 }));
@@ -59,6 +56,8 @@ vi.mock("@/features/settings/components/EvalDataNotice", () => ({
 }));
 
 import type { SiteResponse } from "@pathfinder/shared";
+
+import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
 
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
@@ -87,6 +86,13 @@ function siteRow(over: Partial<SiteResponse>): SiteResponse {
 }
 
 const AVAILABLE_PLASMODB = siteRow({ id: "plasmodb" });
+const AVAILABLE_TOXODB = siteRow({
+  id: "toxodb",
+  name: "ToxoDB",
+  displayName: "ToxoDB (Toxoplasma)",
+  baseUrl: "https://toxodb.org/toxo",
+  projectId: "ToxoDB",
+});
 const PORTAL_DOWN = siteRow({
   id: "veupathdb",
   name: "VEuPathDB",
@@ -96,18 +102,30 @@ const PORTAL_DOWN = siteRow({
   unavailableReason: "TimeoutError",
 });
 
+function holdUnseededReads() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+}
+
 describe("AppShellLayout site switch", () => {
+  beforeEach(holdUnseededReads);
   afterEach(() => {
     cleanup();
     pushMock.mockReset();
+    vi.unstubAllGlobals();
   });
 
   it("sends a site change to that site's chat root", async () => {
     const { queryClient, Wrapper } = createTestWrapper();
     queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
-      signedIn: false,
+      signedIn: true,
     });
-    queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
+    queryClient.setQueryData(sitesOptions().queryKey, [
+      AVAILABLE_PLASMODB,
+      AVAILABLE_TOXODB,
+    ]);
 
     render(
       <Wrapper>
@@ -118,6 +136,7 @@ describe("AppShellLayout site switch", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: "Switch site" }));
+    await userEvent.click(await screen.findByTestId("site-menu-item-toxodb"));
     expect(pushMock.mock.calls).toEqual([[chatRoot("toxodb")]]);
     expect(pushMock).toHaveBeenCalledWith("/toxodb/conversation");
   });
@@ -144,6 +163,159 @@ describe("AppShellLayout site switch", () => {
   });
 });
 
+function drawSession(signedIn: boolean) {
+  const { queryClient, Wrapper } = createTestWrapper();
+  queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, { signedIn });
+  queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
+  queryClient.setQueryData(getMyQuotaQueryKey(), {
+    usedUsd: "1.25",
+    limitUsd: "10.00",
+    totalTokens: 123456,
+    percent: 12.5,
+    resetsAt: "2026-10-01T12:00:00Z",
+    ownKeyUsd: "0",
+    ownKeyTokens: 0,
+    ownKeyProviders: [],
+  });
+  return render(
+    <Wrapper>
+      <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+        <div data-testid="routed-content" />
+      </AppShellLayout>
+    </Wrapper>,
+  );
+}
+
+describe("AppShellLayout for a session the website has not signed in", () => {
+  beforeEach(holdUnseededReads);
+  afterEach(() => {
+    cleanup();
+    address.query = "";
+    vi.unstubAllGlobals();
+  });
+
+  it("renders the signed-out notice in place of the content", () => {
+    const { container } = drawSession(false);
+
+    expect(screen.getByTestId("signed-out-notice")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Sign in to VEuPathDB" })).toHaveAttribute(
+      "href",
+      "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login?destination=" +
+        encodeURIComponent("/pathfinder/veupathdb/conversation"),
+    );
+    expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: "Monthly spend" }),
+    ).not.toBeInTheDocument();
+    expect(container.querySelectorAll("input[type='password']")).toHaveLength(0);
+  });
+
+  it("draws the nav rail beside the content once the session is signed in", () => {
+    drawSession(true);
+
+    expect(screen.getByRole("link", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByTestId("routed-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("signed-out-notice")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Monthly spend" })).toBeInTheDocument();
+  });
+
+  it("draws the same shell when the address asks for the embedded layout", () => {
+    address.query = "embedded=true";
+    drawSession(true);
+
+    expect(screen.getByRole("link", { name: "Conversation" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Go to conversation" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("AppShellLayout while the session cookie is minted", () => {
+  beforeEach(holdUnseededReads);
+  afterEach(() => {
+    cleanup();
+    session.authRefreshed = true;
+    vi.unstubAllGlobals();
+  });
+
+  function drawBeforeRefresh() {
+    session.authRefreshed = false;
+    const { queryClient, Wrapper } = createTestWrapper();
+    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
+      signedIn: true,
+    });
+    queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
+    const shell = () => (
+      <Wrapper>
+        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+          <div data-testid="routed-content" />
+        </AppShellLayout>
+      </Wrapper>
+    );
+    const view = render(shell());
+    return { rerender: () => view.rerender(shell()) };
+  }
+
+  function quotaReads(): string[] {
+    return vi
+      .mocked(fetch)
+      .mock.calls.map(([input]) => String(input))
+      .filter((url) => url.includes("/api/v1/me/quota"));
+  }
+
+  it("shows the loading screen in place of the routed content", () => {
+    drawBeforeRefresh();
+
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
+  });
+
+  it("starts no quota read before the refresh settles", async () => {
+    drawBeforeRefresh();
+    await act(async () => {});
+
+    expect(quotaReads()).toEqual([]);
+  });
+
+  it("mounts the routed content and reads the quota once the refresh settles", async () => {
+    const { rerender } = drawBeforeRefresh();
+
+    session.authRefreshed = true;
+    rerender();
+    await act(async () => {});
+
+    expect(screen.getByTestId("routed-content")).toBeInTheDocument();
+    expect(quotaReads()).toHaveLength(1);
+  });
+});
+
+describe("AppShellLayout framed by the website page", () => {
+  beforeEach(holdUnseededReads);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("posts its path to the website page while the signed-out notice shows", async () => {
+    const postMessage = vi.fn();
+    vi.stubGlobal("parent", {
+      location: { origin: window.location.origin },
+      postMessage,
+    });
+
+    drawSession(false);
+    await act(async () => {});
+
+    expect(screen.getByTestId("signed-out-notice")).toBeVisible();
+    expect(postMessage.mock.calls).toEqual([
+      [
+        { type: "pathfinder:location", path: "/veupathdb/conversation" },
+        window.location.origin,
+      ],
+    ]);
+  });
+});
+
 describe("AppShellLayout on a site that does not answer", () => {
   afterEach(() => {
     cleanup();
@@ -152,11 +324,7 @@ describe("AppShellLayout on a site that does not answer", () => {
 
   function draw(siteId: string) {
     const { queryClient, Wrapper } = createTestWrapper();
-    queryClient.setQueryData(authStatusOptions(siteId).queryKey, {
-      signedIn: true,
-      name: "Researcher",
-      email: "researcher@upenn.edu",
-    });
+    queryClient.setQueryData(authStatusOptions(siteId).queryKey, { signedIn: true });
     queryClient.setQueryData(sitesOptions().queryKey, [
       PORTAL_DOWN,
       AVAILABLE_PLASMODB,

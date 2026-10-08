@@ -65,6 +65,13 @@ describe("lib/api/http", () => {
     );
   });
 
+  it("buildUrl puts a browser call under the base path on the page's origin", () => {
+    vi.stubGlobal("window", { location: { origin: "https://site.example.org" } });
+    expect(buildUrl("/api/v1/x", { siteId: "plasmodb" })).toBe(
+      "https://site.example.org/pathfinder/api/v1/x?siteId=plasmodb",
+    );
+  });
+
   it("buildUrl throws when NEXT_PUBLIC_API_URL is missing on the server", () => {
     delete process.env["NEXT_PUBLIC_API_URL"];
     expect(() => buildUrl("/api/v1/sites")).toThrow(MISSING_API_URL_MESSAGE);

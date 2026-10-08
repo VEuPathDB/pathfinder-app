@@ -5,6 +5,17 @@ containers under one user account. The images come from the registry: a release
 tag of this repository publishes them (`.github/workflows/publish-images.yml`),
 and the host only pulls. Nothing is built on cedar, and there is no sudo.
 
+**This install is interim.** The estate stack replaces it: Jenkins publishes the
+images to `docker.io/veupathdb`, and the systems team runs them from the
+estate's service-definitions repository
+([the decision](../../docs/knowledge/decisions/the-images-come-from-the-registry-and-cedar-pulls.md)).
+This file, `install.sh`, `quadlets/` and the GHCR workflow are deleted once that
+stack serves the development site. A release that serves PathFinder under
+`/pathfinder` signs in only through the VEuPathDB website that hosts it, and the
+website's login cookie never reaches `localhost`, so such a release signs nobody
+in behind the tunnel below. The tester stack stays on the release it runs until
+the cutover.
+
 Thirteen units make the stack. Seven run the application: `pathfinder-db`,
 `pathfinder-wdk-mcp`, `pathfinder-searxng`, `pathfinder-research-mcp`,
 `pathfinder-api`, `pathfinder-worker` and `pathfinder-web`. Six run Langfuse, the

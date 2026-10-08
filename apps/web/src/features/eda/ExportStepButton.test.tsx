@@ -27,7 +27,7 @@ import { useEdaStore } from "@/state/eda";
 import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { ExportStepButton } from "./ExportStepButton";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 const server = setupServer();
 const CONVERSATION_UUID = "11111111-1111-4111-8111-111111111111";
 

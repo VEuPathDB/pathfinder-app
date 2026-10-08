@@ -61,13 +61,14 @@ marks a site ready when its load succeeds. The task is cancelled with the
 lifespan. A site that is already ready is never reloaded by it.
 
 **One refusal covers both ways a site can be unreachable.**
-`SiteUnavailableError` reads "<site> is not responding (<cause>)", where the
-cause is the error class or `catalog still loading`. The login route raises it
-too: `password_login` posts with no error mapping, so with the portal down
-`POST /api/v1/veupathdb/auth/login` raised `httpx.ReadTimeout` out of the route
-and answered an opaque 500 after the client's whole read timeout. That route
-stays outside the catalog gate, because refusing it would sign the caller out
-of every site.
+`SiteUnavailableError` reads "Could not connect to <site> (<cause>).", where
+the cause says why the site did not answer (`site_failure_reason`) or reads
+`still loading`. The development sign-in
+route raises it too: `password_login` posts with no error mapping, so
+`GET /api/v1/dev/site-login` turns an `httpx.HTTPError` from it into this
+refusal instead of an opaque 500 after the client's whole read timeout. That
+route stays outside the catalog gate, because a sign-in reads the site's login
+and not its catalog.
 
 **A degraded site's own routes refuse at once.** One dependency,
 `transport/http/deps.py::require_available_site`, resolves the site a request
@@ -104,9 +105,9 @@ refuses (401/403); a site that does not answer raises `WDKError` with a server
 status. The identity read is itself a route that answers 503 on an outage:
 `services/wdk_identity.py::identity_or_unavailable` turns that `WDKError` into
 `SiteUnavailableError` naming the site, on the identity gate, on
-`GET /api/v1/veupathdb/auth/status` and on the login and refresh links, so an
-outage is never a sign-out, never "Invalid email or password" and never a silent
-pass. A token the site refuses is a login refusal. The auth status reads the
+`GET /api/v1/veupathdb/auth/status` and on `POST /api/v1/veupathdb/auth/refresh`,
+so an outage is never a sign-out and never a silent pass. A token the site
+refuses is a sign-out. The auth status reads the
 same loaded site, so the app shell does not block on a dead one. Every parameter
 that carries a site id spells it `siteId`, on the wire as well as in a path
 template, which is what lets one dependency bind it.
@@ -115,9 +116,10 @@ template, which is what lets one dependency bind it.
 `app/page.tsx` and `app/conversation/page.tsx` - is a `force-dynamic` server
 component calling
 `app/entrySiteRedirect.tsx::redirectToEntrySite`, which reads
-`GET /api/v1/sites` on the server and redirects to the portal's own URL when it
-answers, else the first site in the list's order that answers
-(`lib/sites/entrySite.ts::chooseEntrySite`). When the request fails or no site answers it renders
+`GET /api/v1/sites` and the deployment's site from `GET /health/config` on the
+server and redirects to the deployment's site when it answers, else the portal
+when it answers, else the first site in the list's order that answers
+(`lib/sites/entrySite.ts::chooseEntrySite`). When either request fails or no site answers it renders
 the startup screen instead of redirecting, so there is no loop and no endless
 spinner. The stored site selection follows the URL the app shell renders, so the
 entry flow's choice replaces a stored degraded site and a deep link to a
@@ -131,10 +133,9 @@ responding" marker, and the conversations list and saved gene sets - this
 deployment's own rows, which the api serves for a degraded site - stay
 reachable. The notice takes the content area: the site's display name, the
 error class, and a link to every site that answers, re-rendered to the app by
-the 60 s refetch. The sign-in prompt is the one thing the gate still replaces
-outright, because a site that answers nothing cannot authenticate anyone; a
-sign-in that was attempted and refused shows the same notice inline, read from
-the problem body by `lib/api/errors.ts::siteUnavailableRefusal`. Both shells
+the 60 s refetch. The shell draws no signed-out notice on a degraded site,
+because a site that answers nothing cannot authenticate anyone: the site notice
+takes the content area in its place. Both shells
 read the site through `app/hooks/useSiteAccess.ts`, which reports the site down
 when the list says so or when `GET /api/v1/veupathdb/auth/status` is refused
 `SITE_UNAVAILABLE`, asks again on the same 60 s interval, and leaves every other

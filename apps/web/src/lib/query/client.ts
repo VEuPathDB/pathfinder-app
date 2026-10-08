@@ -3,6 +3,7 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { siteUnavailableRefusal, wdkAuthRefusal } from "@/lib/api/errors";
 import { APIError } from "@/lib/api/http";
 import { AppError } from "@/lib/errors/AppError";
+import { QUERY_STALE_TIME_MS } from "@/lib/query/staleTime";
 import { listModelsQueryKey } from "@pathfinder/shared/generated/hooks/useListModels";
 
 /** What a query tells the global error handler about its own error. */
@@ -58,7 +59,7 @@ function makeQueryClient(): QueryClient {
     }),
     defaultOptions: {
       queries: {
-        staleTime: 30_000,
+        staleTime: QUERY_STALE_TIME_MS,
         gcTime: 5 * 60_000,
         retry: (failureCount, error) => {
           // A timeout or a down site gives the same answer at once. The shell asks again later.

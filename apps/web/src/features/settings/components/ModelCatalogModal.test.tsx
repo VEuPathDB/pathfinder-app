@@ -6,7 +6,7 @@ import { setupServer } from "msw/node";
 import { ModelCatalogModal } from "./ModelCatalogModal";
 import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 
 const CATALOG = {
   models: [

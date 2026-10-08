@@ -25,7 +25,7 @@ import { useSessionStore } from "@/state/useSessionStore";
 
 import { ChatView } from "./ChatView";
 
-const CONVERSATIONS = "http://localhost:3000/api/v1/conversations";
+const CONVERSATIONS = "http://localhost:3000/pathfinder/api/v1/conversations";
 const CURSOR = 220744;
 
 const STRATEGY = {

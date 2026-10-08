@@ -26,7 +26,7 @@ import { messageAnchorId } from "../thread/messageAnchor";
 let conversationId = "";
 const USER_ID = "aaaaaaa1-1111-4111-8111-111111111111";
 const ASSISTANT_ID = "bbbbbbb1-1111-4111-8111-111111111111";
-const CONVERSATIONS = "http://localhost:3000/api/v1/conversations";
+const CONVERSATIONS = "http://localhost:3000/pathfinder/api/v1/conversations";
 const ROUND_TRIP = { timeout: 20_000 };
 
 const LOG = [

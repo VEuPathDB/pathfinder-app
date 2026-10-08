@@ -104,7 +104,7 @@ async def require_registered_wdk_identity(
         refuse_degraded_site(siteId)
     await require_registered_wdk_login()
     await require_session_matches_wdk_identity(
-        principal, siteId or get_settings().veupathdb_default_site
+        principal, siteId or get_settings().pathfinder_site
     )
     return principal.user_id
 

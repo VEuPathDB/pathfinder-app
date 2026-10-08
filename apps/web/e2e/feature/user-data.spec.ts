@@ -21,12 +21,12 @@ import { siteOrganism } from "../fixtures/site-reads";
 
 /** Every conversation of the calling user, on every site. */
 async function allConversations(apiClient: ApiClient): Promise<ConversationRow[]> {
-  return listBody(await apiClient.get("/api/v1/conversations"), "conversations");
+  return listBody(await apiClient.get("api/v1/conversations"), "conversations");
 }
 
 /** The calling user's gene sets, on every site. */
 async function allGeneSets(apiClient: ApiClient): Promise<GeneSet[]> {
-  return listBody(await apiClient.get("/api/v1/gene-sets"), "gene sets");
+  return listBody(await apiClient.get("api/v1/gene-sets"), "gene sets");
 }
 
 test.describe("User data purge across sites", { tag: "@named-site" }, () => {
@@ -50,7 +50,7 @@ test.describe("User data purge across sites", { tag: "@named-site" }, () => {
     expect((await listConversations(apiClient, "plasmodb")).length).toBeGreaterThan(0);
     expect((await listConversations(apiClient, "toxodb")).length).toBeGreaterThan(0);
 
-    const purgeResp = await apiClient.delete("/api/v1/user/data");
+    const purgeResp = await apiClient.delete("api/v1/user/data");
     expect(purgeResp.ok()).toBe(true);
     const result = (await purgeResp.json()) as PurgeUserDataResponse;
     expect(result.ok).toBe(true);
@@ -88,19 +88,19 @@ test.describe("User data purge after a build", { tag: "@turn" }, () => {
       page.getByTestId("data-gene-set").filter({ hasText: "purge check" }),
     ).toBeVisible({ timeout: 60_000 });
 
-    const stratResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
+    const stratResp = await apiClient.get(`api/v1/conversations/${strategyId}`);
     const strategy = (await stratResp.json()) as ConversationResponse;
     expect(strategy.wdkStrategyId ?? 0).toBeGreaterThan(0);
     expect((await allGeneSets(apiClient)).length).toBeGreaterThan(0);
 
-    const purgeResp = await apiClient.delete("/api/v1/user/data?deleteWdk=true");
+    const purgeResp = await apiClient.delete("api/v1/user/data?deleteWdk=true");
     expect(purgeResp.ok()).toBe(true);
     const result = (await purgeResp.json()) as PurgeUserDataResponse;
     expect(result.ok).toBe(true);
     expect(result.deleted.strategies).toBeGreaterThan(0);
     expect(result.deleted.geneSets).toBeGreaterThan(0);
 
-    const afterStrat = await apiClient.get(`/api/v1/conversations/${strategyId}`);
+    const afterStrat = await apiClient.get(`api/v1/conversations/${strategyId}`);
     expect(afterStrat.status()).toBe(404);
     expect(await allGeneSets(apiClient)).toHaveLength(0);
     expect(await allConversations(apiClient)).toHaveLength(0);

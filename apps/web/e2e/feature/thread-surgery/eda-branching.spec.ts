@@ -77,7 +77,7 @@ test.describe("Branching a thread with a study open", () => {
     const parentId = chatPage.lastStrategyId as string;
 
     // Open a study on the thread, then narrow its subset on the site.
-    const bound = await apiClient.patch(`/api/v1/conversations/${parentId}/eda`, {
+    const bound = await apiClient.patch(`api/v1/conversations/${parentId}/eda`, {
       data: { action: "bind", siteId: SITE_ID, datasetId: DATASET_ID },
     });
     expect(bound.status(), `bind ${await bound.text()}`).toBe(200);
@@ -88,11 +88,11 @@ test.describe("Branching a thread with a study open", () => {
 
     const site = await siteRow(apiClient, SITE_ID);
     await setSubsetOnTheSite(page.request, site, parentAnalysisId, [FEBRILE_FILTER]);
-    const reread = await apiClient.get(`/api/v1/conversations/${parentId}/eda`);
+    const reread = await apiClient.get(`api/v1/conversations/${parentId}/eda`);
     expect(((await reread.json()) as AnalysisRead).analysis?.numFilters).toBe(1);
 
     // The parent's tab reads the site's subset.
-    await page.goto(`/${SITE_ID}/conversation/${parentId}/eda`);
+    await page.goto(`${SITE_ID}/conversation/${parentId}/eda`);
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {
       timeout: 60_000,
     });
@@ -101,13 +101,13 @@ test.describe("Branching a thread with a study open", () => {
     });
 
     // Branch from the thread.
-    await page.goto(`/${SITE_ID}/conversation/${parentId}`);
+    await page.goto(`${SITE_ID}/conversation/${parentId}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     const branchId = await chatPage.branchFromAssistantReply(echoOf(OPEN_TURN));
     expect(branchId).not.toBe(parentId);
 
     // The branch opens the same study on an analysis of its own.
-    const branchBound = await apiClient.patch(`/api/v1/conversations/${branchId}/eda`, {
+    const branchBound = await apiClient.patch(`api/v1/conversations/${branchId}/eda`, {
       data: { action: "bind", siteId: SITE_ID, datasetId: DATASET_ID },
     });
     expect(branchBound.status(), `branch bind ${await branchBound.text()}`).toBe(200);
@@ -117,19 +117,19 @@ test.describe("Branching a thread with a study open", () => {
     expect(branchAnalysis?.analysisId).not.toBe(parentAnalysisId);
 
     // The branch's own study card renders, with no filter of the parent's.
-    await page.goto(`/${SITE_ID}/conversation/${branchId}/eda`);
+    await page.goto(`${SITE_ID}/conversation/${branchId}/eda`);
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {
       timeout: 60_000,
     });
     await expect(page.getByTestId(FILTER_CHIP)).toHaveCount(0);
 
     // The parent is untouched, on the wire and on the tab.
-    const parentAfter = await apiClient.get(`/api/v1/conversations/${parentId}/eda`);
+    const parentAfter = await apiClient.get(`api/v1/conversations/${parentId}/eda`);
     const parentState = ((await parentAfter.json()) as AnalysisRead).analysis;
     expect(parentState?.analysisId).toBe(parentAnalysisId);
     expect(parentState?.numFilters).toBe(1);
 
-    await page.goto(`/${SITE_ID}/conversation/${parentId}/eda`);
+    await page.goto(`${SITE_ID}/conversation/${parentId}/eda`);
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {
       timeout: 60_000,
     });

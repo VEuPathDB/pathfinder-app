@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "@/styles/globals.css";
 import "streamdown/styles.css";
+import { withBasePath } from "@/lib/basePath";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Providers } from "./components/Providers";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   title: "PathFinder",
   description: "AI-powered search strategy builder for VEuPathDB",
   icons: {
-    icon: "/favicon.svg",
+    icon: withBasePath("/favicon.svg"),
   },
 };
 

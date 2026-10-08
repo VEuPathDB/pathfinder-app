@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from decimal import Decimal
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -14,7 +12,7 @@ from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_core import from_json
 
 from pathfinder.ai.graph.turn_records import TurnMarkers
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps, ToolCharge
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 
 # The served reads whose answers carry a reference the reply may cite.
 RESEARCH_TOOLS: frozenset[str] = frozenset(
@@ -59,7 +57,6 @@ class ResearchAnswer(BaseModel):
 
     results: list[_RetrievedReference] = Field(default_factory=list)
     sources: list[_RetrievedReference] = Field(default_factory=list)
-    cost_usd: Decimal = Field(default=Decimal(0), validation_alias="costUsd")
 
     @model_validator(mode="before")
     @classmethod
@@ -78,15 +75,13 @@ class ResearchAnswer(BaseModel):
 
 @dataclass
 class RetrievalRecordingToolset(WrapperToolset[Any]):
-    """Puts every reference a research tool answers with on the turn's markers,
-    and what the answer cost on the turn's bill.
+    """Puts every reference a research tool answers with on the turn's markers.
 
-    The markers and the charge sink are the turn's, so the agent that reads
-    through this toolset can be the Lead or one of its sub-agents.
+    The markers are the turn's, so the agent that reads through this toolset
+    can be the Lead or one of its sub-agents.
     """
 
     markers: TurnMarkers
-    charge: Callable[[ToolCharge], None]
 
     async def call_tool(
         self,
@@ -100,8 +95,6 @@ class RetrievalRecordingToolset(WrapperToolset[Any]):
             answer = ResearchAnswer.model_validate(result)
             for reference in answer.references():
                 self.markers.record_retrieved_source(reference)
-            if answer.cost_usd:
-                self.charge(ToolCharge(tool_name=name, cost_usd=answer.cost_usd))
         return result
 
 
@@ -112,8 +105,4 @@ def recording_retrievals(
     """The turn's served sources, with their retrievals recorded on the turn."""
     if sources is None:
         return None
-    return RetrievalRecordingToolset(
-        sources,
-        markers=deps.state.turn_markers,
-        charge=deps.record_tool_charge,
-    )
+    return RetrievalRecordingToolset(sources, markers=deps.state.turn_markers)

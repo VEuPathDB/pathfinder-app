@@ -21,7 +21,7 @@ import {
 } from "./QuotaExhaustedBanner";
 import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 const CONVERSATION = "c0ffee00-0000-4000-8000-000000000001";
 const OPENAI = DEFAULT_MODEL.id;
 const ANTHROPIC = ANTHROPIC_SMALL.id;

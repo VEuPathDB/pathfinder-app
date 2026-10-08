@@ -6,12 +6,13 @@ import tomllib
 from functools import cached_property, lru_cache
 from ipaddress import IPv4Address
 from pathlib import Path
-from typing import Literal, get_args, get_origin
+from typing import Literal, Self, get_args, get_origin
+from urllib.parse import urlsplit
 
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from assistant_core.platform.pydantic_base import computed
 from assistant_core.platform.types import ModelProvider, TierName
-from pydantic import Field
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -21,6 +22,7 @@ from veupathdb import (
     VEuPathDBSettings,
     use_veupathdb_settings_source,
 )
+from veupathdb.wdk import load_sites_config
 from veupathdb_mcp import ServiceTokenRegistry
 from veupathdb_mcp.embeddings import EmbeddingSettings, use_embedding_settings_source
 from veupathdb_mcp.settings import McpSettings, use_mcp_settings_source
@@ -32,6 +34,9 @@ from pathfinder.platform.identity import (
 from pathfinder.platform.model_catalog import DEFAULT_MODEL_ID
 from pathfinder.platform.paths import API_DIR, REPO_ROOT
 from pathfinder.platform.provider_key_cipher import SECRET_BYTES, ProviderKeyCipher
+
+BASE_PATH = "/pathfinder"
+_LOCAL_PUBLIC_BASE_URL = f"http://localhost:3000{BASE_PATH}"
 
 _MIN_API_SECRET_LENGTH = 32
 _PLACEHOLDER_SECRET_MARKERS = (
@@ -108,6 +113,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     api_env: Literal["development", "staging", "production", "test"] = "production"
     api_secret_key: str = Field(default="", repr=False)
     api_docs_enabled: bool = True
+    public_base_url: str = _LOCAL_PUBLIC_BASE_URL
 
     anthropic_api_key: str = Field(default="", repr=False)
     gemini_api_key: str = Field(default="", repr=False)
@@ -124,7 +130,9 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     default_tier: TierName = "default"
 
     # VEuPathDB
-    veupathdb_default_site: str = "veupathdb"
+    pathfinder_site: str = "veupathdb"
+    wdk_dev_email: str = Field(default="", repr=False)
+    wdk_dev_password: SecretStr = SecretStr("")
     # The client's default names no product. Every helper strategy already in a
     # researcher's account carries this prefix, so it is what a run matches.
     veupathdb_internal_strategy_name_prefix: str = INTERNAL_STRATEGY_NAME_PREFIX
@@ -142,9 +150,6 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ge=1,
         description="Seconds between two passes over the degraded sites.",
     )
-    # Semantic Scholar
-    s2_api_key: str = Field(default="", repr=False)
-
     # Application identities, as "app_id:secret[,app_id:secret...]".
     pathfinder_service_tokens: str = Field(default="", repr=False)
 
@@ -201,6 +206,15 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     def is_development(self) -> bool:
         """Check if running in development mode."""
         return self.api_env == "development"
+
+    @property
+    def offers_dev_site_login(self) -> bool:
+        """Development with the dev account set mounts the site sign-in route."""
+        return (
+            self.is_development
+            and bool(self.wdk_dev_email.strip())
+            and bool(self.wdk_dev_password.get_secret_value())
+        )
 
     def deployment_credential(self, provider: ModelProvider) -> str:
         """The key, or for ollama the base url, the deployment reaches a provider by."""
@@ -322,6 +336,36 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             joined = ", ".join(langfuse_values)
             msg = f"{joined} must be set together when Langfuse is enabled."
             raise ValueError(msg)
+
+    @field_validator("public_base_url")
+    @classmethod
+    def _absolute_without_a_trailing_slash(cls, url: str) -> str:
+        parts = urlsplit(url)
+        if parts.scheme not in {"http", "https"} or not parts.hostname:
+            msg = f"PUBLIC_BASE_URL={url} is not an absolute http(s) URL with a host."
+            raise ValueError(msg)
+        return url.rstrip("/")
+
+    @model_validator(mode="after")
+    def _production_names_its_public_address(self) -> Self:
+        if (
+            self.api_env == "production"
+            and self.public_base_url == _LOCAL_PUBLIC_BASE_URL
+        ):
+            msg = (
+                "PUBLIC_BASE_URL must be set to the public address of PathFinder "
+                f"under API_ENV=production, not {_LOCAL_PUBLIC_BASE_URL}."
+            )
+            raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def _site_is_in_the_sites_file(self) -> Self:
+        sites = load_sites_config(self.veupathdb_sites_config).sites
+        if self.pathfinder_site not in sites:
+            msg = f"PATHFINDER_SITE={self.pathfinder_site} is not in the sites file."
+            raise ValueError(msg)
+        return self
 
     def model_post_init(self, _context: object, /) -> None:
         """Validate settings after initialization."""

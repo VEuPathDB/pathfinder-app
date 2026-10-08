@@ -22,10 +22,10 @@ A browser `User-Agent` and `Referer` change nothing.
 So PathFinder requires a registered VEuPathDB login for every WDK-backed
 feature. Three rules follow, and they are separate rules.
 
-**One refusal, one code.** `ErrorCode.WDK_LOGIN_REQUIRED` is 401 problem+json,
-title "VEuPathDB login required", detail "Sign in to VEuPathDB to use searches,
-strategies and gene sets." The frontend keys on the code, not on the prose, so
-the wording can improve without breaking the recogniser.
+**One refusal, one code.** `WDK_LOGIN_REQUIRED` is 401 problem+json, title
+"VEuPathDB login required", raised as `WDKLoginRequiredError`
+(`veupathdb-py: src/veupathdb/errors.py`). The frontend keys on the code, not on
+the prose, so the wording can improve without breaking the recogniser.
 
 **The gate is on the routes that reach a WDK account, one by one.** Not on a
 whole router: a listing that reads local rows keeps working while the create
@@ -36,7 +36,12 @@ into the researcher's own VEuPathDB workspace; `DELETE /api/v1/gene-sets/{id}`
 is not, because it deletes a local row. Two routes whose WDK call is an opt-in flag are ungated on purpose -
 `DELETE /api/v1/conversations/{id}?deleteFromWdk=true` and `DELETE
 /api/v1/user/data?deleteWdk=true` - because the local half must run for a
-signed-out user; their WDK half is skipped and reported instead. The whole
+signed-out user; their WDK half is skipped and reported instead. A browser
+session is honored only while the website login names its user
+([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)),
+so a browser request with no VEuPathDB login is refused before any route runs;
+the per-route table governs the callers that carry an identity of their own, a
+PathFinder bearer token and a dev-login session. The whole
 table is pinned by
 `tests/unit/transport/test_wdk_gate_route_table.py`, which also carries the
 reason for every ungated route that can still reach WDK.
@@ -60,13 +65,15 @@ missing token, a token that does not verify, and a token whose `is_guest` claim
 is true are all the same refusal. An unreadable JWKS stays **503** naming the
 identity provider, because the credential was never examined.
 
-**One PathFinder session acts as one VEuPathDB account.** The `pathfinder-auth`
-cookie and the `Authorization` cookie are independent, so a second VEuPathDB
-sign-in in another tab leaves a session whose two credentials name two accounts.
-The gate resolves the token to its internal user through
-`services/wdk_identity.py::require_session_matches_wdk_identity` and refuses a
-request whose token names another user with 401
-`ErrorCode.WDK_IDENTITY_MISMATCH`, title "VEuPathDB account changed". A token
+**One PathFinder session acts as one VEuPathDB account.** A second VEuPathDB
+sign-in on the website replaces the `Authorization` cookie, and a PathFinder
+credential can then name another account than the VEuPathDB token beside it.
+Two checks refuse that with 401 `ErrorCode.WDK_IDENTITY_MISMATCH`, title
+"VEuPathDB account changed". `platform/security.py::resolve_principal` refuses a
+`pathfinder-auth` session whose website login names another user on every
+route. The WDK gate resolves the token on the site the request names through
+`services/wdk_identity.py::require_session_matches_wdk_identity`, which also
+holds a PathFinder bearer token to the VEuPathDB token sent with it. A token
 the site refuses names nobody and is refused 401 `WDK_LOGIN_REQUIRED`; a site
 that does not answer the read is refused 503 `SITE_UNAVAILABLE`
 ([a site that is down is down on its own](a-site-that-is-down-is-down-on-its-own.md)). `POST /api/v1/veupathdb/auth/refresh` relinks: it
@@ -81,7 +88,8 @@ synthetic user with no VEuPathDB account, and it mounts only under the mock
 overlay, so its session acts as whatever token the request carries. The route
 marks its JWT, `platform/security.py::decode_session_token` reads the mark, and
 the `Principal` carries `credential="dev-login"` beside `veupathdb-bearer`;
-`require_session_matches_wdk_identity` returns early for that credential. The
+`platform/security.py::_identify` serves it without reading the website login,
+and `require_session_matches_wdk_identity` returns early for that credential. The
 login refusal is unchanged: a dev-login session still needs a registered,
 non-guest token to reach a WDK account. Production cannot mint the credential,
 and `tests/unit/transport/test_dev_login_is_test_only.py` pins both halves: the
@@ -139,12 +147,15 @@ later is worse than a refusal that names the fix.
 
 # What a caller sees now
 
-A user with no VEuPathDB session can still hold conversations, notes, memories
-and settings, list and delete their own gene sets, read and annotate their own
-experiments, and purge their own data. Chat, searches, strategies, step counts,
-gene-set creation and enrichment, experiment runs and results, and the eval
-routes answer 401 `WDK_LOGIN_REQUIRED` until they sign in.
+A researcher in the browser with no VEuPathDB login sees the signed-out notice,
+and every request that needs the session answers 401 `WDK_LOGIN_REQUIRED` until they
+sign in on the website. A caller with a PathFinder bearer token and no
+VEuPathDB token can still hold conversations, notes, memories and settings,
+list and delete their own gene sets, read and annotate their own experiments,
+and purge their own data; chat, searches, strategies, step counts, gene-set
+creation and enrichment, experiment runs and results, and the eval routes
+answer 401 `WDK_LOGIN_REQUIRED` until a registered token rides the request.
 
-A user who signs in to VEuPathDB as a second account sees those same routes
-answer 401 `WDK_IDENTITY_MISMATCH` until the session is relinked, instead of
-writing analyses and strategies under an account the session cannot read back.
+A researcher who signs in to VEuPathDB as a second account sees 401
+`WDK_IDENTITY_MISMATCH` until the session is relinked, instead of writing
+analyses and strategies under an account the session cannot read back.

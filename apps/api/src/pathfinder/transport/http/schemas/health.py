@@ -52,3 +52,5 @@ class SystemConfigResponse(CamelModel):
     chat_provider: str
     llm_configured: bool
     providers: ProviderStatus
+    site_id: str
+    site_sign_in_url: str

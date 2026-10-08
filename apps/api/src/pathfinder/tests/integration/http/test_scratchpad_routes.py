@@ -15,6 +15,8 @@ from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 
+pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+
 
 @pytest.fixture
 async def db_session(

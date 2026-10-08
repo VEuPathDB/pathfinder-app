@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0b4"
+    "version": "0.2.0b5"
   },
   "paths": {
     "/health": {
@@ -34,7 +34,7 @@
           "health"
         ],
         "summary": "System Config",
-        "description": "Report whether the system has LLM provider keys configured.\n\nThis is unauthenticated so the frontend can show a setup-required\nscreen before asking users to log in.",
+        "description": "Report the model providers, the deployment's site and its sign-in address.\n\nThis is unauthenticated so the frontend can show a setup-required\nscreen before asking users to log in.",
         "operationId": "system_config_health_config_get",
         "responses": {
           "200": {
@@ -3458,141 +3458,6 @@
         }
       }
     },
-    "/api/v1/veupathdb/auth/login": {
-      "post": {
-        "tags": [
-          "veupathdb-auth"
-        ],
-        "summary": "Login With Password",
-        "description": "Log in to VEuPathDB, link the internal user, and set the auth cookies.",
-        "operationId": "login_with_password_api_v1_veupathdb_auth_login_post",
-        "parameters": [
-          {
-            "name": "redirectTo",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Redirectto"
-            }
-          },
-          {
-            "name": "siteId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "default": "veupathdb",
-              "title": "Siteid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/LoginPayload"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Payload"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthSuccessResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/veupathdb/auth/logout": {
-      "post": {
-        "tags": [
-          "veupathdb-auth"
-        ],
-        "summary": "Logout",
-        "description": "Clear the local auth cookies and end the VEuPathDB session.\n\nThe cookies are cleared either way: the local session is over even when WDK\ncould not be reached. ``success`` reports what WDK did.",
-        "operationId": "logout_api_v1_veupathdb_auth_logout_post",
-        "parameters": [
-          {
-            "name": "siteId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "default": "veupathdb",
-              "title": "Siteid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthSuccessResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/veupathdb/auth/refresh": {
       "post": {
         "tags": [
@@ -3601,6 +3466,11 @@
         "summary": "Refresh Internal Auth",
         "description": "Re-derive the internal auth token from a live VEuPathDB session.\n\nUse this when the internal token is absent or expired, and to relink a\nsession whose VEuPathDB cookie now names another account. A dev-login\nsession names no VEuPathDB account, so no token can move it.",
         "operationId": "refresh_internal_auth_api_v1_veupathdb_auth_refresh_post",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "siteId",
@@ -3650,8 +3520,13 @@
           "veupathdb-auth"
         ],
         "summary": "Auth Status",
-        "description": "Return the current VEuPathDB auth status.\n\nA refused token or a guest is signed out; a site that does not answer is a\n503. A mock chat provider has no VEuPathDB session, so the internal cookie\nalone proves identity there.",
+        "description": "Return the current VEuPathDB auth status.\n\nA refused token or a guest is signed out, and a signed-out answer clears the\nPathFinder session; a site that does not answer is a 503. A mock chat\nprovider has no VEuPathDB session, so the internal cookie alone proves\nidentity there.",
         "operationId": "auth_status_api_v1_veupathdb_auth_status_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "siteId",
@@ -5576,28 +5451,6 @@
           "signedIn": {
             "type": "boolean",
             "title": "Signedin"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
-          "email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
           }
         },
         "type": "object",
@@ -8621,24 +8474,6 @@
           "anthropic",
           "google"
         ]
-      },
-      "LoginPayload": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
-        "title": "LoginPayload"
       },
       "MemoryEditRequest": {
         "properties": {
@@ -11791,13 +11626,23 @@
           },
           "providers": {
             "$ref": "#/components/schemas/ProviderStatus"
+          },
+          "siteId": {
+            "type": "string",
+            "title": "Siteid"
+          },
+          "siteSignInUrl": {
+            "type": "string",
+            "title": "Sitesigninurl"
           }
         },
         "type": "object",
         "required": [
           "chatProvider",
           "llmConfigured",
-          "providers"
+          "providers",
+          "siteId",
+          "siteSignInUrl"
         ],
         "title": "SystemConfigResponse",
         "description": "System configuration status (unauthenticated)."

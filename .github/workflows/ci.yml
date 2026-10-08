@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["*"]
   pull_request:
     branches: [main]
   # The full-stack tier runs on every pull request and once a night on main;
@@ -101,6 +102,19 @@ jobs:
         run: node scripts/check-quadlets.mjs
       - name: Check the checker
         run: node --test scripts/check-quadlets.test.mjs
+
+  check-release:
+    name: Check release pins
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the api version and the MCP pins
+        run: node scripts/check-release.mjs
+      - name: Check the tag names the api version
+        if: ${{ github.ref_type == 'tag' }}
+        run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
+      - name: Check the checker
+        run: node --test scripts/check-release.test.mjs
 
   check-wdk-rules:
     name: Check WDK rules
@@ -460,7 +474,7 @@ jobs:
           ready=
           for _ in $(seq 1 90); do
             if curl -fsS http://localhost:8000/health/ready > /dev/null 2>&1 \
-              && curl -fsS http://localhost:3000/ > /dev/null 2>&1 \
+              && curl -fsS http://localhost:3000/pathfinder/ > /dev/null 2>&1 \
               && curl -fsS http://localhost:8000/health/system | jq -e '.workerAlive == true' > /dev/null 2>&1; then
               ready=1; break
             fi
@@ -565,6 +579,7 @@ jobs:
       - check-punctuation
       - check-vocabulary
       - check-quadlets
+      - check-release
       - check-wdk-rules
       - lint-api
       - build-docs

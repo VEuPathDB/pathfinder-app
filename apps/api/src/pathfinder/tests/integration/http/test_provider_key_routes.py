@@ -26,6 +26,9 @@ from pathfinder.tests.integration.http.conftest import (
 )
 from pathfinder.transport.http.routers.me import key_probe
 
+pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+
+
 _SENTINEL = "sk-proj-sentinel-0123456789WXYZ"
 _KEYS = "/api/v1/me/provider-keys"
 

@@ -7,7 +7,7 @@ import { setupServer } from "msw/node";
 import { client } from "./client";
 import { APIError } from "./http";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 
 const server = setupServer();
 

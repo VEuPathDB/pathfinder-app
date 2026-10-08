@@ -34,11 +34,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.sub_agent_tools import (
-    SubAgentCallUsage,
-    SubAgentRunUsage,
-    ToolCharge,
-)
+from pathfinder.ai.lead.sub_agent_tools import SubAgentCallUsage, SubAgentRunUsage
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.turn_facts import TurnFacts
@@ -65,7 +61,6 @@ class SpendOutsideTheLead:
 
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
-    tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
     own_key_tokens: int = 0
     own_key_cost: Decimal = field(default_factory=lambda: Decimal(0))
 
@@ -74,7 +69,6 @@ class SpendOutsideTheLead:
         return SpendOutsideTheLead(
             sub_agent_tokens=self.sub_agent_tokens - billed.sub_agent_tokens,
             sub_agent_cost=self.sub_agent_cost - billed.sub_agent_cost,
-            tool_cost=self.tool_cost - billed.tool_cost,
             own_key_tokens=self.own_key_tokens - billed.own_key_tokens,
             own_key_cost=self.own_key_cost - billed.own_key_cost,
         )
@@ -102,7 +96,6 @@ class _LeadRunCapture:
     charged_cost: Decimal = field(default_factory=lambda: Decimal(0))
     sub_agent_tokens: int = 0
     sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
-    tool_cost: Decimal = field(default_factory=lambda: Decimal(0))
     own_key_sub_agent_tokens: int = 0
     own_key_sub_agent_cost: Decimal = field(default_factory=lambda: Decimal(0))
     # The part of the spend outside the Lead's calls the quota already holds.
@@ -143,7 +136,7 @@ class _LeadRunCapture:
 
     @property
     def cumulative_cost(self) -> Decimal:
-        return self.charged_cost + self.sub_agent_cost + self.tool_cost
+        return self.charged_cost + self.sub_agent_cost
 
     def live_totals(self, state: PipelineState) -> tuple[int, str]:
         """Running turn totals (base + charged-so-far) for a usage event."""
@@ -153,11 +146,10 @@ class _LeadRunCapture:
         )
 
     def spend_outside_the_lead(self) -> SpendOutsideTheLead:
-        """What the sub-agents and the served tools have cost this turn."""
+        """What the sub-agents have cost this turn."""
         return SpendOutsideTheLead(
             sub_agent_tokens=self.sub_agent_tokens,
             sub_agent_cost=self.sub_agent_cost,
-            tool_cost=self.tool_cost,
             own_key_tokens=self.own_key_sub_agent_tokens,
             own_key_cost=self.own_key_sub_agent_cost,
         )
@@ -178,12 +170,7 @@ class _LeadRunCapture:
         """Final turn totals using the captured (not charged) lead tokens."""
         return (
             state.turn_total_tokens + self.tokens + self.sub_agent_tokens,
-            str(
-                state.turn_total_cost_usd
-                + self.cost_usd
-                + self.sub_agent_cost
-                + self.tool_cost
-            ),
+            str(state.turn_total_cost_usd + self.cost_usd + self.sub_agent_cost),
         )
 
 
@@ -209,31 +196,19 @@ def absorb_sub_agent_usage(capture: _LeadRunCapture, info: SubAgentRunUsage) -> 
     by_call[info.parent_tool_call_id] = spent.plus(info.usage.total_tokens, cost)
 
 
-def absorb_tool_charge(capture: _LeadRunCapture, charge: ToolCharge) -> None:
-    """Add what one served tool call cost to the turn total."""
-    capture.tool_cost += charge.cost_usd
-
-
-def usage_recorders(
+def sub_agent_usage_recorder(
     capture: _LeadRunCapture,
     state: PipelineState,
     writer: Any,
-) -> tuple[Callable[[SubAgentRunUsage], None], Callable[[ToolCharge], None]]:
-    """The two spends outside the Lead's own calls; each reports the running total."""
-
-    def _report() -> None:
-        total_tokens, cost_usd = capture.live_totals(state)
-        emit_turn_usage(writer, total_tokens, cost_usd)
+) -> Callable[[SubAgentRunUsage], None]:
+    """Record one sub-agent pass and report the running turn total."""
 
     def record_sub_agent(info: SubAgentRunUsage) -> None:
         absorb_sub_agent_usage(capture, info)
-        _report()
+        total_tokens, cost_usd = capture.live_totals(state)
+        emit_turn_usage(writer, total_tokens, cost_usd)
 
-    def record_tool(charge: ToolCharge) -> None:
-        absorb_tool_charge(capture, charge)
-        _report()
-
-    return record_sub_agent, record_tool
+    return record_sub_agent
 
 
 def turn_with_spend(
@@ -364,15 +339,12 @@ def _residual_by_payer(
     lead_tokens: int,
     lead_cost: Decimal,
 ) -> dict[PaidBy, tuple[int, Decimal]]:
-    """The unbilled spend of the turn, split by whose key paid for it.
-
-    A served tool's cost is always the deployment's.
-    """
+    """The unbilled spend of the turn, split by whose key paid for it."""
     lead_is_keyed = turn_paid_by(capture.lead_model) is PaidBy.USER
     own_tokens = unbilled.own_key_tokens + (lead_tokens if lead_is_keyed else 0)
     own_cost = unbilled.own_key_cost + (lead_cost if lead_is_keyed else Decimal(0))
     total_tokens = lead_tokens + unbilled.sub_agent_tokens
-    total_cost = lead_cost + unbilled.sub_agent_cost + unbilled.tool_cost
+    total_cost = lead_cost + unbilled.sub_agent_cost
     split = {
         PaidBy.USER: (own_tokens, own_cost),
         PaidBy.DEPLOYMENT: (total_tokens - own_tokens, total_cost - own_cost),

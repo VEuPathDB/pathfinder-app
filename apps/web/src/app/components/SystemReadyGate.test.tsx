@@ -75,9 +75,9 @@ describe("SystemReadyGate", () => {
     });
     expect(seenByApp[0]).toEqual(
       expect.arrayContaining([
-        "/api/v1/sites",
-        "/api/v1/models",
-        "/api/v1/veupathdb/auth/status?siteId=plasmodb",
+        "/pathfinder/api/v1/sites",
+        "/pathfinder/api/v1/models",
+        "/pathfinder/api/v1/veupathdb/auth/status?siteId=plasmodb",
       ]),
     );
   });

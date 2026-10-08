@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import type { SiteOption } from "./e2e/fixtures/test";
+import { BASE_PATH } from "./src/lib/basePath";
 
 const isCI = Boolean(process.env["CI"]);
 
@@ -75,7 +76,8 @@ export default defineConfig<SiteOption>({
     : [["list"], ["html", { open: "on-failure" }]],
 
   use: {
-    baseURL: process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000",
+    // A relative path resolves under the base path only when the base ends in "/".
+    baseURL: `${process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000"}${BASE_PATH}/`,
     trace: isCI ? "on-first-retry" : "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

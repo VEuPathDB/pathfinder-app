@@ -46,19 +46,21 @@ function renderPanel(messages: UIMessage[]) {
 
 function stubTasks(status: string, error: string | null = null) {
   server.use(
-    http.get(`http://localhost:3000/api/v1/conversations/${CONVERSATION}/tasks`, () =>
-      HttpResponse.json({
-        tasks: [
-          {
-            taskId: TASK_ID,
-            toolName: "run_control_tests_on_step",
-            status,
-            estimatedDurationSeconds: 120,
-            createdAt: "2026-08-30T00:00:00Z",
-            error,
-          },
-        ],
-      }),
+    http.get(
+      `http://localhost:3000/pathfinder/api/v1/conversations/${CONVERSATION}/tasks`,
+      () =>
+        HttpResponse.json({
+          tasks: [
+            {
+              taskId: TASK_ID,
+              toolName: "run_control_tests_on_step",
+              status,
+              estimatedDurationSeconds: 120,
+              createdAt: "2026-08-30T00:00:00Z",
+              error,
+            },
+          ],
+        }),
     ),
   );
 }

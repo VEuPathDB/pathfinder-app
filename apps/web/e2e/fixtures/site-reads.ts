@@ -23,7 +23,7 @@ export async function readConversation(
   api: ApiClient,
   conversationId: string,
 ): Promise<ConversationResponse> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}`);
   expect(resp.status(), `conversation ${conversationId}`).toBe(200);
   return (await resp.json()) as ConversationResponse;
 }
@@ -33,7 +33,7 @@ export async function readAst(
   api: ApiClient,
   conversationId: string,
 ): Promise<StrategyAst> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/ast`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/ast`);
   expect(resp.status(), `ast of ${conversationId}`).toBe(200);
   return (await resp.json()) as StrategyAst;
 }
@@ -43,7 +43,7 @@ export async function readNodes(
   api: ApiClient,
   conversationId: string,
 ): Promise<AstNode[]> {
-  return astNodes(await api.get(`/api/v1/conversations/${conversationId}/ast`));
+  return astNodes(await api.get(`api/v1/conversations/${conversationId}/ast`));
 }
 
 /**
@@ -54,7 +54,7 @@ export async function storedNodes(
   api: ApiClient,
   conversationId: string,
 ): Promise<AstNode[]> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/ast`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/ast`);
   if (resp.status() === 404) return [];
   return astNodes(resp);
 }
@@ -80,13 +80,13 @@ export async function siteCounts(
   await expect
     .poll(
       async () => {
-        const astResp = await api.get(`/api/v1/conversations/${conversationId}/ast`);
+        const astResp = await api.get(`api/v1/conversations/${conversationId}/ast`);
         if (!astResp.ok()) {
           return `ast ${astResp.status()}`;
         }
         const ast = (await astResp.json()) as StrategyAst;
         rootId = ast.root.id ?? "";
-        const resp = await api.post("/api/v1/conversations/step-counts", {
+        const resp = await api.post("api/v1/conversations/step-counts", {
           data: { siteId, strategyAst: { recordType: ast.recordType, root: ast.root } },
           headers: CSRF_HEADERS,
           timeout: 120_000,
@@ -126,7 +126,7 @@ export function strategyCaption(steps: number, genes: number): string {
 
 /** The site's row in the api's site list. */
 export async function siteRow(api: ApiClient, siteId: string): Promise<SiteResponse> {
-  const resp = await api.get("/api/v1/sites");
+  const resp = await api.get("api/v1/sites");
   expect(resp.status()).toBe(200);
   const site = ((await resp.json()) as SiteResponse[]).find((row) => row.id === siteId);
   if (site === undefined) throw new Error(`the api lists no site ${siteId}`);

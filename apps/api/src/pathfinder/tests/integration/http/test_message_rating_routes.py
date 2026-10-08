@@ -21,6 +21,8 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.langfuse import scores
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 
+pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+
 
 @dataclass(frozen=True)
 class _Thread:

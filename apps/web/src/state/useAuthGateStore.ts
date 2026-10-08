@@ -8,15 +8,17 @@ import { toast } from "sonner";
 
 import { wdkAuthRefusal } from "@/lib/api/errors";
 import { refreshAuth } from "@/lib/api/veupathdb-auth";
+import { getQueryClient } from "@/lib/query/client";
+import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import { createStore } from "./middleware";
 import { useSessionStore } from "./useSessionStore";
 
 interface AuthGateState {
   signInRequired: boolean;
-  /** The server's explanation, or null when the user asked to sign in. */
+  /** The server's explanation, or null while no prompt is open. */
   signInReason: string | null;
 
-  requestSignIn: (reason?: string) => void;
+  requestSignIn: (reason: string) => void;
   dismissSignIn: () => void;
 }
 
@@ -26,9 +28,8 @@ export const useAuthGateStore = createStore<AuthGateState>("AuthGateStore", (set
 
   requestSignIn: (reason) =>
     set((s) => {
-      const next = reason ?? null;
-      if (s.signInRequired && s.signInReason === next) return s;
-      return { signInRequired: true, signInReason: next };
+      if (s.signInRequired && s.signInReason === reason) return s;
+      return { signInRequired: true, signInReason: reason };
     }),
 
   dismissSignIn: () =>
@@ -52,7 +53,10 @@ let relinking: Promise<boolean> | null = null;
 
 async function relink(detail: string, retry?: () => void): Promise<void> {
   relinking ??= refreshAuth(useSessionStore.getState().selectedSite)
-    .then((result) => result.success)
+    .then((result) => {
+      if (result.success) invalidateUserScopedQueries(getQueryClient());
+      return result.success;
+    })
     .catch(() => false);
   const relinked = await relinking;
   relinking = null;
@@ -78,18 +82,4 @@ export function handleWdkAuthRefusal(err: unknown, retry?: () => void): boolean 
   }
   promptSignIn(refusal.detail);
   return true;
-}
-
-/**
- * True when the session must be replaced by the sign-in prompt. An embedded
- * session renders instead, and its composer carries the prompt in place.
- */
-export function requiresFullScreenSignIn({
-  embedded,
-  signedIn,
-}: {
-  embedded: boolean;
-  signedIn: boolean;
-}): boolean {
-  return !signedIn && !embedded;
 }

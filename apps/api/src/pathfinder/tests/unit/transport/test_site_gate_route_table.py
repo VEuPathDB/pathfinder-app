@@ -68,12 +68,6 @@ BODY_GATED: dict[tuple[str, str], str] = {
 UNGATED_BUT_REACHES_A_SITE: dict[tuple[str, str], str] = {
     (
         "POST",
-        "/api/v1/veupathdb/auth/login",
-    ): "Obtains the session every other route needs; refusing it would sign "
-    "the caller out of every site at once.",
-    ("POST", "/api/v1/veupathdb/auth/logout"): "Ends the session the token names.",
-    (
-        "POST",
         "/api/v1/veupathdb/auth/refresh",
     ): "Re-derives the internal token from a live VEuPathDB session.",
     (

@@ -1,87 +1,138 @@
 ---
 type: Decision
-title: The images come from the registry, and cedar pulls
-description: A release tag of this repository publishes the api, web, wdk-mcp and research-mcp images to ghcr.io/veupathdb, and the tester host runs quadlet units that name one tag and pull it. Building on cedar, shipping a saved archive over SSH, publishing on every push to main and podman auto-update were rejected.
-tags: [deployment, cedar, ci, docker, podman, quadlets, registry]
-generated: { by: claude-code/opus-5, at: 2026-09-18T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-18T00:00:00Z }
+title: The images come from the estate's pipeline, and the estate's units pull them
+description: Jenkins builds the api and web images from this repository's Jenkinsfile with the shared pipelib Builder and pushes them to docker.io/veupathdb, latest from main and the version from a semver tag; the systems team runs them from the estate's service-definitions repository, the api, worker and web of the development stage on latest with podman auto-update, QA and production moved by tagger, and the two MCP servers always at the ai-wdk-mcp release the api pins. The GHCR workflow as the lasting pipeline, rootless units under one account, pinned tags pulled by hand, PEP 440 release tags, MCP servers that follow latest, building on the host and image archives copied over SSH were rejected.
+tags: [deployment, cedar, ci, docker, podman, quadlets, registry, jenkins]
+generated: { by: claude-code/opus-5.5, at: 2026-10-08T00:00:00Z }
 status: stable
 ---
 
 # What was decided
 
-PathFinder reaches internal testers on `cedar.penn.apidb.org` as rootless podman
-containers that pull images a CI job published. Nothing is built on the host.
+PathFinder runs the way every VEuPathDB estate service runs: an image pipeline
+the estate shares, a registry every estate host already pulls from, and units the
+systems team deploys.
 
-`.github/workflows/publish-images.yml` runs on a `v*` tag of this repository and
-publishes four images, each tagged with the release and with `sha-<short sha>`,
-on `linux/amd64`:
+**Jenkins builds the images.** The shared `pipelib` `Builder` reads
+`Jenkinsfile` and pushes to Docker Hub under `docker.io/veupathdb`:
 
 | Image | Built from |
 | --- | --- |
-| `ghcr.io/veupathdb/pathfinder-api` | `apps/api/Dockerfile`; the worker runs the same image with a command of its own |
-| `ghcr.io/veupathdb/pathfinder-web` | `apps/web/Dockerfile` at its `runner` target, with `NEXT_PUBLIC_API_URL` baked as the api's container name |
-| `ghcr.io/veupathdb/pathfinder-wdk-mcp` | the `ai-wdk-mcp` repository at the release `docker-compose.yml` names |
-| `ghcr.io/veupathdb/pathfinder-research-mcp` | the same repository and release, at its `research` target |
+| `pathfinder-api` | `apps/api/Dockerfile`, context the repository root; the worker runs the same image with a command of its own |
+| `pathfinder-web` | `apps/web/Dockerfile`, context the repository root, with `NEXT_PUBLIC_API_URL=http://pathfinder-api:8000` |
+| `pathfinder-wdk-mcp` | the `ai-wdk-mcp` repository's own `Jenkinsfile`, from its `Dockerfile`, on that repository's own version line |
+| `pathfinder-research-mcp` | the same repository and version line, from its `Dockerfile.research` |
 
-`latest` is never published. Each unit in `quadlets/` names its image at one tag
-placeholder, and `deploy/cedar/install.sh` substitutes the release the operator
-names in `PATHFINDER_TAG`. An update is a tag bump: the installer rewrites the
-units whose file changed, reloads systemd and restarts them.
+A push to `main` publishes `:latest`. A tag publishes its version without the
+`v`: `v0.2.0-b5` publishes `:0.2.0-b5`, and a release without a pre-release,
+`v1.2.3`, publishes `:1.2.3`, `:1.2` and `:1`. A tag that `pipelib` cannot read as
+semver publishes nothing, so a release of this repository is tagged with the
+semver spelling of the api version (`v0.2.0-b5` for `0.2.0b5`), which PEP 440
+reads as the same version. `pipelib` would also publish a semver tag written
+without its `v`; `scripts/check-release.mjs` refuses that and every other form,
+and CI runs it on every tag push.
 
-The measured host is why. Cedar runs Rocky Linux 9.7 and rootless podman 5.6
-with no sudo, and carries no docker, compose, uv or node. A build there would
-first need a toolchain nobody may install, on a disk three quarters full and
-shared with other people's containers.
+**The systems team runs the stack.** The units live in the estate's
+service-definitions repository, `VEuPathDB/webservices-quadlets`, and the systems
+team deploys them as it deploys every estate service. They name
+`docker.io/veupathdb/pathfinder-<service>` at one of two tags each stage sets:
+`PATHFINDER_TAG` for the api, the worker and the web, and `PATHFINDER_MCP_TAG`
+for the two MCP servers. The website's own host forwards `/pathfinder` to the
+stage's web container, which is what makes PathFinder same-origin with the
+website ([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+The units and the secrets are not in this repository.
+
+**The development stage follows `main`; QA and production follow tags.** The
+development stage runs the api, the worker and the web at `:latest` with
+`podman auto-update`, so a merge reaches it without a step. QA and production
+name a version, moved by `VEuPathDB/tagger` as the estate promotes every service.
+
+**The MCP servers run the release the api pins, in every stage.** The api
+imports `veupathdb_mcp` at the `ai-wdk-mcp` tag `apps/api/pyproject.toml` pins in
+`[tool.uv.sources]`, and the tools it serves over the wire must be the same
+release. `ai-wdk-mcp` publishes on a version line of its own, so its `:latest`
+says nothing about that pin. `PATHFINDER_MCP_TAG` is therefore the pin's tag
+without its `v` (`0.2.0-b5` for a pin of `v0.2.0-b5`), never `latest`, and a
+release of this repository that moves the pin moves `PATHFINDER_MCP_TAG` in the
+estate stack's environment in the same release, as a change in the services
+repository. Nothing in this repository can read that repository, so the release
+recipe in `CLAUDE.md` names the step. The pin must itself be a semver tag for
+that image to exist. `v0.2.0-b4` is the first such release.
+
+**The interim pipeline stays until the cutover.**
+`.github/workflows/publish-images.yml` still publishes the four images to
+`ghcr.io/veupathdb` on a `v*` tag, and the rootless units in `quadlets/` and
+`deploy/cedar/install.sh` still serve the tester host from them. All three are
+deleted once the estate stack serves the development site.
 
 # What follows from it
 
-**The two MCP tags must agree with compose.** The api imports `veupathdb_mcp` at
-the release `apps/api/pyproject.toml` pins, and the served tools must be that
-same release. The workflow reads its build context back out of
-`docker-compose.yml` and fails when the two disagree, so a bump of one without
-the other does not publish.
+**Each image is the last stage of its Dockerfile.** `pipelib` passes a
+Dockerfile and a context and no build target. The web Dockerfile ends on its
+`runner` stage, and `ai-wdk-mcp` builds its research server from a file of its
+own (`veupathdb-mcp: docs/knowledge/decisions/each-image-is-the-last-stage-of-its-own-dockerfile.md`).
+
+**The build is buildah's.** `pipelib` runs `podman build --format=docker`, so an
+image keeps its `HEALTHCHECK`, and a `COPY` whose glob matches nothing fails the
+build where BuildKit copies nothing. The api image's optional
+`ollama_models.yaml` is copied as `ollama_models.yaml*`, a glob the tracked
+example always matches.
+
+**The MCP build contexts in this repository name the pin.** The served tools
+must be the release the api runs in process, so `scripts/check-release.mjs` fails, in pre-commit and in CI, when an
+`ai-wdk-mcp` build context in `docker-compose.yml` or in the interim workflow
+names another release than `apps/api/pyproject.toml`.
 
 **The web image carries the address of the api.** `NEXT_PUBLIC_API_URL` is read
 on the server only and is baked at `yarn build`, so the image is built with
-`http://pathfinder-api:8000`, the container name on the podman network. The
-browser calls the web origin and `next.config.ts` rewrites. The same image
-therefore serves the SSH tunnel and the tester vhost, and a runtime
-`Environment=` for that variable is inert and was removed.
+`http://pathfinder-api:8000`, the api's name on the stack network, and the
+browser calls the web origin, which rewrites. The base path `/pathfinder` is
+baked the same way and is the same in every stage, so one web image serves
+every stage.
 
-**A published port is a decision, not a default.** Ports 3000 and 8000 on cedar
-belong to another user. The web unit publishes `127.0.0.1:3010:3000` and the api
-`127.0.0.1:8010:8000`; the two MCP servers, the metasearch and the database
-publish nothing and are reached by container name. `node scripts/check-quadlets.mjs`
-holds every one of those facts, because podman's own generator runs on Linux and
-most of this repository's work happens elsewhere.
-
-**The secrets stay on the host.** The api, the worker, the two tool servers and the
-metasearch read `%h/.config/pathfinder/.env`, which the operator writes from
-`deploy/cedar/env.example`. That file carries names and one-line meanings, never
-a value.
+**A service port on a developer machine binds the loopback interface.**
+`docker-compose.yml` publishes the api, the web and the two MCP servers on
+`127.0.0.1` only, because the development sign-in route answers on the api and
+the web. The database port stays on every interface, where host tools reach it
+by the machine's own address.
 
 # What would falsify this
 
-A pre-release tag whose four images pull by digest on the host, and a stack that
-answers the smoke test in `deploy/cedar/README.md`: `/health/ready` reporting
-every subsystem ready with at least one catalog loaded, a sign-in against a
-VEuPathDB site, one chat turn on a real provider, and one durable task that
-reaches a result.
+A push to `main` that leaves `docker.io/veupathdb/pathfinder-api:latest` and
+`pathfinder-web:latest` older than the commit; a tag `v0.2.0-b5` that publishes
+no `:0.2.0-b5`; the development stage not answering
+`https://<development site host>/pathfinder/` with the new build after an
+auto-update; or a stage whose MCP servers report another version on `/health`
+than the `veupathdb-mcp` the api has installed.
 
 # What was rejected
 
-**Building on cedar.** It needs a source checkout, a toolchain that cannot be
-installed without sudo, and multi-gigabyte builds on a disk shared with other
-people's containers. It also makes the running deployment depend on what is
-checked out on the box rather than on a release.
+**The GHCR workflow as the lasting pipeline.** Estate hosts pull Docker Hub, and
+one pipeline builds every estate service. A package a workflow creates on GHCR
+is private, and the organization does not allow a public one, so every host
+needs a login of its own.
 
-**Saving the images and copying them over SSH.** It works once and is a manual
-multi-gigabyte step on every release, with no record of what is running.
+**Rootless units under one account.** The systems team cannot manage units that
+run under one person's account, and the host gives that account no sudo.
 
-**Publishing on every push to `main`.** The tester URL would then serve an
-untested tree. A tag is the statement that a tree is meant to be run.
+**Pinned tags pulled by hand on every stage.** The estate promotes by tag through
+`tagger`, and a hand step per merge leaves the development stage behind `main`.
+The cost of following `main` is accepted: an update restarts the development
+stack, and a turn running at that moment ends with the worker's failure message
+and can be sent again.
 
-**`podman auto-update`.** A push to the registry would restart the tester stack
-without anybody saying so, in the middle of a tester's session. An update is a
-deliberate tag bump.
+**PEP 440 release tags (`v0.2.0b5`).** `pipelib` reads tags as semver and
+publishes nothing for one it cannot read; the pipeline is shared, so the tag
+follows it, and `pyproject.toml` keeps its spelling.
+
+**MCP servers that follow `latest` with the rest of the development stage.**
+`ai-wdk-mcp`'s `main` moves on its own schedule, so the served tools would run
+code the api has not imported and a change to a tool's arguments would reach the
+api before the pin does.
+
+**Building on the host.** It needs a source checkout and a toolchain on a host
+shared with other services, and it makes the running deployment depend on what
+is checked out rather than on a published image.
+
+**Saving the images and copying them over SSH.** A manual multi-gigabyte step on
+every release, with no record of what is running.

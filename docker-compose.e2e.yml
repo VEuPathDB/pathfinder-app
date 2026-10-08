@@ -70,7 +70,7 @@ services:
     # The image's own check, polled every 5 s so `up --wait` returns soon
     # after the first render.
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))\""]
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000/pathfinder/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))\""]
       interval: 5s
       timeout: 30s
       retries: 10

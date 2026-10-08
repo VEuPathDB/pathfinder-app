@@ -193,6 +193,28 @@ async def test_a_tail_streams_while_the_turns_job_runs(
     assert "[DONE]" in response.text
 
 
+async def test_no_cache_or_proxy_holds_a_streaming_tail(
+    patch_app_db_engine: None,
+    api_client: httpx.AsyncClient,
+    conversation: Conversation,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del patch_app_db_engine
+    writer = await _open_turn(conversation.id)
+    await clear_workers()
+    await insert_worker_heartbeat(age_seconds=2)
+
+    async with procrastinate_app.open_async():
+        await _queue_turn_job(writer)
+        response = await _tail_until_done(api_client, writer, monkeypatch)
+
+    await clear_workers()
+    assert (response.status_code, response.headers["cache-control"]) == (
+        200,
+        "no-cache, no-transform",
+    )
+
+
 async def test_a_tail_on_a_finished_turn_answers_204(
     patch_app_db_engine: None,
     api_client: httpx.AsyncClient,

@@ -63,7 +63,7 @@ async function publication(
   api: ApiClient,
   geneSetId: string,
 ): Promise<VdiPublicationStatus> {
-  const resp = await api.get(`/api/v1/gene-sets/${geneSetId}/vdi-publication`);
+  const resp = await api.get(`api/v1/gene-sets/${geneSetId}/vdi-publication`);
   expect(resp.status(), `publication of ${geneSetId}`).toBe(200);
   return (await resp.json()) as VdiPublicationStatus;
 }

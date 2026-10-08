@@ -98,7 +98,7 @@ async function keyTo(page: Page, target: Locator, key: "Tab" | "Shift+Tab") {
 
 /** The model that reads the user's message on this deployment's defaults. */
 async function attachName(api: ApiClient): Promise<string> {
-  const resp = await api.get("/api/v1/models");
+  const resp = await api.get("api/v1/models");
   expect(resp.status()).toBe(200);
   const models = (await resp.json()) as ModelListResponse;
   return attachLabel(
@@ -168,7 +168,7 @@ test.describe("Layout and access", () => {
 
   test("L2 - Phone width", async ({ chatPage, page, siteId }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/${siteId}/conversation`);
+    await page.goto(`${siteId}/conversation`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
 
     const openSidebar = page.getByRole("button", { name: "Open conversation sidebar" });
@@ -202,7 +202,7 @@ test.describe("Layout and access", () => {
     async ({ chatPage, graphPage, apiClient, page, siteId }) => {
       test.setTimeout(900_000);
       const keyboard = page.keyboard;
-      await page.goto(`/${siteId}/conversation`);
+      await page.goto(`${siteId}/conversation`);
       await expect(chatPage.messageInput).toBeFocused({ timeout: 60_000 });
 
       await keyboard.type("first line");
@@ -271,7 +271,7 @@ test.describe("Layout and access", () => {
       await keyboard.press("f");
       await expect.poll(() => nodesInsidePane(page)).toBe(true);
 
-      await page.goto(`/${siteId}/conversation/${id}`);
+      await page.goto(`${siteId}/conversation/${id}`);
       await expect(chatPage.messageInput).toBeFocused({ timeout: 60_000 });
       await keyboard.type("/clear");
       await keyboard.press("Enter");

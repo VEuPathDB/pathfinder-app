@@ -16,6 +16,7 @@ from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
+from pathfinder.tests.integration.http.conftest import bearer_client_for
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -75,9 +76,9 @@ async def signed_out_client(
     patch_app_db_engine: None,
     seed_user: User,
 ) -> AsyncGenerator[httpx.AsyncClient]:
-    """The owner of the thread, holding no VEuPathDB session."""
+    """The owner of the thread, on a bearer with no VEuPathDB token."""
     del patch_app_db_engine
-    async with _client(app, seed_user.id) as client:
+    async with bearer_client_for(app, seed_user.id) as client:
         yield client
 
 

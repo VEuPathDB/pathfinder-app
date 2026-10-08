@@ -4,7 +4,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "@/lib/errors/AppError";
-import { getVeupathdbAuthStatus } from "./veupathdb-auth";
+import { createTestQueryClient } from "@/lib/query/testing";
+import {
+  authRefreshOptions,
+  authStatusOptions,
+  getVeupathdbAuthStatus,
+} from "./veupathdb-auth";
 
 function fetchThatNeverAnswers() {
   return vi.fn(
@@ -51,5 +56,36 @@ describe("getVeupathdbAuthStatus", () => {
     const error = await status;
     expect(error).toBeInstanceOf(AppError);
     expect(error).toMatchObject({ code: "TIMEOUT" });
+  });
+});
+
+describe("authStatusOptions", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("aborts a cancelled status read before it can drop the refresh", async () => {
+    const signals: (AbortSignal | null | undefined)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((_url: string, init?: RequestInit) => {
+        signals.push(init?.signal);
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+        });
+      }),
+    );
+    const client = createTestQueryClient();
+    const refresh = authRefreshOptions("plasmodb").queryKey;
+    client.setQueryData(refresh, { refreshed: true });
+    const status = authStatusOptions("plasmodb");
+
+    const read = client.fetchQuery(status).catch(() => null);
+    await vi.waitFor(() => expect(signals).toHaveLength(1));
+    await client.cancelQueries({ queryKey: status.queryKey });
+    await read;
+
+    expect(signals[0]?.aborted).toBe(true);
+    expect(client.getQueryData(refresh)).toEqual({ refreshed: true });
   });
 });

@@ -239,8 +239,8 @@ class SiteUnavailableError(AppError):
 class WDKIdentityMismatchError(AppError):
     """The VEuPathDB token names another account than the session does.
 
-    The two credentials are independent, so a second sign-in would otherwise
-    write analyses and strategies under an account the session cannot read.
+    A session is honored only while the website login names its user, so a
+    request after a sign-in as another account is refused until it relinks.
     """
 
     def __init__(self) -> None:

@@ -30,7 +30,7 @@ export function toast(page: Page, text: string | RegExp): Locator {
 
 /** The researcher's gene sets on one site, newest first, as the api lists them. */
 export async function geneSetsOf(api: ApiClient, siteId: string): Promise<GeneSet[]> {
-  const resp = await api.get(`/api/v1/gene-sets?siteId=${siteId}`);
+  const resp = await api.get(`api/v1/gene-sets?siteId=${siteId}`);
   expect(resp.status(), `gene sets of ${siteId}`).toBe(200);
   return (await resp.json()) as GeneSet[];
 }
@@ -142,7 +142,7 @@ export async function postAttachment(
   lead: string,
   file: UploadFile,
 ) {
-  return api.post("/api/v1/chat", {
+  return api.post("api/v1/chat", {
     data: {
       conversationId: crypto.randomUUID(),
       siteId,
@@ -180,7 +180,7 @@ export async function loggedUserParts(
   api: ApiClient,
   conversationId: string,
 ): Promise<LoggedPart[]> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/events/snapshot`);
   expect(resp.status(), `events of ${conversationId}`).toBe(200);
   const { chunks } = (await resp.json()) as {
     chunks: { type: string; message?: { parts?: LoggedPart[] } }[];

@@ -53,10 +53,13 @@ const LISTED = [
 let answer: unknown[] = LISTED;
 const reads: string[] = [];
 const server = setupServer(
-  http.get("http://localhost:3000/api/v1/sites/plasmodb/strategies", ({ request }) => {
-    reads.push(request.url);
-    return HttpResponse.json(answer);
-  }),
+  http.get(
+    "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+    ({ request }) => {
+      reads.push(request.url);
+      return HttpResponse.json(answer);
+    },
+  ),
 );
 
 beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
@@ -116,7 +119,7 @@ describe("the VEuPathDB strategy import dialog", () => {
     expect(second.getByText(/132 results/)).toBeVisible();
     expect(second.queryByText(/Saved/)).toBeNull();
     expect([...new Set(reads)]).toEqual([
-      "http://localhost:3000/api/v1/sites/plasmodb/strategies",
+      "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
     ]);
   });
 
@@ -229,8 +232,9 @@ describe("the VEuPathDB strategy import dialog", () => {
 
   it("says so when the listing cannot be read, and keeps the paste path", async () => {
     server.use(
-      http.get("http://localhost:3000/api/v1/sites/plasmodb/strategies", () =>
-        HttpResponse.json({ detail: "no" }, { status: 503 }),
+      http.get(
+        "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+        () => HttpResponse.json({ detail: "no" }, { status: 503 }),
       ),
     );
     renderDialog();
@@ -243,8 +247,9 @@ describe("the VEuPathDB strategy import dialog", () => {
 
   it("reports a failed listing once, with no toast", async () => {
     server.use(
-      http.get("http://localhost:3000/api/v1/sites/plasmodb/strategies", () =>
-        HttpResponse.json({ detail: "strategy listing failed" }, { status: 500 }),
+      http.get(
+        "http://localhost:3000/pathfinder/api/v1/sites/plasmodb/strategies",
+        () => HttpResponse.json({ detail: "strategy listing failed" }, { status: 500 }),
       ),
     );
     const client = appTestQueryClient();

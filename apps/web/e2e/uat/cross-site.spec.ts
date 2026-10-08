@@ -68,12 +68,12 @@ function escaped(text: string): string {
 
 /** The ids of every site the api serves. */
 async function servedSites(api: ApiClient): Promise<string[]> {
-  const rows = await listBody<{ id: string }>(await api.get("/api/v1/sites"), "sites");
+  const rows = await listBody<{ id: string }>(await api.get("api/v1/sites"), "sites");
   return rows.map((row) => row.id);
 }
 
 async function geneSetsOn(api: ApiClient, siteId: string): Promise<GeneSet[]> {
-  return listBody(await api.get(`/api/v1/gene-sets?siteId=${siteId}`), "gene sets");
+  return listBody(await api.get(`api/v1/gene-sets?siteId=${siteId}`), "gene sets");
 }
 
 /** Open a fresh conversation on `siteId`, send `message` and return the id. */
@@ -107,7 +107,7 @@ async function buildS2(
 
 /** Every search the stored tree runs is one the site itself lists. */
 async function expectOwnSearches(api: ApiClient, siteId: string, id: string) {
-  const resp = await api.get(`/api/v1/sites/${siteId}/searches`);
+  const resp = await api.get(`api/v1/sites/${siteId}/searches`);
   expect(resp.status()).toBe(200);
   const own = new Set(((await resp.json()) as Search[]).map((search) => search.name));
   const leaves = (await readNodes(api, id))
@@ -162,7 +162,7 @@ async function expectOrthologs(
   await graphPage.clickNode(transform.id ?? "");
   await graphPage.expectEditorSheetOpen();
   await expect(graphPage.editorSheet).toContainText("Syntenic Orthologs Only?");
-  await page.goto(`/${siteId}/conversation/${id}`);
+  await page.goto(`${siteId}/conversation/${id}`);
   await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
 }
 
@@ -220,7 +220,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     );
     // Whether PlasmoDB binds a search of its own is the model's call; the mock
     // stack holds that no step runs a search PlasmoDB does not list.
-    const listed = await apiClient.get("/api/v1/sites/plasmodb/searches");
+    const listed = await apiClient.get("api/v1/sites/plasmodb/searches");
     expect(listed.status()).toBe(200);
     const own = new Set(
       ((await listed.json()) as Search[]).map((search) => search.name),
@@ -306,7 +306,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     ).not.toHaveCount(0);
     await chatPage.expectRootCount(0);
 
-    await page.goto(`/${portal}/conversation/${id}`);
+    await page.goto(`${portal}/conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expectOrthologs(chatPage, graphPage, apiClient, page, portal, id);
   });

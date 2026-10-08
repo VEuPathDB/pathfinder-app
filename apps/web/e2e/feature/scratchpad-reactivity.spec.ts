@@ -18,11 +18,10 @@
 
 import type { BrowserContext, Route } from "@playwright/test";
 
-import { test, expect } from "../fixtures/test";
+import { BASE_URL, test, expect } from "../fixtures/test";
 import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 
-const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 const NOTE_ID = "note-e2e-scratchpad-001";
 const NOTE_TITLE = "E2E_SCRATCHPAD_NOTE";
 const NOTE_SUMMARY = "one-line summary of the finding";
@@ -149,7 +148,7 @@ test.describe("Notes rail", () => {
       });
     });
 
-    await page.goto(`/${siteId}/conversation/${conversationId}`);
+    await page.goto(`${siteId}/conversation/${conversationId}`);
 
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
@@ -230,7 +229,7 @@ test.describe("Notes rail", () => {
       await route.continue();
     });
 
-    await page.goto(`/${siteId}/conversation/${conversationId}`);
+    await page.goto(`${siteId}/conversation/${conversationId}`);
 
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });

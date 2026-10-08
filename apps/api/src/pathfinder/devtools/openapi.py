@@ -13,11 +13,11 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from pathfinder.main import create_app
-from pathfinder.transport.http.routers import dev
+from pathfinder.transport.http.routers import dev, dev_site_login
 
 
 class DevRouteInSpecError(RuntimeError):
-    """The spec names a route only the mock overlay mounts."""
+    """The spec names a route only the mock overlay or local development mounts."""
 
     def __init__(self, paths: list[str]) -> None:
         self.paths = paths
@@ -38,9 +38,12 @@ class _SpecPaths(BaseModel):
 
 
 def _dev_only_paths() -> frozenset[str]:
-    """The paths the dev router mounts, read from the router itself."""
+    """The paths the dev routers mount, read from the routers themselves."""
     return frozenset(
-        route.path for route in dev.router.routes if isinstance(route, APIRoute)
+        route.path
+        for router in (dev.router, dev_site_login.router)
+        for route in router.routes
+        if isinstance(route, APIRoute)
     )
 
 

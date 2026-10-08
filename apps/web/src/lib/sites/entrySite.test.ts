@@ -23,11 +23,25 @@ const PORTAL = site({
   displayName: "VEuPathDB Portal (All organisms)",
   isPortal: true,
 });
+const PLASMO = site({ id: "plasmodb" });
 
 describe("chooseEntrySite", () => {
-  it("picks the portal when the portal answers", () => {
+  it("opens the deployment's site when it answers", () => {
+    expect(chooseEntrySite([PORTAL, PLASMO], "plasmodb")).toEqual({
+      kind: "site",
+      siteId: "plasmodb",
+    });
+  });
+
+  it("falls back to the portal when the deployment's site does not answer", () => {
     expect(
-      chooseEntrySite([site({ id: "toxodb" }), PORTAL, site({ id: "plasmodb" })]),
+      chooseEntrySite([PORTAL, { ...PLASMO, available: false }], "plasmodb"),
+    ).toEqual({ kind: "site", siteId: "veupathdb" });
+  });
+
+  it("falls back to the portal when the list does not carry the deployment's site", () => {
+    expect(
+      chooseEntrySite([site({ id: "toxodb" }), PORTAL, PLASMO], "giardiadb"),
     ).toEqual({ kind: "site", siteId: "veupathdb" });
   });
 
@@ -35,10 +49,13 @@ describe("chooseEntrySite", () => {
     const sites = [
       { ...PORTAL, available: false, unavailableReason: "TimeoutError" },
       site({ id: "toxodb" }),
-      site({ id: "plasmodb" }),
+      PLASMO,
     ];
 
-    expect(chooseEntrySite(sites)).toEqual({ kind: "site", siteId: "toxodb" });
+    expect(chooseEntrySite(sites, "veupathdb")).toEqual({
+      kind: "site",
+      siteId: "toxodb",
+    });
   });
 
   it("skips every degraded site before it picks one", () => {
@@ -48,7 +65,10 @@ describe("chooseEntrySite", () => {
       site({ id: "cryptodb" }),
     ];
 
-    expect(chooseEntrySite(sites)).toEqual({ kind: "site", siteId: "cryptodb" });
+    expect(chooseEntrySite(sites, "toxodb")).toEqual({
+      kind: "site",
+      siteId: "cryptodb",
+    });
   });
 
   it("names every degraded site when none answers", () => {
@@ -57,13 +77,13 @@ describe("chooseEntrySite", () => {
       site({ id: "toxodb", available: false, unavailableReason: "ConnectError" }),
     ];
 
-    expect(chooseEntrySite(sites)).toEqual({
+    expect(chooseEntrySite(sites, "veupathdb")).toEqual({
       kind: "none",
       sites: ["veupathdb", "toxodb"],
     });
   });
 
   it("reports no site for an empty list", () => {
-    expect(chooseEntrySite([])).toEqual({ kind: "none", sites: [] });
+    expect(chooseEntrySite([], "veupathdb")).toEqual({ kind: "none", sites: [] });
   });
 });

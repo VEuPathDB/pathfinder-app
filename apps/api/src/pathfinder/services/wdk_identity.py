@@ -176,7 +176,8 @@ class VEuPathDBBearer(BaseModel):
 
 
 async def resolve_veupathdb_bearer(token: str) -> VEuPathDBBearer:
-    """Verify a VEuPathDB bearer token and name the internal user it belongs to.
+    """Verify a VEuPathDB token, from a bearer or a website login, and name the
+    internal user it belongs to.
 
     Only registered users are accepted: a guest token names nobody durable.
     """
@@ -187,7 +188,7 @@ async def resolve_veupathdb_bearer(token: str) -> VEuPathDBBearer:
     if claims.is_guest:
         return VEuPathDBBearer(rejection="A guest VEuPathDB token cannot sign in")
 
-    user_id = await resolve_veupathdb_user_id(token, settings.veupathdb_default_site)
+    user_id = await resolve_veupathdb_user_id(token, settings.pathfinder_site)
     if user_id is None:
         return VEuPathDBBearer(rejection="VEuPathDB session expired or invalid")
     return VEuPathDBBearer(user_id=user_id)

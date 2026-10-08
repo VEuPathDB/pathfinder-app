@@ -49,14 +49,6 @@ const TIER_LABELS: Record<string, string> = {
   fast: "Fast",
 };
 
-/** The quota pill prints the limit with two decimals. */
-const limitFormat = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 function settingsDialog(page: Page): Locator {
   return page.getByRole("dialog", { name: "Settings", exact: true });
 }
@@ -72,7 +64,7 @@ function normalize(text: string | null): string {
 
 /** Open the site's conversation route without creating a conversation. */
 async function openSite(page: Page, siteId: string) {
-  await page.goto(`/${siteId}/conversation`);
+  await page.goto(`${siteId}/conversation`);
   await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
 }
 
@@ -122,14 +114,14 @@ function purgeResponse(page: Page) {
 
 async function geneSetsOn(api: ApiClient, siteId?: string): Promise<GeneSet[]> {
   const query = siteId === undefined ? "" : `?siteId=${siteId}`;
-  return listBody(await api.get(`/api/v1/gene-sets${query}`), "gene sets");
+  return listBody(await api.get(`api/v1/gene-sets${query}`), "gene sets");
 }
 
 /** Import a gene set from the site's own seed controls, without a turn. */
 async function importGeneSet(api: ApiClient, siteId: string, name: string) {
   const [set] = siteControlSets(siteId);
   if (set === undefined) throw new Error(`the ${siteId} seeds carry no control set`);
-  const resp = await api.post("/api/v1/gene-sets/import", {
+  const resp = await api.post("api/v1/gene-sets/import", {
     data: { name, siteId, rawText: set.positive_ids.slice(0, 3).join("\n") },
   });
   expect(resp.status(), `import ${await resp.text()}`).toBe(201);
@@ -143,8 +135,8 @@ test.describe("Settings and account", () => {
     apiClient,
     siteId,
   }) => {
-    const models = await readJson<ModelListResponse>(apiClient, "/api/v1/models");
-    const tiers = await readJson<TierListResponse>(apiClient, "/api/v1/tiers");
+    const models = await readJson<ModelListResponse>(apiClient, "api/v1/models");
+    const tiers = await readJson<TierListResponse>(apiClient, "api/v1/tiers");
     const provider = models.defaultProvider;
     const roles = rolesForAssistant(tiers.presets, DEFAULT_ASSISTANT_ID, provider);
     const tierNames = Object.keys(
@@ -252,7 +244,7 @@ test.describe("Settings and account", () => {
     { tag: "@turn" },
     async ({ chatPage, apiClient, page, siteId }) => {
       test.setTimeout(600_000);
-      const quota = () => readJson<QuotaResponse>(apiClient, "/api/v1/me/quota");
+      const quota = () => readJson<QuotaResponse>(apiClient, "api/v1/me/quota");
       const before = await quota();
 
       const id = await buildOn(
@@ -294,23 +286,23 @@ test.describe("Settings and account", () => {
         Number(turn.costUsd) - 0.01,
       );
       await page.reload();
-      const pill = page.getByLabel("Monthly quota");
-      await expect(pill).toHaveText(
-        `${formatCost(Number(after.usedUsd))} / ${limitFormat.format(Number(after.limitUsd))}`,
-        { timeout: 30_000 },
-      );
-      await pill.hover();
+      const meter = page.getByRole("img", { name: "Monthly spend", exact: true });
+      await expect(meter).toBeVisible({ timeout: 30_000 });
+      await meter.hover();
       const account = tooltip(
         page,
         "Account total this month, across all conversations.",
       );
       await expect(account).toBeVisible();
+      await expect(account).toContainText(
+        `${formatCost(Number(after.usedUsd))} of ${formatCost(Number(after.limitUsd))} this month`,
+      );
       const resets = new Date(after.resetsAt).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       });
       await expect(account).toContainText(
-        `${formatTokens(after.totalTokens)} tokens · resets ${resets}`,
+        `${formatTokens(after.totalTokens)} tokens, resets ${resets}`,
       );
 
       await chatPage.sendAndSettle(prompt("recap", COUNT_QUESTION));
@@ -405,7 +397,7 @@ test.describe("Settings and account", () => {
     ).toBeVisible();
     await expect.poll(async () => (await geneSetsOn(apiClient)).length).toBe(0);
     const everywhere = await listBody<ConversationRow>(
-      await apiClient.get("/api/v1/conversations/dismissed"),
+      await apiClient.get("api/v1/conversations/dismissed"),
       "dismissed conversations",
     );
     expect(everywhere).toEqual([]);

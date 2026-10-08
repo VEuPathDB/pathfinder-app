@@ -29,7 +29,7 @@ async function builtGeneSet(
   await expect
     .poll(
       async () => {
-        const resp = await api.get(`/api/v1/gene-sets?siteId=${siteId}`);
+        const resp = await api.get(`api/v1/gene-sets?siteId=${siteId}`);
         expect(resp.status()).toBe(200);
         const sets = (await resp.json()) as GeneSet[];
         found = sets.find((set) => set.wdkStrategyId === wdkStrategyId);

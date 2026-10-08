@@ -11,7 +11,7 @@ test.describe("Open conversation", () => {
     apiClient,
     siteId,
   }) => {
-    const opened = await apiClient.post("/api/v1/conversations/open", {
+    const opened = await apiClient.post("api/v1/conversations/open", {
       data: { siteId },
     });
     expect(opened.status()).toBe(200);
@@ -20,7 +20,7 @@ test.describe("Open conversation", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     );
 
-    const got = await apiClient.get(`/api/v1/conversations/${conversationId}`);
+    const got = await apiClient.get(`api/v1/conversations/${conversationId}`);
     expect(got.status()).toBe(200);
     const conversation = (await got.json()) as ConversationResponse;
     expect(conversation.id).toBe(conversationId);

@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+import { BASE_PATH } from "./src/lib/basePath";
 import { getConfiguredServerApiBaseUrl } from "./src/lib/config/apiBase";
 
 const nextConfig: NextConfig = {
+  basePath: BASE_PATH,
   reactStrictMode: true,
   reactCompiler: true,
   // The dev-tools indicator button sits in a page corner and takes the pointer
@@ -38,26 +40,6 @@ const nextConfig: NextConfig = {
         {
           source: "/api/:path*",
           destination: `${apiBase}/api/:path*`,
-        },
-        {
-          source: "/docs",
-          destination: `${apiBase}/docs`,
-        },
-        {
-          source: "/docs/:path*",
-          destination: `${apiBase}/docs/:path*`,
-        },
-        {
-          source: "/redoc",
-          destination: `${apiBase}/redoc`,
-        },
-        {
-          source: "/redoc/:path*",
-          destination: `${apiBase}/redoc/:path*`,
-        },
-        {
-          source: "/openapi.json",
-          destination: `${apiBase}/openapi.json`,
         },
       ],
     };

@@ -4,7 +4,7 @@ title: The three libraries are consumed by URL at a release
 description: apps/api names veupathdb-py, veupathdb-mcp, assistant-core and veupathdb-mcp-conformance by repository URL and a release tag, apps/web names @veupathdb/assistant-client the same way, and the wdk-mcp image builds from the same release, committed in its compose build context
 tags: [split, packaging, uv, yarn, docker, ci, dependencies]
 generated: { by: claude-code/opus-5, at: 2026-09-06T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-06T00:00:00Z }
+verified: { by: claude-code/opus-5.5, at: 2026-10-08T00:00:00Z }
 status: stable
 ---
 
@@ -20,12 +20,15 @@ the only copy.
 | --- | --- |
 | `apps/api/pyproject.toml` `[tool.uv.sources]` | `{ git = <repository>, tag = <release> }`, with `subdirectory` for the two packages inside the platform repository |
 | `apps/web/package.json` | `git+https://github.com/VEuPathDB/ai-assistant-platform.git#workspace=@veupathdb/assistant-client&tag=<release>` |
-| `docker-compose.yml` `wdk-mcp` | `context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.1.0a3`, committed beside the Python pin |
+| `docker-compose.yml` `wdk-mcp` | `context: https://github.com/VEuPathDB/ai-wdk-mcp.git#<release>`, committed beside the Python pin |
 
 A pin is a commit, never a branch. A branch moves under a lock that claims to
 have resolved it, and the same checkout then builds two different images on two
-days. A repository that adopts the `v<version>` tag convention may be named by
-its tag instead; a tag is exact in the same way a commit is.
+days. A repository that tags its releases may be named by its tag instead; a
+tag is exact in the same way a commit is. `veupathdb-py` and `assistant-core`
+tag `v<version>`. `ai-wdk-mcp` tags the semver spelling of its version
+(`v0.2.0-b4` for `0.2.0b4`) from `v0.2.0-b4` on, because its images are built from the
+tag and the image pipeline publishes nothing for a tag it cannot read as semver.
 
 To take a newer commit of one library:
 

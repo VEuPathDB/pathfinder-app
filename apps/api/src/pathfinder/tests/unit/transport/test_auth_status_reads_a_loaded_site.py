@@ -16,7 +16,6 @@ from fastapi import FastAPI
 from veupathdb.wdk import WDKUserInfo
 
 from pathfinder.platform.readiness import get_readiness, reset_readiness
-from pathfinder.platform.security import limiter
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
 
@@ -36,7 +35,6 @@ def _app(monkeypatch: pytest.MonkeyPatch, seen: list[str]) -> FastAPI:
         yield None
 
     app = FastAPI()
-    app.state.limiter = limiter
     app.include_router(router)
     app.dependency_overrides[get_db_session] = _session
     return app
@@ -64,8 +62,7 @@ async def test_a_degraded_site_reads_the_account_on_a_loaded_one(
     body = await _status(_app(monkeypatch, seen), "veupathdb")
 
     assert seen == ["plasmodb"]
-    assert body["signedIn"] is True
-    assert body["email"] == "researcher@upenn.edu"
+    assert body == {"signedIn": True}
 
 
 async def test_a_loaded_site_reads_itself(monkeypatch: pytest.MonkeyPatch) -> None:

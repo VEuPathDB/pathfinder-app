@@ -1,10 +1,9 @@
-import { test, expect } from "../fixtures/test";
+import { BASE_URL, test, expect } from "../fixtures/test";
 import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext, Page } from "@playwright/test";
 
 const TASK_ID = "00000000-0000-0000-0000-0000000000bb";
-const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
 interface OpenStrategyResponse {
   conversationId?: string;
@@ -144,7 +143,7 @@ test.describe("Durable task live progress", () => {
       },
     );
 
-    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await page.goto(`${siteId}/conversation/${strategyId}`);
     await sendPrompt(page, "kick off durable verification");
 
     const started = page.getByTestId("data-background-task-started");
@@ -174,7 +173,7 @@ test.describe("Durable task live progress", () => {
       sseDone(),
     );
 
-    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await page.goto(`${siteId}/conversation/${strategyId}`);
     await sendPrompt(page, "kick off durable verification");
 
     const started = page.getByTestId("data-background-task-started");
@@ -215,7 +214,7 @@ test.describe("Durable task live progress", () => {
       ].join(""),
     );
 
-    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await page.goto(`${siteId}/conversation/${strategyId}`);
     await sendPrompt(page, "optimize the search parameters");
 
     await expect(page.getByTestId("data-background-task-started")).toBeVisible({

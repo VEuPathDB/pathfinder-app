@@ -4,7 +4,6 @@ import { ExternalLink } from "lucide-react";
 import { siteShortName } from "@pathfinder/shared";
 
 import { Button } from "@/components/ui/button";
-import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
 interface OpenInSiteLinkProps {
   href: string;
@@ -14,13 +13,12 @@ interface OpenInSiteLinkProps {
 
 /** A link to a page on the site itself. */
 export function OpenInSiteLink({ href, siteId, onOpen }: OpenInSiteLinkProps) {
-  const target = useSiteLinkTarget();
   const label = `Open in ${siteShortName(siteId)}`;
   return (
     <Button asChild variant="ghost" size="sm" className="h-7 gap-1.5 px-2">
       <a
         href={href}
-        target={target}
+        target="_blank"
         rel="noreferrer"
         aria-label={label}
         onClick={onOpen}

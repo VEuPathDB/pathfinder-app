@@ -12,7 +12,7 @@ import {
   publishGeneSetToVdi,
 } from "./geneSets";
 
-const BASE = "http://localhost:3000/api/v1/gene-sets";
+const BASE = "http://localhost:3000/pathfinder/api/v1/gene-sets";
 const GENE_SET_ID = "5b0c2f5e-3a51-4f7e-9d0c-0f4d3a1f2b61";
 const VDI_ID = "soV5JEQEcF00p";
 const DATASET_URL = `https://plasmodb.org/plasmo/app/workspace/datasets/${VDI_ID}`;

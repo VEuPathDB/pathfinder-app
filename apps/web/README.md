@@ -39,7 +39,7 @@ src/
     saved/                      #   Saved strategy library
     settings/                   #   Settings modal (model, tiers, keys, privacy, data, memory, release)
     sidebar/                    #   Conversation sidebar and its subtree dialogs
-    sites/                      #   Site selection, banners, per-site theming
+    sites/                      #   Site selection and per-site theming
     strategy/                   #   Strategy graph and step editing
       graph/                    #     ReactFlow canvas; elkjs layout; serialize/deserialize
       editor/                   #     Step editor: bodies, widgets, schema, patch building
@@ -141,7 +141,7 @@ yarn install
 yarn dev
 ```
 
-Open `http://localhost:3000`. The API and the worker must both be running: chat turns execute in
+Open `http://localhost:3000/pathfinder`. The API and the worker must both be running: chat turns execute in
 the worker, so without it a turn never finishes.
 
 ### Scripts

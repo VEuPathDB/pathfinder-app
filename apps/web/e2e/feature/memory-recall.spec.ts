@@ -1,9 +1,7 @@
-import { test, expect } from "../fixtures/test";
+import { BASE_URL, test, expect } from "../fixtures/test";
 import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
-
-const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
 interface OpenStrategyResponse {
   conversationId?: string;
@@ -78,7 +76,7 @@ test.describe("Recalled memories", () => {
       });
     });
 
-    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await page.goto(`${siteId}/conversation/${strategyId}`);
     const composer = page.getByTestId("message-input");
     await expect(composer).toBeVisible({ timeout: 30_000 });
     await composer.click();

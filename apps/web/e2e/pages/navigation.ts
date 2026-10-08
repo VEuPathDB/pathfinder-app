@@ -1,5 +1,7 @@
 import type { Page } from "@playwright/test";
 
+import { BASE_PATH } from "@/lib/basePath";
+
 /**
  * Wall clock one route change needs. The dev server compiles a route the
  * first time a spec reaches it, and two workers can reach it at once, so a
@@ -40,7 +42,11 @@ export async function waitForDraftChatRoute(page: Page) {
 /** The site the URL names. Every app route is site scoped, so a spec that
  *  navigates by hand takes the site the app already opened. */
 export function currentSiteId(page: Page): string {
-  const siteId = new URL(page.url()).pathname.split("/")[1] ?? "";
+  const { pathname } = new URL(page.url());
+  if (!pathname.startsWith(`${BASE_PATH}/`)) {
+    throw new Error(`the current URL ${pathname} is outside the app`);
+  }
+  const siteId = pathname.slice(BASE_PATH.length).split("/")[1] ?? "";
   if (siteId === "") {
     throw new Error("the current URL names no site");
   }

@@ -36,7 +36,9 @@ def service_tokens(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 async def test_a_cookie_names_the_user_and_the_default_application() -> None:
     user_id = uuid4()
 
-    principal = await resolve_principal(cookie_token=create_user_token(user_id))
+    principal = await resolve_principal(
+        cookie_token=create_user_token(user_id), site_user=user_id
+    )
 
     assert principal.user_id == user_id
     assert principal.credential == "pathfinder-cookie"
@@ -106,6 +108,7 @@ async def test_the_resolver_publishes_the_identity_to_the_request_context(
     await resolve_principal(
         cookie_token=create_user_token(user_id),
         service_token=SERVICE_SECRET,
+        site_user=user_id,
     )
 
     assert user_id_ctx.get() == user_id

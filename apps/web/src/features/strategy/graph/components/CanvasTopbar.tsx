@@ -30,6 +30,7 @@ import {
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
 import { provisionalName } from "@/lib/conversations/provisionalName";
+import { withBasePath } from "@/lib/basePath";
 import { chatUrl, strategyCanvasUrl } from "@/lib/routes";
 import { cn } from "@/lib/utils/cn";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
@@ -104,7 +105,7 @@ export function CanvasTopbar({
   const handleCopyUrl = (): void => {
     if (typeof window === "undefined") return;
     const origin = window.location.origin;
-    const url = `${origin}${strategyCanvasUrl(siteId, conversationId)}`;
+    const url = `${origin}${withBasePath(strategyCanvasUrl(siteId, conversationId))}`;
     void navigator.clipboard.writeText(url);
     toast.success("Strategy URL copied");
   };

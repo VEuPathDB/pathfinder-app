@@ -5,10 +5,15 @@ export type EntrySite =
   { kind: "site"; siteId: string } | { kind: "none"; sites: string[] };
 
 /**
- * The portal when it answers, else the first site in the list's order that
- * answers.
+ * The deployment's site when it answers, else the portal when it answers,
+ * else the first site in the list's order that answers.
  */
-export function chooseEntrySite(sites: SiteResponse[]): EntrySite {
+export function chooseEntrySite(
+  sites: SiteResponse[],
+  defaultSiteId: string,
+): EntrySite {
+  const preferred = sites.find((site) => site.id === defaultSiteId && site.available);
+  if (preferred !== undefined) return { kind: "site", siteId: preferred.id };
   const portal = sites.find((site) => site.isPortal && site.available);
   if (portal !== undefined) return { kind: "site", siteId: portal.id };
   const first = sites.find((site) => site.available);

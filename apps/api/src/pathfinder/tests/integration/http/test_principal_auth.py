@@ -1,5 +1,6 @@
 """Principal resolution: bearer identity, service-token application identity,
-and the CSRF exemption a bearer earns.
+the cookie session that follows the website login, and the CSRF exemption a
+bearer earns.
 
 The dependency is mounted on a route this module owns, so the assertions read
 identity resolution and not any product endpoint.
@@ -7,20 +8,18 @@ identity resolution and not any product endpoint.
 
 from __future__ import annotations
 
-import time
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
-from typing import Any, cast
+from typing import cast
 from uuid import UUID
 
 import httpx
-import jwt
 import pytest
 import respx
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI, Request, Response
-from jwt.algorithms import ECAlgorithm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_site
 
@@ -29,11 +28,17 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER, Principal
 from pathfinder.platform.security import create_user_token
+from pathfinder.services.users import get_or_create_user_id
+from pathfinder.tests._support.veupathdb_tokens import (
+    JWKS_URL,
+    OAUTH_URL,
+    jwks_body,
+    make_signing_key,
+    veupathdb_token,
+)
 from pathfinder.tests.integration.http.conftest import make_user
 from pathfinder.transport.http.deps import CurrentPrincipal
 
-OAUTH_URL = "https://oauth.test"
-JWKS_URL = f"{OAUTH_URL}/jwks"
 SERVICE_SECRET = "analytics-service-secret-0123456789"
 WDK_EMAIL = "researcher@example.org"
 
@@ -56,7 +61,9 @@ _UNAVAILABLE = 503
 
 
 def _principal_app() -> FastAPI:
-    """One route over the principal dependency, with the API's problem+json."""
+    """One route over the principal dependency, with the API's problem+json
+    and the site login the request resolver reads from the ``Authorization``
+    cookie."""
     app = FastAPI()
     app.add_exception_handler(
         VEuPathDBError,
@@ -65,6 +72,13 @@ def _principal_app() -> FastAPI:
             veupathdb_error_handler,
         ),
     )
+
+    @app.middleware("http")
+    async def _site_login(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        veupathdb_auth_token_ctx.set(request.cookies.get("Authorization"))
+        return await call_next(request)
 
     @app.get(PRINCIPAL_PATH, response_model=Principal)
     async def _read_principal(principal: CurrentPrincipal) -> Principal:
@@ -75,7 +89,7 @@ def _principal_app() -> FastAPI:
 
 @pytest.fixture
 def signing_key() -> ec.EllipticCurvePrivateKey:
-    return ec.generate_private_key(ec.SECP521R1())
+    return make_signing_key()
 
 
 @pytest.fixture
@@ -118,41 +132,6 @@ async def bare_client(
         yield client
 
 
-def jwks_body(private_key: ec.EllipticCurvePrivateKey) -> dict[str, Any]:
-    public = ECAlgorithm.to_jwk(private_key.public_key(), as_dict=True)
-    return {
-        "keys": [
-            {"kid": "0", "kty": "oct", "alg": "HS512", "k": "<your_client_secret>"},
-            {
-                "kid": "1",
-                "use": "sig",
-                "kty": "EC",
-                "alg": "ES512",
-                "crv": public["crv"],
-                "x": public["x"],
-                "y": public["y"],
-            },
-        ],
-    }
-
-
-def veupathdb_token(
-    private_key: ec.EllipticCurvePrivateKey,
-    *,
-    is_guest: bool = False,
-) -> str:
-    return jwt.encode(
-        {
-            "sub": "1248677203",
-            "is_guest": is_guest,
-            "aud": "apiComponentSite",
-            "exp": int(time.time()) + 3600,
-        },
-        private_key,
-        algorithm="ES512",
-    )
-
-
 def stub_oauth_and_wdk(
     respx_mock: respx.MockRouter,
     private_key: ec.EllipticCurvePrivateKey,
@@ -164,7 +143,7 @@ def stub_oauth_and_wdk(
     respx_mock.get(JWKS_URL).mock(
         return_value=httpx.Response(200, json=jwks_body(private_key)),
     )
-    service_url = get_site(get_settings().veupathdb_default_site).service_url
+    service_url = get_site(get_settings().pathfinder_site).service_url
     respx_mock.get(service_url.replace("/service", "/app")).mock(
         return_value=httpx.Response(200, text="ok"),
     )
@@ -174,6 +153,21 @@ def stub_oauth_and_wdk(
             json={"id": 1248677203, "isGuest": is_guest, "email": email},
         ),
     )
+
+
+@pytest.fixture
+async def site_login(
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_maker: async_sessionmaker[AsyncSession],
+    oauth_env: None,
+) -> AsyncIterator[tuple[UUID, str]]:
+    del oauth_env
+    async with session_maker() as session:
+        user_id = await get_or_create_user_id(session, WDK_EMAIL)
+        await session.commit()
+    with respx.mock(assert_all_called=False) as respx_mock:
+        stub_oauth_and_wdk(respx_mock, signing_key)
+        yield user_id, veupathdb_token(signing_key)
 
 
 async def _user_ids_by_external_id(
@@ -360,6 +354,22 @@ async def test_a_pathfinder_bearer_token_is_read_before_any_veupathdb_meaning(
 @pytest.mark.asyncio
 async def test_a_cookie_names_the_cookie_credential(
     principal_client: httpx.AsyncClient,
+    site_login: tuple[UUID, str],
+) -> None:
+    user_id, site_token = site_login
+    principal_client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    principal_client.cookies.set("Authorization", site_token)
+
+    response = await principal_client.get(PRINCIPAL_PATH)
+
+    assert response.status_code == _OK, response.text
+    assert response.json()["credential"] == "pathfinder-cookie"
+    assert response.json()["userId"] == str(user_id)
+
+
+@pytest.mark.asyncio
+async def test_a_cookie_with_no_site_login_is_signed_out(
+    principal_client: httpx.AsyncClient,
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     async with session_maker() as session:
@@ -368,8 +378,55 @@ async def test_a_cookie_names_the_cookie_credential(
 
     response = await principal_client.get(PRINCIPAL_PATH)
 
+    assert response.status_code == _UNAUTHORIZED, response.text
+    assert response.json()["code"] == "WDK_LOGIN_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_a_cookie_whose_site_login_names_another_account_is_refused(
+    principal_client: httpx.AsyncClient,
+    session_maker: async_sessionmaker[AsyncSession],
+    site_login: tuple[UUID, str],
+) -> None:
+    _, site_token = site_login
+    async with session_maker() as session:
+        user = await make_user(session)
+    principal_client.cookies.set("pathfinder-auth", create_user_token(user.id))
+    principal_client.cookies.set("Authorization", site_token)
+
+    response = await principal_client.get(PRINCIPAL_PATH)
+
+    assert response.status_code == _UNAUTHORIZED, response.text
+    assert response.json()["code"] == "WDK_IDENTITY_MISMATCH"
+
+
+@pytest.mark.asyncio
+async def test_a_local_route_signs_out_a_cookie_with_no_site_login(
+    bare_client: httpx.AsyncClient,
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with session_maker() as session:
+        user = await make_user(session)
+    bare_client.cookies.set("pathfinder-auth", create_user_token(user.id))
+
+    response = await bare_client.get(CONVERSATIONS_PATH)
+
+    assert response.status_code == _UNAUTHORIZED, response.text
+    assert response.json()["code"] == "WDK_LOGIN_REQUIRED"
+
+
+@pytest.mark.asyncio
+async def test_a_local_route_serves_a_cookie_its_site_login_names(
+    bare_client: httpx.AsyncClient,
+    site_login: tuple[UUID, str],
+) -> None:
+    user_id, site_token = site_login
+    bare_client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    bare_client.cookies.set("Authorization", site_token)
+
+    response = await bare_client.get(CONVERSATIONS_PATH)
+
     assert response.status_code == _OK, response.text
-    assert response.json()["credential"] == "pathfinder-cookie"
 
 
 @pytest.mark.asyncio
@@ -384,11 +441,11 @@ async def test_no_credential_is_unauthorized(
 @pytest.mark.asyncio
 async def test_a_service_token_names_the_calling_application(
     principal_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
+    site_login: tuple[UUID, str],
 ) -> None:
-    async with session_maker() as session:
-        user = await make_user(session)
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user.id))
+    user_id, site_token = site_login
+    principal_client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    principal_client.cookies.set("Authorization", site_token)
 
     response = await principal_client.get(
         PRINCIPAL_PATH,

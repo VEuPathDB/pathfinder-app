@@ -8,6 +8,7 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import { withBasePath } from "@/lib/basePath";
 import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -23,7 +24,7 @@ function ChatUrlSync({ conversationId }: { conversationId: string }) {
   const siteId = useSessionStore((s) => s.selectedSite);
   useAuiEvent("thread.runStart", () => {
     if (typeof window === "undefined") return;
-    const target = chatUrl(siteId, conversationId);
+    const target = withBasePath(chatUrl(siteId, conversationId));
     if (!window.location.pathname.startsWith(target)) {
       window.history.replaceState(null, "", target);
     }

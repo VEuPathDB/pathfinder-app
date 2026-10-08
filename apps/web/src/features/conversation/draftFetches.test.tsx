@@ -33,7 +33,7 @@ import { ChatShell } from "./ChatShell";
 import { ChatView } from "./ChatView";
 
 const CONVERSATION_ID = "22222222-2222-4222-8222-222222222222";
-const BASE = `http://localhost:3000/api/v1/conversations/${CONVERSATION_ID}`;
+const BASE = `http://localhost:3000/pathfinder/api/v1/conversations/${CONVERSATION_ID}`;
 
 const STRATEGY = {
   id: CONVERSATION_ID,

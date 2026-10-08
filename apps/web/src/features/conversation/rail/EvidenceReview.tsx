@@ -13,7 +13,6 @@ import {
   ExhibitTable,
   type ExhibitRow,
 } from "@/features/conversation/thread/ExhibitTable";
-import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
 import { referenceHref } from "./evidenceCards";
 
@@ -169,7 +168,6 @@ function geneRow(gene: SampledGene): ExhibitRow {
 }
 
 function Sources({ cited }: { cited: readonly Citation[] }): ReactElement | null {
-  const target = useSiteLinkTarget();
   if (cited.length === 0) return null;
   return (
     <div data-testid="evidence-sources" className="space-y-1 text-[11px]">
@@ -185,8 +183,8 @@ function Sources({ cited }: { cited: readonly Citation[] }): ReactElement | null
               ) : (
                 <a
                   href={href}
-                  target={target}
-                  rel="noopener noreferrer"
+                  target="_blank"
+                  rel="noreferrer"
                   className="text-primary underline-offset-2 hover:underline"
                 >
                   {source.label}

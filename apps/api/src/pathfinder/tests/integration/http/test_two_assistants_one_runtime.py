@@ -31,7 +31,10 @@ from pathfinder.tests.integration.http._two_assistants import (
     text_of,
     turn,
 )
-from pathfinder.tests.integration.http.conftest import client_for, make_user
+from pathfinder.tests.integration.http.conftest import (
+    bearer_client_for,
+    make_user,
+)
 from pathfinder.tests.integration.http.test_wdk_login_required import (
     LOGIN_CODE,
     LOGIN_DETAIL,
@@ -76,7 +79,7 @@ async def test_the_same_request_against_pathfinder_still_needs_a_login(
     owner = await make_user(db_session)
     body = chat_post_body(uuid4(), SITES_PROMPT)
 
-    async with client_for(app, owner.id) as client:
+    async with bearer_client_for(app, owner.id) as client:
         response = await client.post("/api/v1/chat", json=body, timeout=30.0)
 
     assert response.status_code == UNAUTHORIZED, response.text
@@ -205,7 +208,7 @@ async def test_a_signed_out_caller_can_begin_a_site_help_conversation(
     owner = await make_user(db_session)
     conversation_id = uuid4()
 
-    async with client_for(app, owner.id) as client:
+    async with bearer_client_for(app, owner.id) as client:
         response = await client.post(
             f"/api/v1/conversations/{conversation_id}/begin",
             json={"siteId": "plasmodb", "assistantId": SITE_HELP},
@@ -234,7 +237,7 @@ async def test_begin_refuses_an_assistant_the_thread_was_not_created_under(
     await db_session.flush()
     await db_session.commit()
 
-    async with client_for(app, owner.id) as client:
+    async with bearer_client_for(app, owner.id) as client:
         response = await client.post(
             f"/api/v1/conversations/{conversation.id}/begin",
             json={"siteId": "plasmodb", "assistantId": SITE_HELP},
@@ -254,7 +257,7 @@ async def test_begin_without_an_assistant_still_takes_the_default(
     owner = await make_user(db_session)
     conversation_id = uuid4()
 
-    async with client_for(app, owner.id) as client:
+    async with bearer_client_for(app, owner.id) as client:
         response = await client.post(
             f"/api/v1/conversations/{conversation_id}/begin",
             json={"siteId": "plasmodb"},

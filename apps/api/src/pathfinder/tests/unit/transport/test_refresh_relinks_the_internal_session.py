@@ -121,6 +121,26 @@ async def test_without_an_internal_session_the_token_is_minted(
 
 
 @pytest.mark.asyncio
+async def test_the_minted_session_lives_under_the_base_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = _app(monkeypatch, resolved=TOKEN_ACCOUNT)
+    async with _client(app) as client:
+        response = await client.post(
+            "/api/v1/veupathdb/auth/refresh",
+            cookies={"Authorization": "veupathdb-jwt"},
+        )
+    written = response.headers.get_list("set-cookie")
+    assert [entry.split("=", 1)[0] for entry in written] == ["pathfinder-auth"]
+    assert sorted(written[0].split("; ")[1:]) == [
+        "HttpOnly",
+        "Path=/pathfinder",
+        "SameSite=lax",
+        "Secure",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_an_expired_internal_session_is_replaced(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { siteShortName, type Strategy } from "@pathfinder/shared";
 
@@ -141,9 +142,9 @@ function PlacementNotice({
         className="text-[11px] text-muted-foreground"
       >
         {"This step is now the strategy's first step. "}
-        <a href={href} className={LINK_CLASS}>
+        <Link href={href} className={LINK_CLASS}>
           Open the strategy canvas
-        </a>
+        </Link>
       </p>
     );
   }
@@ -155,9 +156,9 @@ function PlacementNotice({
       {
         "This step is a draft root. It is not part of the pushed strategy until you attach it. "
       }
-      <a href={href} className={LINK_CLASS}>
+      <Link href={href} className={LINK_CLASS}>
         Attach it in the strategy canvas
-      </a>
+      </Link>
     </p>
   );
 }

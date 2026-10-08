@@ -86,7 +86,7 @@ test.describe("Chat", () => {
     });
 
     // Strategy still exists after reload
-    const afterResp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
+    const afterResp = await apiClient.get(`api/v1/conversations/${strategyId}`);
     expect(afterResp.ok()).toBeTruthy();
   });
 });

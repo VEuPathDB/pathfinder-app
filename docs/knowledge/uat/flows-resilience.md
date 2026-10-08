@@ -72,17 +72,23 @@ The Lead's history is compacted at 100,000 estimated tokens (about 400,000 chara
 | 3 | Offline again | Click `Good response` on the reply | Toast `The rating was not saved.` |
 | 4 | If the page lost the running turn | Read | Toast `This conversation stopped following the work it has running; reload the page to read where that work got to.` |
 
-## R7 - VEuPathDB slow at sign-in
+## R7 - VEuPathDB slow at the sign-in check
+
+Signing in is the website's own page, so a slow login is the website's. PathFinder only reads which account the website login names: on the site the page names, and on another site whose catalog loaded when that one does not answer in 10 s. The account is the same on every site.
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Sign-in dialog, when the site is slow | `Sign in` | `Login failed. Please try again.` and a working retry. The debugger's login to plasmodb timed out once in about 60 logins during the measurements (`httpx.ReadTimeout`) |
+| 1 | Signed in, while the page's site answers the account read slowly | Reload PathFinder | Still signed in: the read answers on another site. No signed-out panel |
+| 2 | Signed in, while no site answers the account read | Reload PathFinder | Not the signed-out panel: the rail and the sidebar stay, and the content area shows `Couldn't reach <site name>` with the F3 step 3 text |
+| 3 | Same, once a site answers again | Wait, no reload | Within a minute the notice goes and the page shows again, still signed in |
+
+Not measured: an operator cannot slow the account read without also failing the site's catalog, which is R1. Expected: measure when a site is slow on its own.
 
 ## R8 - The monthly allowance is spent (operator)
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Operator | Set account A's monthly limit below what it has spent | The quota pill turns red |
+| 1 | Operator | Set account A's monthly limit below what it has spent | The rail's spending meter (`Monthly spend`) turns red and its ring is full |
 | 2 | Composer | Read | Banner `Monthly quota reached` with `You've used $<used> of your $<limit> monthly limit. New messages are paused until <Month D, YYYY>, unless every stage runs on a key you added in Settings, under Provider keys.`; placeholder `Monthly quota reached - try again after the reset date.`; `Send` disabled |
 | 3 | Operator | Restore the limit | Sending works again |
 

@@ -38,6 +38,7 @@ async def _get(client: httpx.AsyncClient, url: str) -> httpx.Response:
     return await client.get(url)
 
 
+@pytest.mark.usefixtures("site_login_matches_session")
 async def test_the_conversation_list_holds_only_the_calling_application(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -55,6 +56,7 @@ async def test_the_conversation_list_holds_only_the_calling_application(
     assert theirs.json() == []
 
 
+@pytest.mark.usefixtures("site_login_matches_session")
 async def test_one_conversation_is_refused_to_another_application_as_to_a_stranger(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -116,6 +118,7 @@ async def test_a_control_set_list_holds_only_the_calling_application(
     assert theirs == []
 
 
+@pytest.mark.usefixtures("site_login_matches_session")
 async def test_the_memory_list_holds_only_the_calling_application(
     app: FastAPI,
     patch_app_db_engine: None,

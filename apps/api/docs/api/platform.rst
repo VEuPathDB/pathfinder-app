@@ -130,18 +130,6 @@ JSON/structlog output. Used by all modules.
    :undoc-members:
    :show-inheritance:
 
-Context
--------
-
-**Purpose:** Context variables for request-scoped state. The request base URL
-and this turn's model picks; the runtime package and the client library own the
-rest.
-
-.. automodule:: pathfinder.platform.context
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Health
 ------
 

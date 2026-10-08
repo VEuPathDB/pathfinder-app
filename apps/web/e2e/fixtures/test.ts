@@ -1,4 +1,4 @@
-import { test as base } from "@playwright/test";
+import { type BrowserContext, test as base } from "@playwright/test";
 import {
   type ApiClient,
   CSRF_HEADERS,
@@ -11,6 +11,7 @@ import { GraphPage } from "../pages/graph.page";
 import { SitePickerComponent } from "../pages/site-picker.page";
 import { SettingsPage } from "../pages/settings.page";
 import { wdkTestToken } from "./wdk-account";
+import { BASE_PATH } from "@/lib/basePath";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -35,10 +36,23 @@ type WorkerFixtures = SiteOption & {
   workerStorageState: string;
 };
 
-export const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
+/** The origin the web app answers on; the website's login cookie sits at its root. */
+const ORIGIN = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
+
+/** The app's root: every page and every API call sits under the base path. */
+export const BASE_URL = `${ORIGIN}${BASE_PATH}`;
+
+/** The app's root as a `baseURL`, which a relative path resolves under. */
+export const APP_ROOT = `${BASE_URL}/`;
 
 /** The site a spec opens when its project names none. */
 export const DEFAULT_SITE = "plasmodb";
+
+export async function addWebsiteLogin(context: BrowserContext): Promise<void> {
+  await context.addCookies([
+    { name: "Authorization", value: wdkTestToken(), url: ORIGIN },
+  ]);
+}
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
   // Worker-scoped
@@ -61,9 +75,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       // No page loads the app here: its own auth refresh would race the dev
       // login for the session cookie the storage state saves.
       const context = await browser.newContext();
-      await context.addCookies([
-        { name: "Authorization", value: wdkTestToken(), url: BASE_URL },
-      ]);
+      await addWebsiteLogin(context);
 
       const resp = await context.request.post(
         `${BASE_URL}/api/v1/dev/login?user_id=worker-${id}`,
@@ -136,11 +148,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
 
   // Test-scoped: API client for postcondition verification
-  apiClient: async ({ page, context }, use) => {
-    const baseURL = page.url().startsWith("http")
-      ? new URL(page.url()).origin
-      : BASE_URL;
-    const client = await createApiClient(context, baseURL);
+  apiClient: async ({ context }, use) => {
+    const client = await createApiClient(context, APP_ROOT);
     await use(client);
     await client.dispose();
   },

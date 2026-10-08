@@ -28,7 +28,7 @@ import { createTestWrapper } from "@/lib/query/testing";
 
 import { RateMessageActions } from "./RateMessageActions";
 
-const CONVERSATIONS = "http://localhost:3000/api/v1/conversations";
+const CONVERSATIONS = "http://localhost:3000/pathfinder/api/v1/conversations";
 
 type Rating = "like" | "dislike";
 

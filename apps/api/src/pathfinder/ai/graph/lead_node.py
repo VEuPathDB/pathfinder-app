@@ -48,7 +48,7 @@ from pathfinder.ai.graph._lead_capture import (
     _LeadRunCapture,
     _persist_residual_quota,
     emit_lead_usage,
-    usage_recorders,
+    sub_agent_usage_recorder,
 )
 from pathfinder.ai.graph._lead_card_hold import CardHold
 from pathfinder.ai.graph._lead_delta import _build_state_delta
@@ -352,14 +352,13 @@ async def _run_lead_turn(
     capture = _LeadRunCapture()
     message_id = uuid4()
 
-    record_sub_agent_usage, record_tool_charge = usage_recorders(capture, state, writer)
+    record_sub_agent_usage = sub_agent_usage_recorder(capture, state, writer)
     deps = LeadDeps(
         state=working_state,
         intent=state.domain.user_intent,
         runtime=runtime.context,
         retrieved_memories=memories,
         record_sub_agent_usage=record_sub_agent_usage,
-        record_tool_charge=record_tool_charge,
         sub_agent_usage_by_call=capture.sub_agent_usage_by_call,
     )
 

@@ -4,46 +4,8 @@
  * keys that move between them.
  */
 
-import type { ConversationResponse } from "@pathfinder/shared";
-
 import { test, expect } from "../fixtures/test";
-import type { ApiClient } from "../fixtures/api-client";
-
-interface SeededStrategy {
-  conversationId: string;
-  rootStepId: string;
-}
-
-/** A one-step strategy stored through the api on `siteId`. */
-async function seedStrategy(api: ApiClient, siteId: string): Promise<SeededStrategy> {
-  const resp = await api.post("/api/v1/conversations", {
-    data: {
-      name: "Smoke test strategy",
-      siteId,
-      strategyAst: {
-        recordType: "transcript",
-        root: {
-          searchName: "GenesByText",
-          parameters: {
-            text_expression: { type: "string", value: "kinase" },
-            text_fields: {
-              type: "string",
-              value: '["primary_key","gene_product"]',
-            },
-            document_type: { type: "string", value: "gene" },
-            max_pvalue: { type: "number", value: 0.5 },
-          },
-          displayName: "All kinase transcripts",
-        },
-      },
-    },
-  });
-  expect(resp.status(), `seed ${await resp.text()}`).toBe(201);
-  const conversation = (await resp.json()) as ConversationResponse;
-  const rootStepId = conversation.rootStepId ?? "";
-  expect(rootStepId).not.toBe("");
-  return { conversationId: conversation.id, rootStepId };
-}
+import { seedStrategy } from "../fixtures/strategy-builds";
 
 test.describe("Strategy page smoke", () => {
   test("the rail lists the step and opens the canvas, and Esc returns", async ({
@@ -54,7 +16,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId } = await seedStrategy(apiClient, siteId);
 
-    await page.goto(`/${siteId}/conversation/${conversationId}`);
+    await page.goto(`${siteId}/conversation/${conversationId}`);
     await graphPage.openRailStrategyPanel();
     await expect(graphPage.railOpenButton).toBeVisible();
     await expect(graphPage.railFooter).toHaveText("1 step");
@@ -82,7 +44,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await page.goto(`/${siteId}/conversation/${conversationId}`);
+    await page.goto(`${siteId}/conversation/${conversationId}`);
     await graphPage.openRailStrategyPanel();
     await graphPage.railStepRow(rootStepId).click();
     await expect(page).toHaveURL(

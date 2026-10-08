@@ -17,7 +17,7 @@ async function makeSaved(
   siteId: string,
   name: string,
 ): Promise<string> {
-  const created = await api.post("/api/v1/conversations", {
+  const created = await api.post("api/v1/conversations", {
     data: {
       name,
       siteId,
@@ -36,7 +36,7 @@ async function makeSaved(
   expect(created.status()).toBe(201);
   const id = ((await created.json()) as ConversationResponse).id;
   const uniqueWdkId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
-  const patched = await api.patch(`/api/v1/conversations/${id}`, {
+  const patched = await api.patch(`api/v1/conversations/${id}`, {
     data: { isSaved: true, wdkStrategyId: uniqueWdkId },
   });
   expect(patched.status()).toBe(200);
@@ -55,7 +55,7 @@ test.describe("Saved strategies", () => {
     apiClient,
     siteId,
   }) => {
-    await apiClient.delete("/api/v1/user/data?deleteWdk=true");
+    await apiClient.delete("api/v1/user/data?deleteWdk=true");
     await chatPage.goto();
     const id = await makeSaved(apiClient, siteId, "Kinase sweep");
     const deletes: string[] = [];
@@ -63,7 +63,7 @@ test.describe("Saved strategies", () => {
       if (isDeleteOf(id)(request)) deletes.push(request.url());
     });
 
-    await page.goto(`/${siteId}/saved`);
+    await page.goto(`${siteId}/saved`);
     const row = page.getByTestId(`saved-strategy-${id}`);
     await expect(row).toBeVisible({ timeout: 15_000 });
 

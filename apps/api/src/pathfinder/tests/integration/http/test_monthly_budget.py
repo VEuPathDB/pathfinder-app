@@ -94,6 +94,7 @@ async def test_the_account_override_is_the_budget(
 
 
 @pytest.mark.usefixtures("_sealed")
+@pytest.mark.usefixtures("site_login_matches_session")
 async def test_the_quota_route_reports_the_allowance_and_the_own_key_spend_apart(
     app: FastAPI,
     patch_app_db_engine: None,

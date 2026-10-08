@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0b4
+  version: 0.2.0b5
 paths:
   /health:
     get:
@@ -23,7 +23,7 @@ paths:
       tags:
       - health
       summary: System Config
-      description: 'Report whether the system has LLM provider keys configured.
+      description: 'Report the model providers, the deployment''s site and its sign-in address.
 
 
         This is unauthenticated so the frontend can show a setup-required
@@ -2124,93 +2124,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/veupathdb/auth/login:
-    post:
-      tags:
-      - veupathdb-auth
-      summary: Login With Password
-      description: Log in to VEuPathDB, link the internal user, and set the auth cookies.
-      operationId: login_with_password_api_v1_veupathdb_auth_login_post
-      parameters:
-      - name: redirectTo
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Redirectto
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          default: veupathdb
-          title: Siteid
-      requestBody:
-        content:
-          application/json:
-            schema:
-              anyOf:
-              - $ref: '#/components/schemas/LoginPayload'
-              - type: 'null'
-              title: Payload
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/veupathdb/auth/logout:
-    post:
-      tags:
-      - veupathdb-auth
-      summary: Logout
-      description: 'Clear the local auth cookies and end the VEuPathDB session.
-
-
-        The cookies are cleared either way: the local session is over even when WDK
-
-        could not be reached. ``success`` reports what WDK did.'
-      operationId: logout_api_v1_veupathdb_auth_logout_post
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          default: veupathdb
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/veupathdb/auth/refresh:
     post:
       tags:
@@ -2225,6 +2138,8 @@ paths:
 
         session names no VEuPathDB account, so no token can move it.'
       operationId: refresh_internal_auth_api_v1_veupathdb_auth_refresh_post
+      security:
+      - APIKeyCookie: []
       parameters:
       - name: siteId
         in: query
@@ -2259,12 +2174,16 @@ paths:
       description: 'Return the current VEuPathDB auth status.
 
 
-        A refused token or a guest is signed out; a site that does not answer is a
+        A refused token or a guest is signed out, and a signed-out answer clears the
 
-        503. A mock chat provider has no VEuPathDB session, so the internal cookie
+        PathFinder session; a site that does not answer is a 503. A mock chat
 
-        alone proves identity there.'
+        provider has no VEuPathDB session, so the internal cookie alone proves
+
+        identity there.'
       operationId: auth_status_api_v1_veupathdb_auth_status_get
+      security:
+      - APIKeyCookie: []
       parameters:
       - name: siteId
         in: query
@@ -3469,16 +3388,6 @@ components:
         signedIn:
           type: boolean
           title: Signedin
-        name:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Name
-        email:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Email
       type: object
       required:
       - signedIn
@@ -5586,19 +5495,6 @@ components:
       - openai
       - anthropic
       - google
-    LoginPayload:
-      properties:
-        email:
-          type: string
-          title: Email
-        password:
-          type: string
-          title: Password
-      type: object
-      required:
-      - email
-      - password
-      title: LoginPayload
     MemoryEditRequest:
       properties:
         name:
@@ -7631,11 +7527,19 @@ components:
           title: Llmconfigured
         providers:
           $ref: '#/components/schemas/ProviderStatus'
+        siteId:
+          type: string
+          title: Siteid
+        siteSignInUrl:
+          type: string
+          title: Sitesigninurl
       type: object
       required:
       - chatProvider
       - llmConfigured
       - providers
+      - siteId
+      - siteSignInUrl
       title: SystemConfigResponse
       description: System configuration status (unauthenticated).
     SystemReadyResponse:

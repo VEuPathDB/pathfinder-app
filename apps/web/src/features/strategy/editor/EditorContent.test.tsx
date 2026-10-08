@@ -78,7 +78,6 @@ vi.mock("./hooks/useStepDraftChanges", () => ({
   useStepDraftChanges: () => ({ hasChanges: false, changeCount: 0 }),
 }));
 
-import { strategyStepUrl } from "@/lib/routes";
 import { EditorContent } from "./EditorContent";
 
 const STEP: Step = {
@@ -101,7 +100,7 @@ describe("EditorContent", () => {
     mockGetStepRecords.mockReset();
   });
 
-  it("copies the step deep link the route builder produces", async () => {
+  it("copies the step deep link under the base path", async () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText },
@@ -121,10 +120,7 @@ describe("EditorContent", () => {
     await userEvent.click(screen.getByLabelText("More actions"));
     await userEvent.click(await screen.findByText("Copy step URL"));
     expect(writeText).toHaveBeenCalledWith(
-      `${window.location.origin}${strategyStepUrl("plasmodb", "conv-1", "step_7")}`,
-    );
-    expect(writeText).toHaveBeenCalledWith(
-      "http://localhost:3000/plasmodb/conversation/conv-1/strategy/step/step_7",
+      "http://localhost:3000/pathfinder/plasmodb/conversation/conv-1/strategy/step/step_7",
     );
     expect(writeText).toHaveBeenCalledTimes(1);
   });

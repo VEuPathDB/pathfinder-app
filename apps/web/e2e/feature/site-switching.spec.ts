@@ -27,7 +27,7 @@ test.describe("Site Switching", { tag: "@named-site" }, () => {
     sitePicker,
     apiClient,
   }) => {
-    const resp = await apiClient.get("/api/v1/sites");
+    const resp = await apiClient.get("api/v1/sites");
     expect(resp.ok()).toBeTruthy();
     const sites = (await resp.json()) as SiteRow[];
     expect(sites.length).toBeGreaterThan(0);

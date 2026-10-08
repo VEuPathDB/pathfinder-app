@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
   type QueryClient,
+  type QueryKey,
 } from "@tanstack/react-query";
 import type { ConversationResponse, Strategy } from "@pathfinder/shared";
 import { getStepRecordsQueryKey } from "@pathfinder/shared/generated/hooks/useGetStepRecords";
@@ -24,6 +25,12 @@ export function toStrategy(response: ConversationResponse): Strategy {
 
 export function strategyQueryKey(conversationId: string) {
   return ["conversations", conversationId, "detail"] as const;
+}
+
+export function isStrategyQueryKey(queryKey: QueryKey): boolean {
+  return (
+    queryKey.length === 3 && queryKey[0] === "conversations" && queryKey[2] === "detail"
+  );
 }
 
 /** The key prefix every step answer page of one conversation shares. */

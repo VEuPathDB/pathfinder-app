@@ -44,7 +44,12 @@ export function ExhibitTable({
 }: ExhibitTableProps): ReactElement {
   return (
     <div>
-      <div className="overflow-x-auto">
+      <div
+        role="region"
+        aria-label={`Table: ${columns.map((column) => column.head).join(", ")}`}
+        tabIndex={0}
+        className="overflow-x-auto"
+      >
         <table
           data-testid={testId}
           className="mx-auto w-full border-collapse border-t border-b border-border text-xs"

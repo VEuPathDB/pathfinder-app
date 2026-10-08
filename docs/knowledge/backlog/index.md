@@ -8,6 +8,7 @@ what left.
 ## Ranked
 
 1. [The Claude model is probed for images and documents](the-claude-models-are-probed-for-images-and-documents.md) - BLOCKED on keys: the OpenAI and Gemini keys answer; the probe runs on `claude-haiku-4-5` when the Anthropic account holds credit and the user says so.
+33. [The interim deployment is deleted at the cutover](the-interim-deployment-is-deleted-at-cutover.md) - BLOCKED on the estate stack serving the development site: delete the GHCR workflow, `quadlets/` and `deploy/cedar/` with `check-quadlets`, their hooks, CI jobs and documents, and drop the workflow from `check-release.mjs`.
 12. [A dependent pick's label is the vocabulary it was bound under](a-dependent-picks-label-is-the-vocabulary-it-was-bound-under.md) - a dependent pick is labelled under its own parents on the bind, on hydration and on replay; the site-default count still reads a dependent pick at the published default, and no recorded dependent pick has a non-empty published default yet.
 
 31. [A message that commands a change is an edit when it also asks a question](a-message-that-commands-a-change-is-an-edit.md) - a command beside a question can be classified a question that withdraws nothing, and the turn answers read-only.

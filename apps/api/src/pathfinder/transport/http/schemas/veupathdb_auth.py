@@ -13,5 +13,3 @@ class AuthStatusResponse(CamelModel):
     """Current auth status response."""
 
     signedIn: bool
-    name: str | None = None
-    email: str | None = None

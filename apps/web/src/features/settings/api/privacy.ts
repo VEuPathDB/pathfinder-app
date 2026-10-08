@@ -1,11 +1,11 @@
 import type { PrivacySettings, PrivacyUpdate } from "@pathfinder/shared";
 
-import { getAuthHeaders } from "@/lib/api/http";
+import { buildUrl, getAuthHeaders } from "@/lib/api/http";
 
-const BASE = "/api/v1/me/privacy";
+const PRIVACY_PATH = "/api/v1/me/privacy";
 
 export async function getPrivacySettings(): Promise<PrivacySettings> {
-  const res = await fetch(BASE, {
+  const res = await fetch(buildUrl(PRIVACY_PATH), {
     credentials: "include",
     headers: getAuthHeaders(),
   });
@@ -16,7 +16,7 @@ export async function getPrivacySettings(): Promise<PrivacySettings> {
 export async function updatePrivacySettings(
   body: PrivacyUpdate,
 ): Promise<PrivacySettings> {
-  const res = await fetch(BASE, {
+  const res = await fetch(buildUrl(PRIVACY_PATH), {
     method: "PATCH",
     credentials: "include",
     headers: getAuthHeaders({ contentType: "application/json" }),

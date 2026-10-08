@@ -17,7 +17,7 @@ import {
 } from "./conversationSnapshot";
 
 const SNAPSHOT_ROUTE =
-  "http://localhost:3000/api/v1/conversations/:conversationId/events/snapshot";
+  "http://localhost:3000/pathfinder/api/v1/conversations/:conversationId/events/snapshot";
 
 function serveSnapshot(body: { chunks: unknown[]; cursor: number }): string[] {
   const seen: string[] = [];
@@ -40,7 +40,7 @@ describe("loadConversationSnapshot", () => {
 
     await loadConversationSnapshot("c1");
 
-    expect(seen).toEqual(["/api/v1/conversations/c1/events/snapshot"]);
+    expect(seen).toEqual(["/pathfinder/api/v1/conversations/c1/events/snapshot"]);
   });
 
   it("rebuilds the transcript the snapshot holds", async () => {

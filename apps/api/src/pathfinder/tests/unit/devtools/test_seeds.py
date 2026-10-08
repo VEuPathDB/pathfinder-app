@@ -4,10 +4,12 @@ organism marks the mock arcs read are recorded from the seeds' own searches."""
 from __future__ import annotations
 
 import pytest
+from pydantic import SecretStr
 
 from pathfinder.ai.models.mock import site_values
 from pathfinder.devtools import seeds
 from pathfinder.devtools.seeds import marks_json, seeds_json
+from pathfinder.platform.config import get_settings
 from pathfinder.services.experiment.seed.catalog import (
     SEED_DATABASES,
     SEEDS_DIR,
@@ -49,3 +51,21 @@ def test_the_marks_file_is_written_back_byte_for_byte() -> None:
     on_disk = site_values.MARKS_FILE.read_text()
 
     assert marks_json(site_values.recorded_marks_by_site()) == on_disk
+
+
+async def test_the_dev_login_signs_in_as_the_settings_dev_account(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "wdk_dev_email", "dev@example.org")
+    monkeypatch.setattr(settings, "wdk_dev_password", SecretStr("dev-password"))
+    calls: list[tuple[str, str, str]] = []
+
+    async def _login(site_id: str, email: str, password: str) -> str | None:
+        calls.append((site_id, email, password))
+        return "tok"
+
+    monkeypatch.setattr(seeds, "password_login", _login)
+
+    assert await seeds.dev_login("plasmodb") == "tok"
+    assert calls == [("plasmodb", "dev@example.org", "dev-password")]

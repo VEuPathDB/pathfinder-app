@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Strategy } from "@pathfinder/shared";
 import { createTestWrapper } from "@/lib/query/testing";
-import { chatUrl, strategyCanvasUrl } from "@/lib/routes";
+import { chatUrl } from "@/lib/routes";
 import { useFirstMessageStore } from "@/state/useFirstMessageStore";
 import { CanvasTopbar } from "./CanvasTopbar";
 
@@ -127,7 +127,7 @@ describe("CanvasTopbar", () => {
     expect(screen.getByText(/^Saved$/i)).toBeTruthy();
   });
 
-  it("copies the canvas URL the route builder produces", async () => {
+  it("copies the canvas URL under the base path", async () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText },
@@ -147,7 +147,7 @@ describe("CanvasTopbar", () => {
     await userEvent.click(screen.getByLabelText("More strategy actions"));
     await userEvent.click(await screen.findByText("Copy strategy URL"));
     expect(writeText).toHaveBeenCalledWith(
-      `${window.location.origin}${strategyCanvasUrl("plasmodb", "conv-1")}`,
+      "http://localhost:3000/pathfinder/plasmodb/conversation/conv-1/strategy",
     );
   });
 });

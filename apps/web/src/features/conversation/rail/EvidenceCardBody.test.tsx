@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ControlTestEvidence } from "@pathfinder/shared";
 
@@ -120,6 +120,33 @@ describe("EvidenceCardBody control tests", () => {
 });
 
 describe("EvidenceCardBody site link", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("opens the site and every citation in a new tab inside the website page", () => {
+    vi.spyOn(window, "top", "get").mockReturnValue(null);
+    render(
+      <EvidenceCardBody
+        card={{
+          ...EVIDENCE_CARD,
+          citations: [
+            { criterionId: "c1", criterionText: "kinases", references: ["31234567"] },
+          ],
+        }}
+      />,
+    );
+
+    const links = screen.getAllByRole("link");
+    expect(links.length).toBeGreaterThan(2);
+    expect(links.map((a) => a.getAttribute("target"))).toEqual(
+      links.map(() => "_blank"),
+    );
+    expect(links.map((a) => a.getAttribute("rel"))).toEqual(
+      links.map(() => "noreferrer"),
+    );
+  });
+
   it("records strategy_opened with the card's site and WDK strategy id", () => {
     render(<EvidenceCardBody card={EVIDENCE_CARD} />);
 

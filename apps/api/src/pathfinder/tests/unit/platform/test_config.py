@@ -57,13 +57,8 @@ def test_input_screening_can_be_disabled_via_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("INPUT_SCREENING_ENABLED", "false")
-    settings = Settings(
-        api_env="test",
-        api_secret_key="pathfinder-test-secret-key-1234567890",
-        database_url="postgresql+asyncpg://postgres:postgres@db:5432/pathfinder",
-        pathfinder_chat_provider="mock",
-    )
-    assert settings.input_screening_enabled is False
+
+    assert make_settings().input_screening_enabled is False
 
 
 def test_mock_provider_is_rejected_outside_development() -> None:
@@ -239,6 +234,11 @@ def test_the_oauth_client_id_setting_is_gone() -> None:
     assert "veupathdb_oauth_client_id" not in Settings.model_fields
 
 
+def test_the_semantic_scholar_key_setting_is_gone() -> None:
+    """The research server holds that key under its own name."""
+    assert "s2_api_key" not in Settings.model_fields
+
+
 def test_the_oauth_url_defaults_to_the_veupathdb_auth_server() -> None:
     assert make_settings().veupathdb_oauth_url == "https://auth.veupathdb.org"
 
@@ -267,13 +267,20 @@ def test_a_blank_toml_value_leaves_the_field_default_standing(
 ) -> None:
     """A blank TOML entry is no entry, the way a blank variable is."""
     config = tmp_path / "config.toml"
-    config.write_text(
-        'veupathdb_default_site = ""\nlog_level = "DEBUG"\napi_port = 9001\n'
-    )
+    config.write_text('pathfinder_site = ""\nlog_level = "DEBUG"\napi_port = 9001\n')
 
     values = TomlConfigSettingsSource(Settings, config)()
 
     assert values == {"log_level": "DEBUG", "api_port": 9001}
+
+
+def test_a_site_the_sites_file_does_not_list_is_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PATHFINDER_SITE", "nosuchdb")
+
+    with pytest.raises(ValueError, match="PATHFINDER_SITE"):
+        make_settings()
 
 
 def test_the_deployment_pays_for_each_provider_it_holds_a_key_for() -> None:
@@ -342,3 +349,90 @@ def test_a_key_declared_with_no_value_reads_as_the_default(
         Settings.model_fields["lead_turn_token_limit"].default,
         Settings.model_fields["cors_origin_regex"].default,
     )
+
+
+def test_the_public_base_url_reads_back_without_a_trailing_slash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://h.example/pathfinder/")
+
+    assert make_settings().public_base_url == "https://h.example/pathfinder"
+
+
+def test_an_absolute_public_base_url_is_kept() -> None:
+    settings = make_settings(public_base_url="https://h.example/pathfinder")
+
+    assert settings.public_base_url == "https://h.example/pathfinder"
+
+
+@pytest.mark.parametrize("url", ["/", "/pathfinder", "ftp://h.example/pathfinder"])
+def test_a_public_base_url_without_an_http_host_fails_startup(url: str) -> None:
+    with pytest.raises(ValueError, match="PUBLIC_BASE_URL"):
+        make_settings(public_base_url=url)
+
+
+def test_the_development_account_email_never_prints() -> None:
+    settings = make_settings(wdk_dev_email="dev@example.org")
+
+    assert repr(settings).count("dev@example.org") == 0
+
+
+def _deployed(api_env: str, **overrides: object) -> Settings:
+    return make_settings(
+        api_env=api_env,
+        pathfinder_chat_provider="default",
+        anthropic_api_key="real-anthropic-key",
+        **overrides,
+    )
+
+
+def test_production_refuses_the_local_public_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
+
+    with pytest.raises(ValueError, match="PUBLIC_BASE_URL must be set"):
+        _deployed("production")
+
+
+def test_production_keeps_a_public_base_url_it_is_given() -> None:
+    settings = _deployed(
+        "production", public_base_url="https://plasmodb.org/pathfinder"
+    )
+
+    assert settings.public_base_url == "https://plasmodb.org/pathfinder"
+
+
+def test_development_keeps_the_local_public_base_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
+
+    settings = _deployed("development")
+
+    assert settings.public_base_url == "http://localhost:3000/pathfinder"
+
+
+@pytest.mark.parametrize(
+    ("api_env", "email", "password", "offered"),
+    [
+        ("development", "dev@example.org", "dev-password", True),
+        ("development", "", "dev-password", False),
+        ("development", "dev@example.org", "", False),
+        ("test", "dev@example.org", "dev-password", False),
+    ],
+    ids=["development", "no-email", "no-password", "not-development"],
+)
+def test_the_dev_site_login_needs_development_and_the_dev_account(
+    api_env: str,
+    email: str,
+    password: str,
+    offered: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("WDK_DEV_EMAIL", raising=False)
+    monkeypatch.delenv("WDK_DEV_PASSWORD", raising=False)
+
+    settings = _deployed(api_env, wdk_dev_email=email, wdk_dev_password=password)
+
+    assert settings.offers_dev_site_login is offered

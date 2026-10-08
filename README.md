@@ -188,7 +188,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-- Web: `http://localhost:3000`
+- Web: `http://localhost:3000/pathfinder`
 - API: `http://localhost:8000`
   - Docs: `http://localhost:8000/docs`
   - Health: `http://localhost:8000/health`
@@ -208,7 +208,7 @@ cp .env.dev.example .env.dev
 docker compose --env-file .env.dev -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
-- Web: `http://localhost:3000`
+- Web: `http://localhost:3000/pathfinder`
 - API: `http://localhost:8000`
 - Postgres: `localhost:5432`
 
@@ -366,7 +366,7 @@ CI and the pre-commit hooks check the result rather than writing it, so a stale 
 
 PathFinder is a research-driven prototype. These are the biggest gaps you should expect today:
 
-- **CD (deployment pipelines)**: a `v*` tag publishes the four images to `ghcr.io/veupathdb` (`.github/workflows/publish-images.yml`), and the tester host installs them by hand (`deploy/cedar/`). Nothing deploys itself.
+- **CD (deployment pipelines)**: Jenkins builds the api and web images from `Jenkinsfile` to `docker.io/veupathdb` (`:latest` from `main`, the version from a `v<semver>` tag such as `v0.2.0-b5`), and the estate's units run them, the development stage following `:latest` and QA and production moved by tag. That stack does not serve PathFinder yet. Until it does, a `v*` tag also publishes the four images to `ghcr.io/veupathdb` (`.github/workflows/publish-images.yml`), and the tester host installs them by hand (`deploy/cedar/`).
 - **Contribution docs**: no `CONTRIBUTING.md`, no governance/release process.
 - **Production hardening**: one deployment is documented, the internal tester host (`deploy/cedar/README.md`: rootless podman quadlets, a reverse proxy somebody else owns, secrets in a file on the host). There is no hardened production tier.
 - **Database migrations**: Alembic is the only path to the schema, and the API migrates to `head` at startup (`platform/migrations.py`). There is no rollback story and no data-migration convention.

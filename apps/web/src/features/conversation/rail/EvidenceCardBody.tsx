@@ -17,7 +17,6 @@ import {
   type ExhibitRow,
 } from "@/features/conversation/thread/ExhibitTable";
 import { recordProductEvent } from "@/lib/api/productEvents";
-import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
 import { useConversationId } from "../useConversationId";
 import { referenceHref } from "./evidenceCards";
@@ -171,7 +170,6 @@ function Citations({
 }: {
   cited: readonly CriterionCitations[];
 }): ReactElement | null {
-  const target = useSiteLinkTarget();
   if (cited.length === 0) return null;
   return (
     <dl data-testid="evidence-citations" className="space-y-1 text-[11px]">
@@ -187,8 +185,8 @@ function Citations({
                 ) : (
                   <a
                     href={href}
-                    target={target}
-                    rel="noopener noreferrer"
+                    target="_blank"
+                    rel="noreferrer"
                     className="text-primary underline-offset-2 hover:underline"
                   >
                     {reference}
@@ -212,7 +210,6 @@ function SiteLinks({
   siteId: string;
   wdkStrategyId: number | null;
 }): ReactElement {
-  const target = useSiteLinkTarget();
   const conversationId = useConversationId();
   const recordOpen = () =>
     recordProductEvent({
@@ -228,8 +225,8 @@ function SiteLinks({
       <a
         data-testid="evidence-strategy-link"
         href={url}
-        target={target}
-        rel="noopener noreferrer"
+        target="_blank"
+        rel="noreferrer"
         aria-label={`Open in ${site}`}
         className={link}
         onClick={recordOpen}
@@ -238,8 +235,8 @@ function SiteLinks({
       </a>
       <a
         href={url}
-        target={target}
-        rel="noopener noreferrer"
+        target="_blank"
+        rel="noreferrer"
         className={link}
         onClick={recordOpen}
       >

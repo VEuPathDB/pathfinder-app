@@ -24,11 +24,10 @@ from pathfinder.ai.graph._lead_capture import (
     _LeadRunCapture,
     _persist_residual_quota,
     absorb_sub_agent_usage,
-    absorb_tool_charge,
 )
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
-from pathfinder.ai.lead.sub_agent_tools import SubAgentRunUsage, ToolCharge
+from pathfinder.ai.lead.sub_agent_tools import SubAgentRunUsage
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.persistence.models import User
@@ -36,7 +35,6 @@ from pathfinder.platform.model_keys import attach_keyring
 from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
 from pathfinder.tests.integration.http.conftest import make_user
 
-_TOOL_CHARGE = Decimal("0.005")
 _KEYRING = ProviderKeyring(
     active={"anthropic": SecretStr("sk-ant-sentinel-0123456789WXYZ")}
 )
@@ -132,7 +130,7 @@ async def test_a_streamed_charge_on_the_researchers_key_is_theirs(user: User) ->
     assert (status.used_usd, status.total_tokens) == (Decimal(0), 0)
 
 
-async def test_the_residual_splits_by_payer_and_the_tool_charge_is_the_deployments(
+async def test_the_residual_splits_by_payer(
     user: User,
 ) -> None:
     lead = ANTHROPIC_SMALL
@@ -141,14 +139,13 @@ async def test_the_residual_splits_by_payer_and_the_tool_charge_is_the_deploymen
     capture = _LeadRunCapture(lead_model=lead, tokens=300, cost_usd=Decimal("0.3"))
     absorb_sub_agent_usage(capture, keyed_pass)
     absorb_sub_agent_usage(capture, deployment_pass)
-    absorb_tool_charge(capture, ToolCharge(tool_name="research", cost_usd=_TOOL_CHARGE))
 
     with attach_keyring(_KEYRING):
         await _persist_residual_quota(_context(user), _state(user), capture)
 
     rows = await _rows(user)
     own_cost = Decimal("0.3") + _cost(ANTHROPIC_SMALL, 400)
-    deployment_cost = _cost(DEFAULT_MODEL, 700) + _TOOL_CHARGE
+    deployment_cost = _cost(DEFAULT_MODEL, 700)
     assert rows == {
         PaidBy.USER: (700, own_cost.quantize(Decimal("0.000001"))),
         PaidBy.DEPLOYMENT: (700, deployment_cost.quantize(Decimal("0.000001"))),

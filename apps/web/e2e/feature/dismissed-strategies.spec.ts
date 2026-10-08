@@ -34,7 +34,7 @@ async function makeWdkLinked(
   const strategyId = await openConversationId(page);
 
   const uniqueWdkId = Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 10000);
-  const patchResp = await apiClient.patch(`/api/v1/conversations/${strategyId}`, {
+  const patchResp = await apiClient.patch(`api/v1/conversations/${strategyId}`, {
     data: { wdkStrategyId: uniqueWdkId },
   });
   expect(patchResp.ok()).toBeTruthy();
@@ -76,7 +76,7 @@ test.describe("Recently deleted conversations: complex flows", () => {
   test.beforeEach(async ({ chatPage, apiClient }) => {
     // Purge prior conversations (incl. dismissed) so dismissed-count
     // assertions aren't polluted by earlier tests in this serial suite.
-    await apiClient.delete("/api/v1/user/data?deleteWdk=true");
+    await apiClient.delete("api/v1/user/data?deleteWdk=true");
     await chatPage.goto();
     await chatPage.newChat();
   });
@@ -121,7 +121,7 @@ test.describe("Recently deleted conversations: complex flows", () => {
     await sidebarPage.expectNoDismissedSection();
 
     // API confirms fully active.
-    const resp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
+    const resp = await apiClient.get(`api/v1/conversations/${strategyId}`);
     expect(resp.ok()).toBeTruthy();
   });
 
@@ -220,7 +220,7 @@ test.describe("Recently deleted conversations: complex flows", () => {
     await chatPage.expectAssistantMessage(/ribosomal genes/);
 
     // API confirms strategy still exists and is accessible.
-    const resp = await apiClient.get(`/api/v1/conversations/${strategyId}`);
+    const resp = await apiClient.get(`api/v1/conversations/${strategyId}`);
     expect(resp.ok()).toBeTruthy();
   });
 });

@@ -16,7 +16,6 @@ vi.mock("next/navigation", () => ({
 import { server } from "../../../vitest.msw-setup";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestWrapper } from "@/lib/query/testing";
-import { chatUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 import { ChatThread } from "./ChatThread";
 import { ChatHelpersProvider, type ChatHelpers } from "./runtime/chatHelpersContext";
@@ -43,7 +42,9 @@ function StubRuntimeProvider({ children }: { children: ReactNode }) {
 }
 
 function renderSignedInThread(conversationId: string) {
-  server.use(http.post("http://localhost:3000/api/v1/chat", () => new Response(null)));
+  server.use(
+    http.post("http://localhost:3000/pathfinder/api/v1/chat", () => new Response(null)),
+  );
 
   const { queryClient, Wrapper } = createTestWrapper();
   queryClient.setQueryData(
@@ -57,6 +58,13 @@ function renderSignedInThread(conversationId: string) {
     </StubRuntimeProvider>,
     { wrapper: Wrapper },
   );
+}
+
+function sendFromComposer(text: string) {
+  fireEvent.change(screen.getByPlaceholderText(/ask about strategies/i), {
+    target: { value: text },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /send/i }));
 }
 
 describe("ChatThread", () => {
@@ -103,15 +111,25 @@ describe("ChatThread", () => {
     renderSignedInThread("c1");
     expect(window.location.pathname).toBe("/");
 
-    fireEvent.change(screen.getByPlaceholderText(/ask about strategies/i), {
-      target: { value: "list kinases" },
+    sendFromComposer("list kinases");
+
+    const siteId = useSessionStore.getState().selectedSite;
+    await waitFor(() => {
+      expect(window.location.pathname).toBe(`/pathfinder/${siteId}/conversation/c1`);
     });
-    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+  });
+
+  it("keeps a deeper route of the same conversation when a run starts", async () => {
+    const siteId = useSessionStore.getState().selectedSite;
+    const strategyRoute = `/pathfinder/${siteId}/conversation/c1/strategy`;
+    window.history.replaceState(null, "", strategyRoute);
+    renderSignedInThread("c1");
+
+    sendFromComposer("list kinases");
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe(
-        chatUrl(useSessionStore.getState().selectedSite, "c1"),
-      );
+      expect(appended).toEqual(["list kinases"]);
     });
+    expect(window.location.pathname).toBe(strategyRoute);
   });
 });

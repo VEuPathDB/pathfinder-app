@@ -58,9 +58,10 @@ _DURABLE_TASK = f"durable:{TOOL}"
 
 
 # Every test here drives the worker arc: the registry this module records
-# through, the seams the worker installs over it, and the WDK double.
+# through, the seams the worker installs over it, the WDK double, and a
+# session the site login names.
 pytestmark = pytest.mark.usefixtures(
-    "controls_assistant", "worker_seams", "controls_wire"
+    "controls_assistant", "worker_seams", "controls_wire", "site_login_matches_session"
 )
 
 

@@ -98,6 +98,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^(quadlets/|deploy/cedar/|scripts/check-quadlets\.(mjs|test\.mjs))
+      - id: release
+        name: check the release pins (and the checker)
+        entry: bash -c "node scripts/check-release.mjs && node --test scripts/check-release.test.mjs"
+        language: system
+        pass_filenames: false
+        files: ^(apps/api/pyproject\.toml|apps/api/src/pathfinder/__init__\.py|docker-compose\.yml|\.github/workflows/publish-images\.yml|scripts/check-release\.(mjs|test\.mjs))$
       - id: wdk-rules
         name: check WDK rules (anchors, citations, conformance)
         entry: bash -c "node scripts/check-wdk-rules.mjs && node --test scripts/check-wdk-rules.test.mjs"

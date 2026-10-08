@@ -11,7 +11,6 @@ import type {
 
 import { Figure } from "@/features/conversation/thread/Figure";
 import { Sources } from "@/features/conversation/content/parts/FactsSources";
-import { useSiteLinkTarget } from "@/lib/hooks/useSiteLinkTarget";
 
 const SOURCE_LABELS: Record<ParameterFact["source"], string> = {
   stated: "stated",
@@ -79,13 +78,11 @@ function Step({
   noun,
   sources,
   listed,
-  target,
 }: {
   step: StepFact;
   noun: string;
   sources: SourceFact[];
   listed: ListedFact[];
-  target: string;
 }): ReactElement {
   const error = step.error ?? "";
   return (
@@ -118,7 +115,7 @@ function Step({
           {error}
         </div>
       )}
-      <Sources sources={sources} testId="facts-source" target={target} />
+      <Sources sources={sources} testId="facts-source" />
       {listed.map((listing) => (
         <div
           key={listing.stepId}
@@ -131,8 +128,8 @@ function Step({
               {index === 0 ? null : ", "}
               <a
                 href={record.url}
-                target={target}
-                rel="noopener noreferrer"
+                target="_blank"
+                rel="noreferrer"
                 className="text-primary underline-offset-2 hover:underline"
               >
                 {record.recordId}
@@ -168,7 +165,6 @@ function Sentences({
  * and counts, what the check measured, and what the turn saved or was refused.
  * The reply restates none of it. */
 export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
-  const target = useSiteLinkTarget();
   const noun = data.recordNoun ?? "gene";
   const steps = data.steps ?? [];
   const url = data.strategyUrl ?? null;
@@ -191,7 +187,6 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
               noun={noun}
               sources={sources.filter((s) => s.stepId === step.stepId)}
               listed={listed.filter((l) => l.stepId === step.stepId)}
-              target={target}
             />
           ))}
         </ul>
@@ -221,8 +216,8 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
         <a
           data-testid="facts-strategy-link"
           href={url}
-          target={target}
-          rel="noopener noreferrer"
+          target="_blank"
+          rel="noreferrer"
           className="mt-2 block text-sm font-medium text-primary underline-offset-2 hover:underline"
         >
           Open the strategy on the site
@@ -277,12 +272,8 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           text: result.sentence,
         }))}
       />
-      <Sources sources={ungrouped} testId="facts-source" target={target} />
-      <Sources
-        sources={data.namedGenes ?? []}
-        testId="facts-named-gene"
-        target={target}
-      />
+      <Sources sources={ungrouped} testId="facts-source" />
+      <Sources sources={data.namedGenes ?? []} testId="facts-named-gene" />
       <Sentences
         testId="facts-stopped-check"
         items={

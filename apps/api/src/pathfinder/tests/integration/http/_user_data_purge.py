@@ -109,8 +109,9 @@ async def api_client(
     patch_app_db_engine: None,
     app_memory_store: MemoryStore,
     seed_user: User,
+    site_login_matches_session: None,
 ) -> AsyncGenerator[httpx.AsyncClient]:
-    del patch_app_db_engine, app_memory_store
+    del patch_app_db_engine, app_memory_store, site_login_matches_session
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
         transport=transport,
@@ -128,9 +129,11 @@ async def other_application_client(
     app_memory_store: MemoryStore,
     seed_user: User,
     other_application: str,
+    site_login_matches_session: None,
 ) -> AsyncGenerator[httpx.AsyncClient]:
     """The same user, calling from a second application."""
     del patch_app_db_engine, app_memory_store, other_application
+    del site_login_matches_session
     async with other_application_client_for(app, seed_user.id) as client:
         yield client
 

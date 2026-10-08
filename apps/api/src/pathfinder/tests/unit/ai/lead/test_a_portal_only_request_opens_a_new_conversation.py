@@ -48,8 +48,8 @@ def test_frame_records_no_question_for_a_portal_only_transform() -> None:
 
 _ROUTE = (
     "This needs the VEuPathDB Portal, where one strategy holds both organisms. "
-    "[Open a new conversation there](/veupathdb/conversation); this conversation "
-    "stays on PlasmoDB."
+    "[Open a new conversation there](/pathfinder/veupathdb/conversation); this "
+    "conversation stays on PlasmoDB."
 )
 _SWITCH = SlotQuestion(
     question=(

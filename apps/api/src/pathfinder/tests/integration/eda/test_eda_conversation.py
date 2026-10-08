@@ -87,6 +87,10 @@ from pathfinder.tests.integration.chat._helpers import (
 )
 from pathfinder.tests.integration.http.conftest import WDK_AUTH_HEADER, client_for
 
+pytestmark = pytest.mark.usefixtures(
+    "patch_app_db_engine", "db_cleaner", "site_login_matches_session"
+)
+
 _PROMPT = "look at the rodent malaria phenotypes and keep the P. berghei rows"
 _DATASET = "DS_53f554ec6a"
 _STUDY = "STUDY_53f554ec6a"
@@ -286,13 +290,10 @@ class _Seam:
 @pytest.fixture
 async def seam(
     app: FastAPI,
-    patch_app_db_engine: None,
-    db_cleaner: None,
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> AsyncIterator[_Seam]:
     """The EDA assistant under site help's id, over the recorded EDA wire."""
-    del patch_app_db_engine, db_cleaner
     store = _AnalysesStore()
     client = EdaClient(base_url="https://plasmodb.org/eda", transport=_wire(store))
     wire_eda_client(monkeypatch, client)

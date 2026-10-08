@@ -15,7 +15,7 @@ import { expectBuild } from "../fixtures/build-checks";
 import { readConversation, siteOrganism } from "../fixtures/site-reads";
 
 async function geneSetsOn(api: ApiClient, siteId: string): Promise<GeneSet[]> {
-  const resp = await api.get(`/api/v1/gene-sets?siteId=${siteId}`);
+  const resp = await api.get(`api/v1/gene-sets?siteId=${siteId}`);
   expect(resp.status()).toBe(200);
   return (await resp.json()) as GeneSet[];
 }
@@ -82,7 +82,7 @@ test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
     await settingsPage.openTab("Data");
     await settingsPage.close();
 
-    await page.goto(`/${siteId}/conversation/${id}`);
+    await page.goto(`${siteId}/conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await sidebarPage.expectAtLeastOneConversation();
     await chatPage.sendTurn(

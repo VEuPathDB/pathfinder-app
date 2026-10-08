@@ -12,7 +12,7 @@ import { server } from "../../../../../vitest.msw-setup";
 import { ProviderKeySettings } from "./ProviderKeySettings";
 
 const SENTINEL = "sk-proj-sentinel-0123456789WXYZ";
-const KEYS_URL = "http://localhost:3000/api/v1/me/provider-keys";
+const KEYS_URL = "http://localhost:3000/pathfinder/api/v1/me/provider-keys";
 interface StoredKey {
   provider: string;
   hint: string;

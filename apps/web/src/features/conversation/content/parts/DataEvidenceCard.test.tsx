@@ -1,13 +1,17 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 
 import { DataEvidenceCard } from "./DataEvidenceCard";
 import { EVIDENCE_CARD, REVIEWED_CARD } from "./evidenceCardFixture";
 
 describe("DataEvidenceCard", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("captions the control counts and the steps the site counted", () => {
     render(<DataEvidenceCard data={EVIDENCE_CARD} />);
 
@@ -364,6 +368,19 @@ describe("DataEvidenceCard", () => {
       (REVIEWED_CARD.review?.sources ?? []).map((source) => source.url),
     );
     expect(sources.getByText("VEuPathDB record `PF3D7_0101000`")).toBeInTheDocument();
+  });
+
+  it("opens each source in a new tab inside the website page", () => {
+    vi.spyOn(window, "top", "get").mockReturnValue(null);
+    render(<DataEvidenceCard data={REVIEWED_CARD} />);
+
+    const links = within(screen.getByTestId("evidence-sources")).getAllByRole("link");
+    expect(links.map((a) => a.getAttribute("target"))).toEqual(
+      links.map(() => "_blank"),
+    );
+    expect(links.map((a) => a.getAttribute("rel"))).toEqual(
+      links.map(() => "noreferrer"),
+    );
   });
 
   it("shows no review section on a card without one", () => {

@@ -38,7 +38,7 @@ ENV HOSTNAME="0.0.0.0"
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
-    CMD node -e "fetch('http://localhost:3000/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))"
+    CMD node -e "fetch('http://localhost:3000/pathfinder/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))"
 
 CMD ["yarn", "next", "dev", "-p", "3000", "-H", "0.0.0.0"]
 
@@ -81,11 +81,11 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Warms the Node module cache on the first "/" render so the first real user
+# Warms the Node module cache on the first "/pathfinder/" render so the first real user
 # request doesn't pay the ~10s cold SSR cost. start-period gives the container
 # room to boot Node and finish the cold render; subsequent checks take <1s.
 HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
-    CMD node -e "fetch('http://localhost:3000/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))"
+    CMD node -e "fetch('http://localhost:3000/pathfinder/').then(r => r.ok ? r.text() : Promise.reject(new Error(r.status))).then(() => process.exit(0), () => process.exit(1))"
 
 CMD ["node", "apps/web/server.js"]
 

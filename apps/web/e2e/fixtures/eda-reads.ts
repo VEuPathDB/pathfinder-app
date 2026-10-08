@@ -26,7 +26,7 @@ export async function browseStudies(
   api: ApiClient,
   siteId: string,
 ): Promise<EdaStudySummaryResponse[]> {
-  const resp = await api.get(`/api/v1/eda/studies?siteId=${siteId}&limit=100`, {
+  const resp = await api.get(`api/v1/eda/studies?siteId=${siteId}&limit=100`, {
     timeout: 60_000,
   });
   expect(resp.status(), `studies on ${siteId}`).toBe(200);
@@ -50,7 +50,7 @@ export async function ownDatasets(
   api: ApiClient,
   siteId: string,
 ): Promise<EdaOwnDatasetResponse[]> {
-  const resp = await api.get(`/api/v1/eda/datasets?siteId=${siteId}`, {
+  const resp = await api.get(`api/v1/eda/datasets?siteId=${siteId}`, {
     timeout: 60_000,
   });
   expect(resp.status(), `datasets on ${siteId}`).toBe(200);
@@ -62,7 +62,7 @@ export async function readAnalysis(
   api: ApiClient,
   conversationId: string,
 ): Promise<EdaAnalysisState | null> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/eda`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/eda`);
   expect(resp.status(), `eda of ${conversationId}`).toBe(200);
   return ((await resp.json()) as ConversationEdaResponse).analysis;
 }
@@ -91,7 +91,7 @@ export async function readVolcano(
   conversationId: string,
 ): Promise<EdaVizResponse> {
   const resp = await api.post(
-    `/api/v1/eda/viz?siteId=${siteId}&conversationId=${conversationId}`,
+    `api/v1/eda/viz?siteId=${siteId}&conversationId=${conversationId}`,
     { data: { chart: "volcano" }, timeout: 120_000 },
   );
   expect(resp.status(), `volcano of ${conversationId}`).toBe(200);

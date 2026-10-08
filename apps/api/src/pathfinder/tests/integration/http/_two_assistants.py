@@ -28,7 +28,7 @@ from pathfinder.tests.integration.http._confirming_assistant import (
     CONFIRM_TOOL,
     build_confirming_spec,
 )
-from pathfinder.tests.integration.http.conftest import client_for
+from pathfinder.tests.integration.http.conftest import bearer_client_for
 
 UNAUTHORIZED = 401
 SITE_HELP = "site_help"
@@ -59,7 +59,7 @@ async def turn_with_body(
     body: dict[str, Any],
 ) -> list[dict[str, Any]]:
     queued = len(chat_turn_jobs(in_memory_jobs))
-    async with client_for(app, user_id) as client:
+    async with bearer_client_for(app, user_id) as client:
         post = asyncio.create_task(
             client.post("/api/v1/chat", json=body, timeout=60.0),
         )

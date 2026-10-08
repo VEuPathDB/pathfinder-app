@@ -30,7 +30,7 @@ const SECOND_USER_ID = "aaaaaaa2-1111-4111-8111-111111111111";
 const FIRST_ASSISTANT_ID = "bbbbbbb1-1111-4111-8111-111111111111";
 const SECOND_ASSISTANT_ID = "bbbbbbb2-1111-4111-8111-111111111111";
 
-const CONVERSATIONS = "http://localhost:3000/api/v1/conversations";
+const CONVERSATIONS = "http://localhost:3000/pathfinder/api/v1/conversations";
 
 function turn(
   userId: string,
@@ -117,10 +117,10 @@ function installHandlers(stubs: RevertStubs): void {
         name: "strategy",
       });
     }),
-    http.post("http://localhost:3000/api/v1/product-events", () =>
+    http.post("http://localhost:3000/pathfinder/api/v1/product-events", () =>
       HttpResponse.json({ accepted: true }),
     ),
-    http.post("http://localhost:3000/api/v1/chat", () => {
+    http.post("http://localhost:3000/pathfinder/api/v1/chat", () => {
       stubs.calls.push("chat");
       return new HttpResponse(null);
     }),

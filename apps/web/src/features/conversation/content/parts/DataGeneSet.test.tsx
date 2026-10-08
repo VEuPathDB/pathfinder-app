@@ -11,7 +11,7 @@ import { createTestWrapper } from "@/lib/query/testing";
 import { server } from "../../../../../vitest.msw-setup";
 import { DataGeneSet } from "./DataGeneSet";
 
-const GENE_SETS = "http://localhost:3000/api/v1/gene-sets";
+const GENE_SETS = "http://localhost:3000/pathfinder/api/v1/gene-sets";
 const GENE_SET_ID = "5b0c2f5e-3a51-4f7e-9d0c-0f4d3a1f2b61";
 const VDI_ID = "soV5JEQEcF00p";
 

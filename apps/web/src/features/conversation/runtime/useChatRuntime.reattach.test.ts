@@ -221,7 +221,7 @@ function stubConversationFetch(
   refuseTails = false,
 ): ConversationStub {
   const conversationId = crypto.randomUUID();
-  const eventsUrl = `/api/v1/conversations/${conversationId}/events`;
+  const eventsUrl = `http://localhost:3000/pathfinder/api/v1/conversations/${conversationId}/events`;
   const tailUrls: string[] = [];
   const encoder = new TextEncoder();
   let turn: ReadableStreamDefaultController<Uint8Array> | undefined;
@@ -245,9 +245,7 @@ function stubConversationFetch(
             new Response("the log is unreadable", { status: 500 }),
           );
         }
-        const after = Number(
-          new URL(url, "http://localhost").searchParams.get("after"),
-        );
+        const after = Number(new URL(url).searchParams.get("after"));
         const body = tails(after);
         return Promise.resolve(
           body === null ? new Response(null, { status: 204 }) : eventStream(body),

@@ -103,9 +103,9 @@ for string literals beginning `/users`, `/record-types`, `/strategy-lists`,
 that will otherwise give a wrong answer. Each of these has already caused a wrong row or a
 false alarm once.
 
-- **Discard PathFinder's own FastAPI route decorators.** `dev.py` and
-  `veupathdb_auth.py` declare `/login` and `/logout` routes of their own, which look
-  identical to the WDK paths in a grep and are not calls to WDK at all.
+- **Discard PathFinder's own FastAPI route decorators.** `dev.py` declares a `/login`
+  route of its own, which looks identical to the WDK path in a grep and is not a call
+  to WDK at all.
 - **Discard non-service literals when the extraction spans the client.** The calls
   themselves are issued by `veupathdb-py`, so a mapping that walks the client too meets
   the `/service` to `/app` rewrite in `veupathdb-py: src/veupathdb/wdk/_http.py` and the
@@ -136,11 +136,13 @@ client library's own domain suite.
 Every non-test module under `src/pathfinder/` that imports `httpx` catches its
 exception types without making a call; the clients that reach arXiv, Crossref,
 PubMed and the rest are served by `veupathdb-research-mcp` and are not in this
-tree. Exactly one module built a client against a VEuPathDB base URL:
+tree. No module builds a client against a VEuPathDB base URL. One did:
 `transport/http/routers/veupathdb_auth.py` constructed its own
 `httpx.AsyncClient(base_url=auth_site.service_url)` for `GET /logout`, with every
 contract green, and it was a transport module talking to WDK. That call moved
-into `veupathdb/wdk/auth_login.py`, where the credential it needs already lives.
+into `veupathdb/wdk/auth_login.py`, where the credential it needs already lives,
+and PathFinder now makes no logout call at all: signing out is the website's
+([PathFinder signs in through the site that hosts it](../../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
 
 The reading behind that move was confirmed live and is now
 WDK-AUTH-004 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`), which also records the part a fix

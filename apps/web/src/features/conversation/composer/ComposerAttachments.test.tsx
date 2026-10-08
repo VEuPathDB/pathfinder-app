@@ -63,7 +63,7 @@ afterEach(() => {
 
 function serveCatalog(): void {
   server.use(
-    http.get("http://localhost:3000/api/v1/models", () =>
+    http.get("http://localhost:3000/pathfinder/api/v1/models", () =>
       HttpResponse.json({
         models: [TEXT_ONLY, READER],
         defaultProvider: "openai",

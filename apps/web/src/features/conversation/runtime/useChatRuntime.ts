@@ -19,7 +19,7 @@ import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchem
 import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
 import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
-import { getAuthHeaders } from "@/lib/api/http";
+import { buildUrl, getAuthHeaders } from "@/lib/api/http";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { refetchStrategy, strategyQueryOptions } from "@/lib/api/strategy";
 import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQuota";
@@ -80,8 +80,8 @@ export function useChatRuntime({
   const [transport] = useState(() =>
     createDurableTransport({
       conversationId,
-      eventsUrlFor: (id) => `/api/v1/conversations/${id}/events`,
-      api: "/api/v1/chat",
+      eventsUrlFor: (id) => buildUrl(`/api/v1/conversations/${id}/events`),
+      api: buildUrl("/api/v1/chat"),
       headers: () =>
         getAuthHeaders({
           accept: "text/event-stream",

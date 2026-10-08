@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
+import pytest
 from assistant_core.persistence.models import Conversation
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
@@ -25,6 +26,9 @@ from pathfinder.tests.integration.jobs._dead_worker import (
     starved_age,
     turn_chunks,
 )
+
+pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+
 
 _NO_CONTENT = 204
 

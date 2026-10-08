@@ -1,9 +1,7 @@
 import { expect } from "@playwright/test";
 import { AxeBuilder } from "@axe-core/playwright";
-import { test as baseTest } from "./test";
+import { BASE_URL, test as baseTest } from "./test";
 import { clearAllGeneSets } from "./api-client";
-
-const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 
 interface SeriousViolation {
   id: string;

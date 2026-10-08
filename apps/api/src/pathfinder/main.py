@@ -39,7 +39,6 @@ from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.context import request_base_url_ctx
 from pathfinder.platform.error_handlers import (
     RUNTIME_REFUSALS,
     apply_error_handler,
@@ -75,6 +74,7 @@ from pathfinder.transport.http.routers import (
     chat,
     conversations,
     dev,
+    dev_site_login,
     eda,
     eda_datasets,
     evaluation,
@@ -283,8 +283,9 @@ def _register_routers(app: FastAPI) -> None:
 def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     """Create and configure the FastAPI application.
 
-    ``include_dev_routes=None`` follows the process settings; ``False`` pins
-    the production route set, whatever the environment.
+    ``include_dev_routes=None`` follows the process settings; ``False`` leaves
+    the mock overlay's routes out, whatever the environment. Local development
+    mounts the site sign-in route, which the spec never names.
     """
     settings = get_settings()
 
@@ -336,13 +337,6 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
             or request.headers.get("X-VEUPATHDB-AUTHORIZATION")
             or request.cookies.get("Authorization")
         )
-        # A full download URL needs the frontend origin.
-        origin = (
-            request.headers.get("Origin")
-            or request.headers.get("Referer", "").rstrip("/").rsplit("/api/", 1)[0]
-            or (settings.cors_origins[0] if settings.cors_origins else None)
-        )
-        request_base_url_ctx.set(origin)
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
@@ -365,11 +359,14 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
     _register_routers(app)
     trace_routes(app)
 
-    # The dev routes mount under the mock chat provider only.
+    # The mock overlay's routes mount under the mock chat provider only.
     if include_dev_routes is None:
         include_dev_routes = settings.pathfinder_chat_provider.strip().lower() == "mock"
     if include_dev_routes:
         app.include_router(dev.router)
+
+    if settings.offers_dev_site_login:
+        app.include_router(dev_site_login.router)
 
     install_openapi_post_passes(app)
 

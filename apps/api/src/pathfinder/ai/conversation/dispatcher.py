@@ -3,23 +3,20 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 from assistant_core.conversation.cancellation import cancel_in_flight_turn
-from assistant_core.conversation.event_stream import (
-    iter_sse,
-    latest_turn_boundary,
-)
+from assistant_core.conversation.event_stream import latest_turn_boundary
 from assistant_core.conversation.event_writer import (
     ChatEventWriter,
     append_user_message_once,
 )
-from assistant_core.conversation.vercel_adapter import VERCEL_AI_DSP_HEADERS
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.persistence.repositories.message import MessagesRepository
 from assistant_core.spec import AssistantSpec
 from assistant_core.tasks.chat_turn import defer_chat_turn
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.capabilities.security import scan_user_input
+from pathfinder.ai.conversation.event_tail import event_tail
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.errors import AssistantMismatchError
@@ -117,11 +114,7 @@ async def dispatch(
         payload=payload.model_dump(mode="json", by_alias=True),
     )
 
-    return StreamingResponse(
-        iter_sse(conversation_id=body.conversation_id, after=after),
-        media_type="text/event-stream",
-        headers=dict(VERCEL_AI_DSP_HEADERS),
-    )
+    return event_tail(body.conversation_id, after=after)
 
 
 __all__ = ["ChatRequestBody", "dispatch"]

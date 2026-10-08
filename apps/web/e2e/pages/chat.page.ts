@@ -1,5 +1,7 @@
 import { type Locator, type Page, expect } from "@playwright/test";
 
+import { BASE_PATH } from "@/lib/basePath";
+
 import { currentSiteId, waitForConversationRoute } from "./navigation";
 
 /**
@@ -31,7 +33,7 @@ export class ChatPage {
   }
 
   async goto() {
-    await this.page.goto("/");
+    await this.page.goto("./");
     // The app holds a "Starting up..." gate until the readiness probe
     // answers, and that probe lags while the API serves long WDK calls from
     // concurrently running specs.
@@ -40,7 +42,7 @@ export class ChatPage {
 
   /** Open the site's conversation route and a fresh conversation on it. */
   async startOn(siteId: string) {
-    await this.page.goto(`/${siteId}/conversation`);
+    await this.page.goto(`${siteId}/conversation`);
     await expect(this.composer).toBeVisible({ timeout: 60_000 });
     await this.newChat(siteId);
   }
@@ -72,8 +74,7 @@ export class ChatPage {
 
   /** Start a fresh conversation so the test is isolated from prior state. */
   async newChat(siteId?: string) {
-    const url = new URL(this.page.url());
-    const baseUrl = url.origin;
+    const baseUrl = `${new URL(this.page.url()).origin}${BASE_PATH}`;
     // Default to the site the test already switched to (from the URL), so the
     // new conversation lands on it rather than a hardcoded default.
     const selectedSite = siteId ?? currentSiteId(this.page);

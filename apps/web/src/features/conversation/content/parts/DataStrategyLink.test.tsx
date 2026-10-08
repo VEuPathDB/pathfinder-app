@@ -17,19 +17,20 @@ afterEach(() => {
 });
 
 describe("DataStrategyLink", () => {
-  it("opens the strategy in a new tab when the app is not framed", () => {
+  it("opens the strategy in a new tab", () => {
     render(<DataStrategyLink data={STRATEGY} />);
     const link = screen.getByRole("link", { name: "My Strategy" });
     expect(link).toHaveAttribute("href", STRATEGY.url);
     expect(link).toHaveAttribute("target", "_blank");
   });
 
-  it("replaces the framing site's page when the app is framed", () => {
+  it("opens the strategy in a new tab inside the website page", () => {
     vi.spyOn(window, "top", "get").mockReturnValue(null);
     render(<DataStrategyLink data={STRATEGY} />);
     const link = screen.getByRole("link", { name: "My Strategy" });
     expect(link).toHaveAttribute("href", STRATEGY.url);
-    expect(link).toHaveAttribute("target", "_top");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noreferrer");
   });
 
   it("renders link with title", () => {

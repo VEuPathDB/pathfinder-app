@@ -75,7 +75,7 @@ test.describe("EDA data parts render in the thread", () => {
       route.fulfill({ status: 200, headers: uiMessageStreamHeaders(), body: stream }),
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
+    await page.goto(`${SITE_ID}/conversation/${conversationId}`);
     await sendTurn(page, "explore the heat shock study");
 
     // 6 of 12 samples: the febrile half of the recorded entity counts.
@@ -136,7 +136,7 @@ test.describe("EDA data parts render in the thread", () => {
       route.fulfill(edaJson({ analysis: analysisState() })),
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
+    await page.goto(`${SITE_ID}/conversation/${conversationId}`);
     await sendTurn(page, "open the heat shock study");
 
     await expect(page.getByTestId("data-eda-analysis-state")).toBeVisible({
@@ -155,7 +155,7 @@ test.describe("EDA data parts render in the thread", () => {
     // navigation assertion waits longer than the default.
     await page.getByTestId("rail-eda-open").click();
     await expect(page).toHaveURL(
-      new RegExp(`/${SITE_ID}/conversation/${conversationId}/eda$`),
+      new RegExp(`/pathfinder/${SITE_ID}/conversation/${conversationId}/eda$`),
       { timeout: 60_000 },
     );
     await expect(page.getByTestId("eda-workbench-header")).toContainText(STUDY_TITLE, {
@@ -190,7 +190,7 @@ test.describe("EDA data parts render in the thread", () => {
       route.fulfill(edaJson({ analysis: FILTERED_ANALYSIS })),
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
+    await page.goto(`${SITE_ID}/conversation/${conversationId}`);
     await sendTurn(page, "explore the heat shock study");
 
     await expect(page.getByTestId("data-eda-analysis-state")).toBeVisible({
@@ -200,7 +200,7 @@ test.describe("EDA data parts render in the thread", () => {
     // navigation assertion waits longer than the default.
     await page.getByRole("button", { name: "Open study", exact: true }).click();
     await expect(page).toHaveURL(
-      new RegExp(`/${SITE_ID}/conversation/${conversationId}/eda$`),
+      new RegExp(`/pathfinder/${SITE_ID}/conversation/${conversationId}/eda$`),
       { timeout: 60_000 },
     );
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {

@@ -7,15 +7,19 @@ import { z } from "zod";
 
 import { APIError, requestJson } from "@/lib/api/http";
 import { refreshAuth } from "@/lib/api/veupathdb-auth";
+import { getQueryClient } from "@/lib/query/client";
+import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import {
   WDK_LOGIN_REQUIRED_TOAST_ID,
   handleWdkAuthRefusal,
-  requiresFullScreenSignIn,
   useAuthGateStore,
 } from "./useAuthGateStore";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 vi.mock("@/lib/api/veupathdb-auth", () => ({ refreshAuth: vi.fn() }));
+vi.mock("@/lib/query/invalidateUserScoped", () => ({
+  invalidateUserScopedQueries: vi.fn(),
+}));
 
 const LOGIN_REQUIRED_BODY = {
   type: "about:blank",
@@ -49,6 +53,7 @@ beforeEach(() => {
   vi.mocked(toast.error).mockClear();
   vi.mocked(refreshAuth).mockReset();
   vi.mocked(refreshAuth).mockResolvedValue({ success: true });
+  vi.mocked(invalidateUserScopedQueries).mockClear();
 });
 
 afterEach(() => {
@@ -58,12 +63,6 @@ afterEach(() => {
 describe("useAuthGateStore", () => {
   it("starts closed", () => {
     expect(useAuthGateStore.getState().signInRequired).toBe(false);
-    expect(useAuthGateStore.getState().signInReason).toBeNull();
-  });
-
-  it("opens without a reason when the user asks to sign in", () => {
-    useAuthGateStore.getState().requestSignIn();
-    expect(useAuthGateStore.getState().signInRequired).toBe(true);
     expect(useAuthGateStore.getState().signInReason).toBeNull();
   });
 
@@ -167,6 +166,17 @@ describe("handleWdkAuthRefusal on a second VEuPathDB account", () => {
     expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
   });
 
+  it("drops the previous account's cached reads once the relink succeeds", async () => {
+    const retry = vi.fn();
+
+    handleWdkAuthRefusal(mismatchError(), retry);
+
+    await vi.waitFor(() => expect(retry).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(invalidateUserScopedQueries).mock.calls).toEqual([
+      [getQueryClient()],
+    ]);
+  });
+
   it("relinks once for a burst of refusals", async () => {
     const retry = vi.fn();
 
@@ -200,6 +210,7 @@ describe("handleWdkAuthRefusal on a second VEuPathDB account", () => {
       id: WDK_LOGIN_REQUIRED_TOAST_ID,
     });
     expect(retry).not.toHaveBeenCalled();
+    expect(vi.mocked(invalidateUserScopedQueries)).not.toHaveBeenCalled();
   });
 
   it("prompts when the relink answers that it did not succeed", async () => {
@@ -210,20 +221,5 @@ describe("handleWdkAuthRefusal on a second VEuPathDB account", () => {
     await vi.waitFor(() =>
       expect(useAuthGateStore.getState().signInRequired).toBe(true),
     );
-  });
-});
-
-describe("requiresFullScreenSignIn", () => {
-  it("blocks a standalone session that has no VEuPathDB login", () => {
-    expect(requiresFullScreenSignIn({ embedded: false, signedIn: false })).toBe(true);
-  });
-
-  it("lets an embedded session render so the composer can carry the prompt", () => {
-    expect(requiresFullScreenSignIn({ embedded: true, signedIn: false })).toBe(false);
-  });
-
-  it("never blocks a signed-in session", () => {
-    expect(requiresFullScreenSignIn({ embedded: false, signedIn: true })).toBe(false);
-    expect(requiresFullScreenSignIn({ embedded: true, signedIn: true })).toBe(false);
   });
 });

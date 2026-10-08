@@ -7,6 +7,8 @@
 import type { Locator, Page } from "@playwright/test";
 import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
 
+import { BASE_PATH } from "@/lib/basePath";
+
 import { test, expect } from "../fixtures/test";
 import { type ArcName, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
@@ -103,7 +105,7 @@ interface LoggedChunk {
  * sub-agent step. The trace clips a summary, so a guard's own sentence is read here.
  */
 async function loggedRefusals(api: ApiClient, conversationId: string): Promise<string> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/events/snapshot`);
   expect(resp.status(), `events of ${conversationId}`).toBe(200);
   const { chunks } = (await resp.json()) as { chunks: LoggedChunk[] };
   return chunks
@@ -467,7 +469,9 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await openTraces(chatPage);
     await expect(errorRows(page, "Choose a search")).toHaveCount(1);
     await expect(
-      chatPage.assistantMessages.locator('a[href="/veupathdb/conversation"]'),
+      chatPage.assistantMessages.locator(
+        `a[href="${BASE_PATH}/veupathdb/conversation"]`,
+      ),
     ).toHaveCount(1);
     await expect(page.getByTestId("approval-card")).toHaveCount(0);
     await expect(page.getByTestId("consult-carousel")).toHaveCount(0);
@@ -482,7 +486,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
   }) => {
     // With no study index the search matches by name, so the message is a
     // study's name: the first of the site's catalog another site publishes.
-    const resp = await apiClient.get(`/api/v1/eda/studies?siteId=${siteId}&limit=100`);
+    const resp = await apiClient.get(`api/v1/eda/studies?siteId=${siteId}&limit=100`);
     expect(resp.status()).toBe(200);
     const { studies } = (await resp.json()) as EdaStudyListResponse;
     const elsewhere = studies.find(

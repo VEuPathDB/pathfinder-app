@@ -20,7 +20,7 @@ describe("beginConversation", () => {
   it("records the conversation as one that now has a row", async () => {
     server.use(
       http.post(
-        `http://localhost:3000/api/v1/conversations/${CONVERSATION_ID}/begin`,
+        `http://localhost:3000/pathfinder/api/v1/conversations/${CONVERSATION_ID}/begin`,
         () =>
           HttpResponse.json({
             conversationId: CONVERSATION_ID,

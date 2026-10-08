@@ -75,8 +75,8 @@ Modules, and the endpoints each covers (see
 | `analyses.py` | `/users/{uid}/analyses/{project}` CRUD, `/public/analyses`, `/import-analysis` |
 
 No new credential path. The EDA service accepts the same registered WDK token
-PathFinder already holds:
-`veupathdb-py: src/veupathdb/wdk/auth_login.py::password_login` returns it,
+PathFinder already holds: the website's `Authorization` cookie brings it
+([PathFinder signs in through the site that hosts it](../decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)),
 `veupathdb.auth_context.veupathdb_auth_token_ctx` carries it per request,
 `main.py`'s request middleware sets it from the request and
 `platform/security.py::_veupathdb_principal` sets it for a bearer caller, and

@@ -46,7 +46,7 @@ test.describe("Thread reverting", { tag: "@turn" }, () => {
 
     // Cut the thread out from under the open page.
     const first = await apiClient.post(
-      `/api/v1/conversations/${conversationId}/revert-to-message`,
+      `api/v1/conversations/${conversationId}/revert-to-message`,
       { headers: CSRF_HEADERS, data: { messageId: target } },
     );
     expect(first.status()).toBe(204);

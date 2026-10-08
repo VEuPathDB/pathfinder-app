@@ -11,6 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.security import create_user_token
 
+pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+
+
 _AST = {
     "recordType": "transcript",
     "root": {

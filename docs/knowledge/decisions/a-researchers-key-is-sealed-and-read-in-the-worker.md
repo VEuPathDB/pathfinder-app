@@ -45,7 +45,7 @@ provider a turn's roles run on: a live key pays; a refused or unreadable key
 refuses the turn (409 at dispatch, a typed turn failure in the worker); else the
 deployment pays when it holds the provider's key; else `PROVIDER_NOT_CONFIGURED`
 (422). The monthly allowance stops only a turn that runs some model on the
-deployment's key. A served tool's cost is always the deployment's.
+deployment's key.
 
 **Every model is guarded** (`platform/model_keys.py::GuardedModel`), keyed or
 not: a provider error, whether the request or its stream raised it, reaches the
@@ -73,8 +73,8 @@ unsupported region, which is the deployment's and not the key's, so it is not a
 refusal.
 
 **Usage.** Each `monthly_usage` row names its payer (runtime `0.3.0a17`). The
-quota pill shows the allowance with its bar, or the bare own-key spend when the
-researcher holds a live key. Every model call of a turn is charged: the Lead
+rail's spending meter fills its ring with the allowance spent, and its tooltip
+adds the own-key spend when the researcher holds a live key. Every model call of a turn is charged: the Lead
 and the sub-agents through the Lead's capture, the thread title and the notes
 compaction through `ai/capabilities/metering.py`, each on the row of the key
 its model ran on, a failed run included. The compaction also joins the turn's
@@ -121,4 +121,4 @@ rows and not the turn's total.
 `persistence/repositories/provider_key.py`, `services/provider_keys.py`,
 `jobs/turn_keys.py`, `transport/http/routers/me.py`, and in the web
 `features/settings/components/settings/ProviderKeySettings.tsx`,
-`lib/models/payers.ts`, `app/components/QuotaPill.tsx`.
+`lib/models/payers.ts`, `app/components/RailQuotaMeter.tsx`.

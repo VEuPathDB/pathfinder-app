@@ -1,8 +1,7 @@
-"""A sub-agent's research reads are recorded and billed like the Lead's.
+"""A sub-agent's research reads are recorded like the Lead's.
 
 FRAME and VERIFY read the same served research tools the Lead reads. A
-reference one of them retrieves is a reference the turn retrieved, and a search
-the deployment paid for is on the turn's bill whoever asked for it.
+reference one of them retrieves is a reference the turn retrieved.
 """
 
 from __future__ import annotations
@@ -14,7 +13,10 @@ from typing import Any
 import pytest
 from pydantic_ai.toolsets import FunctionToolset
 
-from pathfinder.ai.graph._lead_capture import _LeadRunCapture, usage_recorders
+from pathfinder.ai.graph._lead_capture import (
+    _LeadRunCapture,
+    sub_agent_usage_recorder,
+)
 from pathfinder.ai.graph.runtime import AgentDeps, turn_tool_sources
 from pathfinder.ai.lead import frame_dispatch
 from pathfinder.ai.lead.deltas import FrameResult
@@ -30,7 +32,6 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 )
 
 _DOI = "10.1371/journal.ppat.1010773"
-_PRICE = Decimal("0.005")
 _PAPER = (
     '{"query": "ROP18 kinase", "results": [{"title": "ROP18 is a rhoptry kinase", '
     f'"doi": "{_DOI}", "pmid": null, "url": null}}], '
@@ -71,11 +72,9 @@ def _a_pass_that_reads_a_paper(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
 
 
-def _turn(capture: _LeadRunCapture) -> LeadDeps:
+def _turn() -> LeadDeps:
     deps = lead_deps(pipeline_state(user_prompt="what does ROP18 do?"))
     deps.runtime = replace(deps.runtime, tool_sources={"research": _served_research()})
-    _, record_tool = usage_recorders(capture, deps.state, ChunkCollector())
-    deps.record_tool_charge = record_tool
     return deps
 
 
@@ -91,24 +90,26 @@ async def test_a_paper_a_sub_agent_read_is_on_the_turns_markers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _a_pass_that_reads_a_paper(monkeypatch)
-    capture = _LeadRunCapture()
-    deps = _turn(capture)
+    deps = _turn()
 
     await _dispatch(deps)
 
     assert deps.state.turn_markers.retrieved_sources == [_DOI]
 
 
-async def test_a_priced_search_a_sub_agent_made_is_on_the_turns_bill(
+async def test_a_served_answer_that_names_a_price_adds_nothing_to_the_turn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _a_pass_that_reads_a_paper(monkeypatch)
     capture = _LeadRunCapture()
-    deps = _turn(capture)
+    deps = _turn()
+    deps.record_sub_agent_usage = sub_agent_usage_recorder(
+        capture, deps.state, ChunkCollector()
+    )
 
     await _dispatch(deps)
 
-    assert capture.tool_cost == _PRICE
+    assert capture.cumulative_cost == Decimal(0)
 
 
 async def test_the_facts_part_holds_what_a_sub_agent_retrieved(
@@ -116,8 +117,7 @@ async def test_the_facts_part_holds_what_a_sub_agent_retrieved(
 ) -> None:
     """The turn's record is one, so a sub-agent's read is a source the facts show."""
     _a_pass_that_reads_a_paper(monkeypatch)
-    capture = _LeadRunCapture()
-    deps = _turn(capture)
+    deps = _turn()
     await _dispatch(deps)
 
     assert turn_facts(deps).sources == [SourceFact(url=_DOI)]

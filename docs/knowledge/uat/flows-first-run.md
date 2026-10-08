@@ -15,12 +15,12 @@ Run on each site in [sites and accounts](sites-and-accounts.md) unless the flow 
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Browser, profile of account A, signed out | Open `<pathfinder-url>` | The app is replaced by one dialog: `PathFinder`, `VEuPathDB Strategy Builder` (CSS), `Sign in with your VEuPathDB account to build and manage search strategies.`, fields `Email` and `Password`, button `Sign in`, line `We do not store your login credentials.` No close button; Escape does nothing. |
-| 2 | Sign-in dialog | Enter account A's email and a wrong password, `Sign in` | `Login failed. Please check your credentials.` The dialog stays. |
-| 3 | Sign-in dialog | Enter the right password, `Sign in` | Button reads `Signing in...`, then the dialog closes and the URL is `/<site>/conversation`; the entry site is the portal when it answers. |
+| 1 | Browser, profile of account A, signed out of the website | Open `<pathfinder-url>` | The app is replaced by one panel: `PathFinder`, `VEuPathDB Strategy Builder` (CSS), `Sign in to VEuPathDB to build and manage search strategies.`, link `Sign in to VEuPathDB`. No dialog, no email or password field. |
+| 2 | Signed-out panel | `Sign in to VEuPathDB` | The website's login page opens in the whole window, its `destination` the page you were on: the website page that shows PathFinder, or PathFinder itself when opened alone. |
+| 3 | Website login | Sign in as account A | The website returns to that page; the panel is gone and PathFinder shows `/<site>/conversation`; the entry site is the deployment's site when it answers, else the portal. |
 | 4 | First signed-in visit | Read the notice | Dialog `How PathFinder learns`, buttons `Turn off` and `OK`. Click `OK`. It does not appear again after a reload. |
-| 5 | Top bar | Read | `Logged in as <account name>`, `Log out`; the quota pill `$<used> / $<limit>` with tooltip `Account total this month, across all conversations.` |
-| 6 | Top bar | `Log out`, then sign in again | Back to step 1's dialog; after sign-in the conversation list is unchanged. |
+| 5 | Website header | Log out of the website, then reload PathFinder | Back to step 1's panel. |
+| 6 | Signed-out panel | Sign in again through the link | After sign-in the conversation list is unchanged. |
 
 ## F2 - Site menu - core
 
@@ -28,7 +28,7 @@ Run on each site in [sites and accounts](sites-and-accounts.md) unless the flow 
 |---|---|---|---|
 | 1 | Nav rail | Hover the site icon | Tooltip `Switch site`. |
 | 2 | Nav rail, `Switch site` | Click | Menu with `COMPONENT SITES` (CSS) and `PORTAL` (CSS) groups; items read `PlasmoDB (Plasmodium)`, `VectorBase (Vectors)`, `ToxoDB (Toxoplasma)`, `FungiDB (Fungi)`, `VEuPathDB Portal (All organisms)`. No item carries `Couldn't reach`. |
-| 3 | Site menu | Pick `ToxoDB (Toxoplasma)` | URL `/toxodb/conversation`; the top bar banner changes; the conversation list shows only toxodb conversations. |
+| 3 | Site menu | Pick `ToxoDB (Toxoplasma)` | URL `/toxodb/conversation`; the conversation list shows only toxodb conversations. |
 | 4 | Site menu | Pick the site you started on | The list returns to that site's conversations. |
 
 ## F3 - A site that is down
@@ -39,7 +39,7 @@ Needs the deployment operator (see `R1` in [resilience flows](flows-resilience.m
 |---|---|---|---|
 | 1 | Operator | Make one site's catalog fail to load (R1, step 1) | `GET /api/v1/sites` answers that site with `available: false` and an `unavailableReason`. |
 | 2 | Nav rail | Open `Switch site` | The site's item reads `Couldn't reach` with a warning glyph. |
-| 3 | Site menu | Pick that site | The rail, the sidebar and the top bar stay; the content area shows `Couldn't reach <site name>` and `PathFinder cannot use this site right now: <reason>. It keeps trying every minute, so this may clear on its own.`, then `Try another site:` and one link per site that answers. The rail's site icon carries the warning glyph, tooltip `Couldn't reach <site name>`. |
+| 3 | Site menu | Pick that site | The rail and the sidebar stay; the content area shows `Couldn't reach <site name>` and `PathFinder cannot use this site right now: <reason>. It keeps trying every minute, so this may clear on its own.`, then `Try another site:` and one link per site that answers. The rail's site icon carries the warning glyph, tooltip `Couldn't reach <site name>`. |
 | 4 | Operator | Restore the site | Within 60 s, without a reload, the marker and the notice go away. |
 
 `CLAUDE.md` calls this marker "Not responding"; the code renders `Couldn't reach`. Test `Couldn't reach`.
@@ -136,6 +136,6 @@ Account A in one browser profile, account B in another (see [sites and accounts]
 | 6 | Account B | EDA tab, `Your datasets` | None of A's uploads. |
 | 7 | Account B | Nav rail `Saved strategies` | None of A's saved strategies. |
 
-| 8 | Account A's profile | On plasmodb.org sign out and sign in as account B, then return to PathFinder and send a message | PathFinder relinks or shows `Signed in to VEuPathDB as a different account than this PathFinder session. Sign in again.`; it never acts on B's VEuPathDB account under A's PathFinder session |
+| 8 | Account A's profile | In the header of the website that shows PathFinder, sign out and sign in as account B, then return to PathFinder and send a message | PathFinder relinks to account B: the sidebar holds B's conversations and none of A's. If the relink fails it shows `Signed in to VEuPathDB as a different account than this PathFinder session. Sign in again.`; it never acts on B's VEuPathDB account under A's PathFinder session |
 
 Any of A's data shown to B is a blocker (privacy breach).

@@ -1,5 +1,57 @@
 # Log
 
+## 2026-10-08
+
+* **PathFinder is 0.2.0b5 on `veupathdb-mcp` v0.2.0-b4**, the first `ai-wdk-mcp` release tagged in
+  semver. Compose and the interim workflow build research-mcp from `Dockerfile.research`, and
+  the backlog item that waited for this release is closed.
+* **The research server's web search uses the deployment's SearXNG, then the
+  engines `ddgs` scrapes.** The Brave Search API key is gone from
+  `docker-compose.yml`, `.env.example` and `deploy/cedar/env.example`, and the
+  Lead no longer charges a served tool's price to the turn: `ToolCharge`,
+  `record_tool_charge` and the capture's `tool_cost` are removed, because no
+  served tool prices its answer
+  (`veupathdb-mcp: docs/knowledge/decisions/a-keyed-engine-answers-first-and-prices-the-call.md`).
+* **PathFinder lives inside the VEuPathDB website that hosts it.** It is served at
+  `/pathfinder` on the website's own host in every environment, and the website's
+  `Authorization` cookie is its only WDK credential: the password login, the logout
+  route and the account name in the auth status are gone, and only the
+  development route `GET /api/v1/dev/site-login` (mounted under
+  `API_ENV=development`) writes that cookie. `pathfinder-auth`, now at
+  `Path=/pathfinder`, is honored only while the website login names the same
+  account. The deployment's site is `PATHFINDER_SITE`, reported with its sign-in
+  address by `GET /health/config`; a signed-out PathFinder shows one notice that
+  links to the website's login. The top bar and the embedded layout are gone: the
+  rail carries the logo and the spending meter, and a framed PathFinder posts its
+  path to a same-origin parent. Export links read `PUBLIC_BASE_URL`, which compose
+  now passes to the api and the worker with `PATHFINDER_SITE`, and compose binds
+  the api, web and MCP ports to `127.0.0.1`
+  ([the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+  Images move to the estate's pipeline: Jenkins builds the api and web images from
+  `Jenkinsfile` with `pipelib` to `docker.io/veupathdb`, a release is tagged with
+  the semver spelling of the api version (`v0.2.0-b5`), and
+  `scripts/check-release.mjs` holds the tag, the api version and the MCP pins
+  together in pre-commit and in CI; the api image copies its optional
+  `ollama_models.yaml` with a glob buildah accepts on a clean checkout. In the
+  estate stack the two MCP servers run the `ai-wdk-mcp` release the api pins, at a
+  tag of their own, never `latest`. The GHCR workflow and the rootless cedar units
+  stay until the estate stack serves the development site
+  ([the decision](decisions/the-images-come-from-the-registry-and-cedar-pulls.md)).
+  Two items join the backlog: pinning the next `ai-wdk-mcp` release, the first in
+  semver and the first with `Dockerfile.research`, and deleting the interim
+  deployment at the cutover.
+* **The development sign-in needs the development account, and production needs
+  its address.** `GET /api/v1/dev/site-login` mounts, and `GET /health/config`
+  names it as `siteSignInUrl`, only under `API_ENV=development` with
+  `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` both set (`Settings.offers_dev_site_login`).
+  Under `API_ENV=production` startup refuses a `PUBLIC_BASE_URL` left at its local
+  default. The auth routes read `pathfinder-auth` through the `auth_cookie`
+  dependency, so only `platform/security.py` names the cookie, and the seed
+  measurer reads the development account from the settings. The api's unread
+  `S2_API_KEY` is gone: the research server reads `RESEARCH_MCP_S2_API_KEY`, and
+  compose and both env templates now name only that
+  ([the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+
 ## 2026-10-07
 
 * **The portal is project UniDB.** `veupathdb-py` 0.1.0b3 names the portal's project

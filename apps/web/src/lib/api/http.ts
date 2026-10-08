@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { withBasePath } from "@/lib/basePath";
 import { getConfiguredServerApiBaseUrl } from "@/lib/config/apiBase";
 
 export class SchemaValidationError extends Error {
@@ -41,25 +42,19 @@ export class APIError extends Error {
   }
 }
 
-function getApiBaseUrl(): string {
+function resolveUrl(path: string): URL {
+  if (path.startsWith("http://") || path.startsWith("https://")) return new URL(path);
   if (typeof window !== "undefined") {
-    // In the browser, use the page's own origin so every request goes through
-    // the Next.js rewrite proxy (configured in next.config.js).  This keeps
-    // cookies on the same origin as the page, avoiding cross-origin cookie
-    // issues that cause "different session" errors when the API runs on a
-    // different port (e.g. localhost:3000 -> localhost:8000).
-    return window.location.origin;
+    // The browser calls the Next.js rewrite under the app's base path on the
+    // page's own origin, so every request carries the session cookie.
+    return new URL(withBasePath(path), window.location.origin);
   }
   // Server-side (SSR / route handlers): reach the API directly.
-  return getConfiguredServerApiBaseUrl();
+  return new URL(path, getConfiguredServerApiBaseUrl());
 }
 
 export function buildUrl(path: string, query?: Record<string, unknown>): string {
-  const base = getApiBaseUrl();
-  const url =
-    path.startsWith("http://") || path.startsWith("https://")
-      ? new URL(path)
-      : new URL(path, base);
+  const url = resolveUrl(path);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v === undefined || v === null) continue;

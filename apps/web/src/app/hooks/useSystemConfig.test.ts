@@ -35,6 +35,8 @@ function makeConfigResponse(overrides: { llmConfigured: boolean }) {
       google: false,
       ollama: false,
     },
+    siteId: "veupathdb",
+    siteSignInUrl: "https://veupathdb.org/veupathdb/app/user/login",
   };
 }
 
@@ -76,6 +78,20 @@ describe("useSystemConfig", () => {
     });
 
     expect(result.current.setupRequired).toBe(true);
+  });
+
+  it("returns the deployment's sign-in address", async () => {
+    mockGetSystemConfig.mockResolvedValue(makeConfigResponse({ llmConfigured: true }));
+
+    const { result } = await importAndRender();
+
+    await waitFor(() => {
+      expect(result.current).not.toBeNull();
+    });
+
+    expect(result.current.siteSignInUrl).toBe(
+      "https://veupathdb.org/veupathdb/app/user/login",
+    );
   });
 
   it("retry() triggers a refetch after initial success", async () => {

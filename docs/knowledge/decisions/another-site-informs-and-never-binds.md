@@ -73,7 +73,7 @@ switch. When a transform's organism value is on no entry of its sheet and
 `sites_holding_organism` names another site, the unmatched-value retry adds
 what the transform reaches here and the sentence "This needs the VEuPathDB
 Portal, where one strategy holds both organisms. Open a new conversation there;
-this conversation stays on <Site>." with the link `/veupathdb/conversation`
+this conversation stays on <Site>." with the link `/pathfinder/veupathdb/conversation`
 (`_frame_proposals.py::portal_only_sentence`). The retry records the sentence
 on the pass (`AgentToolState.portal_route`); a pass that then changed nothing
 answers the Lead with the sentence alone and no question

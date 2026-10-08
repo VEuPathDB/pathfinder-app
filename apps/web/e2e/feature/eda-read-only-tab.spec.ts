@@ -82,7 +82,7 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
       route.fulfill(edaJson({ analysis: COMPARED_ANALYSIS })),
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}`);
+    await page.goto(`${SITE_ID}/conversation/${conversationId}`);
     await sendTurn(page, "compare febrile and normal samples");
     await expect(page.getByTestId("data-eda-analysis-state")).toBeVisible({
       timeout: 20_000,
@@ -91,7 +91,7 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
     // The dev server compiles the tab route on first request.
     await page.getByRole("button", { name: "Open study", exact: true }).click();
     await expect(page).toHaveURL(
-      new RegExp(`/${SITE_ID}/conversation/${conversationId}/eda$`),
+      new RegExp(`/pathfinder/${SITE_ID}/conversation/${conversationId}/eda$`),
       { timeout: 60_000 },
     );
 
@@ -136,7 +136,7 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
       route.fulfill(edaJson({ analysis: siteEdited ? edited : COMPARED_ANALYSIS })),
     );
 
-    await page.goto(`/${SITE_ID}/conversation/${conversationId}/eda`);
+    await page.goto(`${SITE_ID}/conversation/${conversationId}/eda`);
     const chip = page.getByTestId("eda-workbench").getByTestId("eda-filter-chip-0");
     await expect(chip).toHaveText(FEBRILE_SUMMARY, { timeout: 60_000 });
 

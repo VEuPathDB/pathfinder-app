@@ -1,12 +1,24 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { OpenInSiteLink } from "./OpenInSiteLink";
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("OpenInSiteLink", () => {
+  it("opens a new tab inside the website page", () => {
+    vi.spyOn(window, "top", "get").mockReturnValue(null);
+    render(<OpenInSiteLink href="https://vectorbase.org/a" siteId="vectorbase" />);
+    const link = screen.getByRole("link", { name: "Open in VectorBase" });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noreferrer");
+  });
+
   it("is a plain link with no button type", () => {
     render(<OpenInSiteLink href="https://vectorbase.org/a" siteId="vectorbase" />);
     const link = screen.getByRole("link", { name: "Open in VectorBase" });

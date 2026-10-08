@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useInterval, useTimeout } from "usehooks-ts";
+import { withBasePath } from "@/lib/basePath";
 
 const COUNTDOWN_SECONDS = 3;
 
@@ -21,7 +22,13 @@ export default function NotFound() {
 
   return (
     <div className="flex h-full min-h-screen flex-col items-center justify-center bg-background px-6 text-center text-foreground">
-      <Image src="/pathfinder.svg" alt="PathFinder" width={64} height={64} priority />
+      <Image
+        src={withBasePath("/pathfinder.svg")}
+        alt="PathFinder"
+        width={64}
+        height={64}
+        priority
+      />
       <h1 className="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
         PathFinder
       </h1>

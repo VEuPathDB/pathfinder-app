@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathfinder.main import create_app
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.langfuse.events import ProductEvent
+from pathfinder.platform.security import site_login_user
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 from pathfinder.transport.http.routers import product_events
 
@@ -41,7 +42,10 @@ def recorded(monkeypatch: pytest.MonkeyPatch) -> list[ProductEvent]:
 
 
 @pytest.fixture
-async def client(app: FastAPI, user_id: UUID) -> AsyncGenerator[httpx.AsyncClient]:
+async def client(
+    app: FastAPI, user_id: UUID, site_login_matches_session: None
+) -> AsyncGenerator[httpx.AsyncClient]:
+    del site_login_matches_session
     async with client_for(app, user_id) as client:
         yield client
 
@@ -120,6 +124,11 @@ async def test_a_request_is_one_server_span_with_its_user_and_request_id(
     del recorded
     get_settings.cache_clear()
     traced_app = create_app()
+
+    async def _site_user() -> UUID:
+        return user_id
+
+    traced_app.dependency_overrides[site_login_user] = _site_user
 
     async with client_for(traced_app, user_id) as client:
         response = await client.post(

@@ -1,7 +1,10 @@
 """Every WDK-backed route refuses a request that names no registered VEuPathDB user.
 
 VEuPathDB serves the WDK service to registered users only, so a request with no
-token, or with a guest one, is answered before it reaches WDK.
+token, or with a guest one, is answered before it reaches WDK. The refusals ride
+a PathFinder bearer, which names no website login, so the WDK gate is what
+refuses; a session cookie with no website login is refused earlier, by the
+principal, in ``test_principal_auth``.
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.wdk import get_site
 
 from pathfinder.platform.config import get_settings
+from pathfinder.services.eda.private_datasets import OwnDatasets
 from pathfinder.services.users import get_or_create_user_id
 from pathfinder.tests._support.veupathdb_tokens import (
     JWKS_URL,
@@ -31,9 +35,11 @@ from pathfinder.tests.integration.http._authz_matrix_owned import create_owned
 from pathfinder.tests.integration.http._authz_matrix_support import Owned
 from pathfinder.tests.integration.http.conftest import (
     WDK_AUTH_HEADER,
+    bearer_client_for,
     chat_body,
     client_for,
 )
+from pathfinder.transport.http.routers import eda_datasets
 
 _UNAUTHORIZED = 401
 _NOT_FOUND = 404
@@ -61,7 +67,7 @@ def stubbed_oauth(
     """Publish the test key where the app reads the OAuth signing key."""
     monkeypatch.setenv("VEUPATHDB_OAUTH_URL", OAUTH_URL)
     get_settings.cache_clear()
-    service_url = get_site(get_settings().veupathdb_default_site).service_url
+    service_url = get_site(get_settings().pathfinder_site).service_url
     with respx.mock(assert_all_called=False) as router:
         router.get(JWKS_URL).mock(
             return_value=httpx.Response(200, json=jwks_body(signing_key)),
@@ -91,8 +97,8 @@ async def owned(
 
 @pytest.fixture
 async def signed_out(app: FastAPI, owned: Owned) -> AsyncIterator[httpx.AsyncClient]:
-    """The owner of every resource, holding no VEuPathDB session."""
-    async with client_for(app, owned.user_id) as client:
+    """The owner of every resource, on a bearer with no VEuPathDB token."""
+    async with bearer_client_for(app, owned.user_id) as client:
         yield client
 
 
@@ -144,11 +150,21 @@ class TestARequestWithNoVEuPathDBSessionIsRefused:
     async def test_the_own_datasets_listing_is_refused(
         self,
         signed_out: httpx.AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        """The gate refuses before the route reads the researcher's uploads."""
+        read: list[str] = []
+
+        async def _own_datasets(site_id: str) -> OwnDatasets:
+            read.append(site_id)
+            return OwnDatasets(datasets=[], upload_url="")
+
+        monkeypatch.setattr(eda_datasets, "own_datasets", _own_datasets)
+
         response = await signed_out.get("/api/v1/eda/datasets?siteId=plasmodb")
 
         _assert_login_required(response)
-        assert response.json()["code"] == LOGIN_CODE
+        assert read == []
 
     async def test_a_strategy_operation_is_refused(
         self,
@@ -171,7 +187,7 @@ class TestAGuestVEuPathDBTokenIsNotALogin:
         stubbed_oauth: ec.EllipticCurvePrivateKey,
     ) -> None:
         guest = veupathdb_token(stubbed_oauth, is_guest=True)
-        async with client_for(app, owned.user_id) as client:
+        async with bearer_client_for(app, owned.user_id) as client:
             client.headers[WDK_AUTH_HEADER] = guest
             response = await client.get(
                 f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/vdi-publication",
@@ -186,7 +202,7 @@ class TestAGuestVEuPathDBTokenIsNotALogin:
         stubbed_oauth: ec.EllipticCurvePrivateKey,
     ) -> None:
         del stubbed_oauth
-        async with client_for(app, owned.user_id) as client:
+        async with bearer_client_for(app, owned.user_id) as client:
             client.headers[WDK_AUTH_HEADER] = "not.a.token"
             response = await client.get(
                 f"/api/v1/gene-sets/{owned.gene_set_ids[0]}/vdi-publication",

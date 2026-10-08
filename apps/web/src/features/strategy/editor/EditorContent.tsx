@@ -13,6 +13,7 @@ import {
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
 import { SaveSubstrategyDialog } from "./SaveSubstrategyDialog";
 import { useStrategyData } from "@/lib/api/strategy";
+import { withBasePath } from "@/lib/basePath";
 import { strategyStepUrl } from "@/lib/routes";
 import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 import { EditorHeader } from "./EditorHeader";
@@ -177,7 +178,7 @@ export function EditorContent({
   const handleCopyUrl = (): void => {
     if (typeof window === "undefined") return;
     const origin = window.location.origin;
-    const url = `${origin}${strategyStepUrl(siteId, conversationId, step.id)}`;
+    const url = `${origin}${withBasePath(strategyStepUrl(siteId, conversationId, step.id))}`;
     void navigator.clipboard.writeText(url);
     toast.success("Step URL copied");
   };

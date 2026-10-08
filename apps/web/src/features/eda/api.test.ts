@@ -13,7 +13,7 @@ import {
 } from "./api";
 import { SchemaValidationError } from "@/lib/api/http";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 const server = setupServer();
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));

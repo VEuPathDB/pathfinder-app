@@ -99,11 +99,6 @@ UNGATED_BUT_REACHES_WDK: dict[tuple[str, str], str] = {
     "request carries no token.",
     (
         "POST",
-        "/api/v1/veupathdb/auth/login",
-    ): "Obtains the token the gate requires; gating it would deadlock.",
-    ("POST", "/api/v1/veupathdb/auth/logout"): "Ends the session the token names.",
-    (
-        "POST",
         "/api/v1/veupathdb/auth/refresh",
     ): "Re-derives the internal token from a live VEuPathDB session.",
 }

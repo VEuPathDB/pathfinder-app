@@ -71,7 +71,7 @@ describe("memories API client", () => {
     globalThis.fetch = spy;
     await listMemories({ limit: 50, offset: 100 });
     const url = calledUrl(spy);
-    expect(url.pathname).toBe("/api/v1/memories");
+    expect(url.pathname).toBe("/pathfinder/api/v1/memories");
     expect(url.search).toBe("?limit=50&offset=100");
     expect(spy.mock.calls[0]?.[1]).toMatchObject({ credentials: "include" });
   });
@@ -87,7 +87,7 @@ describe("memories API client", () => {
     globalThis.fetch = spy;
     await searchMemories("mal aria");
     const url = calledUrl(spy);
-    expect(url.pathname).toBe("/api/v1/memories/search");
+    expect(url.pathname).toBe("/pathfinder/api/v1/memories/search");
     expect(url.searchParams.get("q")).toBe("mal aria");
   });
 
@@ -96,7 +96,7 @@ describe("memories API client", () => {
     globalThis.fetch = spy;
     await deleteMemory("case:plasmodb/1", "knowledge");
     const url = calledUrl(spy);
-    expect(url.pathname).toBe("/api/v1/memories/case%3Aplasmodb%2F1");
+    expect(url.pathname).toBe("/pathfinder/api/v1/memories/case%3Aplasmodb%2F1");
     expect(url.search).toBe("?kind=knowledge");
     expect(spy.mock.calls[0]?.[1]).toMatchObject({
       method: "DELETE",
@@ -118,7 +118,7 @@ describe("memories API client", () => {
     expect(spy).toHaveBeenCalledTimes(1);
     const url = calledUrl(spy);
     const init = spy.mock.calls[0]?.[1] as RequestInit;
-    expect(url.pathname).toBe("/api/v1/memories/k1");
+    expect(url.pathname).toBe("/pathfinder/api/v1/memories/k1");
     expect(url.search).toBe("?kind=knowledge");
     expect(init.method).toBe("PATCH");
     expect(init.credentials).toBe("include");

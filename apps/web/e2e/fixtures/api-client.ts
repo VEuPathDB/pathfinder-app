@@ -62,7 +62,7 @@ export async function listConversations(
   list: "active" | "dismissed" = "active",
 ): Promise<ConversationRow[]> {
   const path =
-    list === "active" ? "/api/v1/conversations" : "/api/v1/conversations/dismissed";
+    list === "active" ? "api/v1/conversations" : "api/v1/conversations/dismissed";
   const resp = await api.get(`${path}?siteId=${siteId}`);
   return listBody(resp, `${path} on ${siteId}`);
 }
@@ -96,7 +96,7 @@ export async function fetchLastTurnUsage(
   conversationId: string | null,
 ): Promise<TurnUsage> {
   if (conversationId == null) throw new Error("no conversation to read usage for");
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/events/snapshot`);
   if (!resp.ok()) {
     throw new Error(`events snapshot failed: ${resp.status()}`);
   }
@@ -121,7 +121,7 @@ export async function fetchStoppedTurnCount(
   conversationId: string | null,
 ): Promise<number> {
   if (conversationId == null) throw new Error("no conversation to read stops for");
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/events/snapshot`);
   if (!resp.ok()) {
     throw new Error(`events snapshot failed: ${resp.status()}`);
   }
@@ -139,7 +139,7 @@ export async function fetchUserMessageIds(
   api: APIRequestContext,
   conversationId: string,
 ): Promise<string[]> {
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/events/snapshot`);
   if (!resp.ok()) {
     throw new Error(`events snapshot failed: ${resp.status()}`);
   }
@@ -156,7 +156,7 @@ export async function fetchConversationMessages(
   conversationId: string | null,
 ): Promise<PersistedMessage[]> {
   if (conversationId == null) return [];
-  const resp = await api.get(`/api/v1/conversations/${conversationId}/events/snapshot`);
+  const resp = await api.get(`api/v1/conversations/${conversationId}/events/snapshot`);
   if (!resp.ok()) return [];
   const { chunks } = (await resp.json()) as { chunks: SnapshotChunk[] };
   const messages: PersistedMessage[] = [];

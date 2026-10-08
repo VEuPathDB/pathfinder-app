@@ -1,8 +1,4 @@
-import { type APIRequestContext, expect, test } from "@playwright/test";
-
-/** The one reason a credentialed WDK spec skips. */
-const NO_CREDENTIALS =
-  "set WDK_TEST_EMAIL/WDK_TEST_PASSWORD to run real-account WDK tests";
+import { request } from "@playwright/test";
 
 /**
  * The registered VEuPathDB token every worker acts with. VEuPathDB refuses
@@ -21,33 +17,45 @@ export function wdkTestToken(): string {
   return token;
 }
 
-/**
- * Sign the running test in as the real VEuPathDB account on `siteId`, or skip
- * it when the account credentials are not in the environment.
- */
-export async function signInAsWdkAccount(
-  apiClient: APIRequestContext,
-  siteId: string,
-): Promise<void> {
-  const email = process.env["WDK_TEST_EMAIL"] ?? "";
-  const password = process.env["WDK_TEST_PASSWORD"] ?? "";
-  test.skip(email === "" || password === "", NO_CREDENTIALS);
+const AUTHORIZATION = "Authorization=";
 
-  const resp = await apiClient.post("/api/v1/veupathdb/auth/login", {
-    params: { siteId },
-    data: { email, password },
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-  });
-  expect(resp.ok(), `wdk login ${resp.status()}: ${await resp.text()}`).toBeTruthy();
+function registered(token: string): boolean {
+  const payload = token.split(".")[1] ?? "";
+  try {
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      is_guest?: boolean;
+    };
+    return claims.is_guest !== true;
+  } catch {
+    return false;
+  }
+}
 
-  // The account is its own user, with its own first-login eval-data notice;
-  // a fresh database shows it over the app until the account acknowledges it.
-  const notice = await apiClient.patch("/api/v1/me/privacy", {
-    data: { noticeSeen: true },
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-  });
-  expect(
-    notice.ok(),
-    `eval-data notice acknowledgement ${notice.status()}`,
-  ).toBeTruthy();
+export async function siteLoginToken(
+  serviceUrl: string,
+  email: string,
+  password: string,
+): Promise<string> {
+  const site = await request.newContext();
+  try {
+    const response = await site.post(`${serviceUrl}/login`, {
+      data: { email, password, redirectUrl: "/" },
+      maxRedirects: 0,
+    });
+    const token = response
+      .headersArray()
+      .filter((header) => header.name.toLowerCase() === "set-cookie")
+      .map((header) => header.value.split(";", 1)[0] ?? "")
+      .filter((cookie) => cookie.startsWith(AUTHORIZATION))
+      .map((cookie) => cookie.slice(AUTHORIZATION.length).replace(/^"|"$/g, ""))
+      .find((value) => value !== "" && registered(value));
+    if (token === undefined) {
+      throw new Error(
+        `the VEuPathDB login answered ${response.status()} with no registered Authorization cookie`,
+      );
+    }
+    return token;
+  } finally {
+    await site.dispose();
+  }
 }

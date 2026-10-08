@@ -127,14 +127,10 @@ describe("Composer", () => {
     renderComposer(true);
     expect(screen.getByPlaceholderText(/ask about strategies/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /send/i })).toBeInTheDocument();
-    expect(screen.queryByTestId("veupathdb-signin-required")).not.toBeInTheDocument();
   });
 
-  it("disables the composer and asks for a VEuPathDB login when signed out", () => {
+  it("disables the composer while the session has no VEuPathDB login", () => {
     renderComposer(false);
-    expect(screen.getByTestId("veupathdb-signin-required")).toHaveTextContent(
-      "Sign in to VEuPathDB to build strategies",
-    );
     expect(
       screen.getByPlaceholderText("Sign in to VEuPathDB to build strategies"),
     ).toBeDisabled();

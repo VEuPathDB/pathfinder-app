@@ -178,7 +178,7 @@ describe("siteUnavailableRefusal", () => {
     const err = new APIError(SITE_UNAVAILABLE_BODY.detail, {
       status: 503,
       statusText: "Service Unavailable",
-      url: "http://localhost:3000/api/v1/veupathdb/auth/login",
+      url: "http://localhost:3000/pathfinder/api/v1/veupathdb/auth/status",
       data: SITE_UNAVAILABLE_BODY,
     });
     expect(siteUnavailableRefusal(err)).toEqual({

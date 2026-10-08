@@ -10,7 +10,7 @@ import { type AstNode, COMBINE_SEARCH_NAME } from "../fixtures/ast";
 import { GO_TERM, layoutOf } from "../fixtures/arc-layouts";
 import { expectBuild } from "../fixtures/build-checks";
 import { readNodes, siteOrganism, storedNodes } from "../fixtures/site-reads";
-import { signInAsWdkAccount } from "../fixtures/wdk-account";
+import { signInAsWdkAccount } from "../fixtures/website-login";
 import {
   buildOn,
   combineWith,
@@ -43,7 +43,7 @@ test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
     siteId,
   }) => {
     const api = page.context().request;
-    await signInAsWdkAccount(api, siteId);
+    await signInAsWdkAccount(page.context(), siteId);
 
     const id = await buildOn(
       chatPage,
@@ -135,7 +135,7 @@ test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
       })
       .toEqual([goLeaf.id, textLeaf.id, union.id].sort());
 
-    await page.goto(`/${siteId}/conversation/${id}`);
+    await page.goto(`${siteId}/conversation/${id}`);
     await graphPage.expectOnChatRoute(id);
     await chatPage.sendAndSettle(
       prompt("variants", "Compare search variants for the text search step."),

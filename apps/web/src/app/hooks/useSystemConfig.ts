@@ -4,18 +4,20 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { systemConfigQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemConfig";
 
 /**
- * Checks whether the backend has at least one LLM provider configured.
- * Uses useSuspenseQuery - suspends until config loads.
- * Errors caught by nearest ErrorBoundary (app shell).
+ * Reads whether the backend has a model provider and the deployment's sign-in
+ * address. Suspends until the config loads; the nearest ErrorBoundary (app
+ * shell) catches a failure.
  */
 export function useSystemConfig(): {
   setupRequired: boolean;
+  siteSignInUrl: string;
   retry: () => void;
 } {
   const { data, refetch } = useSuspenseQuery(systemConfigQueryOptions());
   const setupRequired = data.llmConfigured === false;
   return {
     setupRequired,
+    siteSignInUrl: data.siteSignInUrl,
     retry: () => {
       void refetch();
     },

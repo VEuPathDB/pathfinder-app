@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import type { TurnFacts } from "@pathfinder/shared";
 
@@ -76,6 +76,10 @@ const FACTS: TurnFacts = {
   refusal: "status_code: 400, the provider refused the request whole",
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("DataFacts", () => {
   it("shows each step in tree order with its count", () => {
     render(<DataFacts data={FACTS} />);
@@ -134,6 +138,19 @@ describe("DataFacts", () => {
     expect(screen.getByTestId("facts-strategy-link")).toHaveAttribute("href", URL);
     expect(screen.getByTestId("facts-saved-set")).toHaveTextContent(
       "Saved gene set peptidases draft, 74 genes",
+    );
+  });
+
+  it("opens the strategy and the records in a new tab inside the website page", () => {
+    vi.spyOn(window, "top", "get").mockReturnValue(null);
+    render(<DataFacts data={FACTS} />);
+
+    const links = screen.getAllByRole("link");
+    expect(links.map((a) => a.getAttribute("target"))).toEqual(
+      links.map(() => "_blank"),
+    );
+    expect(links.map((a) => a.getAttribute("rel"))).toEqual(
+      links.map(() => "noreferrer"),
     );
   });
 

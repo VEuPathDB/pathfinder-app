@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from pydantic import SecretStr
 
 from pathfinder.devtools.openapi import (
     DevRouteInSpecError,
@@ -33,6 +34,10 @@ def test_the_dev_paths_are_read_from_the_dev_router() -> None:
     assert DEV_LOGIN in _dev_only_paths()
 
 
+def test_the_site_login_path_is_a_dev_path() -> None:
+    assert "/api/v1/dev/site-login" in _dev_only_paths()
+
+
 def test_a_spec_naming_a_dev_route_is_refused_by_name() -> None:
     with pytest.raises(DevRouteInSpecError) as raised:
         _refuse_dev_routes({"paths": {DEV_LOGIN: {}, "/api/v1/conversations": {}}})
@@ -55,3 +60,17 @@ def test_nothing_is_written_when_the_app_mounts_a_dev_route(
         generate_openapi_json(out_path=out_path)
 
     assert not out_path.exists()
+
+
+def test_local_development_adds_no_route_to_the_spec(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "api_env", "development")
+    monkeypatch.setattr(settings, "wdk_dev_email", "dev@example.org")
+    monkeypatch.setattr(settings, "wdk_dev_password", SecretStr("dev-password"))
+
+    spec = _spec_with_stable_overrides()
+
+    paths = _SpecPaths.model_validate(spec).paths
+    assert [p for p in paths if p.startswith("/api/v1/dev/")] == []

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
-
 from assistant_core.mcp.untrusted import UntrustedOutputToolset
 from pydantic_ai import RunContext, ToolReturn
 from pydantic_ai.toolsets import AbstractToolset, FunctionToolset
@@ -12,7 +10,7 @@ from pathfinder.ai.lead.retrieval_toolset import (
     ResearchAnswer,
     recording_retrievals,
 )
-from pathfinder.ai.lead.sub_agent_tools import LeadDeps, ToolCharge
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -154,32 +152,3 @@ async def test_the_shape_a_served_source_answers_in_is_recorded() -> None:
 
 def test_no_sources_wrap_nothing() -> None:
     assert [recording_retrievals(None, _ctx().deps)] == [None]
-
-
-PRICED_TEXT = SERVED_TEXT[:-1] + ', "costUsd": "0.005"}'
-
-
-async def test_a_priced_web_search_is_charged_to_the_turn() -> None:
-    ctx = _ctx()
-    charges: list[ToolCharge] = []
-    ctx.deps.record_tool_charge = charges.append
-
-    await _call(
-        _served("research_web_search", PRICED_TEXT, ctx), "research_web_search", ctx
-    )
-
-    assert charges == [
-        ToolCharge(tool_name="research_web_search", cost_usd=Decimal("0.005")),
-    ]
-
-
-async def test_an_answer_without_a_price_charges_nothing() -> None:
-    ctx = _ctx()
-    charges: list[ToolCharge] = []
-    ctx.deps.record_tool_charge = charges.append
-
-    await _call(
-        _served("research_web_search", SERVED_TEXT, ctx), "research_web_search", ctx
-    )
-
-    assert charges == []

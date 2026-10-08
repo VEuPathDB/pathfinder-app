@@ -6,12 +6,11 @@ from assistant_core.conversation.authz import assert_owner
 from assistant_core.conversation.event_stream import (
     EventsSnapshot,
     fetch_snapshot_chunks,
-    iter_sse,
 )
-from assistant_core.conversation.vercel_adapter import VERCEL_AI_DSP_HEADERS
 from fastapi import APIRouter, Query, status
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 
+from pathfinder.ai.conversation.event_tail import event_tail
 from pathfinder.services.conversations.turn_liveness import turn_is_in_flight
 from pathfinder.transport.http.deps import CurrentUser, DBSession
 
@@ -38,11 +37,7 @@ async def conversation_events(
         user_id=user_id,
     ):
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-    return StreamingResponse(
-        iter_sse(conversation_id=conversation_id, after=after),
-        media_type="text/event-stream",
-        headers=dict(VERCEL_AI_DSP_HEADERS),
-    )
+    return event_tail(conversation_id, after=after)
 
 
 @router.get(

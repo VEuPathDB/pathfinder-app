@@ -185,7 +185,7 @@ different user.
 
 - class: CONTRACT
 - upstream: https://github.com/VEuPathDB/WDK/blob/e534d2e6a5119165e1742c7a9e07a371217ddda5/Service/src/main/java/org/gusdb/wdk/service/service/SessionService.java#L277-L311
-- anchor: apps/api/src/pathfinder/transport/http/routers/veupathdb_auth.py:logout
+- anchor: apps/api/src/pathfinder/transport/http/routers/dev_site_login.py:password_login
 - status: ENFORCED by apps/api/src/pathfinder/tests/unit/test_call_sites.py::test_wdk_map_005_no_pathfinder_module_builds_a_site_client
 
 The WDK transport is the client library's (`veupathdb-py`, `veupathdb/wdk/`).
@@ -207,16 +207,17 @@ derives from `get_site`, `SiteInfo` or a `service_url` attribute. It depends on
 no hostname literal, because the url is always resolved from the site router
 rather than written down.
 
-The rule is anchored on the call that broke it.
-`transport/http/routers/veupathdb_auth.py` built
+The rule is anchored on the one route that signs in to a site, the development
+sign-in, which calls `veupathdb/wdk/auth_login.py:password_login` and holds no
+client of its own.
+The call that broke the rule was in `transport/http/routers/veupathdb_auth.py`, which built
 `httpx.AsyncClient(base_url=auth_site.service_url)` and called `GET /logout` on
 it, carrying no cookie jar and no `Authorization` header - so by
 WDK-AUTH-001 (`veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`) the
 request was served as a fresh guest and `processLogout` took its early return.
-The call now goes through `veupathdb/wdk/auth_login.py:password_logout`, which
-carries the credential. What that does **not** buy is the property the name
-suggests: the bearer token stays valid afterwards
-(WDK-AUTH-004, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`).
+That route is gone: a deployed PathFinder signs no one in or out, the website does
+(WDK-AUTH-004, `veupathdb-py: docs/knowledge/wdk/rules/auth-and-transport.md`,
+records that a WDK logout leaves the bearer token valid).
 
 ### WDK-MAP-006 - A WDK step id is an integer stored beside PathFinder's own string id, never in place of it
 

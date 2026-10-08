@@ -302,7 +302,7 @@ export class GraphPage {
   // Navigation helpers
   /** Navigate directly to the strategy editor route for a conversation. */
   async goToStrategy(siteId: string, conversationId: string) {
-    await this.page.goto(`/${siteId}/conversation/${conversationId}/strategy`);
+    await this.page.goto(`${siteId}/conversation/${conversationId}/strategy`);
     await this.expectOnStrategyRoute(conversationId);
   }
 

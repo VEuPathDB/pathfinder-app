@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -22,10 +22,11 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-anthropic}
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
-      S2_API_KEY: ${S2_API_KEY:-}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
+      PATHFINDER_SITE: ${PATHFINDER_SITE:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
       # Accounted megabytes of per-site catalogs and semantic indexes one
@@ -52,7 +53,8 @@ services:
       # The heartbeat runs in a thread of its own, so a running job cannot
       # widen the gap this has to clear.
       WORKER_DEAD_HEARTBEAT_SECONDS: ${WORKER_DEAD_HEARTBEAT_SECONDS:-60}
-      # Dev WDK login for the chat debugger (pathfinder.devtools.chat); set in .env.dev.
+      # Dev WDK login for the chat debugger (pathfinder.devtools.chat). Under
+      # API_ENV=development both values mount the site sign-in route; set in .env.dev.
       WDK_DEV_EMAIL: ${WDK_DEV_EMAIL:-}
       WDK_DEV_PASSWORD: ${WDK_DEV_PASSWORD:-}
       # The veupathdb-wdk-mcp endpoint an assistant's declaration resolves to,
@@ -107,10 +109,11 @@ services:
       # This process runs the turn, so it screens every tool result.
       INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
       INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-}
-      S2_API_KEY: ${S2_API_KEY:-}
       VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
+      PATHFINDER_SITE: ${PATHFINDER_SITE:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
       # Accounted megabytes of per-site catalogs and semantic indexes one
@@ -159,13 +162,13 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0b3
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b4
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
     mem_limit: 2g
     ports:
-      - "${MCP_PORT:-8100}:8100"
+      - "127.0.0.1:${MCP_PORT:-8100}:8100"
     depends_on:
       db:
         condition: service_healthy
@@ -227,7 +230,7 @@ services:
 
   research-mcp:
     # The second server of the same distribution, built from the same release
-    # at its own target. It reads no account and opens no database.
+    # by its own Dockerfile. It reads no account and opens no database.
     # The metasearch is asked first and is one refused attempt when it is down,
     # so its health does not gate the research tools. The entry keeps it in the
     # start graph of a command that names this service.
@@ -235,12 +238,12 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0b3
-      target: research
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b4
+      dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m
     ports:
-      - "${RESEARCH_MCP_PORT:-8110}:8110"
+      - "127.0.0.1:${RESEARCH_MCP_PORT:-8110}:8110"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8110/health || exit 1"]
       interval: 10s
@@ -259,9 +262,6 @@ services:
       RESEARCH_MCP_S2_API_KEY: ${S2_API_KEY:-}
       # The metasearch asked first for a web search.
       RESEARCH_MCP_SEARXNG_URL: ${RESEARCH_MCP_SEARXNG_URL:-http://searxng:8080}
-      # A Brave Search API key makes Brave the web engine after the metasearch; each
-      # answered call is priced on the answer and charged to the user's monthly budget.
-      RESEARCH_MCP_BRAVE_SEARCH_API_KEY: ${RESEARCH_MCP_BRAVE_SEARCH_API_KEY:-}
       # A mailbox Crossref reads out of the User-Agent, which routes the call
       # to its polite pool. Empty keeps the anonymous pool.
       RESEARCH_MCP_CROSSREF_MAILTO: ${RESEARCH_MCP_CROSSREF_MAILTO:-}
@@ -273,7 +273,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
       api:
         condition: service_healthy

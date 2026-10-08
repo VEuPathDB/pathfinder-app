@@ -16,7 +16,7 @@ import { LAYOUTS, SIGNAL_PEPTIDE } from "../fixtures/arc-layouts";
 import { expectBuild } from "../fixtures/build-checks";
 import { readConversation, readNodes, siteOrganism } from "../fixtures/site-reads";
 import { buildOn, nodeBySearch } from "../fixtures/strategy-builds";
-import { signInAsWdkAccount } from "../fixtures/wdk-account";
+import { signInAsWdkAccount } from "../fixtures/website-login";
 import type { ChatPage } from "../pages/chat.page";
 
 /** Build the one-search strategy and return its conversation id. */
@@ -56,7 +56,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
     const stepId = await targetStepId(apiClient, target);
 
     const notFound = await apiClient.post(
-      `/api/v1/conversations/${target}/insert-saved`,
+      `api/v1/conversations/${target}/insert-saved`,
       {
         params: { siteId },
         data: {
@@ -73,7 +73,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
     expect(body.status).toBe(404);
 
     const malformed = await apiClient.post(
-      `/api/v1/conversations/${target}/insert-saved`,
+      `api/v1/conversations/${target}/insert-saved`,
       { params: { siteId }, data: { savedWdkStrategyId: 123, operator: "UNION" } },
     );
     expect(malformed.status()).toBe(422);
@@ -85,7 +85,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
     siteId,
   }) => {
     const ctx = page.context().request;
-    await signInAsWdkAccount(ctx, siteId);
+    await signInAsWdkAccount(page.context(), siteId);
     await page.reload();
 
     const created: string[] = [];
@@ -95,7 +95,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
       const savedWdkStrategyId =
         (await readConversation(ctx, saved)).wdkStrategyId ?? 0;
       expect(savedWdkStrategyId).toBeGreaterThan(0);
-      const marked = await ctx.patch(`/api/v1/conversations/${saved}`, {
+      const marked = await ctx.patch(`api/v1/conversations/${saved}`, {
         data: { isSaved: true },
         headers: CSRF_HEADERS,
       });
@@ -107,7 +107,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
       const before = (await readNodes(ctx, target)).length;
       const stepId = await targetStepId(ctx, target);
 
-      const inserted = await ctx.post(`/api/v1/conversations/${target}/insert-saved`, {
+      const inserted = await ctx.post(`api/v1/conversations/${target}/insert-saved`, {
         params: { siteId },
         data: { targetStepId: stepId, savedWdkStrategyId, operator: "UNION" },
         headers: CSRF_HEADERS,
@@ -130,7 +130,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
     } finally {
       for (const id of created) {
         await ctx
-          .delete(`/api/v1/conversations/${id}`, {
+          .delete(`api/v1/conversations/${id}`, {
             params: { deleteFromWdk: "true" },
             headers: CSRF_HEADERS,
           })

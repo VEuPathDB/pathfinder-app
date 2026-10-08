@@ -182,7 +182,7 @@ async def preload_study_index() -> SyncReport | None:
         logger.info("[warm-up] No service token, so no EDA study index is synced")
         return None
     veupathdb_auth_token_ctx.set(token)
-    for site_id in _preload_order(settings.veupathdb_default_site):
+    for site_id in _preload_order(settings.pathfinder_site):
         try:
             report = await sync_study_index(await list_studies(site_id))
         except (

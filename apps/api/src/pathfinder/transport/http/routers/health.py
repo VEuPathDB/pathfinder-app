@@ -6,6 +6,7 @@ from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from veupathdb.wdk import get_site
 
 from pathfinder import __version__
 from pathfinder.platform.config import get_settings
@@ -32,9 +33,16 @@ async def health_check() -> HealthResponse:
     )
 
 
+def _site_sign_in_url() -> str:
+    settings = get_settings()
+    if settings.offers_dev_site_login:
+        return f"{settings.public_base_url}/api/v1/dev/site-login"
+    return f"{get_site(settings.pathfinder_site).web_base_url}/app/user/login"
+
+
 @router.get("/health/config", response_model=SystemConfigResponse)
 async def system_config() -> SystemConfigResponse:
-    """Report whether the system has LLM provider keys configured.
+    """Report the model providers, the deployment's site and its sign-in address.
 
     This is unauthenticated so the frontend can show a setup-required
     screen before asking users to log in.
@@ -50,6 +58,8 @@ async def system_config() -> SystemConfigResponse:
             google="google" in paid,
             ollama="ollama" in paid,
         ),
+        site_id=settings.pathfinder_site,
+        site_sign_in_url=_site_sign_in_url(),
     )
 
 

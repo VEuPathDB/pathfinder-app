@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Conversation
 from assistant_core.platform.context import application_id_ctx
+from fastapi import FastAPI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from veupathdb.errors import WDKError
@@ -31,7 +33,10 @@ from pathfinder.tests.integration.http._user_data_purge import (
     seed_user,
     wdk_api,
 )
-from pathfinder.tests.integration.http.conftest import OTHER_APPLICATION_ID
+from pathfinder.tests.integration.http.conftest import (
+    OTHER_APPLICATION_ID,
+    bearer_client_for,
+)
 
 __all__ = [
     "api_client",
@@ -150,16 +155,19 @@ async def test_a_saved_strategy_the_chat_only_imported_is_left_on_wdk(
 
 
 async def test_a_signed_out_purge_keeps_the_threads_it_could_not_finish(
-    api_client: httpx.AsyncClient,
+    app: FastAPI,
+    app_memory_store: MemoryStore,
+    patch_app_db_engine: None,
     db_session: AsyncSession,
     seed_user: User,
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     """A thread whose strategy still stands is dismissed, so a retry can finish.
 
-    The strategy client is the real one, so the transport refuses the call
-    before it reaches the network.
+    The caller is a bearer with no VEuPathDB token, and the strategy client is
+    the real one, so the transport refuses the call before it reaches the network.
     """
+    del app_memory_store, patch_app_db_engine
     linked = await add_conv(
         db_session,
         seed_user.id,
@@ -175,7 +183,8 @@ async def test_a_signed_out_purge_keeps_the_threads_it_could_not_finish(
         created_here=False,
     )
 
-    resp = await _purge(api_client)
+    async with bearer_client_for(app, seed_user.id) as client:
+        resp = await _purge(client)
 
     assert resp.status_code == 200, resp.text
     assert resp.json()["deleted"] == {

@@ -20,11 +20,9 @@ function described(source: SourceFact): string {
 function Source({
   source,
   testId,
-  target,
 }: {
   source: SourceFact;
   testId: string;
-  target: string;
 }): ReactElement {
   const text = described(source);
   return (
@@ -32,8 +30,8 @@ function Source({
       {text === "" ? null : <span>{text}: </span>}
       <a
         href={source.url}
-        target={target}
-        rel="noopener noreferrer"
+        target="_blank"
+        rel="noreferrer"
         className="break-all text-primary underline-offset-2 hover:underline"
       >
         {source.url}
@@ -45,17 +43,15 @@ function Source({
 export function Sources({
   sources,
   testId,
-  target,
 }: {
   sources: SourceFact[];
   testId: string;
-  target: string;
 }): ReactElement | null {
   if (sources.length === 0) return null;
   return (
     <ul className="mt-2 text-xs">
       {sources.map((source) => (
-        <Source key={source.url} source={source} testId={testId} target={target} />
+        <Source key={source.url} source={source} testId={testId} />
       ))}
     </ul>
   );

@@ -11,7 +11,7 @@ import { server } from "../../../vitest.msw-setup";
 
 import { YourDatasets } from "./YourDatasets";
 
-const DATASETS = "http://localhost:3000/api/v1/eda/datasets";
+const DATASETS = "http://localhost:3000/pathfinder/api/v1/eda/datasets";
 const UPLOAD_URL = "https://plasmodb.org/plasmo/app/workspace/datasets";
 
 function dataset(

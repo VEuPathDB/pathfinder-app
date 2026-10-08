@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ForbiddenError
-from pathfinder.platform.security import create_dev_login_token
+from pathfinder.platform.security import create_dev_login_token, set_session_cookie
 from pathfinder.services.users import get_or_create_user_id
 from pathfinder.transport.http.deps import DBSession
 
@@ -35,11 +35,5 @@ async def dev_login(session: DBSession, user_id: str | None = None) -> JSONRespo
     auth_token = create_dev_login_token(internal_id)
 
     resp = JSONResponse({"authToken": auth_token, "userId": str(internal_id)})
-    resp.set_cookie(
-        key="pathfinder-auth",
-        value=auth_token,
-        httponly=True,
-        samesite="lax",
-        path="/",
-    )
+    set_session_cookie(resp, auth_token)
     return resp

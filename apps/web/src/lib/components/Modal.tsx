@@ -15,8 +15,6 @@ interface ModalProps {
   maxWidth?: string;
   /** Whether to show a close (X) button in the top-right corner. */
   showCloseButton?: boolean;
-  /** When false, the modal cannot be dismissed by escape, click-outside, or close button. */
-  dismissible?: boolean;
   children: React.ReactNode;
 }
 
@@ -32,11 +30,10 @@ export function Modal({
   title,
   maxWidth = "max-w-md",
   showCloseButton = false,
-  dismissible = true,
   children,
 }: ModalProps) {
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => dismissible && !next && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/50 backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out" />
         <Dialog.Content
@@ -53,7 +50,7 @@ export function Modal({
           {title != null && title !== "" && (
             <Dialog.Title className="sr-only">{title}</Dialog.Title>
           )}
-          {showCloseButton && dismissible && (
+          {showCloseButton && (
             <Dialog.Close asChild>
               <button
                 type="button"

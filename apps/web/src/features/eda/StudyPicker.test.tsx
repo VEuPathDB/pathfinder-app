@@ -23,7 +23,7 @@ import { useEdaStore } from "@/state/eda";
 import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
 import { StudyPicker } from "./StudyPicker";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 
 const UPLOAD_URL = "https://plasmodb.org/plasmo/app/workspace/datasets";
 

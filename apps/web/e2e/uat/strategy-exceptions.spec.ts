@@ -115,7 +115,7 @@ async function organismVocabulary(
   siteId: string,
 ): Promise<{ terms: string[]; leaves: string[] }> {
   const resp = await api.post(
-    `/api/v1/sites/${siteId}/searches/transcript/GenesWithSignalPeptide/param-specs`,
+    `api/v1/sites/${siteId}/searches/transcript/GenesWithSignalPeptide/param-specs`,
     { data: {}, headers: { "X-Requested-With": "XMLHttpRequest" } },
   );
   expect(resp.status(), "organism vocabulary").toBe(200);
@@ -149,7 +149,7 @@ async function expectNoStrategy(
 
 /** The preferences the memory store holds for this user. */
 async function preferences(api: ApiClient): Promise<MemoryItem[]> {
-  const resp = await api.get("/api/v1/memories");
+  const resp = await api.get("api/v1/memories");
   expect(resp.status()).toBe(200);
   return ((await resp.json()) as MemoryListResponse).preferences;
 }
@@ -347,7 +347,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       "Relax overly strict parameters/filters (broader thresholds, stages, experiments).",
     );
 
-    await page.goto(`/${siteId}/conversation/${id}`);
+    await page.goto(`${siteId}/conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expect(chatPage.assistantMessages).not.toHaveCount(0, { timeout: 60_000 });
     await chatPage.sendAndSettle(
@@ -684,7 +684,7 @@ test.describe("Another site's experiment", { tag: "@named-site" }, () => {
     );
     // The mock always binds some own search, so "binds nothing" is the model
     // check's; here no step runs a search the site does not list.
-    const listed = await apiClient.get("/api/v1/sites/plasmodb/searches");
+    const listed = await apiClient.get("api/v1/sites/plasmodb/searches");
     expect(listed.status()).toBe(200);
     const own = new Set(
       ((await listed.json()) as { name: string }[]).map((s) => s.name),

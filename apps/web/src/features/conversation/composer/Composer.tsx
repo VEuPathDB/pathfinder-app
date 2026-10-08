@@ -22,11 +22,7 @@ import {
   useAttachmentRefusal,
 } from "./ComposerAttachments";
 import { PaymentBanners, useComposerBlock } from "./QuotaExhaustedBanner";
-import {
-  SIGN_IN_TO_BUILD,
-  VeupathdbSignInRequired,
-  useVeupathdbSignedIn,
-} from "./VeupathdbSignInRequired";
+import { SIGN_IN_TO_BUILD, useVeupathdbSignedIn } from "./useVeupathdbSignedIn";
 import {
   formatTokens,
   formatCost,
@@ -171,7 +167,6 @@ export function Composer({
         onCancel={slash.cancel}
       />
       <PaymentBanners conversationId={conversationId} />
-      <VeupathdbSignInRequired />
       <div
         className="focus-within:shadow-[var(--shadow-composer-focus)] flex flex-col gap-2 rounded-lg border bg-background shadow-[var(--shadow-composer)] transition-shadow aria-disabled:opacity-60"
         aria-disabled={blocked}

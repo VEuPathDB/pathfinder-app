@@ -35,7 +35,7 @@ import {
 } from "@/app/components/__fixtures__/appQueryClient";
 import { EdaWorkbench } from "./EdaWorkbench";
 
-const BASE = "http://localhost:3000";
+const BASE = "http://localhost:3000/pathfinder";
 const server = setupServer();
 
 /** The site's own analysis page, as `services/eda/urls.py` builds it. */

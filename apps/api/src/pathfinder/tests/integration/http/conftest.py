@@ -60,6 +60,15 @@ def client_for(
     )
 
 
+def bearer_client_for(app: ASGIApp, user_id: UUID) -> httpx.AsyncClient:
+    """A client that acts as ``user_id`` with a PathFinder bearer and no site login."""
+    return httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {create_user_token(user_id)}"},
+    )
+
+
 @pytest.fixture
 def other_application(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     """Register a second calling application and return its id."""

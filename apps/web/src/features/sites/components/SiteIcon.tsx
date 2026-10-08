@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
+import { withBasePath } from "@/lib/basePath";
 
 interface SiteIconProps {
   siteId: string;
@@ -14,8 +15,8 @@ interface SiteIconProps {
  */
 export function SiteIcon({ siteId, size = 24, className }: SiteIconProps) {
   const slug = siteId.toLowerCase();
-  const src = `/icons/${slug}.png`;
-  const fallback = "/icons/veupathdb.png";
+  const src = withBasePath(`/icons/${slug}.png`);
+  const fallback = withBasePath("/icons/veupathdb.png");
 
   return (
     <span

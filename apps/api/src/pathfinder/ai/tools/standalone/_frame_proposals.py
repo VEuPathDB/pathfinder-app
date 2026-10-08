@@ -43,6 +43,7 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     tree_tops,
 )
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
+from pathfinder.platform.config import BASE_PATH
 from pathfinder.services.strategies.parameter_rules import site_fixed
 from pathfinder.services.strategies.user_dataset_searches import (
     dataset_parameter,
@@ -315,9 +316,10 @@ async def _other_sites_holding(
 def portal_only_sentence(site_id: str) -> str:
     """What the researcher does when only the portal holds both organisms."""
     portal = next(site for site in get_site_router().list_sites() if site.is_portal)
+    link = f"{BASE_PATH}/{portal.id}/conversation"
     return (
         f"This needs the {portal.name} Portal, where one strategy holds both "
-        f"organisms. [Open a new conversation there](/{portal.id}/conversation); "
+        f"organisms. [Open a new conversation there]({link}); "
         f"this conversation stays on {get_site(site_id).name}."
     )
 

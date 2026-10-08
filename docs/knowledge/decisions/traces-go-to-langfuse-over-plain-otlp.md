@@ -23,6 +23,14 @@ Langfuse SDK is used for scores and events alone, and is given a private
 
 What a trace holds is `conventions/observability.md`.
 
+**The estate stack carries no Langfuse**
+([the images decision](the-images-come-from-the-registry-and-cedar-pulls.md)).
+A process with `OTEL_EXPORTER_OTLP_ENDPOINT` unset exports no traces, so traces
+exist only where a deployment runs Langfuse beside the application: local
+development (`docker-compose.observability.dev.yml`) and the interim rootless
+deployment (`quadlets/pathfinder-langfuse*.container`), which the cutover to the
+estate stack deletes.
+
 # What was rejected
 
 **SigNoz beside Langfuse.** Two backends meant two exporters, two UIs, seven more

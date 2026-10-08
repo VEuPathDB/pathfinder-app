@@ -36,8 +36,9 @@ COPY apps/api/alembic apps/api/alembic
 COPY apps/api/src/pathfinder apps/api/src/pathfinder
 RUN rm -rf apps/api/src/pathfinder/tests
 
-# The glob makes this copy a no-op when the file is absent.
-COPY ollama_models.yam[l] ./
+# The tracked example keeps the glob matching where the local file is absent;
+# buildah fails a COPY whose glob matches nothing.
+COPY ollama_models.yaml* ./
 
 # Run from source inside the image. Avoid a second `uv sync` after copying app
 # code: installing the editable project needs the Hatchling build backend, and

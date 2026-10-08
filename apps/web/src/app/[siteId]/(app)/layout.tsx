@@ -1,18 +1,17 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AppNavRail } from "@/app/components/AppNavRail";
 import { AppShellError } from "@/app/components/AppShellError";
-import { EmbeddedToolbar } from "@/app/components/EmbeddedToolbar";
+import { FrameLocationReporter } from "@/app/components/FrameLocationReporter";
 import { LoadingScreen } from "@/app/components/LoadingScreen";
 import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
 import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
 import { VeupathdbSignInGate } from "@/app/components/VeupathdbSignInGate";
-import { TopBar } from "@/app/components/TopBar";
 import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import { useAutoCollapsePanels } from "@/app/hooks/useAutoCollapsePanels";
 import { useModalState } from "@/app/hooks/useModalState";
@@ -26,7 +25,6 @@ import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
 import { chatRoot } from "@/lib/routes";
-import { requiresFullScreenSignIn } from "@/state/useAuthGateStore";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -39,9 +37,12 @@ export default function AppShellLayout({
 }) {
   const { siteId } = use(params);
   return (
-    <QueryBoundary loadingFallback={<LoadingScreen />} ErrorFallback={AppShellError}>
-      <AppShellInner siteId={siteId}>{children}</AppShellInner>
-    </QueryBoundary>
+    <>
+      <FrameLocationReporter />
+      <QueryBoundary loadingFallback={<LoadingScreen />} ErrorFallback={AppShellError}>
+        <AppShellInner siteId={siteId}>{children}</AppShellInner>
+      </QueryBoundary>
+    </>
   );
 }
 
@@ -53,8 +54,6 @@ function AppShellInner({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const embedded = searchParams.get("embedded") === "true";
 
   const selectedSite = siteId;
 
@@ -72,7 +71,7 @@ function AppShellInner({
   }
 
   const access = useSiteAccess(selectedSite);
-  useAuthRefresh(selectedSite);
+  const { authRefreshed } = useAuthRefresh(selectedSite);
   useSiteTheme(selectedSite);
   const { setupRequired, retry: retryConfig } = useSystemConfig();
 
@@ -99,16 +98,8 @@ function AppShellInner({
   // A site PathFinder cannot reach cannot authenticate anyone, so the notice
   // takes the sign-in prompt's place.
   const siteDown = access.kind === "down";
-  const forcedSignIn =
-    access.kind === "up" &&
-    requiresFullScreenSignIn({ embedded, signedIn: access.signedIn });
-  const signInGate = siteDown ? null : (
-    <VeupathdbSignInGate
-      forced={forcedSignIn}
-      selectedSite={selectedSite}
-      onSiteChange={handleSiteChange}
-    />
-  );
+  const forcedSignIn = access.kind === "up" && !access.signedIn;
+  const signInGate = siteDown ? null : <VeupathdbSignInGate forced={forcedSignIn} />;
 
   if (forcedSignIn) {
     return (
@@ -118,28 +109,22 @@ function AppShellInner({
       </>
     );
   }
+  if (access.kind === "up" && !authRefreshed) return <LoadingScreen />;
 
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <QueryErrorToasts />
       {signInGate}
-      {embedded ? (
-        <EmbeddedToolbar siteId={selectedSite} onOpenSettings={modals.openSettings} />
-      ) : (
-        <TopBar selectedSite={selectedSite} />
-      )}
 
       <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden">
-        {!embedded && (
-          <AppNavRail
-            siteId={selectedSite}
-            onSiteChange={handleSiteChange}
-            onOpenSettings={() => modals.openSettings()}
-            onOpenModelSettings={() => modals.openSettings("model")}
-            onToggleSidebar={toggleLeft}
-            sidebarExpanded={!leftCollapsed}
-          />
-        )}
+        <AppNavRail
+          siteId={selectedSite}
+          onSiteChange={handleSiteChange}
+          onOpenSettings={() => modals.openSettings()}
+          onOpenModelSettings={() => modals.openSettings("model")}
+          onToggleSidebar={toggleLeft}
+          sidebarExpanded={!leftCollapsed}
+        />
 
         <AnimatePresence initial={false}>
           {!leftCollapsed && (

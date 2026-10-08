@@ -1,10 +1,11 @@
 /**
  * Helpers the strategy feature specs share: a build on a fresh conversation,
- * the stored step a search runs and its parameters, the canvas once it has
- * settled, the steps a delete card says go, and the count question the recap
- * arc answers.
+ * a one-step strategy stored through the api, the stored step a search runs
+ * and its parameters, the canvas once it has settled, the steps a delete card
+ * says go, and the count question the recap arc answers.
  */
 
+import type { ConversationResponse } from "@pathfinder/shared";
 import { expect, test, type Locator } from "@playwright/test";
 
 import { prompt } from "./arcs";
@@ -15,6 +16,45 @@ import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
 
 export const COUNT_QUESTION = "How many genes does this strategy return?";
+
+interface SeededStrategy {
+  conversationId: string;
+  rootStepId: string;
+}
+
+/** A one-step strategy stored through the api on `siteId`. */
+export async function seedStrategy(
+  api: ApiClient,
+  siteId: string,
+): Promise<SeededStrategy> {
+  const resp = await api.post("api/v1/conversations", {
+    data: {
+      name: "Smoke test strategy",
+      siteId,
+      strategyAst: {
+        recordType: "transcript",
+        root: {
+          searchName: "GenesByText",
+          parameters: {
+            text_expression: { type: "string", value: "kinase" },
+            text_fields: {
+              type: "string",
+              value: '["primary_key","gene_product"]',
+            },
+            document_type: { type: "string", value: "gene" },
+            max_pvalue: { type: "number", value: 0.5 },
+          },
+          displayName: "All kinase transcripts",
+        },
+      },
+    },
+  });
+  expect(resp.status(), `seed ${await resp.text()}`).toBe(201);
+  const conversation = (await resp.json()) as ConversationResponse;
+  const rootStepId = conversation.rootStepId ?? "";
+  expect(rootStepId).not.toBe("");
+  return { conversationId: conversation.id, rootStepId };
+}
 
 /** The one node running `searchName`. */
 export function nodeBySearch(nodes: readonly AstNode[], searchName: string): AstNode {

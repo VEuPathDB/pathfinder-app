@@ -22,12 +22,12 @@ import { useSessionStore } from "@/state/useSessionStore";
 import { useActiveAssistantId } from "./useActiveAssistantId";
 
 const CONVERSATION_ID = "44444444-4444-4444-8444-444444444444";
-const BASE = `http://localhost:3000/api/v1/conversations/${CONVERSATION_ID}`;
+const BASE = `http://localhost:3000/pathfinder/api/v1/conversations/${CONVERSATION_ID}`;
 
 function recordReads(): string[] {
   const seen: string[] = [];
   server.use(
-    http.get("http://localhost:3000/api/v1/conversations/", () => {
+    http.get("http://localhost:3000/pathfinder/api/v1/conversations/", () => {
       seen.push("collection");
       return HttpResponse.json([]);
     }),

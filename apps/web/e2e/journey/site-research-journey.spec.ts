@@ -162,7 +162,7 @@ for (const journey of JOURNEYS) {
 
         const followUp = journey.followUp;
         if (followUp !== undefined) {
-          await page.goto(`/${journey.siteId}/conversation/${id}`);
+          await page.goto(`${journey.siteId}/conversation/${id}`);
           await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
           await chatPage.sendTurn(followUp.text, followUp.reply);
         }

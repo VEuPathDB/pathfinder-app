@@ -5,7 +5,7 @@ import tempfile
 from collections.abc import AsyncGenerator, Callable, Coroutine, Generator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 from uuid import UUID, uuid4
 
 # The suite has no API key, so every embedding call is the deterministic one.
@@ -43,9 +43,7 @@ from assistant_core.memory.store import MemoryStore
 from assistant_core.persistence.models import Base
 from assistant_core.platform import db
 from assistant_core.platform.logging import setup_logging
-from assistant_core.registry import resolve_turn_assistant
-from assistant_core.spec import AssistantSpec
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
@@ -69,8 +67,6 @@ from veupathdb_mcp.embeddings import (
     use_embedding_session_factory,
 )
 
-from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.tasks import ensure_registered
 from pathfinder.main import create_app
@@ -80,11 +76,8 @@ from pathfinder.platform.security import create_user_token, limiter
 from pathfinder.services import wdk_identity
 from pathfinder.services.eda import catalog
 from pathfinder.tests._support.database import can_connect
-from pathfinder.transport.http.deps import (
-    get_current_user_with_db_row,
-    require_registered_wdk_identity,
-)
-from pathfinder.transport.http.routers.chat import resolve_chat_assistant
+
+pytest_plugins = ["pathfinder.tests._support.signed_in"]
 
 # A test must never send a request to a real model.
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
@@ -366,35 +359,6 @@ async def authed_user_id(
         session.add(User(id=user_id))
         await session.commit()
     return user_id
-
-
-@pytest.fixture
-def signed_in_to_veupathdb(app: FastAPI) -> Generator[None]:
-    """Let the WDK-backed routes run as a user who holds a VEuPathDB session.
-
-    The gate itself is covered by ``test_wdk_login_required``; a suite about
-    what a route does once past it states that it is past it. Chat resolves
-    its gate from the assistant, so that route drops the requirement instead
-    of the dependency, and still routes and refuses as it does in production.
-    """
-
-    async def _identity(
-        user_id: Annotated[UUID, Depends(get_current_user_with_db_row)],
-    ) -> UUID:
-        return user_id
-
-    async def _assistant_without_identity(body: ChatRequestBody) -> AssistantSpec:
-        return await resolve_turn_assistant(
-            registry=get_assistant_registry(),
-            conversation_id=body.conversation_id,
-            requested_id=body.assistant_id,
-        )
-
-    app.dependency_overrides[require_registered_wdk_identity] = _identity
-    app.dependency_overrides[resolve_chat_assistant] = _assistant_without_identity
-    yield
-    app.dependency_overrides.pop(require_registered_wdk_identity, None)
-    app.dependency_overrides.pop(resolve_chat_assistant, None)
 
 
 @pytest.fixture

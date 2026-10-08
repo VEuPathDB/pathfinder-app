@@ -20,7 +20,7 @@ export class SitePickerComponent {
 
   async expectCurrentSite(siteId: string) {
     // The active site lives in the URL (`/{siteId}/...`) now, not a <select>.
-    await expect(this.page).toHaveURL(new RegExp(`/${siteId}(/|$)`), {
+    await expect(this.page).toHaveURL(new RegExp(`/pathfinder/${siteId}(/|$)`), {
       timeout: ROUTE_TIMEOUT_MS,
     });
   }

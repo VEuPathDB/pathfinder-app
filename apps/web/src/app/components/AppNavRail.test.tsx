@@ -4,7 +4,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import type { SiteResponse } from "@pathfinder/shared";
+import type { QuotaResponse } from "@pathfinder/shared/generated/types/QuotaResponse";
+
+import { server } from "../../../vitest.msw-setup";
 
 const route = { pathname: "/plasmodb/conversation/abc-123" };
 const sites: { list: SiteResponse[] } = { list: [] };
@@ -75,10 +79,29 @@ function drawFor(siteId: string, onSiteChange: (id: string) => void = () => unde
   );
 }
 
+const QUOTA: QuotaResponse = {
+  usedUsd: "1.25",
+  limitUsd: "10.00",
+  totalTokens: 123456,
+  percent: 12.5,
+  resetsAt: "2026-10-01T12:00:00Z",
+  ownKeyUsd: "0",
+  ownKeyTokens: 0,
+  ownKeyProviders: [],
+};
+
 beforeEach(() => {
   recordProductEvent.mockClear();
   sites.list = [];
   route.pathname = "/plasmodb/conversation/abc-123";
+  server.use(
+    http.get("http://localhost:3000/pathfinder/api/v1/veupathdb/auth/status", () =>
+      HttpResponse.json({ signedIn: true }),
+    ),
+    http.get("http://localhost:3000/pathfinder/api/v1/me/quota", () =>
+      HttpResponse.json(QUOTA),
+    ),
+  );
 });
 
 afterEach(cleanup);
@@ -107,6 +130,42 @@ describe("AppNavRail section links", () => {
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
     expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved"]);
+  });
+});
+
+describe("AppNavRail logo and spending meter", () => {
+  it("opens the rail with the PathFinder logo, which is neither a link nor a button", async () => {
+    draw();
+    const logo = await screen.findByRole("img", { name: "PathFinder" });
+    const rail = logo.parentElement;
+
+    expect(rail?.firstElementChild).toBe(logo);
+    expect(rail).toContainElement(screen.getByRole("link", { name: "Conversation" }));
+    expect(screen.queryByRole("link", { name: "PathFinder" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "PathFinder" })).toBeNull();
+    expect(logo.querySelector("img")).toHaveAttribute(
+      "src",
+      "/pathfinder/pathfinder.svg",
+    );
+  });
+
+  it("names the logo PathFinder on hover", async () => {
+    draw();
+    await userEvent.hover(await screen.findByRole("img", { name: "PathFinder" }));
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("PathFinder");
+  });
+
+  it("opens the bottom group with the spending meter, before the AI model settings", async () => {
+    draw();
+    const meter = await screen.findByRole("img", { name: "Monthly spend" });
+    const model = screen.getByRole("button", { name: "AI model settings" });
+
+    expect(meter.parentElement).toBe(model.parentElement);
+    expect(meter.parentElement?.firstElementChild).toBe(meter);
+    expect(
+      meter.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

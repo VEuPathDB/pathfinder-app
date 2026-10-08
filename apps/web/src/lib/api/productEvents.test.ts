@@ -7,7 +7,7 @@ import { http, HttpResponse } from "msw";
 import { server } from "../../../vitest.msw-setup";
 import { recordProductEvent } from "./productEvents";
 
-const ROUTE = "http://localhost:3000/api/v1/product-events";
+const ROUTE = "http://localhost:3000/pathfinder/api/v1/product-events";
 const CONVERSATION_ID = "5f0c6a8e-2d4b-4c1a-9e7f-3b2a1c0d9e8f";
 
 afterEach(() => {

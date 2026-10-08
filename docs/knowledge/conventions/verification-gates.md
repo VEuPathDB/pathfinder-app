@@ -32,14 +32,16 @@ only shape [the capacity measurement](../decisions/the-e2e-stack-serves-the-prod
 ran with no failure and no flake. `e2e-merge-report` merges the shards' blob
 reports into one HTML report and fails when a shard failed. CI sets
 `E2E_SITES=plasmodb,vectorbase`, so every turn-driving test runs once per site.
-The suite signs in as the registered account named by `WDK_TEST_EMAIL` and
-`WDK_TEST_PASSWORD` (the CI secrets); a local run maps the dev credentials onto
+The suite acts as the registered account named by `WDK_TEST_EMAIL` and
+`WDK_TEST_PASSWORD` (the CI secrets): global setup signs in once at the site's
+own login, as the website does, and every spec carries that token as the
+website's `Authorization` cookie. A local run maps the dev credentials onto
 those names in its own shell (`WDK_TEST_EMAIL=$WDK_DEV_EMAIL`, and the same for
-the password) or the account-bound specs skip.
+the password) or exports `WDK_TEST_TOKEN` itself; without either the suite stops
+in its worker fixture.
 
 A retried test's trace records every request header and every typed value, so
-it holds the registered account's VEuPathDB token and, where a spec signs in,
-its email and password. The token cannot be revoked: it is an ES512 JWT from
+it holds the registered account's VEuPathDB token. The token cannot be revoked: it is an ES512 JWT from
 the VEuPathDB OAuth server that lives three years, the server has no revoke
 endpoint, and WDK's `/logout` only swaps the caller's cookie for a guest one, so
 the old token still answers `/users/current` as the account. The shard job
@@ -48,7 +50,7 @@ the upload, and the upload runs only when that step passed. The script blanks
 every JWT and the account's email and password (raw, JSON-escaped to three
 levels, URL-encoded) in every text entry of every zip, nested trace zips
 included; the merged HTML report is built from the redacted blobs. Screenshots
-and videos are not rewritten, and a password field draws as dots.
+and videos are not rewritten.
 
 # Backend (`apps/api`)
 

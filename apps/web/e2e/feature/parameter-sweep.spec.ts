@@ -6,12 +6,11 @@
  * the card renders all three from the message's own parts.
  */
 
-import { test, expect } from "../fixtures/test";
+import { BASE_URL, test, expect } from "../fixtures/test";
 import { entrySiteId } from "../fixtures/entry-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
-const BASE_URL = process.env["PLAYWRIGHT_BASE_URL"] ?? "http://localhost:3000";
 const TASK_ID = "00000000-0000-0000-0000-sweep0000001";
 
 interface OpenStrategyResponse {
@@ -86,7 +85,7 @@ test.describe("Parameter Sweep", () => {
       });
     });
 
-    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await page.goto(`${siteId}/conversation/${strategyId}`);
     const composer = page.getByPlaceholder("Ask about strategies", {
       exact: false,
     });
@@ -146,7 +145,7 @@ test.describe("Parameter Sweep", () => {
       });
     });
 
-    await page.goto(`/${siteId}/conversation/${strategyId}`);
+    await page.goto(`${siteId}/conversation/${strategyId}`);
     const composer = page.getByPlaceholder("Ask about strategies", {
       exact: false,
     });
