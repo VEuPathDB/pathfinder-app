@@ -74,6 +74,7 @@ from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.durable_worker import no_durable_worker
+from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.tiers import KNOWN_ROLES
 from pathfinder.platform.tool_sources import admitted_tool_sources
 from pathfinder.services.conversations.begin import begin_conversation
@@ -529,6 +530,7 @@ async def _exec_one(
         await stack.enter_async_context(procrastinate_app.open_async())
         # The debugger drives the turn itself, so it admits what the worker does.
         install_admitted_sources(admitted_tool_sources())
+        install_catalog_prices()
         install_durable_job_context(WdkJobContext())
         registry = get_assistant_registry()
         spec = await resolve_run_assistant(body.conversation_id, args.assistant)

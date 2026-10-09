@@ -36,6 +36,8 @@ from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.langfuse.client import shutdown_langfuse
+from pathfinder.platform.metrics import serve_metrics
+from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
 
@@ -78,6 +80,7 @@ async def amain() -> None:
     setup_logging()
     setup_observability(service_name="pathfinder-worker")
     install_procrastinate_redaction()
+    install_catalog_prices()
     # The index shares this process's pool instead of opening a second one.
     use_embedding_session_factory(async_session_factory)
     logging.getLogger(__name__).info("Pathfinder worker starting")
@@ -91,6 +94,7 @@ async def amain() -> None:
     install_assistant_registry(get_assistant_registry())
     register_durable_jobs(procrastinate_app)
     settings = get_settings()
+    serve_metrics(settings.metrics_port, settings.metrics_addr)
     procrastinate_app.perform_import_paths()
     # The worker is built here rather than through run_worker_async so the
     # heartbeat thread can read the worker id procrastinate registers.

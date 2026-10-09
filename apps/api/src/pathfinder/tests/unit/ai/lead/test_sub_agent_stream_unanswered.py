@@ -6,8 +6,11 @@ import dataclasses
 from collections.abc import Iterator
 
 import pytest
+from assistant_core.errors import ModelDeclinedError
+from pydantic import SecretStr
 from pydantic_ai import RunContext, Tool
 from pydantic_ai.messages import ModelMessage, ToolCallPart
+from pydantic_ai.models import infer_model
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.toolsets import FunctionToolset
 
@@ -18,7 +21,15 @@ from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.lead.sub_agent_stream import PhaseRun, stream_sub_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.platform.config import get_settings
-from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
+from pathfinder.tests._support.models import (
+    ANTHROPIC_SMALL,
+    ANTHROPIC_STANDARD,
+    DEFAULT_MODEL,
+)
+from pathfinder.tests._support.provider_wire import (
+    ProviderWire,
+    allow_requests_to_the_wire,
+)
 from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead.conftest import (
     called_tool_names,
@@ -166,3 +177,29 @@ async def test_a_pass_that_ran_to_its_answer_names_no_stage() -> None:
     assert isinstance(delta, FrameResult)
     assert delta.summary == "one criterion bound"
     assert deps.unanswered_stage is None
+
+
+@pytest.fixture
+def declining_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[ProviderWire]:
+    wire = ProviderWire(declines=True)
+    allow_requests_to_the_wire(monkeypatch)
+    model = infer_model(
+        ANTHROPIC_STANDARD,
+        provider_factory=lambda _: wire.build("anthropic", SecretStr("sk-ant-test")),
+    )
+    toolset = FunctionToolset[AgentDeps](tools=[Tool(ping)])
+    with pinned_sub_agent(
+        monkeypatch, "frame", model=model, toolsets=[toolset], instructions="Bind."
+    ):
+        yield wire
+
+
+async def test_a_pass_whose_model_declined_ends_the_turn_unretried(
+    declining_frame: ProviderWire,
+) -> None:
+    with pytest.raises(ModelDeclinedError) as caught:
+        await _dispatch(_deps())
+
+    assert caught.value.model_id == ANTHROPIC_STANDARD
+    assert caught.value.text.startswith("Claude Sonnet 5.5 declined this request.")
+    assert len(declining_frame.requests) == 1

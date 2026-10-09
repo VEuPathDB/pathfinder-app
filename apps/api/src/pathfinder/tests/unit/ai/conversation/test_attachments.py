@@ -20,7 +20,7 @@ from pathfinder.platform.errors import (
     ErrorCode,
 )
 from pathfinder.platform.model_catalog import ModelEntry, get_model_entry
-from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
+from pathfinder.tests._support.models import DEFAULT_MODEL
 
 _MIB = 1024 * 1024
 
@@ -32,7 +32,7 @@ def _model(model_id: str) -> ModelEntry:
 
 
 READER = _model(DEFAULT_MODEL)
-BLIND = _model(ANTHROPIC_SMALL)
+BLIND = _model("mock:deterministic")
 
 
 def _part(media_type: str, size: int, filename: str = "table.png") -> FileUIPart:

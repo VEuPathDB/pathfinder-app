@@ -46,7 +46,8 @@ const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
 const S2_TEXT = (organism: string) =>
   `Find ${organism} genes with a predicted signal peptide and 2 to 99 transmembrane domains.`;
-const GO_TEXT = (organism: string) => `Find ${organism} genes by their GO term.`;
+const GO_TEXT = (organism: string) =>
+  `Find ${organism} genes annotated with the GO term structural constituent of ribosome.`;
 
 /** The arc's message with the fault token after the arc token. */
 function faulted(arcName: ArcName, fault: FaultName, text: string): string {
@@ -269,10 +270,10 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await openTraces(chatPage);
     await expectCorrection(page);
     const refusals = await loggedRefusals(apiClient, id);
+    expect(refusals).toContain("Your reply writes facts the product renders.");
     expect(refusals).toContain(
-      `Your reply prints \`\`${printed(counts.root + 1)}\`\`.`,
+      `- \`\`${printed(counts.root + 1)}\`\`: no fact holds it, so take it out.`,
     );
-    expect(refusals).toContain("stand beside its replies");
     const reply = await replyText(apiClient, id);
     expect(reply).toContain("shown beside this reply");
     expect(reply).not.toMatch(/\d/);

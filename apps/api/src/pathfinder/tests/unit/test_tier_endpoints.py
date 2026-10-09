@@ -17,8 +17,12 @@ from pathfinder.platform.identity import (
     PATHFINDER_ASSISTANT_ID,
     SITE_HELP_ASSISTANT_ID,
 )
-from pathfinder.platform.model_catalog import get_model_entry
-from pathfinder.platform.tiers import TIER_PRESETS, PhaseTierConfig
+from pathfinder.platform.model_catalog import deployment_may_pay, get_model_entry
+from pathfinder.platform.tiers import (
+    OWN_KEY_TIER_PRESETS,
+    TIER_PRESETS,
+    PhaseTierConfig,
+)
 from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.transport.http.routers.tiers import TierListResponse, list_tiers
 
@@ -79,7 +83,9 @@ async def test_endpoint_returns_exactly_expected_tier_names_per_provider() -> No
 async def test_endpoint_response_matches_in_process_tier_registry() -> None:
     """Endpoint output equals the canonical registry - no transformation drift."""
     response = await _list_tiers()
-    expected = TierListResponse(presets=TIER_PRESETS)
+    expected = TierListResponse(
+        presets=TIER_PRESETS, own_key_presets=OWN_KEY_TIER_PRESETS
+    )
     assert response == expected
 
 
@@ -172,3 +178,19 @@ def test_phase_tier_config_is_frozen() -> None:
     assert cfg.model_config.get("frozen") is True
     with pytest.raises(ValidationError):
         _assign(cfg, "model_id", DEFAULT_MODEL)
+
+
+def test_no_deployment_preset_names_a_model_only_a_researchers_key_runs() -> None:
+    named = {cfg.model_id for *_, cfg in _every_config()}
+
+    assert {model_id: deployment_may_pay(model_id) for model_id in named} == (
+        dict.fromkeys(named, True)
+    )
+
+
+def test_a_researchers_anthropic_quality_tier_leads_on_opus() -> None:
+    preset = OWN_KEY_TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["anthropic"]["quality"]
+
+    assert preset.for_role("lead") == PhaseTierConfig(
+        model_id="anthropic:claude-opus-5-5", reasoning_effort="high"
+    )

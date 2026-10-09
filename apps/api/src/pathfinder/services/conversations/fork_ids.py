@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+_TURN_WITHDRAWN = "data-turn-withdrawn"
 _SCRATCHPAD_TOOL_PART_TYPES = frozenset(
     {
         "tool-note",
@@ -24,6 +25,12 @@ class _ChunkMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: str | None = None
+
+
+class _WithdrawnPrompt(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    message_id: str = Field(alias="messageId")
 
 
 class _ChunkIdentity(BaseModel):
@@ -72,6 +79,10 @@ def rewrite_message_ids_in_chunk(
     if identity.message is not None and identity.message.id is not None:
         message = {**rewritten["message"], "id": messages.of(identity.message.id)}
         rewritten = {**rewritten, "message": message}
+    if chunk.get("type") == _TURN_WITHDRAWN:
+        withdrawn = _WithdrawnPrompt.model_validate(chunk["data"])
+        data = {**chunk["data"], "messageId": messages.of(withdrawn.message_id)}
+        rewritten = {**rewritten, "data": data}
     return rewritten
 
 

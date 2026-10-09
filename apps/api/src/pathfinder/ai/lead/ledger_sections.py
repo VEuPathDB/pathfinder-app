@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     StructureNode,
 )
+from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.staleness import StaleBuild
 from pathfinder.domain.strategy.value_binding import plain_value
@@ -117,6 +118,7 @@ class FrameSection(CamelModel):
     # The spec the turn started from. It stays off the wire: the comparison is
     # what a reader needs, and a second whole spec per chunk is not.
     spec_before_turn: OperationalSpec | None = Field(default=None, exclude=True)
+    open_questions: list[OpenQuestion] = Field(default_factory=list, exclude=True)
 
     @computed
     def present(self) -> bool:

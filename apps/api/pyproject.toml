@@ -1,6 +1,6 @@
 [project]
 name = "pathfinder-api"
-version = "0.2.0b5"
+version = "0.2.0b6"
 description = "VEuPathDB Strategy Builder Chatbot API"
 requires-python = ">=3.14"
 dependencies = [
@@ -13,7 +13,7 @@ dependencies = [
     "pgvector>=0.5.0",
     "alembic>=1.18.0",
     "httpx>=0.28.1",
-    "pydantic-ai>=2.41.0,<3",
+    "pydantic-ai>=2.54.0,<3",
     "fastmcp-slim[server]>=3.3.0,<4",
     "langgraph==1.2.11",
     "langgraph-checkpoint-postgres==3.1.2", # PYSEC-2026-3635
@@ -35,6 +35,7 @@ dependencies = [
     "pydantic-evals>=2.41.0,<3",
     "veupathdb-py[otel,devtools]",
     "veupathdb-mcp",
+    "prometheus-client>=0.26.0",
 ]
 
 [tool.uv]
@@ -47,6 +48,7 @@ constraint-dependencies = [
     "cryptography>=50.0.0",  # PYSEC-2026-3552/3553/3554, GHSA-537c-gmf6-5ccf
     "langgraph-sdk>=0.3.15",  # PYSEC-2026-2194, PYSEC-2026-2575
     "langsmith>=0.8.18",  # GHSA-f4xh-w4cj-qxq8
+    "mako>=1.4.2",  # GHSA-5639-2j2p-m4mx
     "mcp>=1.28.1,<2",  # PYSEC-2026-3481/3482/3483; the served-tools and http tests import mcp.types on the mcp 1 shapes
     "msgpack>=1.2.1",  # PYSEC-2026-3625
     "pip>=26.2",  # PYSEC-2026-3721
@@ -54,9 +56,9 @@ constraint-dependencies = [
     "soupsieve>=2.8.4",  # PYSEC-2026-3071, PYSEC-2026-3072
 ]
 [tool.uv.sources]
-assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b2" }
+assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b5" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b3" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b4" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b6" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0b1" }
 
 [build-system]

@@ -94,6 +94,7 @@ def _after_the_drop() -> list[ModelMessage]:
     }
     history = [
         ModelRequest(parts=[UserPromptPart(content=_ORDER)]),
+        *tool_exchange(7, "search_memory", []),
         *tool_exchange(0, "search_for_searches", []),
         *tool_exchange(1, "list_searches", []),
         *tool_exchange(2, "set_criterion", _sheet("organism_genes", model, "organism")),

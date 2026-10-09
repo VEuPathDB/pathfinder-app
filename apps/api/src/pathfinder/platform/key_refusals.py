@@ -134,10 +134,10 @@ def classify_refusal(
 
 
 # Every error a model request or its stream raises for the provider's answer.
-# pydantic-ai wraps what a request raises; an SDK error inside a stream passes.
+# pydantic-ai wraps an SDK error with the SDK error as its cause; an Anthropic
+# response it cannot read passes unwrapped.
 PROVIDER_ERRORS: tuple[type[Exception], ...] = (
     ModelAPIError,
-    openai.APIError,
     anthropic.APIError,
 )
 
@@ -153,13 +153,13 @@ class ProviderFailure:
 
     @property
     def kind(self) -> tuple[str | None, str | None]:
-        """The provider's error type and code: OpenAI's at the top of the body,
-        Anthropic's under its error object."""
-        flat = _OpenAIError.model_validate(self.body)
-        if flat.type or flat.code:
-            return flat.type, flat.code
+        """The provider's error type and code: Anthropic's under its error object,
+        OpenAI's at the top of the body."""
         nested = _AnthropicError.model_validate(self.body).error
-        return nested.type, None
+        if nested.type:
+            return nested.type, None
+        flat = _OpenAIError.model_validate(self.body)
+        return flat.type, flat.code
 
 
 def provider_failure(error: Exception) -> ProviderFailure:
@@ -171,7 +171,9 @@ def provider_failure(error: Exception) -> ProviderFailure:
     match error:
         case ModelHTTPError():
             return ProviderFailure(error.status_code, error.body, error.headers)
-        case openai.APIError() | anthropic.APIError():
+        case ModelAPIError(__cause__=openai.APIError() | anthropic.APIError() as cause):
+            return ProviderFailure(None, cause.body)
+        case anthropic.APIError():
             return ProviderFailure(None, error.body)
         case _:
             return ProviderFailure(None, None)

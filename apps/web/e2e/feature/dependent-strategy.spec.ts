@@ -35,7 +35,10 @@ test.describe("Dependent-parameter strategy", { tag: "@turn" }, () => {
     const id = await buildOn(
       chatPage,
       siteId,
-      prompt("go", `Find ${siteOrganism(siteId)} genes by their GO term.`),
+      prompt(
+        "go",
+        `Find ${siteOrganism(siteId)} genes annotated with the GO term structural constituent of ribosome.`,
+      ),
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.go);
     const built = nodeBySearch(await readNodes(apiClient, id), GO_TERM);

@@ -25,6 +25,7 @@ from pathfinder.ai.models.mock.reads import (
     gene_records,
     gene_set_id,
     instructions_of,
+    live_searches,
     text_return,
 )
 from pathfinder.ai.models.mock.site_values import SiteValues
@@ -41,6 +42,9 @@ _RECALL_PROSE = "This conversation already carries: "
 _RECALL_NOTHING = "no ledger yet"
 _RECALL_SHOWN = "the strategy shown beside this reply"
 _NO_PREFERENCE = "I hold no stored preference of yours."
+_RECALLED_PROSE = (
+    "What your other conversations hold for this is shown beside this reply."
+)
 _VARIANT_PROSE = (
     "I ran both search variants and compared their results above. Tell me "
     "which direction you'd like to carry into the strategy."
@@ -111,6 +115,14 @@ def recall_preference(messages: list[ModelMessage]) -> list[ToolCallPart]:
     return [classify("follow_up_question"), lead_final(prose, "await_user")]
 
 
+def recall() -> list[ToolCallPart]:
+    return [
+        classify("follow_up_question"),
+        scripted_call("search_memory", {"query": message()}),
+        lead_final(_RECALLED_PROSE, "await_user"),
+    ]
+
+
 def recap(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """Read one Ledger section and the live strategy, and answer with what the
     section says in words, dispatching no sub-agent. The facts part shows the
@@ -124,10 +136,12 @@ def recap(messages: list[ModelMessage]) -> list[ToolCallPart]:
     ]
 
 
-def variants() -> list[ToolCallPart]:
+def variants(messages: list[ModelMessage]) -> list[ToolCallPart]:
+    args = variant_args(_site().organism, live_searches(messages))
     return [
         classify("follow_up_question"),
-        scripted_call("compare_search_variants", variant_args(_site().organism)),
+        scripted_call("get_live_strategy_state", {}),
+        scripted_call("compare_search_variants", args),
         lead_final(_VARIANT_PROSE, "await_user"),
     ]
 

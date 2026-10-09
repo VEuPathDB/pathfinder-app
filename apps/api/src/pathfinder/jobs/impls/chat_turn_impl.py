@@ -16,11 +16,16 @@ from assistant_core.tasks.scope import (
 
 from pathfinder.ai.conversation.turn_failure import turn_closed_on_failure
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
-from pathfinder.assistants.registry import get_assistant_registry, turn_trace_labels
+from pathfinder.assistants.registry import (
+    get_assistant_registry,
+    prompt_reader_model,
+    turn_trace_labels,
+)
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.jobs.log_context import turn_log_context
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.jobs.turn_keys import turn_keys
+from pathfinder.jobs.turn_metrics import metered_turn
 from pathfinder.platform.config import get_settings
 
 logger = get_logger(__name__)
@@ -40,13 +45,17 @@ async def run_chat_turn(payload: dict[str, Any]) -> None:
     registry = get_assistant_registry()
     spec = registry.resolve(parsed.assistant_id)
 
-    writer = ChatEventWriter(
-        conversation_id=body.conversation_id,
-        turn_id=parsed.turn_id,
-    )
     settings = get_settings()
     with turn_log_context(conversation_id=body.conversation_id, turn_id=parsed.turn_id):
         async with (
+            metered_turn(
+                assistant_id=spec.assistant_id,
+                model_id=prompt_reader_model(spec.assistant_id, body.phase_models),
+                writer=ChatEventWriter(
+                    conversation_id=body.conversation_id,
+                    turn_id=parsed.turn_id,
+                ),
+            ) as writer,
             attach_wdk_auth(parsed.veupathdb_auth_token),
             attach_user_id(parsed.user_id),
             attach_conversation_application(body.conversation_id),

@@ -57,37 +57,78 @@ _DECIDED: dict[ModelProvider, Table] = {
     },
     "anthropic": {
         "quality": (
-            ("anthropic:claude-haiku-4-5", "high"),
-            ("anthropic:claude-haiku-4-5", "high"),
+            ("anthropic:claude-haiku-5-5", "high"),
+            ("anthropic:claude-haiku-5-5", "high"),
         ),
         "balanced": (
-            ("anthropic:claude-haiku-4-5", "medium"),
-            ("anthropic:claude-haiku-4-5", "medium"),
+            ("anthropic:claude-haiku-5-5", "medium"),
+            ("anthropic:claude-haiku-5-5", "medium"),
         ),
         "default": (
-            ("anthropic:claude-haiku-4-5", "medium"),
-            ("anthropic:claude-haiku-4-5", "medium"),
+            ("anthropic:claude-haiku-5-5", "medium"),
+            ("anthropic:claude-haiku-5-5", "medium"),
         ),
         "fast": (
-            ("anthropic:claude-haiku-4-5", "low"),
-            ("anthropic:claude-haiku-4-5", "low"),
+            ("anthropic:claude-haiku-5-5", "low"),
+            ("anthropic:claude-haiku-5-5", "low"),
         ),
     },
 }
 
 
+_DEPLOYMENT_PAYS = tuple(e for e in get_model_catalog() if e.deployment_may_pay)
+
+_OWN_KEY_ANTHROPIC: Table = {
+    "quality": (
+        ("anthropic:claude-opus-5-5", "high"),
+        ("anthropic:claude-sonnet-5-5", "medium"),
+    ),
+    "balanced": (
+        ("anthropic:claude-sonnet-5-5", "medium"),
+        ("anthropic:claude-haiku-5-5", "medium"),
+    ),
+    "default": (
+        ("anthropic:claude-haiku-5-5", "medium"),
+        ("anthropic:claude-haiku-5-5", "medium"),
+    ),
+    "fast": (
+        ("anthropic:claude-haiku-5-5", "low"),
+        ("anthropic:claude-haiku-5-5", "low"),
+    ),
+}
+
+
 @pytest.mark.parametrize("provider", sorted(_DECIDED))
-def test_the_catalog_derives_the_decided_tiers(provider: ModelProvider) -> None:
+def test_the_lineup_the_deployment_pays_for_derives_the_decided_tiers(
+    provider: ModelProvider,
+) -> None:
+    assert _table(provider, _DEPLOYMENT_PAYS) == _DECIDED[provider]
+
+
+@pytest.mark.parametrize("provider", ["openai", "google"])
+def test_a_researchers_key_runs_the_same_tiers_where_the_deployment_pays_for_all(
+    provider: ModelProvider,
+) -> None:
     assert _table(provider, get_model_catalog()) == _DECIDED[provider]
+
+
+def test_a_researchers_anthropic_key_runs_the_whole_claude_lineup() -> None:
+    assert _table("anthropic", get_model_catalog()) == _OWN_KEY_ANTHROPIC
 
 
 def test_a_missing_rank_takes_the_next_one_down() -> None:
     """A lineup without a standard entry runs the balanced thinker on the small."""
     entries = (
         ModelEntry.entry(
-            id="openai:big", name="Big", rank="flagship", is_provider_default=True
+            id="openai:big",
+            name="Big",
+            rank="flagship",
+            is_provider_default=True,
+            deployment_may_pay=True,
         ),
-        ModelEntry.entry(id="openai:tiny", name="Tiny", rank="small"),
+        ModelEntry.entry(
+            id="openai:tiny", name="Tiny", rank="small", deployment_may_pay=True
+        ),
     )
 
     assert _table("openai", entries) == {

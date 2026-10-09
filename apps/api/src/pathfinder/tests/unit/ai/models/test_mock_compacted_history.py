@@ -130,6 +130,7 @@ def _compacted(
     }
     history = [
         ModelRequest(parts=[UserPromptPart(content=work_order)]),
+        *tool_exchange(4, "search_memory", []),
         *tool_exchange(0, "search_for_searches", []),
         *tool_exchange(1, "list_searches", _oversized_listing()),
         *tool_exchange(2, "set_criterion", sheet),

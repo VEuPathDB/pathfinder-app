@@ -31,6 +31,9 @@ const S3_TEXT = (organism: string) =>
 const N11_TEXT =
   "Please remember for future sessions that I prefer the Su et al. strand-specific dataset for gametocyte expression, then tell me what you stored.";
 const M6_QUESTION = "Which dataset do I prefer for gametocyte expression?";
+const RECALL_TEXT = (organism: string) =>
+  `What did my earlier work find for ${organism} genes with a predicted signal peptide and transmembrane domains?`;
+const RECALLED_REPLY = /other conversations hold for this is shown beside this reply/;
 const EDITED_SUMMARY = "UAT edited summary";
 const UNMATCHED_WORD = "quokka";
 const KIND_BADGE = /^(Gene set|Strategy|Preference|Knowledge|Case)/;
@@ -223,6 +226,10 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     const second = chatPage.lastStrategyId ?? "";
     const again = await expectBuild(page, apiClient, second, siteId, LAYOUTS.intersect);
     expect(again.root).toBe(counts.root);
+    const rebuilt = chatPage.replyCounting(again.root);
+    await openTrace(rebuilt);
+    await expect(traceRows(rebuilt, "Search memory")).not.toHaveCount(0);
+    await chatPage.sendAndSettle(prompt("recall", RECALL_TEXT(siteOrganism(siteId))));
     const recalled = recalledRows(page).filter({ hasText: written.value.name });
     await expect(recalled).toHaveCount(1);
     await expect(recalled).toContainText("Case");
@@ -294,6 +301,8 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
       siteId,
       LAYOUTS.union,
     );
+    await chatPage.sendAndSettle(prompt("recall", RECALL_TEXT(siteOrganism(siteId))));
+    await expect(chatPage.assistantReply(RECALLED_REPLY)).toHaveCount(1);
     await expect(
       recalledRows(page).filter({ hasText: written.value.name }),
     ).toHaveCount(0);
@@ -324,24 +333,34 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     );
     expect(renamed.status()).toBe(200);
 
-    await buildOn(chatPage, siteId, prompt("recall-preference", M6_QUESTION));
-    const figure = page.getByTestId("data-memory-retrieved");
-    await expect(figure.locator("figcaption")).toHaveText("Recalled memories");
-    const rows = figure.getByRole("listitem");
+    await buildOn(
+      chatPage,
+      siteId,
+      prompt("recall", RECALL_TEXT(siteOrganism(siteId))),
+    );
+    const figures = page.getByTestId("data-memory-retrieved");
+    await expect(figures).toHaveCount(2);
+    await expect(figures.locator("figcaption")).toHaveText([
+      "Recalled memories",
+      "Recalled memories",
+    ]);
+    const pinned = figures.filter({ hasText: preference.value.name });
+    const preferenceRow = pinned.getByRole("listitem");
+    await expect(preferenceRow).toHaveCount(1);
+    await expect(preferenceRow).toContainText("Preference");
+    const recalled = figures.filter({ hasText: outcome.value.name });
+    const rows = recalled.getByRole("listitem");
     const shown = await rows.count();
-    expect(shown).toBeGreaterThanOrEqual(3);
-    await expect(figure.getByTestId("figure-caption")).toHaveText(
+    expect(shown).toBeGreaterThanOrEqual(2);
+    await expect(recalled.getByTestId("figure-caption")).toHaveText(
       `${printed(shown)} memories`,
     );
     await expect(rows).toHaveText(new Array<RegExp>(shown).fill(KIND_BADGE));
-    const preferenceRow = rows.filter({ hasText: preference.value.name });
-    await expect(preferenceRow).toHaveCount(1);
-    await expect(preferenceRow).toContainText("Preference");
     const shared = rows.filter({ hasText: outcome.value.name });
     await expect(shared).toHaveCount(2);
     await expect(shared.getByTestId("memory-written")).toHaveCount(2);
 
-    const strategyLink = figure.getByRole("link", { name: outcome.value.name });
+    const strategyLink = recalled.getByRole("link", { name: outcome.value.name });
     await expect(strategyLink).toHaveAttribute("title", outcome.value.name);
     await expect(strategyLink).toHaveAttribute(
       "href",

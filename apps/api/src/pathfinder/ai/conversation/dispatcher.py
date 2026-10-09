@@ -21,6 +21,7 @@ from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.platform.langfuse.events import ProductEvent, record_product_event
+from pathfinder.platform.metrics import CHAT_TURNS_STARTED
 from pathfinder.services.conversations.begin import begin_conversation
 
 
@@ -113,6 +114,7 @@ async def dispatch(
         conversation_id=body.conversation_id,
         payload=payload.model_dump(mode="json", by_alias=True),
     )
+    CHAT_TURNS_STARTED.labels(spec.assistant_id).inc()
 
     return event_tail(body.conversation_id, after=after)
 

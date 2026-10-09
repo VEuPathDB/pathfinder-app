@@ -136,6 +136,7 @@ def test_the_registry_holds_every_named_arc() -> None:
             "off-topic",
             "remember",
             "recall-preference",
+            "recall",
             "context",
             "second-build",
             "controls-test",

@@ -26,6 +26,7 @@ from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.models.mock.calls import CLASSIFY, classify, lead_final, narrated
 from pathfinder.ai.models.mock.history import acted_tool_names, head_work_order
 from pathfinder.ai.models.mock.lead_flow import build_journey, run_sequence
+from pathfinder.ai.models.mock.lookup_arcs import looked_up_values
 from pathfinder.ai.models.mock.reads import (
     ToolAnswer,
     frame_summary,
@@ -187,7 +188,21 @@ def _asking_frame(messages: list[ModelMessage]) -> ToolCallPart:
             return call
     if "set_structure" not in called:
         return scripted_call("set_structure", set_structure_args(_spec(crit)))
-    offer = _offer(_sheet_vocabulary(messages, crit), opened=bool(slot_options))
+    offered = _sheet_vocabulary(messages, crit)
+    organism = _site().organism
+    if slot_options and organism not in offered:
+        found = looked_up_values(messages, OPEN_PARAM)
+        if found is None:
+            return scripted_call(
+                "get_parameter_options",
+                {
+                    "search_name": crit.search_name,
+                    "parameter_id": OPEN_PARAM,
+                    "query": [organism],
+                },
+            )
+        offered = list(dict.fromkeys([*found, *offered]))
+    offer = _offer(offered, opened=bool(slot_options))
     return scripted_call("final_result", _asked(crit, offer))
 
 

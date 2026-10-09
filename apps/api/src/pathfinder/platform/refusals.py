@@ -14,6 +14,7 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import AgentDepsT, RunContext, ToolDefinition
 
+from pathfinder.platform.declined import DeclinedRequests
 from pathfinder.platform.durable_worker import DurableCallsRefused
 from pathfinder.platform.errors import AppError, ProviderKeyError
 
@@ -106,6 +107,7 @@ def agent_capabilities(
     """
     return [
         ServiceRefusalRetry[AgentDepsT](),
+        DeclinedRequests[AgentDepsT](),
         DurableCallsRefused[AgentDepsT](),
         ReasoningEffortOnSpan(),
         *carried,

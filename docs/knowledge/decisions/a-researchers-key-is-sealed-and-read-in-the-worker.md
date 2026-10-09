@@ -43,8 +43,11 @@ chunk carries one. A key the secret no longer opens is marked `unreadable`.
 **The payer rule** (`domain/provider_keys.py::KeyStatuses.payer`). For each
 provider a turn's roles run on: a live key pays; a refused or unreadable key
 refuses the turn (409 at dispatch, a typed turn failure in the worker); else the
-deployment pays when it holds the provider's key; else `PROVIDER_NOT_CONFIGURED`
-(422). The monthly allowance stops only a turn that runs some model on the
+deployment pays when it holds the provider's key and the model's catalog entry
+lets it pay; else `PROVIDER_NOT_CONFIGURED` (422), or `OWN_KEY_REQUIRED` (422)
+for a model only a researcher's key runs
+([Only a researcher's key runs the larger Claude models](only-a-researchers-key-runs-the-larger-claude-models.md)).
+The monthly allowance stops only a turn that runs some model on the
 deployment's key.
 
 **Every model is guarded** (`platform/model_keys.py::GuardedModel`), keyed or
@@ -53,7 +56,8 @@ turn as its status with no body, raised with no provider error in its printed
 chain, so no chunk, traceback, log or span carries the provider's text; OpenAI
 echoes a key's last four characters in its 401, and its billing error inside a
 stream carries a link. An SDK error inside a stream carries no status of its
-own, so the classifier reads its body alone. A refusal of the
+own; pydantic-ai raises it as the cause of a `ModelAPIError`, and the classifier
+reads that cause's body alone. A refusal of the
 researcher's key (`platform/key_refusals.py::classify_refusal`) is raised as the
 typed refusal, which no model retry can pass, and marked on the row after the
 turn as `invalid`, `no_credit` or `forbidden` (migration `2026_09_24_0004`); the

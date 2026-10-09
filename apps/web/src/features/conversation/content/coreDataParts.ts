@@ -6,6 +6,7 @@ import { DataMemoryRetrieved } from "./parts/DataMemoryRetrieved";
 import { DataResearchSources } from "./parts/DataResearchSources";
 import { DataTurnFailed } from "./parts/DataTurnFailed";
 import { DataTurnStopped } from "./parts/DataTurnStopped";
+import { DataTurnWithdrawn } from "./parts/DataTurnWithdrawn";
 import type { DataPartComponentMap } from "./dataPartComponentMap";
 
 /**
@@ -28,6 +29,7 @@ export type CoreDataPartKind =
   | "data-turn-status"
   | "data-turn-stopped"
   | "data-turn-failed"
+  | "data-turn-withdrawn"
   | "data-lead-usage"
   | "data-tool-summary"
   | "data-user-question-answers"
@@ -47,6 +49,7 @@ export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   "data-turn-status": noRender,
   "data-turn-stopped": DataTurnStopped,
   "data-turn-failed": DataTurnFailed,
+  "data-turn-withdrawn": DataTurnWithdrawn,
   "data-lead-usage": noRender,
   // The trace reads the line; the thread never draws it as a part of its own.
   "data-tool-summary": noRender,

@@ -209,6 +209,12 @@ def live_step_id(messages: list[ModelMessage], search_name: str) -> str | None:
     return next((s.step_id for s in steps if s.search_name == search_name), None)
 
 
+def live_searches(messages: list[ModelMessage]) -> frozenset[str]:
+    read = last_return(messages, "get_live_strategy_state", _Live)
+    steps = [] if read is None else read.steps
+    return frozenset(s.search_name for s in steps if s.search_name is not None)
+
+
 def live_root_wdk_step_id(messages: list[ModelMessage]) -> int | None:
     """The WDK id of the root the newest live read names, or None."""
     read = last_return(messages, "get_live_strategy_state", _Live)

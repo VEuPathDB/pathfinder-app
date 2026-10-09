@@ -1,4 +1,5 @@
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils/cn";
@@ -16,14 +17,94 @@ function TooltipProvider({
   );
 }
 
-function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+type RootProps = Omit<
+  React.ComponentProps<typeof TooltipPrimitive.Root>,
+  "open" | "defaultOpen" | "onOpenChange"
+>;
+
+type TapState = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  holdOpenThroughClick: () => void;
+};
+
+const TapStateContext = React.createContext<TapState | null>(null);
+
+function Tooltip({ tapToOpen = false, ...props }: RootProps & { tapToOpen?: boolean }) {
+  if (tapToOpen) return <TapTooltip {...props} />;
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />;
 }
 
-function TooltipTrigger({
+function TapTooltip(props: RootProps) {
+  const [open, setOpenState] = React.useState(false);
+  const holdingRef = React.useRef(false);
+  const setOpen = (next: boolean) => {
+    if (!next && holdingRef.current) return;
+    flushSync(() => setOpenState(next));
+  };
+  const holdOpenThroughClick = () => {
+    holdingRef.current = true;
+    queueMicrotask(() => {
+      holdingRef.current = false;
+    });
+  };
+  return (
+    <TapStateContext value={{ open, setOpen, holdOpenThroughClick }}>
+      <TooltipPrimitive.Root
+        data-slot="tooltip"
+        open={open}
+        onOpenChange={setOpen}
+        {...props}
+      />
+    </TapStateContext>
+  );
+}
+
+type TriggerProps = React.ComponentProps<typeof TooltipPrimitive.Trigger>;
+
+function TooltipTrigger(props: TriggerProps) {
+  const tapState = React.use(TapStateContext);
+  if (tapState === null) {
+    return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+  }
+  return <TapTrigger tapState={tapState} {...props} />;
+}
+
+function TapTrigger({
+  tapState,
+  onPointerDown,
+  onPointerUp,
+  onPointerCancel,
+  onClick,
   ...props
-}: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
+}: TriggerProps & { tapState: TapState }) {
+  const tapRef = React.useRef<"pending" | "opened" | null>(null);
+  return (
+    <TooltipPrimitive.Trigger
+      data-slot="tooltip-trigger"
+      onPointerDown={(event) => {
+        tapRef.current =
+          event.pointerType !== "mouse" && !tapState.open ? "pending" : null;
+        onPointerDown?.(event);
+      }}
+      onPointerUp={(event) => {
+        onPointerUp?.(event);
+        if (tapRef.current !== "pending") return;
+        tapRef.current = "opened";
+        tapState.setOpen(true);
+      }}
+      onPointerCancel={(event) => {
+        tapRef.current = null;
+        onPointerCancel?.(event);
+      }}
+      onClick={(event) => {
+        if (tapRef.current === "opened") tapState.holdOpenThroughClick();
+        tapRef.current = null;
+        onClick?.(event);
+      }}
+      {...props}
+    />
+  );
 }
 
 function TooltipContent({

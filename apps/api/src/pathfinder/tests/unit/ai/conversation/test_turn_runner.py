@@ -409,3 +409,47 @@ async def test_a_title_the_store_did_not_take_is_logged_and_the_turn_goes_on(
     )
 
     assert writer.chunks == []
+
+
+class _WithdrawingGraph:
+    def astream(
+        self,
+        graph_input: dict[str, Any],
+        config: dict[str, Any],
+        context: Any,
+        stream_mode: str,
+    ) -> AsyncIterator[Any]:
+        del graph_input, config, context, stream_mode
+        return self._iter()
+
+    async def _iter(self) -> AsyncIterator[Any]:
+        yield {"chunk": {"type": "error", "errorText": "declined"}}
+        yield {
+            "chunk": {
+                "type": "data-turn-withdrawn",
+                "data": {"errorText": "declined", "messageId": "u1"},
+            },
+        }
+
+
+async def test_a_turn_that_withdrew_its_prompt_names_no_thread_after_it() -> None:
+    writer = _writer()
+    title_task = asyncio.create_task(asyncio.sleep(10, result="Anthrax toxin genes"))
+
+    result = await _drive(_WithdrawingGraph(), writer)
+    kept = turn_runner.title_of_a_kept_prompt(title_task, result)
+    await asyncio.sleep(0)
+
+    assert result.withdrawn is True
+    assert result.encountered_error is False
+    assert kept is None
+    assert title_task.cancelled() is True
+
+
+async def test_a_turn_that_kept_its_prompt_keeps_its_title() -> None:
+    title_task = asyncio.create_task(asyncio.sleep(0, result="Kinases"))
+
+    kept = turn_runner.title_of_a_kept_prompt(title_task, turn_runner._DriveResult())
+
+    assert kept is title_task
+    assert await title_task == "Kinases"

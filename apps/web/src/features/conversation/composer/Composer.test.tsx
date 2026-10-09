@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import type { ReactNode } from "react";
 import type { UIMessage } from "ai";
@@ -228,6 +229,19 @@ describe("the conversation usage footer names its scope", () => {
       expect(
         screen.getAllByText("This conversation's total across all turns.").length,
       ).toBeGreaterThan(0),
+    );
+  });
+
+  it("explains the scope on a touch tap", async () => {
+    renderComposer(true, { messages: USAGE_MESSAGES });
+
+    await userEvent.pointer({
+      keys: "[TouchA]",
+      target: screen.getByTestId("conversation-usage"),
+    });
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "This conversation's total across all turns.",
     );
   });
 

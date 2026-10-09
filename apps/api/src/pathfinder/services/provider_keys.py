@@ -39,6 +39,7 @@ from pathfinder.platform.errors import (
     ProviderNotConfiguredError,
     refused_key_error,
 )
+from pathfinder.platform.model_keys import require_deployment_pays
 from pathfinder.platform.provider_key_cipher import ProviderKeyCipher, hint_for, key_aad
 
 
@@ -117,7 +118,8 @@ def require_payers(
     """Who pays for each provider the models name, or the refusal that stops them."""
     deployment = get_settings().deployment_providers
     paid: dict[ModelProvider, PaidBy] = {}
-    named: list[ModelProvider] = [provider_of(model_id) for model_id in model_ids]
+    ids = list(model_ids)
+    named: list[ModelProvider] = [provider_of(model_id) for model_id in ids]
     for provider in dict.fromkeys(named):
         match statuses.payer(provider, deployment):
             case RefusedKey(refusal=refusal):
@@ -126,6 +128,9 @@ def require_payers(
                 raise ProviderNotConfiguredError(provider_name(provider))
             case PaidBy() as payer:
                 paid[provider] = payer
+    for model_id in ids:
+        if paid[provider_of(model_id)] is PaidBy.DEPLOYMENT:
+            require_deployment_pays(model_id)
     return paid
 
 

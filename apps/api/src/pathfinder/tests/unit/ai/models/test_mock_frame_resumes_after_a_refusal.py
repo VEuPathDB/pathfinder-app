@@ -16,7 +16,7 @@ from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 SITES = ("plasmodb", "vectorbase")
-_READ = frozenset({"search_for_searches", "list_searches"})
+_READ = frozenset({"search_memory", "search_for_searches", "list_searches"})
 
 
 def _workspace(site_id: str, *criterion_ids: str) -> str:

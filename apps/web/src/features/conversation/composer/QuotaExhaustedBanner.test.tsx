@@ -65,6 +65,7 @@ beforeEach(() => {
     http.get(`${BASE}/api/v1/tiers`, () =>
       HttpResponse.json({
         presets: { pathfinder: { openai: { default: preset(OPENAI) } } },
+        ownKeyPresets: { pathfinder: { openai: { default: preset(OPENAI) } } },
       }),
     ),
     http.get(`${BASE}/api/v1/models`, () =>

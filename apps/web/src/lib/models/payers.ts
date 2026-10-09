@@ -22,15 +22,19 @@ function providerOf(modelId: string): string {
 }
 
 /**
- * A model can be picked when someone pays for its provider. Without the
- * reader's payers the deployment's own view decides.
+ * A model can be picked when the researcher's own key pays for its provider,
+ * or when the deployment pays for its provider and may pay for the model.
+ * Without the reader's payers the deployment's own view decides.
  */
 export function selectable(
   entry: ModelCatalogEntry,
   payers: Payers | undefined,
 ): boolean {
   if (payers === undefined) return entry.enabled ?? true;
-  return payers[entry.provider] !== undefined;
+  const payer = payers[entry.provider];
+  return (
+    payer === "user" || (payer === "deployment" && entry.deploymentMayPay === true)
+  );
 }
 
 /** Whether the model runs on the researcher's own key. */

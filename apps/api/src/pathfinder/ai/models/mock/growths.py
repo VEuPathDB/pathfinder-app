@@ -27,13 +27,15 @@ from pathfinder.ai.models.mock.strategy_specs import (
 )
 from pathfinder.domain.strategy.operational_spec import StructureNode
 
-# The searches an added step runs, the first one the site's seeds carry.
-_ADDED_SEARCHES = (
-    "GenesByExportPrediction",
-    "GenesByMolecularWeight",
-    "GenesByGoTerm",
-    "GenesByText",
-)
+# The searches an added step runs, the first one the site's seeds carry, and
+# the words a request names each by.
+_ADDED_SEARCHES = {
+    "GenesByExportPrediction": "exported",
+    "GenesByMolecularWeight": "molecular weight",
+}
+ORTHOLOGS_WORDS = "orthologs"
+SYNTENIC_WORDS = "syntenic orthologs"
+KEPT_WORDS = "those with syntenic orthologs"
 
 
 @dataclass(frozen=True)
@@ -56,18 +58,18 @@ def orthologs_criterion(
     values: SiteValues, criterion_id: str, *, syntenic: str, back: bool = False
 ) -> CriterionSpec:
     """Orthologs in a second organism of the sheet, or back in the site organism."""
-    words = "syntenic orthologs" if syntenic == "yes" else "orthologs"
+    words = SYNTENIC_WORDS if syntenic == "yes" else ORTHOLOGS_WORDS
     if back:
         return CriterionSpec(
             criterion_id=criterion_id,
-            text=f"{words} back in {values.organism}",
+            text=KEPT_WORDS,
             search_name=ORTHOLOGS,
             role="transform",
             values={"organism": [values.organism], "isSyntenic": syntenic},
         )
     return CriterionSpec(
         criterion_id=criterion_id,
-        text=f"{words} of the {values.organism} genes",
+        text=words,
         search_name=ORTHOLOGS,
         role="transform",
         values={"isSyntenic": syntenic},
@@ -96,15 +98,15 @@ def round_trip_growth(values: SiteValues) -> Growth:
 
 
 def added_growth(values: SiteValues, held: Collection[str]) -> Growth:
-    """One more search, the first listed one the strategy does not run, under
-    a new INTERSECT with the whole tree."""
+    """One more search, the first listed one the strategy does not run, called
+    by its own words, under a new INTERSECT with the whole tree. A site that
+    carries none adds its organism."""
     search = next(
         (s for s in _ADDED_SEARCHES if values.leaf(s) is not None and s not in held),
         TAXON,
     )
-    added = seed_criterion(
-        values, search, "added_step", f"{values.organism} genes by {search}"
-    )
+    words = _ADDED_SEARCHES.get(search, values.organism)
+    added = seed_criterion(values, search, "added_step", words)
     return Growth(
         criteria=(added,),
         grow=lambda tree: combine(CombineOp.INTERSECT, tree, leaf(added)),

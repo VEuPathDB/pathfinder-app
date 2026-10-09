@@ -9,7 +9,12 @@ import { test, expect } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
 import { LAYOUTS, SIGNAL_PEPTIDE, layoutOf } from "../fixtures/arc-layouts";
 import { expectBuild } from "../fixtures/build-checks";
-import { readConversation, readNodes, siteOrganism } from "../fixtures/site-reads";
+import {
+  addedStep,
+  readConversation,
+  readNodes,
+  siteOrganism,
+} from "../fixtures/site-reads";
 import {
   combineWith,
   expectCanvasSaved,
@@ -54,12 +59,7 @@ test.describe("Candidate drug-targets journey", { tag: "@turn" }, () => {
     const afterSecond = (await readConversation(apiClient, id)).steps ?? [];
     expect(afterSecond.map((step) => step.wdkStepId)).toEqual([signalStep?.wdkStepId]);
 
-    await chatPage.sendAndSettle(
-      prompt(
-        "add-step",
-        "Also keep only those predicted to be exported to the host cell.",
-      ),
-    );
+    await chatPage.sendAndSettle(prompt("add-step", addedStep(siteId).add));
     await expect
       .poll(async () => layoutOf(await readNodes(apiClient, id)).operators, {
         timeout: 60_000,

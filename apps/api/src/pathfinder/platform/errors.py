@@ -63,6 +63,7 @@ class ErrorCode(StrEnum):
     PROVIDER_KEY_REFUSED = "PROVIDER_KEY_REFUSED"
     PROVIDER_KEY_UNREADABLE = "PROVIDER_KEY_UNREADABLE"
     PROVIDER_NOT_CONFIGURED = "PROVIDER_NOT_CONFIGURED"
+    OWN_KEY_REQUIRED = "OWN_KEY_REQUIRED"
     PROVIDER_UNREACHABLE = "PROVIDER_UNREACHABLE"
     PROVIDER_KEYS_DISABLED = "PROVIDER_KEYS_DISABLED"
     # A file the user attached to a message
@@ -433,6 +434,20 @@ class ProviderNotConfiguredError(ProviderKeyError):
                 f"This deployment holds no {provider_name} key and you have not "
                 f"added one. Add yours in {_KEYS_IN_SETTINGS}, or choose a model "
                 f"of another provider."
+            ),
+        )
+
+
+class OwnKeyRequiredError(ProviderKeyError):
+    def __init__(self, model_name: str, provider_name: str) -> None:
+        super().__init__(
+            code=ErrorCode.OWN_KEY_REQUIRED,
+            title=f"{model_name} runs on your own {provider_name} key",
+            status=422,
+            detail=(
+                f"This deployment does not pay for {model_name}. Add your "
+                f"{provider_name} key in {_KEYS_IN_SETTINGS}, or choose another "
+                f"model."
             ),
         )
 

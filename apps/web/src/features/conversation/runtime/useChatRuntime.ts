@@ -15,6 +15,7 @@ import { graphClearedSchema } from "@pathfinder/shared/generated/zod/graphCleare
 import { graphSnapshotSchema } from "@pathfinder/shared/generated/zod/graphSnapshotSchema";
 import { strategyMetaSchema } from "@pathfinder/shared/generated/zod/strategyMetaSchema";
 import { turnUsageSchema } from "@pathfinder/shared/generated/zod/turnUsageSchema";
+import { turnWithdrawnPayloadSchema } from "@pathfinder/shared/generated/zod/turnWithdrawnPayloadSchema";
 
 import { resumeDurableThread } from "@veupathdb/assistant-client/ai-sdk";
 
@@ -39,6 +40,7 @@ import type { ChatHelpers } from "./chatHelpersContext";
 import { createDurableTransport } from "./durableTransport";
 import { ChatAttachmentAdapter } from "./chatAttachmentAdapter";
 import { useReaderModel } from "./useReaderModel";
+import { reduceWithdrawnTurns, withdrawPrompt } from "./withdrawnPrompt";
 
 /** The turn a snapshot reports in flight, before any message of it is open. */
 const SNAPSHOT_TURN = "snapshot-turn";
@@ -151,6 +153,21 @@ export function useChatRuntime({
           useStrategyStore.getState().clear();
           void refetchStrategy(queryClient, conversationId);
           break;
+        case "data-turn-withdrawn": {
+          const { messageId } = turnWithdrawnPayloadSchema.parse(dataPart.data);
+          if (messageId === undefined || messageId === null) break;
+          chatApi.setMessages((messages) => {
+            const withdrawn = withdrawPrompt(messages, messageId);
+            if (withdrawn.text !== null) {
+              runtime.thread.composer.setText(withdrawn.text);
+              useFirstMessageStore
+                .getState()
+                .forgetWithdrawnMessage(conversationId, withdrawn.text);
+            }
+            return withdrawn.messages;
+          });
+          break;
+        }
         case "data-turn-usage": {
           const usage = turnUsageSchema.parse(dataPart.data);
           const detailKey = strategyQueryOptions(conversationId).queryKey;
@@ -177,6 +194,7 @@ export function useChatRuntime({
       }
     },
     onFinish: () => {
+      chatApi.setMessages(reduceWithdrawnTurns);
       void refetchStrategy(queryClient, conversationId);
       invalidateConversationList();
       void queryClient.invalidateQueries({ queryKey: getMyQuotaQueryKey() });

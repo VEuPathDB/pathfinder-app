@@ -33,6 +33,15 @@ describe("selectAssistantErrorDetail", () => {
     ).toBe(null);
   });
 
+  it("says nothing once the turn withdrew its prompt with a notice", () => {
+    expect(
+      selectAssistantErrorDetail({
+        status: failed,
+        content: [{ type: "data-turn-withdrawn" }],
+      }),
+    ).toBe(null);
+  });
+
   it("also recognises the generic data part shape", () => {
     expect(
       selectAssistantErrorDetail({

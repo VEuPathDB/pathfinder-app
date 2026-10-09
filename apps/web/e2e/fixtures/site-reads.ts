@@ -182,6 +182,52 @@ export function siteOrganism(siteId: string): string {
   return top[0];
 }
 
+export interface AddedStep {
+  search: string;
+  add: string;
+  replace: string;
+}
+
+const ADDED_STEPS: AddedStep[] = [
+  {
+    search: "GenesByExportPrediction",
+    add: "Also keep only those predicted to be exported to the host cell.",
+    replace:
+      "Replace the transmembrane-domain search with the exported-protein prediction.",
+  },
+  {
+    search: "GenesByMolecularWeight",
+    add: "Also keep only those with a molecular weight from 0 to 60000.",
+    replace: "Replace the transmembrane-domain search with a molecular weight search.",
+  },
+];
+
+function collectSearches(node: unknown, out: Set<string>): void {
+  if (Array.isArray(node)) {
+    for (const child of node) collectSearches(child, out);
+    return;
+  }
+  if (node === null || typeof node !== "object") return;
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "searchName" && typeof value === "string") out.add(value);
+    collectSearches(value, out);
+  }
+}
+
+/** The first added step whose search the site's seeds run, as the mock adds it. */
+export function addedStep(siteId: string): AddedStep {
+  const searches = new Set<string>();
+  collectSearches(seedsOf(siteId), searches);
+  const step = ADDED_STEPS.find((candidate) => searches.has(candidate.search));
+  if (step !== undefined) return step;
+  const organism = siteOrganism(siteId);
+  return {
+    search: "GenesByTaxon",
+    add: `Also keep only ${organism} genes.`,
+    replace: `Replace the transmembrane-domain search with all ${organism} genes.`,
+  };
+}
+
 /** The control sets the site's seeds carry. */
 export function siteControlSets(siteId: string): SeedControlSet[] {
   return seedsOf(siteId)

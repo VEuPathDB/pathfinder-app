@@ -12,7 +12,7 @@ selection in ``_lead_model``, and memory retrieval plus approval resolution in
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Awaitable, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Sequence
 from typing import Any, Literal, Protocol
 from uuid import UUID, uuid4
 
@@ -24,6 +24,7 @@ from assistant_core.conversation.vercel_adapter import (
     DeferredToolHint,
     PhaseStreamEmitter,
 )
+from assistant_core.errors import ModelDeclinedError
 from assistant_core.graph import approvals
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.pre_turn import PreTurnHook
@@ -203,6 +204,28 @@ def _calls_of_an_earlier_message(
     return frozenset(hint.tool_call_id for hint in hints)
 
 
+def _turn_emitter(
+    state: PipelineState, message_id: UUID, hints: list[DeferredToolHint]
+) -> PhaseStreamEmitter:
+    prompt_id = None if state.resumes_parked_call else state.user_message_id
+    return PhaseStreamEmitter(
+        message_id=str(message_id),
+        deferred_hints=hints,
+        prompt_message_id=None if prompt_id is None else str(prompt_id),
+    )
+
+
+async def _noting_a_decline[EventT](
+    events: AsyncIterator[EventT], capture: _LeadRunCapture
+) -> AsyncIterator[EventT]:
+    try:
+        async for event in events:
+            yield event
+    except ModelDeclinedError as exc:
+        capture.declined = exc
+        raise
+
+
 async def _drive_lead_stream(
     *,
     state: PipelineState,
@@ -217,7 +240,7 @@ async def _drive_lead_stream(
         return
     parked = resumption.parked
     hints = _resume_hints(parked)
-    emitter = PhaseStreamEmitter(message_id=str(message_id), deferred_hints=hints)
+    emitter = _turn_emitter(state, message_id, hints)
     hold = CardHold(resumed={hint.tool_call_id for hint in hints})
     deferred_results = resumption.results
     capture.parked_call_answered = deferred_results is not None
@@ -305,7 +328,7 @@ async def _drive_lead_stream(
         with lead_model.override:
             async for v6_chunk in without_calls_of(
                 _calls_of_an_earlier_message(state, parked, hints),
-                emitter.chunks(_agent_events()),
+                emitter.chunks(_noting_a_decline(_agent_events(), capture)),
             ):
                 emit_each(writer, hold.admit(v6_chunk), sub_agent_tool_calls, capture)
             release_the_cards(writer, hold, deps, capture, sub_agent_tool_calls)
@@ -378,13 +401,15 @@ async def _run_lead_turn(
     if capture.response is not None:
         show_the_facts(writer, deps, capture)
     _emit_residual_prose(writer, capture, message_id=message_id)
-    deps.state.domain.record_exchange(turn_exchange(deps.state, capture))
+    if capture.declined is None:
+        deps.state.domain.record_exchange(turn_exchange(deps.state, capture))
     residual_tokens, residual_cost = capture.residual_totals(state)
     await _persist_residual_quota(runtime.context, state, capture)
     emit_turn_usage(writer, residual_tokens, residual_cost)
     emit_lead_usage(writer, capture, capture.tokens, str(capture.cost_usd))
-    final_ledger = derive_ledger(deps.state, deps.intent)
-    emit_chunk(writer, ledger_update_event(ledger=final_ledger))
+    if capture.declined is None:
+        final_ledger = derive_ledger(deps.state, deps.intent)
+        emit_chunk(writer, ledger_update_event(ledger=final_ledger))
     delta = _build_state_delta(
         state=state,
         deps=deps,

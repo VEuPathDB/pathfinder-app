@@ -86,6 +86,16 @@ describe("RailQuotaMeter", () => {
     expect(within(figures).getByText("120K tokens, resets Nov 1")).toBeVisible();
   });
 
+  it("shows the figures on a touch tap", async () => {
+    renderMeter({ usedUsd: "3.20", limitUsd: "10.00" });
+    const meter = await screen.findByRole("img", { name: "Monthly spend" });
+
+    await userEvent.pointer({ keys: "[TouchA]", target: meter });
+
+    const figures = await screen.findByRole("tooltip");
+    expect(within(figures).getByText("$3.20 of $10.00 this month")).toBeVisible();
+  });
+
   it("shows the account's spend against its monthly limit", async () => {
     renderMeter();
     const figures = await hoverFigures();

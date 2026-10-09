@@ -241,6 +241,11 @@ function ModelRow({
                 your key
               </span>
             )}
+            {!ownKey && model.deploymentMayPay !== true && (
+              <span className="ml-1.5 rounded bg-muted px-1 text-[10px] text-muted-foreground">
+                needs your key
+              </span>
+            )}
           </div>
         </div>
       </td>

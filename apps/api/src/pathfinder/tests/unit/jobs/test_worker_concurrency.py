@@ -7,7 +7,7 @@ import contextlib
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import procrastinate
 import pytest
@@ -91,6 +91,7 @@ class _AmainRun:
     marks: list[str]
     ran: bool
     observability: list[str]
+    metrics_servers: list[tuple[int, str]]
 
 
 def _record(marks: list[str]) -> Callable[[], None]:
@@ -109,6 +110,7 @@ async def _run_amain(
     screening: bool = False,
     build_judge: Callable[[], None] | None = None,
     marks: list[str] | None = None,
+    metrics: tuple[int, str] = (9100, "10.0.0.5"),
 ) -> _AmainRun:
     """Run ``amain`` against a stubbed app and report what it built."""
     app = MagicMock()
@@ -118,6 +120,7 @@ async def _run_amain(
     heartbeat_built: dict[str, Any] = {}
     marks = [] if marks is None else marks
     observability: list[str] = []
+    metrics_servers: list[tuple[int, str]] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
         built.update(kwargs)
@@ -149,6 +152,10 @@ async def _run_amain(
             side_effect=lambda: observability.append("langfuse-off"),
         ),
         patch("pathfinder.jobs.worker.install_procrastinate_redaction"),
+        patch(
+            "pathfinder.jobs.worker.serve_metrics",
+            side_effect=lambda port, addr: metrics_servers.append((port, addr)),
+        ),
         patch("pathfinder.jobs.worker.register_all_tools"),
         patch("pathfinder.jobs.worker.install_admitted_sources"),
         patch("pathfinder.jobs.worker.admitted_tool_sources", return_value=[]),
@@ -166,6 +173,8 @@ async def _run_amain(
                 worker_heartbeat_interval_seconds=heartbeat_interval,
                 database_url="postgresql+asyncpg://user@host/db",
                 input_screening_enabled=screening,
+                metrics_port=metrics[0],
+                metrics_addr=metrics[1],
             ),
         ),
     ):
@@ -176,6 +185,7 @@ async def _run_amain(
         marks=marks,
         ran=True,
         observability=observability,
+        metrics_servers=metrics_servers,
     )
 
 
@@ -251,3 +261,16 @@ async def test_amain_traces_the_turns_it_runs_and_flushes_on_exit() -> None:
     run = await _run_amain()
 
     assert run.observability == ["on:pathfinder-worker", "off", "langfuse-off"]
+
+
+async def test_amain_meters_at_the_catalog_prices() -> None:
+    with patch("pathfinder.jobs.worker.install_catalog_prices") as install:
+        await _run_amain()
+
+    assert install.call_args_list == [call()]
+
+
+async def test_amain_serves_its_metrics_on_the_configured_port() -> None:
+    run = await _run_amain(metrics=(9300, "10.0.0.6"))
+
+    assert run.metrics_servers == [(9300, "10.0.0.6")]

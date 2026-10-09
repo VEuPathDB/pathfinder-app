@@ -50,7 +50,7 @@ from pathfinder.ai.conversation.turn_failure import (
 )
 from pathfinder.ai.conversation.turn_stop import watch_for_cancel
 from pathfinder.ai.conversation.turn_title import write_turn_name
-from pathfinder.platform.tool_sources import source_credential
+from pathfinder.platform.tool_sources import metered_mcp_toolset, source_credential
 from pathfinder.services.conversations.turns import (
     load_conversation,
     turn_start_strategy,
@@ -60,6 +60,7 @@ logger = get_logger(__name__)
 
 
 _TASK_STARTED = "data-background-task-started"
+_TURN_WITHDRAWN = "data-turn-withdrawn"
 
 
 @dataclass
@@ -67,6 +68,7 @@ class _DriveResult:
     suspended: bool = False
     encountered_error: bool = False
     cancelled: bool = False
+    withdrawn: bool = False
 
 
 @dataclass
@@ -160,6 +162,7 @@ async def run_turn(
                     declarations=spec.tool_sources,
                     credential=source_credential,
                     scan=tool_output_scan(),
+                    build_toolset=metered_mcp_toolset,
                 ),
             )
             runtime_context = await spec.build_turn_context(
@@ -239,6 +242,7 @@ async def _run_turn_with_context(
         writer=writer,
     )
 
+    title_task = title_of_a_kept_prompt(title_task, result)
     finish_reason = (
         "error"
         if result.encountered_error
@@ -279,6 +283,15 @@ async def _run_turn_with_context(
     await writer.write(
         DoneChunk().model_dump(by_alias=True, mode="json", exclude_none=True),
     )
+
+
+def title_of_a_kept_prompt(
+    title_task: asyncio.Task[str] | None, result: _DriveResult
+) -> asyncio.Task[str] | None:
+    if title_task is None or not result.withdrawn:
+        return title_task
+    title_task.cancel()
+    return None
 
 
 async def _consume_graph_stream(ctx: _StreamConsumerCtx) -> None:
@@ -411,4 +424,6 @@ async def _handle_custom(
         return
     if chunk.get("type") == _TASK_STARTED:
         result.suspended = True
+    if chunk.get("type") == _TURN_WITHDRAWN:
+        result.withdrawn = True
     await writer.write(chunk)

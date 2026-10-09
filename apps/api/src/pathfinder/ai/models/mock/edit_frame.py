@@ -157,6 +157,12 @@ def param_edit_call(
     if sheet is not None:
         held = {**target.values, **change}
         args["params"] = {name: held.get(name) for name in sheet}
+        moved = list(change)
+        args["why"] = {
+            "basis": "parameter",
+            "term": moved[0],
+            "reason": f"sets {', '.join(moved)} to the values the request states",
+        }
     return scripted_call("set_criterion", args)
 
 

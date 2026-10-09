@@ -76,6 +76,7 @@ def derive_ledger(
         frame=FrameSection(
             spec=state.domain.operational_spec,
             spec_before_turn=state.domain.spec_before_turn,
+            open_questions=state.domain.open_questions,
         ),
         build=_derive_build_section(state),
         verification=_derive_verification_section(state),

@@ -4,7 +4,11 @@ import { render, screen, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import { ModelCatalogModal } from "./ModelCatalogModal";
-import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
+import {
+  ANTHROPIC_FLAGSHIP,
+  ANTHROPIC_SMALL,
+  DEFAULT_MODEL,
+} from "@/lib/models/__fixtures__/models";
 
 const BASE = "http://localhost:3000/pathfinder";
 
@@ -22,6 +26,7 @@ const CATALOG = {
       rank: "standard",
       provider: "openai",
       modelName: DEFAULT_MODEL.modelName,
+      deploymentMayPay: true,
       enabled: true,
       supportsImages: true,
       supportsDocuments: true,
@@ -38,6 +43,22 @@ const CATALOG = {
       rank: "small",
       provider: "anthropic",
       modelName: ANTHROPIC_SMALL.modelName,
+      deploymentMayPay: true,
+      enabled: false,
+    },
+    {
+      id: ANTHROPIC_FLAGSHIP.id,
+      name: ANTHROPIC_FLAGSHIP.name,
+      description: "Anthropic flagship",
+      supportsReasoning: true,
+      contextSize: 1000000,
+      inputPrice: 4,
+      cachedInputPrice: 0.2,
+      outputPrice: 20,
+      rank: "flagship",
+      provider: "anthropic",
+      modelName: ANTHROPIC_FLAGSHIP.modelName,
+      deploymentMayPay: false,
       enabled: false,
     },
   ],
@@ -97,6 +118,43 @@ describe("ModelCatalogModal payers", () => {
       within(row(ANTHROPIC_SMALL.name)).getByRole("button", { name: /Select/ }),
     ).toBeEnabled();
     expect(within(row(DEFAULT_MODEL.name)).queryByText("your key")).toBeNull();
+  });
+
+  it("offers a model only a researcher's key runs once that key pays", async () => {
+    keys = {
+      enabled: true,
+      keys: [],
+      payers: { openai: "deployment", anthropic: "user" },
+    };
+    render(<ModelCatalogModal open onOpenChange={() => {}} onSelect={() => {}} />);
+    await screen.findByText(ANTHROPIC_FLAGSHIP.name);
+
+    expect(
+      within(row(ANTHROPIC_FLAGSHIP.name)).getByRole("button", { name: /Select/ }),
+    ).toBeEnabled();
+    expect(
+      within(row(ANTHROPIC_FLAGSHIP.name)).queryByText("needs your key"),
+    ).toBeNull();
+  });
+
+  it("holds back a model only a researcher's key runs while the deployment pays", async () => {
+    keys = {
+      enabled: true,
+      keys: [],
+      payers: { openai: "deployment", anthropic: "deployment" },
+    };
+    render(<ModelCatalogModal open onOpenChange={() => {}} onSelect={() => {}} />);
+    await screen.findByText(ANTHROPIC_FLAGSHIP.name);
+
+    expect(
+      await within(row(ANTHROPIC_FLAGSHIP.name)).findByText("needs your key"),
+    ).toBeInTheDocument();
+    expect(
+      within(row(ANTHROPIC_FLAGSHIP.name)).getByRole("button", { name: /Select/ }),
+    ).toBeDisabled();
+    expect(
+      within(row(ANTHROPIC_SMALL.name)).getByRole("button", { name: /Select/ }),
+    ).toBeEnabled();
   });
 
   it("keeps the deployment's view for a reader with no payers", async () => {

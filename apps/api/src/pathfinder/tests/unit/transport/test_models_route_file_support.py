@@ -8,7 +8,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI
 
-from pathfinder.tests._support.models import ANTHROPIC_SMALL, DEFAULT_MODEL
+from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.transport.http.routers.models import router
 
 
@@ -26,6 +26,6 @@ async def test_each_model_carries_the_files_it_reads() -> None:
     models = await _models()
 
     reader = models[DEFAULT_MODEL]
-    blind = models[ANTHROPIC_SMALL]
+    blind = models["mock:deterministic"]
     assert (reader["supportsImages"], reader["supportsDocuments"]) == (True, True)
     assert (blind["supportsImages"], blind["supportsDocuments"]) == (False, False)

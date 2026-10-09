@@ -1,4 +1,5 @@
 import type { PhaseTierConfig } from "@pathfinder/shared/generated/types/PhaseTierConfig";
+import type { TierListResponse } from "@pathfinder/shared/generated/types/TierListResponse";
 import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
 import { isPickableRole, type PickableRole } from "@/lib/models/phaseRoles";
 import type { PhaseModelMap, PhaseReasoningMap } from "@/state/useSettingsStore";
@@ -15,6 +16,13 @@ export type TierPresetsByAssistant = Record<
 export interface AppliedTier {
   models: PhaseModelMap;
   reasoning: PhaseReasoningMap;
+}
+
+export function presetsForPayer(
+  tiers: TierListResponse | undefined,
+  ownKey: boolean,
+): TierPresetsByAssistant | undefined {
+  return ownKey ? tiers?.ownKeyPresets : tiers?.presets;
 }
 
 /** The tiers offered for one assistant on one provider; empty while presets

@@ -13,6 +13,7 @@ from assistant_core import quota
 from assistant_core.capabilities.repetition_guard import BlockRule
 from assistant_core.conversation.stream_parts.agent_topology import lead_usage_event
 from assistant_core.cost import cost_for_run
+from assistant_core.errors import ModelDeclinedError
 from assistant_core.graph.emit import emit_chunk, emit_turn_usage
 from assistant_core.graph.turn_state import (
     ParkedCall,
@@ -83,6 +84,7 @@ class _LeadRunCapture:
     run_error: str | None = None
     # Whether the model produced any part of an answer in this run.
     model_answered: bool = False
+    declined: ModelDeclinedError | None = None
 
     new_messages: list[ModelMessage] = field(default_factory=list)
     finish_reason: str = "stop"
@@ -290,16 +292,14 @@ async def _charge_token_delta(
     if delta_tokens <= 0:
         return
     provider_name, model_name = _split_agent_model(agent_model)
-    delta_cost = cost_for_run(
-        usage=RunUsage(
-            input_tokens=delta_input,
-            output_tokens=delta_output,
-            cache_read_tokens=delta_cache_read,
-            cache_write_tokens=delta_cache_write,
-        ),
-        model_name=model_name,
-        provider_name=provider_name,
-        provider_url=None,
+    delta_cost = (
+        cost_for_run(
+            usage=usage,
+            model_name=model_name,
+            provider_name=provider_name,
+            provider_url=None,
+        )
+        - capture.charged_cost
     )
     try:
         async with context.db_session_factory() as session:

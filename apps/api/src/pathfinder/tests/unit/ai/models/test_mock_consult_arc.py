@@ -8,6 +8,7 @@ import pytest
 from pathfinder.ai.models.mock.site_values import SiteValues
 from pathfinder.tests.unit.ai.models._mock_turns import (
     SHEET_ORGANISMS,
+    Scene,
     args_of,
     names,
     play,
@@ -81,3 +82,40 @@ def test_the_answered_pass_binds_the_organism_the_answer_chose(site_id: str) -> 
     ]
     assert [params["organism"] for params in bound] == [[chosen]]
     assert (answer["disposition"], "changes" in answer) == ("spec_ready", False)
+
+
+@pytest.mark.parametrize("site_id", SITES)
+def test_a_sheet_without_the_site_organism_has_it_looked_up_and_recommended(
+    monkeypatch: pytest.MonkeyPatch, site_id: str
+) -> None:
+    organism = SiteValues.for_site(site_id).organism
+    others = [o for o in SHEET_ORGANISMS[site_id] if o != organism]
+    monkeypatch.setitem(SHEET_ORGANISMS, site_id, others)
+    lookup = {
+        "name": "organism",
+        "vocabLookup": {
+            "terms": [organism],
+            "matches": [
+                {
+                    "term": organism,
+                    "phrasing": organism,
+                    "reach": "every_word",
+                    "values": [organism],
+                }
+            ],
+        },
+    }
+
+    calls = play(
+        "frame",
+        site_id,
+        "[[arc:consult]]",
+        work_order=_ORDER,
+        scene=Scene(answers={"get_parameter_options": lookup}),
+    )
+    [read] = args_of(calls, "get_parameter_options")
+    [asked] = calls[-1].args_as_dict()["openQuestions"]
+
+    assert (read["parameter_id"], read["query"]) == ("organism", [organism])
+    assert asked["recommendedValue"] == organism
+    assert asked["options"] == [organism, *others]

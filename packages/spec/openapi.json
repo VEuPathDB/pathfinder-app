@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0b5"
+    "version": "0.2.0b6"
   },
   "paths": {
     "/health": {
@@ -617,7 +617,7 @@
           "models"
         ],
         "summary": "List Models",
-        "description": "Return available models grouped by provider.\n\nPrices overlay live ``genai_prices`` snapshot data when available; the\ncatalog's hardcoded values act as a fallback for models the upstream\nlibrary doesn't yet track. A model whose provider the deployment does not\npay for is returned with ``enabled: false``; a researcher's own key is read\nfrom ``/api/v1/me/provider-keys``, because this route answers before sign-in.",
+        "description": "Return available models grouped by provider.\n\nAn entry the catalog meters shows the catalog's prices, the ones the spend\nmeter charges; any other entry shows the live ``genai_prices`` snapshot\nprice, with the catalog's value where the snapshot has none. A model the\ndeployment does not pay for is returned with ``enabled: false``: its\nprovider holds no deployment key, or its entry runs only on a researcher's\nown key. That key is read from ``/api/v1/me/provider-keys``, because this\nroute answers before sign-in.",
         "operationId": "list_models_api_v1_models_get",
         "responses": {
           "200": {
@@ -639,7 +639,7 @@
           "tiers"
         ],
         "summary": "List Tiers",
-        "description": "Return tier presets grouped by assistant, then by provider.",
+        "description": "Return tier presets grouped by assistant, then by provider: the ones\nthe deployment pays for, and the ones a researcher's own key runs.",
         "operationId": "list_tiers_api_v1_tiers_get",
         "responses": {
           "200": {
@@ -5670,6 +5670,29 @@
         "title": "CardAnswered",
         "description": "A consult or approval card the researcher answered."
       },
+      "CatalogMeter": {
+        "properties": {
+          "cacheWritePrice": {
+            "type": "number",
+            "title": "Cachewriteprice"
+          },
+          "longPrompt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LongPromptPrices"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "cacheWritePrice"
+        ],
+        "title": "CatalogMeter"
+      },
       "ChatRequestBody": {
         "properties": {
           "trigger": {
@@ -8475,6 +8498,39 @@
           "google"
         ]
       },
+      "LongPromptPrices": {
+        "properties": {
+          "aboveTokens": {
+            "type": "integer",
+            "title": "Abovetokens"
+          },
+          "inputPrice": {
+            "type": "number",
+            "title": "Inputprice"
+          },
+          "cachedInputPrice": {
+            "type": "number",
+            "title": "Cachedinputprice"
+          },
+          "cacheWritePrice": {
+            "type": "number",
+            "title": "Cachewriteprice"
+          },
+          "outputPrice": {
+            "type": "number",
+            "title": "Outputprice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "aboveTokens",
+          "inputPrice",
+          "cachedInputPrice",
+          "cacheWritePrice",
+          "outputPrice"
+        ],
+        "title": "LongPromptPrices"
+      },
       "MemoryEditRequest": {
         "properties": {
           "name": {
@@ -8800,6 +8856,21 @@
             "title": "Isproviderdefault",
             "default": false
           },
+          "deploymentMayPay": {
+            "type": "boolean",
+            "title": "Deploymentmaypay",
+            "default": false
+          },
+          "meter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CatalogMeter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "provider": {
             "$ref": "#/components/schemas/ModelProvider"
           },
@@ -8822,7 +8893,7 @@
           "modelName"
         ],
         "title": "ModelCatalogEntryResponse",
-        "description": "API response model - adds ``enabled`` status per provider configuration."
+        "description": "API response model - adds whether the deployment pays for the model."
       },
       "ModelListResponse": {
         "properties": {
@@ -11878,11 +11949,37 @@
             },
             "type": "object",
             "title": "Presets"
+          },
+          "ownKeyPresets": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/TierPreset"
+                },
+                "propertyNames": {
+                  "enum": [
+                    "default",
+                    "quality",
+                    "balanced",
+                    "fast",
+                    "custom"
+                  ]
+                },
+                "type": "object"
+              },
+              "propertyNames": {
+                "$ref": "#/components/schemas/ModelProvider"
+              },
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Ownkeypresets"
           }
         },
         "type": "object",
         "required": [
-          "presets"
+          "presets",
+          "ownKeyPresets"
         ],
         "title": "TierListResponse",
         "description": "Response for GET /api/v1/tiers."
@@ -13539,6 +13636,7 @@
           "PROVIDER_KEY_REFUSED",
           "PROVIDER_KEY_UNREADABLE",
           "PROVIDER_NOT_CONFIGURED",
+          "OWN_KEY_REQUIRED",
           "PROVIDER_UNREACHABLE",
           "PROVIDER_KEYS_DISABLED",
           "ATTACHMENT_TOO_LARGE",
@@ -19888,6 +19986,30 @@
         "title": "TurnUsage",
         "type": "object"
       },
+      "TurnWithdrawnPayload": {
+        "properties": {
+          "errorText": {
+            "title": "Errortext",
+            "type": "string"
+          },
+          "messageId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messageid"
+          }
+        },
+        "required": [
+          "errorText"
+        ],
+        "title": "TurnWithdrawnPayload",
+        "type": "object"
+      },
       "UniqueGene": {
         "description": "One gene only this variant returns, with the product its record names.",
         "properties": {
@@ -20962,6 +21084,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TurnUsage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "turnWithdrawn": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TurnWithdrawnPayload"
               },
               {
                 "type": "null"

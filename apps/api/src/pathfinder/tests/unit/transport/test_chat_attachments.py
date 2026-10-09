@@ -9,11 +9,11 @@ import pytest
 
 from pathfinder.ai.conversation.attachments import ReadAttachment
 from pathfinder.ai.conversation.request_body import ChatRequestBody
+from pathfinder.assistants import registry
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import AttachmentNotReadableError, ErrorCode
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID, SITE_HELP_ASSISTANT_ID
 from pathfinder.tests._support.models import (
-    ANTHROPIC_SMALL,
     DEFAULT_MODEL,
     GOOGLE_STANDARD,
     display_name,
@@ -44,14 +44,21 @@ def _body(**overrides: object) -> ChatRequestBody:
     )
 
 
+_BLIND = "mock:deterministic"
+
+
 @pytest.fixture
-def anthropic_default(monkeypatch: pytest.MonkeyPatch) -> None:
+def blind_default_lead(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "default_provider", "anthropic")
-    monkeypatch.setattr(settings, "default_tier", "balanced")
+    monkeypatch.setattr(settings, "default_provider", "openai")
+    monkeypatch.setattr(
+        registry,
+        "assistant_role_models",
+        lambda _assistant, picks: {"lead": _BLIND} | picks,
+    )
 
 
-@pytest.mark.usefixtures("anthropic_default")
+@pytest.mark.usefixtures("blind_default_lead")
 def test_an_image_is_refused_when_the_default_lead_does_not_read_images() -> None:
     with pytest.raises(AttachmentNotReadableError) as refused:
         refuse_unreadable_attachments(_body(), PATHFINDER_ASSISTANT_ID)
@@ -59,18 +66,18 @@ def test_an_image_is_refused_when_the_default_lead_does_not_read_images() -> Non
     assert refused.value.code == ErrorCode.ATTACHMENT_NOT_READABLE
     assert refused.value.detail is not None
     assert refused.value.detail.startswith(
-        f"{display_name(ANTHROPIC_SMALL)} does not read images;"
+        f"{display_name(_BLIND)} does not read images;"
     )
 
 
-@pytest.mark.usefixtures("anthropic_default")
+@pytest.mark.usefixtures("blind_default_lead")
 def test_an_image_passes_when_the_lead_is_picked_on_a_model_that_reads_it() -> None:
     body = _body(phaseModels={"lead": DEFAULT_MODEL})
 
     assert refuse_unreadable_attachments(body, PATHFINDER_ASSISTANT_ID) == [_READ]
 
 
-@pytest.mark.usefixtures("anthropic_default")
+@pytest.mark.usefixtures("blind_default_lead")
 def test_a_pick_for_another_role_does_not_decide_what_the_reader_reads() -> None:
     body = _body(phaseModels={"frame": DEFAULT_MODEL})
 
@@ -78,7 +85,7 @@ def test_a_pick_for_another_role_does_not_decide_what_the_reader_reads() -> None
         refuse_unreadable_attachments(body, PATHFINDER_ASSISTANT_ID)
 
 
-@pytest.mark.usefixtures("anthropic_default")
+@pytest.mark.usefixtures("blind_default_lead")
 def test_the_site_help_agent_is_the_reader_of_its_own_turns() -> None:
     body = _body(phaseModels={SITE_HELP_ASSISTANT_ID: GOOGLE_STANDARD})
 

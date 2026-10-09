@@ -51,7 +51,9 @@ from pathfinder.platform.error_handlers import (
     veupathdb_error_handler,
 )
 from pathfinder.platform.langfuse.client import shutdown_langfuse
+from pathfinder.platform.metrics import HttpMetricsMiddleware, serve_metrics
 from pathfinder.platform.migrations import init_db
+from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability, trace_routes
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER
 from pathfinder.platform.readiness import (
@@ -179,6 +181,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     )
 
     install_procrastinate_redaction()
+    install_catalog_prices()
     logger.info("Starting Pathfinder API", version=__version__, env=settings.api_env)
 
     readiness = get_readiness()
@@ -193,6 +196,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         raise
 
     setup_observability(service_name="pathfinder-api", engine=get_engine())
+    metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
     set_observer(OpenTelemetryObserver())
 
     from assistant_core.platform.spawn import spawn  # noqa: PLC0415
@@ -249,6 +253,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             catalog_retry.cancel()
 
     reset_readiness()
+    if metrics_server is not None:
+        metrics_server.shutdown()
+        metrics_server.server_close()
     await close_all_clients()
     await close_all_eda_clients()
     await close_db()
@@ -340,6 +347,8 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
+
+    app.add_middleware(HttpMetricsMiddleware)
 
     for exc_type, handler in (
         (VEuPathDBError, veupathdb_error_handler),

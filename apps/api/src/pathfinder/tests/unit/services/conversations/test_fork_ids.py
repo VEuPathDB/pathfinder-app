@@ -68,6 +68,30 @@ def test_a_user_message_chunk_moves_with_the_start_that_names_it() -> None:
     assert envelope["message"]["role"] == "user"
 
 
+def test_a_withdrawn_prompt_stays_withdrawn_in_the_branch() -> None:
+    mint = IdMint()
+
+    envelope = rewrite_message_ids_in_chunk(
+        {
+            "type": "user-message",
+            "message": {"id": _PARENT_MESSAGE, "role": "user", "parts": []},
+        },
+        mint,
+    )
+    withdrawn = rewrite_message_ids_in_chunk(
+        {
+            "type": "data-turn-withdrawn",
+            "data": {"errorText": "declined", "messageId": _PARENT_MESSAGE},
+        },
+        mint,
+    )
+
+    assert withdrawn == {
+        "type": "data-turn-withdrawn",
+        "data": {"errorText": "declined", "messageId": envelope["message"]["id"]},
+    }
+
+
 def test_a_chunk_that_names_no_message_is_handed_on_unchanged() -> None:
     mint = IdMint()
     chunk = {"type": "data-task-progress", "data": {"percent": 50}}

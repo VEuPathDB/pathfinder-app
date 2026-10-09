@@ -18,6 +18,7 @@ from veupathdb_mcp.catalog import (
     read_search_definition,
     resolve_params_with_intent,
     resolve_search_record_type,
+    shortlist_slot,
     validate_parameters,
     wdk_fetch_at,
 )
@@ -424,7 +425,7 @@ async def set_criterion(
             defaulted_params=sorted(
                 n for n, b in bound.items() if b.source == "default"
             ),
-            open_slots=open_params,
+            open_slots=[shortlist_slot(slot, text) for slot in open_params],
             result_count=count,
             alternatives=alternatives,
             rationale=chosen.rationale,

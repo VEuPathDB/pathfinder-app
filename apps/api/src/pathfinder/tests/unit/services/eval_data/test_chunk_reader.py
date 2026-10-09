@@ -7,6 +7,7 @@ kind or a field the wire renames fails this suite rather than the extraction.
 from __future__ import annotations
 
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
+from assistant_core.graph.stream_events import turn_withdrawn_event
 from assistant_core.platform.types import JSONObject
 from pydantic_ai.ui.vercel_ai.response_types import TextDeltaChunk
 
@@ -225,3 +226,23 @@ def test_the_facts_part_is_redacted_like_every_text() -> None:
 
     assert turn.facts is not None
     assert "alice@example.org" not in turn.facts.lines()[0]
+
+
+def test_a_prompt_the_thread_withdrew_is_no_turn_of_the_extract() -> None:
+    withdrawn = turn_withdrawn_event(
+        error_text="The model declined this request.", message_id=_SECOND_ID
+    ).model_dump(by_alias=True, mode="json", exclude_none=True)
+
+    turns = read_turns(
+        _log(
+            _user("find kinases"),
+            _delta("Kinases found."),
+            _user("describe the toxin", message_id=_SECOND_ID),
+            withdrawn,
+            _user(
+                "find phosphatases", message_id="00000000-0000-0000-0000-000000000003"
+            ),
+        )
+    )
+
+    assert [t.request for t in turns] == ["find kinases", "find phosphatases"]

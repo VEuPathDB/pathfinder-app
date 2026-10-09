@@ -183,6 +183,16 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ge=1,
         description="Number of jobs the Procrastinate worker runs in parallel.",
     )
+    metrics_port: int = Field(
+        default=9100,
+        ge=0,
+        le=65535,
+        description="Port this process publishes its Prometheus series on; 0 publishes none.",
+    )
+    metrics_addr: str = Field(
+        default_factory=lambda: str(IPv4Address(0)),
+        description="Address the Prometheus series server binds.",
+    )
 
     # The OTLP exporter reads the standard OTEL_EXPORTER_OTLP_* variables itself.
     otel_include_content: bool = Field(

@@ -44,15 +44,21 @@ async def test_a_model_is_enabled_where_the_deployment_holds_its_key() -> None:
     """
     body = await _get("/api/v1/models")
 
-    enabled = {m["provider"]: m["enabled"] for m in body["models"]}
-    assert enabled == {provider: provider == "anthropic" for provider in enabled}
-    assert {"openai", "anthropic", "google"} <= set(enabled)
+    enabled = {m["id"]: m["enabled"] for m in body["models"]}
+    assert enabled == {
+        model_id: model_id == "anthropic:claude-haiku-5-5" for model_id in enabled
+    }
+    assert {m["provider"] for m in body["models"]} >= {"openai", "anthropic", "google"}
 
 
-async def test_the_mock_deployment_offers_every_model() -> None:
+async def test_the_mock_deployment_offers_every_model_it_may_pay_for() -> None:
     body = await _get("/api/v1/models")
 
-    assert {m["enabled"] for m in body["models"]} == {True}
+    enabled = {m["id"]: m["enabled"] for m in body["models"]}
+    assert {model_id for model_id, on in enabled.items() if not on} == {
+        "anthropic:claude-opus-5-5",
+        "anthropic:claude-sonnet-5-5",
+    }
 
 
 @pytest.mark.usefixtures("_anthropic_only")

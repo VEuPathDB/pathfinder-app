@@ -43,7 +43,7 @@ export function RailQuotaMeter({ siteId }: { siteId: string }) {
   const pct = limit > 0 ? Math.min(used / limit, 1) : 0;
 
   return (
-    <Tooltip>
+    <Tooltip tapToOpen>
       <TooltipTrigger asChild>
         <span
           role="img"

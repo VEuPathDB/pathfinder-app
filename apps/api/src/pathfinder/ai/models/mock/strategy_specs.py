@@ -17,6 +17,7 @@ GENE_MODEL = "GenesByGeneModelChars"
 TM_DOMAINS = "GenesByTransmembraneDomains"
 ORTHOLOGS = "GenesByOrthologs"
 GO_TERM = "GenesByGoTerm"
+GO_CONCEPT = "structural constituent of ribosome"
 
 # The transmembrane ranges the standard flows state.
 TM_RANGE = ("2", "99")
@@ -124,32 +125,29 @@ def zero_spec(values: SiteValues) -> SpecPlan:
     )
 
 
-# Structural constituent of ribosome, which every eukaryote genome annotates.
+# The term GO_CONCEPT labels, which every eukaryote genome annotates.
 _RIBOSOME_TERM = "GO:0003735"
 
 
 def _go(values: SiteValues) -> CriterionSpec:
-    """The seed's GO term, else the ribosome term. The free-text half stays
-    null: a proposal that fills both ORed halves is refused."""
-    text = f"{values.organism} genes by GO term"
-    if values.leaf(GO_TERM) is None:
-        return CriterionSpec(
-            criterion_id="go_genes",
-            text=text,
-            search_name=GO_TERM,
-            values={
-                "organism": [values.organism],
-                "go_term": None,
-                "go_typeahead": [_RIBOSOME_TERM],
-            },
-        )
-    return seed_criterion(
-        values, GO_TERM, "go_genes", text, overrides={"go_term": None}
+    """The ribosome term, read under the full GO vocabulary. The free-text
+    half stays null: a proposal that fills both ORed halves is refused."""
+    return CriterionSpec(
+        criterion_id="go_genes",
+        text=f"{values.organism} genes annotated with {GO_CONCEPT}",
+        search_name=GO_TERM,
+        values={
+            "organism": [values.organism],
+            "go_term": None,
+            "go_term_slim": "No",
+            "go_term_evidence": ["Curated", "Computed"],
+            "go_typeahead": [_RIBOSOME_TERM],
+        },
     )
 
 
 def go_spec(values: SiteValues) -> SpecPlan:
-    return _one(f"{values.organism} genes by GO term (mock)", _go(values))
+    return _one(f"{values.organism} {GO_CONCEPT} genes (mock)", _go(values))
 
 
 def count_spec(values: SiteValues) -> SpecPlan:

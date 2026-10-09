@@ -31,6 +31,7 @@ from pathfinder.platform.model_catalog import (
 
 __all__ = [
     "KNOWN_ROLES",
+    "OWN_KEY_TIER_PRESETS",
     "TIER_PRESETS",
     "PhaseTierConfig",
     "TierPreset",
@@ -127,7 +128,13 @@ def derive_tiers(
     return tiers
 
 
+_DEPLOYMENT_PAYS = tuple(e for e in get_model_catalog() if e.deployment_may_pay)
+
 _BY_PROVIDER: dict[ModelProvider, dict[TierName, _Tier]] = {
+    provider: derive_tiers(_DEPLOYMENT_PAYS, provider) for provider in KEYABLE_PROVIDERS
+}
+
+_OWN_KEY_BY_PROVIDER: dict[ModelProvider, dict[TierName, _Tier]] = {
     provider: derive_tiers(get_model_catalog(), provider)
     for provider in KEYABLE_PROVIDERS
 }
@@ -160,16 +167,27 @@ def _site_help_preset(tier: _Tier) -> TierPreset:
     return TierPreset(roles={SITE_HELP_ASSISTANT_ID: tier.worker})
 
 
-TIER_PRESETS: dict[str, dict[ModelProvider, dict[TierName, TierPreset]]] = {
-    assistant_id: {
-        provider: {name: build(tier) for name, tier in tiers.items()}
-        for provider, tiers in _BY_PROVIDER.items()
+type _Presets = dict[str, dict[ModelProvider, dict[TierName, TierPreset]]]
+
+
+def _presets(by_provider: dict[ModelProvider, dict[TierName, _Tier]]) -> _Presets:
+    return {
+        assistant_id: {
+            provider: {name: build(tier) for name, tier in tiers.items()}
+            for provider, tiers in by_provider.items()
+        }
+        for assistant_id, build in (
+            (PATHFINDER_ASSISTANT_ID, _pathfinder_preset),
+            (SITE_HELP_ASSISTANT_ID, _site_help_preset),
+        )
     }
-    for assistant_id, build in (
-        (PATHFINDER_ASSISTANT_ID, _pathfinder_preset),
-        (SITE_HELP_ASSISTANT_ID, _site_help_preset),
-    )
-}
+
+
+# The presets a turn the deployment pays for runs, and the server's own default.
+TIER_PRESETS: _Presets = _presets(_BY_PROVIDER)
+
+# The presets a researcher's own key for the provider runs.
+OWN_KEY_TIER_PRESETS: _Presets = _presets(_OWN_KEY_BY_PROVIDER)
 
 # Every role any installed assistant runs a model for. A request that pins a
 # model for a role outside this set is refused at the chat boundary.

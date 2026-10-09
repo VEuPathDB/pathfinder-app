@@ -1,7 +1,57 @@
 # Log
 
+## 2026-10-09
+
+* **A declined request withdraws its prompt.** A provider's safety refusal reached
+  the researcher as the raw `ContentFilterError` text with the model response as
+  JSON, and the declined prompt stayed in the checkpoint, so every later turn sent
+  it again. Every agent now turns the refusal into the runtime's
+  `ModelDeclinedError` with a plain notice, the turn writes `data-turn-withdrawn`
+  (protocol 2.1.0), and the Lead hands back the state the turn entered with. It
+  needs `assistant-core` and `@veupathdb/assistant-client` releases
+  ([A declined request withdraws its prompt](decisions/a-declined-request-withdraws-its-prompt.md)).
+
+* **pydantic-ai is 2.54**, which closes five advisories `pip-audit` reported against 2.41.
+  Its packaged profile knows that Claude Sonnet 5.5 and Opus 5.5 are never forced to a
+  tool, so the runtime's `ClaudeProvider` keeps only the Claude Haiku 5.5 entry, which
+  2.54 does not know. A `before_model_request` hook now changes only the request, so
+  the runtime's `StableInstructions` writes its system notes to the run's history
+  itself. An OpenAI error inside a stream now reaches the guard as a `ModelAPIError`
+  whose cause is the SDK error, so `provider_failure` reads the body from that cause,
+  and the operator's log names an Anthropic error by the type under its error object.
+  The runtime is `assistant-core` 0.3.0b4
+  ([Only a researcher's key runs the larger Claude models](decisions/only-a-researchers-key-runs-the-larger-claude-models.md)).
+
 ## 2026-10-08
 
+* **The api and the worker publish Prometheus series for the estate's promdock.** Each
+  serves `/metrics` with prometheus_client's own server on `METRICS_PORT` (9100) at
+  `METRICS_ADDR`, never as a route of the app: requests by route template and status
+  class, request latency, turns started and finished by assistant, outcome and model,
+  turn duration, tokens and cost by model and payer, and tool source errors by source.
+  The api and worker units join the `monitoring` network with the scrape label
+  ([Metrics go to the estate's Prometheus](decisions/metrics-go-to-the-estate-prometheus.md)).
+* **The Anthropic lineup is Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5, and only a
+  researcher's key runs the larger two.** Haiku 4.5 is gone. `ModelEntry.deployment_may_pay`
+  fails closed; the deployment pays for every OpenAI and Google entry and for Haiku 5.5,
+  and `OWN_KEY_REQUIRED` refuses a Sonnet or Opus pick with no live Anthropic key at the
+  chat gate and in `deployment_model`. `/api/v1/tiers` adds `ownKeyPresets`, and the
+  model catalog marks a held-back model "needs your key". The three Claude entries carry
+  their prices from Anthropic's pricing page (Haiku with its over-100,000-token prices),
+  installed into the runtime's price table at start, so a turn is metered per request
+  at the price the catalog shows; `PRICES_AS_OF` is 2026-10-08. The probe accepted a
+  PNG and a PDF on all three, so the backlog item that waited for an Anthropic account
+  with credit is closed
+  ([Only a researcher's key runs the larger Claude models](decisions/only-a-researchers-key-runs-the-larger-claude-models.md)).
+* **PathFinder is 0.2.0b6 on `veupathdb-mcp` v0.2.0-b6**: patched dependencies, every organism and sample option reaches the question card, tooltips open on a tap where they carry information, and the mock model's arcs match the guards they run under.
+* **A slot card offers every value the site's vocabulary holds.** A criterion's open
+  slot keeps the whole vocabulary the library now returns, so a PlasmoDB organism card
+  keeps `Plasmodium falciparum 3D7` (value 26 of 90) and a VectorBase one keeps its
+  mosquitoes after the ticks, and a sample contrast keeps every facet value (Gambia among
+  them). `set_criterion` shows FRAME each slot through
+  `veupathdb_mcp.catalog.shortlist_slot`, cut by the criterion text only past the sheet
+  limit (`veupathdb-mcp: docs/knowledge/log.md`). The Lead's ledger prints the values
+  FRAME's card offers for an open slot, else a vocabulary that fits a card, else its count.
 * **PathFinder is 0.2.0b5 on `veupathdb-mcp` v0.2.0-b4**, the first `ai-wdk-mcp` release tagged in
   semver. Compose and the interim workflow build research-mcp from `Dockerfile.research`, and
   the backlog item that waited for this release is closed.
@@ -51,6 +101,19 @@
   `S2_API_KEY` is gone: the research server reads `RESEARCH_MCP_S2_API_KEY`, and
   compose and both env templates now name only that
   ([the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+* **The mock model's scripted turns pass the guards a real model meets.** The GO arc
+  binds `GO:0003735` (structural constituent of ribosome) on every site under
+  `go_term_slim=No`, and the end-to-end requests name that concept, so the label
+  guard on a typeahead pick accepts it; a build pass reads the user's cases with
+  `search_memory(kind="case")` first, as FRAME's procedure asks; an edit's added
+  step is phrased in its request's words, and an added search is called by its own
+  (export prediction "exported", molecular weight "molecular weight"), which the
+  end-to-end requests name per site; a parameter edit passes its own why naming
+  every parameter it moves; the variants arc reads the
+  live strategy and varies a search a step runs; a consult pass whose sheet does not
+  list the site organism looks it up; and a new `recall` arc calls `search_memory`,
+  since a fresh turn pins only preferences
+  ([the decision](decisions/standing-memories-are-pinned-and-the-rest-recalled.md)).
 
 ## 2026-10-07
 

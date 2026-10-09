@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import dataclasses
 
+import anthropic
+import httpx2
 import pytest
 from pydantic import SecretStr
+from pydantic_ai.exceptions import ModelAPIError
 
 from pathfinder.devtools.provider_refusals import (
     CASES,
@@ -24,7 +27,7 @@ from pathfinder.domain.provider_keys import (
     KeyableProvider,
     KeyRefusal,
 )
-from pathfinder.platform.key_refusals import classify_refusal
+from pathfinder.platform.key_refusals import classify_refusal, provider_failure
 from pathfinder.tests._support.provider_wire import (
     ProviderWire,
     allow_requests_to_the_wire,
@@ -216,3 +219,36 @@ async def test_a_streamed_case_records_the_body_and_no_status(
         load_refusal("openai-no-credit-stream").body,
         "recorded",
     )
+
+
+_OVERLOADED = {"type": "error", "error": {"type": "overloaded_error"}}
+
+
+def _anthropic_error() -> anthropic.APIError:
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    return anthropic.APIError("overloaded", request, body=_OVERLOADED)
+
+
+def test_a_wrapped_sdk_error_gives_its_body_and_no_status() -> None:
+    wrapped = ModelAPIError("claude-haiku-5-5", "overloaded")
+    wrapped.__cause__ = _anthropic_error()
+
+    failure = provider_failure(wrapped)
+
+    assert (failure.status, failure.body, failure.kind) == (
+        None,
+        _OVERLOADED,
+        ("overloaded_error", None),
+    )
+
+
+def test_an_unwrapped_anthropic_error_gives_its_body_and_no_status() -> None:
+    failure = provider_failure(_anthropic_error())
+
+    assert (failure.status, failure.body) == (None, _OVERLOADED)
+
+
+def test_a_wrapped_error_without_an_sdk_cause_gives_no_body() -> None:
+    failure = provider_failure(ModelAPIError("claude-haiku-5-5", "timed out"))
+
+    assert (failure.status, failure.body) == (None, None)

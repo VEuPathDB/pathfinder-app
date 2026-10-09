@@ -92,7 +92,11 @@ def _build_state_delta(
         state.turn_total_cost_usd + capture.cost_usd + capture.sub_agent_cost
     )
     delta: dict[str, Any] = {
-        "domain": _domain_delta(deps=deps, capture=capture),
+        "domain": (
+            state.domain
+            if capture.declined is not None
+            else _domain_delta(deps=deps, capture=capture)
+        ),
         "retrieved_memories": memories,
         "turn_total_tokens": cumulative_tokens,
         "turn_total_cost_usd": cumulative_cost,

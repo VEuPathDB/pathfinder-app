@@ -98,7 +98,12 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
         "verify_strategy",
         "final_result",
     ],
-    "variants": ["classify_user_intent", "compare_search_variants", "final_result"],
+    "variants": [
+        "classify_user_intent",
+        "get_live_strategy_state",
+        "compare_search_variants",
+        "final_result",
+    ],
     "save-gene-set": ["classify_user_intent", "save_gene_set", "final_result"],
     "export": [
         "classify_user_intent",
@@ -108,6 +113,7 @@ LEAD_SEQUENCES: dict[str, list[str]] = {
     ],
     "remember": ["classify_user_intent", "remember", "final_result"],
     "recall-preference": PROSE,
+    "recall": ["classify_user_intent", "search_memory", "final_result"],
     "recap": ["read_ledger_section", "get_live_strategy_state", "final_result"],
     "gene-question": ["classify_user_intent", "read_gene_record", "final_result"],
     "attachment": ["classify_user_intent", "build_control_set", "final_result"],

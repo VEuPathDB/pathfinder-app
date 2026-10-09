@@ -27,6 +27,7 @@ OPENAI_SMALL = lineup_id("openai", "small")
 GOOGLE_FLAGSHIP = lineup_id("google", "flagship")
 GOOGLE_STANDARD = lineup_id("google", "standard")
 GOOGLE_SMALL = lineup_id("google", "small")
+ANTHROPIC_STANDARD = lineup_id("anthropic", "standard")
 ANTHROPIC_SMALL = lineup_id("anthropic", "small")
 
 

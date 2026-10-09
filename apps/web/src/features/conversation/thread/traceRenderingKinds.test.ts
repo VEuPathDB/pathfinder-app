@@ -23,6 +23,7 @@ describe("traceRenderingKinds", () => {
     const kinds = traceRenderingKinds();
     expect(kinds.has("data-turn-failed")).toBe(false);
     expect(kinds.has("data-turn-stopped")).toBe(false);
+    expect(kinds.has("data-turn-withdrawn")).toBe(false);
     expect(kinds.has("data-background-task-started")).toBe(false);
   });
 

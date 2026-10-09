@@ -11,6 +11,11 @@ export const OPENAI_FLAGSHIP = fixture("openai:gpt-6-sol", "GPT-6 Sol");
 export const OPENAI_SMALL = fixture("openai:gpt-6-luna", "GPT-6 Luna");
 export const GOOGLE_STANDARD = fixture("google:gemini-3.8-flash", "Gemini 3.8 Flash");
 export const ANTHROPIC_SMALL = fixture(
-  "anthropic:claude-haiku-4-5",
-  "Claude Haiku 4.5",
+  "anthropic:claude-haiku-5-5",
+  "Claude Haiku 5.5",
 );
+export const ANTHROPIC_FLAGSHIP = fixture(
+  "anthropic:claude-opus-5-5",
+  "Claude Opus 5.5",
+);
+export const MOCK_MODEL = fixture("mock:deterministic", "Mock (deterministic)");

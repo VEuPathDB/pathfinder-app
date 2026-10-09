@@ -28,6 +28,7 @@ def _bind(count: int) -> list[str]:
 
 SPEC_SEQUENCES: dict[str, list[str]] = {
     "single": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(1),
@@ -35,6 +36,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "intersect": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(2),
@@ -44,6 +46,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "union": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(2),
@@ -51,6 +54,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "minus": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(2),
@@ -58,6 +62,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "orthologs": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(3),
@@ -65,6 +70,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "syntenic-orthologs": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(3),
@@ -72,6 +78,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "round-trip": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(4),
@@ -79,6 +86,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "go": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(1),
@@ -86,6 +94,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "count-question": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(1),
@@ -93,6 +102,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "combined": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(3),
@@ -100,6 +110,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
         "final_result",
     ],
     "zero-then-relax": [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(1),
@@ -110,6 +121,7 @@ SPEC_SEQUENCES: dict[str, list[str]] = {
     "other-site-experiment": [
         "list_searches",
         "search_for_searches",
+        "search_memory",
         *_bind(1),
         "set_structure",
         "final_result",
@@ -228,6 +240,7 @@ def test_the_cross_organism_intersect_ends_on_its_refusal() -> None:
     )
 
     assert names(calls) == [
+        "search_memory",
         "search_for_searches",
         "list_searches",
         *_bind(2),

@@ -106,7 +106,7 @@ export function SlashPopover({
               );
               if (disabled === null) return row;
               return (
-                <Tooltip key={cmd.name}>
+                <Tooltip key={cmd.name} tapToOpen>
                   <TooltipTrigger asChild>
                     <span className="block">{row}</span>
                   </TooltipTrigger>

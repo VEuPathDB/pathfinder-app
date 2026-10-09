@@ -249,13 +249,14 @@ def final_reply(
 
     A run that answered keeps its answer, whatever chunks it wrote on the way.
     A turn parked on a call the user or a worker answers has no reply yet, and
-    a declined proposal keeps the reply the card was offered under.
+    a declined proposal keeps the reply the card was offered under. A turn
+    the model declined has no reply: its notice stands in the reply's place.
     """
     if capture.response is not None:
         return capture.response
     if capture.pending_approval is not None or capture.pending_durable_call is not None:
         return None
-    if capture.offer_declined:
+    if capture.offer_declined or capture.declined is not None:
         return None
     return stop_response(
         fallback_prose(capture, unanswered, change=change),

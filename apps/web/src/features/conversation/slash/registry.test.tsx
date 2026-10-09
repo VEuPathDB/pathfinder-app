@@ -3,6 +3,7 @@
  */
 import { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { chatRoot } from "@/lib/routes";
@@ -176,5 +177,30 @@ describe("/help", () => {
       );
     }
     expect(screen.getAllByRole("option")).toHaveLength(commands.length);
+  });
+});
+
+describe("a refused slash command", () => {
+  it("names the reason on a touch tap", async () => {
+    render(
+      <SlashPopover
+        open
+        query="clear"
+        commands={commands}
+        ctx={ctx({ stepCount: 0 })}
+        activeIdx={0}
+        onSelect={() => {}}
+        onHover={() => {}}
+      />,
+    );
+
+    await userEvent.pointer({
+      keys: "[TouchA]",
+      target: screen.getByTestId("slash-item-clear"),
+    });
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "This conversation has no strategy yet.",
+    );
   });
 });

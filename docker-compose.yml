@@ -36,6 +36,10 @@ services:
       # the sites that did not load. A site that misses the budget is degraded.
       SITE_PRELOAD_TIMEOUT_SECONDS: ${SITE_PRELOAD_TIMEOUT_SECONDS:-30}
       SITE_RETRY_INTERVAL_SECONDS: ${SITE_RETRY_INTERVAL_SECONDS:-60}
+      # The port and address of this process's Prometheus series, served at
+      # /metrics apart from the app. The port is not published; 0 serves none.
+      METRICS_PORT: ${METRICS_PORT:-9100}
+      METRICS_ADDR: ${METRICS_ADDR:-0.0.0.0}
       # The directory the three services exchange catalog snapshots through.
       CATALOG_CACHE_DIR: /app/data/catalogs
       # This is the process that syncs the embedding indexes.
@@ -82,7 +86,8 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     command: .venv/bin/python -m pathfinder.jobs.worker
-    # The worker shares the API image but serves no HTTP, so curl cannot check it.
+    # The worker shares the API image but serves only its metrics, so the api
+    # health check does not apply.
     # restart covers the boot window before the API applies the DB schema, and
     # any later crash of the worker loop.
     restart: unless-stopped
@@ -119,10 +124,6 @@ services:
       # Accounted megabytes of per-site catalogs and semantic indexes one
       # process holds before the least recently used site is evicted.
       SITE_CATALOG_BUDGET_MB: ${SITE_CATALOG_BUDGET_MB:-512}
-      # Budget for one site's catalog load, and the gap between two passes over
-      # the sites that did not load. A site that misses the budget is degraded.
-      SITE_PRELOAD_TIMEOUT_SECONDS: ${SITE_PRELOAD_TIMEOUT_SECONDS:-30}
-      SITE_RETRY_INTERVAL_SECONDS: ${SITE_RETRY_INTERVAL_SECONDS:-60}
       # The directory the three services exchange catalog snapshots through.
       CATALOG_CACHE_DIR: /app/data/catalogs
       # Only the api rebuilds a stale catalog. A build inside a served call
@@ -142,6 +143,10 @@ services:
       WORKER_DEAD_HEARTBEAT_SECONDS: ${WORKER_DEAD_HEARTBEAT_SECONDS:-60}
       # Seconds between the worker heartbeats.
       WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-5}
+      # The port and address of this process's Prometheus series, served at
+      # /metrics apart from the app. The port is not published; 0 serves none.
+      METRICS_PORT: ${METRICS_PORT:-9100}
+      METRICS_ADDR: ${METRICS_ADDR:-0.0.0.0}
       # The veupathdb-wdk-mcp endpoint an assistant's declaration resolves to,
       # and the credential presented there. Set the same secret in this
       # deployment's WDK_MCP_SERVICE_TOKENS; an empty one admits nothing.
@@ -162,7 +167,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b4
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b6
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -238,7 +243,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b4
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b6
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m

@@ -73,7 +73,7 @@ def test_a_fault_of_another_role_leaves_this_role_alone() -> None:
         work_order="Frame work order: mock frame",
     )
 
-    assert names(calls)[0] == "search_for_searches"
+    assert names(calls)[0] == "search_memory"
 
 
 def test_a_refusal_the_run_carries_twice_counts_once(

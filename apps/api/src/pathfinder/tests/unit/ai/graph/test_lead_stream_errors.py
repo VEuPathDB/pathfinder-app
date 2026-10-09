@@ -18,7 +18,7 @@ import openai
 import pytest
 from assistant_core.platform.types import PaidBy
 from langgraph.errors import GraphBubbleUp
-from pydantic_ai.exceptions import ModelHTTPError
+from pydantic_ai.exceptions import ModelAPIError, ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models import Model
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
@@ -266,7 +266,8 @@ def test_a_billing_error_inside_the_stream_reaches_the_wire_without_its_body(
 ) -> None:
     """The error chunk is the typed refusal's sentence, which holds no link."""
     body = load_refusal("openai-no-credit-stream").body
-    streamed = openai.APIError(
+    streamed = ModelAPIError("scripted", "You have no credits remaining.")
+    streamed.__cause__ = openai.APIError(
         "You have no credits remaining.",
         request=httpx2.Request("POST", "https://api.openai.com/v1/responses"),
         body=body,

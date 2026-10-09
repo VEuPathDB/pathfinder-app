@@ -25,6 +25,7 @@ import {
   traceRows,
 } from "../fixtures/build-checks";
 import {
+  addedStep,
   printed,
   readConversation,
   readNodes,
@@ -404,12 +405,8 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     const before = await readConversation(apiClient, id);
     const keptIds = (before.steps ?? []).map((step) => step.wdkStepId);
 
-    await chatPage.sendAndSettle(
-      prompt(
-        "add-step",
-        "Also keep only those predicted to be exported to the host cell.",
-      ),
-    );
+    const added = addedStep(siteId);
+    await chatPage.sendAndSettle(prompt("add-step", added.add));
     await expect
       .poll(async () => layoutOf(await readNodes(apiClient, id)).steps, {
         timeout: 60_000,
@@ -417,6 +414,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       .toBe(5);
     const layout = layoutOf(await readNodes(apiClient, id));
     expect(layout.operators).toEqual(["INTERSECT", "INTERSECT"]);
+    expect(layout.searches).toContain(added.search);
     const counts = await expectBuild(page, apiClient, id, siteId, layout);
     const after = await readConversation(apiClient, id);
     const afterIds = (after.steps ?? []).map((step) => step.wdkStepId);
@@ -490,12 +488,8 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     );
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
 
-    await chatPage.sendAndSettle(
-      prompt(
-        "replace-subtree",
-        "Replace the transmembrane-domain search with the exported-protein prediction.",
-      ),
-    );
+    const added = addedStep(siteId);
+    await chatPage.sendAndSettle(prompt("replace-subtree", added.replace));
     // The mock's replace is a chat edit, so no approval card asks first.
     await expect(page.getByTestId("approval-card")).toHaveCount(0);
     // The replacing search is the site's own, so the check names the one it replaced.
@@ -507,6 +501,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     const layout = layoutOf(await readNodes(apiClient, id));
     expect(layout.steps).toBe(3);
     expect(layout.searches).toContain(SIGNAL_PEPTIDE);
+    expect(layout.searches).toContain(added.search);
     expect(layout.operators).toEqual(["INTERSECT"]);
     const counts = await expectBuild(page, apiClient, id, siteId, layout);
     await chatPage.expectRootCount(counts.root);

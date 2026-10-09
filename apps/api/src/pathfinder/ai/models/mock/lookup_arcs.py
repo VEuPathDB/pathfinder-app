@@ -56,6 +56,17 @@ def looked_up(messages: list[ModelMessage], param: str) -> bool:
     )
 
 
+def looked_up_values(messages: list[ModelMessage], param: str) -> list[str] | None:
+    found = [
+        reply.vocab_lookup
+        for reply in returns_of(messages, "get_parameter_options", _OptionsReply)
+        if reply.name == param and reply.vocab_lookup is not None
+    ]
+    if not found:
+        return None
+    return [value for match in found[-1].matches for value in match.values]
+
+
 def lookup_the_refused_pick(
     spec: SpecPlan,
     messages: list[ModelMessage],
@@ -133,6 +144,7 @@ __all__ = [
     "OBP_FAMILY",
     "OBP_PHRASINGS",
     "looked_up",
+    "looked_up_values",
     "lookup_the_refused_pick",
     "odorant_binding_frame",
     "odorant_binding_spec",

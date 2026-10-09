@@ -72,6 +72,7 @@ from pathfinder.jobs.tasks import ensure_registered
 from pathfinder.main import create_app
 from pathfinder.persistence.models import User
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.security import create_user_token, limiter
 from pathfinder.services import wdk_identity
 from pathfinder.services.eda import catalog
@@ -306,18 +307,15 @@ async def in_memory_jobs() -> AsyncGenerator[InMemoryConnector]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _configured_logging() -> None:
-    """Log the way a served process logs.
+def _served_process_defaults() -> None:
+    """Log and meter the way a served process does.
 
     The configuration puts ``format_exc_info`` before the renderer, so a
     logged exception costs one string instead of a rendered stack carrying
     every local, and each record reaches stdlib logging where a test reads it.
     """
     setup_logging()
-
-
-@pytest.fixture(scope="session", autouse=True)
-def _test_env_defaults() -> None:
+    install_catalog_prices()
     # The rate limiter stays off, because a test can exceed the request rate.
     limiter.enabled = False
 

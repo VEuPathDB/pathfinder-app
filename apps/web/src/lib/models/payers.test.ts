@@ -10,9 +10,17 @@ import {
   withPayers,
   type Payers,
 } from "./payers";
-import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
+import {
+  ANTHROPIC_FLAGSHIP,
+  ANTHROPIC_SMALL,
+  DEFAULT_MODEL,
+} from "@/lib/models/__fixtures__/models";
 
-function entry(id: string, enabled: boolean): ModelCatalogEntry {
+function entry(
+  id: string,
+  enabled: boolean,
+  deploymentMayPay = true,
+): ModelCatalogEntry {
   const [provider = "", modelName = ""] = id.split(":");
   return {
     id,
@@ -20,11 +28,13 @@ function entry(id: string, enabled: boolean): ModelCatalogEntry {
     modelName,
     rank: "standard",
     provider: provider as ModelCatalogEntry["provider"],
+    deploymentMayPay,
     enabled,
   };
 }
 
 const ANTHROPIC = entry(ANTHROPIC_SMALL.id, false);
+const OPUS = entry(ANTHROPIC_FLAGSHIP.id, false, false);
 const OPENAI = entry(DEFAULT_MODEL.id, true);
 const DEPLOYMENT_ONLY: Payers = { openai: "deployment" };
 const USER_ONLY: Payers = { anthropic: "user" };
@@ -57,6 +67,14 @@ describe("selectable", () => {
       true,
       true,
     ]);
+  });
+
+  it("offers a model only a researcher's key runs on that key alone", () => {
+    expect([
+      selectable(OPUS, { anthropic: "user" }),
+      selectable(OPUS, { anthropic: "deployment" }),
+      selectable(ANTHROPIC, { anthropic: "deployment" }),
+    ]).toEqual([true, false, true]);
   });
 
   it("marks a model that runs on the researcher's key", () => {

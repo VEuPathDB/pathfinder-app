@@ -526,6 +526,7 @@ test.describe("Verification flows", { tag: "@turn" }, () => {
       "Variant",
       "Genes",
       "Unique to it",
+      "In the result",
     ]);
     const variants = await bodyCells(figure);
     expect(variants.length).toBeGreaterThan(1);

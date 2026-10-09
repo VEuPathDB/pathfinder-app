@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import Any, Self
 
 from assistant_core.mcp.admission import AdmissionRecord, AdmittedSources
-from assistant_core.mcp.resolution import ToolSourceUnavailableError
+from assistant_core.mcp.resolution import (
+    ToolSourceUnavailableError,
+    build_mcp_toolset,
+)
+from pydantic_ai import ApprovalRequired, CallDeferred, ModelRetry, RunContext
+from pydantic_ai.toolsets import AbstractToolset, WrapperToolset
+from pydantic_ai.toolsets.abstract import ToolsetTool
 
 from pathfinder.platform.config import Settings, get_settings
+from pathfinder.platform.metrics import TOOL_SOURCE_ERRORS
 
 WDK_MCP_SOURCE_ID = "veupathdb-wdk-mcp"
 WDK_MCP_PART_NAMESPACE = "wdk"
@@ -96,6 +105,42 @@ def source_credential(record: AdmissionRecord) -> str | None:
     return token
 
 
+@dataclass
+class MeteredToolSource(WrapperToolset[Any]):
+    source_id: str
+
+    async def __aenter__(self) -> Self:
+        try:
+            await self.wrapped.__aenter__()
+        except Exception:
+            TOOL_SOURCE_ERRORS.labels(self.source_id, "open").inc()
+            raise
+        return self
+
+    async def call_tool(
+        self,
+        name: str,
+        tool_args: dict[str, Any],
+        ctx: RunContext[Any],
+        tool: ToolsetTool[Any],
+    ) -> Any:
+        try:
+            return await self.wrapped.call_tool(name, tool_args, ctx, tool)
+        except ModelRetry, CallDeferred, ApprovalRequired:
+            raise
+        except Exception:
+            TOOL_SOURCE_ERRORS.labels(self.source_id, "call").inc()
+            raise
+
+
+def metered_mcp_toolset(
+    record: AdmissionRecord, credential: str | None
+) -> AbstractToolset[Any]:
+    return MeteredToolSource(
+        build_mcp_toolset(record, credential), source_id=record.source_id
+    )
+
+
 __all__ = [
     "RESEARCH_MCP_CALL_SECONDS",
     "RESEARCH_MCP_PART_NAMESPACE",
@@ -103,6 +148,8 @@ __all__ = [
     "WDK_MCP_CALL_SECONDS",
     "WDK_MCP_PART_NAMESPACE",
     "WDK_MCP_SOURCE_ID",
+    "MeteredToolSource",
     "admitted_tool_sources",
+    "metered_mcp_toolset",
     "source_credential",
 ]

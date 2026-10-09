@@ -22,6 +22,7 @@ from veupathdb.observability.otel import OpenTelemetryObserver
 import pathfinder.jobs.app
 from pathfinder import main
 from pathfinder.jobs import logging_filters
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.readiness import (
     SubsystemStatus,
     get_readiness,
@@ -105,6 +106,7 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(pathfinder.jobs.app, "procrastinate_app", _ProcrastinateApp())
     monkeypatch.setattr(sweeper, "run_sweeper_loop", _sweeper_loop)
+    monkeypatch.setattr(main, "serve_metrics", lambda port, addr: None)
 
 
 async def test_startup_returns_while_warm_up_still_runs(
@@ -150,6 +152,25 @@ async def test_the_lifespan_installs_the_client_s_otel_observer(
         pass
 
     assert [type(observer) for observer in installed] == [OpenTelemetryObserver]
+
+
+async def test_the_lifespan_meters_at_the_catalog_prices(
+    isolated_lifespan: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del isolated_lifespan
+    installed: list[bool] = []
+
+    async def _no_warm_up() -> None:
+        return None
+
+    monkeypatch.setattr(main, "_warm_up_subsystems", _no_warm_up)
+    monkeypatch.setattr(main, "install_catalog_prices", lambda: installed.append(True))
+
+    app = FastAPI()
+    async with main.lifespan(app):
+        pass
+
+    assert installed == [True]
 
 
 async def test_the_lifespan_leaves_the_process_s_logging_alone(
@@ -368,3 +389,39 @@ class TestTheWarmUpBuildsTheJudge:
         assert readiness.input_screening is None
         assert readiness.not_ready == []
         reset_readiness()
+
+
+class _MetricsServer:
+    def __init__(self, marks: list[str]) -> None:
+        self.marks = marks
+
+    def shutdown(self) -> None:
+        self.marks.append("shutdown")
+
+    def server_close(self) -> None:
+        self.marks.append("close")
+
+
+async def test_the_lifespan_serves_metrics_on_the_configured_port_and_address(
+    isolated_lifespan: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del isolated_lifespan
+    marks: list[str] = []
+
+    async def _no_warm_up() -> None:
+        return None
+
+    def _serve(port: int, addr: str) -> _MetricsServer:
+        marks.append(f"serve {addr}:{port}")
+        return _MetricsServer(marks)
+
+    monkeypatch.setattr(main, "_warm_up_subsystems", _no_warm_up)
+    monkeypatch.setattr(main, "serve_metrics", _serve)
+    settings = get_settings()
+    monkeypatch.setattr(settings, "metrics_port", 9311)
+    monkeypatch.setattr(settings, "metrics_addr", "10.0.0.7")
+
+    async with main.lifespan(FastAPI()):
+        assert marks == ["serve 10.0.0.7:9311"]
+
+    assert marks == ["serve 10.0.0.7:9311", "shutdown", "close"]

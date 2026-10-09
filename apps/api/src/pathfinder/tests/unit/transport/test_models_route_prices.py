@@ -15,7 +15,8 @@ import pytest
 from assistant_core.pricing import lookup_per_mtok_prices
 from fastapi import FastAPI
 
-from pathfinder.platform.model_catalog import ModelEntry
+from pathfinder.platform.config import get_settings
+from pathfinder.platform.model_catalog import CatalogMeter, ModelEntry
 from pathfinder.transport.http.routers import models
 from pathfinder.transport.http.routers.models import router
 
@@ -100,3 +101,55 @@ async def test_a_model_the_snapshot_does_not_price_keeps_the_catalog_price(
         0.04,
         1.6,
     )
+
+
+async def test_an_entry_the_catalog_meters_shows_the_catalog_price(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _serve(
+        monkeypatch,
+        ModelEntry.entry(
+            id="anthropic:claude-opus-5-5",
+            name="Claude Opus 5.5",
+            rank="flagship",
+            input_price=9.0,
+            cached_input_price=0.9,
+            output_price=45.0,
+            meter=CatalogMeter(cache_write_price=11.25),
+        ),
+    )
+
+    (entry,) = await _models()
+
+    assert (entry["inputPrice"], entry["cachedInputPrice"], entry["outputPrice"]) == (
+        9.0,
+        0.9,
+        45.0,
+    )
+
+
+async def test_a_model_only_a_researchers_key_runs_is_served_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = get_settings()
+    monkeypatch.setattr(settings, "pathfinder_chat_provider", "default")
+    monkeypatch.setattr(settings, "anthropic_api_key", "sk-ant-deployment")
+    _serve(
+        monkeypatch,
+        ModelEntry.entry(
+            id="anthropic:claude-sonnet-5-5", name="Sonnet", rank="standard"
+        ),
+        ModelEntry.entry(
+            id="anthropic:claude-haiku-5-5",
+            name="Haiku",
+            rank="small",
+            deployment_may_pay=True,
+        ),
+    )
+
+    served = {entry["id"]: entry["enabled"] for entry in await _models()}
+
+    assert served == {
+        "anthropic:claude-sonnet-5-5": False,
+        "anthropic:claude-haiku-5-5": True,
+    }

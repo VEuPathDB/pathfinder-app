@@ -32,6 +32,7 @@ export const ARC_NAMES = [
   "off-topic",
   "remember",
   "recall-preference",
+  "recall",
   "context",
   "second-build",
   "controls-test",

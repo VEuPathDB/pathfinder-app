@@ -22,6 +22,7 @@ import { ReasoningToggle } from "@/features/settings/components/ReasoningToggle"
 import {
   applyTierPreset,
   deriveActiveTier,
+  presetsForPayer,
   presetsForProvider,
   rolesForAssistant,
 } from "@/features/settings/tierPresets";
@@ -49,10 +50,11 @@ export function ModelSettings() {
         0,
   );
   const provider = chosenProvider ?? data?.defaultProvider ?? "";
-  const tierPresets = presetsForProvider(tierData?.presets, assistantId, provider);
-  const roles = rolesForAssistant(tierData?.presets, assistantId, provider);
+  const presets = presetsForPayer(tierData, payers?.[provider] === "user");
+  const tierPresets = presetsForProvider(presets, assistantId, provider);
+  const roles = rolesForAssistant(presets, assistantId, provider);
   const activeTier = deriveActiveTier(
-    tierData?.presets,
+    presets,
     assistantId,
     provider,
     phaseModels,

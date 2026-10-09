@@ -67,19 +67,17 @@ def test_the_round_trip_is_kept_by_an_intersect_over_a_copy() -> None:
 def test_a_plan_with_a_transform_ranks_it_before_binding() -> None:
     plan = round_trip_spec(_PLASMO)
 
-    ranked = frame_call(plan, frozenset(), [], "")
+    ranked = frame_call(plan, frozenset({"search_memory"}), [], "")
 
     assert ranked.tool_name == "search_for_searches"
-    assert ranked.args_as_dict() == {
-        "query": "syntenic orthologs of the Plasmodium falciparum 3D7 genes"
-    }
-    listed = frozenset({"list_searches", "search_for_searches"})
+    assert ranked.args_as_dict() == {"query": "syntenic orthologs"}
+    listed = frozenset({"search_memory", "list_searches", "search_for_searches"})
     assert frame_call(plan, listed, [], "").tool_name == "set_criterion"
 
 
 def test_a_plan_without_a_transform_ranks_its_title() -> None:
     plan = combined_spec(_PLASMO)
 
-    ranked = frame_call(plan, frozenset(), [], "")
+    ranked = frame_call(plan, frozenset({"search_memory"}), [], "")
 
     assert ranked.args_as_dict() == {"query": plan.title}

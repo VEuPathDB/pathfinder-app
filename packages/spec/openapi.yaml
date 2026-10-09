@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Pathfinder API
   description: VEuPathDB Strategy Builder Chatbot API
-  version: 0.2.0b5
+  version: 0.2.0b6
 paths:
   /health:
     get:
@@ -432,15 +432,19 @@ paths:
       description: 'Return available models grouped by provider.
 
 
-        Prices overlay live ``genai_prices`` snapshot data when available; the
+        An entry the catalog meters shows the catalog''s prices, the ones the spend
 
-        catalog''s hardcoded values act as a fallback for models the upstream
+        meter charges; any other entry shows the live ``genai_prices`` snapshot
 
-        library doesn''t yet track. A model whose provider the deployment does not
+        price, with the catalog''s value where the snapshot has none. A model the
 
-        pay for is returned with ``enabled: false``; a researcher''s own key is read
+        deployment does not pay for is returned with ``enabled: false``: its
 
-        from ``/api/v1/me/provider-keys``, because this route answers before sign-in.'
+        provider holds no deployment key, or its entry runs only on a researcher''s
+
+        own key. That key is read from ``/api/v1/me/provider-keys``, because this
+
+        route answers before sign-in.'
       operationId: list_models_api_v1_models_get
       responses:
         '200':
@@ -454,7 +458,9 @@ paths:
       tags:
       - tiers
       summary: List Tiers
-      description: Return tier presets grouped by assistant, then by provider.
+      description: 'Return tier presets grouped by assistant, then by provider: the ones
+
+        the deployment pays for, and the ones a researcher''s own key runs.'
       operationId: list_tiers_api_v1_tiers_get
       responses:
         '200':
@@ -3535,6 +3541,19 @@ components:
       - approved
       title: CardAnswered
       description: A consult or approval card the researcher answered.
+    CatalogMeter:
+      properties:
+        cacheWritePrice:
+          type: number
+          title: Cachewriteprice
+        longPrompt:
+          anyOf:
+          - $ref: '#/components/schemas/LongPromptPrices'
+          - type: 'null'
+      type: object
+      required:
+      - cacheWritePrice
+      title: CatalogMeter
     ChatRequestBody:
       properties:
         trigger:
@@ -5495,6 +5514,31 @@ components:
       - openai
       - anthropic
       - google
+    LongPromptPrices:
+      properties:
+        aboveTokens:
+          type: integer
+          title: Abovetokens
+        inputPrice:
+          type: number
+          title: Inputprice
+        cachedInputPrice:
+          type: number
+          title: Cachedinputprice
+        cacheWritePrice:
+          type: number
+          title: Cachewriteprice
+        outputPrice:
+          type: number
+          title: Outputprice
+      type: object
+      required:
+      - aboveTokens
+      - inputPrice
+      - cachedInputPrice
+      - cacheWritePrice
+      - outputPrice
+      title: LongPromptPrices
     MemoryEditRequest:
       properties:
         name:
@@ -5731,6 +5775,14 @@ components:
           type: boolean
           title: Isproviderdefault
           default: false
+        deploymentMayPay:
+          type: boolean
+          title: Deploymentmaypay
+          default: false
+        meter:
+          anyOf:
+          - $ref: '#/components/schemas/CatalogMeter'
+          - type: 'null'
         provider:
           $ref: '#/components/schemas/ModelProvider'
         modelName:
@@ -5748,7 +5800,7 @@ components:
       - provider
       - modelName
       title: ModelCatalogEntryResponse
-      description: API response model - adds ``enabled`` status per provider configuration.
+      description: API response model - adds whether the deployment pays for the model.
     ModelListResponse:
       properties:
         models:
@@ -7694,9 +7746,28 @@ components:
             type: object
           type: object
           title: Presets
+        ownKeyPresets:
+          additionalProperties:
+            additionalProperties:
+              additionalProperties:
+                $ref: '#/components/schemas/TierPreset'
+              propertyNames:
+                enum:
+                - default
+                - quality
+                - balanced
+                - fast
+                - custom
+              type: object
+            propertyNames:
+              $ref: '#/components/schemas/ModelProvider'
+            type: object
+          type: object
+          title: Ownkeypresets
       type: object
       required:
       - presets
+      - ownKeyPresets
       title: TierListResponse
       description: Response for GET /api/v1/tiers.
     TierPreset:
@@ -8727,6 +8798,7 @@ components:
       - PROVIDER_KEY_REFUSED
       - PROVIDER_KEY_UNREADABLE
       - PROVIDER_NOT_CONFIGURED
+      - OWN_KEY_REQUIRED
       - PROVIDER_UNREACHABLE
       - PROVIDER_KEYS_DISABLED
       - ATTACHMENT_TOO_LARGE
@@ -13332,6 +13404,20 @@ components:
       - costUsd
       title: TurnUsage
       type: object
+    TurnWithdrawnPayload:
+      properties:
+        errorText:
+          title: Errortext
+          type: string
+        messageId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Messageid
+      required:
+      - errorText
+      title: TurnWithdrawnPayload
+      type: object
     UniqueGene:
       description: One gene only this variant returns, with the product its record names.
       properties:
@@ -14020,6 +14106,10 @@ components:
         turnUsage:
           anyOf:
           - $ref: '#/components/schemas/TurnUsage'
+          - type: 'null'
+        turnWithdrawn:
+          anyOf:
+          - $ref: '#/components/schemas/TurnWithdrawnPayload'
           - type: 'null'
         userQuestionAnswer:
           anyOf:

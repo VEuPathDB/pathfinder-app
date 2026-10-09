@@ -32,6 +32,13 @@ TEXT_DELTA = "text-delta"
 FACTS = "data-facts"
 LEDGER_UPDATE = "data-ledger-update"
 EVIDENCE_CARD = "data-evidence-card"
+TURN_WITHDRAWN = "data-turn-withdrawn"
+
+
+class WithdrawnPrompt(CamelModel):
+    model_config = ConfigDict(extra="ignore")
+
+    message_id: str
 
 
 class ChunkPart(CamelModel):
@@ -100,20 +107,21 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
 
     A user message opens a turn; the text deltas that follow are its reply and
     the last facts part that follows is what it showed beside the reply. One id
-    names one message, so a repeated envelope keeps the first.
+    names one message, so a repeated envelope keeps the first. A prompt the
+    thread withdrew is no turn.
     """
+    ids: list[str] = []
     requests: list[str] = []
     replies: list[list[str]] = []
     shown: list[TurnFacts | None] = []
-    seen: set[str] = set()
+    withdrawn: set[str] = set()
     for row in rows:
         chunk = row.chunk
         if chunk.type == USER_MESSAGE_CHUNK_TYPE and chunk.message is not None:
             message = chunk.message
-            if message.role != "user" or message.id in seen:
+            if message.role != "user" or (message.id and message.id in ids):
                 continue
-            if message.id:
-                seen.add(message.id)
+            ids.append(message.id)
             requests.append(redact_text(message.text()))
             replies.append([])
             shown.append(None)
@@ -121,9 +129,14 @@ def read_turns(rows: Sequence[LoggedChunk]) -> list[ExtractedTurn]:
             replies[-1].append(chunk.delta)
         elif chunk.type == FACTS and chunk.data is not None and shown:
             shown[-1] = TurnFacts.model_validate(chunk.data).redacted(redact_text)
+        elif chunk.type == TURN_WITHDRAWN and chunk.data is not None:
+            withdrawn.add(WithdrawnPrompt.model_validate(chunk.data).message_id)
     return [
         ExtractedTurn(request=request, reply=redact_text("".join(reply)), facts=facts)
-        for request, reply, facts in zip(requests, replies, shown, strict=True)
+        for message_id, request, reply, facts in zip(
+            ids, requests, replies, shown, strict=True
+        )
+        if message_id not in withdrawn
     ]
 
 

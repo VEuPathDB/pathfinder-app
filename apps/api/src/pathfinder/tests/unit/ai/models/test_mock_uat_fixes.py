@@ -138,7 +138,7 @@ def test_a_build_finds_searches_by_the_request_first(arc: str, site_id: str) -> 
         "frame", site_id, f"Find signal genes [[arc:{arc}]]", work_order=_ORDER
     )
 
-    assert names(calls)[:2] == ["search_for_searches", "list_searches"]
+    assert names(calls)[:3] == ["search_memory", "search_for_searches", "list_searches"]
     assert args_of(calls, "search_for_searches") == [{"query": "Find signal genes"}]
 
 
@@ -152,6 +152,7 @@ def test_a_ranked_own_experiment_is_bound_and_built(site_id: str) -> None:
     assert names(frame) == [
         "list_searches",
         "search_for_searches",
+        "search_memory",
         "set_criterion",
         "set_criterion",
         "set_structure",

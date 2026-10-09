@@ -1,4 +1,5 @@
 import base64
+from ipaddress import IPv4Address
 from pathlib import Path
 
 import pytest
@@ -162,6 +163,21 @@ def test_worker_concurrency_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("WORKER_CONCURRENCY", "8")
 
     assert make_settings().worker_concurrency == 8
+
+
+def test_metrics_are_published_on_9100_of_every_interface_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("METRICS_PORT", raising=False)
+    monkeypatch.delenv("METRICS_ADDR", raising=False)
+    settings = make_settings()
+
+    assert (settings.metrics_port, settings.metrics_addr) == (9100, str(IPv4Address(0)))
+
+
+def test_a_metrics_port_outside_tcp_is_refused() -> None:
+    with pytest.raises(ValueError, match="metrics_port"):
+        make_settings(metrics_port=65536)
 
 
 def test_service_tokens_are_unset_by_default() -> None:

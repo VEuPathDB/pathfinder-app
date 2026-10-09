@@ -17,6 +17,8 @@ interface FirstMessageState {
     conversationId: string,
     messages: readonly UIMessage[],
   ) => void;
+
+  forgetWithdrawnMessage: (conversationId: string, text: string) => void;
 }
 
 export const useFirstMessageStore = createStore<FirstMessageState>(
@@ -30,6 +32,13 @@ export const useFirstMessageStore = createStore<FirstMessageState>(
         const text = firstUserMessageText(messages);
         if (text === null) return s;
         return { byConversation: { ...s.byConversation, [conversationId]: text } };
+      }),
+
+    forgetWithdrawnMessage: (conversationId, text) =>
+      set((s) => {
+        if (s.byConversation[conversationId] !== text) return s;
+        const { [conversationId]: _withdrawn, ...kept } = s.byConversation;
+        return { byConversation: kept };
       }),
   }),
 );

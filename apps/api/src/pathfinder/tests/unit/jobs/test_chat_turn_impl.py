@@ -9,15 +9,21 @@ from uuid import UUID, uuid4
 
 import pytest
 from assistant_core.conversation.deadline import CheckpointTimeoutError
+from assistant_core.graph.stream_events import turn_usage_event
 from assistant_core.platform.context import DEFAULT_APPLICATION_ID, application_id_ctx
 from assistant_core.spec import AssistantSpec
 from assistant_core.tasks import scope
+from prometheus_client import REGISTRY
+from pydantic_ai.ui.vercel_ai.response_types import FinishChunk
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 
 from pathfinder.ai.conversation import turn_failure
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
-from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.assistants.registry import (
+    get_assistant_registry,
+    prompt_reader_model,
+)
 from pathfinder.domain.provider_keys import KeyableProvider, KeyRefusal, ProviderKeyring
 from pathfinder.jobs import turn_keys
 from pathfinder.jobs.impls import chat_turn_impl
@@ -276,3 +282,43 @@ async def test_a_turn_that_cannot_open_its_checkpointer_ends_visibly(
     assert writers[0].chunks[0]["errorText"] == turn_failure.STOPPED_BEFORE_IT_RAN
     assert "CheckpointTimeoutError" not in writers[0].chunks[0]["errorText"]
     assert writers[0].chunks[2]["finishReason"] == "error"
+
+
+class _UsageWritingRunTurn:
+    async def __call__(self, **kwargs: Any) -> None:
+        writer = kwargs["writer"]
+        for chunk in (
+            turn_usage_event(total_tokens=240, cost_usd="0.003"),
+            FinishChunk(finish_reason="stop"),
+        ):
+            await writer.write(
+                chunk.model_dump(by_alias=True, mode="json", exclude_none=True)
+            )
+
+
+def _sample(name: str, labels: dict[str, str]) -> float:
+    return REGISTRY.get_sample_value(name, labels) or 0.0
+
+
+@pytest.mark.asyncio
+async def test_a_worker_turn_counts_under_the_model_that_read_the_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(chat_turn_impl, "run_turn", _UsageWritingRunTurn())
+    monkeypatch.setattr(chat_turn_impl, "lifespan_checkpointer", _fake_checkpointer_ctx)
+    monkeypatch.setattr(chat_turn_impl, "lifespan_memory_store", _fake_memory_ctx)
+    monkeypatch.setattr(chat_turn_impl, "get_assistant_registry", _FakeRegistry)
+    monkeypatch.setattr(chat_turn_impl, "ChatEventWriter", _RecordingWriter)
+    model = prompt_reader_model("pathfinder", {})
+    finished = {"assistant": "pathfinder", "outcome": "completed", "model": model}
+    spent = {"model": model, "payer": "deployment"}
+    before = _sample("pathfinder_chat_turns_finished_total", finished)
+    tokens = _sample("pathfinder_model_tokens_total", spent)
+    payload = ChatTurnPayload(
+        body=_body(), user_id=uuid4(), turn_id=uuid4(), assistant_id="pathfinder"
+    )
+
+    await run_chat_turn(payload.model_dump(mode="json", by_alias=True))
+
+    assert _sample("pathfinder_chat_turns_finished_total", finished) == before + 1
+    assert _sample("pathfinder_model_tokens_total", spent) == tokens + 240

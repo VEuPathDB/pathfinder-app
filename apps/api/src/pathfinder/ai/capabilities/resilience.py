@@ -6,6 +6,7 @@ import traceback
 from dataclasses import dataclass
 from typing import Any
 
+from assistant_core.errors import ModelDeclinedError
 from assistant_core.platform.logging import get_logger
 from langgraph.errors import GraphInterrupt
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -327,8 +328,9 @@ class ToolResilience(AbstractCapability[AgentDeps]):
         # GraphInterrupt is a LangGraph control-flow signal, not an error.
         if isinstance(error, GraphInterrupt):
             raise error
-        # The refusal seam owns a refusal this application names, on every agent.
-        if isinstance(error, AppError):
+        # The refusal seam owns a refusal this application names, on every agent;
+        # a request the model declined ends the run.
+        if isinstance(error, AppError | ModelDeclinedError):
             raise error
         tool_name = tool_def.name
         category = classify_error(error)

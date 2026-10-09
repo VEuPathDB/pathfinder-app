@@ -12,6 +12,13 @@ from typing import Any
 
 import httpx2
 import pytest
+from anthropic.types import (
+    Message,
+    RawMessageDeltaEvent,
+    RawMessageStartEvent,
+    RawMessageStopEvent,
+)
+from assistant_core.models.claude_profiles import ClaudeProvider
 from openai.types.responses import (
     Response,
     ResponseCompletedEvent,
@@ -21,7 +28,6 @@ from openai.types.responses import (
 from pydantic import BaseModel, ConfigDict, JsonValue, SecretStr
 from pydantic_ai import models
 from pydantic_ai.providers import Provider
-from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -131,6 +137,45 @@ def openai_stream_that_fails(model: str, body: JsonValue) -> bytes:
     return f"{events}event: error\ndata: {failed}\n\n".encode()
 
 
+def anthropic_declining_stream(model: str, explanation: str | None) -> bytes:
+    started = Message.model_validate(
+        {
+            "id": "msg_test",
+            "type": "message",
+            "role": "assistant",
+            "model": model,
+            "content": [],
+            "stop_reason": None,
+            "stop_sequence": None,
+            "usage": {"input_tokens": 12, "output_tokens": 0},
+        }
+    )
+    events: list[RawMessageStartEvent | RawMessageDeltaEvent | RawMessageStopEvent] = [
+        RawMessageStartEvent(type="message_start", message=started),
+        RawMessageDeltaEvent.model_validate(
+            {
+                "type": "message_delta",
+                "delta": {
+                    "stop_reason": "refusal",
+                    "stop_sequence": None,
+                    "stop_details": {
+                        "type": "refusal",
+                        "category": "bio",
+                        "explanation": explanation,
+                    },
+                },
+                "usage": {"output_tokens": 0},
+            }
+        ),
+        RawMessageStopEvent(type="message_stop"),
+    ]
+    frames = (
+        f"event: {event.type}\ndata: {event.model_dump_json(exclude_none=True)}\n\n"
+        for event in events
+    )
+    return "".join(frames).encode()
+
+
 @dataclass
 class ProviderWire:
     """Builds real providers on a transport that records every request.
@@ -145,6 +190,8 @@ class ProviderWire:
     refused_by: str = "invalid-key"
     status: int | None = None
     fails_mid_stream: str | None = None
+    declines: bool = False
+    explanation: str | None = None
     requests: list[httpx2.Request] = field(default_factory=list)
 
     def _answer(
@@ -160,6 +207,12 @@ class ProviderWire:
         if self.status is not None:
             return httpx2.Response(self.status)
         requested = _Requested.model_validate_json(request.content)
+        if self.declines:
+            return httpx2.Response(
+                200,
+                content=anthropic_declining_stream(requested.model, self.explanation),
+                headers={"content-type": "text/event-stream"},
+            )
         if requested.stream:
             content = (
                 openai_stream(requested.model)
@@ -184,7 +237,7 @@ class ProviderWire:
             case "openai":
                 return OpenAIProvider(api_key=secret, http_client=client)
             case "anthropic":
-                return AnthropicProvider(api_key=secret, http_client=client)
+                return ClaudeProvider(api_key=secret, http_client=client)
             case "google":
                 return GoogleProvider(api_key=secret, http_client=client)
 

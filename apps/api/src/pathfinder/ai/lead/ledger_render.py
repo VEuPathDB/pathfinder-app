@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from assistant_core.graph.tool_summary import count_noun
 
 from pathfinder.ai.graph.state import VerificationDigest
@@ -20,9 +22,14 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OpenSlot,
 )
+from pathfinder.domain.strategy.questions import (
+    OpenQuestion,
+    OptionBinding,
+    SetValues,
+)
 from pathfinder.domain.strategy.value_binding import plain_value
 
-# The choices of one open slot the ledger prints.
+# The most values one question card offers.
 _OPTION_WINDOW = 8
 
 
@@ -60,15 +67,16 @@ def render_frame_full(section: FrameSection) -> str:
         f"### Criteria ({len(spec.criteria)})",
     ]
     noun = counted_noun(spec.record_type)
+    questions = section.open_questions
     for crit in spec.criteria:
-        parts.extend(_render_criterion(crit, noun))
+        parts.extend(_render_criterion(crit, noun, questions))
     if spec.structure is not None:
         parts.append("\n### Structure")
         parts.append(render_structure(spec.structure.root, spec))
     if spec.open_slots:
         parts.append("\n### Open slots (user must answer)")
         parts.extend(
-            f"- {s.criterion_id or '-'}.{s.param_name}: {_asked(s)}"
+            f"- {s.criterion_id or '-'}.{s.param_name}: {_asked(s, questions)}"
             for s in spec.open_slots
         )
     if spec.dropped:
@@ -77,14 +85,30 @@ def render_frame_full(section: FrameSection) -> str:
     return "\n".join(parts)
 
 
-def _asked(slot: OpenSlot) -> str:
-    """The slot's question and the choices the question card offers for it."""
+def _asked(slot: OpenSlot, questions: Sequence[OpenQuestion]) -> str:
+    """The slot's question and the values its card offers: the recorded card's,
+    else a vocabulary that fits a card, else how many values it holds."""
+    carded = [
+        option.label
+        for question in questions
+        for option in question.options
+        if _sets(option.binding, slot)
+    ]
+    if carded:
+        return f"{slot.question}; card: {' | '.join(carded)}"
     if not slot.options:
         return slot.question
-    shown = slot.options[:_OPTION_WINDOW]
-    rest = len(slot.options) - len(shown)
-    more = [f"{rest} more"] if rest else []
-    return f"{slot.question}; options: {' | '.join([*shown, *more])}"
+    if len(slot.options) > _OPTION_WINDOW:
+        return f"{slot.question}; {count_noun(len(slot.options), 'value')}"
+    return f"{slot.question}; options: {' | '.join(slot.options)}"
+
+
+def _sets(binding: OptionBinding, slot: OpenSlot) -> bool:
+    match binding:
+        case SetValues(criterion_id=criterion_id, params=params):
+            return criterion_id == slot.criterion_id and slot.param_name in params
+        case _:
+            return False
 
 
 def _search_label(crit: Criterion) -> str:
@@ -95,7 +119,9 @@ def _search_label(crit: Criterion) -> str:
     return "(unbound)"
 
 
-def _render_criterion(crit: Criterion, noun: str) -> list[str]:
+def _render_criterion(
+    crit: Criterion, noun: str, questions: Sequence[OpenQuestion]
+) -> list[str]:
     out = [
         (
             f"- `{crit.id}` [{crit.role}] {crit.text} -> "
@@ -115,7 +141,9 @@ def _render_criterion(crit: Criterion, noun: str) -> list[str]:
     out.extend(
         f"    MEASURED {clause}" for clause in measurement_clauses(crit, noun=noun)
     )
-    out.extend(f"    OPEN {s.param_name}: {_asked(s)}" for s in crit.open_params)
+    out.extend(
+        f"    OPEN {s.param_name}: {_asked(s, questions)}" for s in crit.open_params
+    )
     out.extend(
         f"    CHOICES {a.param_name}: holds {a.bound}, "
         f"{count_noun(a.option_count, 'option')}"

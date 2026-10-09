@@ -76,7 +76,7 @@ def _bound(crit: CriterionSpec) -> CriterionReply:
     )
 
 
-_DISCOVERED = frozenset({"search_for_searches", "list_searches"})
+_DISCOVERED = frozenset({"search_memory", "search_for_searches", "list_searches"})
 
 
 def _called(*calls: ToolCallPart) -> frozenset[str]:
@@ -153,7 +153,7 @@ def test_a_canned_value_for_a_parameter_the_site_omits_is_never_sent() -> None:
         "params"
     ]
 
-    assert params == {"organism": [_PF], "go_typeahead": ["GO:0004672"]}
+    assert params == {"organism": [_PF], "go_typeahead": ["GO:0003735"]}
 
 
 @pytest.mark.parametrize("spec", _SPECS)
@@ -167,11 +167,16 @@ def test_the_sheet_is_read_before_the_params_are_proposed(spec: SpecPlan) -> Non
 
 @pytest.mark.parametrize("spec", _SPECS)
 def test_discovery_precedes_every_criterion(spec: SpecPlan) -> None:
-    """A ranked read opens the pass, and the listing puts every name in the
-    enum-guarded universe before anything is bound."""
-    first = frame_call(spec, frozenset(), [], "")
-    second = frame_call(spec, frozenset({first.tool_name}), [], "")
+    """The cases are read, a ranked read follows, and the listing puts every
+    name in the enum-guarded universe before anything is bound."""
+    cases = frame_call(spec, frozenset(), [], "")
+    first = frame_call(spec, frozenset({cases.tool_name}), [], "")
+    second = frame_call(spec, frozenset({cases.tool_name, first.tool_name}), [], "")
 
+    assert (cases.tool_name, cases.args_as_dict()) == (
+        "search_memory",
+        {"query": spec.title, "kind": "case"},
+    )
     assert (first.tool_name, first.args_as_dict()) == (
         "search_for_searches",
         {"query": spec.title},
@@ -253,7 +258,7 @@ def test_the_go_criterion_carries_the_vocabulary_half_only() -> None:
     for spec in (go_spec(_PLASMO), combined_spec(_PLASMO)):
         go = next(c for c in spec.criteria if c.search_name == "GenesByGoTerm")
 
-        assert go.values["go_typeahead"] == ["GO:0004672"]
+        assert go.values["go_typeahead"] == ["GO:0003735"]
         assert go.values["go_term"] is None
 
 

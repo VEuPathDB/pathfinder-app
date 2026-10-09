@@ -1,7 +1,7 @@
 """The model a call runs on, under the key that pays for it.
 
 A researcher's live key pays for its provider; the deployment pays for the
-rest. Every resolved model is guarded, so a provider's error body reaches no
+rest, and only for a model its catalog entry lets it pay for. Every resolved model is guarded, so a provider's error body reaches no
 chunk, log or trace, and a key the provider refuses, the researcher's or the
 deployment's, is recorded for the turn.
 """
@@ -14,6 +14,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
+from assistant_core.models.claude_profiles import ClaudeProvider
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.types import ModelProvider, PaidBy
 from pydantic import SecretStr
@@ -28,7 +29,6 @@ from pydantic_ai.models import (
 )
 from pydantic_ai.models.wrapper import WrapperModel
 from pydantic_ai.providers import Provider, infer_provider
-from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.settings import ModelSettings
@@ -47,6 +47,7 @@ from pathfinder.domain.provider_keys import (
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
     DeploymentKeyRefusedError,
+    OwnKeyRequiredError,
     ProviderKeyRefusedError,
     ProviderNotConfiguredError,
     ProviderUnreachableError,
@@ -57,6 +58,7 @@ from pathfinder.platform.key_refusals import (
     classify_refusal,
     provider_failure,
 )
+from pathfinder.platform.model_catalog import deployment_may_pay, get_model_entry
 
 logger = get_logger(__name__)
 
@@ -76,7 +78,7 @@ def build_provider(name: KeyableProvider, key: SecretStr) -> Provider[Any]:
         case "openai":
             return OpenAIProvider(api_key=secret)
         case "anthropic":
-            return AnthropicProvider(api_key=secret)
+            return ClaudeProvider(api_key=secret)
         case "google":
             return GoogleProvider(api_key=secret)
 
@@ -279,8 +281,23 @@ def keyed_model(model: Model | str) -> Model | str:
     return GuardedModel(built, keys=keys, provider=keyed, paid_by=PaidBy.USER)
 
 
+def require_deployment_pays(model_id: str) -> None:
+    if deployment_may_pay(model_id):
+        return
+    entry = get_model_entry(model_id)
+    raise OwnKeyRequiredError(
+        model_id if entry is None else entry.name,
+        provider_name(provider_of(model_id)),
+    )
+
+
 def deployment_model(model_id: str, keys: TurnKeys | None = None) -> Model:
-    """``model_id`` on the deployment's key, whatever keys the turn holds."""
+    """``model_id`` on the deployment's key, whatever keys the turn holds.
+
+    A model the catalog does not let the deployment pay for is refused before
+    any provider is built.
+    """
+    require_deployment_pays(model_id)
     scope = keys or TurnKeys(keyring=ProviderKeyring(), build=_current().build)
     built = infer_model(
         model_id, provider_factory=lambda name: _deployment_provider(name, scope)

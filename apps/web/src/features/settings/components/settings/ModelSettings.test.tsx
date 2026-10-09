@@ -15,7 +15,11 @@ import { useSettingsStore } from "@/state/useSettingsStore";
 
 import { server } from "../../../../../vitest.msw-setup";
 import { ModelSettings } from "./ModelSettings";
-import { ANTHROPIC_SMALL, DEFAULT_MODEL } from "@/lib/models/__fixtures__/models";
+import {
+  ANTHROPIC_FLAGSHIP,
+  ANTHROPIC_SMALL,
+  DEFAULT_MODEL,
+} from "@/lib/models/__fixtures__/models";
 
 const BASE = "http://localhost:3000/pathfinder";
 
@@ -33,6 +37,12 @@ const TIERS = {
       anthropic: { quality: uniform(ANTHROPIC_SMALL.id) },
     },
   },
+  ownKeyPresets: {
+    pathfinder: {
+      openai: { default: uniform(DEFAULT_MODEL.id) },
+      anthropic: { quality: uniform(ANTHROPIC_FLAGSHIP.id) },
+    },
+  },
 };
 
 const CATALOG = {
@@ -43,6 +53,7 @@ const CATALOG = {
       provider: "openai",
       modelName: DEFAULT_MODEL.modelName,
       rank: "standard",
+      deploymentMayPay: true,
       enabled: true,
     },
     {
@@ -51,6 +62,16 @@ const CATALOG = {
       provider: "anthropic",
       modelName: ANTHROPIC_SMALL.modelName,
       rank: "small",
+      deploymentMayPay: true,
+      enabled: false,
+    },
+    {
+      id: ANTHROPIC_FLAGSHIP.id,
+      name: ANTHROPIC_FLAGSHIP.name,
+      provider: "anthropic",
+      modelName: ANTHROPIC_FLAGSHIP.modelName,
+      rank: "flagship",
+      deploymentMayPay: false,
       enabled: false,
     },
   ],
@@ -102,6 +123,16 @@ describe("ModelSettings providers", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Anthropic" }));
     fireEvent.click(await screen.findByRole("button", { name: "Quality" }));
 
+    expect(useSettingsStore.getState().phaseModels["lead"]).toBe(ANTHROPIC_FLAGSHIP.id);
+  });
+
+  it("applies the deployment's Anthropic preset when no key of the researcher pays", async () => {
+    payers = { openai: "deployment", anthropic: "deployment" };
+    renderSettings();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Anthropic" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Quality" }));
+
     expect(useSettingsStore.getState().phaseModels["lead"]).toBe(ANTHROPIC_SMALL.id);
   });
 
@@ -134,25 +165,24 @@ describe("ModelSettings stages", () => {
 describe("ModelSettings preset match", () => {
   it("marks a preset as active when the three rows match it", async () => {
     const high = { modelId: DEFAULT_MODEL.id, reasoningEffort: "high" };
-    server.use(
-      http.get(`${BASE}/api/v1/tiers`, () =>
-        HttpResponse.json({
-          presets: {
-            pathfinder: {
-              openai: {
-                default: uniform(DEFAULT_MODEL.id),
-                quality: {
-                  roles: {
-                    lead: high,
-                    frame: high,
-                    execution: { modelId: DEFAULT_MODEL.id, reasoningEffort: "low" },
-                    verification: high,
-                  },
-                },
-              },
+    const presets = {
+      pathfinder: {
+        openai: {
+          default: uniform(DEFAULT_MODEL.id),
+          quality: {
+            roles: {
+              lead: high,
+              frame: high,
+              execution: { modelId: DEFAULT_MODEL.id, reasoningEffort: "low" },
+              verification: high,
             },
           },
-        }),
+        },
+      },
+    };
+    server.use(
+      http.get(`${BASE}/api/v1/tiers`, () =>
+        HttpResponse.json({ presets, ownKeyPresets: presets }),
       ),
     );
     const picks = {

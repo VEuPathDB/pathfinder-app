@@ -25,4 +25,25 @@ describe("useFirstMessageStore", () => {
 
     expect(useFirstMessageStore.getState().byConversation).toEqual({});
   });
+
+  it("forgets a first message the thread withdrew, so the next one is recorded", () => {
+    const store = useFirstMessageStore.getState();
+    store.rememberFirstMessage("conv-1", [userMessage("u1", "declined words")]);
+    store.forgetWithdrawnMessage("conv-1", "declined words");
+    store.rememberFirstMessage("conv-1", [userMessage("u2", "find kinases")]);
+
+    expect(useFirstMessageStore.getState().byConversation).toEqual({
+      "conv-1": "find kinases",
+    });
+  });
+
+  it("keeps a first message that a later withdrawn one does not match", () => {
+    const store = useFirstMessageStore.getState();
+    store.rememberFirstMessage("conv-1", [userMessage("u1", "find kinases")]);
+    store.forgetWithdrawnMessage("conv-1", "declined words");
+
+    expect(useFirstMessageStore.getState().byConversation).toEqual({
+      "conv-1": "find kinases",
+    });
+  });
 });

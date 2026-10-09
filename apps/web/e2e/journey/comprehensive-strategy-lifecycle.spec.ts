@@ -50,7 +50,7 @@ test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
       siteId,
       prompt(
         "combined",
-        `Build a ${siteOrganism(siteId)} strategy that combines a product-text search, a GO term search and the organism's genes.`,
+        `Build a ${siteOrganism(siteId)} strategy that combines a product-text search, a GO term search for structural constituent of ribosome and the organism's genes.`,
       ),
     );
     await expect

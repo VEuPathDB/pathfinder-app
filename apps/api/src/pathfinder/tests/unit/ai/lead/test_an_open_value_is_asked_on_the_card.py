@@ -8,6 +8,9 @@ import pytest
 from pydantic import ValidationError
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import DeferredToolRequests
+from veupathdb.testing.wdk_fixtures import load_recorded
+from veupathdb.wdk import WDKSearchResponse
+from veupathdb_mcp.catalog import format_param_info_typed
 
 from pathfinder.ai.lead._lead_instructions import LEAD_INSTRUCTIONS
 from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
@@ -193,15 +196,50 @@ def test_the_ledger_prints_each_open_slot_s_choices() -> None:
     ) in rendered
 
 
-def test_the_ledger_names_how_many_choices_it_does_not_print() -> None:
+def test_the_ledger_counts_a_vocabulary_no_card_can_hold() -> None:
     slot = _GROUP_SLOT.model_copy(update={"options": [f"g{n}" for n in range(11)]})
     spec = OperationalSpec(goal="g", open_slots=[slot])
 
     rendered = render_frame_full(FrameSection(spec=spec)).splitlines()
 
+    assert "- c_eda.comparator: Which group is the comparator?; 11 values" in rendered
+
+
+def test_the_ledger_prints_the_values_frame_s_card_offers_for_a_slot() -> None:
+    """The VectorBase organism slot lists ticks first; the card offers mosquitoes."""
+    organisms = [
+        option.value
+        for info in format_param_info_typed(
+            WDKSearchResponse.model_validate(
+                load_recorded("search_genes_by_gene_model_chars").json_body()
+            ).search_data.parameters
+            or []
+        )
+        if info.name == "organism_select_none"
+        for option in info.vocabulary()
+    ]
+    slot = OpenSlot(
+        criterion_id="c_mosq",
+        param_name="organism",
+        question="Which organism?",
+        options=organisms,
+    )
+    criterion = Criterion(id="c_mosq", text="mosquito genes", open_params=[slot])
+    card = SlotQuestion(
+        question="Which mosquito?",
+        criterion_id="c_mosq",
+        param_name="organism",
+        options=["Anopheles gambiae PEST", "Aedes aegypti LVP_AGWG"],
+    ).typed(criterion, noun="gene")
+    spec = OperationalSpec(goal="g", criteria=[criterion])
+
+    rendered = render_frame_full(
+        FrameSection(spec=spec, open_questions=[card])
+    ).splitlines()
+
     assert (
-        "- c_eda.comparator: Which group is the comparator?; "
-        "options: g0 | g1 | g2 | g3 | g4 | g5 | g6 | g7 | 3 more"
+        "    OPEN organism: Which organism?; "
+        "card: Anopheles gambiae PEST | Aedes aegypti LVP_AGWG"
     ) in rendered
 
 

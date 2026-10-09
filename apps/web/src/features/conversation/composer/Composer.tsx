@@ -70,7 +70,7 @@ function ComposerFooter() {
 function ConversationUsage({ usage }: { usage: ThreadUsage }) {
   return (
     <TooltipProvider delayDuration={150}>
-      <Tooltip>
+      <Tooltip tapToOpen>
         <TooltipTrigger asChild>
           <span
             data-testid="conversation-usage"

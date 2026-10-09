@@ -5,7 +5,7 @@ import { withBasePath } from "@/lib/basePath";
 
 export function RailLogo() {
   return (
-    <Tooltip>
+    <Tooltip tapToOpen>
       <TooltipTrigger asChild>
         <span
           role="img"

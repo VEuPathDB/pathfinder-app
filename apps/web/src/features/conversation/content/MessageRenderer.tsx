@@ -207,11 +207,14 @@ type FailureCarrier = {
   content: readonly { type: string; name?: string }[];
 };
 
+const FAILURE_PART_NAMES: ReadonlySet<string> = new Set([
+  "turn-failed",
+  "turn-withdrawn",
+]);
+
 function isFailedPart(part: { type: string; name?: string }): boolean {
-  return (
-    part.type === "data-turn-failed" ||
-    (part.type === "data" && part.name === "turn-failed")
-  );
+  const name = part.type === "data" ? part.name : part.type.replace(/^data-/, "");
+  return name !== undefined && FAILURE_PART_NAMES.has(name);
 }
 
 const rawErrorSchema = z.union([
@@ -220,7 +223,8 @@ const rawErrorSchema = z.union([
 ]);
 
 /** The live error, or null when the turn already carries its durable
- * `data-turn-failed` part, which says the same thing and survives a reload. */
+ * `data-turn-failed` or `data-turn-withdrawn` part, which says the same thing
+ * and survives a reload. */
 export function selectAssistantErrorDetail(m: FailureCarrier): string | null {
   if (m.status?.type !== "incomplete") return null;
   if (m.status.reason === "cancelled") return null;

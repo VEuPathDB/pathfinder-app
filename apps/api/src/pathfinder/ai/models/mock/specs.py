@@ -257,14 +257,19 @@ def frame_call(
 ) -> ToolCallPart:
     """The next FRAME tool call.
 
-    A ranked read of the request runs first, or of the transform's words when
-    the spec has one, since the listing leaves transforms out. ``list_searches``
-    follows so every canned search name enters the enum-guarded universe.
+    The user's cases are read, then a ranked read of the request, or of the
+    transform's words when the spec has one, since the listing leaves
+    transforms out. ``list_searches`` follows so every canned search name
+    enters the enum-guarded universe.
     Progress follows the replies, not the calls, so a refused proposal is
     retried rather than skipped.
     """
     maps = next((crit for crit in spec.criteria if crit.role == "transform"), None)
     query = maps.text if maps is not None else message() or spec.title
+    if "search_memory" not in already_called:
+        return scripted_call(
+            "search_memory", {"query": message() or spec.title, "kind": "case"}
+        )
     if "search_for_searches" not in already_called:
         return scripted_call("search_for_searches", {"query": query})
     if "list_searches" not in already_called:

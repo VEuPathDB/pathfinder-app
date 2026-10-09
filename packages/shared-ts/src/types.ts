@@ -93,6 +93,7 @@ import type {
   TurnStatusPayload,
   TurnStoppedPayload,
   TurnFailedPayload,
+  TurnWithdrawnPayload,
   ConversationTitlePayload,
   ConversationResponse,
   DeleteCascadePayload,
@@ -374,6 +375,7 @@ export type KnownDataPartKind =
   | "data-turn-status"
   | "data-turn-stopped"
   | "data-turn-failed"
+  | "data-turn-withdrawn"
   | "data-lead-usage"
   | "data-tool-summary"
   | "data-eda.analysis-state"
@@ -417,6 +419,7 @@ export interface DataPartPayloadMap {
   "data-turn-status": TurnStatusPayload;
   "data-turn-stopped": TurnStoppedPayload;
   "data-turn-failed": TurnFailedPayload;
+  "data-turn-withdrawn": TurnWithdrawnPayload;
   "data-lead-usage": DataLeadUsagePayload;
   "data-tool-summary": ToolSummaryPayload;
   "data-eda.analysis-state": EdaAnalysisState;
