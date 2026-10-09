@@ -22,6 +22,7 @@ from pathfinder.platform.metrics import (
     MODEL_COST_USD,
     MODEL_TOKENS,
 )
+from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.model_keys import turn_paid_by
 
 __all__ = ["MeteredWriter", "metered_turn"]
@@ -128,13 +129,23 @@ class MeteredWriter:
                 )
 
 
+_OTHER_MODEL = "other"
+
+
+def _model_label(model_id: str) -> str:
+    return model_id if get_model_entry(model_id) is not None else _OTHER_MODEL
+
+
 def _record(assistant_id: str, writer: MeteredWriter, seconds: float) -> None:
     outcome = writer.observed.outcome
-    CHAT_TURNS_FINISHED.labels(assistant_id, outcome, writer.model_id).inc()
+    CHAT_TURNS_FINISHED.labels(
+        assistant_id, outcome, _model_label(writer.model_id)
+    ).inc()
     CHAT_TURN_DURATION.labels(assistant_id, outcome).observe(seconds)
     for spend in writer.observed.spends():
-        MODEL_TOKENS.labels(spend.model, spend.payer.value).inc(spend.tokens)
-        MODEL_COST_USD.labels(spend.model, spend.payer.value).inc(float(spend.cost_usd))
+        model, payer = _model_label(spend.model), spend.payer.value
+        MODEL_TOKENS.labels(model, payer).inc(spend.tokens)
+        MODEL_COST_USD.labels(model, payer).inc(float(spend.cost_usd))
 
 
 @asynccontextmanager

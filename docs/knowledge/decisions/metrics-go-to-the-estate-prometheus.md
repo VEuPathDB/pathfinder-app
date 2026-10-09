@@ -49,6 +49,9 @@ process and garbage-collector collectors stay on.
 
 Nothing names a user, a conversation, a site's free text or a raw path. A route
 label is the template FastAPI matched (`/api/v1/conversations/{strategyId:uuid}`).
+Every label value comes from a fixed set, so a request cannot add a series: a
+method outside the standard HTTP methods counts as `OTHER`, and a model id the
+catalog does not name counts as `other`.
 
 # What stays out
 

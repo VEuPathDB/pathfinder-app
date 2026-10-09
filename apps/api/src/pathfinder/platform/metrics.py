@@ -19,6 +19,8 @@ __all__ = [
 ]
 
 _UNMATCHED_ROUTE = "unmatched"
+_OTHER_METHOD = "OTHER"
+_METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 
 HTTP_REQUESTS = Counter(
     "pathfinder_http_requests_total",
@@ -63,6 +65,11 @@ TOOL_SOURCE_ERRORS = Counter(
 )
 
 
+def _method_of(scope: Scope) -> str:
+    method: str = scope["method"]
+    return method if method in _METHODS else _OTHER_METHOD
+
+
 def _route_of(scope: Scope) -> str:
     route = scope.get("route")
     return route.path if isinstance(route, Route) else _UNMATCHED_ROUTE
@@ -90,7 +97,7 @@ class HttpMetricsMiddleware:
             status, seconds = (
                 answered[0] if answered else (500, time.perf_counter() - started)
             )
-            method, route = scope["method"], _route_of(scope)
+            method, route = _method_of(scope), _route_of(scope)
             HTTP_REQUESTS.labels(method, route, f"{status // 100}xx").inc()
             HTTP_REQUEST_DURATION.labels(method, route).observe(seconds)
 

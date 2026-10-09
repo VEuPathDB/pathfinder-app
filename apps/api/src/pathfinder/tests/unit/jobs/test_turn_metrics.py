@@ -18,9 +18,9 @@ from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.jobs.turn_metrics import metered_turn
 from pathfinder.platform.model_keys import attach_keyring
 
-_LEAD = "openai:probe-lead"
-_FRAME = "anthropic:probe-frame"
-_HELPER = "openai:probe-helper"
+_LEAD = "openai:gpt-5.6-luna"
+_FRAME = "anthropic:claude-opus-5-5"
+_HELPER = "openai:gpt-6-luna"
 
 
 class _ProbeError(RuntimeError):
@@ -164,3 +164,18 @@ async def test_a_turn_that_raises_counts_as_failed_and_still_raises() -> None:
             raise _ProbeError
 
     assert _finished("pathfinder", "failed", _LEAD) == before + 1
+
+
+async def test_a_model_the_catalog_does_not_name_counts_as_other() -> None:
+    finished = _finished("pathfinder", "completed", "other")
+    tokens = _tokens("other", "deployment")
+
+    async with metered_turn(
+        assistant_id="pathfinder", model_id="openai:not-in-the-catalog", writer=_Sink()
+    ) as writer:
+        await writer.write(_wire(turn_usage_event(total_tokens=70, cost_usd="0.001")))
+        await writer.write(_wire(FinishChunk(finish_reason="stop")))
+
+    assert _finished("pathfinder", "completed", "other") == finished + 1
+    assert _tokens("other", "deployment") == tokens + 70
+    assert _finished("pathfinder", "completed", "openai:not-in-the-catalog") == 0.0

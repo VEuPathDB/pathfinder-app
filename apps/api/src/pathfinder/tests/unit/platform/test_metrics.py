@@ -66,6 +66,19 @@ async def test_a_refused_request_counts_by_its_status_class() -> None:
     assert _sample(_REQUESTS, labels) == before + 1
 
 
+async def test_a_method_outside_the_standard_set_counts_as_other() -> None:
+    labels = {"method": "OTHER", "route": "/probe/things/{thing_id}", "status": "4xx"}
+    before = _sample(_REQUESTS, labels)
+    transport = httpx.ASGITransport(app=_app())
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.request("PROBEVERB", "/probe/things/3")
+
+    assert response.status_code == 405
+    assert _sample(_REQUESTS, labels) == before + 1
+    assert _sample(_REQUESTS, {**labels, "method": "PROBEVERB"}) == 0.0
+
+
 async def test_a_path_no_route_matches_counts_under_one_label() -> None:
     labels = {"method": "GET", "route": "unmatched", "status": "4xx"}
     before = _sample(_REQUESTS, labels)
