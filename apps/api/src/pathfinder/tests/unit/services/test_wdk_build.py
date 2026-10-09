@@ -12,6 +12,7 @@ from veupathdb.testing import FIXTURE_ROOT
 from veupathdb.wdk import get_site
 
 from pathfinder.services.wdk_build import site_build
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _RECORDED_ROOT = FIXTURE_ROOT / "vdi" / "service_root.json"
 
@@ -24,7 +25,7 @@ async def _served(body: object) -> str:
 
 
 async def test_the_build_is_the_service_root_build_number() -> None:
-    recorded = json.loads(_RECORDED_ROOT.read_text())
+    recorded = json.loads(qa_recording(_RECORDED_ROOT).read_text())
 
     assert (recorded["projectId"], await _served(recorded)) == ("PlasmoDB", "71")
 

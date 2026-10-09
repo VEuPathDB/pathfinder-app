@@ -25,7 +25,9 @@ PF00051, PF00084, ...) and 72 it holds that the 3D7 read lacks.
 **Done.** A value the spec already holds keeps the label it was bound under when
 hydration or replay reads it again on the published sheet
 (`value_binding.read_again`), so a Pfam domain bound for 3D7 keeps "KH domain"
-(`tests/fixtures/wdk/search_genes_by_interpro_domain_under_pf3d7_pfam.json`).
+(`tests/fixtures/wdk/search_genes_by_interpro_domain_under_pf3d7_pfam.json`, a
+production recording now held in `fixtures-production-backup-2026-10-09/` until
+QA re-records it).
 A value first read from a strategy (a step the site edited, moved onto another
 search or added, and a hydrated strategy) is labelled on the sheet its step's
 own parents answer: `sheet_params.sheets_under_their_parents` reads that sheet

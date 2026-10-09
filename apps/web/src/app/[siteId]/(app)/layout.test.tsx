@@ -51,8 +51,8 @@ vi.mock("@/features/sidebar/components/ConversationSidebar", () => ({
 vi.mock("@/features/settings/components/SettingsPage", () => ({
   SettingsPage: () => <div data-testid="settings-page" />,
 }));
-vi.mock("@/features/settings/components/EvalDataNotice", () => ({
-  EvalDataNotice: () => <div data-testid="eval-data-notice" />,
+vi.mock("@/features/help/DataNotice", () => ({
+  DataNotice: () => <div data-testid="data-notice" />,
 }));
 
 import type { SiteResponse } from "@pathfinder/shared";
@@ -76,7 +76,7 @@ function siteRow(over: Partial<SiteResponse>): SiteResponse {
     id: "plasmodb",
     name: "PlasmoDB",
     displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org/plasmo",
+    baseUrl: "https://qa.plasmodb.org/plasmo.qa",
     projectId: "PlasmoDB",
     isPortal: false,
     available: true,
@@ -90,7 +90,7 @@ const AVAILABLE_TOXODB = siteRow({
   id: "toxodb",
   name: "ToxoDB",
   displayName: "ToxoDB (Toxoplasma)",
-  baseUrl: "https://toxodb.org/toxo",
+  baseUrl: "https://qa.toxodb.org/toxo.qa",
   projectId: "ToxoDB",
 });
 const PORTAL_DOWN = siteRow({
@@ -217,6 +217,7 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();
     expect(screen.queryByTestId("signed-out-notice")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Monthly spend" })).toBeInTheDocument();
+    expect(screen.getByTestId("data-notice")).toBeInTheDocument();
   });
 
   it("draws the same shell when the address asks for the embedded layout", () => {

@@ -30,7 +30,7 @@ function site(over: Partial<SiteResponse>): SiteResponse {
     id: "plasmodb",
     name: "PlasmoDB",
     displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org/plasmo/service",
+    baseUrl: "https://qa.plasmodb.org/plasmo.qa/service",
     projectId: "PlasmoDB",
     isPortal: false,
     available: true,
@@ -125,11 +125,21 @@ describe("AppNavRail section links", () => {
     expect(click).toBe(true);
   });
 
-  it("links the chat and the saved strategies, and no workbench", async () => {
+  it("links the chat, the saved strategies and help, and no workbench", async () => {
     draw();
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved"]);
+    expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved", "/help"]);
+  });
+
+  it("closes the bottom group with help, after the settings", async () => {
+    draw();
+    const help = await screen.findByRole("link", { name: "Help" });
+    const settings = screen.getByRole("button", { name: "Settings" });
+
+    expect(help).toHaveAttribute("href", "/help");
+    expect(help.parentElement).toBe(settings.parentElement);
+    expect(help.parentElement?.lastElementChild).toBe(help);
   });
 });
 

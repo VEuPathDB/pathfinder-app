@@ -198,7 +198,11 @@ describe("message dispatch", () => {
         content={[
           {
             type: "data-strategy-link",
-            data: { strategyId: "s1", url: "https://plasmodb.org/s1", title: "Test" },
+            data: {
+              strategyId: "s1",
+              url: "https://qa.plasmodb.org/s1",
+              title: "Test",
+            },
           },
         ]}
       />,

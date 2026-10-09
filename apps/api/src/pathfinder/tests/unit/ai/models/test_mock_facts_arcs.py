@@ -15,7 +15,7 @@ from pathfinder.tests.unit.ai.models._mock_turns import Scene, args_of, names, p
 
 # The first ids of the Hammondia microneme result, as the listing read them.
 _IDS = ["HHA_204530", "HHA_245485", "HHA_245490", "HHA_260190", "HHA_319560"]
-_PAGE = "https://toxodb.org/toxo/app/record/gene/"
+_PAGE = "https://qa.toxodb.org/toxo.qa/app/record/gene/"
 
 
 def test_the_listing_arc_names_the_ids_the_facts_list() -> None:

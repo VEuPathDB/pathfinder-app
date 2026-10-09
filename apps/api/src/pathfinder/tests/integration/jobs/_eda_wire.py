@@ -35,6 +35,7 @@ from pathfinder.tests._support.eda_wire import (
     entity_size,
     wire_eda_client,
 )
+from pathfinder.tests._support.qa_recording import qa_recording
 
 FIXTURES = FIXTURE_DIR
 
@@ -107,7 +108,9 @@ def detail(
 
 def permissions() -> dict[str, Any]:
     """The fixture body, plus the entry that resolves this test's dataset."""
-    body: dict[str, Any] = json.loads((FIXTURES / "permissions.json").read_text())
+    body: dict[str, Any] = json.loads(
+        qa_recording(FIXTURES / "permissions.json").read_text()
+    )
     entry = next(iter(body["perDataset"].values()))
     body["perDataset"][DATASET] = {**entry, "studyId": STUDY}
     return body
@@ -130,11 +133,17 @@ def _recorded(path: str) -> httpx.Response | None:
         return entity_size(path, DE_ENTITY_SIZES)
     if path.startswith("/eda/studies/"):
         return httpx.Response(
-            200, json=json.loads((FIXTURES / "study_detail_de.json").read_text())
+            200,
+            json=json.loads(
+                qa_recording(FIXTURES / "study_detail_de.json").read_text()
+            ),
         )
     if path.endswith("/statistics"):
         return httpx.Response(
-            200, json=json.loads((FIXTURES / "volcano_statistics.json").read_text())
+            200,
+            json=json.loads(
+                qa_recording(FIXTURES / "volcano_statistics.json").read_text()
+            ),
         )
     return None
 
@@ -187,7 +196,8 @@ def install(
     calls: list[Call] = []
     store = AnalysisStore(detail=detail(SUBSET))
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=handler(statuses, calls, store)
+        base_url="https://qa.plasmodb.org/eda",
+        transport=handler(statuses, calls, store),
     )
 
     async def user_id(_site: str) -> str:

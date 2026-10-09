@@ -51,7 +51,9 @@ async def test_the_listing_answers_with_the_installed_study_and_the_site_page(
 
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["uploadUrl"] == "https://plasmodb.org/plasmo/app/workspace/datasets"
+    assert (
+        body["uploadUrl"] == "https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets"
+    )
     assert [
         (row["vdiId"], row["state"], row["datasetId"]) for row in body["datasets"]
     ] == [(_INSTALLED, "installed", f"EDAUD_{_INSTALLED}")]

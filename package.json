@@ -7,7 +7,7 @@
     "packages/shared-ts"
   ],
   "scripts": {
-    "generate:types": "cd apps/api && uv run python -m pathfinder.devtools.openapi generate && cd ../.. && yarn --cwd packages/shared-ts generate",
+    "generate:types": "cd apps/api && VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml uv run python -m pathfinder.devtools.openapi generate && cd ../.. && yarn --cwd packages/shared-ts generate",
     "check:knowledge": "node scripts/check-knowledge.mjs",
     "check:wdk-rules": "node scripts/check-wdk-rules.mjs",
     "wdk:live": "cd apps/api && uv run pytest src/pathfinder/tests -m live_wdk -q",

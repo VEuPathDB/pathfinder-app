@@ -54,6 +54,6 @@ def test_another_word_after_a_count_reference_is_left_alone() -> None:
 
 def test_the_noun_after_a_reference_with_no_count_is_left_alone() -> None:
     facts = TurnFacts(
-        strategy_url="https://toxodb.org/toxo/app/workspace/strategies/1/2"
+        strategy_url="https://qa.toxodb.org/toxo.qa/app/workspace/strategies/1/2"
     )
     assert render_reply("[url] genes", facts) == f"{facts.strategy_url} genes"

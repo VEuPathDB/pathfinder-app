@@ -4,6 +4,7 @@ components in one line, and the resume files its statistic as a fact."""
 from __future__ import annotations
 
 import asyncio
+import inspect
 from uuid import uuid4
 
 import pytest
@@ -100,10 +101,11 @@ async def test_calling_the_tool_defers_a_job_with_the_arguments_the_impl_reads(
 def test_the_tool_is_registered_in_the_worker_registry() -> None:
     register_all_tools()
 
-    assert (
-        durable_impl("run_eda_dimensionality_reduction")
-        == run_eda_dimensionality_reduction_impl
-    )
+    registered = durable_impl("run_eda_dimensionality_reduction")
+
+    assert [inspect.unwrap(body) for body in (registered,) if body is not None] == [
+        run_eda_dimensionality_reduction_impl
+    ]
 
 
 def test_the_resumed_result_names_both_components_in_one_line() -> None:

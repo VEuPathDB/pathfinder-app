@@ -4,8 +4,10 @@ import {
   chatUrl,
   conversationIdFromPath,
   edaTabUrl,
+  helpUrl,
   strategyCanvasUrl,
   strategyStepUrl,
+  yourDataUrl,
 } from "./routes";
 
 describe("route builders", () => {
@@ -45,5 +47,11 @@ describe("route builders", () => {
     expect(strategyStepUrl("plasmodb", "conv-1", "step_1")).toBe(
       "/plasmodb/conversation/conv-1/strategy/step/step_1",
     );
+  });
+
+  it("builds the site-less help and data statement paths", () => {
+    expect(helpUrl()).toBe("/help");
+    expect(yourDataUrl()).toBe("/help/your-data");
+    expect(yourDataUrl("declined")).toBe("/help/your-data#declined");
   });
 });

@@ -52,7 +52,7 @@ async def test_every_site_that_loads_is_ready() -> None:
 async def test_a_refusing_site_is_degraded_and_says_the_site_answered() -> None:
     readiness = ReadinessState()
     loader = _Loader(
-        failures={"veupathdb": WDKError("https://veupathdb.org refused", status=502)}
+        failures={"veupathdb": WDKError("https://qa.veupathdb.org refused", status=502)}
     )
 
     await preload_catalogs(

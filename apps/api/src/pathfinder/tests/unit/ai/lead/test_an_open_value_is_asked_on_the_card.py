@@ -8,7 +8,6 @@ import pytest
 from pydantic import ValidationError
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import DeferredToolRequests
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp.catalog import format_param_info_typed
 
@@ -29,6 +28,7 @@ from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     SlotQuestion,
 )
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
@@ -211,7 +211,7 @@ def test_the_ledger_prints_the_values_frame_s_card_offers_for_a_slot() -> None:
         option.value
         for info in format_param_info_typed(
             WDKSearchResponse.model_validate(
-                load_recorded("search_genes_by_gene_model_chars").json_body()
+                client_recording("search_genes_by_gene_model_chars").json_body()
             ).search_data.parameters
             or []
         )

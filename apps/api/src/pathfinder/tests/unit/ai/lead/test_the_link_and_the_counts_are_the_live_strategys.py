@@ -96,7 +96,7 @@ def test_after_a_delete_the_link_names_the_root_the_strategy_holds() -> None:
     facts = turn_facts(_deps_after_the_delete())
 
     assert facts.strategy_url == (
-        f"https://cryptodb.org/cryptodb/app/workspace/strategies/{_STRATEGY}/{_LIVE_ROOT}"
+        f"https://qa.cryptodb.org/cryptodb.qa/app/workspace/strategies/{_STRATEGY}/{_LIVE_ROOT}"
     )
     assert facts.root_count == 483
 
@@ -110,7 +110,7 @@ def test_after_a_value_only_edit_the_link_is_still_shown() -> None:
     deps = lead_deps(state, strategy_session=_session("piroplasmadb", step, 902, 5))
 
     assert turn_facts(deps).strategy_url == (
-        f"https://piroplasmadb.org/piro/app/workspace/strategies/{_STRATEGY}/902"
+        f"https://qa.piroplasmadb.org/piro.qa/app/workspace/strategies/{_STRATEGY}/902"
     )
 
 
@@ -250,7 +250,7 @@ async def test_after_a_delete_the_ledger_counts_are_the_live_strategys(
     assert (counts.root_count, link) == (
         483,
         (
-            "https://plasmodb.org/plasmo/app/workspace/strategies/"
+            "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/"
             f"{_STRATEGY}/{_LIVE_ROOT}"
         ),
     )

@@ -10,7 +10,11 @@ from fastapi import FastAPI
 from prometheus_client import REGISTRY
 
 from pathfinder.main import create_app
-from pathfinder.platform.metrics import HttpMetricsMiddleware, serve_metrics
+from pathfinder.platform.metrics import (
+    HttpMetricsMiddleware,
+    PathfinderObserver,
+    serve_metrics,
+)
 
 _REQUESTS = "pathfinder_http_requests_total"
 _LATENCY_COUNT = "pathfinder_http_request_duration_seconds_count"
@@ -142,3 +146,24 @@ async def test_the_app_counts_its_requests_under_their_templates() -> None:
     assert await _get(app, f"/api/v1/conversations/{uuid4()}") == 401
 
     assert _sample(_REQUESTS, labels) == before + 1
+
+
+_WAITS = "pathfinder_wdk_search_wait_seconds_count"
+
+
+@pytest.mark.parametrize(
+    ("attrs", "labels"),
+    [
+        ({"site": "plasmodb", "line": "turn"}, {"site": "plasmodb", "kind": "turn"}),
+        ({"site": "toxodb", "line": "site"}, {"site": "toxodb", "kind": "site"}),
+        ({"site": "nowhere", "line": "elsewhere"}, {"site": "other", "kind": "other"}),
+    ],
+)
+def test_a_search_wait_is_counted_under_bounded_labels(
+    attrs: dict[str, str], labels: dict[str, str]
+) -> None:
+    before = _sample(_WAITS, labels)
+
+    PathfinderObserver().on_wdk_search_wait(0.5, attrs)
+
+    assert _sample(_WAITS, labels) == before + 1

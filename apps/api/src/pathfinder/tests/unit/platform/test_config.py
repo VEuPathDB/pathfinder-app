@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from pydantic_settings import SettingsConfigDict
+from veupathdb.settings import DEFAULT_OAUTH_URL
 
 from pathfinder.platform.config import Settings, TomlConfigSettingsSource
 from pathfinder.platform.provider_key_cipher import ProviderKeyCipher
@@ -256,7 +257,7 @@ def test_the_semantic_scholar_key_setting_is_gone() -> None:
 
 
 def test_the_oauth_url_defaults_to_the_veupathdb_auth_server() -> None:
-    assert make_settings().veupathdb_oauth_url == "https://auth.veupathdb.org"
+    assert make_settings().veupathdb_oauth_url == DEFAULT_OAUTH_URL
 
 
 def test_a_blank_oauth_url_in_the_environment_falls_back_to_the_default(
@@ -265,7 +266,7 @@ def test_a_blank_oauth_url_in_the_environment_falls_back_to_the_default(
     """The client reads a blank variable as the field default."""
     monkeypatch.setenv("VEUPATHDB_OAUTH_URL", "")
 
-    assert make_settings().veupathdb_oauth_url == "https://auth.veupathdb.org"
+    assert make_settings().veupathdb_oauth_url == DEFAULT_OAUTH_URL
 
 
 def test_otel_include_content_defaults_false() -> None:
@@ -413,10 +414,10 @@ def test_production_refuses_the_local_public_base_url(
 
 def test_production_keeps_a_public_base_url_it_is_given() -> None:
     settings = _deployed(
-        "production", public_base_url="https://plasmodb.org/pathfinder"
+        "production", public_base_url="https://qa.plasmodb.org/pathfinder"
     )
 
-    assert settings.public_base_url == "https://plasmodb.org/pathfinder"
+    assert settings.public_base_url == "https://qa.plasmodb.org/pathfinder"
 
 
 def test_development_keeps_the_local_public_base_url(
@@ -452,3 +453,18 @@ def test_the_dev_site_login_needs_development_and_the_dev_account(
     settings = _deployed(api_env, wdk_dev_email=email, wdk_dev_password=password)
 
     assert settings.offers_dev_site_login is offered
+
+
+@pytest.mark.parametrize("blank", ["", "   "])
+def test_a_process_that_names_no_sites_file_is_refused(
+    monkeypatch: pytest.MonkeyPatch, blank: str
+) -> None:
+    monkeypatch.setenv("VEUPATHDB_SITES_CONFIG", blank)
+
+    with pytest.raises(ValueError, match="VEUPATHDB_SITES_CONFIG"):
+        make_settings()
+
+
+def test_a_process_that_names_none_in_its_arguments_is_refused() -> None:
+    with pytest.raises(ValueError, match="VEUPATHDB_SITES_CONFIG"):
+        make_settings(veupathdb_sites_config=None)

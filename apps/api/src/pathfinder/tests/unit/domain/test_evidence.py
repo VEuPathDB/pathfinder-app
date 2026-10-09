@@ -124,7 +124,7 @@ def test_the_card_lists_every_text_a_reader_can_see() -> None:
         site_id="plasmodb",
         checked_at=datetime(2026, 9, 24, 9, 0, tzinfo=UTC),
         wdk_strategy_id=300,
-        strategy_url="https://plasmodb.org/plasmo/app/workspace/strategies/300/7",
+        strategy_url="https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300/7",
         site_read="read",
         steps=[
             CheckedStepCount(
@@ -147,7 +147,7 @@ def test_the_card_lists_every_text_a_reader_can_see() -> None:
     )
 
     assert card.texts() == [
-        "https://plasmodb.org/plasmo/app/workspace/strategies/300/7",
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300/7",
         "Febrile vs normal",
         "Genes by Molecular Weight",
         "the tested step",

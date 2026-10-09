@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.graph.stream_events import evidence_card_event, ledger_update_event
 from pathfinder.ai.lead.ledger_sections import VerificationSection
+from pathfinder.domain.data_statement import DataStatementVersion
 from pathfinder.domain.evidence import (
     ControlSetEvidence,
     ControlTestEvidence,
@@ -127,9 +128,15 @@ async def _seed_thread(
 async def consenting_user(
     session_maker: async_sessionmaker[AsyncSession],
 ) -> UUID:
+    return await _add_user(session_maker, seen=DataStatementVersion.CURRENT.value)
+
+
+async def _add_user(
+    session_maker: async_sessionmaker[AsyncSession], *, seen: str | None
+) -> UUID:
     user_id = uuid4()
     async with session_maker() as session:
-        session.add(User(id=user_id))
+        session.add(User(id=user_id, data_notice_seen=seen))
         await session.commit()
     return user_id
 
@@ -137,17 +144,6 @@ async def consenting_user(
 @pytest.fixture
 def staging() -> EvalStagingRepository:
     return EvalStagingRepository(session_factory=async_session_factory)
-
-
-async def test_consent_is_on_by_default(
-    consenting_user: UUID,
-    session_maker: async_sessionmaker[AsyncSession],
-) -> None:
-    async with session_maker() as session:
-        user = await session.get(User, consenting_user)
-        assert user is not None
-        assert user.eval_data_consent is True
-        assert user.eval_notice_seen_at is None
 
 
 async def test_a_finished_thread_is_staged(
@@ -181,7 +177,7 @@ async def test_the_staged_verdict_carries_the_threads_evidence_card(
         checked_at=datetime(2026, 9, 24, 9, 30, tzinfo=UTC),
         wdk_strategy_id=300125410,
         strategy_url=(
-            "https://plasmodb.org/plasmo/app/workspace/strategies/300125410/440299573"
+            "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573"
         ),
         site_read="read",
         steps=[],
@@ -277,6 +273,20 @@ async def test_a_thread_that_never_finishes_does_not_hold_the_batch(
     assert (await extract_eval_candidates(limit=1)).staged == 1
     rows = await staging.list_staged()
     assert staged_extract(rows[0]).turns[0].request == "finished"
+
+
+@pytest.mark.parametrize("seen", [None, "2026-01-01"])
+async def test_a_user_who_has_not_seen_the_current_notice_is_never_read(
+    session_maker: async_sessionmaker[AsyncSession],
+    staging: EvalStagingRepository,
+    seen: str | None,
+) -> None:
+    user_id = await _add_user(session_maker, seen=seen)
+    await _seed_thread(session_maker, user_id=user_id)
+
+    report = await extract_eval_candidates()
+
+    assert (report.considered, await staging.list_staged()) == (0, [])
 
 
 async def test_an_opted_out_user_is_never_read(

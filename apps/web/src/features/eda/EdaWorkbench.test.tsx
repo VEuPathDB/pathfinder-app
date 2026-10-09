@@ -40,7 +40,7 @@ const server = setupServer();
 
 /** The site's own analysis page, as `services/eda/urls.py` builds it. */
 const ANALYSIS_URL =
-  "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1";
+  "https://qa.plasmodb.org/plasmo.qa/app/workspace/analyses/DS_e973eadd57/a-1";
 
 const COMPUTE = {
   method: "DESeq",
@@ -273,7 +273,7 @@ describe("EdaWorkbench", () => {
     const link = await screen.findByRole("link", { name: "Open in PlasmoDB" });
     expect(link).toHaveAttribute(
       "href",
-      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/analyses/DS_e973eadd57/a-1",
     );
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noreferrer");

@@ -18,6 +18,7 @@ from pathfinder.persistence.repositories.conversation_analysis import (
 )
 from pathfinder.tests._support.eda_wire import AnalysisStore
 from pathfinder.tests._support.published_studies import published_on
+from pathfinder.tests._support.qa_recording import needs_client_eda_recordings
 from pathfinder.tests.integration.http._conversation_eda import (
     ANALYSIS,
     DATASET,
@@ -44,6 +45,7 @@ async def test_an_unbound_thread_reads_as_no_analysis(
     assert body == {"analysis": None}
 
 
+@needs_client_eda_recordings
 async def test_a_bound_thread_reads_the_analysis_state(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],
@@ -81,6 +83,7 @@ async def test_a_bound_thread_reads_the_analysis_state(
     assert set(body) == {"analysis"}
 
 
+@needs_client_eda_recordings
 async def test_a_read_after_the_site_edits_the_analysis_carries_the_edit(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],
@@ -117,6 +120,7 @@ async def test_a_read_after_the_site_edits_the_analysis_carries_the_edit(
     assert phenotype_wired.patches == 0
 
 
+@needs_client_eda_recordings
 async def test_a_read_does_not_count_as_a_mutation(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],
@@ -207,6 +211,7 @@ async def test_unbinding_an_unbound_thread_leaves_it_unbound(
     assert await repo.get(conversation_id=conversation_id) is None
 
 
+@needs_client_eda_recordings
 async def test_bind_creates_the_upstream_analysis_and_the_row(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],

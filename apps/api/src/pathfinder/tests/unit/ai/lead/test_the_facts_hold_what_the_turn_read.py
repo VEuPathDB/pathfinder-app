@@ -19,7 +19,7 @@ _DROPPED_REPLY = (
     "The four that dropped out are [record:HHA_208730], [record:HHA_208740], "
     "[record:HHA_218310] and [record:HHA_247195]."
 )
-_TOXO_RECORD = "https://toxodb.org/toxo/app/record/gene/"
+_TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene/"
 
 
 def _listed_after_the_join() -> LeadDeps:
@@ -121,6 +121,6 @@ def test_each_listed_id_links_to_its_record_page() -> None:
     [listed, _] = turn_facts(_listed_after_the_join()).listed
 
     assert [(r.record_id, r.url) for r in listed.records[:2]] == [
-        ("HHA_208730", "https://toxodb.org/toxo/app/record/gene/HHA_208730"),
-        ("HHA_208740", "https://toxodb.org/toxo/app/record/gene/HHA_208740"),
+        ("HHA_208730", "https://qa.toxodb.org/toxo.qa/app/record/gene/HHA_208730"),
+        ("HHA_208740", "https://qa.toxodb.org/toxo.qa/app/record/gene/HHA_208740"),
     ]

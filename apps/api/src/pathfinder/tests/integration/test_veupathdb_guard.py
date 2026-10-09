@@ -3,21 +3,24 @@
 import asyncio
 import os
 import socket
+from urllib.parse import urlsplit
 
 import pytest
 
+from pathfinder.platform.config import get_settings
 from pathfinder.tests._support.network_guard import NetworkAccessError
 
 
 def test_a_site_lookup_is_refused() -> None:
     with pytest.raises(NetworkAccessError) as excinfo:
-        socket.getaddrinfo("plasmodb.org", 443)
-    assert "plasmodb.org:443" in str(excinfo.value)
+        socket.getaddrinfo("qa.plasmodb.org", 443)
+    assert "qa.plasmodb.org:443" in str(excinfo.value)
     assert "test_a_site_lookup_is_refused" in str(excinfo.value)
 
 
-def test_every_site_and_its_subdomains_are_refused() -> None:
-    for host in ("toxodb.org", "veupathdb.org", "auth.veupathdb.org"):
+def test_every_site_its_domain_and_the_sign_in_server_are_refused() -> None:
+    oauth = urlsplit(get_settings().veupathdb_oauth_url).hostname or ""
+    for host in ("qa.toxodb.org", "qa.veupathdb.org", oauth):
         with pytest.raises(NetworkAccessError):
             socket.getaddrinfo(host, 443)
 
@@ -25,14 +28,14 @@ def test_every_site_and_its_subdomains_are_refused() -> None:
 async def test_an_event_loop_connection_to_a_site_is_refused() -> None:
     loop = asyncio.get_running_loop()
     with pytest.raises(NetworkAccessError):
-        await loop.getaddrinfo("plasmodb.org", 443)
+        await loop.getaddrinfo("qa.plasmodb.org", 443)
     with pytest.raises(NetworkAccessError):
-        await loop.create_connection(asyncio.Protocol, "plasmodb.org", 443)
+        await loop.create_connection(asyncio.Protocol, "qa.plasmodb.org", 443)
 
 
 def test_a_socket_connect_to_a_site_is_refused() -> None:
     with socket.socket() as sock, pytest.raises(NetworkAccessError):
-        sock.connect(("plasmodb.org", 443))
+        sock.connect(("qa.plasmodb.org", 443))
 
 
 def test_a_host_that_is_no_site_stays_open() -> None:

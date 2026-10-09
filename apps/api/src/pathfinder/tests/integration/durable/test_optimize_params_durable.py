@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -134,7 +135,11 @@ def target_kwargs() -> dict[str, Any]:
 def test_optimize_search_parameters_registered_in_registry() -> None:
     register_all_tools()
 
-    assert durable_impl("optimize_search_parameters") is optimize_search_parameters_impl
+    registered = durable_impl("optimize_search_parameters")
+
+    assert [inspect.unwrap(body) for body in (registered,) if body is not None] == [
+        optimize_search_parameters_impl
+    ]
 
 
 @pytest.mark.asyncio

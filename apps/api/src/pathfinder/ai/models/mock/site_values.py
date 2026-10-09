@@ -12,6 +12,7 @@ from veupathdb.domain.strategy.organism import extract_output_organisms
 from veupathdb.domain.strategy.tree import leaves
 from veupathdb.wdk import load_sites_config
 
+from pathfinder.platform.config import get_settings
 from pathfinder.services.experiment.seed.catalog import get_seeds_for_site
 
 ParamValues = dict[str, str | list[str] | None]
@@ -140,7 +141,7 @@ def _seed_leaves(site_id: str, organism: str) -> tuple[SeedLeaf, ...]:
 def _portal_organisms(site_id: str) -> tuple[str, ...]:
     """The organisms the portal's seeds run on, the most run first, without the
     site's own. The portal holds each of them."""
-    sites = load_sites_config().sites
+    sites = load_sites_config(get_settings().veupathdb_sites_config).sites
     portal = next(site for site, config in sites.items() if config.is_portal)
     own = _organism_of(site_id)
     return tuple(o for o in _organisms_ranked(portal) if o != own)
@@ -163,5 +164,7 @@ def _values(site_id: str) -> SiteValues:
             negative_ids=control_set.negative_ids,
         ),
         portal_organisms=_portal_organisms(site_id),
-        is_portal=load_sites_config().sites[site_id].is_portal,
+        is_portal=load_sites_config(get_settings().veupathdb_sites_config)
+        .sites[site_id]
+        .is_portal,
     )

@@ -28,10 +28,10 @@ from veupathdb import set_observer
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda import close_all_eda_clients
 from veupathdb.errors import VEuPathDBError
-from veupathdb.observability.otel import OpenTelemetryObserver
 from veupathdb.wdk import close_all_clients, get_site_router
 from veupathdb_mcp.catalog import get_discovery_service
 from veupathdb_mcp.embeddings import use_embedding_session_factory
+from veupathdb_mcp.search_line import install_search_line
 
 from pathfinder import __version__
 from pathfinder.ai.capabilities.security import warm_up_screening
@@ -51,7 +51,11 @@ from pathfinder.platform.error_handlers import (
     veupathdb_error_handler,
 )
 from pathfinder.platform.langfuse.client import shutdown_langfuse
-from pathfinder.platform.metrics import HttpMetricsMiddleware, serve_metrics
+from pathfinder.platform.metrics import (
+    HttpMetricsMiddleware,
+    PathfinderObserver,
+    serve_metrics,
+)
 from pathfinder.platform.migrations import init_db
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability, trace_routes
@@ -71,6 +75,7 @@ from pathfinder.platform.site_catalogs import (
     run_catalog_retry_loop,
 )
 from pathfinder.services.eda.catalog import preload_study_index
+from pathfinder.services.search_waits import runs_on_the_deployment_line
 from pathfinder.transport.http.openapi import install_openapi_post_passes
 from pathfinder.transport.http.routers import (
     chat,
@@ -197,7 +202,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     setup_observability(service_name="pathfinder-api", engine=get_engine())
     metrics_server = serve_metrics(settings.metrics_port, settings.metrics_addr)
-    set_observer(OpenTelemetryObserver())
+    set_observer(PathfinderObserver())
+    install_search_line(settings.database_url, runs_on_the_deployment_line)
 
     from assistant_core.platform.spawn import spawn  # noqa: PLC0415
 

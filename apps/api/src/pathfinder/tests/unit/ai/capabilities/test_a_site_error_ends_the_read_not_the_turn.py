@@ -32,6 +32,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.strategies.sync_state import WDKSyncState
+from pathfinder.tests._support.qa_recording import needs_suite_recordings
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 
 # The 5,850-gene union of a trichdb strategy, read five genes at a time.
@@ -139,6 +140,7 @@ _NOT_ON_RECORD_TYPE = (
 )
 
 
+@needs_suite_recordings
 async def test_a_site_refusal_in_a_comparison_is_one_failed_call(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

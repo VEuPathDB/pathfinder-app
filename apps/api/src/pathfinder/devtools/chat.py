@@ -75,6 +75,11 @@ from pathfinder.persistence.repositories.user import UserRepository
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.durable_worker import no_durable_worker
 from pathfinder.platform.model_catalog import install_catalog_prices
+from pathfinder.platform.stage_sites import (
+    SITES_CONFIG_VARIABLE,
+    named_or_qa_sites_file,
+    use_sites_file,
+)
 from pathfinder.platform.tiers import KNOWN_ROLES
 from pathfinder.platform.tool_sources import admitted_tool_sources
 from pathfinder.services.conversations.begin import begin_conversation
@@ -129,6 +134,30 @@ class LoginUnansweredError(RuntimeError):
     def __init__(self, site: str, failure: httpx.TransportError) -> None:
         words = re.sub(r"(?<!^)(?=[A-Z])", " ", type(failure).__name__).lower()
         super().__init__(f"{site} login did not answer ({words})")
+
+
+_SITES_HELP = (
+    f"sites file the turn reads (else ${SITES_CONFIG_VARIABLE}, "
+    "else deploy/sites/qa.yml)"
+)
+
+
+class SitesChoiceError(RuntimeError):
+    pass
+
+
+def chosen_sites_file(named: str | None, *, via_worker: bool) -> Path:
+    ambient = os.environ.get(SITES_CONFIG_VARIABLE, "").strip()
+    chosen = named_or_qa_sites_file(named or ambient)
+    if via_worker and chosen != Path(ambient):
+        served = ambient or "the client's bundled sites file"
+        msg = (
+            f"--via-worker runs the turn on the worker, which reads {served}. "
+            f"Pass --sites with that file, or give the stack "
+            f"{SITES_CONFIG_VARIABLE}={chosen}."
+        )
+        raise SitesChoiceError(msg)
+    return chosen
 
 
 # A site's login that does not answer once is tried a second time after this pause.
@@ -188,6 +217,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("prompt")
     run.add_argument("--site", required=True)
+    run.add_argument(
+        "--sites",
+        default=None,
+        metavar="PATH",
+        help=_SITES_HELP,
+    )
     run.add_argument("--mode", default="strategy")
     run.add_argument("--conversation-id", default=None)
     run.add_argument("--run-dir", default=None)
@@ -232,6 +267,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="answer the conversation's pending gate (found via checkpoint)",
     )
     resp.add_argument("--site", required=True)
+    resp.add_argument(
+        "--sites",
+        default=None,
+        metavar="PATH",
+        help=_SITES_HELP,
+    )
     resp.add_argument("--conversation-id", required=True)
     resp.add_argument("--run-dir", required=True)
     resp.add_argument("--mode", default="strategy")
@@ -890,6 +931,13 @@ def main() -> None:
     route_framework_logs_to_stderr()
     argv = sys.argv[1:]
     command = argv[0] if argv else ""
+    if command in {"run", "respond"}:
+        ns = _build_parser().parse_args(argv)
+        try:
+            use_sites_file(str(chosen_sites_file(ns.sites, via_worker=ns.via_worker)))
+        except SitesChoiceError as exc:
+            print(f"✖ {exc}", file=sys.stderr)
+            sys.exit(2)
     if command == "run":
         try:
             sys.exit(asyncio.run(run_once(parse_run_args(argv[1:]))))

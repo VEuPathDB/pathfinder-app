@@ -11,6 +11,7 @@ from veupathdb.wdk import WDKSearch
 
 from pathfinder.services.strategies import user_dataset_searches
 from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "wdk"
 UPLOAD_DATASET = "EDAUD_lhZ5ptRgo014J"
@@ -19,7 +20,9 @@ UPLOAD_DATASET = "EDAUD_lhZ5ptRgo014J"
 def wire_plasmodb_uploads(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
     """Serve the recorded plasmodb searches and the account's one upload; the
     returned mock is the uploads read."""
-    raw = json.loads((_FIXTURES / "user_dataset_searches_plasmodb.json").read_text())
+    raw = json.loads(
+        qa_recording(_FIXTURES / "user_dataset_searches_plasmodb.json").read_text()
+    )
     by_name = {e["urlSegment"]: WDKSearch.model_validate(e) for e in raw}
 
     async def definition(site_id: str, record_type: str, name: str) -> WDKSearch:

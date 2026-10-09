@@ -24,8 +24,8 @@ def test_several_addresses_are_all_replaced() -> None:
 
 
 def test_a_url_with_a_userinfo_part_loses_the_credential() -> None:
-    assert redact_text("see https://ada:secret@plasmodb.org/x") == (
-        "see https://[redacted-credential]@plasmodb.org/x"
+    assert redact_text("see https://ada:secret@qa.plasmodb.org/x") == (
+        "see https://[redacted-credential]@qa.plasmodb.org/x"
     )
 
 
@@ -54,10 +54,10 @@ def test_assert_redacted_refuses_a_surviving_address() -> None:
 
 def test_assert_redacted_refuses_a_surviving_credential() -> None:
     with pytest.raises(RedactionFailedError, match="credential"):
-        assert_redacted("https://ada:secret@plasmodb.org/x")
+        assert_redacted("https://ada:secret@qa.plasmodb.org/x")
 
 
 def test_redacted_text_passes_the_check() -> None:
-    text = "see https://ada:secret@plasmodb.org/x or write to ada@example.org"
+    text = "see https://ada:secret@qa.plasmodb.org/x or write to ada@example.org"
 
     assert assert_redacted(redact_text(text)) is True

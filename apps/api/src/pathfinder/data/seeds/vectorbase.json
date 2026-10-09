@@ -126,7 +126,7 @@
             "displayName": "Deltamethrin Resistant Upregulated (2x)",
             "id": "rnaseq_delta_up",
             "parameters": {
-              "dataset_url": "https://VectorBase.org/a/app/record/dataset/DS_455af12573",
+              "dataset_url": "https://qa.vectorbase.org/vectorbase.qa/app/record/dataset/DS_455af12573",
               "fold_change": "2",
               "hard_floor": "566.7834191117146",
               "min_max_avg_comp": "average1",
@@ -916,7 +916,7 @@
           "displayName": "Upregulated in Pf-Infected Midgut (2x)",
           "id": "rnaseq_pf_up",
           "parameters": {
-            "dataset_url": "https://VectorBase.org/a/app/record/dataset/DS_7f62901422",
+            "dataset_url": "https://qa.vectorbase.org/vectorbase.qa/app/record/dataset/DS_7f62901422",
             "fold_change": "2",
             "hard_floor": "6591.177704840929",
             "min_max_avg_comp": "average1",

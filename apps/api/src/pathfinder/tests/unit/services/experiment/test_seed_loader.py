@@ -9,9 +9,9 @@ from veupathdb.domain.strategy import StrategyStepNode
 
 from pathfinder.platform.errors import ErrorCode, NotFoundError
 from pathfinder.services.experiment.seed.catalog import (
-    SEED_DATABASES,
     SEEDS_DIR,
     get_seeds_for_site,
+    seed_databases,
 )
 from pathfinder.services.experiment.seed.types import (
     ControlSetDef,
@@ -41,19 +41,19 @@ _NODE_COUNT = re.compile(r"\b(\d+)-node\b")
 
 def test_catalog_lists_every_json_file() -> None:
     on_disk = {p.name.removesuffix(".json") for p in SEEDS_DIR.iterdir()}
-    assert on_disk == set(SEED_DATABASES)
+    assert on_disk == set(seed_databases())
 
 
 def test_expected_counts_cover_every_database() -> None:
-    assert set(EXPECTED_COUNTS) == set(SEED_DATABASES)
+    assert set(EXPECTED_COUNTS) == set(seed_databases())
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_site_seed_count(site_id: str) -> None:
     assert len(get_seeds_for_site(site_id)) == EXPECTED_COUNTS[site_id]
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_every_seed_validates_and_names_its_own_site(site_id: str) -> None:
     for seed in get_seeds_for_site(site_id):
         assert isinstance(seed, SeedDef)
@@ -63,7 +63,7 @@ def test_every_seed_validates_and_names_its_own_site(site_id: str) -> None:
         assert seed.record_type in {"transcript", "group"}
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_every_control_set_has_positives_negatives_and_tags(site_id: str) -> None:
     incomplete = [
         seed.name
@@ -80,7 +80,7 @@ def test_every_control_set_has_positives_negatives_and_tags(site_id: str) -> Non
     assert incomplete == []
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_every_step_tree_builds_a_strategy_node(site_id: str) -> None:
     seeds = get_seeds_for_site(site_id)
 
@@ -90,7 +90,9 @@ def test_every_step_tree_builds_a_strategy_node(site_id: str) -> None:
 
 
 def test_the_catalog_totals_the_per_site_counts() -> None:
-    assert sum(len(get_seeds_for_site(site)) for site in SEED_DATABASES) == TOTAL_SEEDS
+    assert (
+        sum(len(get_seeds_for_site(site)) for site in seed_databases()) == TOTAL_SEEDS
+    )
     assert sum(EXPECTED_COUNTS.values()) == TOTAL_SEEDS
 
 
@@ -159,7 +161,7 @@ def test_a_control_on_both_lists_is_refused() -> None:
         )
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_a_stated_node_count_is_the_count_of_the_tree(site_id: str) -> None:
     def nodes(node: StrategyStepNode) -> int:
         inputs = (node.primary_input, node.secondary_input)
@@ -216,7 +218,7 @@ def test_a_measurement_counts_the_seeds_own_controls() -> None:
     ).measured
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_every_seed_carries_its_read(site_id: str) -> None:
     unmeasured = [
         seed.name for seed in get_seeds_for_site(site_id) if seed.measured is None
@@ -225,7 +227,7 @@ def test_every_seed_carries_its_read(site_id: str) -> None:
     assert unmeasured == []
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_every_seed_recovers_every_positive_on_its_record(site_id: str) -> None:
     recalls = {
         seed.name: seed.measured.recall if seed.measured else None

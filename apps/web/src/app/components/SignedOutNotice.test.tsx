@@ -86,4 +86,11 @@ describe("SignedOutNotice", () => {
     expect(screen.getByText("PathFinder")).toBeVisible();
     expect(container.querySelectorAll("input")).toHaveLength(0);
   });
+
+  it("links to the statement of what PathFinder does with your data", () => {
+    renderWithConfig(<SignedOutNotice />);
+    expect(
+      screen.getByRole("link", { name: "Your data in PathFinder" }),
+    ).toHaveAttribute("href", "/help/your-data");
+  });
 });

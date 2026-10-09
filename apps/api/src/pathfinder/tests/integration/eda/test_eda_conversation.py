@@ -295,7 +295,7 @@ async def seam(
 ) -> AsyncIterator[_Seam]:
     """The EDA assistant under site help's id, over the recorded EDA wire."""
     store = _AnalysesStore()
-    client = EdaClient(base_url="https://plasmodb.org/eda", transport=_wire(store))
+    client = EdaClient(base_url="https://qa.plasmodb.org/eda", transport=_wire(store))
     wire_eda_client(monkeypatch, client)
     # The researcher's own uploads are a VDI read this wire does not record.
     monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)

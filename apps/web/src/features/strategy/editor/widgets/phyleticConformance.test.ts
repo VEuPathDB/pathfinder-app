@@ -9,7 +9,7 @@ import {
   type TriState,
 } from "./phyleticProfileLogic";
 
-import fixture from "../../../../../../../packages/spec/phyletic_conformance.json";
+import { qaRecording } from "@/lib/testing/qaRecording";
 
 interface UnresolvedExpectation {
   included_unknown?: string[];
@@ -43,7 +43,18 @@ interface Fixture {
   decode: DecodeCase[];
 }
 
-const data: Fixture = fixture;
+const recorded = qaRecording(
+  new URL(
+    "../../../../../../../packages/spec/phyletic_conformance.json",
+    import.meta.url,
+  ),
+);
+const data = (recorded ?? {
+  term_map: [],
+  indent_map: [],
+  cases: [],
+  decode: [],
+}) as Fixture;
 const roots = buildPhyleticTree(data.term_map, data.indent_map);
 
 /** The widget holds one tri-state per code, keyed by the node the user clicked. */
@@ -58,50 +69,56 @@ function asRecord(states: Map<string, TriState>): Record<string, string> {
   return Object.fromEntries(states);
 }
 
-describe("phyletic conformance (shared FE/BE fixture)", () => {
-  for (const c of data.cases) {
-    if (c.tsSkip === true) {
-      test.skip(`${c.name} - ${c.tsSkipReason}`, () => {});
-      continue;
+describe.skipIf(recorded === null)(
+  "phyletic conformance (shared FE/BE fixture)",
+  () => {
+    for (const c of data.cases) {
+      if (c.tsSkip === true) {
+        test.skip(`${c.name} - ${c.tsSkipReason}`, () => {});
+        continue;
+      }
+      test(c.name, () => {
+        const includedTerms = resolveTerms(roots, c.included);
+        const excludedTerms = resolveTerms(roots, c.excluded);
+
+        if (c.unresolved !== undefined) {
+          expect(includedTerms.unknown).toEqual(c.unresolved.included_unknown ?? []);
+          expect(excludedTerms.unknown).toEqual(c.unresolved.excluded_unknown ?? []);
+          const known = c.included.length + c.excluded.length;
+          const unknown = includedTerms.unknown.length + excludedTerms.unknown.length;
+          expect(includedTerms.codes.length + excludedTerms.codes.length).toBe(
+            known - unknown,
+          );
+          return;
+        }
+
+        expect(includedTerms.unknown).toEqual([]);
+        expect(excludedTerms.unknown).toEqual([]);
+
+        const states = selection(includedTerms.codes, excludedTerms.codes);
+        const leaves = leafStates(states, roots);
+
+        if (c.leaf_states !== undefined) {
+          expect(asRecord(leaves)).toEqual(c.leaf_states);
+        }
+
+        expect(encodeProfilePattern(leaves)).toBe(c.profile_pattern);
+
+        const lists = buildSpeciesLists(states);
+        expect(lists.included).toBe(c.included_species);
+        expect(lists.excluded).toBe(c.excluded_species);
+      });
     }
-    test(c.name, () => {
-      const includedTerms = resolveTerms(roots, c.included);
-      const excludedTerms = resolveTerms(roots, c.excluded);
+  },
+);
 
-      if (c.unresolved !== undefined) {
-        expect(includedTerms.unknown).toEqual(c.unresolved.included_unknown ?? []);
-        expect(excludedTerms.unknown).toEqual(c.unresolved.excluded_unknown ?? []);
-        const known = c.included.length + c.excluded.length;
-        const unknown = includedTerms.unknown.length + excludedTerms.unknown.length;
-        expect(includedTerms.codes.length + excludedTerms.codes.length).toBe(
-          known - unknown,
-        );
-        return;
-      }
-
-      expect(includedTerms.unknown).toEqual([]);
-      expect(excludedTerms.unknown).toEqual([]);
-
-      const states = selection(includedTerms.codes, excludedTerms.codes);
-      const leaves = leafStates(states, roots);
-
-      if (c.leaf_states !== undefined) {
-        expect(asRecord(leaves)).toEqual(c.leaf_states);
-      }
-
-      expect(encodeProfilePattern(leaves)).toBe(c.profile_pattern);
-
-      const lists = buildSpeciesLists(states);
-      expect(lists.included).toBe(c.included_species);
-      expect(lists.excluded).toBe(c.excluded_species);
-    });
-  }
-});
-
-describe("phyletic conformance decode (shared FE/BE fixture)", () => {
-  for (const d of data.decode) {
-    test(d.name, () => {
-      expect(asRecord(decodeProfilePattern(d.pattern))).toEqual(d.widget);
-    });
-  }
-});
+describe.skipIf(recorded === null)(
+  "phyletic conformance decode (shared FE/BE fixture)",
+  () => {
+    for (const d of data.decode) {
+      test(d.name, () => {
+        expect(asRecord(decodeProfilePattern(d.pattern))).toEqual(d.widget);
+      });
+    }
+  },
+);

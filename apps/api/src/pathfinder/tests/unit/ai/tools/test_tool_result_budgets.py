@@ -25,6 +25,7 @@ from pathfinder.ai.tools.standalone._eda_models import (
 )
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda.catalog import StudyCard, StudySearch
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.recorded_vdi import no_own_datasets
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned, wire_size
@@ -81,7 +82,9 @@ async def _phenotype_study(
     _site: str,
     _dataset_id: str,
 ) -> tuple[EdaPermissionEntry, EdaStudyDetail]:
-    payload = json.loads((FIXTURES / "study_detail_phenotype.json").read_text())
+    payload = json.loads(
+        qa_recording(FIXTURES / "study_detail_phenotype.json").read_text()
+    )
     entry = EdaPermissionEntry.model_validate(
         {
             "studyId": _STUDY,

@@ -20,6 +20,7 @@ from pathfinder.services.strategies.bound_uploads import (
 )
 from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
 from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
 _UPLOADS = [
@@ -33,7 +34,9 @@ _UPLOADS = [
 
 
 def _searches() -> dict[str, WDKSearch]:
-    raw = json.loads((_FIXTURES / "user_dataset_searches_plasmodb.json").read_text())
+    raw = json.loads(
+        qa_recording(_FIXTURES / "user_dataset_searches_plasmodb.json").read_text()
+    )
     return {entry["urlSegment"]: WDKSearch.model_validate(entry) for entry in raw}
 
 

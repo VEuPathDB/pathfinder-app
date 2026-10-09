@@ -17,6 +17,9 @@ concurrency:
   group: mcp-nightly
   cancel-in-progress: false
 
+env:
+  VEUPATHDB_SITES_CONFIG: ${{ github.workspace }}/deploy/sites/qa.yml
+
 jobs:
   admission-lane:
     name: veupathdb-wdk-mcp admission lane

@@ -52,7 +52,7 @@ _TOXO = TurnFacts(
         )
     ],
 )
-_RECORD = "https://microsporidiadb.org/micro/app/record/gene/VICG_00034"
+_RECORD = "https://qa.microsporidiadb.org/micro.qa/app/record/gene/VICG_00034"
 _MICRO = TurnFacts(
     sources=[
         SourceFact(

@@ -28,7 +28,7 @@ from pathfinder.tests.unit.ai.lead.conftest import requirement
 _COMBINATION = "mass spectrometry evidence OR DeRisi expression"
 _ASKED = "Kinases with mass spectrometry evidence or DeRisi expression."
 _ADDED = "Keep only the orthologs of P. berghei genes."
-_READ = "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0102200"
+_READ = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0102200"
 _PAPER = "10.1038/nature12970"
 
 
@@ -76,7 +76,7 @@ def _record(spec: OperationalSpec, *, read: tuple[str, ...] = ()) -> ReviewRecor
         spec=spec,
         read_as=lambda reference: reference if reference in read else None,
         record_url=lambda gene_id: (
-            f"https://plasmodb.org/plasmo/app/record/gene/{gene_id}"
+            f"https://qa.plasmodb.org/plasmo.qa/app/record/gene/{gene_id}"
         ),
     )
 

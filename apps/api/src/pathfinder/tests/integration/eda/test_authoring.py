@@ -24,8 +24,7 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.services.eda import authoring, catalog, comparison
 from pathfinder.tests._support.eda_wire import wire_eda_client
-
-FIXTURES = FIXTURE_DIR
+from pathfinder.tests._support.qa_recording import qa_recording
 
 pytestmark = pytest.mark.asyncio
 
@@ -39,7 +38,7 @@ _DE_VALUE = "SEQUENCE_READ_COUNT_SENSE"
 
 
 def _fixture(name: str) -> Any:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads(qa_recording(FIXTURE_DIR / name).read_text())
 
 
 def _route(
@@ -77,7 +76,7 @@ def wire(monkeypatch: pytest.MonkeyPatch) -> Iterator[Wire]:
     """Build the site's EDA client over one transport, and route the site to it."""
 
     def _wire(transport: httpx.AsyncBaseTransport) -> EdaClient:
-        client = EdaClient(base_url="https://plasmodb.org/eda", transport=transport)
+        client = EdaClient(base_url="https://qa.plasmodb.org/eda", transport=transport)
         monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
         monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)
         return client
@@ -407,7 +406,7 @@ def _wire(
 ) -> EdaClient:
     """One client for the catalog, the authoring module and the analysis store."""
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(handler)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)

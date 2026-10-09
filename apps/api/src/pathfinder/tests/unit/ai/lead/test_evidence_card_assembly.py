@@ -128,7 +128,7 @@ def test_every_field_equals_its_source() -> None:
     )
 
     assert card.strategy_url == (
-        "https://plasmodb.org/plasmo/app/workspace/strategies/300125410/440299573"
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573"
     )
     assert card.site_read == "read"
     assert [
@@ -161,7 +161,7 @@ def test_a_site_that_did_not_answer_leaves_every_site_count_empty() -> None:
     assert card.site_read == "not_answered"
     assert [step.site_count for step in card.steps] == [None]
     assert card.strategy_url == (
-        "https://plasmodb.org/plasmo/app/workspace/strategies/300125410/440299573"
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573"
     )
 
 

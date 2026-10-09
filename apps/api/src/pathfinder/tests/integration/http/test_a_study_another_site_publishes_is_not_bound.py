@@ -13,6 +13,7 @@ from pathfinder.persistence.repositories.conversation_analysis import (
 )
 from pathfinder.tests._support.eda_wire import AnalysisStore
 from pathfinder.tests._support.published_studies import published_on
+from pathfinder.tests._support.qa_recording import needs_client_eda_recordings
 from pathfinder.tests.integration.http._conversation_eda import (
     DATASET,
     phenotype_wired,
@@ -26,6 +27,7 @@ __all__ = ["phenotype_wired", "thread"]
 _BIND = {"action": "bind", "siteId": "plasmodb", "datasetId": DATASET}
 
 
+@needs_client_eda_recordings
 async def test_a_study_vectorbase_publishes_is_refused_with_the_site(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],
@@ -50,6 +52,7 @@ async def test_a_study_vectorbase_publishes_is_refused_with_the_site(
     assert await repo.get(conversation_id=conversation_id) is None
 
 
+@needs_client_eda_recordings
 async def test_a_study_no_genomics_site_publishes_is_refused_naming_the_portal(
     thread: tuple[httpx.AsyncClient, UUID],
     phenotype_wired: AnalysisStore,
@@ -68,6 +71,7 @@ async def test_a_study_no_genomics_site_publishes_is_refused_naming_the_portal(
     assert phenotype_wired.created == []
 
 
+@needs_client_eda_recordings
 async def test_a_study_the_site_publishes_is_bound(
     thread: tuple[httpx.AsyncClient, UUID],
     phenotype_wired: AnalysisStore,

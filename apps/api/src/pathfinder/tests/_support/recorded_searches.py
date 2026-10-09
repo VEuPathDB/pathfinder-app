@@ -16,7 +16,7 @@ from veupathdb.domain import SearchContext
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StepValidation
 from veupathdb.errors import WDKError
-from veupathdb.testing.wdk_fixtures import RecordedWDKResponse, load_recorded
+from veupathdb.testing.wdk_fixtures import RecordedWDKResponse
 from veupathdb.wdk import VEuPathDBClient, WDKSearch, WDKSearchResponse
 from veupathdb_mcp import catalog, tool_payloads
 from veupathdb_mcp.catalog import (
@@ -43,6 +43,7 @@ from pathfinder.services.strategies import (
     sync,
 )
 from pathfinder.tests._support.catalog_builders import serve_search_details
+from pathfinder.tests._support.qa_recording import client_recording, qa_recording
 
 _SUITE = Path(__file__).resolve().parents[1] / "fixtures" / "wdk"
 
@@ -57,13 +58,13 @@ class _Listing(BaseModel):
 
 def _suite(fixture: str) -> RecordedWDKResponse:
     return RecordedWDKResponse.model_validate_json(
-        (_SUITE / f"{fixture}.json").read_text()
+        qa_recording(_SUITE / f"{fixture}.json").read_text()
     )
 
 
 def client_search(fixture: str) -> WDKSearch:
     """A definition the client library recorded."""
-    body = load_recorded(fixture).json_body()
+    body = client_recording(fixture).json_body()
     return WDKSearchResponse.model_validate(body).search_data
 
 

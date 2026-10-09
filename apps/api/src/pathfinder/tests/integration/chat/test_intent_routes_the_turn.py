@@ -14,6 +14,7 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
 from pathfinder.ai.lead.card_contract import CARD_TOOLS
+from pathfinder.tests._support.qa_recording import needs_suite_recordings
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
 _REMEMBER_PROMPT = (
@@ -62,6 +63,7 @@ async def test_a_remember_request_stores_and_builds_nothing(
     assert "data-graph-snapshot" not in _types(chunks)
 
 
+@needs_suite_recordings
 async def test_a_context_statement_answers_in_prose(
     app: FastAPI,
     patch_app_db_engine: None,

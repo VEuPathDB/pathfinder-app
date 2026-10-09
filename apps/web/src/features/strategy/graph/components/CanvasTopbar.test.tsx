@@ -158,7 +158,7 @@ describe("the link to the host site", () => {
   const withWdk = {
     ...STRATEGY,
     wdkStrategyId: 330528343,
-    wdkUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/330528343",
+    wdkUrl: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330528343",
   } as Strategy;
 
   function renderTopbar(strategy: Strategy) {

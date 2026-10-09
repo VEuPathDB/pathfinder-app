@@ -25,7 +25,7 @@ from pathfinder.evals.extract import (
 from pathfinder.services.eval_data.chunk_reader import LoggedChunk, read_verification
 from pathfinder.tests._support.ledger import ledger_with
 
-_URL = "https://plasmodb.org/plasmo/app/workspace/strategies/300125410/440299573"
+_URL = "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573"
 
 
 def _card(check_id: str, *, url: str = _URL, site_count: int = 212) -> EvidenceCard:
@@ -98,7 +98,9 @@ def test_a_thread_with_no_card_records_none() -> None:
 
 
 def test_the_card_is_read_redacted() -> None:
-    leaked = "https://ahmed:secret@plasmodb.org/plasmo/app/workspace/strategies/3/4"
+    leaked = (
+        "https://ahmed:secret@qa.plasmodb.org/plasmo.qa/app/workspace/strategies/3/4"
+    )
 
     verdict = read_verification(
         _log(_card_chunk(_card("call_verify", url=leaked)), _ledger_chunk())
@@ -107,12 +109,14 @@ def test_the_card_is_read_redacted() -> None:
     assert verdict is not None
     assert verdict.evidence is not None
     assert verdict.evidence.strategy_url == (
-        "https://[redacted-credential]@plasmodb.org/plasmo/app/workspace/strategies/3/4"
+        "https://[redacted-credential]@qa.plasmodb.org/plasmo.qa/app/workspace/strategies/3/4"
     )
 
 
 def test_an_extract_whose_card_carries_a_credential_cannot_be_built() -> None:
-    leaked = "https://ahmed:secret@plasmodb.org/plasmo/app/workspace/strategies/3/4"
+    leaked = (
+        "https://ahmed:secret@qa.plasmodb.org/plasmo.qa/app/workspace/strategies/3/4"
+    )
 
     with pytest.raises(ValidationError, match="URL credential"):
         EvalExtract(

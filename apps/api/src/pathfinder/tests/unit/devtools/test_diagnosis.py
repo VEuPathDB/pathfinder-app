@@ -150,7 +150,7 @@ def test_detects_no_plan_terminal() -> None:
 _SERVICE_ERR = (
     "Transient error in get_search_overview: VEuPathDB service error: Request "
     "failed after retries: Server error '500 Internal Server Error' for url "
-    "'https://vectorbase.org/.../GenesByRNASeqFoo?expandParams=true'. The service "
+    "'https://qa.vectorbase.org/.../GenesByRNASeqFoo?expandParams=true'. The service "
     "may be temporarily unavailable. Retrying."
 )
 

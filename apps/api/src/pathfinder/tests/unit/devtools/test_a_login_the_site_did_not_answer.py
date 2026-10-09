@@ -20,6 +20,7 @@ async def _no_answer(site_id: str, email: str, password: str) -> str | None:
     raise httpx.ConnectTimeout(msg)
 
 
+@pytest.mark.usefixtures("restored_sites_file")
 def test_a_login_the_site_does_not_answer_exits_on_one_line(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

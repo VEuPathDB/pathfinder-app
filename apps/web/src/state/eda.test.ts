@@ -97,7 +97,7 @@ describe("useEdaStore.applyAnalysisState", () => {
 
   it("keeps the site explorer link the part names", () => {
     const analysisUrl =
-      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1";
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/analyses/DS_e973eadd57/a-1";
     useEdaStore.getState().applyAnalysisState({ ...ANALYSIS_STATE, analysisUrl });
     expect(useEdaStore.getState().analysis?.analysisUrl).toBe(analysisUrl);
   });

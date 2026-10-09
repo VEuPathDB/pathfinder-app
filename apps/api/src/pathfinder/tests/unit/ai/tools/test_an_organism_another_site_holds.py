@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pydantic_ai import ModelRetry
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import format_param_info_typed
@@ -19,10 +18,11 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     portal_only_sentence,
     refuse_unmatched_values,
 )
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.recorded_searches import suite_search
 
 _ORTHOLOGS = WDKSearchResponse.model_validate(
-    load_recorded("search_genes_by_orthologs").json_body()
+    client_recording("search_genes_by_orthologs").json_body()
 ).search_data
 _INFOS = format_param_info_typed(_ORTHOLOGS.parameters or [])
 _TOXO = "Toxoplasma gondii ME49"

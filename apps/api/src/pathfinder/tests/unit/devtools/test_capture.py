@@ -18,6 +18,7 @@ from pathfinder.devtools.capture import (
 )
 from pathfinder.devtools.diagnosis import LOOP_THRESHOLD
 from pathfinder.platform.durable_worker import durable_call_refusal
+from pathfinder.tests._support.qa_recording import qa_recording
 
 
 def _write(cap: RunCapture, chunk: JSONObject) -> None:
@@ -312,7 +313,11 @@ class TestDiagnosisReadsTheReply:
 def _fixture_run() -> list[JSONObject]:
     path = Path(__file__).parent / "site_help_mock_run.events.jsonl"
     event: TypeAdapter[JSONObject] = TypeAdapter(JSONObject)
-    return [event.validate_json(line) for line in path.read_text().splitlines() if line]
+    return [
+        event.validate_json(line)
+        for line in qa_recording(path).read_text().splitlines()
+        if line
+    ]
 
 
 def test_a_one_agent_run_counts_the_calls_its_event_log_announces(

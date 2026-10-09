@@ -899,7 +899,7 @@
           "displayName": "Malaria Upregulated (2x)",
           "id": "leaf_malaria_up",
           "parameters": {
-            "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_eeca6a5476",
+            "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_eeca6a5476",
             "fold_change": "2",
             "hard_floor": "341.58417569991377",
             "min_max_avg_comp": "average1",
@@ -954,7 +954,7 @@
             "displayName": "Hemozoin Upregulated",
             "id": "leaf_hemozoin_up",
             "parameters": {
-              "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_f1c4acdfd2",
+              "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_f1c4acdfd2",
               "fold_change": "2",
               "hard_floor": "272.18064445423295",
               "min_max_avg_comp": "average1",
@@ -1014,7 +1014,7 @@
             "displayName": "Malaria Downregulated",
             "id": "leaf_malaria_down",
             "parameters": {
-              "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_eeca6a5476",
+              "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_eeca6a5476",
               "fold_change": "2",
               "hard_floor": "341.58417569991377",
               "min_max_avg_comp": "average1",
@@ -1147,7 +1147,7 @@
           "displayName": "T. gondii Upregulated",
           "id": "leaf_tgondii_up",
           "parameters": {
-            "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+            "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_65d43ce7fa",
             "fold_change": "2",
             "hard_floor": "2339.405527535729",
             "min_max_avg_comp": "average1",
@@ -1164,7 +1164,7 @@
           "displayName": "T. cruzi Upregulated (72h)",
           "id": "leaf_tcruzi_up",
           "parameters": {
-            "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_d8246ca26a",
+            "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_d8246ca26a",
             "fold_change": "2",
             "hard_floor": "226.12370792005606",
             "min_max_avg_comp": "average1",
@@ -1190,7 +1190,7 @@
             "displayName": "Candida Upregulated (24h)",
             "id": "leaf_candida_up",
             "parameters": {
-              "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_410d99350c",
+              "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_410d99350c",
               "fold_change": "2",
               "hard_floor": "3728.8308638077037",
               "min_max_avg_comp": "average1",
@@ -1211,7 +1211,7 @@
               "displayName": "T. gondii Up (dup)",
               "id": "leaf_tgondii_up2",
               "parameters": {
-                "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+                "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_65d43ce7fa",
                 "fold_change": "2",
                 "hard_floor": "2339.405527535729",
                 "min_max_avg_comp": "average1",
@@ -1228,7 +1228,7 @@
               "displayName": "T. cruzi Up (dup)",
               "id": "leaf_tcruzi_up2",
               "parameters": {
-                "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_d8246ca26a",
+                "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_d8246ca26a",
                 "fold_change": "2",
                 "hard_floor": "226.12370792005606",
                 "min_max_avg_comp": "average1",
@@ -1259,7 +1259,7 @@
                 "displayName": "T. gondii Up",
                 "id": "leaf_tg_up3",
                 "parameters": {
-                  "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+                  "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_65d43ce7fa",
                   "fold_change": "2",
                   "hard_floor": "2339.405527535729",
                   "min_max_avg_comp": "average1",
@@ -1276,7 +1276,7 @@
                 "displayName": "T. cruzi Up",
                 "id": "leaf_tc_up3",
                 "parameters": {
-                  "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_d8246ca26a",
+                  "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_d8246ca26a",
                   "fold_change": "2",
                   "hard_floor": "226.12370792005606",
                   "min_max_avg_comp": "average1",
@@ -1315,7 +1315,7 @@
                 "displayName": "Candida Upregulated",
                 "id": "leaf_candida_up2",
                 "parameters": {
-                  "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_410d99350c",
+                  "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_410d99350c",
                   "fold_change": "2",
                   "hard_floor": "3728.8308638077037",
                   "min_max_avg_comp": "average1",
@@ -1352,7 +1352,7 @@
                   "displayName": "T. gondii Up",
                   "id": "leaf_tg_up4",
                   "parameters": {
-                    "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_65d43ce7fa",
+                    "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_65d43ce7fa",
                     "fold_change": "2",
                     "hard_floor": "2339.405527535729",
                     "min_max_avg_comp": "average1",
@@ -1369,7 +1369,7 @@
                   "displayName": "Candida Up",
                   "id": "leaf_calb_up3",
                   "parameters": {
-                    "dataset_url": "https://HostDB.org/a/app/record/dataset/DS_410d99350c",
+                    "dataset_url": "https://qa.hostdb.org/hostdb.qa/app/record/dataset/DS_410d99350c",
                     "fold_change": "2",
                     "hard_floor": "3728.8308638077037",
                     "min_max_avg_comp": "average1",

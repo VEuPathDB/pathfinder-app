@@ -4,8 +4,12 @@ import time
 from wsgiref.simple_server import WSGIServer
 
 from prometheus_client import Counter, Histogram, start_http_server
+from pydantic import BaseModel, ConfigDict
 from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from veupathdb import MetricAttrs
+from veupathdb.observability.otel import OpenTelemetryObserver
+from veupathdb.wdk import list_sites
 
 __all__ = [
     "CHAT_TURNS_FINISHED",
@@ -14,11 +18,16 @@ __all__ = [
     "MODEL_COST_USD",
     "MODEL_TOKENS",
     "TOOL_SOURCE_ERRORS",
+    "WDK_SEARCH_WAIT",
     "HttpMetricsMiddleware",
+    "PathfinderObserver",
+    "observe_search_wait",
     "serve_metrics",
 ]
 
 _UNMATCHED_ROUTE = "unmatched"
+_OTHER = "other"
+_SEARCH_WAIT_KINDS = frozenset({"turn", "site", "expensive"})
 _OTHER_METHOD = "OTHER"
 _METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 
@@ -63,6 +72,35 @@ TOOL_SOURCE_ERRORS = Counter(
     "Tool source failures, by admitted source id and the stage that failed.",
     ("source", "stage"),
 )
+
+WDK_SEARCH_WAIT = Histogram(
+    "pathfinder_wdk_search_wait_seconds",
+    "Seconds a request that runs a WDK search waited in line before it was sent, by site and line.",
+    ("site", "kind"),
+    buckets=(0.05, 0.25, 1, 2.5, 5, 10, 30, 60, 120, 300, 600),
+)
+
+
+def observe_search_wait(site_id: str, kind: str, seconds: float) -> None:
+    known = {site.id for site in list_sites()}
+    WDK_SEARCH_WAIT.labels(
+        site_id if site_id in known else _OTHER,
+        kind if kind in _SEARCH_WAIT_KINDS else _OTHER,
+    ).observe(seconds)
+
+
+class _SearchWait(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    site: str
+    line: str
+
+
+class PathfinderObserver(OpenTelemetryObserver):
+    def on_wdk_search_wait(self, seconds: float, attrs: MetricAttrs, /) -> None:
+        super().on_wdk_search_wait(seconds, attrs)
+        wait = _SearchWait.model_validate(attrs)
+        observe_search_wait(wait.site, wait.line, seconds)
 
 
 def _method_of(scope: Scope) -> str:

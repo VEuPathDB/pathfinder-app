@@ -18,6 +18,7 @@ from assistant_core.capabilities.repetition_guard import (
 from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.tests._support.qa_recording import needs_suite_recordings
 from pathfinder.tests._support.recorded_searches import serve_recorded_listing
 from pathfinder.tests.integration.chat._helpers import run_one_chat_turn
 
@@ -39,6 +40,7 @@ def _inner_steps(chunks: list[dict[str, Any]], tool: str) -> list[dict[str, Any]
     ]
 
 
+@needs_suite_recordings
 async def test_the_repeated_catalog_read_is_refused_inside_frame(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -64,6 +66,7 @@ async def test_the_repeated_catalog_read_is_refused_inside_frame(
     assert refused[0]["state"] == "completed"
 
 
+@needs_suite_recordings
 async def test_the_loop_stops_rather_than_spending_the_phase_budget(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -88,6 +91,7 @@ async def test_the_loop_stops_rather_than_spending_the_phase_budget(
     assert len(started) == DEFAULT_REPETITION_THRESHOLD + 1
 
 
+@needs_suite_recordings
 async def test_the_stopped_turn_still_answers_the_user(
     app: FastAPI,
     patch_app_db_engine: None,

@@ -51,8 +51,10 @@ describe("selectStatusLabel", () => {
     expect(selectStatusLabel(running(null))).toBe("Thinking...");
   });
 
-  it("ignores an empty label", () => {
-    expect(selectStatusLabel(running("Queued", ""))).toBe("Queued");
+  it("withdraws the label an empty one follows", () => {
+    expect(selectStatusLabel(running("Queued", "Waiting for PlasmoDB", ""))).toBe(
+      "Queued",
+    );
   });
 
   it("also accepts the generic data part shape", () => {
@@ -108,6 +110,45 @@ describe("selectStatusLabel follows the phase the trace shows", () => {
         ],
       }),
     ).toBe("Checking...");
+  });
+
+  it("says the turn waits for a site while that notice is the latest status", () => {
+    expect(
+      selectStatusLabel({
+        status: { type: "running" },
+        content: [
+          dispatch("c2", "build", "started"),
+          {
+            type: "data-turn-status",
+            data: { label: "Building...", waitingOnLlm: true },
+          },
+          {
+            type: "data-turn-status",
+            data: { label: "Waiting for PlasmoDB", waitingOnLlm: false },
+          },
+        ],
+      }),
+    ).toBe("Waiting for PlasmoDB");
+  });
+
+  it("returns to the phase once the search starts", () => {
+    expect(
+      selectStatusLabel({
+        status: { type: "running" },
+        content: [
+          dispatch("c2", "build", "started"),
+          {
+            type: "data-turn-status",
+            data: { label: "Building...", waitingOnLlm: true },
+          },
+          {
+            type: "data-turn-status",
+            data: { label: "Waiting for PlasmoDB", waitingOnLlm: false },
+          },
+          { type: "data-turn-status", data: { label: "", waitingOnLlm: false } },
+        ],
+      }),
+    ).toBe("Building...");
   });
 
   it("returns to the reported label once every dispatch closed", () => {

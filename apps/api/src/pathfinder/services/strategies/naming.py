@@ -258,7 +258,7 @@ class TitleWrite:
 
 
 async def name_if_unnamed(
-    threads: ThreadNames, conversation_id: UUID, *, title: str
+    threads: ThreadNames, conversation_id: UUID, *, title: str | None
 ) -> TitleWrite:
     """Give an unnamed thread ``title`` on the thread and its local copies.
 
@@ -272,6 +272,8 @@ async def name_if_unnamed(
     conversation, strategy = found
     ast = parse_strategy_ast(strategy.strategy_ast)
     if not conversation.name:
+        if title is None:
+            return TitleWrite(written=False)
         named = await name_the_thread(
             threads, conversation_id, title, generated_over=named_steps(ast)
         )

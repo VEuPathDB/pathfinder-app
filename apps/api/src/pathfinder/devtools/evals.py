@@ -7,8 +7,8 @@ Usage::
     python -m pathfinder.devtools.evals promote <staging-id> --name <case-name> \\
         --rationale "what this pins" [--turn ...] [--note ...]
     python -m pathfinder.devtools.evals corpus
-    python -m pathfinder.devtools.evals run [--only NAME ...] [--out FILE] \\
-        [--effort EFFORT] [--via-worker]
+    python -m pathfinder.devtools.evals run --sites FILE [--only NAME ...] \\
+        [--out FILE] [--effort EFFORT] [--via-worker]
 
 ``promote`` writes the corpus file and ends the association: the staged row
 keeps its content hash and loses its user, its thread and its extract.
@@ -31,6 +31,7 @@ from pathfinder.devtools.eval_runner import assumed_label, refusals_label, run_c
 from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.evals.store import CORPUS_DIR, load_corpus
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
+from pathfinder.platform.stage_sites import use_sites_file
 from pathfinder.services.eval_data.curation import (
     PromotionEdits,
     default_expectation,
@@ -157,6 +158,12 @@ _MARKS = {
 
 
 def _run(args: argparse.Namespace) -> int:
+    try:
+        sites = chat.chosen_sites_file(args.sites, via_worker=args.via_worker)
+    except chat.SitesChoiceError as exc:
+        print(f"✖ {exc}", file=sys.stderr)
+        return 2
+    use_sites_file(str(sites))
     summary = asyncio.run(
         run_corpus(
             run_root=RUN_ROOT,
@@ -256,6 +263,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "run the corpus through the turn pipeline on the configured provider; "
             "needs WDK_DEV_EMAIL and WDK_DEV_PASSWORD"
+        ),
+    )
+    run.add_argument(
+        "--sites",
+        required=True,
+        metavar="PATH",
+        help=(
+            "sites file every case reads; the recorded counts were measured on "
+            "the sites that file names, so a run names it every time"
         ),
     )
     run.add_argument("--only", nargs="*", default=[], metavar="NAME")

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -106,3 +106,74 @@ async def test_a_title_past_its_wait_leaves_the_turn_alone(
     assert types[-2:] == ["finish", "done"]
     assert chunks[-2]["finishReason"] == "stop"
     assert title.cancelled is True
+
+
+@dataclass
+class _SeedRecorder:
+    seeds: list[str]
+
+    async def __call__(self, seed: str, *args: object, **kwargs: object) -> str:
+        del args, kwargs
+        self.seeds.append(seed)
+        return _TITLE
+
+
+async def test_only_the_message_that_names_the_thread_reaches_the_title_model(
+    app: FastAPI,
+    chat_stack: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del chat_stack
+    title = _SeedRecorder(seeds=[])
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", title)
+    thread = uuid4()
+
+    for prompt in ("hi", "and in toxo"):
+        await run_one_chat_turn(
+            app=app,
+            user_id=authed_user_id,
+            connector=in_memory_jobs,
+            prompt=prompt,
+            conversation_id=thread,
+        )
+
+    assert title.seeds == ["hi"]
+
+
+async def test_a_thread_left_unnamed_is_named_by_its_next_message(
+    app: FastAPI,
+    chat_stack: None,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del chat_stack
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", _NoTitle())
+    thread = uuid4()
+    await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt="hi",
+        conversation_id=thread,
+    )
+    title = _SeedRecorder(seeds=[])
+    monkeypatch.setattr(turn_runner, "charged_conversation_title", title)
+
+    chunks = await run_one_chat_turn(
+        app=app,
+        user_id=authed_user_id,
+        connector=in_memory_jobs,
+        prompt="and in toxo",
+        conversation_id=thread,
+    )
+
+    assert (title.seeds, chunks[-3]["data"]) == (["and in toxo"], {"title": _TITLE})
+
+
+class _NoTitle:
+    async def __call__(self, *args: object, **kwargs: object) -> str:
+        del args, kwargs
+        return ""

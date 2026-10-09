@@ -137,7 +137,7 @@ describe("dataPartRenderers dispatch", () => {
   it("dispatches data-strategy-link to the correct component", () => {
     renderPart("strategy-link", {
       strategyId: "s1",
-      url: "https://plasmodb.org/s1",
+      url: "https://qa.plasmodb.org/s1",
       title: "Test",
     });
     expect(screen.getByTestId("data-strategy-link")).toBeInTheDocument();

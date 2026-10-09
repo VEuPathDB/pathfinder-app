@@ -16,6 +16,9 @@ concurrency:
   group: wdk-nightly
   cancel-in-progress: false
 
+env:
+  VEUPATHDB_SITES_CONFIG: ${{ github.workspace }}/deploy/sites/qa.yml
+
 jobs:
   live-lane:
     name: WDK live lane

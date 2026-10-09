@@ -1,6 +1,6 @@
 import { type BrowserContext, expect } from "@playwright/test";
 
-import { CSRF_HEADERS } from "./api-client";
+import { CSRF_HEADERS, continuePastDataNotice } from "./api-client";
 import { BASE_URL, addWebsiteLogin } from "./test";
 
 export async function signInAsWdkAccount(
@@ -16,9 +16,6 @@ export async function signInAsWdkAccount(
   );
   expect(refreshed.ok(), `session refresh ${refreshed.status()}`).toBe(true);
 
-  const notice = await context.request.patch(`${BASE_URL}/api/v1/me/privacy`, {
-    data: { noticeSeen: true },
-    headers: CSRF_HEADERS,
-  });
-  expect(notice.ok(), `eval-data notice acknowledgement ${notice.status()}`).toBe(true);
+  const notice = await continuePastDataNotice(context.request, BASE_URL);
+  expect(notice.ok(), `data notice ${notice.status()}`).toBe(true);
 }

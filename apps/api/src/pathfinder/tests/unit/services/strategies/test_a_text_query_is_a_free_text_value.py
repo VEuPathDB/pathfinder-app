@@ -38,6 +38,7 @@ from pathfinder.services.strategies.text_queries import (
     text_query_criteria,
 )
 from pathfinder.tests._support.logs import logged_events
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.recorded_searches import suite_search
 
 
@@ -144,7 +145,7 @@ def test_a_free_text_value_is_a_text_query() -> None:
 
 def _location_search() -> WDKSearch:
     recorded = json.loads(
-        (FIXTURE_ROOT / "wdk" / "search_genes_by_location.json").read_text()
+        qa_recording(FIXTURE_ROOT / "wdk" / "search_genes_by_location.json").read_text()
     )
     return WDKSearch.model_validate(recorded["body"]["searchData"])
 

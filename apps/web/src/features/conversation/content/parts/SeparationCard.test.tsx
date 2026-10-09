@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { SeparationReport } from "@pathfinder/shared";
 
-import recorded from "../../__fixtures__/separationResult.json";
+import { qaRecording } from "@/lib/testing/qaRecording";
 import {
   ChatHelpersProvider,
   type ChatHelpers,
@@ -21,7 +21,10 @@ vi.mock("@assistant-ui/react", () => ({
 
 import { SeparationCard } from "./SeparationCard";
 
-const REPORT = recorded as SeparationReport;
+const recorded = qaRecording(
+  new URL("../../__fixtures__/separationResult.json", import.meta.url),
+);
+const REPORT = (recorded ?? {}) as SeparationReport;
 const CALL_ID = "call_adopt_separating_strategy";
 
 const CARD = {
@@ -65,7 +68,7 @@ function renderCard(card: ThreadPart, responses: Response[] = []): void {
 
 afterEach(() => cleanup());
 
-describe("the separation card", () => {
+describe.skipIf(recorded === null)("the separation card", () => {
   it("asks the question the run's counts wrote", () => {
     renderCard(PENDING);
 

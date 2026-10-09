@@ -45,7 +45,7 @@ _ASKED = "P. falciparum 3D7 genes with a signal peptide"
 _ADDED = "Also require at least 2 transmembrane domains."
 _ROOT = 440299573
 _STRATEGY = 300125410
-_RECORD = "https://plasmodb.org/plasmo/app/record/gene/{}"
+_RECORD = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/{}"
 
 pytestmark = pytest.mark.usefixtures("collector")
 

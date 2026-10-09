@@ -72,11 +72,7 @@ class User(Base):
     eval_data_consent: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
-    # When the user saw the eval-data notice. Server side, so the notice does
-    # not come back on another device.
-    eval_notice_seen_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    data_notice_seen: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     # One-directional: the thread is the runtime's and names no owner back.
     # The relationship stays because it orders the flush and cascades a delete.

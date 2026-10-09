@@ -2,10 +2,12 @@
 
 import type { MouseEvent } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { withBasePath } from "@/lib/basePath";
+import { yourDataUrl } from "@/lib/routes";
 import { goToSiteSignIn, signInHref } from "@/lib/siteSignIn";
 
 const STANDING_TEXT = "Sign in to VEuPathDB to build and manage search strategies.";
@@ -58,6 +60,12 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
         >
           Sign in to VEuPathDB
         </a>
+        <Link
+          href={yourDataUrl()}
+          className="mt-3 block text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        >
+          Your data in PathFinder
+        </Link>
       </div>
     </div>
   );

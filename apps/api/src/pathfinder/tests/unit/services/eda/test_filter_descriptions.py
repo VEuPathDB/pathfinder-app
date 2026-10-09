@@ -12,6 +12,7 @@ from veupathdb.eda import (
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.services.eda.description import display_names, filter_summaries
+from pathfinder.tests._support.qa_recording import qa_recording
 
 FIXTURES = FIXTURE_DIR
 
@@ -21,7 +22,7 @@ _SPECIES = "VAR_035294d0"
 
 def _phenotype_study() -> EdaStudyDetailResponse:
     return EdaStudyDetailResponse.model_validate(
-        json.loads((FIXTURES / "study_detail_phenotype.json").read_text())
+        json.loads(qa_recording(FIXTURES / "study_detail_phenotype.json").read_text())
     )
 
 

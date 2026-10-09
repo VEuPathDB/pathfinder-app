@@ -2,6 +2,70 @@
 
 ## 2026-10-09
 
+* **An expensive search waits in one line across the deployment.** Every turn and every
+  durable body is a search turn of `veupathdb-py`, so it sends one search to a site at a
+  time; a High Speed SNP search or a search marked slow holds the tool server's Postgres
+  advisory lock `wdk-expensive-search:<site>` for as long as its request runs, in the api,
+  the worker and the served tool server, which runs each tool call as one search turn.
+  Every limit waits and none refuses. Each reading of a bind has its budget from the
+  moment its report is sent. A wait of five seconds says "Waiting for <site>" on the
+  turn's status line, in place of the phase name, and on a durable task's progress;
+  `pathfinder_wdk_search_wait_seconds{site,kind}` counts every wait. The worker now
+  installs the client observer too. Decision:
+  [an expensive search waits in one line across the deployment](decisions/an-expensive-search-waits-in-one-line-across-the-deployment.md).
+
+* **Tests run against the QA sites.** `e2e-sites.yaml` now copies its seven entries from
+  `deploy/sites/qa.yml`; the root conftest puts the QA file in force for every test, and
+  every link a test expects is a QA link; both nightlies set `VEUPATHDB_SITES_CONFIG` to it;
+  the client (veupathdb-py 0.1.0b4, veupathdb-mcp 0.2.0b7, both taken) ships
+  no default list and records only from QA, and `Settings` refuses a process that names
+  no sites file; compose defaults the api, the worker and wdk-mcp to the QA file; the chat debugger defaults to
+  it with `--sites` to choose another; the eval runner and the thesis gold validator
+  require `--sites`. The live site-search drift check reads its host from the site list
+  instead of naming production. `node scripts/check-test-sites.mjs` fails on a
+  production or beta host in any test, fixture or test configuration. Every response
+  recorded from production moved to `fixtures-production-backup-2026-10-09/`, and the
+  tests that need one skip with "needs a QA recording: re-record once QA access exists"
+  only while it is missing. The seeds' dataset links name QA web roots, and the guard reads
+  the whole repository outside `docs/` and the backup. The e2e job and the nightlies stay
+  disabled until QA admits automated clients. Decision:
+  [tests run against the QA sites](decisions/tests-run-against-the-qa-sites.md).
+
+* **Help and Your data in PathFinder pages** at `/help` and `/help/your-data`, reached
+  from the rail, the sign-in notice and the Provider keys tab.
+
+* **A data notice at first sign-in, and nothing copied before it.** The api owns the
+  statement version (`DataStatementVersion.CURRENT`, `2026-10-09`), the web reads it from
+  the generated types, and `users.data_notice_seen` (alembic `2026_10_09_0002`, replacing
+  `eval_notice_seen_at`) records the version an account saw. The notice shows the
+  statement's seven points, a link to the full statement and the learning box ticked;
+  Continue posts the version and the choice to `/api/v1/me/privacy/data-notice`. The
+  nightly extraction and the copy on dislike require the current version, so no account
+  that existed before today is copied until it has seen the notice. The "How PathFinder
+  learns" notice is gone. The Privacy tab states what a copy holds, what is removed before
+  review, that a person reads it, what an accepted copy keeps and what turning it off
+  deletes. `/help/your-data` is rewritten to In brief plus short sections, about half its
+  length. Decision:
+  [the data notice gates every copy for review](decisions/the-data-notice-gates-every-copy-for-review.md).
+
+* **A finished job leaves no request behind.** The worker deletes every job at its final
+  state (`DeleteJobCondition.ALWAYS`), the runtime's stalled-job release deletes the job it
+  fails, and alembic `2026_10_09_0001` deleted the finished rows already kept, each with
+  the request body, its files and the researcher's VEuPathDB token. Every procrastinate
+  log record now names a job by its name, id, queue and status, with no arguments and no
+  result. Decision:
+  [a finished job leaves no request behind](decisions/a-finished-job-leaves-no-request-behind.md).
+
+* **A conversation is named from its first message.** The turn runs the title model only
+  while the thread holds no name; a named thread's turn sends no message to it and puts the
+  thread's name back on its stored strategy.
+
+* **The estate stack has a runbook.** `docs/OPERATIONS.md` tells an operator what each
+  unit of the `webservices-quadlets` stack runs, what the first start does, how a release
+  reaches dev and qa and how a stage is pinned or rolled back, what each of the twelve
+  secrets does and what rotating it breaks, the health endpoints, metrics, backups and
+  the common failures. The README points deployment at it.
+
 * **The estate stack holds only deployment facts.** Its two MCP units run the
   `pathfinder-api` image with a command of their own, each stage's sites file is
   `deploy/sites/<stage>.yml` copied into that image at `/app/config/sites/`, and the

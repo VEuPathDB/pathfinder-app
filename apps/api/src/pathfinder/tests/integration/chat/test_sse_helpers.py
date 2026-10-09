@@ -7,6 +7,7 @@ from typing import Any
 
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests.integration.chat._helpers import parse_sse_body
 
 _LINE_SEPARATOR = "\u2028"
@@ -15,7 +16,7 @@ _STUDIES_LIST = FIXTURE_DIR / "studies_list.json"
 
 
 def _recorded_description_with_line_separator() -> str:
-    raw = json.loads(_STUDIES_LIST.read_text(encoding="utf-8"))
+    raw = json.loads(qa_recording(_STUDIES_LIST).read_text(encoding="utf-8"))
     for study in raw["studies"]:
         description = str(study["description"])
         if _LINE_SEPARATOR in description:

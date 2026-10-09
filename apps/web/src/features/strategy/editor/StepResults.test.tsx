@@ -33,7 +33,7 @@ vi.mock(
 
 import { StepResults } from "./StepResults";
 
-const STEP_URL = "https://plasmodb.org/plasmo/app/workspace/strategies/11/22";
+const STEP_URL = "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/11/22";
 
 function geneId(n: number): string {
   return `PF3D7_${String(n).padStart(7, "0")}`;
@@ -57,7 +57,7 @@ function page(
       geneId: geneId(first + i),
       organism: "Plasmodium falciparum 3D7",
       product: `product ${first + i}`,
-      recordUrl: `https://plasmodb.org/plasmo/app/record/gene/${geneId(first + i)}`,
+      recordUrl: `https://qa.plasmodb.org/plasmo.qa/app/record/gene/${geneId(first + i)}`,
     })),
   };
 }
@@ -117,7 +117,7 @@ describe("StepResults", () => {
 
     const link = await screen.findByRole("link", { name: geneId(0) });
     expect(link.getAttribute("href")).toBe(
-      `https://plasmodb.org/plasmo/app/record/gene/${geneId(0)}`,
+      `https://qa.plasmodb.org/plasmo.qa/app/record/gene/${geneId(0)}`,
     );
     expect(link.getAttribute("target")).toBe("_blank");
     const row = screen.getByTestId(`step-result-${geneId(1)}`);

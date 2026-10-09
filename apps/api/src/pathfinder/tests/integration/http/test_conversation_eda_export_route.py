@@ -14,6 +14,7 @@ from veupathdb_mcp.catalog import COMPUTE_QUERY, SUBSET_QUERY
 
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests._support.eda_wire import AnalysisStore
+from pathfinder.tests._support.qa_recording import needs_client_eda_recordings
 from pathfinder.tests.integration.http._conversation_eda import (
     bind_thread,
     hermetic_wdk,
@@ -63,6 +64,7 @@ async def test_a_volcano_export_writes_the_cut_the_analysis_stores(
     assert body["analysis"]["revision"] == 1
 
 
+@needs_client_eda_recordings
 async def test_export_step_on_a_thread_with_no_strategy_begins_it(
     thread: tuple[httpx.AsyncClient, UUID],
     session_maker: async_sessionmaker[AsyncSession],

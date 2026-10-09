@@ -157,7 +157,7 @@ async def test_an_edit_that_leaves_the_tree_in_place_keeps_the_strategy_link(
     deps = await _edited(monkeypatch)
 
     assert live_strategy_url("plasmodb", deps.runtime.strategy_session.sync_state) == (
-        "https://plasmodb.org/plasmo/app/workspace/strategies/900/11"
+        "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/900/11"
     )
 
 

@@ -165,13 +165,13 @@ describe("EditorContent", () => {
       offset: 0,
       limit: 50,
       recordType: "transcript",
-      stepUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/11/22",
+      stepUrl: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/11/22",
       records: [
         {
           geneId: "PF3D7_1133400",
           organism: "Plasmodium falciparum 3D7",
           product: "apical membrane antigen 1",
-          recordUrl: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_1133400",
+          recordUrl: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1133400",
         },
       ],
     });
@@ -188,7 +188,7 @@ describe("EditorContent", () => {
     );
     const link = await screen.findByRole("link", { name: "PF3D7_1133400" });
     expect(link.getAttribute("href")).toBe(
-      "https://plasmodb.org/plasmo/app/record/gene/PF3D7_1133400",
+      "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1133400",
     );
   });
 });

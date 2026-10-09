@@ -159,7 +159,10 @@ Conformance: `packages/spec/phyletic_conformance.json` is one clade tree and one
 expected binding per selection, read by
 `apps/api/src/pathfinder/tests/unit/test_phyletic_conformance.py`
 and `apps/web/src/features/strategy/editor/widgets/phyleticConformance.test.ts`,
-so the two encoders cannot drift apart without a red test on both sides.
+so the two encoders cannot drift apart without a red test on both sides. The file
+was read from production, so it waits in `fixtures-production-backup-2026-10-09/`
+and both tests skip until QA re-records it
+([tests run against the QA sites](tests-run-against-the-qa-sites.md)).
 
 `veupathdb-mcp: tests/unit/catalog/test_param_phyletic.py` pins the other half of this
 decision - every phyletic string the model reads says the pattern is derived and

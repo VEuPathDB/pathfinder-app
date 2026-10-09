@@ -64,7 +64,8 @@ def test_a_reply_citing_the_sample_shown_last_stands_and_renders_each_link() -> 
     assert render_reply(answer.prose, turn_facts(deps)) == (
         "Here is the same sample again: "
         + ", ".join(
-            f"[{g}](https://hostdb.org/hostdb/app/record/gene/{g})" for g in _SAMPLE
+            f"[{g}](https://qa.hostdb.org/hostdb.qa/app/record/gene/{g})"
+            for g in _SAMPLE
         )
         + "."
     )

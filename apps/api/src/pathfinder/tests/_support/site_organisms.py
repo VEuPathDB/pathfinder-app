@@ -8,6 +8,7 @@ import pytest
 from veupathdb.model import CamelModel
 
 from pathfinder.ai.lead import classification_gate
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _RECORDED = Path(__file__).resolve().parents[1] / "fixtures" / "organisms"
 
@@ -21,7 +22,7 @@ class RecordedOrganisms(CamelModel):
 
 def recorded_organisms(site_id: str) -> list[str]:
     """Every organism the site declared on the day of the recording."""
-    path = _RECORDED / f"{site_id}.json"
+    path = qa_recording(_RECORDED / f"{site_id}.json")
     return RecordedOrganisms.model_validate_json(path.read_text()).organisms
 
 

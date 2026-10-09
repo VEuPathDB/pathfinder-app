@@ -22,7 +22,7 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-anthropic}
       DEFAULT_TIER: ${DEFAULT_TIER:-balanced}
-      VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
+      VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       PATHFINDER_SITE: ${PATHFINDER_SITE:-}
@@ -114,7 +114,7 @@ services:
       # This process runs the turn, so it screens every tool result.
       INPUT_SCREENING_ENABLED: ${INPUT_SCREENING_ENABLED:-true}
       INPUT_SCREENING_MODEL: ${INPUT_SCREENING_MODEL:-}
-      VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
+      VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       PATHFINDER_SITE: ${PATHFINDER_SITE:-}
@@ -167,7 +167,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b6
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b8
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -186,7 +186,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-}
+      VEUPATHDB_SITES_CONFIG: ${VEUPATHDB_SITES_CONFIG:-/app/config/sites/qa.yml}
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
@@ -214,6 +214,7 @@ services:
       VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
     volumes:
       - catalogs_cache:/app/data/catalogs
+      - ./deploy/sites:/app/config/sites:ro
 
   searxng:
     # The metasearch the research server asks first. It serves this stack only,
@@ -243,7 +244,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b6
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b8
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m

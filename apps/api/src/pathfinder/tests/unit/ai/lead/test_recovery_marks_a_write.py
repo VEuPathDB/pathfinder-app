@@ -55,7 +55,7 @@ def _deps(session: StrategySession) -> LeadDeps:
 def _sync_result() -> SyncResult:
     return SyncResult(
         wdk_strategy_id=901,
-        wdk_url="https://plasmodb.org/plasmo/app/workspace/strategies/901",
+        wdk_url="https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/901",
         root_step_id=5001,
         counts={"step_a": _ROOT_COUNT},
         root_count=_ROOT_COUNT,

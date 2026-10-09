@@ -15,7 +15,7 @@ const props = {
   onDiscard: vi.fn(),
   count: 132,
   recordType: "transcript",
-  wdkUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/1",
+  wdkUrl: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/1",
   wdkStrategyId: 1,
   conversationId: "conv-1",
 };

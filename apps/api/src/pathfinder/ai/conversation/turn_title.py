@@ -33,9 +33,9 @@ async def write_turn_name(
     title_for: TitleGenerator,
 ) -> None:
     """Write the thread's first title, or the name its edits outdated anew."""
-    if title_task is not None and await _write_title(
-        title_task, conversation_id, writer
-    ):
+    if title_task is None:
+        await _keep_the_name(conversation_id)
+    elif await _write_title(title_task, conversation_id, writer):
         return
     try:
         renamed = await asyncio.wait_for(
@@ -67,6 +67,15 @@ async def _write_title_chunk(writer: ChatWriter, title: str) -> None:
             exclude_none=True,
         ),
     )
+
+
+async def _keep_the_name(conversation_id: UUID) -> None:
+    try:
+        await name_conversation_if_unnamed(conversation_id, title=None)
+    except Exception:
+        logger.exception(
+            "Keeping the thread name failed", conversation_id=str(conversation_id)
+        )
 
 
 async def _write_title(

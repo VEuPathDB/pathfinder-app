@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
 
 import { StrategyPanel } from "./StrategyPanel";
 
-const WDK_URL = "https://plasmodb.org/plasmo/app/workspace/strategies/330528343";
+const WDK_URL = "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330528343";
 
 function strategy(overrides: Partial<Strategy> = {}): Strategy {
   return {

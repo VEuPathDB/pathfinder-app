@@ -62,6 +62,8 @@ import type {
   OpenConversationRequest,
   OpenConversationResponse,
   ParamSpecResponse,
+  DataNoticeContinue,
+  DataStatementVersion,
   PrivacySettings,
   PrivacyUpdate,
   VariantComparison,
@@ -113,6 +115,7 @@ import type {
   WDKFilterOntologyTerm,
   WDKDatasetParser,
 } from "./generated/types/index";
+import { dataStatementVersionEnum } from "./generated/types/index";
 
 export type ModelCatalogEntry = ModelCatalogEntryResponse;
 export type Search = SearchResponse;
@@ -256,7 +259,24 @@ export type {
   RecalledMemory,
 };
 
-export type { PrivacySettings, PrivacyUpdate };
+export type {
+  DataNoticeContinue,
+  DataStatementVersion,
+  PrivacySettings,
+  PrivacyUpdate,
+};
+
+function theOnlyVersion(versions: DataStatementVersion[]): DataStatementVersion {
+  const [only, ...rest] = versions;
+  if (only === undefined || rest.length > 0) {
+    throw new Error("The data statement has exactly one current version.");
+  }
+  return only;
+}
+
+export const DATA_STATEMENT_VERSION: DataStatementVersion = theOnlyVersion(
+  Object.values(dataStatementVersionEnum),
+);
 
 export type { TaskListItem, TaskListResponse };
 

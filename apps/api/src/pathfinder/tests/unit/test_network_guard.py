@@ -13,19 +13,19 @@ from pathfinder.tests._support.network_guard import NetworkAccessError
 
 def test_an_outbound_connection_is_refused() -> None:
     with socket.socket() as sock, pytest.raises(NetworkAccessError) as excinfo:
-        sock.connect(("plasmodb.org", 443))
-    assert "plasmodb.org:443" in str(excinfo.value)
+        sock.connect(("qa.plasmodb.org", 443))
+    assert "qa.plasmodb.org:443" in str(excinfo.value)
 
 
 def test_the_refusal_names_the_test() -> None:
     with socket.socket() as sock, pytest.raises(NetworkAccessError) as excinfo:
-        sock.connect(("plasmodb.org", 443))
+        sock.connect(("qa.plasmodb.org", 443))
     assert "test_the_refusal_names_the_test" in str(excinfo.value)
 
 
 def test_name_resolution_is_refused() -> None:
     with pytest.raises(NetworkAccessError):
-        socket.getaddrinfo("plasmodb.org", 443)
+        socket.getaddrinfo("qa.plasmodb.org", 443)
 
 
 def test_loopback_is_refused_too() -> None:
@@ -38,10 +38,10 @@ def test_loopback_is_refused_too() -> None:
 async def test_an_event_loop_connection_is_refused() -> None:
     loop = asyncio.get_running_loop()
     with pytest.raises(NetworkAccessError):
-        await loop.getaddrinfo("plasmodb.org", 443)
+        await loop.getaddrinfo("qa.plasmodb.org", 443)
 
     with pytest.raises(NetworkAccessError):
-        await loop.create_connection(asyncio.Protocol, "plasmodb.org", 443)
+        await loop.create_connection(asyncio.Protocol, "qa.plasmodb.org", 443)
 
 
 def test_a_retry_loop_that_catches_exception_cannot_swallow_it() -> None:
@@ -53,7 +53,7 @@ def test_a_retry_loop_that_catches_exception_cannot_swallow_it() -> None:
         for _ in range(3):
             attempts += 1
             with contextlib.suppress(Exception):
-                socket.getaddrinfo("plasmodb.org", 443)
+                socket.getaddrinfo("qa.plasmodb.org", 443)
 
     with pytest.raises(NetworkAccessError):
         retrying_client()
@@ -69,11 +69,11 @@ def test_a_bytes_host_is_decoded_in_the_message() -> None:
     loop = asyncio.new_event_loop()
     try:
         with pytest.raises(NetworkAccessError) as excinfo:
-            loop.run_until_complete(loop.getaddrinfo(b"plasmodb.org", 443))
+            loop.run_until_complete(loop.getaddrinfo(b"qa.plasmodb.org", 443))
     finally:
         loop.close()
-    assert "plasmodb.org:443" in str(excinfo.value)
-    assert "b'plasmodb.org'" not in str(excinfo.value)
+    assert "qa.plasmodb.org:443" in str(excinfo.value)
+    assert "b'qa.plasmodb.org'" not in str(excinfo.value)
 
 
 def test_a_unix_socket_is_not_the_network() -> None:

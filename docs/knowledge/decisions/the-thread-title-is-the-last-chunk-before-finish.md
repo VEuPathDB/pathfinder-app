@@ -4,7 +4,7 @@ title: The thread title is the last chunk before a turn finishes
 description: run_turn writes data-conversation-title immediately before the turn's finish chunk, awaiting the title task there under a 15 s ceiling, instead of writing it on the first graph chunk that arrives after the task reports done. Emitting right after start, and comparing the golden fixture by presence instead of by position, were rejected.
 tags: [chat, sse, turn-runner, testing, protocol]
 generated: { by: claude-code/opus-5, at: 2026-09-11T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-11T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-10-09T00:00:00Z }
 status: stable
 ---
 
@@ -74,9 +74,11 @@ model took. The ceiling is what makes the defined position safe to await.
 gives every provider a 900 s request timeout and the title agent is built with
 `retries=1`, so an unbounded await could hold `finish` for roughly half an hour.
 The number is a deadlock ceiling, not a measured budget, and a fired ceiling
-costs the thread nothing permanent: `run_turn` starts a title task on every turn
-whose user text is non-empty, and `name_conversation_if_unnamed` writes only when
-the thread has no name, so the next turn names it. `POST /conversations/{id}/begin`
+costs the thread nothing permanent: `run_turn` starts a title task on a turn
+whose user text is non-empty while the thread holds no name, so the next turn
+names it. A turn on a named thread sends no message to the title model; it calls
+`name_conversation_if_unnamed` with no title, which puts the thread's name back
+on a stored strategy that carries another one. `POST /conversations/{id}/begin`
 also generates a title of its own when the thread is created.
 
 Writing the title is bounded the same way. `name_conversation_if_unnamed` waits

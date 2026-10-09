@@ -17,18 +17,19 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from veupathdb.errors import WDKError
-from veupathdb.observability.otel import OpenTelemetryObserver
 
 import pathfinder.jobs.app
 from pathfinder import main
 from pathfinder.jobs import logging_filters
 from pathfinder.platform.config import get_settings
+from pathfinder.platform.metrics import PathfinderObserver
 from pathfinder.platform.readiness import (
     SubsystemStatus,
     get_readiness,
     reset_readiness,
 )
 from pathfinder.services.export import sweeper
+from pathfinder.services.search_waits import runs_on_the_deployment_line
 
 _MISSING_CREDENTIAL = "the deployment holds no key for the screening model"
 _UNBUILT = "a disabled screener builds nothing"
@@ -107,6 +108,8 @@ def isolated_lifespan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pathfinder.jobs.app, "procrastinate_app", _ProcrastinateApp())
     monkeypatch.setattr(sweeper, "run_sweeper_loop", _sweeper_loop)
     monkeypatch.setattr(main, "serve_metrics", lambda port, addr: None)
+    monkeypatch.setattr(main, "set_observer", lambda observer: None)
+    monkeypatch.setattr(main, "install_search_line", lambda url, expensive: None)
 
 
 async def test_startup_returns_while_warm_up_still_runs(
@@ -134,24 +137,31 @@ async def test_startup_returns_while_warm_up_still_runs(
     assert finished.is_set()
 
 
-async def test_the_lifespan_installs_the_client_s_otel_observer(
+async def test_the_lifespan_installs_the_observer_and_the_search_line(
     isolated_lifespan: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Every WDK call this process makes reports through the client's adapter."""
+    """Every WDK call reports through the observer, and searches wait in the line."""
     del isolated_lifespan
     installed: list[object] = []
+    lines: list[tuple[str, object]] = []
 
     async def _no_warm_up() -> None:
         return None
 
     monkeypatch.setattr(main, "_warm_up_subsystems", _no_warm_up)
     monkeypatch.setattr(main, "set_observer", installed.append)
+    monkeypatch.setattr(
+        main,
+        "install_search_line",
+        lambda url, expensive: lines.append((url, expensive)),
+    )
 
     app = FastAPI()
     async with main.lifespan(app):
         pass
 
-    assert [type(observer) for observer in installed] == [OpenTelemetryObserver]
+    assert [type(observer) for observer in installed] == [PathfinderObserver]
+    assert lines == [(get_settings().database_url, runs_on_the_deployment_line)]
 
 
 async def test_the_lifespan_meters_at_the_catalog_prices(

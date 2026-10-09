@@ -86,8 +86,8 @@ function site(id: string, name: string, baseUrl: string): SiteResponse {
 }
 
 const SITES: SiteResponse[] = [
-  site("plasmodb", "PlasmoDB", "https://plasmodb.org/plasmo/service"),
-  site("toxodb", "ToxoDB", "https://toxodb.org/toxo/service"),
+  site("plasmodb", "PlasmoDB", "https://qa.plasmodb.org/plasmo.qa/service"),
+  site("toxodb", "ToxoDB", "https://qa.toxodb.org/toxo.qa/service"),
 ];
 
 function renderDialog(open = true, siteId = "plasmodb") {
@@ -166,7 +166,7 @@ describe("the VEuPathDB strategy import dialog", () => {
 
     await userEvent.type(
       screen.getByTestId("open-wdk-strategy-input"),
-      "https://plasmodb.org/plasmo/app/workspace/strategies/214626640",
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/214626640",
     );
     await userEvent.click(screen.getByTestId("open-wdk-strategy-confirm"));
 
@@ -182,7 +182,7 @@ describe("the VEuPathDB strategy import dialog", () => {
 
     expect(await screen.findByTestId("open-wdk-strategy-input")).toHaveAttribute(
       "placeholder",
-      "https://toxodb.org/toxo/app/workspace/strategies/214626640",
+      "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/214626640",
     );
   });
 
@@ -192,7 +192,7 @@ describe("the VEuPathDB strategy import dialog", () => {
 
     await userEvent.type(
       screen.getByTestId("open-wdk-strategy-input"),
-      "https://toxodb.org/toxo/app/workspace/strategies/330528343",
+      "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/330528343",
     );
 
     expect(screen.getByTestId("open-wdk-strategy-notice")).toHaveTextContent(
@@ -208,11 +208,11 @@ describe("the VEuPathDB strategy import dialog", () => {
 
     await userEvent.type(
       screen.getByTestId("open-wdk-strategy-input"),
-      "https://beta.plasmodb.org/plasmo/app/workspace/strategies/7",
+      "https://q2.plasmodb.org/plasmo.qa/app/workspace/strategies/7",
     );
 
     expect(screen.getByTestId("open-wdk-strategy-notice")).toHaveTextContent(
-      "PathFinder has no site at beta.plasmodb.org.",
+      "PathFinder has no site at q2.plasmodb.org.",
     );
     expect(screen.getByTestId("open-wdk-strategy-confirm")).toBeDisabled();
   });
@@ -223,7 +223,7 @@ describe("the VEuPathDB strategy import dialog", () => {
 
     await userEvent.type(
       screen.getByTestId("open-wdk-strategy-input"),
-      "https://plasmodb.org/plasmo/app/workspace/strategies/214626640",
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/214626640",
     );
 
     expect(screen.queryByTestId("open-wdk-strategy-notice")).toBeNull();

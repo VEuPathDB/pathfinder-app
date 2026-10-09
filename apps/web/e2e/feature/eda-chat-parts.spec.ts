@@ -14,12 +14,21 @@ import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import { CSRF_HEADERS } from "../fixtures/api-client";
 import {
   analysisState,
+  countLine,
+  EDA_RECORDING_MISSING,
   edaJson,
+  FEBRILE_COUNTS,
   FEBRILE_SUMMARY,
   FILTERED_ANALYSIS,
+  NEEDS_QA_RECORDING,
   SITE_ID,
   STUDY_TITLE,
+  SUBSET_COVERAGE,
+  SUBSET_FIRST_BIN,
   SUBSET_PREVIEW,
+  VOLCANO_DROPPED,
+  VOLCANO_SELECTED,
+  VOLCANO_SELECTION,
   VOLCANO_VIZ,
 } from "../fixtures/eda";
 
@@ -47,6 +56,7 @@ async function sendTurn(page: Page, text: string): Promise<void> {
 }
 
 test.describe("EDA data parts render in the thread", () => {
+  test.skip(EDA_RECORDING_MISSING, NEEDS_QA_RECORDING);
   test("an exploration turn draws the chips, the counts and the volcano", async ({
     page,
     context,
@@ -78,36 +88,37 @@ test.describe("EDA data parts render in the thread", () => {
     await page.goto(`${SITE_ID}/conversation/${conversationId}`);
     await sendTurn(page, "explore the heat shock study");
 
-    // 6 of 12 samples: the febrile half of the recorded entity counts.
     const card = page.getByTestId("data-eda-analysis-state");
     await expect(card).toBeVisible({ timeout: 20_000 });
     await expect(card).toContainText(STUDY_TITLE);
-    await expect(card).toContainText("6 of 12 Sample");
-    await expect(card).toContainText("34,320 of 68,640 pfal3D7 htseq counts");
+    for (const count of FEBRILE_COUNTS) {
+      await expect(card).toContainText(countLine(count));
+    }
     await expect(page.getByTestId("data-eda-filter-chip-0")).toContainText(
       FEBRILE_SUMMARY,
     );
 
     const preview = page.getByTestId("data-eda-subset-preview");
-    await expect(preview).toContainText("6 of 12 Sample");
+    await expect(preview).toContainText(countLine(FEBRILE_COUNTS[0]!));
     await expect(page.getByTestId("data-eda-subset-histogram")).toBeVisible();
-    await expect(page.getByTestId("data-eda-subset-bin-0")).toContainText("febrile 6");
+    await expect(page.getByTestId("data-eda-subset-bin-0")).toContainText(
+      SUBSET_FIRST_BIN,
+    );
     await expect(page.getByTestId("data-eda-subset-coverage")).toContainText(
-      "6 of 6 records have a value",
+      SUBSET_COVERAGE,
     );
 
-    // One of the three points clears both thresholds; one carries no p-value.
     const volcano = page.getByTestId("eda-viz-volcano");
     await expect(volcano).toBeVisible();
     await expect(volcano.locator("canvas")).toBeVisible();
     await expect(page.getByTestId("eda-viz-volcano-selection")).toContainText(
-      "1 gene selected at these thresholds - 1 of 3 retained by the comparison",
+      VOLCANO_SELECTION,
     );
     await expect(page.getByTestId("eda-viz-volcano-genes")).toContainText(
-      "PF3D7_0100200",
+      VOLCANO_SELECTED[0]!,
     );
     await expect(page.getByTestId("eda-viz-volcano-dropped")).toContainText(
-      "1 point without a p-value was not plotted",
+      VOLCANO_DROPPED,
     );
   });
 

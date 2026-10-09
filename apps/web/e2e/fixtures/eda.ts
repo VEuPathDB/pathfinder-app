@@ -1,106 +1,158 @@
-/**
- * Recorded EDA wire payloads for the browser journeys.
- *
- * Every object matches the generated schema the app validates the response
- * against, so a route answered from here reaches the same code a live answer
- * reaches. `routeEdaReads` is a no-op in the live lane.
- */
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 
 import type { Page } from "@playwright/test";
 
+export const NEEDS_QA_RECORDING =
+  "needs a QA recording: re-record once QA access exists";
+
+export const EDA_RECORDING_FILE = path.join(__dirname, "recordings", "eda.json");
+
+interface EntityCount {
+  entityId: string;
+  entityDisplayName: string;
+  count: number;
+  unfilteredCount: number;
+}
+
+interface VolcanoPoint {
+  pointId: string;
+  effectSize: number;
+  pValue: number | null;
+  adjustedPValue: number | null;
+  retained: boolean;
+}
+
+interface EdaRecording {
+  siteId: string;
+  datasetId: string;
+  studyId: string;
+  analysisId: string;
+  studyTitle: string;
+  analysisUrl: string;
+  studyRow: Record<string, unknown>;
+  countsUnfiltered: EntityCount[];
+  countsFebrile: EntityCount[];
+  febrileFilter: {
+    entityId: string;
+    variableId: string;
+    type: string;
+    stringSet: string[];
+  };
+  febrileSummary: string;
+  febrileDistribution: {
+    labels: string[];
+    values: number[];
+    subsetSize: number;
+    numVarValues: number;
+  } & Record<string, unknown>;
+  compute: { groupA: string[]; groupB: string[] } & Record<string, unknown>;
+  comparisonSentence: string;
+  volcano: {
+    chart: string;
+    effectSizeLabel: string;
+    effectSizeThreshold: number;
+    significanceThreshold: number;
+    effectDirection: string;
+    totalPoints: number;
+    retainedPoints: number;
+    retainedPointIds: string[];
+    points: VolcanoPoint[];
+  };
+  exportedStep: {
+    id: string;
+    searchName: string;
+    displayName: string;
+    estimatedSize: number;
+  };
+  exportedStrategyName: string;
+}
+
+const ABSENT: EdaRecording = {
+  siteId: "",
+  datasetId: "",
+  studyId: "",
+  analysisId: "",
+  studyTitle: "",
+  analysisUrl: "",
+  studyRow: {},
+  countsUnfiltered: [],
+  countsFebrile: [],
+  febrileFilter: { entityId: "", variableId: "", type: "", stringSet: [] },
+  febrileSummary: "",
+  febrileDistribution: { labels: [], values: [], subsetSize: 0, numVarValues: 0 },
+  compute: { groupA: [], groupB: [] },
+  comparisonSentence: "",
+  volcano: {
+    chart: "",
+    effectSizeLabel: "",
+    effectSizeThreshold: 0,
+    significanceThreshold: 0,
+    effectDirection: "",
+    totalPoints: 0,
+    retainedPoints: 0,
+    retainedPointIds: [],
+    points: [],
+  },
+  exportedStep: { id: "", searchName: "", displayName: "", estimatedSize: 0 },
+  exportedStrategyName: "",
+};
+
+const RECORDED = existsSync(EDA_RECORDING_FILE);
+const EDA: EdaRecording = RECORDED
+  ? (JSON.parse(readFileSync(EDA_RECORDING_FILE, "utf8")) as EdaRecording)
+  : ABSENT;
+
+export const EDA_RECORDING_MISSING = !RECORDED;
+
 const EDA_LIVE = process.env["PATHFINDER_EDA_LIVE"] === "1";
 
-export const SITE_ID = "plasmodb";
-export const DATASET_ID = "DS_e973eadd57";
-const STUDY_ID = "STUDY_e973eadd57";
-const SAMPLE_ENTITY = "ENT_8151325d";
-const COUNTS_ENTITY = "ENT_fd574cd6";
-const TEMPERATURE_VAR = "VAR_081ab087";
-export const STUDY_TITLE = "Heat shock response in sensitive mutants (LRR5, DHC)";
-const ANALYSIS_ID = "a-e2e-1";
-/** The site's own page for the analysis, as `services/eda/urls.py` builds it. */
-export const ANALYSIS_URL = `https://plasmodb.org/plasmo/app/workspace/analyses/${DATASET_ID}/${ANALYSIS_ID}`;
+export const SITE_ID = EDA.siteId;
+export const DATASET_ID = EDA.datasetId;
+export const STUDY_TITLE = EDA.studyTitle;
+export const ANALYSIS_URL = EDA.analysisUrl;
+export const STUDY_ROW = EDA.studyRow;
+export const FEBRILE_FILTER = EDA.febrileFilter;
+export const FEBRILE_SUMMARY = EDA.febrileSummary;
+export const COMPARISON_SENTENCE = EDA.comparisonSentence;
 
-export const STUDY_ROW = {
-  datasetId: DATASET_ID,
-  studyId: STUDY_ID,
-  displayName: STUDY_TITLE,
-  shortDisplayName: "Heat shock",
-  description: "Heat shock response in P. falciparum 3D7 sensitive mutants",
-  sourceType: "curated",
-  relevance: 1,
-  canSubset: true,
-  canExportRows: true,
-  sites: ["plasmodb"],
-  notHere: null,
-};
+const number = (value: number): string => value.toLocaleString("en-US");
 
-const COUNTS_UNFILTERED = [
-  {
-    entityId: SAMPLE_ENTITY,
-    entityDisplayName: "Sample",
-    count: 12,
-    unfilteredCount: 12,
-  },
-  {
-    entityId: COUNTS_ENTITY,
-    entityDisplayName: "pfal3D7 htseq counts",
-    count: 68640,
-    unfilteredCount: 68640,
-  },
-];
+export function countLine(count: EntityCount): string {
+  return `${number(count.count)} of ${number(count.unfilteredCount)} ${count.entityDisplayName}`;
+}
 
-const COUNTS_FEBRILE = [
-  {
-    entityId: SAMPLE_ENTITY,
-    entityDisplayName: "Sample",
-    count: 6,
-    unfilteredCount: 12,
-  },
-  {
-    entityId: COUNTS_ENTITY,
-    entityDisplayName: "pfal3D7 htseq counts",
-    count: 34320,
-    unfilteredCount: 68640,
-  },
-];
+export const FEBRILE_COUNTS = EDA.countsFebrile;
+export const FEBRILE_VALUE = EDA.febrileFilter.stringSet[0] ?? "";
+export const SUBSET_FIRST_BIN = `${EDA.febrileDistribution.labels[0] ?? ""} ${String(EDA.febrileDistribution.values[0] ?? "")}`;
+export const SUBSET_COVERAGE = `${number(EDA.febrileDistribution.numVarValues)} of ${number(EDA.febrileDistribution.subsetSize)} records have a value`;
 
-export const FEBRILE_FILTER = {
-  entityId: SAMPLE_ENTITY,
-  variableId: TEMPERATURE_VAR,
-  type: "stringSet",
-  stringSet: ["febrile"],
-};
-
-export const FEBRILE_SUMMARY = "temperature_condition is febrile";
-
-const FEBRILE_DISTRIBUTION = {
-  variableId: TEMPERATURE_VAR,
-  variableDisplayName: "temperature_condition",
-  labels: ["febrile"],
-  values: [6],
-  subsetSize: 6,
-  numVarValues: 6,
-  numMissingCases: 0,
-  isMultiValued: false,
-};
+const selected = EDA.volcano.retainedPointIds;
+const dropped = EDA.volcano.points.filter((point) => point.pValue === null).length;
+export const VOLCANO_SELECTED = selected;
+export const VOLCANO_SELECTION = `${number(selected.length)} ${selected.length === 1 ? "gene" : "genes"} selected at these thresholds - ${number(EDA.volcano.retainedPoints)} of ${number(EDA.volcano.totalPoints)} retained by the comparison`;
+export const VOLCANO_DROPPED =
+  dropped === 1
+    ? "1 point without a p-value was not plotted"
+    : `${String(dropped)} points without a p-value were not plotted`;
+export const EXPORTED_SIZE = number(EDA.exportedStep.estimatedSize);
 
 export function analysisState(overrides: Record<string, unknown> = {}) {
   return {
-    siteId: SITE_ID,
-    datasetId: DATASET_ID,
-    studyId: STUDY_ID,
-    analysisId: ANALYSIS_ID,
+    siteId: EDA.siteId,
+    datasetId: EDA.datasetId,
+    studyId: EDA.studyId,
+    analysisId: EDA.analysisId,
     revision: 0,
-    studyDisplayName: STUDY_TITLE,
+    studyDisplayName: EDA.studyTitle,
     displayName: "Unsaved analysis",
     numFilters: 0,
     numComputations: 0,
     filters: [],
     filterSummaries: [],
-    entityCounts: COUNTS_UNFILTERED,
+    entityCounts: EDA.countsUnfiltered,
     canExportRows: true,
-    analysisUrl: ANALYSIS_URL,
+    analysisUrl: EDA.analysisUrl,
     ...overrides,
   };
 }
@@ -108,112 +160,51 @@ export function analysisState(overrides: Record<string, unknown> = {}) {
 export const FILTERED_ANALYSIS = analysisState({
   revision: 1,
   numFilters: 1,
-  filters: [FEBRILE_FILTER],
-  filterSummaries: [FEBRILE_SUMMARY],
-  entityCounts: COUNTS_FEBRILE,
+  filters: [EDA.febrileFilter],
+  filterSummaries: [EDA.febrileSummary],
+  entityCounts: EDA.countsFebrile,
 });
 
-/** The comparison the agent's compute records, named as the study names it. */
-const COMPUTE = {
-  method: "DESeq",
-  identifierVariable: "Gene",
-  valueVariable: "Sense Count",
-  comparatorVariable: "temperature_condition",
-  groupA: ["normal"],
-  groupB: ["febrile"],
-};
-
-export const COMPARISON_SENTENCE =
-  "DESeq compares normal (group A) with febrile (group B) on temperature_condition, reading Sense Count per Gene.";
-
-/** The filtered analysis after the agent ran its comparison. */
 export const COMPARED_ANALYSIS = analysisState({
   revision: 2,
   numFilters: 1,
   numComputations: 1,
-  filters: [FEBRILE_FILTER],
-  filterSummaries: [FEBRILE_SUMMARY],
-  entityCounts: COUNTS_FEBRILE,
-  compute: COMPUTE,
+  filters: [EDA.febrileFilter],
+  filterSummaries: [EDA.febrileSummary],
+  entityCounts: EDA.countsFebrile,
+  compute: EDA.compute,
 });
 
-/** One point per gene, including the live row that carries no p-value. At the
- * default thresholds (effect 1, significance 0.05, both directions) exactly one
- * gene is selected and one point is dropped. */
 export const VOLCANO_VIZ = {
-  datasetId: DATASET_ID,
-  analysisId: ANALYSIS_ID,
-  chart: "volcano",
-  effectSizeLabel: "log2(Fold Change)",
-  effectSizeThreshold: 1,
-  significanceThreshold: 0.05,
-  effectDirection: "upAndDown",
-  totalPoints: 3,
-  retainedPoints: 1,
-  retainedPointIds: ["PF3D7_0100200"],
-  points: [
-    {
-      pointId: "PF3D7_0100100",
-      effectSize: -0.218035922112735,
-      pValue: 0.350285751849808,
-      adjustedPValue: 0.46960449943855,
-      retained: false,
-    },
-    {
-      pointId: "PF3D7_0100200",
-      effectSize: 3.94437533216012,
-      pValue: 1.95781599815607e-5,
-      adjustedPValue: 0.000137772236907279,
-      retained: true,
-    },
-    {
-      pointId: "PF3D7_MIT04200",
-      effectSize: -1.49447459261845,
-      pValue: null,
-      adjustedPValue: null,
-      retained: false,
-    },
-  ],
+  datasetId: EDA.datasetId,
+  analysisId: EDA.analysisId,
+  ...EDA.volcano,
 };
 
-/** The volcano route's own answer: the part without its dataset and analysis ids. */
 export const VOLCANO_RESPONSE = {
-  chart: VOLCANO_VIZ.chart,
-  effectSizeLabel: VOLCANO_VIZ.effectSizeLabel,
-  effectSizeThreshold: VOLCANO_VIZ.effectSizeThreshold,
-  significanceThreshold: VOLCANO_VIZ.significanceThreshold,
-  effectDirection: VOLCANO_VIZ.effectDirection,
-  totalPoints: VOLCANO_VIZ.totalPoints,
-  retainedPoints: VOLCANO_VIZ.retainedPoints,
-  retainedPointIds: VOLCANO_VIZ.retainedPointIds,
-  points: VOLCANO_VIZ.points,
-  comparison: { groupA: COMPUTE.groupA, groupB: COMPUTE.groupB },
+  ...EDA.volcano,
+  comparison: { groupA: EDA.compute.groupA, groupB: EDA.compute.groupB },
 };
 
 export const SUBSET_PREVIEW = {
-  datasetId: DATASET_ID,
-  analysisId: ANALYSIS_ID,
-  entityCounts: COUNTS_FEBRILE,
-  distribution: FEBRILE_DISTRIBUTION,
+  datasetId: EDA.datasetId,
+  analysisId: EDA.analysisId,
+  entityCounts: EDA.countsFebrile,
+  distribution: EDA.febrileDistribution,
   distributionNote: null,
 };
 
-export const EXPORTED_STEP = {
-  id: "step_eda_1",
-  searchName: "GenesByEdaVizWithCompute",
-  displayName: "Genes that differ between normal and febrile",
-  estimatedSize: 1543,
-};
+export const EXPORTED_STEP = EDA.exportedStep;
 
 export function exportedStrategy(conversationId: string) {
   return {
     id: conversationId,
-    name: "Heat shock volcano",
-    siteId: SITE_ID,
+    name: EDA.exportedStrategyName,
+    siteId: EDA.siteId,
     recordType: "transcript",
-    rootStepId: EXPORTED_STEP.id,
+    rootStepId: EDA.exportedStep.id,
     isSaved: false,
-    steps: [EXPORTED_STEP],
+    steps: [EDA.exportedStep],
     createdAt: "2026-08-28T00:00:00Z",
     updatedAt: "2026-08-28T00:00:00Z",
   };
@@ -223,16 +214,10 @@ export function edaJson(body: unknown) {
   return { status: 200, contentType: "application/json", body: JSON.stringify(body) };
 }
 
-/**
- * Answer the tab's study search and figure reads from the recorded payloads.
- *
- * Playwright tries routes in reverse registration order, and `?` is a literal
- * in a URL glob, so each pattern names the query string it expects.
- */
 export async function routeEdaReads(page: Page): Promise<void> {
   if (EDA_LIVE) return;
   await page.route("**/api/v1/eda/studies?*", (route) =>
-    route.fulfill(edaJson({ studies: [STUDY_ROW] })),
+    route.fulfill(edaJson({ studies: [EDA.studyRow] })),
   );
   await page.route("**/api/v1/eda/viz?*", (route) =>
     route.fulfill(edaJson(VOLCANO_RESPONSE)),

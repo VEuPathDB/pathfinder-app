@@ -68,19 +68,19 @@ async def test_a_pushed_step_answers_its_genes_and_the_site_links(
         offset=0,
         limit=50,
         record_type="transcript",
-        step_url="https://toxodb.org/toxo/app/workspace/strategies/900/11",
+        step_url="https://qa.toxodb.org/toxo.qa/app/workspace/strategies/900/11",
         records=[
             StepRecord(
                 gene_id="TGME49_200010",
                 organism="Toxoplasma gondii ME49",
                 product="dense granule protein GRA20",
-                record_url="https://toxodb.org/toxo/app/record/gene/TGME49_200010",
+                record_url="https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200010",
             ),
             StepRecord(
                 gene_id="TGME49_200130",
                 organism="Toxoplasma gondii ME49",
                 product="Toxoplasma gondii family C protein",
-                record_url="https://toxodb.org/toxo/app/record/gene/TGME49_200130",
+                record_url="https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200130",
             ),
         ],
     )

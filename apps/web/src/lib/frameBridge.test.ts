@@ -47,7 +47,7 @@ describe("sameOriginFramer", () => {
   });
 
   it("names no framer for a parent of another origin", () => {
-    const other = page("https://plasmodb.org");
+    const other = page("https://qa.plasmodb.org");
     expect(sameOriginFramer(page(ORIGIN, other.win).win)).toBe(null);
   });
 });

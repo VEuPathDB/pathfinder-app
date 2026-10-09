@@ -28,7 +28,7 @@ _SITE = SiteInfo(
     id="plasmodb",
     name="plasmodb",
     display_name="PlasmoDB",
-    base_url="https://plasmodb.org/plasmo/service",
+    base_url="https://qa.plasmodb.org/plasmo.qa/service",
     project_id="PlasmoDB",
     is_portal=False,
 )

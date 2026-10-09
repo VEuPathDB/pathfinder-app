@@ -181,7 +181,7 @@ describe("SavedStrategiesPage", () => {
     renderPage([
       {
         ...KINASES,
-        wdkUrl: "https://plasmodb.org/plasmo/app/workspace/strategies/101",
+        wdkUrl: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/101",
       },
     ]);
 

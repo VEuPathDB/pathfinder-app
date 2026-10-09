@@ -98,6 +98,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^(quadlets/|deploy/cedar/|scripts/check-quadlets\.(mjs|test\.mjs))
+      - id: test-sites
+        name: check the test sites (and the checker)
+        entry: bash -c "node scripts/check-test-sites.mjs && node --test scripts/check-test-sites.test.mjs"
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: release
         name: check the release pins (and the checker)
         entry: bash -c "node scripts/check-release.mjs && node --test scripts/check-release.test.mjs"
@@ -134,7 +140,7 @@ repos:
         stages: [pre-push]
       - id: openapi-check-api
         name: openapi spec freshness (api)
-        entry: bash -c "cd apps/api && $HOME/.local/bin/uv run python -m pathfinder.devtools.openapi check"
+        entry: bash -c "cd apps/api && VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml $HOME/.local/bin/uv run python -m pathfinder.devtools.openapi check"
         language: system
         pass_filenames: false
         types: [python]

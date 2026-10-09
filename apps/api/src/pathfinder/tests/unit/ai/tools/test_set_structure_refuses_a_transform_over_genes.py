@@ -18,6 +18,7 @@ from pathfinder.services.strategies.record_classes import (
     search_record_classes,
 )
 from pathfinder.tests._support.organism_reads import serve_organism_reads
+from pathfinder.tests._support.qa_recording import needs_suite_recordings
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 from pathfinder.tests.unit.domain.strategy._n1_tree import (
@@ -45,6 +46,7 @@ def _state() -> AgentToolState:
 
 
 @pytest.mark.asyncio
+@needs_suite_recordings
 async def test_the_recorded_compounds_transform_takes_compounds() -> None:
     classes = await search_record_classes(
         "plasmodb", ["GenesByCompoundsTransform", "GenesByOrthologs", "Unlisted"]
@@ -61,6 +63,7 @@ async def test_the_recorded_compounds_transform_takes_compounds() -> None:
 
 
 @pytest.mark.asyncio
+@needs_suite_recordings
 async def test_a_compounds_transform_over_a_copy_of_the_genes_is_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

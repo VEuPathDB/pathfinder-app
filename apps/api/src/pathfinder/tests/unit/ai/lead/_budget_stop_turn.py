@@ -19,7 +19,7 @@ SEARCH = "GenesByEdaSubset"
 _WDK_STEP = 440_545_693
 _WDK_STRATEGY = 330_683_723
 URL = (
-    "https://vectorbase.org/vectorbase/app/workspace/strategies/"
+    "https://qa.vectorbase.org/vectorbase.qa/app/workspace/strategies/"
     f"{_WDK_STRATEGY}/{_WDK_STEP}"
 )
 OBJECTION = "The step keeps genes higher at 24 h than at 36 h, not at 18 h."

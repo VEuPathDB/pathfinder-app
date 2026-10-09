@@ -21,6 +21,7 @@ from pathfinder.services.gene_records.read import (
     UnknownGeneRecordError,
     read_the_gene_record,
 )
+from pathfinder.tests._support.qa_recording import qa_recording
 
 TOXO_ATTRIBUTES = (
     "organism",
@@ -45,7 +46,7 @@ _ORTHOLOGS = [
     {
         "organism": f"Ortholog organism {index}",
         "ortho_gene_source_id": f"OGS_{index:03d}",
-        "gene": {"displayText": f"OGS_{index:03d}", "url": "https://toxodb.org/x"},
+        "gene": {"displayText": f"OGS_{index:03d}", "url": "https://qa.toxodb.org/x"},
     }
     for index in range(14)
 ]
@@ -167,7 +168,10 @@ async def test_the_summary_carries_the_facts_the_record_states() -> None:
     assert found.chromosome == "VIII"
     assert found.gene_name == "SRS29B"
     assert found.organism == "Toxoplasma gondii ME49"
-    assert found.record_url == "https://toxodb.org/toxo/app/record/gene/TGME49_233460"
+    assert (
+        found.record_url
+        == "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460"
+    )
 
 
 @pytest.mark.usefixtures("_no_expression")
@@ -364,7 +368,9 @@ _RECORDED = Path(__file__).resolve().parents[3] / "fixtures" / "wdk"
 @pytest.mark.usefixtures("_no_expression")
 async def test_the_recorded_plasmodb_record_is_read_as_plain_text() -> None:
     """PlasmoDB answers the organism in italics; the summary states the words."""
-    body = json.loads((_RECORDED / "gene_record_PF3D7_1133400.json").read_text())
+    body = json.loads(
+        qa_recording(_RECORDED / "gene_record_PF3D7_1133400.json").read_text()
+    )
     api = _GeneRecord(WDKRecordInstance.model_validate(body), declares=TOXO_ATTRIBUTES)
 
     found = await read_the_gene_record(api, "plasmodb", "PF3D7_1133400")

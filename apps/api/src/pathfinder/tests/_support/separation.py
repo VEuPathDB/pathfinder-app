@@ -21,6 +21,7 @@ from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.separation.offer import separation_report
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _RECORDED = Path(__file__).resolve().parents[1] / "fixtures" / "separation"
 
@@ -35,7 +36,7 @@ TASK_ID = UUID("0c6100d2-0000-4000-8000-00000000a16a")
 def recorded_separation(name: str) -> SeparationResult:
     """One recorded run, as the library returns it."""
     return SeparationResult.model_validate_json(
-        (_RECORDED / f"{name}.json").read_text()
+        qa_recording(_RECORDED / f"{name}.json").read_text()
     )
 
 

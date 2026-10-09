@@ -245,7 +245,7 @@ def _fold_change_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
             "dataset_url",
             is_visible=False,
             required=False,
-            default_value="https://TriTrypDB.org/a/app/record/dataset/DS_3e90742f0a",
+            default_value="https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a",
         ),
     ]
 
@@ -266,7 +266,9 @@ async def test_the_dataset_url_a_step_carries_is_left_to_the_site(
         search,
         {
             "fold_change": "4",
-            "dataset_url": ("https://TriTrypDB.org/a/app/record/dataset/DS_3e90742f0a"),
+            "dataset_url": (
+                "https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a"
+            ),
         },
         {"term": "fold_change", "basis": "parameter", "reason": "raised to 4-fold"},
         text="genes up 4-fold",
@@ -275,7 +277,7 @@ async def test_the_dataset_url_a_step_carries_is_left_to_the_site(
     assert result.corrections == [
         (
             "dataset_url is set by the site to "
-            "'https://TriTrypDB.org/a/app/record/dataset/DS_3e90742f0a', so the "
+            "'https://qa.tritrypdb.org/a/app/record/dataset/DS_3e90742f0a', so the "
             "proposal was left out"
         )
     ]

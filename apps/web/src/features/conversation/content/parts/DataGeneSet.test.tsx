@@ -162,7 +162,7 @@ describe("DataGeneSet", () => {
       http.get(`${GENE_SETS}/${GENE_SET_ID}/vdi-publication`, () =>
         HttpResponse.json({
           vdiId: VDI_ID,
-          datasetUrl: `https://plasmodb.org/plasmo/app/workspace/datasets/${VDI_ID}`,
+          datasetUrl: `https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets/${VDI_ID}`,
           siteId: "plasmodb",
           upload: "success",
           importStatus: "complete",

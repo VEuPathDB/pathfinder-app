@@ -6,6 +6,7 @@ to one name, so a registration that names another tool is refused.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Iterator
 from typing import Any
 from uuid import UUID, uuid4
@@ -38,6 +39,7 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.app import DURABLE_TASK_QUEUE
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.job_context import WdkJobContext, WdkJobState
+from pathfinder.tests._support.search_load import TEXT_REPORT, a_counted_site
 
 _TASK_ID = UUID("00000000-0000-0000-0000-000000000001")
 _TOKEN = "wdk-session-cookie"
@@ -193,6 +195,19 @@ async def test_restoring_the_state_installs_the_token_for_the_body() -> None:
         assert veupathdb_auth_token_ctx.get() == _TOKEN
 
     assert veupathdb_auth_token_ctx.get() is None
+
+
+async def test_a_durable_body_sends_one_search_per_site_at_a_time() -> None:
+    """A durable body is a turn of its own for the search line."""
+    state = WdkJobState.model_validate({"veupathdb_auth_token": None})
+
+    with a_counted_site() as (client, load):
+        async with WdkJobContext().restore(state):
+            await asyncio.gather(
+                client.post(TEXT_REPORT, json={}), client.post(TEXT_REPORT, json={})
+            )
+
+    assert (load.answered, load.most_in_flight) == (2, 1)
 
 
 @decorator.durable_tool(CONTROL_TESTS)

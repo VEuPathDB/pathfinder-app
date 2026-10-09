@@ -37,7 +37,9 @@ PASTED_GENES = ["PF3D7_0102900", "PF3D7_0304600"]
 # The step carries a hidden WDK default beside the value the researcher chose.
 LEAF_PARAMS = {
     "text_expression": StringValue(value="secreted"),
-    "dataset_url": StringValue(value="https://plasmodb.org/a/app/record/dataset/DS_1"),
+    "dataset_url": StringValue(
+        value="https://qa.plasmodb.org/a/app/record/dataset/DS_1"
+    ),
 }
 VISIBLE_LEAF_PARAMS = {"text_expression": StringValue(value="secreted")}
 

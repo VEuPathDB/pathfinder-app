@@ -20,6 +20,7 @@ from pydantic_ai.ui.vercel_ai.response_types import TextDeltaChunk
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.devtools import evals
+from pathfinder.domain.data_statement import DataStatementVersion
 from pathfinder.domain.message_rating import Rating
 from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.persistence.models import StrategyRevision, User
@@ -120,12 +121,15 @@ async def _seed_turn(
 
 
 async def _seed(
-    session_maker: async_sessionmaker[AsyncSession], *, consent: bool = True
+    session_maker: async_sessionmaker[AsyncSession],
+    *,
+    consent: bool = True,
+    seen: str | None = DataStatementVersion.CURRENT.value,
 ) -> _Thread:
     user_id = uuid4()
     conversation_id = uuid4()
     async with session_maker() as session:
-        session.add(User(id=user_id, eval_data_consent=consent))
+        session.add(User(id=user_id, eval_data_consent=consent, data_notice_seen=seen))
         session.add(
             Conversation(
                 assistant_id=PATHFINDER_ASSISTANT_ID,
@@ -271,6 +275,24 @@ async def test_a_non_consenting_user_s_dislike_stages_nothing(
     )
 
     assert rated.rating == "dislike"
+    assert await staging.list_staged() == []
+
+
+async def test_a_dislike_before_the_notice_is_seen_stages_nothing(
+    session_maker: async_sessionmaker[AsyncSession],
+    store: MemoryStore,
+    staging: EvalStagingRepository,
+) -> None:
+    thread = await _seed(session_maker, seen=None)
+
+    await rate_message(
+        store=store,
+        user_id=thread.user_id,
+        conversation_id=thread.conversation_id,
+        message_id=thread.first_reply,
+        rating="dislike",
+    )
+
     assert await staging.list_staged() == []
 
 

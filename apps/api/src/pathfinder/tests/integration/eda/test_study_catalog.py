@@ -13,6 +13,7 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb_mcp.embeddings import sync_study_index
 
 from pathfinder.services.eda import catalog
+from pathfinder.tests._support.qa_recording import qa_recording
 
 FIXTURES = FIXTURE_DIR
 
@@ -20,7 +21,7 @@ pytestmark = pytest.mark.asyncio
 
 
 def _fixture(name: str) -> object:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads(qa_recording(FIXTURES / name).read_text())
 
 
 def _route(request: httpx.Request) -> httpx.Response:
@@ -39,7 +40,7 @@ async def wired(
 ) -> AsyncGenerator[EdaClient]:
     del patch_app_db_engine, db_cleaner
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(_route)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(_route)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
@@ -105,7 +106,7 @@ async def test_a_countable_study_that_refuses_rows_says_so_on_its_card(
         return _route(request)
 
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(route)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(route)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
@@ -138,7 +139,7 @@ async def test_a_study_absent_from_permissions_is_dropped_from_the_cards(
         return httpx.Response(404, json={"status": "not-found"})
 
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(route)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(route)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")
@@ -164,7 +165,7 @@ async def test_the_catalog_is_fetched_once_per_site(
         return _route(request)
 
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(route)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(route)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     token = veupathdb_auth_token_ctx.set("t")

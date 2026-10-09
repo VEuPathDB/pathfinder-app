@@ -148,6 +148,7 @@ async def _run_stopped_turn(
         compiled_graph=_HalfBuildThenHang(conversation_id, cancel_event),
         runtime_context=_RuntimeCtx(cancel_event=cancel_event),
         writer=ChatEventWriter(conversation_id=conversation_id, turn_id=uuid4()),
+        named=False,
     )
 
 

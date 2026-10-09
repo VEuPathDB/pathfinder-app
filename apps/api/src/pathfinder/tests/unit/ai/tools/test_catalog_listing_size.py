@@ -24,7 +24,7 @@ from pathfinder.tests._support.tool_exchange import tool_exchange
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
-# The transcript listing of veupathdb.org, read from the site: 2769 searches,
+# The transcript listing of qa.veupathdb.org, read from the site: 2769 searches,
 # 189916 characters of name and 293176 of display name.
 PORTAL_SEARCHES = 2769
 PORTAL_NAME_CHARS = 189_916

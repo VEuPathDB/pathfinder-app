@@ -39,7 +39,7 @@ const SITES: SiteResponse[] = [
     id: "plasmodb",
     name: "PlasmoDB",
     displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org/plasmo/service",
+    baseUrl: "https://qa.plasmodb.org/plasmo.qa/service",
     projectId: "PlasmoDB",
     isPortal: false,
     available: true,

@@ -1,101 +1,93 @@
-"""Procrastinate INFO-logs job call_string including all kwargs - without
-this filter the VEuPathDB cookie would land on stdout on every job start."""
-
 from __future__ import annotations
 
 import logging
 
+import procrastinate
 import pytest
+from procrastinate.testing import InMemoryConnector
 
-from pathfinder.jobs.logging_filters import (
-    REDACTION_MARKER,
-    RedactSensitiveKwargsFilter,
-)
+from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 
+_SENTINEL = "find kinases upregulated in the liver stage 7f3a"
 _TOKEN = "secret-cookie-value-12345"
 
 
-def _emit(
+async def _run_one_job(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    app = procrastinate.App(connector=InMemoryConnector())
+
+    @app.task(queue="probe", name="probe")
+    async def probe(payload: dict[str, str]) -> str:
+        return payload["text"]
+
+    install_procrastinate_redaction()
+    with caplog.at_level(logging.DEBUG, logger="procrastinate"):
+        async with app.open_async():
+            await probe.defer_async(
+                payload={"text": _SENTINEL, "veupathdb_auth_token": _TOKEN}
+            )
+            await app.run_worker_async(
+                queues=["probe"],
+                wait=False,
+                listen_notify=False,
+                install_signal_handlers=False,
+            )
+    return [r for r in caplog.records if r.name.startswith("procrastinate")]
+
+
+def _everything_logged(record: logging.LogRecord) -> str:
+    return logging.Formatter().format(record) + repr(record.__dict__)
+
+
+async def test_no_procrastinate_record_carries_the_task_arguments(
     caplog: pytest.LogCaptureFixture,
-    logger_name: str,
-    message: str,
-) -> logging.LogRecord:
-    caplog.clear()
-    logger = logging.getLogger(logger_name)
-    handler = [h for h in logger.handlers if isinstance(h, logging.NullHandler)]
-    logger.addFilter(RedactSensitiveKwargsFilter())
-    try:
-        with caplog.at_level(logging.INFO, logger=logger_name):
-            logger.info(message)
-    finally:
-        for h in handler:
-            logger.removeHandler(h)
+) -> None:
+    records = await _run_one_job(caplog)
+
+    logged = [_everything_logged(record) for record in records]
+    assert [text for text in logged if _SENTINEL in text or _TOKEN in text] == []
+    assert any("Starting job probe[1]" in r.getMessage() for r in records)
+
+
+async def test_a_job_record_keeps_its_name_id_queue_and_status(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    records = await _run_one_job(caplog)
+
+    (ended,) = [r for r in records if "ended with status" in r.getMessage()]
+    assert ended.__dict__["job"] == {
+        "id": 1,
+        "task_name": "probe",
+        "queue": "probe",
+        "status": "doing",
+    }
+    assert ended.getMessage().startswith("Job probe[1] ended with status: Success")
+
+
+async def test_the_deferral_record_lists_the_jobs_without_their_arguments(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    records = await _run_one_job(caplog)
+
+    (deferred,) = [r for r in records if r.getMessage() == "Deferred 1 job"]
+    assert deferred.__dict__["jobs"] == [
+        {"id": 1, "task_name": "probe", "queue": "probe", "status": "todo"}
+    ]
+
+
+def test_a_record_of_another_library_is_left_alone(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    install_procrastinate_redaction()
+    with caplog.at_level(logging.INFO, logger="httpx"):
+        logging.getLogger("httpx").info("GET %s", _SENTINEL)
+
     (record,) = caplog.records
-    return record
+    assert record.getMessage() == f"GET {_SENTINEL}"
 
 
-class TestRedactSensitiveKwargsFilter:
-    def test_redacts_single_quoted_token_value(
-        self,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        record = _emit(
-            caplog,
-            "procrastinate.worker",
-            f"Starting job chat_turn:run[1](veupathdb_auth_token='{_TOKEN}')",
-        )
-        msg = record.getMessage()
-        assert _TOKEN not in msg
-        assert REDACTION_MARKER in msg
-        assert "veupathdb_auth_token=" in msg
+def test_installing_twice_attaches_one_filter() -> None:
+    install_procrastinate_redaction()
+    install_procrastinate_redaction()
 
-    def test_redacts_double_quoted_token_value(
-        self,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        record = _emit(
-            caplog,
-            "procrastinate.worker",
-            f'Starting job durable:x[1](veupathdb_auth_token="{_TOKEN}")',
-        )
-        assert _TOKEN not in record.getMessage()
-        assert REDACTION_MARKER in record.getMessage()
-
-    def test_passes_through_unrelated_messages(
-        self,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        record = _emit(
-            caplog,
-            "procrastinate.worker",
-            "Worker loop iteration complete",
-        )
-        assert record.getMessage() == "Worker loop iteration complete"
-
-    def test_redacts_nested_in_longer_call_string(
-        self,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        record = _emit(
-            caplog,
-            "procrastinate.worker",
-            (
-                f"Starting job chat_turn:run[42]("
-                f"payload={{'body': {{...}}, 'user_id': 'abc', "
-                f"'turn_id': 'xyz', 'veupathdb_auth_token': '{_TOKEN}'}})"
-            ),
-        )
-        assert _TOKEN not in record.getMessage()
-
-    def test_redacts_multiple_occurrences(
-        self,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
-        record = _emit(
-            caplog,
-            "procrastinate.worker",
-            (f"veupathdb_auth_token='{_TOKEN}' veupathdb_auth_token='{_TOKEN}'"),
-        )
-        msg = record.getMessage()
-        assert _TOKEN not in msg
-        assert msg.count(REDACTION_MARKER) == 2
+    worker_logger = logging.getLogger("procrastinate.worker")
+    assert len(worker_logger.filters) == len(set(map(type, worker_logger.filters)))

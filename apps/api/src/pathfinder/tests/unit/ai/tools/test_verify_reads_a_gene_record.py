@@ -17,7 +17,7 @@ from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 _RECORD = GeneRecordSummary(
     site_id="plasmodb",
     gene_id="PF3D7_0102200",
-    record_url="https://plasmodb.org/plasmo/app/record/gene/PF3D7_0102200",
+    record_url="https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0102200",
     organism="Plasmodium falciparum 3D7",
     product="ring-infected erythrocyte surface antigen",
 )

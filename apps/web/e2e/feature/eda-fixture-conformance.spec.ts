@@ -23,8 +23,10 @@ import { edaVizResponseSchema } from "@pathfinder/shared/generated/zod/edaVizRes
 import {
   analysisState,
   COMPARED_ANALYSIS,
+  EDA_RECORDING_MISSING,
   exportedStrategy,
   FILTERED_ANALYSIS,
+  NEEDS_QA_RECORDING,
   STUDY_ROW,
   SUBSET_PREVIEW,
   VOLCANO_RESPONSE,
@@ -107,6 +109,7 @@ const CASES: Case[] = [
 ];
 
 test.describe("EDA fixtures conform to the wire schemas", () => {
+  test.skip(EDA_RECORDING_MISSING, NEEDS_QA_RECORDING);
   for (const entry of CASES) {
     test(`${entry.name} parses`, () => {
       const result = entry.schema.safeParse(entry.payload);

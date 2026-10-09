@@ -19,17 +19,18 @@ from veupathdb_mcp.embeddings import SyncReport
 
 from pathfinder.platform.config import get_settings
 from pathfinder.services.eda import catalog
+from pathfinder.tests._support.qa_recording import qa_recording
 
 
 def _listing() -> Any:
-    return json.loads((FIXTURE_DIR / "studies_list.json").read_text())
+    return json.loads(qa_recording(FIXTURE_DIR / "studies_list.json").read_text())
 
 
 @pytest.fixture
 def studies(monkeypatch: pytest.MonkeyPatch) -> Iterator[EdaClient]:
     """The recorded ``/studies`` answer: curated rows and other accounts' uploads."""
     client = EdaClient(
-        base_url="https://plasmodb.org/eda",
+        base_url="https://qa.plasmodb.org/eda",
         transport=httpx.MockTransport(lambda _r: httpx.Response(200, json=_listing())),
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)

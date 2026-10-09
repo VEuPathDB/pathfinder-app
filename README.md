@@ -33,7 +33,9 @@ PathFinder's goal is to make complex query/strategy construction **easier, faste
 - **Execution with real tools** (build/edit a real strategy graph via validated tool calls)
 - **Catalog grounding** (live WDK catalog for discovery and examples)
 
-This project is intended to be integrated with **VEuPathDB systems** in the future once the research prototype is sufficiently mature.
+PathFinder is served at `/pathfinder` on a VEuPathDB website's own host by the estate's
+container stack, and signs researchers in through that website's login. How the stack is run is
+[docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## What's in this repo
 
@@ -50,7 +52,7 @@ This repo is organized as:
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).
 - **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.json` and `.yaml`)
 
-Three libraries are repositories of their own, consumed by URL at a commit
+Three libraries are repositories of their own, consumed by URL at a release tag
 (`apps/api/pyproject.toml` `[tool.uv.sources]`, `apps/web/package.json`):
 
 - **[ai-veupathdb-client](https://github.com/VEuPathDB/ai-veupathdb-client)**: the VEuPathDB WDK and EDA client (`veupathdb`), which knows nothing about PathFinder. Its README documents the client, and the WDK and EDA knowledge bundle lives with it.
@@ -79,7 +81,7 @@ The API process never runs an agent. `POST /api/v1/chat` persists the user messa
 `chat_turn` job to the worker, and returns an SSE tail of the durable event log. The worker drives
 the graph and writes every chunk to `conversation_events`; readers tail it over SSE, and a client
 that disconnects resumes from its cursor. The wire format is the Vercel AI SDK v6 UI Message Stream.
-Long-running tools (enrichment, control tests, parameter optimization, EDA compute) are deferred to
+Long-running tools (control tests, parameter optimization, control separation, EDA compute) are deferred to
 the worker as background tasks and answered on a later turn of the same thread.
 
 Key entrypoints:
@@ -90,6 +92,15 @@ Key entrypoints:
 - Graph and Lead: `apps/api/src/pathfinder/ai/graph/builder.py`, `ai/lead/lead_agent.py`
 - Tools: `apps/api/src/pathfinder/ai/tools/` (`standalone/` definitions, `toolsets/` per role)
 - Event log and SSE: `assistant_core.conversation.{event_writer,event_stream}` (ai-assistant-platform)
+
+### Models
+
+Every role runs on OpenAI's GPT-5.6 Luna unless a tier or a researcher's pick names another
+model. The deployment pays for the OpenAI models, for Claude Haiku 5.5 and for the Gemini models
+when it holds each provider's key. Claude Sonnet 5.5 and Claude Opus 5.5 run only on a
+researcher's own Anthropic key, which the researcher stores in Settings and the deployment seals.
+The lineup, the prices and who may pay for each model are
+`apps/api/src/pathfinder/platform/model_catalog.py`.
 
 ## Running locally
 
@@ -240,6 +251,18 @@ The e2e overlay builds the web container's `runner` target, so port 3000 serves
 the production build here as it does in CI: no development overlay over the
 controls a spec clicks, and no per-route compile to grow the server's heap.
 
+Every automated test reaches the VEuPathDB QA sites, never production. The e2e
+stack reads `e2e-sites.yaml`, the portal and six component sites copied from
+`deploy/sites/qa.yml`; every pytest run reads `deploy/sites/qa.yml` unless
+`VEUPATHDB_SITES_CONFIG` names another file; and
+`node scripts/check-test-sites.mjs` refuses a production or beta host anywhere in
+the repository outside `docs/`. The responses recorded from production wait
+in `fixtures-production-backup-2026-10-09/`, read by nothing, and the tests that
+need them skip until QA re-records them. Outside the VEuPathDB network the QA sites redirect every
+service call to a pre-release login, so these paths do not run from a laptop or
+a GitHub runner until that is solved
+([backlog](docs/knowledge/backlog/qa-sites-need-a-pass-for-automated-clients.md)).
+
 ### Observability
 
 One backend: Langfuse, fed over plain OTLP/HTTP. The api and the worker each
@@ -304,6 +327,24 @@ yarn install
 yarn dev
 ```
 
+## Deployment and releases
+
+The deployment is the `pathfinder` stack of the estate's service definitions
+(`VEuPathDB/webservices-quadlets`): seven containers per stage as root podman quadlets, with the web container
+behind Traefik and the website's Apache proxying `/pathfinder` to it. What runs, the secrets,
+health, metrics, backups and troubleshooting are [docs/OPERATIONS.md](docs/OPERATIONS.md).
+
+Images come from Jenkins (`Jenkinsfile`), which publishes `docker.io/veupathdb/pathfinder-api`
+and `pathfinder-web`: `:latest` on every push to `main`, and the version on a release tag. A
+release is tagged `v` plus the semver spelling of the api version (`v0.2.0-b7` publishes
+`:0.2.0-b7`); `node scripts/check-release.mjs <tag>` refuses any other tag. The development stage
+follows `:latest`. QA runs `:qa`, which `VEuPathDB/tagger` moves to a published version. The two
+MCP servers run from the api image, so one tag releases all three.
+
+Until the estate stack serves the development site, testers use the interim rootless stack in
+[`deploy/cedar/`](deploy/cedar/README.md), installed from the images a `v*` tag also publishes
+to `ghcr.io/veupathdb` (`.github/workflows/publish-images.yml`).
+
 ## Testing, linting, and code quality
 
 Quick reference - see **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the hooks, the CI pipelines, security scanning and architectural enforcement.
@@ -366,11 +407,11 @@ CI and the pre-commit hooks check the result rather than writing it, so a stale 
 
 PathFinder is a research-driven prototype. These are the biggest gaps you should expect today:
 
-- **CD (deployment pipelines)**: Jenkins builds the api and web images from `Jenkinsfile` to `docker.io/veupathdb` (`:latest` from `main`, the version from a `v<semver>` tag such as `v0.2.0-b5`), and the estate's units run them, the development stage following `:latest` and QA and production moved by tag. That stack does not serve PathFinder yet. Until it does, a `v*` tag also publishes the four images to `ghcr.io/veupathdb` (`.github/workflows/publish-images.yml`), and the tester host installs them by hand (`deploy/cedar/`).
-- **Contribution docs**: no `CONTRIBUTING.md`, no governance/release process.
-- **Production hardening**: one deployment is documented, the internal tester host (`deploy/cedar/README.md`: rootless podman quadlets, a reverse proxy somebody else owns, secrets in a file on the host). There is no hardened production tier.
-- **Database migrations**: Alembic is the only path to the schema, and the API migrates to `head` at startup (`platform/migrations.py`). There is no rollback story and no data-migration convention.
-- **Evaluation** (thesis): an evaluation framework exists in `thesis/eval/` (gold strategies, prompts, analysis scripts), but reproducible experiment packaging and benchmarks are still in progress.
+- **The cutover**: the estate stack defines a development and a QA stage. Until it serves the development site, the interim tester stack (`deploy/cedar/`, the GHCR workflow and `quadlets/`) stays; it is deleted at the cutover.
+- **Production**: no production stage runs yet.
+- **Contribution docs**: no `CONTRIBUTING.md`, no governance.
+- **Database migrations**: Alembic is the only path to the schema, and the API migrates to `head` at startup (`platform/migrations.py`). Migrations only go forward: a rollback across one restores the database dump taken before the release ([docs/OPERATIONS.md](docs/OPERATIONS.md)). There is no data-migration convention.
+- **Open work**: everything else known to be outstanding is ranked in [`docs/knowledge/backlog/index.md`](docs/knowledge/backlog/index.md).
 
 ## Thesis context: "How Underspecified Prompts Shape Tool-Calling LLM Agents in Scientific Workflows"
 

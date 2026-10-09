@@ -14,8 +14,10 @@ from pathfinder.platform.model_keys import KeyProbe, probe_key
 from pathfinder.platform.principal import Principal
 from pathfinder.platform.security import limiter
 from pathfinder.services.eval_data.consent import (
+    DataNoticeContinue,
     PrivacySettings,
     PrivacyUpdate,
+    continue_past_the_data_notice,
     read_privacy,
     update_privacy,
 )
@@ -154,7 +156,7 @@ async def get_my_privacy(
     session: DBSession,
     user_id: CurrentUser,
 ) -> PrivacySettings:
-    """Return the eval-data decision, and whether the notice was shown."""
+    """Return the eval-data decision and the data statement version seen."""
     return await read_privacy(session, user_id)
 
 
@@ -164,8 +166,18 @@ async def patch_my_privacy(
     user_id: CurrentUser,
     update: PrivacyUpdate,
 ) -> PrivacySettings:
-    """Change the eval-data decision, the notice marker, or both.
+    """Change the eval-data decision.
 
     Turning consent off also clears the user's staged candidates.
     """
     return await update_privacy(session, user_id, update)
+
+
+@router.post("/privacy/data-notice", response_model=PrivacySettings)
+async def continue_my_data_notice(
+    session: DBSession,
+    user_id: CurrentUser,
+    choice: DataNoticeContinue,
+) -> PrivacySettings:
+    """Record the data statement version seen, with the learning choice."""
+    return await continue_past_the_data_notice(session, user_id, choice)

@@ -46,7 +46,9 @@ async def load_conversation(conversation_id: UUID) -> Conversation | None:
         return await ConversationRepository(session).get_by_id(conversation_id)
 
 
-async def name_conversation_if_unnamed(conversation_id: UUID, *, title: str) -> bool:
+async def name_conversation_if_unnamed(
+    conversation_id: UUID, *, title: str | None
+) -> bool:
     """Give the thread a generated title, keeping any name it already holds.
 
     Reports whether the title was written. The strategy carries the name the

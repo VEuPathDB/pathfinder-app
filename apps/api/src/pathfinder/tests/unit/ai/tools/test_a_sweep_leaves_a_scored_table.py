@@ -11,9 +11,10 @@ from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 
 from pathfinder.ai.tools.standalone import optimization
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _RESULT: dict[str, Any] = json.loads(
-    (
+    qa_recording(
         Path(__file__).parents[3]
         / "fixtures"
         / "controls"

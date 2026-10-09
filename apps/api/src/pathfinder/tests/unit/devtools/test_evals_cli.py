@@ -8,6 +8,9 @@ from pathfinder.devtools import evals
 from pathfinder.devtools.evals import _build_parser, main
 from pathfinder.evals.case import ExpectedOutcome, GatePlan
 from pathfinder.evals.summary import CaseResult, EvalRunSummary
+from pathfinder.platform.stage_sites import qa_sites_file
+
+_QA = str(qa_sites_file())
 
 
 def test_corpus_lists_the_shipped_cases(capsys: pytest.CaptureFixture[str]) -> None:
@@ -66,7 +69,9 @@ def test_promote_requires_the_case_to_state_its_gate_policy() -> None:
 
 
 def test_run_takes_a_case_filter_and_an_output_file() -> None:
-    args = _build_parser().parse_args(["run", "--only", "a", "b", "--out", "s.json"])
+    args = _build_parser().parse_args(
+        ["run", "--sites", _QA, "--only", "a", "b", "--out", "s.json"]
+    )
 
     assert args.only == ["a", "b"]
     assert args.out == "s.json"
@@ -74,23 +79,23 @@ def test_run_takes_a_case_filter_and_an_output_file() -> None:
 
 def test_run_has_no_provider_switch() -> None:
     with pytest.raises(SystemExit):
-        _build_parser().parse_args(["run", "--real"])
+        _build_parser().parse_args(["run", "--sites", _QA, "--real"])
 
 
 def test_run_can_hand_every_turn_to_the_worker() -> None:
     parser = _build_parser()
 
-    assert parser.parse_args(["run"]).via_worker is False
-    assert parser.parse_args(["run", "--via-worker"]).via_worker is True
+    assert parser.parse_args(["run", "--sites", _QA]).via_worker is False
+    assert parser.parse_args(["run", "--sites", _QA, "--via-worker"]).via_worker is True
 
 
 def test_run_takes_one_effort_for_every_role() -> None:
     parser = _build_parser()
 
-    assert parser.parse_args(["run"]).effort is None
-    assert parser.parse_args(["run", "--effort", "max"]).effort == "max"
+    assert parser.parse_args(["run", "--sites", _QA]).effort is None
+    assert parser.parse_args(["run", "--sites", _QA, "--effort", "max"]).effort == "max"
     with pytest.raises(SystemExit):
-        parser.parse_args(["run", "--effort", "extreme"])
+        parser.parse_args(["run", "--sites", _QA, "--effort", "extreme"])
 
 
 def test_a_command_is_required() -> None:
@@ -98,6 +103,7 @@ def test_a_command_is_required() -> None:
         _build_parser().parse_args([])
 
 
+@pytest.mark.usefixtures("restored_sites_file")
 def test_a_case_not_run_is_printed_as_not_run(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -120,7 +126,7 @@ def test_a_case_not_run_is_printed_as_not_run(
 
     monkeypatch.setattr(evals, "run_corpus", _run_corpus)
 
-    assert main(["run"]) == 0
+    assert main(["run", "--sites", _QA]) == 0
 
     printed = capsys.readouterr().out.splitlines()
     assert printed[0].startswith("NOT RUN  uat-s1-cryptodb")

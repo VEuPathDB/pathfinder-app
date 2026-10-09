@@ -11,7 +11,6 @@ from typing import Any
 import pytest
 from pydantic import JsonValue
 from veupathdb.errors import WDKError
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import (
     AI_EXPRESSION_REPORT_PATH,
     AiExpressionStatus,
@@ -25,6 +24,7 @@ from veupathdb_mcp.wdk import (
 )
 
 from pathfinder.ai.tools.standalone import gene
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 REFUSAL = "No Gene record found for the primary key values"
@@ -59,7 +59,7 @@ def no_record_type_read_yet(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _serve(monkeypatch: pytest.MonkeyPatch, fixture: str) -> _Transport:
     """Answer the reporter with a recorded body, through the real client."""
-    transport = _Transport(load_recorded(fixture).json_body())
+    transport = _Transport(client_recording(fixture).json_body())
     client = VEuPathDBClient("https://example.invalid/service")
     monkeypatch.setattr(client, "post", transport)
     monkeypatch.setattr(client, "get", _component_gene_record)
@@ -120,7 +120,7 @@ async def test_a_summary_built_on_part_of_the_data_says_so(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The site states what its summary covers, so the line the user reads says it."""
-    body = load_recorded("ai_expression_summary_present").json_body()
+    body = client_recording("ai_expression_summary_present").json_body()
     assert isinstance(body, dict)
     entry = body[SUMMARIZED_GENE]
     assert isinstance(entry, dict)

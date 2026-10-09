@@ -11,14 +11,14 @@ from pathfinder.devtools import seeds
 from pathfinder.devtools.seeds import marks_json, seeds_json
 from pathfinder.platform.config import get_settings
 from pathfinder.services.experiment.seed.catalog import (
-    SEED_DATABASES,
     SEEDS_DIR,
     get_seeds_for_site,
+    seed_databases,
 )
 from pathfinder.tests._support.organism_reads import MARKS
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_a_seed_file_is_written_back_byte_for_byte(site_id: str) -> None:
     on_disk = (SEEDS_DIR / f"{site_id}.json").read_text()
 
@@ -39,7 +39,7 @@ async def test_the_marks_are_recorded_for_every_search_the_seeds_run(
 
     recorded = await seeds.seed_organism_marks()
 
-    assert sorted(recorded) == sorted(SEED_DATABASES)
+    assert sorted(recorded) == sorted(seed_databases())
     assert recorded["trichdb"] == {
         "GenesByGoTerm": "organism",
         "GenesWithSignalPeptide": "organism",

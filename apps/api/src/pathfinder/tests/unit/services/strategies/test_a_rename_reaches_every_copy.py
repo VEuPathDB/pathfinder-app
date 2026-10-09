@@ -253,6 +253,29 @@ class TestTheFirstTitle:
         )
         assert threads.ast_name == "Kinase hunt"
 
+    async def test_an_unnamed_thread_with_no_title_stays_unnamed(
+        self, api: StubAPI, sets: Sets
+    ) -> None:
+        threads = thread_row()
+
+        title_write = await name_if_unnamed(
+            threads, threads.conversation.id, title=None
+        )
+
+        assert (title_write, threads.conversation.name) == (
+            TitleWrite(written=False),
+            "",
+        )
+
+    async def test_a_named_thread_with_no_title_puts_its_name_back(
+        self, api: StubAPI, sets: Sets
+    ) -> None:
+        threads = thread_row(name="Kinase hunt", ast_name="New Conversation")
+
+        await name_if_unnamed(threads, threads.conversation.id, title=None)
+
+        assert threads.ast_name == "Kinase hunt"
+
     async def test_a_named_thread_whose_strategy_agrees_writes_nothing(
         self, api: StubAPI, sets: Sets
     ) -> None:

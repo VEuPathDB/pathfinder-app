@@ -14,9 +14,10 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb.wdk import VdiClient
 
 from pathfinder.services.eda.catalog import StudyCard
+from pathfinder.tests._support.qa_recording import qa_recording
 
-_VDI_BASE_URL = "https://plasmodb.org/vdi"
-_EDA_BASE_URL = "https://plasmodb.org/eda"
+_VDI_BASE_URL = "https://qa.plasmodb.org/vdi"
+_EDA_BASE_URL = "https://qa.plasmodb.org/eda"
 _USER_STUDY = (
     Path(__file__).resolve().parents[1]
     / "fixtures"
@@ -28,18 +29,18 @@ _NOT_FOUND = {"status": "not-found"}
 
 def vdi_body(name: str) -> Any:
     """One body VDI answered, as the client repository recorded it."""
-    return json.loads((FIXTURE_ROOT / "vdi" / f"{name}.json").read_text())
+    return json.loads(qa_recording(FIXTURE_ROOT / "vdi" / f"{name}.json").read_text())
 
 
 def installed_user_study() -> tuple[str, Any]:
     """The owner's permission entry for an installed upload, and its dataset id."""
-    recorded = json.loads(_USER_STUDY.read_text())
+    recorded = json.loads(qa_recording(_USER_STUDY).read_text())
     return recorded["datasetId"], recorded["entry"]
 
 
 def permissions_body(*, with_user_study: bool) -> Any:
     """The recorded ``/permissions`` answer, with the recorded upload's entry or not."""
-    body = json.loads((FIXTURE_DIR / "permissions.json").read_text())
+    body = json.loads(qa_recording(FIXTURE_DIR / "permissions.json").read_text())
     if with_user_study:
         dataset_id, entry = installed_user_study()
         body["perDataset"][dataset_id] = entry

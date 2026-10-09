@@ -1,103 +1,73 @@
-"""Stdlib logging filters for the procrastinate worker.
-
-Procrastinate INFO-logs ``Starting job <name>[<id>](<kwargs-repr>)`` for every
-job start (``procrastinate/worker.py``). Because our ``chat_turn:run`` and
-``durable:*`` payloads now carry the user's VEuPathDB auth cookie, that raw
-value would otherwise land on stdout. This filter scrubs the value of any
-key in ``_SENSITIVE_KEYS`` from both single- and double-quoted forms before
-the handler emits the record.
-"""
+"""Keep task arguments and task results out of every procrastinate log record."""
 
 from __future__ import annotations
 
 import logging
-import re
 
-REDACTION_MARKER = "***REDACTED***"
+from pydantic import BaseModel, ConfigDict, Field
 
-_SENSITIVE_KEYS: tuple[str, ...] = ("veupathdb_auth_token",)
-
-
-def _build_patterns() -> list[tuple[re.Pattern[str], str]]:
-    """Build (pattern, replacement) pairs that match a sensitive key bound
-    to a quoted value in three common forms:
-
-    - ``key='value'`` / ``key="value"`` (kwarg / attribute repr)
-    - ``'key': 'value'`` / ``"key": "value"`` (dict repr with str keys)
-    - ``key: 'value'`` / ``key: "value"`` (bare-colon variant)
-    """
-    patterns: list[tuple[re.Pattern[str], str]] = []
-    for key in _SENSITIVE_KEYS:
-        escaped = re.escape(key)
-        # Left-hand side accepts bare key or quoted key, followed by = or : with
-        # optional whitespace. Right-hand side is a single- or double-quoted
-        # string. Group 1 captures the LHS so replacement preserves the caller's
-        # punctuation (dict colon vs kwarg equals).
-        patterns.append(
-            (
-                re.compile(
-                    rf"""(?P<lhs>(?:'{escaped}'|"{escaped}"|{escaped})\s*[:=]\s*)"""
-                    r"""(?:'[^']*'|"[^"]*")""",
-                ),
-                rf"\g<lhs>'{REDACTION_MARKER}'",
-            ),
-        )
-    return patterns
+_PROCRASTINATE = "procrastinate"
+_RESULT_MARK = " - Result: "
 
 
-_PATTERNS: list[tuple[re.Pattern[str], str]] = _build_patterns()
+class _LoggedJob(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int | None = None
+    task_name: str = ""
+    queue: str | None = None
+    status: str | None = None
+    call_string: str = ""
+
+    @property
+    def label(self) -> str:
+        return f"{self.task_name}[{self.id}]"
+
+    def kept(self) -> dict[str, object]:
+        return self.model_dump(include={"id", "task_name", "queue", "status"})
 
 
-class RedactSensitiveKwargsFilter(logging.Filter):
-    """Scrub sensitive kwargs from emitted log messages."""
+class _JobRecord(BaseModel):
+    model_config = ConfigDict(extra="ignore")
 
+    job: _LoggedJob | None = None
+    jobs: list[_LoggedJob] = Field(default_factory=list)
+
+
+class TaskArgumentsFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        if record.name != _PROCRASTINATE and not record.name.startswith(
+            f"{_PROCRASTINATE}.",
+        ):
+            return True
+        logged = _JobRecord.model_validate(record.__dict__)
+        named = [job for job in (logged.job, *logged.jobs) if job is not None]
         message = record.getMessage()
-        redacted = message
-        for pattern, replacement in _PATTERNS:
-            redacted = pattern.sub(replacement, redacted)
-        if redacted != message:
-            record.msg = redacted
-            record.args = ()
+        for job in named:
+            if job.call_string:
+                message = message.replace(job.call_string, job.label)
+        record.msg = message.partition(_RESULT_MARK)[0]
+        record.args = ()
+        record.__dict__.pop("result", None)
+        if logged.job is not None:
+            record.__dict__["job"] = logged.job.kept()
+        if "jobs" in record.__dict__:
+            record.__dict__["jobs"] = [job.kept() for job in logged.jobs]
         return True
 
 
 def install_procrastinate_redaction() -> None:
-    """Attach ``RedactSensitiveKwargsFilter`` to every procrastinate logger.
-
-    ``logging.Filter`` does **not** propagate from parent to child loggers -
-    only handlers do. Procrastinate uses at least three logger names
-    (``procrastinate``, ``procrastinate.worker``, ``procrastinate.worker.worker``);
-    miss any and a secret leaks through. We attach the filter to every
-    logger whose name starts with ``procrastinate`` that's been created so
-    far, and register a root-level handler-side filter for any that come
-    online later.
-
-    Idempotent - re-invocation does not add duplicate filters.
-    """
-    filt = RedactSensitiveKwargsFilter()
-    manager = logging.Logger.manager
-    candidate_names = {"procrastinate"}
-    for logger_name in manager.loggerDict:
-        if logger_name == "procrastinate" or logger_name.startswith(
-            "procrastinate.",
-        ):
-            candidate_names.add(logger_name)
-    for logger_name in candidate_names:
-        logger = logging.getLogger(logger_name)
-        if not any(isinstance(f, RedactSensitiveKwargsFilter) for f in logger.filters):
-            logger.addFilter(filt)
-    # Root-handler fallback: catches any procrastinate sub-logger created
-    # after this call returns, since child records propagate up to root
-    # handlers (but not parent filters).
-    root = logging.getLogger()
-    for handler in root.handlers:
-        if not any(isinstance(f, RedactSensitiveKwargsFilter) for f in handler.filters):
-            handler.addFilter(filt)
+    scrub = TaskArgumentsFilter()
+    names = {_PROCRASTINATE} | {
+        name
+        for name in logging.Logger.manager.loggerDict
+        if name.startswith(f"{_PROCRASTINATE}.")
+    }
+    targets: list[logging.Filterer] = [logging.getLogger(name) for name in names]
+    targets.extend(logging.getLogger().handlers)
+    for target in targets:
+        if not any(isinstance(f, TaskArgumentsFilter) for f in target.filters):
+            target.addFilter(scrub)
 
 
-__all__ = [
-    "REDACTION_MARKER",
-    "RedactSensitiveKwargsFilter",
-    "install_procrastinate_redaction",
-]
+__all__ = ["TaskArgumentsFilter", "install_procrastinate_redaction"]

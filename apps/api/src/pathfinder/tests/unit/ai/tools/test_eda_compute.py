@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from uuid import uuid4
 
 import pytest
@@ -161,7 +162,11 @@ async def test_the_estimated_duration_is_declared(
 def test_the_tool_is_registered_in_the_worker_registry() -> None:
     register_all_tools()
 
-    assert durable_impl("run_eda_compute") == run_eda_compute_impl
+    registered = durable_impl("run_eda_compute")
+
+    assert [inspect.unwrap(body) for body in (registered,) if body is not None] == [
+        run_eda_compute_impl
+    ]
 
 
 async def test_groups_that_share_a_label_are_refused_before_the_job(

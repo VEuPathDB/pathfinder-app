@@ -46,7 +46,7 @@ async def _fake_sync(**kwargs: Any) -> SyncResult:
     del kwargs
     return SyncResult(
         wdk_strategy_id=330534153,
-        wdk_url="https://plasmodb.org/plasmo/app/workspace/strategies/330534153",
+        wdk_url="https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330534153",
         root_step_id=7000,
         counts={},
         root_count=0,

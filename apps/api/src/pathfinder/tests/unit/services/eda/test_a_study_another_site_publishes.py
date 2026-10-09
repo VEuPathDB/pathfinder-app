@@ -27,6 +27,7 @@ from pathfinder.services.eda.study_site import (
     not_here,
 )
 from pathfinder.tests._support.eda_doubles import permission_entry, study_of
+from pathfinder.tests._support.qa_recording import qa_recording
 
 pytestmark = pytest.mark.asyncio
 
@@ -179,20 +180,20 @@ async def test_the_publishing_sites_are_not_read_on_the_portal(
 
 async def _fixture_studies(site_id: str) -> list[EdaStudyOverview]:
     del site_id
-    raw = json.loads((FIXTURE_DIR / "studies_list.json").read_text())
+    raw = json.loads(qa_recording(FIXTURE_DIR / "studies_list.json").read_text())
     return EdaStudiesResponse.model_validate(raw).studies
 
 
 def _permissions(_request: httpx.Request) -> httpx.Response:
     return httpx.Response(
-        200, json=json.loads((FIXTURE_DIR / "permissions.json").read_text())
+        200, json=json.loads(qa_recording(FIXTURE_DIR / "permissions.json").read_text())
     )
 
 
 @pytest.fixture
 def fixture_site(monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
     client = EdaClient(
-        base_url="https://plasmodb.org/eda",
+        base_url="https://qa.plasmodb.org/eda",
         transport=httpx.MockTransport(_permissions),
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)

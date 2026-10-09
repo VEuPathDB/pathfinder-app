@@ -283,7 +283,7 @@ class TestTheOffTopicEssayRule:
         assert kinds(deps, reply(AN_ESSAY + WITH_CODE)) == []
 
 
-_RECORD_URL = "https://toxodb.org/toxo/app/record/gene/TGME49_233460"
+_RECORD_URL = "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460"
 
 
 def _unrendered(deps: LeadDeps, report: LeadResponse) -> list[str]:

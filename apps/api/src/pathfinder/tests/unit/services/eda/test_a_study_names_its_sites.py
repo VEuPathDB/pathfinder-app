@@ -14,6 +14,7 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
 from pathfinder.services.eda import catalog
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.transport.http.schemas.eda import EdaStudySummaryResponse
 
 pytestmark = pytest.mark.asyncio
@@ -31,20 +32,20 @@ _BROWSED = [
 
 async def _fixture_studies(site_id: str) -> list[EdaStudyOverview]:
     del site_id
-    raw = json.loads((FIXTURE_DIR / "studies_list.json").read_text())
+    raw = json.loads(qa_recording(FIXTURE_DIR / "studies_list.json").read_text())
     return EdaStudiesResponse.model_validate(raw).studies
 
 
 def _permissions(_request: httpx.Request) -> httpx.Response:
     return httpx.Response(
-        200, json=json.loads((FIXTURE_DIR / "permissions.json").read_text())
+        200, json=json.loads(qa_recording(FIXTURE_DIR / "permissions.json").read_text())
     )
 
 
 @pytest.fixture(autouse=True)
 def _fixture_site(monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
     client = EdaClient(
-        base_url="https://plasmodb.org/eda",
+        base_url="https://qa.plasmodb.org/eda",
         transport=httpx.MockTransport(_permissions),
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)

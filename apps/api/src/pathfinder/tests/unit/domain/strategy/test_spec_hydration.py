@@ -222,7 +222,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
             parameters={
                 "profileset_generic": StringValue(value="Pfal3D7 Su seven stages"),
                 "dataset_url": StringValue(
-                    value="https://PlasmoDB.org/a/app/record/dataset/DS_66f9e70b8a"
+                    value="https://qa.plasmodb.org/a/app/record/dataset/DS_66f9e70b8a"
                 ),
             },
         )

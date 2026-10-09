@@ -41,7 +41,9 @@ def _outage(status: int, cause: BaseException) -> WDKError:
 
 
 def _site_status(status: int) -> httpx.HTTPStatusError:
-    request = httpx.Request("GET", "https://plasmodb.org/plasmo/service/users/current")
+    request = httpx.Request(
+        "GET", "https://qa.plasmodb.org/plasmo.qa/service/users/current"
+    )
     response = httpx.Response(status, request=request)
     return httpx.HTTPStatusError(str(status), request=request, response=response)
 

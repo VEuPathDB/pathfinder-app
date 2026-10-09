@@ -309,7 +309,9 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
 
     const other = siteId === "toxodb" ? "plasmodb" : "toxodb";
     const otherHost =
-      other === "toxodb" ? "https://toxodb.org/toxo" : "https://plasmodb.org/plasmo";
+      other === "toxodb"
+        ? "https://qa.toxodb.org/toxo.qa"
+        : "https://qa.plasmodb.org/plasmo.qa";
     const otherName = other === "toxodb" ? "ToxoDB" : "PlasmoDB";
     await dialog
       .getByTestId("open-wdk-strategy-input")

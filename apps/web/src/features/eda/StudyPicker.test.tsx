@@ -25,7 +25,7 @@ import { StudyPicker } from "./StudyPicker";
 
 const BASE = "http://localhost:3000/pathfinder";
 
-const UPLOAD_URL = "https://plasmodb.org/plasmo/app/workspace/datasets";
+const UPLOAD_URL = "https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets";
 
 function ownDataset(vdiId: string, state: string, message: string | null = null) {
   return {

@@ -32,8 +32,9 @@ from pathfinder.services.eda import (
     reduction,
     statistics,
 )
+from pathfinder.tests._support.qa_recording import qa_recording
 
-BASE_URL = "https://plasmodb.org/eda"
+BASE_URL = "https://qa.plasmodb.org/eda"
 EDA_USER_ID = "9001"
 JOB_ID = "b" * 32
 
@@ -56,7 +57,7 @@ _GENE_ID_DISTRIBUTIONS = {
 
 def fixture(name: str) -> Any:
     """One pinned EDA response, by file name without the suffix."""
-    return json.loads((FIXTURE_DIR / f"{name}.json").read_text())
+    return json.loads(qa_recording(FIXTURE_DIR / f"{name}.json").read_text())
 
 
 def phenotype_overview() -> dict[str, Any]:

@@ -3,6 +3,7 @@ and a check reads only the sets its conversation attached."""
 
 from __future__ import annotations
 
+import inspect
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -133,9 +134,14 @@ async def _fake_export(result: ControlOutcome, name: str) -> ControlOutcome:
 @pytest.mark.asyncio
 async def test_register_all_tools_populates_registry() -> None:
     register_all_tools()
-    assert durable_impl("run_control_tests_on_step") is run_control_tests_on_step_impl
+    first = durable_impl("run_control_tests_on_step")
     register_all_tools()
-    assert durable_impl("run_control_tests_on_step") is run_control_tests_on_step_impl
+    again = durable_impl("run_control_tests_on_step")
+
+    assert [inspect.unwrap(body) for body in (first, again) if body is not None] == [
+        run_control_tests_on_step_impl,
+        run_control_tests_on_step_impl,
+    ]
 
 
 @pytest.mark.asyncio

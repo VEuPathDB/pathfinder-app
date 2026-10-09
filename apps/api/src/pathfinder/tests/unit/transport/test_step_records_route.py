@@ -82,19 +82,19 @@ async def test_a_pushed_step_answers_its_page_of_genes(
         "offset": 0,
         "limit": 2,
         "recordType": "transcript",
-        "stepUrl": "https://toxodb.org/toxo/app/workspace/strategies/900/11",
+        "stepUrl": "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/900/11",
         "records": [
             {
                 "geneId": "TGME49_200010",
                 "organism": "Toxoplasma gondii ME49",
                 "product": "dense granule protein GRA20",
-                "recordUrl": "https://toxodb.org/toxo/app/record/gene/TGME49_200010",
+                "recordUrl": "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200010",
             },
             {
                 "geneId": "TGME49_200130",
                 "organism": "Toxoplasma gondii ME49",
                 "product": "Toxoplasma gondii family C protein",
-                "recordUrl": "https://toxodb.org/toxo/app/record/gene/TGME49_200130",
+                "recordUrl": "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200130",
             },
         ],
     }

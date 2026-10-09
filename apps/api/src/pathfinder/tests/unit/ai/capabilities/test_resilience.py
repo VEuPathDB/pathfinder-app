@@ -30,7 +30,7 @@ from pathfinder.domain.strategy.session import StrategySession
 def _make_ctx() -> MagicMock:
     ctx: MagicMock = MagicMock()
     ctx.deps = MagicMock()
-    ctx.deps.site_id = "plasmodb.org"
+    ctx.deps.site_id = "qa.plasmodb.org"
     ctx.retries = {}
     return ctx
 

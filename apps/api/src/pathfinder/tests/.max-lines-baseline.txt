@@ -1,7 +1,6 @@
 # Files over the meaningful-line cap when the cap reached tests.
 # Each line: <path>::<line count at baseline>. Shrink a file to trim
 # its entry; a file that grows past its count fails the check.
-src/pathfinder/tests/conftest.py::407
 src/pathfinder/tests/integration/eda/test_authoring.py::568
 src/pathfinder/tests/integration/eda/test_eda_conversation.py::488
 src/pathfinder/tests/integration/persistence/_thread_surgery.py::464

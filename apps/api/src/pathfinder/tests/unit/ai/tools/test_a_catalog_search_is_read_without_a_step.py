@@ -31,6 +31,7 @@ from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.search_reads import SearchCount, SearchMembership
 from pathfinder.services.experiment.variant_comparison import VariantInput
 from pathfinder.services.gene_records.read import gene_record_url
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.record_classes import (
     recorded_searches,
     serve_record_classes,
@@ -65,7 +66,7 @@ _OTHER_HELD = [
 
 def _recorded_report(fixture: str) -> WDKAnswer:
     recorded = RecordedWDKResponse.model_validate_json(
-        (_SUITE / f"{fixture}.json").read_text()
+        qa_recording(_SUITE / f"{fixture}.json").read_text()
     )
     return WDKAnswer.model_validate(recorded.json_body())
 

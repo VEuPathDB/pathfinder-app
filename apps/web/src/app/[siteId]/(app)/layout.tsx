@@ -18,7 +18,7 @@ import { useModalState } from "@/app/hooks/useModalState";
 import { useSidebarResize } from "@/app/hooks/useSidebarResize";
 import { useSiteAccess } from "@/app/hooks/useSiteAccess";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
-import { EvalDataNotice } from "@/features/settings/components/EvalDataNotice";
+import { DataNotice } from "@/features/help/DataNotice";
 import { SettingsPage } from "@/features/settings/components/SettingsPage";
 import { ConversationSidebar } from "@/features/sidebar/components/ConversationSidebar";
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
@@ -166,7 +166,7 @@ function AppShellInner({
         onTabChange={modals.setSettingsTab}
       />
 
-      <EvalDataNotice />
+      <DataNotice />
     </div>
   );
 }

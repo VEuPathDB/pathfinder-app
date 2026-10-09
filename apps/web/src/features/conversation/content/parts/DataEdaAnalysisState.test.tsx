@@ -205,14 +205,14 @@ describe("DataEdaAnalysisState chips and navigation", () => {
         data={{
           ...EDA_ANALYSIS_STATE_FIXTURE,
           analysisUrl:
-            "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+            "https://qa.plasmodb.org/plasmo.qa/app/workspace/analyses/DS_e973eadd57/a-1",
         }}
       />,
     );
     const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
     expect(link).toHaveAttribute(
       "href",
-      "https://plasmodb.org/plasmo/app/workspace/analyses/DS_e973eadd57/a-1",
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/analyses/DS_e973eadd57/a-1",
     );
     expect(link).toHaveAttribute("rel", "noreferrer");
   });

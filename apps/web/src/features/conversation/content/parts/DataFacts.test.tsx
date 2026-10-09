@@ -7,8 +7,9 @@ import type { TurnFacts } from "@pathfinder/shared";
 
 import { DataFacts } from "./DataFacts";
 
-const URL = "https://amoebadb.org/amoeba/app/workspace/strategies/440299573/440299574";
-const TOXO_RECORD = "https://toxodb.org/toxo/app/record/gene";
+const URL =
+  "https://qa.amoebadb.org/amoeba.qa/app/workspace/strategies/440299573/440299574";
+const TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene";
 const CLAUSE =
   "Minimum expression percentile at the site's default of 80: 1,665 genes; at 0: 8,201";
 
@@ -163,7 +164,7 @@ describe("DataFacts", () => {
   });
 
   it("shows a leaf's record under the leaf with its fit, not under the result", () => {
-    const record = "https://toxodb.org/toxo/app/record/gene/TGME49_200010";
+    const record = "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200010";
     render(
       <DataFacts
         data={{
@@ -258,7 +259,7 @@ describe("DataFacts", () => {
   });
 
   it("lists the genes the message names with their records", () => {
-    const record = "https://plasmodb.org/plasmo/app/record/gene/PF3D7_1133400";
+    const record = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1133400";
     render(
       <DataFacts
         data={{
@@ -323,7 +324,7 @@ describe("DataFacts", () => {
         data={{
           sources: [
             {
-              url: "https://tritrypdb.org/tritrypdb/app/record/gene/Tbg972.6.590",
+              url: "https://qa.tritrypdb.org/tritrypdb.qa/app/record/gene/Tbg972.6.590",
               recordId: "Tbg972.6.590",
               product: "hypothetical protein",
               values: ["chromosome 6"],

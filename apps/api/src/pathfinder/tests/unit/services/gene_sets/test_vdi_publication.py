@@ -25,10 +25,11 @@ from pathfinder.services.gene_sets import vdi
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _OWNER = uuid4()
 _VDI_ID = "soV5JEQEcF00p"
-_DATASET_URL = f"https://plasmodb.org/plasmo/app/workspace/datasets/{_VDI_ID}"
+_DATASET_URL = f"https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets/{_VDI_ID}"
 
 
 def _set(**over: Any) -> GeneSet:
@@ -74,7 +75,7 @@ class _FakeVdi:
 
 def _details(fixture: str) -> VdiDatasetDetails:
     """A status body VDI answered, as the client parses it."""
-    path = FIXTURE_ROOT / "vdi" / f"{fixture}.json"
+    path = qa_recording(FIXTURE_ROOT / "vdi" / f"{fixture}.json")
     return VdiDatasetDetails.model_validate_json(path.read_text())
 
 

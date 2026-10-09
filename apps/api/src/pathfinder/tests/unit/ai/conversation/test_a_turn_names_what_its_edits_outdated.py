@@ -51,10 +51,16 @@ async def _no_title(seed: str) -> str:
 
 
 def _install(
-    monkeypatch: pytest.MonkeyPatch, renames: _Renames, *, titled: bool
+    monkeypatch: pytest.MonkeyPatch,
+    renames: _Renames,
+    *,
+    titled: bool,
+    offered: list[str | None] | None = None,
 ) -> None:
-    async def _named(conversation_id: UUID, *, title: str) -> bool:
-        del conversation_id, title
+    async def _named(conversation_id: UUID, *, title: str | None) -> bool:
+        del conversation_id
+        if offered is not None:
+            offered.append(title)
         return titled
 
     monkeypatch.setattr(turn_title, "name_conversation_if_unnamed", _named)
@@ -117,6 +123,17 @@ async def test_a_turn_with_no_message_still_checks_its_edits(
     await _name(writer, with_title=False)
 
     assert _titles(writer) == [_RENAMED]
+
+
+async def test_a_turn_with_no_title_still_puts_the_thread_name_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    offered: list[str | None] = []
+    _install(monkeypatch, _Renames(answer=None), titled=False, offered=offered)
+
+    await _name(_Writer(), with_title=False)
+
+    assert offered == [None]
 
 
 async def test_a_name_that_stands_writes_no_title(

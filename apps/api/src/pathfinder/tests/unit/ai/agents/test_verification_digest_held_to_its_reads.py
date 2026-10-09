@@ -39,7 +39,7 @@ def _context() -> RunContext[AgentDeps]:
     )
     markers = ctx.deps.turn_markers
     markers.record_retrieved_source(
-        f"https://plasmodb.org/plasmo/app/record/gene/{_READ_GENE}"
+        f"https://qa.plasmodb.org/plasmo.qa/app/record/gene/{_READ_GENE}"
     )
     markers.record_retrieved_source(f"https://doi.org/{_READ_DOI}")
     return ctx

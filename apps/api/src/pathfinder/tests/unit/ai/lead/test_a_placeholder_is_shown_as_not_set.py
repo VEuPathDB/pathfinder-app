@@ -94,7 +94,7 @@ def test_a_parameter_the_site_sets_behind_the_sheet_draws_no_row() -> None:
     assert [p.display_name for p in step.parameters] == ["Excluded Species"]
 
 
-_DATASET_URL = "https://PlasmoDB.org/a/app/record/dataset/DS_66f9e70b8a"
+_DATASET_URL = "https://qa.plasmodb.org/a/app/record/dataset/DS_66f9e70b8a"
 
 
 def _rna_seq() -> Criterion:

@@ -42,9 +42,8 @@ ReachKey = tuple[str, str, tuple[str, ...]]
 _MEASURED_SOURCES = frozenset({"default", "chosen"})
 # A number the site publishes no bound for is read at zero.
 _UNBOUNDED_READING = 0.0
-# The reads of one bind share this budget, apart from the bind's own count:
-# they run beside each other, and a reading that has not arrived by then is
-# recorded as not measured.
+# Each reading of a bind, apart from the bind's own count, has this long once it
+# is sent; a reading that has not arrived by then is recorded as not measured.
 MEASUREMENT_BUDGET_SECONDS = 20.0
 _SLOW_SEARCH = "the site counts this search too slowly to count its other readings"
 
@@ -176,15 +175,11 @@ class MeasuredBinding:
 
 @dataclass(frozen=True)
 class _Reads:
-    """The reads of one bind, each given what is left of the bind's budget."""
+    """The reads of one bind, each given the measurement budget once it is sent."""
 
     counts: TurnCounts
     binding: MeasuredBinding
     bound: int
-    deadline: float
-
-    def _left(self) -> float:
-        return max(self.deadline - asyncio.get_running_loop().time(), 0.0)
 
     async def count_with(self, values: Mapping[str, ParamValue]) -> int | None:
         """The records the binding answers with these values in place of its own."""
@@ -194,13 +189,16 @@ class _Reads:
             b.record_type,
             b.search_name,
             {**b.params, **values},
-            timeout_seconds=self._left(),
+            timeout_seconds=MEASUREMENT_BUDGET_SECONDS,
         )
 
     async def reach(self, phrase: str) -> SiteSearchResponse | None:
         b = self.binding
         return await self.counts.reach(
-            b.site_id, phrase, b.organisms(), timeout_seconds=self._left()
+            b.site_id,
+            phrase,
+            b.organisms(),
+            timeout_seconds=MEASUREMENT_BUDGET_SECONDS,
         )
 
 
@@ -425,8 +423,7 @@ async def measure_binding(
         binding.params,
         binding.count,
     )
-    deadline = asyncio.get_running_loop().time() + MEASUREMENT_BUDGET_SECONDS
-    reads = _Reads(counts, binding, binding.count, deadline)
+    reads = _Reads(counts, binding, binding.count)
     quoted = {
         name: text
         for name, bound in values.items()

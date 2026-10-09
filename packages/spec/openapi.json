@@ -3,7 +3,7 @@
   "info": {
     "title": "Pathfinder API",
     "description": "VEuPathDB Strategy Builder Chatbot API",
-    "version": "0.2.0b7"
+    "version": "0.2.0b8"
   },
   "paths": {
     "/health": {
@@ -4986,7 +4986,7 @@
           "me"
         ],
         "summary": "Get My Privacy",
-        "description": "Return the eval-data decision, and whether the notice was shown.",
+        "description": "Return the eval-data decision and the data statement version seen.",
         "operationId": "get_my_privacy_api_v1_me_privacy_get",
         "responses": {
           "200": {
@@ -5017,13 +5017,71 @@
           "me"
         ],
         "summary": "Patch My Privacy",
-        "description": "Change the eval-data decision, the notice marker, or both.\n\nTurning consent off also clears the user's staged candidates.",
+        "description": "Change the eval-data decision.\n\nTurning consent off also clears the user's staged candidates.",
         "operationId": "patch_my_privacy_api_v1_me_privacy_patch",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PrivacyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacySettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/privacy/data-notice": {
+      "post": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Continue My Data Notice",
+        "description": "Record the data statement version seen, with the learning choice.",
+        "operationId": "continue_my_data_notice_api_v1_me_privacy_data_notice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataNoticeContinue"
               }
             }
           },
@@ -6339,6 +6397,30 @@
           "strategyAst"
         ],
         "title": "CreateConversationRequest"
+      },
+      "DataNoticeContinue": {
+        "properties": {
+          "version": {
+            "$ref": "#/components/schemas/DataStatementVersion"
+          },
+          "evalDataConsent": {
+            "type": "boolean",
+            "title": "Evaldataconsent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "evalDataConsent"
+        ],
+        "title": "DataNoticeContinue"
+      },
+      "DataStatementVersion": {
+        "type": "string",
+        "enum": [
+          "2026-10-09"
+        ],
+        "title": "DataStatementVersion"
       },
       "DataUIPart": {
         "properties": {
@@ -9537,47 +9619,43 @@
             "type": "boolean",
             "title": "Evaldataconsent"
           },
-          "noticeSeen": {
+          "dataNoticeSeen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datanoticeseen"
+          },
+          "noticeDue": {
             "type": "boolean",
-            "title": "Noticeseen"
+            "title": "Noticedue",
+            "readOnly": true
           }
         },
         "type": "object",
         "required": [
           "evalDataConsent",
-          "noticeSeen"
+          "dataNoticeSeen",
+          "noticeDue"
         ],
-        "title": "PrivacySettings",
-        "description": "What the user has decided about eval data, and whether they were told."
+        "title": "PrivacySettings"
       },
       "PrivacyUpdate": {
         "properties": {
           "evalDataConsent": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "boolean",
             "title": "Evaldataconsent"
-          },
-          "noticeSeen": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Noticeseen"
           }
         },
         "type": "object",
-        "title": "PrivacyUpdate",
-        "description": "A change to one or both of the two flags. An unset field is unchanged."
+        "required": [
+          "evalDataConsent"
+        ],
+        "title": "PrivacyUpdate"
       },
       "ProductEventRequest": {
         "oneOf": [

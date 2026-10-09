@@ -9,7 +9,7 @@ export const EVIDENCE_CARD: EvidenceCard = {
   checkedAt: "2026-09-24T09:30:00Z",
   wdkStrategyId: 300125410,
   strategyUrl:
-    "https://plasmodb.org/plasmo/app/workspace/strategies/300125410/440299573",
+    "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/300125410/440299573",
   siteRead: "read",
   steps: [
     {
@@ -68,7 +68,7 @@ export const REVIEWED_CARD: EvidenceCard = {
   checkedAt: "2026-09-24T15:46:23.827656Z",
   wdkStrategyId: 330699223,
   strategyUrl:
-    "https://plasmodb.org/plasmo/app/workspace/strategies/330699223/440597243",
+    "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330699223/440597243",
   siteRead: "read",
   steps: [
     {
@@ -196,7 +196,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0101000`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0101000",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0101000",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `rifin`.",
@@ -204,7 +204,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0101800`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0101800",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0101800",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `stevor`.",
@@ -212,7 +212,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0102500`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0102500",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0102500",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `erythrocyte binding antigen-181`.",
@@ -220,7 +220,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0105400`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0105400",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0105400",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `conserved Plasmodium protein, unknown function`.",
@@ -228,7 +228,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0107700`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0107700",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0107700",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with a dolichyl-diphosphooligosaccharide--protein glycosyltransferase product.",
@@ -236,7 +236,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0108700`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0108700",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0108700",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `secreted ookinete protein, putative`.",
@@ -244,7 +244,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0113900`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0113900",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0113900",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `CX3CL1-binding protein 1`.",
@@ -252,7 +252,7 @@ export const REVIEWED_CARD: EvidenceCard = {
       {
         kind: "record",
         label: "VEuPathDB record `PF3D7_0115400`",
-        url: "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0115400",
+        url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0115400",
         doi: null,
         pmid: null,
         why: "Confirms the sampled gene is `P. falciparum 3D7` with product `stevor`.",

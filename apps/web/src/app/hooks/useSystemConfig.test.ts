@@ -36,7 +36,7 @@ function makeConfigResponse(overrides: { llmConfigured: boolean }) {
       ollama: false,
     },
     siteId: "veupathdb",
-    siteSignInUrl: "https://veupathdb.org/veupathdb/app/user/login",
+    siteSignInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
   };
 }
 
@@ -90,7 +90,7 @@ describe("useSystemConfig", () => {
     });
 
     expect(result.current.siteSignInUrl).toBe(
-      "https://veupathdb.org/veupathdb/app/user/login",
+      "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
     );
   });
 

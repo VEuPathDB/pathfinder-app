@@ -117,7 +117,7 @@ def test_each_parameter_row_shows_who_set_its_value(tmp_path: Path) -> None:
     ]
 
 
-_EBI = "https://hostdb.org/hostdb/app/record/gene/EBI_26400"
+_EBI = "https://qa.hostdb.org/hostdb.qa/app/record/gene/EBI_26400"
 
 
 def test_a_record_read_from_a_step_shows_under_that_step(tmp_path: Path) -> None:

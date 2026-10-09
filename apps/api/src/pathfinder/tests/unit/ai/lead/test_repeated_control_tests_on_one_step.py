@@ -30,6 +30,7 @@ from pathfinder.ai.tools.standalone.experiment import (
 )
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.strategy.build_outcome import BuiltCounts
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.saved_controls import (
     SAVED_SET,
     SAVED_SET_ID,
@@ -60,7 +61,7 @@ class _Sequence(CamelModel):
     calls: list[_Call] = Field(default_factory=list)
 
 
-_SEQUENCE = _Sequence.model_validate(json.loads(_FIXTURE.read_text()))
+_SEQUENCE = _Sequence.model_validate(json.loads(qa_recording(_FIXTURE).read_text()))
 
 
 def _worker_result(call: _Call) -> dict[str, Any]:

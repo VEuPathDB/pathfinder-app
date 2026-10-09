@@ -1,5 +1,6 @@
 import type { APIRequestContext, APIResponse, BrowserContext } from "@playwright/test";
 import { request } from "@playwright/test";
+import { DATA_STATEMENT_VERSION } from "@pathfinder/shared";
 
 /** The header the api's CSRF check requires on every cookie-authenticated write. */
 export const CSRF_HEADERS = { "X-Requested-With": "XMLHttpRequest" } as const;
@@ -20,6 +21,18 @@ export async function createApiClient(
 }
 
 export type ApiClient = APIRequestContext;
+
+/** Record the data statement version as seen, the way Continue on the notice does. */
+export async function continuePastDataNotice(
+  api: APIRequestContext,
+  baseUrl: string,
+  evalDataConsent = true,
+): Promise<APIResponse> {
+  return await api.post(`${baseUrl}/api/v1/me/privacy/data-notice`, {
+    headers: CSRF_HEADERS,
+    data: { version: DATA_STATEMENT_VERSION, evalDataConsent },
+  });
+}
 
 /** The sites `e2e-sites.yaml` serves: the portal and the six component sites. */
 export const E2E_SITE_IDS = [

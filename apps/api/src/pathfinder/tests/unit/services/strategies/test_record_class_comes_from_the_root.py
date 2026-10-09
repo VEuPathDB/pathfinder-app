@@ -5,10 +5,10 @@ The pin is the class-crossing transform. On plasmodb, ``GenesByMolecularWeight``
 is listed under ``transcript`` and ``GenesFromTranscripts`` ("Transform
 Transcripts to Genes") is listed under ``gene``. Each 404s under the other::
 
-    curl 'https://plasmodb.org/plasmo/service/record-types/gene/searches/GenesByMolecularWeight'
+    curl 'https://qa.plasmodb.org/plasmo.qa/service/record-types/gene/searches/GenesByMolecularWeight'
     404 There is no search "GenesByMolecularWeight" associated with record type "GeneRecordClass"
 
-    curl 'https://plasmodb.org/plasmo/service/record-types/transcript/searches/GenesFromTranscripts'
+    curl 'https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript/searches/GenesFromTranscripts'
     404 There is no search "GenesFromTranscripts" associated with record type "TranscriptRecordClass"
 """
 

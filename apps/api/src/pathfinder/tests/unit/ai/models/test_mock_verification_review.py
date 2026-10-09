@@ -99,7 +99,7 @@ def _record(gene_id: str) -> GeneRecordSummary:
     return GeneRecordSummary(
         site_id="plasmodb",
         gene_id=gene_id,
-        record_url=f"https://plasmodb.org/plasmo/app/record/gene/{gene_id}",
+        record_url=f"https://qa.plasmodb.org/plasmo.qa/app/record/gene/{gene_id}",
         organism="<i>P. falciparum 3D7</i>",
         product="conserved Plasmodium protein, unknown function",
     )

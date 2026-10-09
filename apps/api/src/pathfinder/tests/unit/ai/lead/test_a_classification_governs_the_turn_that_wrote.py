@@ -167,7 +167,7 @@ async def test_the_read_again_arc_on_the_real_lead_reads_each_record_once(
         return GeneRecordSummary(
             site_id=site_id,
             gene_id=gene_id,
-            record_url=f"https://plasmodb.org/plasmo/app/record/gene/{gene_id}",
+            record_url=f"https://qa.plasmodb.org/plasmo.qa/app/record/gene/{gene_id}",
         )
 
     monkeypatch.setattr(read, "read_gene_record", _read)

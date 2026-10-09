@@ -55,6 +55,7 @@ from pathfinder.services.conversations.turns import (
     load_conversation,
     turn_start_strategy,
 )
+from pathfinder.services.search_waits import researcher_search_turn
 
 logger = get_logger(__name__)
 
@@ -149,6 +150,7 @@ async def run_turn(
     """
     body = request.body
     async with contextlib.AsyncExitStack() as tool_source_sessions:
+        tool_source_sessions.enter_context(researcher_search_turn(writer))
         async with turn_closed_on_failure(writer):
             conversation = await load_conversation(body.conversation_id)
             effective_site_id = resolve_site_id(
@@ -194,6 +196,7 @@ async def run_turn(
                 compiled_graph=compiled_graph,
                 runtime_context=runtime_context,
                 writer=writer,
+                named=conversation is not None and bool(conversation.name),
             )
 
 
@@ -204,6 +207,7 @@ async def _run_turn_with_context(
     compiled_graph: Any,
     runtime_context: Any,
     writer: ChatWriter,
+    named: bool,
 ) -> None:
     body = request.body
     turn_message_id = writer.turn_id
@@ -227,7 +231,7 @@ async def _run_turn_with_context(
         graph_input = _graph_input(request, spec, writer, start_event_id)
 
     title_task: asyncio.Task[str] | None = None
-    if body.last_user_text.strip():
+    if body.last_user_text.strip() and not named:
         title_task = asyncio.create_task(
             charged_conversation_title(
                 body.last_user_text, spec.build_mock_model, user_id=request.user_id

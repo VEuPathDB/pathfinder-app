@@ -43,7 +43,7 @@ async def detail_calls(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[list[s
         return httpx.Response(200, json=_DETAIL)
 
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(handler)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
     yield calls

@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import ExperimentCard
@@ -26,6 +25,7 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     read_experiment,
 )
 from pathfinder.tests._support.experiment_cards import CRYPTO_CARD, TOXO_CARD
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -69,7 +69,7 @@ async def test_a_ranked_card_is_read_and_its_references_recorded(
 ) -> None:
     del two_sites
     orthologs = WDKSearchResponse.model_validate(
-        load_recorded("search_genes_by_orthologs").json_body()
+        client_recording("search_genes_by_orthologs").json_body()
     ).search_data
     monkeypatch.setattr(
         catalog, "get_raw_searches", AsyncMock(return_value=[orthologs])
@@ -93,7 +93,7 @@ async def test_a_ranked_card_is_read_and_its_references_recorded(
         ["26549794"],
     )
     assert ctx.deps.turn_markers.retrieved_sources == [
-        "https://cryptodb.org/cryptodb/app/record/dataset/DS_63b0de882c",
+        "https://qa.cryptodb.org/cryptodb.qa/app/record/dataset/DS_63b0de882c",
         "26549794",
     ]
 

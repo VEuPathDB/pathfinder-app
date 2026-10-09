@@ -8,7 +8,7 @@ import { DataStrategyLink } from "./DataStrategyLink";
 
 const STRATEGY = {
   strategyId: "s1",
-  url: "https://plasmodb.org/plasmo/app/workspace/strategies/s1",
+  url: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/s1",
   title: "My Strategy",
 };
 
@@ -38,7 +38,7 @@ describe("DataStrategyLink", () => {
       <DataStrategyLink
         data={{
           strategyId: "s1",
-          url: "https://plasmodb.org/plasmo/app/workspace/strategies/s1",
+          url: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/s1",
           title: "My Strategy",
         }}
       />,
@@ -47,7 +47,7 @@ describe("DataStrategyLink", () => {
     const link = screen.getByRole("link", { name: "My Strategy" });
     expect(link).toHaveAttribute(
       "href",
-      "https://plasmodb.org/plasmo/app/workspace/strategies/s1",
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/s1",
     );
   });
 
@@ -56,7 +56,7 @@ describe("DataStrategyLink", () => {
       <DataStrategyLink
         data={{
           strategyId: "s1",
-          url: "https://plasmodb.org/plasmo/app/workspace/strategies/s1",
+          url: "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/s1",
           title: "My Strategy",
         }}
       />,
@@ -67,11 +67,13 @@ describe("DataStrategyLink", () => {
 
   it("names the strategy by its id when the wire carries no title", () => {
     render(
-      <DataStrategyLink data={{ strategyId: "s2", url: "https://plasmodb.org/s2" }} />,
+      <DataStrategyLink
+        data={{ strategyId: "s2", url: "https://qa.plasmodb.org/s2" }}
+      />,
     );
     expect(screen.getByRole("link", { name: "Strategy s2" })).toHaveAttribute(
       "href",
-      "https://plasmodb.org/s2",
+      "https://qa.plasmodb.org/s2",
     );
     expect(screen.getByTestId("figure-caption").textContent).toBe("Strategy s2");
   });
@@ -79,7 +81,7 @@ describe("DataStrategyLink", () => {
   it("draws no divider, no card and no outer margin", () => {
     render(
       <DataStrategyLink
-        data={{ strategyId: "s1", url: "https://plasmodb.org/s1", title: "Test" }}
+        data={{ strategyId: "s1", url: "https://qa.plasmodb.org/s1", title: "Test" }}
       />,
     );
     expect(screen.getByTestId("figure").className).toBe("");

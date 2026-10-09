@@ -18,6 +18,7 @@ from pathfinder.services.eda import analysis_kinds
 from pathfinder.services.eda.analysis_kinds import analysis_kinds_of
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.tests._support.eda_step_doubles import DE_DATASET
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests.unit.ai.lead._analysis_thread import document
 
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
@@ -27,7 +28,9 @@ _PHENOTYPE = "GenesByPhenotypeUserDataset"
 
 @pytest.fixture
 def recorded(monkeypatch: pytest.MonkeyPatch) -> None:
-    raw = json.loads((_FIXTURES / "user_dataset_searches_plasmodb.json").read_text())
+    raw = json.loads(
+        qa_recording(_FIXTURES / "user_dataset_searches_plasmodb.json").read_text()
+    )
     by_name = {e["urlSegment"]: WDKSearch.model_validate(e) for e in raw}
 
     async def record_type(_site: str, _name: str, _record: str | None) -> str:

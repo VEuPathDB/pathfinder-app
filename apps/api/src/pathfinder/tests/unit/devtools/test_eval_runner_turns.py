@@ -32,6 +32,9 @@ from pathfinder.evals.case import (
 )
 from pathfinder.evals.scoring import ObservedOutcome, RequirementCounts, score_case
 from pathfinder.evals.store import ATTACHMENTS_DIR
+from pathfinder.platform.stage_sites import qa_sites_file
+
+_QA = str(qa_sites_file())
 
 
 def _case(*turns: str, **fields: object) -> EvalCase:
@@ -818,6 +821,7 @@ async def test_a_turn_can_open_a_new_conversation_and_is_read_there(
     )
 
 
+@pytest.mark.usefixtures("restored_sites_file")
 def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -851,7 +855,7 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
     monkeypatch.setattr(evals, "RUN_ROOT", tmp_path)
     monkeypatch.setattr(evals, "route_framework_logs_to_stderr", lambda: None)
 
-    assert evals.main(["run"]) == 0
+    assert evals.main(["run", "--sites", _QA]) == 0
 
     after = capsys.readouterr().out.splitlines()
     first = printed_before_each_case[1].split()
@@ -873,6 +877,7 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
     assert "errored 0, not run 0) refusals=0 assumed=- harness=" in after[-1]
 
 
+@pytest.mark.usefixtures("restored_sites_file")
 def test_a_passing_case_prints_its_refusals_on_every_line(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -907,7 +912,7 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
     monkeypatch.setattr(evals, "RUN_ROOT", tmp_path)
     monkeypatch.setattr(evals, "route_framework_logs_to_stderr", lambda: None)
 
-    assert evals.main(["run", "--out", str(out)]) == 0
+    assert evals.main(["run", "--sites", _QA, "--out", str(out)]) == 0
 
     lines = capsys.readouterr().out.splitlines()
     progress, _, first = lines[0].partition("  ")

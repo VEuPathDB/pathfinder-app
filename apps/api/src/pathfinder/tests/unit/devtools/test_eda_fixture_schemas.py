@@ -29,6 +29,10 @@ from veupathdb.devtools.eda_schemas import (
 from veupathdb.testing.eda_fixtures import UPSTREAM_DIR
 
 from pathfinder.tests._support.eda_fixtures import FIXTURES
+from pathfinder.tests._support.qa_recording import (
+    needs_client_eda_recordings,
+    qa_recording,
+)
 
 _BODY: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
 
@@ -36,7 +40,7 @@ _BODY: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
 def _fixture(name: str) -> dict[str, Any]:
     """One recorded body, as a mutable copy the mutation tests can bend."""
     path = next(binding.file for binding in BINDINGS if binding.fixture == name)
-    return _BODY.validate_python(json.loads(path.read_text()))
+    return _BODY.validate_python(json.loads(qa_recording(path).read_text()))
 
 
 def test_the_vendored_raml_is_byte_identical_to_the_pin() -> None:
@@ -66,6 +70,7 @@ def test_the_included_hash_id_resolves_into_the_library() -> None:
     }
 
 
+@needs_client_eda_recordings
 def test_every_recorded_fixture_binds_a_type_the_library_declares() -> None:
     declared = pinned().library.types
     assert {binding.raml_type for binding in BINDINGS} <= set(declared)
@@ -196,7 +201,9 @@ def _shape(node: Any) -> dict[str, Any]:
 def test_the_declared_library_reports_the_defects_the_wire_document_absorbs() -> None:
     """Without the recorded defects the same bodies fail, which is why they exist."""
     raw = {
-        binding.fixture: verify_body(binding.raml_type, _json(binding.file.read_text()))
+        binding.fixture: verify_body(
+            binding.raml_type, _json(qa_recording(binding.file).read_text())
+        )
         for binding in BINDINGS
     }
     assert {name: len(errors) for name, errors in raw.items() if errors} == {

@@ -16,6 +16,8 @@ from veupathdb.domain.parameters import (
     read_census,
 )
 
+from pathfinder.tests._support.qa_recording import qa_recording
+
 CONFORMANCE_FIXTURE = (
     Path(__file__).resolve().parents[6]
     / "packages"
@@ -84,7 +86,9 @@ class ConformanceFixture(BaseModel):
     decode: list[DecodeCase]
 
 
-FIXTURE = ConformanceFixture.model_validate_json(CONFORMANCE_FIXTURE.read_text())
+FIXTURE = ConformanceFixture.model_validate_json(
+    qa_recording(CONFORMANCE_FIXTURE).read_text()
+)
 
 
 def _tree() -> PhyleticTree:

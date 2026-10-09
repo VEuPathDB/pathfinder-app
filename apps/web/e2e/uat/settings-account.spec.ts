@@ -408,10 +408,10 @@ test.describe("Settings and account", () => {
     await openSettingsTab(page, settingsPage, "Privacy");
     const dialog = settingsDialog(page);
     await expect(
-      dialog.getByText("Improving PathFinder", { exact: true }),
+      dialog.getByText("Learning from your strategies", { exact: true }),
     ).toBeVisible();
     await expect(dialog).toContainText(
-      "PathFinder improves by learning from real strategies.",
+      "Before review, PathFinder removes email addresses and passwords in web addresses.",
     );
     const consent = dialog.getByRole("checkbox", {
       name: "Let PathFinder learn from my strategies",

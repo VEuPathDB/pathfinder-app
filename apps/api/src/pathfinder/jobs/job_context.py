@@ -7,11 +7,13 @@ so the token is captured at the call and restored around the body. It is a
 
 from __future__ import annotations
 
-from contextlib import AbstractAsyncContextManager
+from collections.abc import AsyncIterator
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from assistant_core.tasks.job_context import CarriedSecret, DurableJobState
 from pydantic import SecretStr
 from veupathdb.auth_context import veupathdb_auth_token_ctx
+from veupathdb.wdk import search_turn
 
 from pathfinder.jobs.auth_context import attach_wdk_auth
 
@@ -36,7 +38,14 @@ class WdkJobContext:
     def restore(self, state: DurableJobState) -> AbstractAsyncContextManager[None]:
         carried = WdkJobState.model_validate(state.model_dump())
         secret = carried.veupathdb_auth_token
-        return attach_wdk_auth(None if secret is None else secret.get_secret_value())
+        return _restored(None if secret is None else secret.get_secret_value())
+
+
+@asynccontextmanager
+async def _restored(token: str | None) -> AsyncIterator[None]:
+    async with attach_wdk_auth(token):
+        with search_turn():
+            yield
 
 
 __all__ = ["WdkJobContext", "WdkJobState"]

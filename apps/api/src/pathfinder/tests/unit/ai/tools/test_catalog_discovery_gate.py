@@ -9,7 +9,6 @@ from typing import Any
 import pytest
 from pydantic_ai import RunContext
 from veupathdb.domain.parameters import SinglePickValue, VocabOption
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKParameter, WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
@@ -29,6 +28,7 @@ from pathfinder.ai.agents.strategy_instructions import pinned_discovered_searche
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import catalog_discovery
 from pathfinder.ai.tools.standalone.catalog_discovery import AlreadyReadNotice
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_run_context,
@@ -77,7 +77,7 @@ def _fixture_ctx(
 ) -> tuple[RunContext[AgentDeps], _RecordedClient]:
     """A context reading one recorded WDK search response."""
     client = _RecordedClient(
-        WDKSearchResponse.model_validate(load_recorded(fixture).json_body())
+        WDKSearchResponse.model_validate(client_recording(fixture).json_body())
     )
     monkeypatch.setattr(searches, "get_wdk_client", lambda _site: client)
     monkeypatch.setattr(search_inspection, "get_wdk_client", lambda _site: client)

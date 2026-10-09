@@ -69,7 +69,7 @@ def test_strategy_meta_validates() -> None:
 def test_strategy_link_validates() -> None:
     link = StrategyLink(
         strategy_id="s_x",
-        url="https://plasmodb.org/plasmo/app/record/dataset/s_x",
+        url="https://qa.plasmodb.org/plasmo.qa/app/record/dataset/s_x",
         title="My strategy",
     )
     assert link.url.startswith("https://")

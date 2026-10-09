@@ -11,9 +11,12 @@ import { test, expect, BASE_URL } from "../fixtures/test";
 import { CSRF_HEADERS } from "../fixtures/api-client";
 import {
   COMPARED_ANALYSIS,
+  EDA_RECORDING_MISSING,
   edaJson,
+  EXPORTED_SIZE,
   EXPORTED_STEP,
   exportedStrategy,
+  NEEDS_QA_RECORDING,
   routeEdaReads,
   SITE_ID,
 } from "../fixtures/eda";
@@ -31,6 +34,7 @@ async function openConversation(context: BrowserContext): Promise<string> {
 }
 
 test.describe("EDA export as a strategy step", () => {
+  test.skip(EDA_RECORDING_MISSING, NEEDS_QA_RECORDING);
   test("the figure of a compute exports a step the strategy rail lists", async ({
     page,
     context,
@@ -117,9 +121,8 @@ test.describe("EDA export as a strategy step", () => {
     await expect(
       page.getByTestId(`compact-step-row-${EXPORTED_STEP.id}`),
     ).toContainText(EXPORTED_STEP.displayName);
-    // The recorded step's own estimated size.
     await expect(
       page.getByTestId(`compact-step-row-${EXPORTED_STEP.id}`),
-    ).toContainText("1,543");
+    ).toContainText(EXPORTED_SIZE);
   });
 });

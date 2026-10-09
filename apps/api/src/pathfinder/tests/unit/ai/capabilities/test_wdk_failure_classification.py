@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.errors import WDKError
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import validation_bundle, wdk_failure
 
 from pathfinder.ai.capabilities.error_classification import (
     ErrorCategory,
     classify_error,
 )
+from pathfinder.tests._support.qa_recording import client_recording
 
 _SERVER_ERROR = 500
 
@@ -35,14 +35,14 @@ class TestWdkHttp002FailureIsAStatusAndPlainText:
     def test_wdk_http_002_every_error_body_is_text_plain(
         self, name: str, status: int
     ) -> None:
-        recorded = load_recorded(name)
+        recorded = client_recording(name)
 
         assert recorded.provenance.status == status
         assert recorded.provenance.content_type.startswith("text/plain")
 
     def test_wdk_http_002_a_422_serves_json_under_text_plain(self) -> None:
         # Deciding how to read a WDK error by its content type gets it wrong.
-        recorded = load_recorded("refresh_with_a_value_outside_the_vocabulary")
+        recorded = client_recording("refresh_with_a_value_outside_the_vocabulary")
 
         assert recorded.provenance.content_type.startswith("text/plain")
         assert validation_bundle(recorded.raw_text()) is not None
@@ -50,8 +50,8 @@ class TestWdkHttp002FailureIsAStatusAndPlainText:
     def test_wdk_http_002_a_400_is_prose_and_a_422_is_a_verdict(self) -> None:
         # 400 is our serialization; 422 is the scientist's value. Only one of
         # those is worth showing a user.
-        misformat = load_recorded("refresh_without_changed_param")
-        rejected = load_recorded("refresh_with_a_value_outside_the_vocabulary")
+        misformat = client_recording("refresh_without_changed_param")
+        rejected = client_recording("refresh_with_a_value_outside_the_vocabulary")
 
         assert validation_bundle(misformat.raw_text()) is None
         verdict = validation_bundle(rejected.raw_text())
@@ -74,7 +74,7 @@ class TestWdkHttp002FailureIsAStatusAndPlainText:
 
 class TestWdkValid006ARefusalCarriesItsBundle:
     def test_wdk_valid_006_the_messages_reach_the_error(self) -> None:
-        recorded = load_recorded("refresh_with_a_value_outside_the_vocabulary")
+        recorded = client_recording("refresh_with_a_value_outside_the_vocabulary")
 
         error = wdk_failure(
             "POST", "/refreshed-dependent-params", 422, recorded.raw_text()
@@ -83,7 +83,7 @@ class TestWdkValid006ARefusalCarriesItsBundle:
         assert "The passed changed param value 'Nope' is invalid." in str(error)
 
     def test_wdk_valid_006_the_level_names_which_check_rejected_you(self) -> None:
-        recorded = load_recorded("refresh_with_an_unknown_parameter")
+        recorded = client_recording("refresh_with_an_unknown_parameter")
 
         error = wdk_failure(
             "POST", "/refreshed-dependent-params", 422, recorded.raw_text()
@@ -106,7 +106,7 @@ class TestWdkValid006ARefusalCarriesItsBundle:
         assert "organism" in str(error)
 
     def test_wdk_valid_006_a_prose_body_still_becomes_an_error(self) -> None:
-        recorded = load_recorded("refresh_without_changed_param")
+        recorded = client_recording("refresh_without_changed_param")
 
         error = wdk_failure(
             "POST", "/refreshed-dependent-params", 400, recorded.raw_text()
@@ -117,7 +117,7 @@ class TestWdkValid006ARefusalCarriesItsBundle:
         assert "'changedParam' property is required" in str(error)
 
     def test_wdk_valid_006_the_status_survives_the_parse(self) -> None:
-        recorded = load_recorded("refresh_with_a_value_outside_the_vocabulary")
+        recorded = client_recording("refresh_with_a_value_outside_the_vocabulary")
 
         error = wdk_failure(
             "POST", "/refreshed-dependent-params", 422, recorded.raw_text()

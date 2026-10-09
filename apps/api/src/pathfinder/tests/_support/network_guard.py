@@ -38,11 +38,11 @@ def _host_text(host: object) -> str:
 
 
 def veupathdb_hosts() -> frozenset[str]:
-    """The host of every site the router serves."""
+    """The domain of every site the router serves; each subdomain is refused too."""
     hosts = (
         urlparse(site.base_url).hostname for site in get_site_router().list_sites()
     )
-    return frozenset(host for host in hosts if host)
+    return frozenset(".".join(host.split(".")[-2:]) for host in hosts if host)
 
 
 @dataclass(frozen=True)

@@ -237,6 +237,7 @@ async def _run_turn(
         compiled_graph=spec.build_graph(saver),
         runtime_context=context,
         writer=ChatEventWriter(conversation_id=conversation_id, turn_id=turn_id),
+        named=False,
     )
     return _Turn(user_message_id=user_message_id, assistant_message_id=turn_id)
 

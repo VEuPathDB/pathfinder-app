@@ -41,9 +41,9 @@ from pathfinder.ai.models.mock.site_values import MARKS_FILE
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.platform.config import get_settings
 from pathfinder.services.experiment.seed.catalog import (
-    SEED_DATABASES,
     SEEDS_DIR,
     get_seeds_for_site,
+    seed_databases,
 )
 from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
 from pathfinder.services.wdk_build import site_build
@@ -193,7 +193,7 @@ async def measure(site_id: str) -> None:
 async def seed_organism_marks() -> dict[str, dict[str, str | None]]:
     """Each seed site, and the organism parameter each search its seeds run marks."""
     recorded: dict[str, dict[str, str | None]] = {}
-    for site_id in SEED_DATABASES:
+    for site_id in seed_databases():
         searches = {
             (leaf.search_name, seed.record_type)
             for seed in get_seeds_for_site(site_id)

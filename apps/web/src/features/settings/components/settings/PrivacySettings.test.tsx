@@ -5,19 +5,21 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m) } }));
 
-vi.mock("@/features/settings/api/privacy", () => ({
+vi.mock("@/lib/api/privacy", () => ({
+  PRIVACY_QUERY_KEY: ["me", "privacy"],
   getPrivacySettings: vi.fn(),
   updatePrivacySettings: vi.fn(),
 }));
 
 import { appQueryClientWrapper } from "@/app/components/__fixtures__/appQueryClient";
-import {
-  getPrivacySettings,
-  updatePrivacySettings,
-} from "@/features/settings/api/privacy";
+import { getPrivacySettings, updatePrivacySettings } from "@/lib/api/privacy";
 import { PrivacySettings } from "./PrivacySettings";
 
 const mockedGet = vi.mocked(getPrivacySettings);
+
+function settings(evalDataConsent: boolean) {
+  return { evalDataConsent, dataNoticeSeen: "2026-10-09", noticeDue: false };
+}
 const mockedUpdate = vi.mocked(updatePrivacySettings);
 
 beforeEach(() => {
@@ -31,8 +33,22 @@ afterEach(() => {
 });
 
 describe("PrivacySettings", () => {
+  it("states what learning allows, what a shared copy never carries and what turning off does", async () => {
+    mockedGet.mockResolvedValue(settings(true));
+
+    render(<PrivacySettings />);
+
+    expect(await screen.findByRole("checkbox")).toBeChecked();
+    expect(screen.getByTestId("privacy-learning-copy")).toHaveTextContent(
+      "When this is on, PathFinder may use copies of your conversations and strategies to improve PathFinder for everyone, for example for review by the team, as test cases, or as shared examples the assistant draws on. A copy used beyond review never carries your name, your account or a link to your conversation. Today, PathFinder copies your finished conversations each night, and a conversation when you dislike one of its replies. Turning this off deletes your copies that are waiting for review and stops new ones.",
+    );
+    expect(
+      screen.getByRole("link", { name: "Your data in PathFinder" }),
+    ).toHaveAttribute("href", "/help/your-data#learning");
+  });
+
   it("shows the toggle on for a consenting account", async () => {
-    mockedGet.mockResolvedValue({ evalDataConsent: true, noticeSeen: true });
+    mockedGet.mockResolvedValue(settings(true));
 
     render(<PrivacySettings />);
 
@@ -41,7 +57,7 @@ describe("PrivacySettings", () => {
   });
 
   it("shows the toggle off for an account that opted out", async () => {
-    mockedGet.mockResolvedValue({ evalDataConsent: false, noticeSeen: true });
+    mockedGet.mockResolvedValue(settings(false));
 
     render(<PrivacySettings />);
 
@@ -49,8 +65,8 @@ describe("PrivacySettings", () => {
   });
 
   it("turns consent off and reflects the server answer", async () => {
-    mockedGet.mockResolvedValue({ evalDataConsent: true, noticeSeen: true });
-    mockedUpdate.mockResolvedValue({ evalDataConsent: false, noticeSeen: true });
+    mockedGet.mockResolvedValue(settings(true));
+    mockedUpdate.mockResolvedValue(settings(false));
 
     render(<PrivacySettings />);
     fireEvent.click(await screen.findByRole("checkbox"));
@@ -64,8 +80,8 @@ describe("PrivacySettings", () => {
   });
 
   it("turns consent back on", async () => {
-    mockedGet.mockResolvedValue({ evalDataConsent: false, noticeSeen: true });
-    mockedUpdate.mockResolvedValue({ evalDataConsent: true, noticeSeen: true });
+    mockedGet.mockResolvedValue(settings(false));
+    mockedUpdate.mockResolvedValue(settings(true));
 
     render(<PrivacySettings />);
     fireEvent.click(await screen.findByRole("checkbox"));
@@ -98,7 +114,7 @@ describe("PrivacySettings", () => {
   });
 
   it("reports a failed save", async () => {
-    mockedGet.mockResolvedValue({ evalDataConsent: true, noticeSeen: true });
+    mockedGet.mockResolvedValue(settings(true));
     mockedUpdate.mockRejectedValue(new Error("nope"));
 
     render(<PrivacySettings />);

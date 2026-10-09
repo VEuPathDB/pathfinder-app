@@ -35,7 +35,7 @@ from veupathdb.eda import (
     EdaVolcanoDescriptor,
     VolcanoStatsResponse,
 )
-from veupathdb.testing.eda_fixtures import recorded_distribution
+from veupathdb.testing.eda_fixtures import FIXTURE_DIR, recorded_distribution
 from veupathdb_mcp.catalog import COMPUTE_QUERY
 
 from pathfinder.domain.eda_thread import ConversationAnalysisView
@@ -58,6 +58,7 @@ from pathfinder.tests._support.eda_wire import (
     fixture,
     gene_id_distribution,
 )
+from pathfinder.tests._support.qa_recording import qa_recording
 
 WDK_STRATEGY_ID = 330423363
 
@@ -75,7 +76,10 @@ def _recorded_genes(study_fixture: str) -> GeneCount:
     """The distinct gene ids the site answered under the study's example subset."""
     filtered, whole = (
         recorded_distribution(
-            gene_id_distribution(study_fixture, filtered=subset)
+            qa_recording(
+                FIXTURE_DIR
+                / f"{gene_id_distribution(study_fixture, filtered=subset)}.json"
+            ).stem
         ).statistics
         for subset in (True, False)
     )

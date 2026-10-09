@@ -22,7 +22,7 @@ _LINKED = _SAMPLED[3:]
 
 
 def _page(record_id: str) -> str:
-    return f"https://hostdb.org/hostdb/app/record/gene/{record_id}"
+    return f"https://qa.hostdb.org/hostdb.qa/app/record/gene/{record_id}"
 
 
 def _listing(ids: list[str]) -> TurnFacts:

@@ -16,8 +16,8 @@ from pathfinder.domain.reply_references import (
 )
 from pathfinder.domain.turn_facts import ListedFact, SourceFact, TurnFacts
 
-_HOSTDB_PAGE = "https://hostdb.org/hostdb/app/record/gene/"
-_CRYPTO_PAGE = "https://cryptodb.org/cryptodb/app/record/gene/"
+_HOSTDB_PAGE = "https://qa.hostdb.org/hostdb.qa/app/record/gene/"
+_CRYPTO_PAGE = "https://qa.cryptodb.org/cryptodb.qa/app/record/gene/"
 # hostdb, build 71: the sample of five a turn listed from the MHC class I
 # intersect of chromosome 17 genes.
 _SAMPLE = [

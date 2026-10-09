@@ -19,7 +19,7 @@ from veupathdb.testing.wdk_fixtures import (
     FixtureProvenance,
     RecordedWDKResponse,
 )
-from veupathdb.wdk import STREAM_MEDIA_TYPE
+from veupathdb.wdk import STREAM_MEDIA_TYPE, get_site_router
 from veupathdb_mcp.gene_lookup import (
     SITE_SEARCH_PAGE_LIMIT,
     fetch_site_search_genes,
@@ -29,7 +29,6 @@ from veupathdb_mcp.gene_lookup import (
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
 FIXTURE = FIXTURE_DIR / "site_search_stream_genes.json"
-URL = "https://plasmodb.org/site-search"
 BODY = {
     "searchText": "kinase",
     "restrictToProject": "PlasmoDB",
@@ -49,15 +48,16 @@ def _recorded() -> RecordedWDKResponse:
 
 
 async def _live() -> RecordedWDKResponse:
+    url = f"{get_site_router().get_site('plasmodb').site_origin}/site-search"
     async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, read=120.0)) as client:
         response = await client.post(
-            URL, json=BODY, headers={"Accept": STREAM_MEDIA_TYPE}
+            url, json=BODY, headers={"Accept": STREAM_MEDIA_TYPE}
         )
     return RecordedWDKResponse(
         provenance=FixtureProvenance(
             site="plasmodb",
             method="POST",
-            url=URL,
+            url=url,
             status=response.status_code,
             content_type=response.headers.get("content-type", ""),
             recorded_at=datetime.datetime.now(tz=datetime.UTC).date().isoformat(),

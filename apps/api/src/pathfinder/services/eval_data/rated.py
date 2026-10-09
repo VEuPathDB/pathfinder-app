@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from pathfinder.evals.extract import EvalExtract
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.eval_staging import EvalStagingRepository
+from pathfinder.services.eval_data.consent import copies_allowed
 from pathfinder.services.eval_data.extraction import (
     extract_from_rows,
     extracted_strategy,
@@ -42,7 +43,7 @@ async def _extract_through(
         if conversation is None:
             return None
         consent = await session.scalar(
-            select(User.eval_data_consent).where(User.id == conversation.user_id)
+            select(copies_allowed()).where(User.id == conversation.user_id)
         )
         through = await session.scalar(
             select(func.max(ConversationEvent.id)).where(

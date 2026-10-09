@@ -23,8 +23,6 @@ from veupathdb.wdk import (
     get_wdk_client,
 )
 
-VERIFICATION_SITES = ("plasmodb", "toxodb")
-
 Probe = Callable[..., Awaitable[WDKProbe]]
 
 

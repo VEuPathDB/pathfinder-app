@@ -244,7 +244,7 @@ async def test_the_list_links_the_sites_own_upload_page(
 
     assert found == OwnDatasets(
         datasets=[],
-        upload_url="https://plasmodb.org/plasmo/app/workspace/datasets",
+        upload_url="https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets",
     )
 
 

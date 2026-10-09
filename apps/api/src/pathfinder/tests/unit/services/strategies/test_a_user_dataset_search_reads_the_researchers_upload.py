@@ -17,12 +17,15 @@ from pathfinder.services.strategies.user_dataset_searches import (
     offers_for,
     user_dataset_types,
 )
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
 
 
 def _searches(site: str) -> dict[str, WDKSearch]:
-    raw = json.loads((_FIXTURES / f"user_dataset_searches_{site}.json").read_text())
+    raw = json.loads(
+        qa_recording(_FIXTURES / f"user_dataset_searches_{site}.json").read_text()
+    )
     return {entry["urlSegment"]: WDKSearch.model_validate(entry) for entry in raw}
 
 

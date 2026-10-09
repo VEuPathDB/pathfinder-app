@@ -1,5 +1,7 @@
 # PathFinder on cedar
 
+This is the rootless tunnel stack testers use until the estate stack serves the development site; the estate stack is run as [docs/OPERATIONS.md](../../docs/OPERATIONS.md) describes.
+
 `cedar.penn.apidb.org` runs PathFinder for internal testers as rootless podman
 containers under one user account. The images come from the registry: a release
 tag of this repository publishes them (`.github/workflows/publish-images.yml`),

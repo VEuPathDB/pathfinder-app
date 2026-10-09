@@ -109,7 +109,7 @@ Result: `pass`, `fail`, `blocked` or `re-measure`. Bug ids: the tracker's, comma
 
 ## Flows under test
 
-Where each flow runs without a runner. The e2e spec drives the flow on the mock stack (only the model is mocked; `@turn` tests run once per site in `E2E_SITES`, plasmodb and vectorbase in CI). The model check runs the flow on the real model before a release, from a machine that holds the key, against the recorded expectation. The fault spec plays a wrong model and asserts the guard that corrects it. `none` names why a flow stays with the runner; `-` in the model-check column marks a flow whose expectation is not a model decision, and in the fault column a flow with no guard of its own; every fault test is in `apps/web/e2e/uat/faults.spec.ts`.
+Where each flow runs without a runner. The e2e spec drives the flow on the mock stack (only the model is mocked; `@turn` tests run once per site in `E2E_SITES`, on the QA sites `e2e-sites.yaml` lists, plasmodb and vectorbase in CI). The model check runs the flow on the real model before a release, from a machine that holds the key, against the recorded expectation. The fault spec plays a wrong model and asserts the guard that corrects it. `none` names why a flow stays with the runner; `-` in the model-check column marks a flow whose expectation is not a model decision, and in the fault column a flow with no guard of its own; every fault test is in `apps/web/e2e/uat/faults.spec.ts`.
 
 | Flow | e2e spec | model check | fault spec |
 |---|---|---|---|

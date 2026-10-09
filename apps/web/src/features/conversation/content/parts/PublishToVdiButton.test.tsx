@@ -24,7 +24,7 @@ vi.mock("sonner", () => ({
 const { PublishToVdiButton } = await import("./PublishToVdiButton");
 
 const VDI_ID = "soV5JEQEcF00p";
-const DATASET_URL = `https://plasmodb.org/plasmo/app/workspace/datasets/${VDI_ID}`;
+const DATASET_URL = `https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets/${VDI_ID}`;
 
 function geneSet(overrides: Partial<GeneSet> = {}): GeneSet {
   return {

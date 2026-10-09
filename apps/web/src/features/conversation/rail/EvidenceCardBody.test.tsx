@@ -44,10 +44,12 @@ describe("EvidenceCardBody citations", () => {
   });
 
   it("keeps a web address as it is", () => {
-    const cited = citing(["https://plasmodb.org/plasmo/app/record/gene/PF3D7_1133400"]);
+    const cited = citing([
+      "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1133400",
+    ]);
 
     expect(cited.getByRole("link").getAttribute("href")).toBe(
-      "https://plasmodb.org/plasmo/app/record/gene/PF3D7_1133400",
+      "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1133400",
     );
   });
 

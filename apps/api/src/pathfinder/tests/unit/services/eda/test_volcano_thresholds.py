@@ -23,6 +23,7 @@ from pathfinder.services.eda.compute import (
     retained_summary,
     volcano_view,
 )
+from pathfinder.tests._support.qa_recording import qa_recording
 
 FIXTURES = FIXTURE_DIR
 
@@ -213,7 +214,7 @@ def test_a_row_with_no_readable_effect_size_has_no_x_and_is_dropped() -> None:
 
 def test_the_recorded_statistics_plot_every_row_that_has_an_effect_size() -> None:
     """The one recorded row without a p-value is drawn, not silently missing."""
-    raw = json.loads((FIXTURES / "volcano_statistics.json").read_text())
+    raw = json.loads(qa_recording(FIXTURES / "volcano_statistics.json").read_text())
     view = volcano_view(VolcanoStatsResponse.model_validate(raw), thresholds=_CUT)
     assert view.total_points == 201
     assert len(view.points) == 201
@@ -226,7 +227,7 @@ def test_the_recorded_statistics_plot_every_row_that_has_an_effect_size() -> Non
 
 def test_the_recorded_statistics_reproduce_the_measured_gene_counts() -> None:
     """The trimmed fixture pins internal consistency; the live lane pins 1543."""
-    raw = json.loads((FIXTURES / "volcano_statistics.json").read_text())
+    raw = json.loads(qa_recording(FIXTURES / "volcano_statistics.json").read_text())
     stats = VolcanoStatsResponse.model_validate(raw)
     summary = retained_summary(
         stats, effect_size_threshold=1.0, significance_threshold=0.05
@@ -243,7 +244,7 @@ def test_the_recorded_statistics_reproduce_the_measured_gene_counts() -> None:
 
 def test_raising_the_effect_size_threshold_never_grows_the_retained_set() -> None:
     """The cut is monotone in the effect size at a fixed significance."""
-    raw = json.loads((FIXTURES / "volcano_statistics.json").read_text())
+    raw = json.loads(qa_recording(FIXTURES / "volcano_statistics.json").read_text())
     stats = VolcanoStatsResponse.model_validate(raw)
     previous: set[str] | None = None
     for effect_size_threshold in (0.5, 1.0, 1.5, 2.0, 3.0, 4.5):
@@ -262,7 +263,7 @@ def test_raising_the_effect_size_threshold_never_grows_the_retained_set() -> Non
 
 def test_the_two_directions_partition_the_retained_set() -> None:
     """upOnly and downOnly split upAndDown with no row in both halves."""
-    raw = json.loads((FIXTURES / "volcano_statistics.json").read_text())
+    raw = json.loads(qa_recording(FIXTURES / "volcano_statistics.json").read_text())
     stats = VolcanoStatsResponse.model_validate(raw)
     both = set(
         retained_point_ids(

@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.jobs.impls import optimize_params_impl
 from pathfinder.services.parameter_optimization import sweep, tunable
 from pathfinder.tests._support.database import no_database
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.saved_controls import (
     SAVED_SET_ID,
     saved_set,
@@ -41,7 +42,9 @@ POSITIVES = ["PF3D7_1133400", "PF3D7_0102600", "PF3D7_0930300"]
 
 def _recorded_parameters() -> list[ParameterInfo]:
     raw = json.loads(
-        (FIXTURE_ROOT / "wdk" / "search_genes_by_exon_count.json").read_text()
+        qa_recording(
+            FIXTURE_ROOT / "wdk" / "search_genes_by_exon_count.json"
+        ).read_text()
     )
     response = WDKSearchResponse.model_validate(raw["body"])
     return format_param_info_typed(response.search_data.parameters or [])

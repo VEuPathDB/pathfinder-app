@@ -5,13 +5,16 @@ import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import type { SeparationReport } from "@pathfinder/shared";
 
-import recorded from "../../__fixtures__/separationResult.json";
+import { qaRecording } from "@/lib/testing/qaRecording";
 import { ChatHelpersProvider } from "../../runtime/chatHelpersContext";
 import { DataSeparationResult } from "./DataSeparationResult";
 import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 
 /** The recorded exact run on the seed "PF3D7 Signal Peptide Genes". */
-const REPORT = recorded as SeparationReport;
+const recorded = qaRecording(
+  new URL("../../__fixtures__/separationResult.json", import.meta.url),
+);
+const REPORT = (recorded ?? {}) as SeparationReport;
 
 function renderReport(data: SeparationReport) {
   const messages = threadOf([threadPart("data-separation-result", data)]);
@@ -26,7 +29,7 @@ function cell(name: string): HTMLElement {
   return screen.getByTestId(`separation-cell-${name}`);
 }
 
-describe("DataSeparationResult", () => {
+describe.skipIf(recorded === null)("DataSeparationResult", () => {
   it("draws the four cells the site read, each with its ids", () => {
     renderReport(REPORT);
 

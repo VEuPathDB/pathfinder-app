@@ -126,7 +126,7 @@ async def test_open_eda_analysis_cuts_a_long_purpose_before_the_wire(
         return httpx.Response(404, json={"status": "not-found"})
 
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(handler)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)

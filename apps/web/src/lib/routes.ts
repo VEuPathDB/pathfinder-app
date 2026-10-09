@@ -42,3 +42,22 @@ export function strategyStepUrl(
 ): string {
   return `${strategyCanvasUrl(siteId, conversationId)}/step/${stepId}`;
 }
+
+export function helpUrl(): string {
+  return "/help";
+}
+
+export type YourDataSection =
+  | "sent"
+  | "other-services"
+  | "kept"
+  | "deleting"
+  | "learning"
+  | "your-key"
+  | "declined"
+  | "contact";
+
+export function yourDataUrl(section?: YourDataSection): string {
+  const base = `${helpUrl()}/your-data`;
+  return section === undefined ? base : `${base}#${section}`;
+}

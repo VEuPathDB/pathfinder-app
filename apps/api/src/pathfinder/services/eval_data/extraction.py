@@ -39,6 +39,7 @@ from pathfinder.services.eval_data.chunk_reader import (
     read_turns,
     read_verification,
 )
+from pathfinder.services.eval_data.consent import copies_allowed
 from pathfinder.services.strategies.schemas import step_rationale_of
 
 logger = get_logger(__name__)
@@ -96,7 +97,7 @@ def _candidate_query(
             ConversationStrategy.conversation_id == Conversation.id,
         )
         .where(
-            User.eval_data_consent.is_(True),
+            copies_allowed(),
             Conversation.dismissed_at.is_(None),
             ~already_staged,
         )

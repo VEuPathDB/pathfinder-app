@@ -16,6 +16,7 @@ from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 from veupathdb_mcp.embeddings import sync_study_index
 
 from pathfinder.services.eda import authoring, catalog, compute
+from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests.integration.http.conftest import (
     first_frame_client_for,
     make_user,
@@ -29,7 +30,7 @@ ENTITY = "GENE_PHENOTYPE_DATA_ENTITY"
 
 
 def fixture(name: str) -> object:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads(qa_recording(FIXTURES / name).read_text())
 
 
 _FIXTURE_BY_SUFFIX = {
@@ -69,7 +70,7 @@ async def eda_wired(
 ) -> AsyncGenerator[EdaClient]:
     del patch_app_db_engine
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=route([4011, 4279])
+        base_url="https://qa.plasmodb.org/eda", transport=route([4011, 4279])
     )
     for module in (catalog, authoring, compute):
         monkeypatch.setattr(module, "get_eda_client", lambda _s: client)

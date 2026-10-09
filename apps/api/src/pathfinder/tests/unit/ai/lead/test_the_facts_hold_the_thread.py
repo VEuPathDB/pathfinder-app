@@ -192,7 +192,7 @@ def test_a_reply_says_how_the_count_moved_by_reference() -> None:
 
 # A leaf of 627 genes under a result of 9, and one record read from the leaf.
 _LEAF_WDK = 441125223
-_TOXO_RECORD = "https://toxodb.org/toxo/app/record/gene/TGME49_200010"
+_TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200010"
 
 
 def _leaf_read() -> LeadDeps:
@@ -285,7 +285,9 @@ def test_a_record_read_under_a_step_the_strategy_replaced_is_no_source() -> None
     )
 
 
-_VECTORBASE_RECORD = "https://vectorbase.org/vectorbase/app/record/gene/AFUN020124"
+_VECTORBASE_RECORD = (
+    "https://qa.vectorbase.org/vectorbase.qa/app/record/gene/AFUN020124"
+)
 
 
 def test_a_record_a_read_returned_is_rendered_linked_with_its_product() -> None:
@@ -336,7 +338,7 @@ _IMAGE_REPLY = (
     "- [record:PF3D7_1133400]\n"
     "- [record:PF3D7_0102600]"
 )
-_PLASMO_RECORD = "https://plasmodb.org/plasmo/app/record/gene/"
+_PLASMO_RECORD = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/"
 
 
 async def test_the_genes_the_gate_resolved_are_facts_the_reply_may_name(

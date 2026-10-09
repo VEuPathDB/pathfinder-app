@@ -31,6 +31,7 @@ from pathfinder.services.experiment.scored_comparison import (
     ScoredVariant,
 )
 from pathfinder.services.experiment.variant_comparison import VariantInput
+from pathfinder.tests._support.qa_recording import needs_suite_recordings
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 from pathfinder.tests.unit.ai.tools.conftest import detached_lead_context
 from pathfinder.tests.unit.ai.tools.test_frame_spec import param_info
@@ -92,6 +93,7 @@ def test_verify_reads_the_card_only_of_the_strategy_it_checks() -> None:
     assert verification_scope(moved, check_id="call_v2").last_card is None
 
 
+@needs_suite_recordings
 async def test_a_scored_comparison_backs_the_counts_it_scored(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -12,7 +12,12 @@ import { BASE_PATH } from "@/lib/basePath";
 
 import { test, expect, APP_ROOT, BASE_URL, addWebsiteLogin } from "../fixtures/test";
 import { prompt } from "../fixtures/arcs";
-import { type ApiClient, CSRF_HEADERS, clearUserData } from "../fixtures/api-client";
+import {
+  type ApiClient,
+  CSRF_HEADERS,
+  clearUserData,
+  continuePastDataNotice,
+} from "../fixtures/api-client";
 import { LAYOUTS } from "../fixtures/arc-layouts";
 import {
   expectBuild,
@@ -164,10 +169,7 @@ async function secondUser(browser: Browser, userId: string): Promise<BrowserCont
     { headers: CSRF_HEADERS },
   );
   expect(login.ok(), `dev-login ${userId} ${login.status()}`).toBe(true);
-  const notice = await context.request.patch(`${BASE_URL}/api/v1/me/privacy`, {
-    headers: CSRF_HEADERS,
-    data: { noticeSeen: true },
-  });
+  const notice = await continuePastDataNotice(context.request, BASE_URL);
   expect(notice.ok()).toBe(true);
   const purge = await context.request.delete(`${BASE_URL}/api/v1/user/data`, {
     headers: CSRF_HEADERS,

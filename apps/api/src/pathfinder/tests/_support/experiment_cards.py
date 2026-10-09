@@ -22,7 +22,7 @@ CRYPTO_CARD = ExperimentCard.model_validate(
         ),
         "pmids": ["26549794"],
         "searches": ["GenesByIntronJunctions", CRYPTO_SEARCH],
-        "recordUrl": "https://cryptodb.org/cryptodb/app/record/dataset/DS_63b0de882c",
+        "recordUrl": "https://qa.cryptodb.org/cryptodb.qa/app/record/dataset/DS_63b0de882c",
     }
 )
 
@@ -45,7 +45,7 @@ TOXO_CARD = ExperimentCard.model_validate(
             "GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRCPercentile",
             "GenesByRNASeqtgonME49_Knoll_Mouse_Brain_ebi_rnaSeq_RSRCDESeq",
         ],
-        "recordUrl": "https://toxodb.org/toxo/app/record/dataset/DS_0d220fc0c6",
+        "recordUrl": "https://qa.toxodb.org/toxo.qa/app/record/dataset/DS_0d220fc0c6",
     }
 )
 
@@ -73,7 +73,7 @@ EIMERIA_GENOME_CARD = ExperimentCard.model_validate(
             "GenesByGeneModelChars",
             "GenesByLocation",
         ],
-        "recordUrl": "https://toxodb.org/toxo/app/record/dataset/DS_299615a94a",
+        "recordUrl": "https://qa.toxodb.org/toxo.qa/app/record/dataset/DS_299615a94a",
     }
 )
 
@@ -97,6 +97,6 @@ LEISHMANIA_ISOLATES_CARD = ExperimentCard.model_validate(
             "GenesByVariantCharacteristics",
             "GenesByCopyNumber",
         ],
-        "recordUrl": "https://tritrypdb.org/tritrypdb/app/record/dataset/DS_2184f85560",
+        "recordUrl": "https://qa.tritrypdb.org/tritrypdb.qa/app/record/dataset/DS_2184f85560",
     }
 )

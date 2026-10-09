@@ -11,7 +11,15 @@ import type { APIRequestContext } from "@playwright/test";
 import type { SiteResponse } from "@pathfinder/shared";
 
 import { test, expect } from "../../fixtures/test";
-import { DATASET_ID, FEBRILE_FILTER, SITE_ID, STUDY_TITLE } from "../../fixtures/eda";
+import {
+  DATASET_ID,
+  EDA_RECORDING_MISSING,
+  FEBRILE_FILTER,
+  FEBRILE_VALUE,
+  NEEDS_QA_RECORDING,
+  SITE_ID,
+  STUDY_TITLE,
+} from "../../fixtures/eda";
 import { siteRow } from "../../fixtures/site-reads";
 import { wdkTestToken } from "../../fixtures/wdk-account";
 
@@ -62,6 +70,7 @@ interface AnalysisRead {
 }
 
 test.describe("Branching a thread with a study open", () => {
+  test.skip(EDA_RECORDING_MISSING, NEEDS_QA_RECORDING);
   // Each journey drives three to five turns through the worker, and one queued
   // behind another suite's build waits minutes.
   test.describe.configure({ timeout: 600_000 });
@@ -96,7 +105,7 @@ test.describe("Branching a thread with a study open", () => {
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {
       timeout: 60_000,
     });
-    await expect(page.getByTestId(FILTER_CHIP)).toContainText("febrile", {
+    await expect(page.getByTestId(FILTER_CHIP)).toContainText(FEBRILE_VALUE, {
       timeout: 60_000,
     });
 
@@ -133,7 +142,7 @@ test.describe("Branching a thread with a study open", () => {
     await expect(page.getByTestId("eda-workbench-title")).toContainText(STUDY_TITLE, {
       timeout: 60_000,
     });
-    await expect(page.getByTestId(FILTER_CHIP)).toContainText("febrile", {
+    await expect(page.getByTestId(FILTER_CHIP)).toContainText(FEBRILE_VALUE, {
       timeout: 60_000,
     });
   });

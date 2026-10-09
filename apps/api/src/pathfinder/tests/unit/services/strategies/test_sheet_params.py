@@ -34,7 +34,7 @@ def _search_with_a_hidden_parameter() -> WDKSearch:
                     "displayName": "Data set URL",
                     "type": "string",
                     "isVisible": False,
-                    "initialDisplayValue": "https://plasmodb.org/a/app/record/x",
+                    "initialDisplayValue": "https://qa.plasmodb.org/a/app/record/x",
                 },
             ],
         }

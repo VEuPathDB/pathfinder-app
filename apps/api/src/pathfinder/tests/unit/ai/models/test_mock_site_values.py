@@ -7,8 +7,8 @@ from veupathdb.domain.strategy.tree import leaves
 
 from pathfinder.ai.models.mock.site_values import SiteValues, recorded_marks
 from pathfinder.services.experiment.seed.catalog import (
-    SEED_DATABASES,
     get_seeds_for_site,
+    seed_databases,
 )
 
 
@@ -76,7 +76,7 @@ def test_a_marked_parameter_of_any_name_holds_the_site_organism() -> None:
     assert leaf.values["organismSinglePick"] == ["Anopheles gambiae PEST"]
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 def test_the_recorded_marks_cover_every_search_the_seeds_run(site_id: str) -> None:
     run = {
         leaf.search_name

@@ -95,6 +95,13 @@ function caches(queryClient: ReturnType<typeof createTestWrapper>["queryClient"]
 }
 
 describe("ProviderKeySettings", () => {
+  it("links to the statement of what a key pays for and where it is kept", async () => {
+    renderTab();
+    const link = await screen.findByRole("link", { name: "Your data in PathFinder" });
+
+    expect(link).toHaveAttribute("href", "/help/your-data#your-key");
+  });
+
   it("sends the key once and keeps it nowhere after", async () => {
     const { queryClient, view } = renderTab();
     const field = await screen.findByLabelText("OpenAI key");

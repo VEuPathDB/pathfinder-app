@@ -50,7 +50,7 @@ const SITES: SiteResponse[] = [
     id: "plasmodb",
     name: "PlasmoDB",
     displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org/plasmo/service",
+    baseUrl: "https://qa.plasmodb.org/plasmo.qa/service",
     projectId: "PlasmoDB",
     isPortal: false,
     available: true,
@@ -92,7 +92,7 @@ describe("opening a VEuPathDB strategy from the conversations sidebar", () => {
     const input = await screen.findByTestId("open-wdk-strategy-input");
     await userEvent.type(
       input,
-      "https://plasmodb.org/plasmo/app/workspace/strategies/214626640",
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/214626640",
     );
     await userEvent.click(screen.getByTestId("open-wdk-strategy-confirm"));
 

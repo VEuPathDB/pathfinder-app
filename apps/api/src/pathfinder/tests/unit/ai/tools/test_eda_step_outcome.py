@@ -76,7 +76,7 @@ async def test_a_commit_with_a_wdk_url_also_emits_the_strategy_link(
         monkeypatch,
         detail=phenotype_subset(),
         commit=recording_commit(
-            [], wdk_url="https://plasmodb.org/plasmo/app/workspace"
+            [], wdk_url="https://qa.plasmodb.org/plasmo.qa/app/workspace"
         ),
     )
 

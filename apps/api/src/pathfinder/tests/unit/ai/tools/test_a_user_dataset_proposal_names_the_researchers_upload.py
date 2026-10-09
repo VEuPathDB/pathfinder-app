@@ -19,12 +19,15 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
 )
 from pathfinder.services.strategies import user_dataset_searches
 from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
 
 
 def _search(site: str, name: str) -> WDKSearch:
-    raw = json.loads((_FIXTURES / f"user_dataset_searches_{site}.json").read_text())
+    raw = json.loads(
+        qa_recording(_FIXTURES / f"user_dataset_searches_{site}.json").read_text()
+    )
     return WDKSearch.model_validate(next(e for e in raw if e["urlSegment"] == name))
 
 
@@ -125,7 +128,9 @@ async def test_an_account_with_no_upload_of_the_type_is_told_to_upload(
 
 
 def _gene_list_listing(term: str, name: str) -> WDKSearch:
-    raw = json.loads((_FIXTURES / "user_dataset_searches_plasmodb.json").read_text())
+    raw = json.loads(
+        qa_recording(_FIXTURES / "user_dataset_searches_plasmodb.json").read_text()
+    )
     entry = next(e for e in raw if e["urlSegment"] == "GenesByUserDatasetGeneList")
     for parameter in entry["parameters"]:
         if parameter["name"] == "geneListUserDataset":

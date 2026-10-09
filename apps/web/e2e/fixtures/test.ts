@@ -2,6 +2,7 @@ import { type BrowserContext, test as base } from "@playwright/test";
 import {
   type ApiClient,
   CSRF_HEADERS,
+  continuePastDataNotice,
   clearUserData,
   createApiClient,
 } from "./api-client";
@@ -85,17 +86,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
         throw new Error(`dev-login failed for worker-${id}: ${resp.status()}`);
       }
 
-      // Acknowledge the first-login eval-data notice once per worker, the way
-      // a researcher does, so it is not over the app in every later spec.
+      // Continue past the data notice once per worker, the way a researcher
+      // does, so it is not over the app in every later spec.
       const req = context.request;
-      const noticeResp = await req.patch(`${BASE_URL}/api/v1/me/privacy`, {
-        headers: CSRF_HEADERS,
-        data: { noticeSeen: true },
-      });
+      const noticeResp = await continuePastDataNotice(req, BASE_URL);
       if (!noticeResp.ok()) {
-        throw new Error(
-          `eval-data notice acknowledgement failed for worker-${id}: ${noticeResp.status()}`,
-        );
+        throw new Error(`data notice failed for worker-${id}: ${noticeResp.status()}`);
       }
 
       // Clean up stale data from previous runs for THIS worker's user.

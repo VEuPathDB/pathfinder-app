@@ -10,7 +10,7 @@ import { useStepSnapshot } from "@/state/strategy/useStepSnapshot";
 const LONG_ERROR =
   "Cannot be saved: Failed to load search metadata: VEuPathDB service error: " +
   "Request failed after retries: Server error '500 Internal Server Error' for " +
-  "url 'https://plasmodb.org/plasmo/service/record-types/transcript/searches/" +
+  "url 'https://qa.plasmodb.org/plasmo.qa/service/record-types/transcript/searches/" +
   "GenesByOrthologPattern?expandParams=true'";
 
 function step(overrides: Partial<Step> = {}): Step {

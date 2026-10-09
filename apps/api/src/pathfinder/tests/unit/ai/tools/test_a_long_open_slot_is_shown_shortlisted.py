@@ -5,12 +5,12 @@ from __future__ import annotations
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, VocabOption
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp.catalog import format_param_info_typed, shortlist
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.domain.strategy.operational_spec import OpenSlot
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests.unit.ai.tools.test_frame_spec import (
     bind,
     serve_resolution,
@@ -22,7 +22,7 @@ _TEXT = "falciparum 3D7 genes with many exons"
 
 
 def _organisms(fixture: str, param: str) -> list[VocabOption]:
-    body = load_recorded(fixture).json_body()
+    body = client_recording(fixture).json_body()
     infos = format_param_info_typed(
         WDKSearchResponse.model_validate(body).search_data.parameters or []
     )

@@ -24,11 +24,13 @@ from assistant_core.tasks.heartbeat import HeartbeatThread, postgres_beat_writer
 from assistant_core.tasks.job_context import install_durable_job_context
 from assistant_core.tasks.runner import install_worker_context, register_durable_jobs
 from procrastinate.worker import Worker
+from veupathdb import set_observer
 from veupathdb_mcp.embeddings import use_embedding_session_factory
+from veupathdb_mcp.search_line import install_search_line
 
 from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.jobs.app import procrastinate_app
+from pathfinder.jobs.app import FINISHED_JOBS_DELETED, procrastinate_app
 from pathfinder.jobs.completion import open_completion_turn
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.job_context import WdkJobContext
@@ -36,10 +38,11 @@ from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 from pathfinder.jobs.runtime import build_worker_context
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.langfuse.client import shutdown_langfuse
-from pathfinder.platform.metrics import serve_metrics
+from pathfinder.platform.metrics import PathfinderObserver, serve_metrics
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
+from pathfinder.services.search_waits import runs_on_the_deployment_line
 
 _CANNOT_SCREEN = "the injection judge did not build; this worker consumes no jobs"
 
@@ -95,11 +98,14 @@ async def amain() -> None:
     register_durable_jobs(procrastinate_app)
     settings = get_settings()
     serve_metrics(settings.metrics_port, settings.metrics_addr)
+    set_observer(PathfinderObserver())
+    install_search_line(settings.database_url, runs_on_the_deployment_line)
     procrastinate_app.perform_import_paths()
     # The worker is built here rather than through run_worker_async so the
     # heartbeat thread can read the worker id procrastinate registers.
     worker: _RunningWorker = Worker(
         app=procrastinate_app,
+        delete_jobs=FINISHED_JOBS_DELETED,
         queues=list(worker_queues()),
         concurrency=settings.worker_concurrency,
         install_signal_handlers=True,

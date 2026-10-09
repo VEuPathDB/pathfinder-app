@@ -15,6 +15,7 @@ import { protocolPart, type StructuralPart } from "../parts";
 import { currentSeconds, statusLineWith, useNowSeconds } from "./statusClock";
 
 const DEFAULT_LABEL = "Thinking...";
+const SUB_AGENT_CALL = "data-sub-agent-call";
 
 interface StatusCarrier {
   status?: { type: string } | undefined;
@@ -31,20 +32,28 @@ function turnStatusData(part: StructuralPart): TurnStatusPayload | null {
 }
 
 // Selectors return primitives so useAuiState's identity check doesn't loop
-// (React #185). An open dispatch names the phase, so the line and the trace
-// read the same chunks; otherwise the latest reported label stands.
+// (React #185). An open dispatch names the phase unless a status the turn
+// wrote after it, with no model waited on, is the latest one standing; an
+// empty label withdraws the label before it.
 export function selectStatusLabel(m: StatusCarrier | undefined): string | null {
   if (m == null || m.status?.type !== "running") return null;
-  const phase = runningPhase(m.content.map(protocolPart));
-  if (phase !== null) return `${phaseLabel(phase)}...`;
-  let label = DEFAULT_LABEL;
-  for (const part of m.content) {
+  const parts = m.content.map(protocolPart);
+  const said: { label: string; waitingOnLlm: boolean; at: number }[] = [];
+  let dispatchedAt = -1;
+  m.content.forEach((part, at) => {
+    if (parts[at]?.type === SUB_AGENT_CALL) dispatchedAt = at;
     const data = turnStatusData(part);
-    if (data !== null && data.label.length > 0) {
-      label = data.label;
-    }
+    if (data === null) return;
+    if (data.label.length === 0) said.pop();
+    else said.push({ label: data.label, waitingOnLlm: data.waitingOnLlm ?? false, at });
+  });
+  const standing = said.at(-1);
+  const phase = runningPhase(parts);
+  if (phase === null) return standing?.label ?? DEFAULT_LABEL;
+  if (standing !== undefined && !standing.waitingOnLlm && standing.at > dispatchedAt) {
+    return standing.label;
   }
-  return label;
+  return `${phaseLabel(phase)}...`;
 }
 
 function selectStatusModel(m: StatusCarrier | undefined): string | null {

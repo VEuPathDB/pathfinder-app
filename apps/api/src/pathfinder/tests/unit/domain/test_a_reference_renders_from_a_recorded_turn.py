@@ -27,11 +27,11 @@ from pathfinder.domain.turn_facts import (
     TurnFacts,
 )
 
-_TOXO_RECORD = "https://toxodb.org/toxo/app/record/gene/"
-_TOXO_STRATEGY = "https://toxodb.org/toxo/app/workspace/strategies/330870683/441173213"
-_MICRO_STRATEGY = (
-    "https://microsporidiadb.org/micro/app/workspace/strategies/330870613/441173013"
+_TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene/"
+_TOXO_STRATEGY = (
+    "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/330870683/441173213"
 )
+_MICRO_STRATEGY = "https://qa.microsporidiadb.org/micro.qa/app/workspace/strategies/330870613/441173013"
 
 
 def _param(
@@ -316,8 +316,8 @@ def test_a_bracketed_word_that_names_no_reference_is_prose() -> None:
             ProseFault(token="step_353195e7", kind="identifier"),
         ),
         (
-            "See https://toxodb.org now.",
-            ProseFault(token="https://toxodb.org", kind="link"),
+            "See https://qa.toxodb.org now.",
+            ProseFault(token="https://qa.toxodb.org", kind="link"),
         ),
     ],
 )

@@ -2,15 +2,17 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 import type { PrivacySettings as PrivacySettingsValue } from "@pathfinder/shared";
 
 import {
+  PRIVACY_QUERY_KEY,
   getPrivacySettings,
   updatePrivacySettings,
-} from "@/features/settings/api/privacy";
+} from "@/lib/api/privacy";
+import { yourDataUrl } from "@/lib/routes";
 
-import { PRIVACY_QUERY_KEY } from "./privacyQuery";
 import { SettingsField } from "./SettingsField";
 
 export function PrivacySettings() {
@@ -32,12 +34,28 @@ export function PrivacySettings() {
 
   return (
     <div className="space-y-4">
-      <SettingsField label="Improving PathFinder">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          PathFinder improves by learning from real strategies. We keep the science,
-          never your identity. Finished investigations are stripped of anything that
-          identifies you before a person reviews them, and turning this off also removes
-          whatever of yours is still waiting for review.
+      <SettingsField label="Learning from your strategies">
+        <p
+          data-testid="privacy-learning-copy"
+          className="text-sm leading-relaxed text-muted-foreground"
+        >
+          When this is on, PathFinder may use copies of your conversations and
+          strategies to improve PathFinder for everyone, for example for review by the
+          team, as test cases, or as shared examples the assistant draws on. A copy used
+          beyond review never carries your name, your account or a link to your
+          conversation. Today, PathFinder copies your finished conversations each night,
+          and a conversation when you dislike one of its replies. Turning this off
+          deletes your copies that are waiting for review and stops new ones.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          More in{" "}
+          <Link
+            href={yourDataUrl("learning")}
+            className="text-primary underline underline-offset-2"
+          >
+            Your data in PathFinder
+          </Link>
+          .
         </p>
       </SettingsField>
 

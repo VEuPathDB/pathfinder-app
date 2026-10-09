@@ -24,6 +24,7 @@ from pathfinder.domain.eda_parts import EdaEntityCount
 from pathfinder.domain.eda_thread import ConversationAnalysisView
 from pathfinder.services.eda import authoring, catalog
 from pathfinder.services.eda.binding import read_analysis_state
+from pathfinder.tests._support.qa_recording import qa_recording
 
 pytestmark = pytest.mark.asyncio
 
@@ -101,7 +102,7 @@ _STUDIES = {
 
 
 def _fixture(name: str) -> Any:
-    return json.loads((FIXTURES / name).read_text())
+    return json.loads(qa_recording(FIXTURES / name).read_text())
 
 
 def _study_detail(name: str) -> EdaStudyDetail:
@@ -141,7 +142,7 @@ async def count_paths(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[list[st
         return httpx.Response(404, json={"status": "not-found"})
 
     client = EdaClient(
-        base_url="https://plasmodb.org/eda", transport=httpx.MockTransport(handler)
+        base_url="https://qa.plasmodb.org/eda", transport=httpx.MockTransport(handler)
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _s: client)
     monkeypatch.setattr(authoring, "get_eda_client", lambda _s: client)

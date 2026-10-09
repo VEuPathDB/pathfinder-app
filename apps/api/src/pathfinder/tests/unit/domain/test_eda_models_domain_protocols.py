@@ -47,6 +47,8 @@ from veupathdb.eda import (
 )
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
+from pathfinder.tests._support.qa_recording import qa_recording
+
 FIXTURES = FIXTURE_DIR
 
 _SAMPLES = "ENT_8151325d"
@@ -56,7 +58,7 @@ _TEMPERATURE = "VAR_081ab087"
 
 def _de_study() -> EdaStudyDetail:
     return EdaStudyDetailResponse.model_validate(
-        json.loads((FIXTURES / "study_detail_de.json").read_text())
+        json.loads(qa_recording(FIXTURES / "study_detail_de.json").read_text())
     ).study
 
 

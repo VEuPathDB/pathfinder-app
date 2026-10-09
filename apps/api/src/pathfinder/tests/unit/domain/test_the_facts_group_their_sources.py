@@ -9,7 +9,7 @@ from pathfinder.domain.turn_facts import (
     TurnFacts,
 )
 
-_TOXO = "https://toxodb.org/toxo/app/record/gene"
+_TOXO = "https://qa.toxodb.org/toxo.qa/app/record/gene"
 
 
 def _leaf_and_root() -> TurnFacts:
@@ -89,7 +89,7 @@ def test_an_edited_step_and_the_result_show_the_count_before_the_edit() -> None:
 
 def test_the_genes_the_message_names_are_listed_with_their_records() -> None:
     named = SourceFact(
-        url="https://plasmodb.org/plasmo/app/record/gene/PF3D7_0709000",
+        url="https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0709000",
         record_id="PF3D7_0709000",
         product="chloroquine resistance transporter",
         organism="Plasmodium falciparum 3D7",
@@ -102,7 +102,7 @@ def test_the_genes_the_message_names_are_listed_with_their_records() -> None:
             (
                 "Named in the message: PF3D7_0709000, chloroquine resistance "
                 "transporter, Plasmodium falciparum 3D7: "
-                "https://plasmodb.org/plasmo/app/record/gene/PF3D7_0709000"
+                "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_0709000"
             )
         ],
     )
@@ -116,7 +116,7 @@ def test_the_ids_a_listing_returned_are_shown_under_their_step() -> None:
                 step_id="step_hha",
                 step_name="Text search",
                 records=[
-                    ListedRecord(record_id=g, url=f"https://toxodb.org/{g}")
+                    ListedRecord(record_id=g, url=f"https://qa.toxodb.org/{g}")
                     for g in ("HHA_208730", "HHA_208740")
                 ],
             )
@@ -131,7 +131,7 @@ def test_the_ids_a_listing_returned_are_shown_under_their_step() -> None:
 
 def test_a_record_is_shown_with_its_words_and_its_link() -> None:
     read = SourceFact(
-        url="https://tritrypdb.org/tritrypdb/app/record/gene/Tbg972.6.590",
+        url="https://qa.tritrypdb.org/tritrypdb.qa/app/record/gene/Tbg972.6.590",
         record_id="Tbg972.6.590",
         product="hypothetical protein",
         organism="T. brucei gambiense DAL972",
@@ -142,7 +142,7 @@ def test_a_record_is_shown_with_its_words_and_its_link() -> None:
     assert facts.lines() == [
         (
             "Read: Tbg972.6.590, hypothetical protein, T. brucei gambiense DAL972, "
-            "chromosome 6: https://tritrypdb.org/tritrypdb/app/record/gene/"
+            "chromosome 6: https://qa.tritrypdb.org/tritrypdb.qa/app/record/gene/"
             "Tbg972.6.590"
         )
     ]

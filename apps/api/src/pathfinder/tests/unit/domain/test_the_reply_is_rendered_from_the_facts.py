@@ -27,8 +27,8 @@ from pathfinder.domain.turn_facts import (
     TurnFacts,
 )
 
-_RECORD_PAGE = "https://cryptodb.org/cryptodb/app/record/gene/"
-_STRATEGY = "https://microsporidiadb.org/micro/app/workspace/strategies/1/3"
+_RECORD_PAGE = "https://qa.cryptodb.org/cryptodb.qa/app/record/gene/"
+_STRATEGY = "https://qa.microsporidiadb.org/micro.qa/app/workspace/strategies/1/3"
 
 # microsporidiadb, build 71: E. intestinalis signal peptide 66, the E. cuniculi
 # ortholog exclusion 129, 9 in both.

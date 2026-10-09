@@ -16,8 +16,12 @@ import {
   ANALYSIS_URL,
   COMPARED_ANALYSIS,
   COMPARISON_SENTENCE,
+  countLine,
+  EDA_RECORDING_MISSING,
   edaJson,
+  FEBRILE_COUNTS,
   FEBRILE_SUMMARY,
+  NEEDS_QA_RECORDING,
   routeEdaReads,
   SITE_ID,
   STUDY_TITLE,
@@ -71,6 +75,7 @@ async function sendTurn(page: Page, text: string): Promise<void> {
 }
 
 test.describe("The EDA tab reads the analysis and the site edits it", () => {
+  test.skip(EDA_RECORDING_MISSING, NEEDS_QA_RECORDING);
   test("the tab shows the compute the agent ran, read-only, with the site's link", async ({
     page,
     context,
@@ -100,9 +105,9 @@ test.describe("The EDA tab reads the analysis and the site edits it", () => {
       timeout: 30_000,
     });
     await expect(tab.getByTestId("eda-filter-chip-0")).toHaveText(FEBRILE_SUMMARY);
-    await expect(tab.getByTestId("eda-entity-count-ENT_8151325d")).toHaveText(
-      "6 of 12 Sample",
-    );
+    await expect(
+      tab.getByTestId(`eda-entity-count-${FEBRILE_COUNTS[0]!.entityId}`),
+    ).toHaveText(countLine(FEBRILE_COUNTS[0]!));
     await expect(tab.getByTestId("eda-comparison-sentence")).toHaveText(
       COMPARISON_SENTENCE,
     );

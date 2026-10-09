@@ -11,10 +11,14 @@ from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import procrastinate
 import pytest
+from procrastinate.jobs import DeleteJobCondition
 from procrastinate.testing import InMemoryConnector
 
+from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.worker import WorkerCannotScreenError, amain
 from pathfinder.platform.config import Settings
+from pathfinder.platform.metrics import PathfinderObserver
+from pathfinder.services.search_waits import runs_on_the_deployment_line
 
 _OVERLAP_TIMEOUT_SECONDS = 0.25
 _MISSING_CREDENTIAL = "the deployment holds no key for the screening model"
@@ -92,6 +96,8 @@ class _AmainRun:
     ran: bool
     observability: list[str]
     metrics_servers: list[tuple[int, str]]
+    observers: list[object]
+    search_lines: list[tuple[str, object]]
 
 
 def _record(marks: list[str]) -> Callable[[], None]:
@@ -121,6 +127,8 @@ async def _run_amain(
     marks = [] if marks is None else marks
     observability: list[str] = []
     metrics_servers: list[tuple[int, str]] = []
+    observers: list[object] = []
+    search_lines: list[tuple[str, object]] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
         built.update(kwargs)
@@ -156,6 +164,11 @@ async def _run_amain(
             "pathfinder.jobs.worker.serve_metrics",
             side_effect=lambda port, addr: metrics_servers.append((port, addr)),
         ),
+        patch("pathfinder.jobs.worker.set_observer", side_effect=observers.append),
+        patch(
+            "pathfinder.jobs.worker.install_search_line",
+            side_effect=lambda url, expensive: search_lines.append((url, expensive)),
+        ),
         patch("pathfinder.jobs.worker.register_all_tools"),
         patch("pathfinder.jobs.worker.install_admitted_sources"),
         patch("pathfinder.jobs.worker.admitted_tool_sources", return_value=[]),
@@ -186,6 +199,8 @@ async def _run_amain(
         ran=True,
         observability=observability,
         metrics_servers=metrics_servers,
+        observers=observers,
+        search_lines=search_lines,
     )
 
 
@@ -194,6 +209,27 @@ async def test_amain_passes_configured_concurrency() -> None:
     run = await _run_amain(worker_concurrency=6)
 
     assert run.worker_kwargs["concurrency"] == 6
+
+
+async def test_amain_installs_the_observer_and_the_search_line() -> None:
+    run = await _run_amain()
+
+    assert [type(observer) for observer in run.observers] == [PathfinderObserver]
+    assert run.search_lines == [
+        ("postgresql+asyncpg://user@host/db", runs_on_the_deployment_line)
+    ]
+
+
+async def test_amain_deletes_every_job_that_reaches_a_final_state() -> None:
+    run = await _run_amain()
+
+    assert run.worker_kwargs["delete_jobs"] is DeleteJobCondition.ALWAYS
+
+
+def test_every_worker_of_the_application_deletes_finished_jobs() -> None:
+    assert procrastinate_app.worker_defaults == {
+        "delete_jobs": DeleteJobCondition.ALWAYS
+    }
 
 
 async def test_amain_keeps_serving_every_queue() -> None:

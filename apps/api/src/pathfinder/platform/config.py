@@ -371,6 +371,9 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
 
     @model_validator(mode="after")
     def _site_is_in_the_sites_file(self) -> Self:
+        if not (self.veupathdb_sites_config or "").strip():
+            msg = "VEUPATHDB_SITES_CONFIG must name the sites file this process serves."
+            raise ValueError(msg)
         sites = load_sites_config(self.veupathdb_sites_config).sites
         if self.pathfinder_site not in sites:
             msg = f"PATHFINDER_SITE={self.pathfinder_site} is not in the sites file."

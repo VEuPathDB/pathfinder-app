@@ -15,6 +15,7 @@ from veupathdb.eda import EdaNewAnalysis
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
 from pathfinder.main import create_app
+from pathfinder.tests._support.qa_recording import qa_recording
 
 _SUBSET = {"subset": {"descriptor": []}, "computations": []}
 _REF = "#/components/schemas/{}"
@@ -76,7 +77,9 @@ def test_a_stored_document_node_keeps_the_keys_it_does_not_model(
 
 
 def test_the_model_takes_an_analysis_the_site_edited() -> None:
-    raw = json.loads((FIXTURE_DIR / "analysis_detail_pass_and_de.json").read_text())
+    raw = json.loads(
+        qa_recording(FIXTURE_DIR / "analysis_detail_pass_and_de.json").read_text()
+    )
     parsed = EdaNewAnalysis.model_validate(raw)
     assert [c.descriptor.type for c in parsed.descriptor.computations] == [
         "pass",

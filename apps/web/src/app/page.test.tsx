@@ -19,7 +19,7 @@ function site(over: Partial<SiteResponse>): SiteResponse {
     id: "plasmodb",
     name: "PlasmoDB",
     displayName: "PlasmoDB (Plasmodium)",
-    baseUrl: "https://plasmodb.org/plasmo",
+    baseUrl: "https://qa.plasmodb.org/plasmo.qa",
     projectId: "PlasmoDB",
     isPortal: false,
     available: true,
@@ -41,7 +41,7 @@ function config(siteId: string): SystemConfigResponse {
     llmConfigured: true,
     providers: { openai: true, anthropic: false, google: false, ollama: false },
     siteId,
-    siteSignInUrl: "https://veupathdb.org/veupathdb/app/user/login",
+    siteSignInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
   };
 }
 

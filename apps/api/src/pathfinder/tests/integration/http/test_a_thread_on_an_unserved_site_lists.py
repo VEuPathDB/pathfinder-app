@@ -73,6 +73,6 @@ async def test_the_unscoped_list_answers_every_row(
     assert listed.status_code == 200, listed.text
     links = {row["id"]: row["wdkUrl"] for row in listed.json()}
     assert links == {
-        str(served): "https://plasmodb.org/plasmo/app/workspace/strategies/123",
+        str(served): "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/123",
         str(unserved): None,
     }

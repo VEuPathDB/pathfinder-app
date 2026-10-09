@@ -29,6 +29,7 @@ import { prompt } from "../fixtures/arcs";
 import {
   type ApiClient,
   CSRF_HEADERS,
+  continuePastDataNotice,
   fetchConversationMessages,
   fetchStoppedTurnCount,
   fetchUserMessageIds,
@@ -232,11 +233,8 @@ async function signedInUser(
   );
   expect(login.ok(), `dev login ${login.status()}`).toBe(true);
   if (acknowledgeNotice) {
-    const notice = await context.request.patch(`${BASE_URL}/api/v1/me/privacy`, {
-      headers: CSRF_HEADERS,
-      data: { noticeSeen: true },
-    });
-    expect(notice.ok(), `privacy notice ${notice.status()}`).toBe(true);
+    const notice = await continuePastDataNotice(context.request, BASE_URL);
+    expect(notice.ok(), `data notice ${notice.status()}`).toBe(true);
   }
   return context;
 }
@@ -286,13 +284,14 @@ test.describe("First run and navigation", () => {
     const fresh = await signedInUser(browser, `uat-f1-${Date.now()}`, false);
     const freshPage = await fresh.newPage();
     await freshPage.goto(`${BASE_URL}/${siteId}/conversation`);
-    const notice = freshPage.getByRole("dialog", { name: "How PathFinder learns" });
+    const notice = freshPage.getByRole("alertdialog", {
+      name: "Your data in PathFinder",
+    });
     await expect(notice).toBeVisible({ timeout: 60_000 });
-    await expect(notice.getByRole("button", { name: "Turn off" })).toBeVisible();
-    await notice.getByRole("button", { name: "OK", exact: true }).click();
+    await notice.getByRole("button", { name: "Continue" }).click();
     await expect(notice).toHaveCount(0);
     const privacy = await fresh.request.get(`${BASE_URL}/api/v1/me/privacy`);
-    expect(((await privacy.json()) as { noticeSeen: boolean }).noticeSeen).toBe(true);
+    expect(((await privacy.json()) as { noticeDue: boolean }).noticeDue).toBe(false);
     await freshPage.reload();
     await expect(freshPage.getByTestId("message-composer")).toBeVisible({
       timeout: 60_000,

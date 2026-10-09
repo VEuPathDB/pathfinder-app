@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -13,6 +14,7 @@ import { deleteMyProviderKeyMutationOptions } from "@pathfinder/shared/generated
 import type { KeyableProvider } from "@pathfinder/shared/generated/types/KeyableProvider";
 import type { ProviderKeyView } from "@pathfinder/shared/generated/types/ProviderKeyView";
 import { toUserMessage } from "@/lib/api/errors";
+import { yourDataUrl } from "@/lib/routes";
 
 import { SettingsField } from "./SettingsField";
 
@@ -147,6 +149,16 @@ export function ProviderKeySettings() {
           A key you add pays for every model of its provider, and PathFinder checks it
           with one short request before saving it. It is stored sealed, never shown
           again, and spend on it does not count against your monthly allowance.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          What a key pays for and how it is kept:{" "}
+          <Link
+            href={yourDataUrl("your-key")}
+            className="text-primary underline underline-offset-2"
+          >
+            Your data in PathFinder
+          </Link>
+          .
         </p>
       </SettingsField>
       {data.enabled ? (

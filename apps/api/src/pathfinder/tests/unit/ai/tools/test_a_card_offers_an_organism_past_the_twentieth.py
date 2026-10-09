@@ -3,7 +3,6 @@ the vocabulary lists it, on the recorded organism sheets."""
 
 from __future__ import annotations
 
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKSearchResponse
 from veupathdb_mcp.catalog import (
     ParameterInfo,
@@ -15,6 +14,7 @@ from veupathdb_mcp.catalog import (
 from pathfinder.ai.tools.standalone._frame_sources import open_slots
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.questions import SetValues, SlotQuestion
+from pathfinder.tests._support.qa_recording import client_recording
 
 _PLASMODB = [
     "Plasmodium falciparum 3D7",
@@ -39,7 +39,7 @@ _MOSQUITOES = [
 
 
 def _sheet(name: str) -> list[ParameterInfo]:
-    body = load_recorded(name).json_body()
+    body = client_recording(name).json_body()
     return format_param_info_typed(
         WDKSearchResponse.model_validate(body).search_data.parameters or []
     )

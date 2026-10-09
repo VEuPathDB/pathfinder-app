@@ -37,7 +37,7 @@ from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.sheets import visible_sheet
 
 _SEARCH = "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC"
-_DATASET_URL = "https://PlasmoDB.org/a/app/record/dataset/DS_66f9e70b8a"
+_DATASET_URL = "https://qa.plasmodb.org/a/app/record/dataset/DS_66f9e70b8a"
 
 
 def _session() -> StrategySession:

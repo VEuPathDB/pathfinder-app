@@ -31,6 +31,10 @@ os.environ.setdefault("OPENAI_API_KEY", "")
 os.environ.setdefault("ANTHROPIC_API_KEY", "")
 os.environ.setdefault("GEMINI_API_KEY", "")
 
+from pathfinder.platform.stage_sites import SITES_CONFIG_VARIABLE, live_sites_file
+
+os.environ[SITES_CONFIG_VARIABLE] = str(live_sites_file())
+
 import httpx
 import procrastinate
 import psycopg
@@ -55,10 +59,6 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
 from veupathdb.eda import close_all_eda_clients
-from veupathdb.testing import (
-    NO_CREDENTIALS_REASON,
-    registered_wdk_token,
-)
 from veupathdb.wdk import forget_signing_keys, get_site_router
 from veupathdb_mcp.embeddings import (
     EmbeddingBase,
@@ -78,7 +78,10 @@ from pathfinder.services import wdk_identity
 from pathfinder.services.eda import catalog
 from pathfinder.tests._support.database import can_connect
 
-pytest_plugins = ["pathfinder.tests._support.signed_in"]
+pytest_plugins = [
+    "pathfinder.tests._support.signed_in",
+    "pathfinder.tests._support.site_session",
+]
 
 # A test must never send a request to a real model.
 pydantic_ai.models.ALLOW_MODEL_REQUESTS = False
@@ -388,23 +391,6 @@ async def app_memory_store(
         store = MemoryStore(store=raw)
         app.state.memory_store = raw
         yield store
-
-
-@pytest.fixture(scope="session")
-async def wdk_registered_token() -> str | None:
-    """The WDK token of the registered test account, or None when unconfigured.
-
-    Resolved once for the whole session.
-    """
-    return await registered_wdk_token()
-
-
-@pytest.fixture
-def require_wdk_creds(wdk_registered_token: str | None) -> str:
-    """The registered WDK token, or a skip naming the credentials to set."""
-    if wdk_registered_token is None:
-        pytest.skip(NO_CREDENTIALS_REASON)
-    return wdk_registered_token
 
 
 @pytest.fixture(autouse=True)

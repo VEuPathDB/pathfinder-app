@@ -165,7 +165,7 @@ class TestReadinessState:
         """The sites response reports this value, so it carries no message."""
         state = ReadinessState()
         state.register_catalog("plasmodb")
-        state.fail_loading(ZeroDivisionError("https://plasmodb.org refused"))
+        state.fail_loading(ZeroDivisionError("https://qa.plasmodb.org refused"))
         assert state.catalogs["plasmodb"].error == "its catalog did not load"
 
     def test_fail_loading_keeps_an_error_a_step_already_reported(self) -> None:

@@ -372,7 +372,7 @@ _RECORD_LINE = (
 _TOXO_RECORD = GeneRecordSummary(
     site_id="toxodb",
     gene_id="TGME49_233460",
-    record_url="https://toxodb.org/toxo/app/record/gene/TGME49_233460",
+    record_url="https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460",
     organism="Toxoplasma gondii ME49",
     product="SAG-related sequence SRS29B",
     chromosome="VIII",
@@ -430,7 +430,7 @@ async def test_a_record_read_is_a_source_the_turn_retrieved() -> None:
     await gene_record.read_gene_record(ctx, "TGME49_233460")
 
     assert ctx.deps.state.turn_markers.retrieved_sources == [
-        "https://toxodb.org/toxo/app/record/gene/TGME49_233460",
+        "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_233460",
     ]
 
 

@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.testing.wdk_fixtures import load_recorded
 from veupathdb.wdk import WDKSearch, WDKSearchResponse
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import UnknownExperimentError
@@ -26,11 +25,12 @@ from pathfinder.tests._support.experiment_cards import (
     CRYPTO_SEARCH,
     EIMERIA_GENOME_CARD,
 )
+from pathfinder.tests._support.qa_recording import client_recording
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _ORTHOLOGS = WDKSearchResponse.model_validate(
-    load_recorded("search_genes_by_orthologs").json_body()
+    client_recording("search_genes_by_orthologs").json_body()
 ).search_data
 
 
@@ -76,7 +76,7 @@ async def test_the_card_is_answered_with_its_site_and_the_orthology_route(
             "an in vitro infection of cultured HCT-8 cells."
         ),
         pmids=["26549794"],
-        record_url="https://cryptodb.org/cryptodb/app/record/dataset/DS_63b0de882c",
+        record_url="https://qa.cryptodb.org/cryptodb.qa/app/record/dataset/DS_63b0de882c",
         searches=["GenesByIntronJunctions", CRYPTO_SEARCH],
         where_they_run="These searches run on cryptodb, not on plasmodb.",
         orthology=(
@@ -96,7 +96,7 @@ async def test_the_record_and_its_publications_are_recorded_as_retrieved(
 
     await read_experiment(ctx, "DS_63b0de882c")
 
-    record = "https://cryptodb.org/cryptodb/app/record/dataset/DS_63b0de882c"
+    record = "https://qa.cryptodb.org/cryptodb.qa/app/record/dataset/DS_63b0de882c"
     assert ctx.deps.turn_markers.retrieved_sources == [record, "26549794"]
     assert sources_retrieved(ctx, "c_infection", [record, "PMID:26549794"]) == [
         record,

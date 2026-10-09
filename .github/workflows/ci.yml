@@ -6,8 +6,9 @@ on:
     tags: ["*"]
   pull_request:
     branches: [main]
-  # The full-stack tier runs on every pull request and once a night on main;
-  # a push to main runs the unit and lint tiers only.
+  # The full-stack tier runs on pull requests and once a night on main only
+  # while the E2E_ENABLED repository variable is true; a push to main runs the
+  # unit and lint tiers only.
   schedule:
     - cron: "0 5 * * *"
   workflow_dispatch:
@@ -103,6 +104,16 @@ jobs:
       - name: Check the checker
         run: node --test scripts/check-quadlets.test.mjs
 
+  check-test-sites:
+    name: Check test sites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every test path names only QA sites
+        run: node scripts/check-test-sites.mjs
+      - name: Check the checker
+        run: node --test scripts/check-test-sites.test.mjs
+
   check-release:
     name: Check release pins
     runs-on: ubuntu-latest
@@ -182,6 +193,7 @@ jobs:
           API_SECRET_KEY: spec-generation-secret-key-0000000000
           PATHFINDER_CHAT_PROVIDER: default
           ANTHROPIC_API_KEY: spec-generation-placeholder
+          VEUPATHDB_SITES_CONFIG: ${{ github.workspace }}/deploy/sites/qa.yml
         run: uv run python -m pathfinder.devtools.openapi check
 
   build-docs:
@@ -232,7 +244,7 @@ jobs:
           API_SECRET_KEY: test-secret-key-xxxxx-xxxxx-xxxxx
           PATHFINDER_CHAT_PROVIDER: mock
           TEST_TIER: ${{ github.event_name == 'push' && 'src/pathfinder/tests/unit' || 'src/pathfinder/tests' }}
-        run: uv run pytest "$TEST_TIER" --cov=src --cov-report=xml --cov-fail-under=40
+        run: uv run pytest "$TEST_TIER" -m "not live_model and not live_wdk" --cov=src --cov-report=xml --cov-fail-under=40
 
   lint-web:
     name: Lint Web
@@ -320,6 +332,7 @@ jobs:
     needs: [changes, lint-web, test-web]
     if: >-
       ${{ !cancelled()
+        && vars.E2E_ENABLED == 'true'
         && github.event_name != 'push'
         && needs.lint-web.result != 'failure'
         && needs.test-web.result != 'failure'
@@ -370,6 +383,7 @@ jobs:
     needs: [changes, lint-web, test-web]
     if: >-
       ${{ !cancelled()
+        && vars.E2E_ENABLED == 'true'
         && github.event_name != 'push'
         && needs.lint-web.result != 'failure'
         && needs.test-web.result != 'failure'
@@ -579,6 +593,7 @@ jobs:
       - check-punctuation
       - check-vocabulary
       - check-quadlets
+      - check-test-sites
       - check-release
       - check-wdk-rules
       - lint-api

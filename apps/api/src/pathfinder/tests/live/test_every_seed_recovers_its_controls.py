@@ -15,8 +15,8 @@ from veupathdb_mcp.controls import leftover_strategy_ids
 
 from pathfinder.devtools.seeds import STRATEGY_NAME, measure_seed
 from pathfinder.services.experiment.seed.catalog import (
-    SEED_DATABASES,
     get_seeds_for_site,
+    seed_databases,
 )
 from pathfinder.services.experiment.seed.types import SeedDef, SeedMeasurement
 from pathfinder.services.wdk_build import site_build
@@ -41,7 +41,7 @@ async def _read(
     return live.refusal, live.recall, _controls(live)
 
 
-@pytest.mark.parametrize("site_id", SEED_DATABASES)
+@pytest.mark.parametrize("site_id", seed_databases())
 async def test_every_seed_tree_recovers_every_positive_it_records(
     site_id: str, wdk_identity: str
 ) -> None:

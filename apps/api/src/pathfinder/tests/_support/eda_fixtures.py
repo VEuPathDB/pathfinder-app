@@ -33,6 +33,7 @@ from veupathdb.testing import (
 )
 from veupathdb.testing.eda_fixtures import FIXTURE_DIR
 
+from pathfinder.platform.stage_sites import live_sites_file, sites_file_in_force
 from pathfinder.tests._support.eda_wire import (
     DE_STUDY,
     PHENOTYPE_ENTITY,
@@ -265,7 +266,8 @@ def main(argv: list[str] | None = None) -> int:
                 path=request.path,
             )
         return 0
-    count = asyncio.run(record_all(args.only))
+    with sites_file_in_force(live_sites_file()):
+        count = asyncio.run(record_all(args.only))
     logger.info("eda provenance written", count=count, file=str(PROVENANCE_FILE))
     return 0
 

@@ -19,7 +19,7 @@ from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests.unit.ai.lead.conftest import RetryRecordingScript
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
-_RECORD = "https://plasmodb.org/plasmo/app/record/gene/{}"
+_RECORD = "https://qa.plasmodb.org/plasmo.qa/app/record/gene/{}"
 _READ = ("PF3D7_0102200", "PF3D7_0935800")
 _PAPER = "10.1038/nature12970"
 

@@ -69,7 +69,7 @@ async def test_stop_on_a_dead_worker_ends_the_turn_and_finishes_the_job(
         response = await client.post(f"/api/v1/conversations/{conversation_id}/cancel")
 
     assert response.status_code == _NO_CONTENT
-    assert in_memory_jobs.jobs[job_id]["status"] == "failed"
+    assert job_id not in in_memory_jobs.jobs
     chunks = await turn_chunks(conversation_id)
     assert [chunk["type"] for chunk in chunks[-5:]] == [
         "tool-output-error",

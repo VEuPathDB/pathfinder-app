@@ -57,6 +57,8 @@ never read.
 | chat | apps/web/src/features/conversation/runtime/chatHelpersContext.ts | A developer invariant that names the chat runtime hook. |
 | chat | apps/api/src/pathfinder/ai/conversation/_turn_helpers.py | An internal `ValueError` that names the chat request's site field. |
 | not responding | apps/web/src/app/components/BusyWorkerBanner.tsx | The background service that runs a turn, not a site. |
+| database | apps/web/src/features/help/YourDataPage.tsx | The store where a deployment keeps a researcher's data, which the data statement names; not a site. |
+| database | apps/web/src/features/help/yourDataBrief.ts | The same store, named in the statement's points that the page and the sign-in notice share; not a site. |
 
 # Raw values
 

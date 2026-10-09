@@ -24,6 +24,7 @@ from pathfinder.jobs.impls.optimize_params_impl import (
     optimize_search_parameters_impl,
 )
 from pathfinder.jobs.impls.separate_controls_impl import separate_controls_impl
+from pathfinder.services.search_waits import told_on_progress
 
 
 def register_all_tools() -> None:
@@ -34,8 +35,14 @@ def register_all_tools() -> None:
     before the worker starts pulling jobs. Safe to call repeatedly.
     """
     tasks.ensure_registered()
-    register_durable_impl(CONTROL_TESTS, run_control_tests_on_step_impl)
-    register_durable_impl(PARAMETER_SWEEP, optimize_search_parameters_impl)
-    register_durable_impl(EDA_COMPUTE, run_eda_compute_impl)
-    register_durable_impl(EDA_PCA, run_eda_dimensionality_reduction_impl)
-    register_durable_impl(SEPARATION, separate_controls_impl)
+    register_durable_impl(
+        CONTROL_TESTS, told_on_progress(run_control_tests_on_step_impl)
+    )
+    register_durable_impl(
+        PARAMETER_SWEEP, told_on_progress(optimize_search_parameters_impl)
+    )
+    register_durable_impl(EDA_COMPUTE, told_on_progress(run_eda_compute_impl))
+    register_durable_impl(
+        EDA_PCA, told_on_progress(run_eda_dimensionality_reduction_impl)
+    )
+    register_durable_impl(SEPARATION, told_on_progress(separate_controls_impl))

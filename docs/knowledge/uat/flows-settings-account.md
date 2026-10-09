@@ -64,7 +64,7 @@ This is the sweep of `H1` in the [runner checklist](runner-checklist.md).
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Privacy` | Read | `IMPROVING PATHFINDER` (CSS); the intro; checkbox `Let PathFinder learn from my strategies` |
+| 1 | Settings, `Privacy` | Read | `LEARNING FROM YOUR STRATEGIES` (CSS); what a copy holds, what is removed before review, that a person reads it, what an accepted copy keeps, what turning it off deletes; link `Your data in PathFinder`; checkbox `Let PathFinder learn from my strategies` |
 | 2 | Checkbox | Untick, reload, reopen | Still unticked |
 
 ## A6 - Advanced - once

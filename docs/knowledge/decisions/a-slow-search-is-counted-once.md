@@ -49,6 +49,11 @@ running it.
   in many query files (SNP, variant, BLAST, motif and others), and WDK's search
   metadata does not say which searches use one. A hand-kept list drifts; how
   long a count takes is measured on the site itself.
+  The one-at-a-time line for expensive searches does read a list, the High Speed
+  SNP searches `veupathdb-py` derives from ApiCommonModel (WDK-HTTP-006), beside
+  the searches marked slow here
+  ([decision](an-expensive-search-waits-in-one-line-across-the-deployment.md)); which
+  values a bind reads is still decided by the measured count alone.
 - **A longer measurement budget for slow searches.** Every reading of a slow
   search is another slow search on the site; a longer budget only lets more of
   them finish.

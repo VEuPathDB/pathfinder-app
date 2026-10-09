@@ -369,7 +369,7 @@ async def test_the_analysis_state_chunk_names_the_part_kind(
     assert chunk.type == "data-eda.analysis-state"
     assert chunk.data["analysisId"] == ANALYSIS_ID
     assert chunk.data["analysisUrl"] == (
-        f"https://plasmodb.org/plasmo/app/workspace/analyses/"
+        f"https://qa.plasmodb.org/plasmo.qa/app/workspace/analyses/"
         f"{PHENOTYPE_DATASET}/{ANALYSIS_ID}"
     )
     assert chunk.data["numFilters"] == 1
