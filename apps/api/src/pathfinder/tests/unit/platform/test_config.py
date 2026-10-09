@@ -368,26 +368,6 @@ def test_a_key_declared_with_no_value_reads_as_the_default(
     )
 
 
-def test_the_public_base_url_reads_back_without_a_trailing_slash(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("PUBLIC_BASE_URL", "https://h.example/pathfinder/")
-
-    assert make_settings().public_base_url == "https://h.example/pathfinder"
-
-
-def test_an_absolute_public_base_url_is_kept() -> None:
-    settings = make_settings(public_base_url="https://h.example/pathfinder")
-
-    assert settings.public_base_url == "https://h.example/pathfinder"
-
-
-@pytest.mark.parametrize("url", ["/", "/pathfinder", "ftp://h.example/pathfinder"])
-def test_a_public_base_url_without_an_http_host_fails_startup(url: str) -> None:
-    with pytest.raises(ValueError, match="PUBLIC_BASE_URL"):
-        make_settings(public_base_url=url)
-
-
 def test_the_development_account_email_never_prints() -> None:
     settings = make_settings(wdk_dev_email="dev@example.org")
 
@@ -401,33 +381,6 @@ def _deployed(api_env: str, **overrides: object) -> Settings:
         anthropic_api_key="real-anthropic-key",
         **overrides,
     )
-
-
-def test_production_refuses_the_local_public_base_url(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
-
-    with pytest.raises(ValueError, match="PUBLIC_BASE_URL must be set"):
-        _deployed("production")
-
-
-def test_production_keeps_a_public_base_url_it_is_given() -> None:
-    settings = _deployed(
-        "production", public_base_url="https://qa.plasmodb.org/pathfinder"
-    )
-
-    assert settings.public_base_url == "https://qa.plasmodb.org/pathfinder"
-
-
-def test_development_keeps_the_local_public_base_url(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("PUBLIC_BASE_URL", raising=False)
-
-    settings = _deployed("development")
-
-    assert settings.public_base_url == "http://localhost:3000/pathfinder"
 
 
 @pytest.mark.parametrize(
@@ -468,3 +421,33 @@ def test_a_process_that_names_no_sites_file_is_refused(
 def test_a_process_that_names_none_in_its_arguments_is_refused() -> None:
     with pytest.raises(ValueError, match="VEUPATHDB_SITES_CONFIG"):
         make_settings(veupathdb_sites_config=None)
+
+
+_DB_VALUE = "db-value-0123456789"
+
+
+def test_the_postgres_settings_give_the_database_address() -> None:
+    settings = make_settings(
+        database_url="",
+        postgres_host="pathfinder-db",
+        postgres_user="pathfinder",
+        postgres_password=_DB_VALUE,
+        postgres_db="pathfinder",
+    )
+
+    assert settings.database_url == (
+        f"postgresql+asyncpg://pathfinder:{_DB_VALUE}@pathfinder-db:5432/pathfinder"
+    )
+
+
+def test_no_database_address_fails_startup() -> None:
+    with pytest.raises(ValueError, match="DATABASE_URL or POSTGRES_PASSWORD"):
+        make_settings(database_url="")
+
+
+def test_a_startup_failure_does_not_echo_the_settings_it_was_given() -> None:
+    with pytest.raises(ValueError, match="POSTGRES_HOST") as error:
+        make_settings(database_url="", postgres_password=_DB_VALUE)
+
+    assert "input_value" not in str(error.value)
+    assert _DB_VALUE not in str(error.value)

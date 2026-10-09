@@ -46,7 +46,6 @@ def _development(monkeypatch: pytest.MonkeyPatch, email: str, password: str) -> 
     settings = get_settings()
     monkeypatch.setattr(settings, "api_env", "development")
     monkeypatch.setattr(settings, "pathfinder_site", "plasmodb")
-    monkeypatch.setattr(settings, "public_base_url", "http://localhost:3000/pathfinder")
     monkeypatch.setattr(settings, "wdk_dev_email", email)
     monkeypatch.setattr(settings, "wdk_dev_password", SecretStr(password))
 
@@ -58,10 +57,7 @@ async def test_development_with_the_dev_account_signs_in_through_the_dev_route(
 
     body = await _config()
 
-    assert (
-        body["siteSignInUrl"]
-        == "http://localhost:3000/pathfinder/api/v1/dev/site-login"
-    )
+    assert body["siteSignInUrl"] == "/pathfinder/api/v1/dev/site-login"
 
 
 async def test_development_without_the_dev_account_signs_in_on_the_site(

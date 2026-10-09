@@ -67,9 +67,9 @@ route change posts `{ type: "pathfinder:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
 on the PathFinder page.
 
-**A link PathFinder writes for later names the public address.** An export
-download link is built from `PUBLIC_BASE_URL`, which the api and the worker
-both read. Under `API_ENV=production` startup refuses the local default.
+**A link PathFinder writes for later is a path under `/pathfinder`.** An export
+download link and the development sign-in address carry no host, so the browser
+resolves them on the website that serves PathFinder and no setting names it.
 
 # What would falsify this
 

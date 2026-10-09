@@ -14,8 +14,10 @@ from assistant_core.mcp.resolution import (
 from pydantic_ai import ApprovalRequired, CallDeferred, ModelRetry, RunContext
 from pydantic_ai.toolsets import AbstractToolset, WrapperToolset
 from pydantic_ai.toolsets.abstract import ToolsetTool
+from veupathdb_mcp import ServiceTokenRegistry
 
 from pathfinder.platform.config import Settings, get_settings
+from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.platform.metrics import TOOL_SOURCE_ERRORS
 
 WDK_MCP_SOURCE_ID = "veupathdb-wdk-mcp"
@@ -31,16 +33,20 @@ RESEARCH_MCP_CALL_SECONDS = 60
 
 # The setting that holds each admitted server's credential, and the variable a
 # refusal names. A source id absent here is one this deployment cannot call.
-_CREDENTIALS: Mapping[str, tuple[Callable[[Settings], str], str]] = {
+_CREDENTIALS: Mapping[str, tuple[Callable[[Settings], ServiceTokenRegistry], str]] = {
     WDK_MCP_SOURCE_ID: (
-        lambda settings: settings.pathfinder_wdk_mcp_token,
-        "PATHFINDER_WDK_MCP_TOKEN",
+        lambda settings: settings.mcp_service_tokens,
+        "WDK_MCP_SERVICE_TOKENS",
     ),
     RESEARCH_MCP_SOURCE_ID: (
-        lambda settings: settings.pathfinder_research_mcp_token,
-        "PATHFINDER_RESEARCH_MCP_TOKEN",
+        lambda settings: settings.research_mcp_tokens,
+        "RESEARCH_MCP_SERVICE_TOKENS",
     ),
 }
+
+
+def _own_secret(tokens: ServiceTokenRegistry) -> str:
+    return tokens.secret_for(PATHFINDER_APPLICATION_ID) or ""
 
 
 def _record(
@@ -74,14 +80,14 @@ def admitted_tool_sources() -> AdmittedSources:
         _record(
             source_id=WDK_MCP_SOURCE_ID,
             endpoint=settings.pathfinder_wdk_mcp_url,
-            token=settings.pathfinder_wdk_mcp_token,
+            token=_own_secret(settings.mcp_service_tokens),
             part_namespace=WDK_MCP_PART_NAMESPACE,
             max_call_seconds=WDK_MCP_CALL_SECONDS,
         ),
         _record(
             source_id=RESEARCH_MCP_SOURCE_ID,
             endpoint=settings.pathfinder_research_mcp_url,
-            token=settings.pathfinder_research_mcp_token,
+            token=_own_secret(settings.research_mcp_tokens),
             part_namespace=RESEARCH_MCP_PART_NAMESPACE,
             max_call_seconds=RESEARCH_MCP_CALL_SECONDS,
         ),
@@ -98,9 +104,12 @@ def source_credential(record: AdmissionRecord) -> str | None:
         msg = f"this deployment holds no credential for {record.source_id!r}"
         raise ToolSourceUnavailableError(msg)
     read, variable = held
-    token = read(get_settings()).strip()
+    token = _own_secret(read(get_settings()))
     if not token:
-        msg = f"{variable} must carry a credential {record.source_id!r} accepts."
+        msg = (
+            f"{variable} must hold a {PATHFINDER_APPLICATION_ID} entry "
+            f"{record.source_id!r} accepts."
+        )
         raise ToolSourceUnavailableError(msg)
     return token
 

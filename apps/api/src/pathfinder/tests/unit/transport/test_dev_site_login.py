@@ -15,8 +15,8 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.transport.http.routers import dev_site_login
 
-_BASE = "http://localhost:3000/pathfinder"
-_PAGE = f"{_BASE}/plasmodb/conversation"
+_PATH = "/pathfinder/plasmodb/conversation?tab=chat"
+_PAGE = f"http://localhost:3000{_PATH}"
 
 type Login = tuple[str, str, str, str]
 
@@ -24,7 +24,6 @@ type Login = tuple[str, str, str, str]
 @pytest.fixture(autouse=True)
 def _development_account(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings()
-    monkeypatch.setattr(settings, "public_base_url", _BASE)
     monkeypatch.setattr(settings, "pathfinder_site", "plasmodb")
     monkeypatch.setattr(settings, "wdk_dev_email", "dev@example.org")
     monkeypatch.setattr(settings, "wdk_dev_password", SecretStr("dev-password"))
@@ -75,26 +74,31 @@ async def test_a_signed_in_account_returns_to_the_page(
 
     response = await _sign_in({"destination": _PAGE})
 
-    assert (response.status_code, response.headers["location"]) == (303, _PAGE)
+    assert (response.status_code, response.headers["location"]) == (303, _PATH)
     assert response.headers.get_list("set-cookie") == [
         "Authorization=tok; Path=/; SameSite=lax"
     ]
-    assert calls == [("plasmodb", "dev@example.org", "dev-password", _BASE)]
+    assert calls == [("plasmodb", "dev@example.org", "dev-password", "/")]
 
 
 @pytest.mark.parametrize(
-    "params",
-    [{"destination": "https://evil.example/x"}, {}],
-    ids=["another-host", "no-destination"],
+    ("params", "location"),
+    [
+        ({"destination": "https://evil.example/x"}, "/pathfinder"),
+        ({"destination": "https://evil.example/pathfinder/x"}, "/pathfinder/x"),
+        ({"destination": "//evil.example/pathfinder"}, "/pathfinder"),
+        ({}, "/pathfinder"),
+    ],
+    ids=["outside-the-path", "another-host", "scheme-relative", "no-destination"],
 )
-async def test_a_destination_outside_pathfinder_returns_to_its_base(
-    params: dict[str, str], monkeypatch: pytest.MonkeyPatch
+async def test_the_return_stays_on_this_origin_under_pathfinder(
+    params: dict[str, str], location: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _site_answers(monkeypatch, "tok")
 
     response = await _sign_in(params)
 
-    assert (response.status_code, response.headers["location"]) == (303, _BASE)
+    assert (response.status_code, response.headers["location"]) == (303, location)
     assert response.headers.get_list("set-cookie") == [
         "Authorization=tok; Path=/; SameSite=lax"
     ]

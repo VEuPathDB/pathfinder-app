@@ -28,7 +28,7 @@ the declaration's name, so the model calls `research_web_search` and
 The declaration is not `required`. A deployment that configures no endpoint or
 no credential admits nothing, the turn runs without those two tools, and the
 Lead answers from the catalog and the strategy state instead. That is what mock
-mode is: `PATHFINDER_RESEARCH_MCP_TOKEN` is unset, so the e2e stack needs no
+mode is: `RESEARCH_MCP_SERVICE_TOKENS` is unset, so the e2e stack needs no
 fixture server and no mock-only branch in the spec.
 
 # What was rejected

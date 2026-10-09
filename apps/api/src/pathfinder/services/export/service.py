@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.persistence.models import Export
-from pathfinder.platform.config import get_settings
+from pathfinder.platform.config import BASE_PATH
 from pathfinder.services.gene_sets.types import GeneSet
 
 logger = get_logger(__name__)
@@ -139,7 +139,7 @@ class ExportService:
             export_id=str(export_id),
             filename=filename,
             content_type=content_type,
-            url=f"{get_settings().public_base_url}/api/v1/exports/{export_id}",
+            url=f"{BASE_PATH}/api/v1/exports/{export_id}",
             size_bytes=len(content),
             expires_in_seconds=_EXPORT_TTL_SECONDS,
         )

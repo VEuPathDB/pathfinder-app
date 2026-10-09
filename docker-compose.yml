@@ -26,7 +26,6 @@ services:
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       PATHFINDER_SITE: ${PATHFINDER_SITE:-}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
       # Accounted megabytes of per-site catalogs and semantic indexes one
@@ -61,15 +60,13 @@ services:
       # API_ENV=development both values mount the site sign-in route; set in .env.dev.
       WDK_DEV_EMAIL: ${WDK_DEV_EMAIL:-}
       WDK_DEV_PASSWORD: ${WDK_DEV_PASSWORD:-}
-      # The veupathdb-wdk-mcp endpoint an assistant's declaration resolves to,
-      # and the credential presented there. Set the same secret in this
-      # deployment's WDK_MCP_SERVICE_TOKENS; an empty one admits nothing.
+      # The two MCP endpoints an assistant's declaration resolves to. Each is
+      # called with the secret of the pathfinder entry in the server's own
+      # token list; without that entry the source is not admitted.
       PATHFINDER_WDK_MCP_URL: ${PATHFINDER_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
-      PATHFINDER_WDK_MCP_TOKEN: ${PATHFINDER_WDK_MCP_TOKEN:-}
-      # The veupathdb-research-mcp endpoint and its credential. An empty token
-      # admits no research source, and the turn runs without those tools.
+      WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
       PATHFINDER_RESEARCH_MCP_URL: ${PATHFINDER_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
-      PATHFINDER_RESEARCH_MCP_TOKEN: ${PATHFINDER_RESEARCH_MCP_TOKEN:-}
+      RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       # Every process that writes or matches a helper strategy reads the same
       # prefix. A process on the library default recognises none of them.
       VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
@@ -118,7 +115,6 @@ services:
       VEUPATHDB_AUTH_TOKEN: ${VEUPATHDB_AUTH_TOKEN:-}
       VEUPATHDB_OAUTH_URL: ${VEUPATHDB_OAUTH_URL:-}
       PATHFINDER_SITE: ${PATHFINDER_SITE:-}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       LOG_LEVEL: ${LOG_LEVEL:-}
       LOG_FORMAT: ${LOG_FORMAT:-}
       # Accounted megabytes of per-site catalogs and semantic indexes one
@@ -147,15 +143,13 @@ services:
       # /metrics apart from the app. The port is not published; 0 serves none.
       METRICS_PORT: ${METRICS_PORT:-9100}
       METRICS_ADDR: ${METRICS_ADDR:-0.0.0.0}
-      # The veupathdb-wdk-mcp endpoint an assistant's declaration resolves to,
-      # and the credential presented there. Set the same secret in this
-      # deployment's WDK_MCP_SERVICE_TOKENS; an empty one admits nothing.
+      # The two MCP endpoints an assistant's declaration resolves to. Each is
+      # called with the secret of the pathfinder entry in the server's own
+      # token list; without that entry the source is not admitted.
       PATHFINDER_WDK_MCP_URL: ${PATHFINDER_WDK_MCP_URL:-http://wdk-mcp:8100/mcp}
-      PATHFINDER_WDK_MCP_TOKEN: ${PATHFINDER_WDK_MCP_TOKEN:-}
-      # The veupathdb-research-mcp endpoint and its credential. An empty token
-      # admits no research source, and the turn runs without those tools.
+      WDK_MCP_SERVICE_TOKENS: ${WDK_MCP_SERVICE_TOKENS:-}
       PATHFINDER_RESEARCH_MCP_URL: ${PATHFINDER_RESEARCH_MCP_URL:-http://research-mcp:8110/mcp}
-      PATHFINDER_RESEARCH_MCP_TOKEN: ${PATHFINDER_RESEARCH_MCP_TOKEN:-}
+      RESEARCH_MCP_SERVICE_TOKENS: ${RESEARCH_MCP_SERVICE_TOKENS:-}
       # Every process that writes or matches a helper strategy reads the same
       # prefix. A process on the library default recognises none of them.
       VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX: ${VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX:-__pathfinder_internal__:}
@@ -167,7 +161,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b8
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b10
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -244,7 +238,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b8
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b10
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m

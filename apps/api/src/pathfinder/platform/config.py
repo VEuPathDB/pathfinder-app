@@ -7,12 +7,11 @@ from functools import cached_property, lru_cache
 from ipaddress import IPv4Address
 from pathlib import Path
 from typing import Literal, Self, get_args, get_origin
-from urllib.parse import urlsplit
 
 from assistant_core.platform.config import RuntimeSettings, use_settings_source
 from assistant_core.platform.pydantic_base import computed
 from assistant_core.platform.types import ModelProvider, TierName
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -36,7 +35,6 @@ from pathfinder.platform.paths import API_DIR, REPO_ROOT
 from pathfinder.platform.provider_key_cipher import SECRET_BYTES, ProviderKeyCipher
 
 BASE_PATH = "/pathfinder"
-_LOCAL_PUBLIC_BASE_URL = f"http://localhost:3000{BASE_PATH}"
 
 _MIN_API_SECRET_LENGTH = 32
 _PLACEHOLDER_SECRET_MARKERS = (
@@ -113,7 +111,6 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     api_env: Literal["development", "staging", "production", "test"] = "production"
     api_secret_key: str = Field(default="", repr=False)
     api_docs_enabled: bool = True
-    public_base_url: str = _LOCAL_PUBLIC_BASE_URL
 
     anthropic_api_key: str = Field(default="", repr=False)
     gemini_api_key: str = Field(default="", repr=False)
@@ -153,12 +150,11 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     # Application identities, as "app_id:secret[,app_id:secret...]".
     pathfinder_service_tokens: str = Field(default="", repr=False)
 
-    # The two MCP endpoints this deployment's assistants call, and the
-    # credential it presents at each. An empty URL admits nobody.
+    # The two MCP endpoints this deployment's assistants call. An empty URL
+    # admits nobody.
     pathfinder_wdk_mcp_url: str = ""
-    pathfinder_wdk_mcp_token: str = Field(default="", repr=False)
     pathfinder_research_mcp_url: str = ""
-    pathfinder_research_mcp_token: str = Field(default="", repr=False)
+    research_mcp_service_tokens: str = Field(default="", repr=False)
 
     # Conversation provider. "mock" gives deterministic offline runs.
     pathfinder_chat_provider: str = ""
@@ -279,7 +275,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         if not self.api_secret_key.strip():
             missing.append("API_SECRET_KEY")
         if not self.database_url.strip():
-            missing.append("DATABASE_URL")
+            missing.append("DATABASE_URL or POSTGRES_PASSWORD")
         if missing:
             joined = ", ".join(missing)
             msg = f"Missing required settings: {joined}."
@@ -331,9 +327,14 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         """The application identities, parsed once per settings instance."""
         return ServiceTokenRegistry.parse(self.pathfinder_service_tokens)
 
+    @cached_property
+    def research_mcp_tokens(self) -> ServiceTokenRegistry:
+        return ServiceTokenRegistry.parse(self.research_mcp_service_tokens)
+
     def _validate_service_tokens(self) -> None:
         _ = self.service_tokens
         _ = self.mcp_service_tokens
+        _ = self.research_mcp_tokens
 
     def _validate_langfuse_settings(self) -> None:
         langfuse_values = {
@@ -347,28 +348,6 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             msg = f"{joined} must be set together when Langfuse is enabled."
             raise ValueError(msg)
 
-    @field_validator("public_base_url")
-    @classmethod
-    def _absolute_without_a_trailing_slash(cls, url: str) -> str:
-        parts = urlsplit(url)
-        if parts.scheme not in {"http", "https"} or not parts.hostname:
-            msg = f"PUBLIC_BASE_URL={url} is not an absolute http(s) URL with a host."
-            raise ValueError(msg)
-        return url.rstrip("/")
-
-    @model_validator(mode="after")
-    def _production_names_its_public_address(self) -> Self:
-        if (
-            self.api_env == "production"
-            and self.public_base_url == _LOCAL_PUBLIC_BASE_URL
-        ):
-            msg = (
-                "PUBLIC_BASE_URL must be set to the public address of PathFinder "
-                f"under API_ENV=production, not {_LOCAL_PUBLIC_BASE_URL}."
-            )
-            raise ValueError(msg)
-        return self
-
     @model_validator(mode="after")
     def _site_is_in_the_sites_file(self) -> Self:
         if not (self.veupathdb_sites_config or "").strip():
@@ -380,13 +359,15 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
             raise ValueError(msg)
         return self
 
-    def model_post_init(self, _context: object, /) -> None:
-        """Validate settings after initialization."""
+    @model_validator(mode="after")
+    def _validate_after_the_inherited_settings(self) -> Self:
+        """Validate settings once every inherited validator has run."""
         self._validate_required_settings()
         self._validate_chat_provider()
         self._validate_service_tokens()
         self._validate_langfuse_settings()
         _ = self.provider_key_cipher
+        return self
 
     @classmethod
     def settings_customise_sources(

@@ -51,6 +51,17 @@ describe("signInHref", () => {
       `${LOGIN}?lang=en&destination=%2Fpathfinder%2Fplasmodb%2Fconversation%3Fa%3D1`,
     );
   });
+
+  it("keeps a sign-in address on this origin relative", () => {
+    expect(
+      signInHref(
+        "/pathfinder/api/v1/dev/site-login",
+        "/pathfinder/plasmodb/conversation",
+      ),
+    ).toBe(
+      "/pathfinder/api/v1/dev/site-login?destination=%2Fpathfinder%2Fplasmodb%2Fconversation",
+    );
+  });
 });
 
 describe("goToSiteSignIn", () => {

@@ -173,7 +173,7 @@ def admit_wdk_mcp(endpoint: str, monkeypatch: pytest.MonkeyPatch) -> Iterator[st
             ),
         ),
     )
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", SERVICE_TOKEN)
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"pathfinder:{SERVICE_TOKEN}")
     get_settings.cache_clear()
     try:
         yield endpoint

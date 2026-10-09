@@ -2,6 +2,14 @@
 
 ## 2026-10-09
 
+* **The stack takes nine secrets.** The api, the worker and the served tool server build their
+  database address from `POSTGRES_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD` and
+  `POSTGRES_DB` when `DATABASE_URL` is not set (veupathdb-mcp 0.2.0b9), so the db password is
+  one secret. The worker presents the secret of the `pathfinder` entry in
+  `WDK_MCP_SERVICE_TOKENS` and `RESEARCH_MCP_SERVICE_TOKENS`, the lists the servers read, in
+  place of `PATHFINDER_WDK_MCP_TOKEN` and `PATHFINDER_RESEARCH_MCP_TOKEN`. `PUBLIC_BASE_URL`
+  is gone: an export link and the development sign-in address are paths under `/pathfinder`.
+
 * **An expensive search waits in one line across the deployment.** Every turn and every
   durable body is a search turn of `veupathdb-py`, so it sends one search to a site at a
   time; a High Speed SNP search or a search marked slow holds the tool server's Postgres

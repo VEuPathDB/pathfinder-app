@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from veupathdb.wdk import get_site
 
 from pathfinder import __version__
-from pathfinder.platform.config import get_settings
+from pathfinder.platform.config import BASE_PATH, get_settings
 from pathfinder.platform.health import check_database, worker_is_alive
 from pathfinder.platform.readiness import get_readiness
 from pathfinder.transport.http.schemas import HealthResponse, SystemConfigResponse
@@ -36,7 +36,7 @@ async def health_check() -> HealthResponse:
 def _site_sign_in_url() -> str:
     settings = get_settings()
     if settings.offers_dev_site_login:
-        return f"{settings.public_base_url}/api/v1/dev/site-login"
+        return f"{BASE_PATH}/api/v1/dev/site-login"
     return f"{get_site(settings.pathfinder_site).web_base_url}/app/user/login"
 
 

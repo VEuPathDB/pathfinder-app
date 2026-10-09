@@ -36,7 +36,7 @@ RESEARCH_TOKEN = "research-mcp-client-secret-0123456789abcdef"
 @pytest.fixture
 def wdk_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", TOKEN)
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"pathfinder:{TOKEN}")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -45,7 +45,7 @@ def wdk_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 @pytest.fixture
 def research_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_TOKEN", RESEARCH_TOKEN)
+    monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", f"pathfinder:{RESEARCH_TOKEN}")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -54,9 +54,9 @@ def research_mcp_admitted(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 @pytest.fixture
 def no_wdk_mcp(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", "")
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", "")
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
     monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", "")
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_TOKEN", "")
+    monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -115,7 +115,7 @@ def test_an_endpoint_without_its_credential_admits_nothing(
 ) -> None:
     """Half a configuration admits no server, rather than calling it bare."""
     monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", "")
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
 
     assert admitted_tool_sources().records == ()
@@ -123,10 +123,40 @@ def test_an_endpoint_without_its_credential_admits_nothing(
     get_settings.cache_clear()
 
 
+def test_an_entry_for_another_application_admits_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", f"analytics:{TOKEN}")
+    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", "")
+    get_settings.cache_clear()
+
+    assert admitted_tool_sources().records == ()
+
+    get_settings.cache_clear()
+
+
+def test_the_secret_of_the_pathfinder_entry_is_the_one_presented(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    other = "analytics-client-secret-0123456789abcdef"
+    monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", ENDPOINT)
+    monkeypatch.setenv(
+        "WDK_MCP_SERVICE_TOKENS", f"analytics:{other},pathfinder:{TOKEN}"
+    )
+    get_settings.cache_clear()
+    record = admitted_tool_sources().resolve(WDK_MCP_SOURCE_ID)
+    assert record is not None
+
+    assert source_credential(record) == TOKEN
+
+    get_settings.cache_clear()
+
+
 def test_an_unconfigured_credential_is_refused_loudly(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", "")
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
     record = AdmissionRecord(
         source_id=WDK_MCP_SOURCE_ID,
@@ -135,7 +165,7 @@ def test_an_unconfigured_credential_is_refused_loudly(
         part_namespace=WDK_MCP_PART_NAMESPACE,
     )
 
-    with pytest.raises(ToolSourceUnavailableError, match="PATHFINDER_WDK_MCP_TOKEN"):
+    with pytest.raises(ToolSourceUnavailableError, match="WDK_MCP_SERVICE_TOKENS"):
         source_credential(record)
 
     get_settings.cache_clear()
@@ -217,9 +247,9 @@ def test_a_research_endpoint_without_its_credential_admits_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("PATHFINDER_WDK_MCP_URL", "")
-    monkeypatch.setenv("PATHFINDER_WDK_MCP_TOKEN", "")
+    monkeypatch.setenv("WDK_MCP_SERVICE_TOKENS", "")
     monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_URL", RESEARCH_ENDPOINT)
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_TOKEN", "")
+    monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
 
     assert admitted_tool_sources().records == ()
@@ -230,7 +260,7 @@ def test_a_research_endpoint_without_its_credential_admits_nothing(
 def test_an_unconfigured_research_credential_is_refused_loudly(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("PATHFINDER_RESEARCH_MCP_TOKEN", "")
+    monkeypatch.setenv("RESEARCH_MCP_SERVICE_TOKENS", "")
     get_settings.cache_clear()
     record = AdmissionRecord(
         source_id=RESEARCH_MCP_SOURCE_ID,
@@ -239,9 +269,7 @@ def test_an_unconfigured_research_credential_is_refused_loudly(
         part_namespace=RESEARCH_MCP_PART_NAMESPACE,
     )
 
-    with pytest.raises(
-        ToolSourceUnavailableError, match="PATHFINDER_RESEARCH_MCP_TOKEN"
-    ):
+    with pytest.raises(ToolSourceUnavailableError, match="RESEARCH_MCP_SERVICE_TOKENS"):
         source_credential(record)
 
     get_settings.cache_clear()
