@@ -23,7 +23,7 @@ Every command below runs as root on the host that runs the stage. Replace `dev` 
 | `pathfinder-wdk-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for the site help assistant | db |
 | `pathfinder-research-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
 | `pathfinder-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |
-| `pathfinder-web@` | `docker.io/veupathdb/pathfinder-web` | The Next.js site on 3000. Forwards `/pathfinder/api/*` and `/pathfinder/health/*` to the api | api |
+| `pathfinder-service@` | `docker.io/veupathdb/pathfinder-web` | The Next.js site on 3000. Forwards `/pathfinder/api/*` and `/pathfinder/health/*` to the api | api |
 
 Two volumes: `pathfinder-db-data-<stage>` (the database) and `pathfinder-catalogs-<stage>`
 (catalog snapshots, shared by api, worker and wdk-mcp). One network, `pathfinder-internal-<stage>`;
@@ -227,9 +227,9 @@ value loses them (see [Secrets](#secrets)).
 Restore into the running db with the api, worker and wdk-mcp stopped:
 
 ```bash
-systemctl stop pathfinder-web@dev pathfinder-worker@dev pathfinder-api@dev pathfinder-wdk-mcp@dev
+systemctl stop pathfinder-service@dev pathfinder-worker@dev pathfinder-api@dev pathfinder-wdk-mcp@dev
 podman exec -i pathfinder-db-dev pg_restore -U pathfinder -d pathfinder --clean --if-exists < pathfinder-dev-2026-10-09.dump
-systemctl start pathfinder-api@dev pathfinder-wdk-mcp@dev pathfinder-worker@dev pathfinder-web@dev
+systemctl start pathfinder-api@dev pathfinder-wdk-mcp@dev pathfinder-worker@dev pathfinder-service@dev
 ```
 
 Start the image version that wrote the dump, or a newer one: the api migrates forward at start,
@@ -260,7 +260,7 @@ shows in `pathfinder_tool_source_errors_total`; check its token pair.
 
 - From Traefik (a plain `404 page not found`): the web container is not running or not on the
   `traefik` network, or `TRAEFIK_DOMAIN` does not match the host Apache proxies to.
-  `systemctl status pathfinder-web@dev`.
+  `systemctl status pathfinder-service@dev`.
 - From Apache: the vhost has no `set_pathfinder_proxy('<stage>')` call. That is a systems change
   in `puppet-ebrc_httpd_setup`.
 - Test each hop: `curl -sk https://pathfinder-dev.local.apidb.org:8443/pathfinder/health` from
