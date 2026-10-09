@@ -158,7 +158,7 @@ test("every file outside docs, the backup and local outputs is scanned, and no s
   assert.ok(paths.includes("apps/web/src/features/sidebar/wdkStrategyRef.ts"));
   assert.ok(paths.includes(".github/workflows/ci.yml"));
   assert.ok(paths.includes(".env.example"));
-  assert.ok(paths.includes("CLAUDE.md"));
+  assert.ok(paths.includes("README.md"));
   assert.deepEqual(
     paths.filter((path) => /^(docs|thesis|fixtures-production-backup-2026-10-09)\//.test(path) || /(^|\/)\.env(\.(dev|test))?$/.test(path)),
     [],
