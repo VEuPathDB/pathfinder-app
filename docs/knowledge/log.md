@@ -2,6 +2,13 @@
 
 ## 2026-10-09
 
+* **The estate stack holds only deployment facts.** Its two MCP units run the
+  `pathfinder-api` image with a command of their own, each stage's sites file is
+  `deploy/sites/<stage>.yml` copied into that image at `/app/config/sites/`, and the
+  stack's environment drops every value equal to the default its container reads, so
+  a release is a tag of this repository alone and `PATHFINDER_MCP_TAG` is gone
+  ([The estate stack holds only deployment facts](decisions/the-estate-stack-holds-only-deployment-facts.md)).
+
 * **A declined request withdraws its prompt.** A provider's safety refusal reached
   the researcher as the raw `ContentFilterError` text with the model response as
   JSON, and the declined prompt stayed in the checkpoint, so every later turn sent

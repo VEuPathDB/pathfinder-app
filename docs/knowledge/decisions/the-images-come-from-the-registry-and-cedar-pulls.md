@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The images come from the estate's pipeline, and the estate's units pull them
-description: Jenkins builds the api and web images from this repository's Jenkinsfile with the shared pipelib Builder and pushes them to docker.io/veupathdb, latest from main and the version from a semver tag; the systems team runs them from the estate's service-definitions repository, the api, worker and web of the development stage on latest with podman auto-update, QA and production moved by tagger, and the two MCP servers always at the ai-wdk-mcp release the api pins. The GHCR workflow as the lasting pipeline, rootless units under one account, pinned tags pulled by hand, PEP 440 release tags, MCP servers that follow latest, building on the host and image archives copied over SSH were rejected.
+description: Jenkins builds the api and web images from this repository's Jenkinsfile with the shared pipelib Builder and pushes them to docker.io/veupathdb, latest from main and the version from a semver tag; the systems team runs them from the estate's service-definitions repository, the api, worker and web of the development stage on latest with podman auto-update, QA and production moved by tagger, and the two MCP servers run from the api image, so they are always the ai-wdk-mcp release the api pins. The GHCR workflow as the lasting pipeline, rootless units under one account, pinned tags pulled by hand, PEP 440 release tags, MCP servers that follow latest, building on the host and image archives copied over SSH were rejected.
 tags: [deployment, cedar, ci, docker, podman, quadlets, registry, jenkins]
 generated: { by: claude-code/opus-5.5, at: 2026-10-08T00:00:00Z }
 status: stable
@@ -20,8 +20,6 @@ systems team deploys.
 | --- | --- |
 | `pathfinder-api` | `apps/api/Dockerfile`, context the repository root; the worker runs the same image with a command of its own |
 | `pathfinder-web` | `apps/web/Dockerfile`, context the repository root, with `NEXT_PUBLIC_API_URL=http://pathfinder-api:8000` |
-| `pathfinder-wdk-mcp` | the `ai-wdk-mcp` repository's own `Jenkinsfile`, from its `Dockerfile`, on that repository's own version line |
-| `pathfinder-research-mcp` | the same repository and version line, from its `Dockerfile.research` |
 
 A push to `main` publishes `:latest`. A tag publishes its version without the
 `v`: `v0.2.0-b5` publishes `:0.2.0-b5`, and a release without a pre-release,
@@ -35,9 +33,10 @@ and CI runs it on every tag push.
 **The systems team runs the stack.** The units live in the estate's
 service-definitions repository, `VEuPathDB/webservices-quadlets`, and the systems
 team deploys them as it deploys every estate service. They name
-`docker.io/veupathdb/pathfinder-<service>` at one of two tags each stage sets:
-`PATHFINDER_TAG` for the api, the worker and the web, and `PATHFINDER_MCP_TAG`
-for the two MCP servers. The website's own host forwards `/pathfinder` to the
+`docker.io/veupathdb/pathfinder-api` and `pathfinder-web` at the one tag each stage
+sets, `PATHFINDER_TAG`; the worker and the two MCP servers run the api image with a
+command of their own
+([The estate stack holds only deployment facts](the-estate-stack-holds-only-deployment-facts.md)). The website's own host forwards `/pathfinder` to the
 stage's web container, which is what makes PathFinder same-origin with the
 website ([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
 The units and the secrets are not in this repository.
@@ -50,14 +49,9 @@ name a version, moved by `VEuPathDB/tagger` as the estate promotes every service
 **The MCP servers run the release the api pins, in every stage.** The api
 imports `veupathdb_mcp` at the `ai-wdk-mcp` tag `apps/api/pyproject.toml` pins in
 `[tool.uv.sources]`, and the tools it serves over the wire must be the same
-release. `ai-wdk-mcp` publishes on a version line of its own, so its `:latest`
-says nothing about that pin. `PATHFINDER_MCP_TAG` is therefore the pin's tag
-without its `v` (`0.2.0-b5` for a pin of `v0.2.0-b5`), never `latest`, and a
-release of this repository that moves the pin moves `PATHFINDER_MCP_TAG` in the
-estate stack's environment in the same release, as a change in the services
-repository. Nothing in this repository can read that repository, so the release
-recipe in `CLAUDE.md` names the step. The pin must itself be a semver tag for
-that image to exist. `v0.2.0-b4` is the first such release.
+release. The api image installs exactly that release, so the estate units run
+both servers from it, and a release that moves the pin changes nothing in the
+services repository.
 
 **The interim pipeline stays until the cutover.**
 `.github/workflows/publish-images.yml` still publishes the four images to
