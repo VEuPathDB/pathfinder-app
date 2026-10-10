@@ -2,6 +2,10 @@
 
 ## 2026-10-10
 
+* **A refused token setting names no secret.** With `veupathdb-mcp` 0.2.0b12 a malformed
+  `WDK_MCP_SERVICE_TOKENS` or `RESEARCH_MCP_SERVICE_TOKENS` fails startup with the position of
+  the bad entry, and the error carries none of the values it was given.
+
 * **A range parameter binds in `set_criterion`.** A search with a required `number-range`
   parameter left it an open slot whatever FRAME passed, so the card asked for a range it
   offered no way to give and the search never ran. With `veupathdb-py` 0.1.0b6 and
