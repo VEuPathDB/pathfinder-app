@@ -1,5 +1,14 @@
 # Log
 
+## 2026-10-10
+
+* **A range parameter binds in `set_criterion`.** A search with a required `number-range`
+  parameter left it an open slot whatever FRAME passed, so the card asked for a range it
+  offered no way to give and the search never ran. With `veupathdb-py` 0.1.0b6 and
+  `veupathdb-mcp` 0.2.0b11 the range takes the site's default when no value is stated and
+  binds the JSON text FRAME passes; a value the kind cannot read comes back to FRAME as a
+  retry that names the parameter's format.
+
 ## 2026-10-09
 
 * **The stack takes nine secrets.** The api, the worker and the served tool server build their

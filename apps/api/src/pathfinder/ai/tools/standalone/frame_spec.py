@@ -10,13 +10,10 @@ from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
     ParameterInfo,
     ParamFetcher,
-    ParamIntent,
     ResolvedParams,
-    UnknownParameterError,
     fetch_search_details,
     make_validation_callbacks,
     read_search_definition,
-    resolve_params_with_intent,
     resolve_search_record_type,
     shortlist_slot,
     validate_parameters,
@@ -47,6 +44,7 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
     refuse_undecided,
     refuse_unknown_names,
     refuse_unmatched_values,
+    resolve_proposals,
 )
 from pathfinder.ai.tools.standalone._frame_qualifiers import (
     qualifiers_no_search_states,
@@ -327,18 +325,7 @@ async def set_criterion(
         **(phyletic or {}),
         **radio,
     }
-    try:
-        resolved = await resolve_params_with_intent(
-            fetch_at=fetch_at,
-            intent=ParamIntent(text=text),
-            overrides=overrides,
-        )
-    except UnknownParameterError as exc:
-        msg = (
-            f"{exc.detail} The valid names are listed above; do not request the "
-            f"sheet again."
-        )
-        raise ModelRetry(msg) from exc
+    resolved = await resolve_proposals(fetch_at, text, overrides)
     if resolved.unread:
         msg = (
             f"The criterion states a quantity and {resolved.unread} was left null. "

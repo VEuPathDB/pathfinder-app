@@ -21,7 +21,7 @@ from veupathdb_mcp.catalog import (
 )
 
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
-from pathfinder.ai.tools.standalone import frame_spec
+from pathfinder.ai.tools.standalone import _frame_proposals
 from pathfinder.ai.tools.standalone._frame_proposals import (
     ParamProposals,
     coerce_proposals,
@@ -428,7 +428,7 @@ async def test_an_unknown_parameter_error_becomes_a_retry_listing_the_real_names
         raise UnknownParameterError(["min_percentile"], ["min_expression_percentile"])
 
     serve_for(monkeypatch, "GenesByOptionalPercentile")
-    monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
+    monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
 
     with pytest.raises(ModelRetry) as exc:
         await propose(
@@ -471,7 +471,7 @@ async def test_a_proposal_reaches_the_resolver_as_the_model_wrote_it(
         return ResolvedParams(params={}, open_slots=[])
 
     serve_search(monkeypatch, lambda _context: [param_info("samples", param_type)])
-    monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
+    monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
 
     await bind(AgentToolState(), "GenesByMicroarray", {"samples": proposed})
 

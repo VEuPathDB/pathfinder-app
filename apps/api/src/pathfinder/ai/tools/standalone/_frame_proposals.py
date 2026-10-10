@@ -25,14 +25,21 @@ from veupathdb.wdk import WDKSearch, get_site, get_site_router
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     RADIO_OFF,
+    OverrideMap,
     ParameterInfo,
+    ParamFetcher,
+    ParamIntent,
     PhyleticNoSelection,
     PhyleticUnresolvedProposal,
     RadioPairIssue,
+    ResolvedParams,
+    UnknownParameterError,
+    UnreadableValueError,
     check_radio_pairs,
     derive_phyletic_overrides,
     is_phyletic_sheet,
     radio_pairs,
+    resolve_params_with_intent,
 )
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
@@ -421,3 +428,22 @@ def _radio_retry(
         f"matched) and pass {RADIO_OFF} "
         f"for {pair.free_text}."
     )
+
+
+async def resolve_proposals(
+    fetch_at: ParamFetcher, text: str, overrides: OverrideMap
+) -> ResolvedParams:
+    try:
+        return await resolve_params_with_intent(
+            fetch_at=fetch_at,
+            intent=ParamIntent(text=text),
+            overrides=overrides,
+        )
+    except UnknownParameterError as exc:
+        msg = (
+            f"{exc.detail} The valid names are listed above; do not request the "
+            f"sheet again."
+        )
+        raise ModelRetry(msg) from exc
+    except UnreadableValueError as exc:
+        raise ModelRetry(str(exc)) from exc

@@ -31,7 +31,7 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.tools.standalone import frame_spec
+from pathfinder.ai.tools.standalone import _frame_proposals, frame_spec
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.frame_drop import drop_criterion
@@ -357,7 +357,7 @@ def serve_resolution(
             unresolved_required=list(unresolved),
         )
 
-    monkeypatch.setattr(frame_spec, "resolve_params_with_intent", _resolve)
+    monkeypatch.setattr(_frame_proposals, "resolve_params_with_intent", _resolve)
 
 
 @pytest.mark.asyncio
