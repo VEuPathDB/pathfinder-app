@@ -2450,7 +2450,7 @@ wheels = [
 
 [[package]]
 name = "pathfinder-api"
-version = "0.2.0b10"
+version = "0.2.0b11"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -2547,7 +2547,7 @@ requires-dist = [
     { name = "structlog", specifier = ">=25.0.0" },
     { name = "tenacity", specifier = ">=9.1.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.44.0" },
-    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b12" },
+    { name = "veupathdb-mcp", git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b13" },
     { name = "veupathdb-py", extras = ["otel", "devtools"], git = "https://github.com/VEuPathDB/ai-veupathdb-client?tag=v0.1.0b6" },
 ]
 
@@ -4081,8 +4081,8 @@ wheels = [
 
 [[package]]
 name = "veupathdb-mcp"
-version = "0.2.0b12"
-source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b12#8e4b6fccb9a691b16f18f428d547ea04203fdc05" }
+version = "0.2.0b13"
+source = { git = "https://github.com/VEuPathDB/ai-wdk-mcp?tag=v0.2.0-b13#75d6c171cf654c9ac57bf847935d3381568e28a0" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },

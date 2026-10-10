@@ -2,6 +2,10 @@
 
 ## 2026-10-10
 
+* **A search is indexed without its site's shared properties.** With `veupathdb-mcp` 0.2.0b13
+  a property every search of a site carries with one value, such as `organisms`, stays out of
+  the text FRAME's search ranking reads, so a search is matched on its own organism.
+
 * **A refused token setting names no secret.** With `veupathdb-mcp` 0.2.0b12 a malformed
   `WDK_MCP_SERVICE_TOKENS` or `RESEARCH_MCP_SERVICE_TOKENS` fails startup with the position of
   the bad entry, and the error carries none of the values it was given.
