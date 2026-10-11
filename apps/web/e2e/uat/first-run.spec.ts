@@ -963,6 +963,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
         "Please remember that I prefer genes with a predicted signal peptide.",
       ),
     );
+    await chatPage.approveCard();
     await expect
       .poll(async () => (await memoryItems(apiClient)).length, { timeout: 60_000 })
       .toBeGreaterThan(0);

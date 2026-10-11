@@ -120,6 +120,7 @@ export const TOOL_APPROVAL_PROMPTS: Record<string, string> = {
   separate_controls:
     "Run the separation? It measures candidate searches against your controls " +
     "on the site and takes about five minutes.",
+  remember: "Remember this preference in your later conversations?",
 };
 
 /**
@@ -129,6 +130,7 @@ export const TOOL_APPROVAL_PROMPTS: Record<string, string> = {
 const ASKED_BY_THE_API: ReadonlySet<string> = new Set([
   "delete_step",
   "replace_subtree",
+  "remember",
 ]);
 
 /** The line that names what one call acts on, when the api wrote one for it. */

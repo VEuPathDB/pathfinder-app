@@ -11,7 +11,7 @@ from pathfinder.ai.tools.standalone.conversation import rename_strategy
 from pathfinder.ai.tools.standalone.escape_hatch import (
     request_search_inspection,
 )
-from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
+from pathfinder.ai.tools.standalone.memory_tools import search_memory
 from pathfinder.ai.tools.standalone.strategy import (
     apply_operations,
     build_strategy,
@@ -117,7 +117,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             request_search_inspection,
             think,
             search_memory,
-            remember,
         ],
     )
     return RefusalMemoryToolset(

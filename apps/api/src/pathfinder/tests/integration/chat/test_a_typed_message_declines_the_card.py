@@ -54,8 +54,22 @@ CLEAR: tuple[str, dict[str, Any]] = (
     "clear_strategy",
     {"confirm": True, "reply": CARD_REPLY},
 )
+REMEMBER: tuple[str, dict[str, Any]] = (
+    "remember",
+    {
+        "kind": "preference",
+        "name": "Default organism",
+        "summary": "Always use Plasmodium falciparum 3D7",
+        "content": {"organism": "Plasmodium falciparum 3D7"},
+    },
+)
+_QUESTION = (
+    "Remember in your later conversations: Default organism: "
+    "Always use Plasmodium falciparum 3D7?"
+)
 CARDS: list[tuple[str, dict[str, Any]]] = [
     CLEAR,
+    REMEMBER,
     (
         "consult_user",
         {"questions": [{"id": "q1", "prompt": "Which strain?"}], "reply": CARD_REPLY},
@@ -186,3 +200,47 @@ async def test_a_typed_yes_runs_the_card_before_any_classification(
     assert _call_ids(typed, "tool-input-error") == []
     assert _tool_chunks_for(typed, CALL_ID) == []
     assert "data-graph-cleared" in [c["type"] for c in typed]
+
+
+async def _preferences(app: FastAPI, user_id: UUID) -> list[str]:
+    async with client_for(app, user_id) as client:
+        response = await client.get("/api/v1/memories")
+    assert response.status_code == 200, response.text
+    return [item["value"]["summary"] for item in response.json()["preferences"]]
+
+
+@_WITH_THE_STACK
+async def test_a_preference_is_stored_only_after_the_researchers_yes(
+    app: FastAPI,
+    authed_user_id: UUID,
+    in_memory_jobs: InMemoryConnector,
+    monkeypatch: pytest.MonkeyPatch,
+    app_memory_store: object,
+) -> None:
+    del app_memory_store
+    seen: list[list[tuple[str, Any]]] = []
+    monkeypatch.setattr(
+        _lead_model, "get_mock_model", lambda: _card_lead(*REMEMBER, seen)
+    )
+    conversation_id = uuid4()
+    asked = await _turn(
+        app, authed_user_id, in_memory_jobs, chat_post_body(conversation_id, ASK)
+    )
+    waiting = await _preferences(app, authed_user_id)
+    await _turn(
+        app,
+        authed_user_id,
+        in_memory_jobs,
+        chat_post_body(conversation_id, "Yes, go ahead."),
+    )
+
+    assert _call_ids(asked, "tool-approval-request") == [CALL_ID]
+    assert [
+        c["data"]["summary"]
+        for c in asked
+        if c["type"] == "data-tool-summary" and c["data"]["toolCallId"] == CALL_ID
+    ] == [_QUESTION]
+    assert waiting == []
+    assert await _preferences(app, authed_user_id) == [
+        "Always use Plasmodium falciparum 3D7"
+    ]

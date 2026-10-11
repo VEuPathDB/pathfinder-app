@@ -47,10 +47,6 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset({"query", "record_type"}),
         frozenset({"query"}),
     ),
-    "remember": (
-        frozenset({"content", "kind", "name", "summary", "tags"}),
-        frozenset({"content", "kind", "name", "summary"}),
-    ),
     "read_experiment": (frozenset({"dataset_id"}), frozenset({"dataset_id"})),
     "search_example_plans": (frozenset({"limit", "query"}), frozenset({"query"})),
     "search_for_searches": (

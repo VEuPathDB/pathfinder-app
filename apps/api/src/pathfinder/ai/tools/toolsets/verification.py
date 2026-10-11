@@ -22,7 +22,7 @@ from pathfinder.ai.tools.standalone.gene import (
 )
 from pathfinder.ai.tools.standalone.gene_record import read_sampled_gene_record
 from pathfinder.ai.tools.standalone.gene_sets import list_gene_sets, save_gene_set
-from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
+from pathfinder.ai.tools.standalone.memory_tools import search_memory
 from pathfinder.ai.tools.standalone.results import (
     get_sample_records,
     read_step_columns,
@@ -99,7 +99,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             request_search_inspection,
             think,
             search_memory,
-            remember,
         ],
     )
     return ReadOnceToolset(

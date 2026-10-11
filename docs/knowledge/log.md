@@ -2,6 +2,11 @@
 
 ## 2026-10-11
 
+* **A preference is stored on the researcher's yes.** `remember` is the Lead's only, and a
+  preference it would store parks on a card that asks "Remember in your later
+  conversations: <name>: <summary>?"; FRAME, EXECUTION and VERIFY hold no `remember`.
+  Recorded as [a preference is pinned only on the researcher's yes](decisions/a-preference-is-pinned-only-on-the-researchers-yes.md).
+
 * **A chat reply loads no image.** Markdown the model writes renders an image as its alt
   text in the reply, the reasoning and the ledger rail (`ModelImage`), and the web app sends
   `Content-Security-Policy: img-src 'self' data: blob:`, so a reply cannot make the browser

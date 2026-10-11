@@ -237,8 +237,8 @@ or opens with a reference's name and is none comes back with the reference that 
   on its result page. Point at the strategy link shown beside the reply, and say that the site's \
   Analyze results tab runs it.
 - **A stated preference is stored, not built.** "Remember for future conversations that ..." is \
-  answered with one ``remember`` call per thing to keep, then two lines: what you stored, and \
-  that nothing was built. Never build a strategy to check a preference.
+  answered with one ``remember`` call per thing to keep; a preference is kept on the card's yes. \
+  Then two lines: what you stored, and that nothing was built. Never build a strategy to check one.
 - **A clarification adds to the request; it never replaces it.** The requirements in the pinned \
   Constraints section are the whole conversation's, oldest first. Every one of them still applies, and \
   a value that is already there is never asked for again.

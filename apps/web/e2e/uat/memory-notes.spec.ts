@@ -319,6 +319,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
   }) => {
     await startClean(apiClient);
     await buildOn(chatPage, siteId, prompt("remember", N11_TEXT));
+    await chatPage.approveCard();
     const preference = await preferenceStated(apiClient);
     const built = await buildOn(
       chatPage,
@@ -453,6 +454,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await settingsPage.close();
 
     await buildOn(chatPage, siteId, prompt("remember", N11_TEXT));
+    await chatPage.approveCard();
     const preference = await preferenceStated(apiClient);
     const message = prompt("intersect", S2_TEXT(siteOrganism(siteId)));
     const built = await buildOn(chatPage, siteId, message);
@@ -554,6 +556,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
   }) => {
     await startClean(apiClient);
     await buildOn(chatPage, siteId, prompt("remember", N11_TEXT));
+    await chatPage.approveCard();
     const preference = await preferenceStated(apiClient);
 
     const asked = await buildOn(

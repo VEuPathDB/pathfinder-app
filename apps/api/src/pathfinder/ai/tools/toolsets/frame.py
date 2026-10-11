@@ -31,7 +31,7 @@ from pathfinder.ai.tools.standalone.gene import (
     get_ai_expression_summary,
     lookup_gene_records,
 )
-from pathfinder.ai.tools.standalone.memory_tools import remember, search_memory
+from pathfinder.ai.tools.standalone.memory_tools import search_memory
 from pathfinder.ai.tools.standalone.saved_strategies import list_saved_strategies
 from pathfinder.ai.tools.standalone.strategy_graph import get_strategy
 from pathfinder.ai.tools.standalone.think import think
@@ -86,7 +86,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_strategy,
             think,
             search_memory,
-            remember,
         ],
     )
     return ReadOnceToolset(

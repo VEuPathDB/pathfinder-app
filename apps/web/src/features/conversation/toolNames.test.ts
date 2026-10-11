@@ -229,6 +229,15 @@ describe("approvalPromptFor", () => {
     );
   });
 
+  it("asks to keep a preference in the words the api wrote", () => {
+    const asked =
+      "Remember in your later conversations: Default organism: Always use Plasmodium falciparum 3D7?";
+    expect(approvalPromptFor("remember", asked)).toBe(asked);
+    expect(approvalPromptFor("remember")).toBe(
+      "Remember this preference in your later conversations?",
+    );
+  });
+
   it("names no internal word in any bespoke prompt", () => {
     for (const prompt of Object.values(TOOL_APPROVAL_PROMPTS)) {
       expect(INTERNAL.test(prompt), prompt).toBe(false);

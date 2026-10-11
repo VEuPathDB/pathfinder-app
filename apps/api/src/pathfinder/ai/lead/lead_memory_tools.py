@@ -3,9 +3,13 @@ and keep what the user asks to be kept."""
 
 from __future__ import annotations
 
+from typing import Any
+
 from assistant_core.graph.emit import emit_chunk
+from assistant_core.graph.tool_summary import summary_chunks
 from langgraph.config import get_stream_writer
-from pydantic_ai import RunContext
+from pydantic import BaseModel, ConfigDict
+from pydantic_ai import ApprovalRequired, DeferredToolRequests, RunContext
 from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.stream_events import recalled_memories_event
@@ -46,7 +50,8 @@ async def remember(
     """Store one thing the user asked you to keep for future conversations.
 
     Use it for a stated preference (a default organism, a preferred dataset)
-    and for a fact they taught you. One call per thing remembered. Storing a
+    and for a fact they taught you. One call per thing remembered. A
+    preference is shown to the researcher as a card and stored on their yes. Storing a
     preference is the whole answer to that request: do not build a strategy to
     "validate" it.
 
@@ -54,6 +59,8 @@ async def remember(
     ``save_gene_set``, and ``gene_set_note`` is a note about a set
     that already exists.
     """
+    if kind == "preference" and not ctx.tool_call_approved:
+        raise ApprovalRequired
     inner = inner_context(ctx)
     return await memory_tools.remember(
         inner,
@@ -65,4 +72,22 @@ async def remember(
     )
 
 
-__all__ = ["remember", "search_memory"]
+class _Kept(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    name: str
+    summary: str
+
+
+def ask_about_the_preferences(requests: DeferredToolRequests, writer: Any) -> None:
+    """Write each parked preference's question as the first line of its call."""
+    for call in requests.approvals:
+        if call.tool_name != "remember":
+            continue
+        kept = _Kept.model_validate(call.args_as_dict())
+        question = f"Remember in your later conversations: {kept.name}: {kept.summary}?"
+        for chunk in summary_chunks(call.tool_call_id, question):
+            emit_chunk(writer, chunk)
+
+
+__all__ = ["ask_about_the_preferences", "remember", "search_memory"]

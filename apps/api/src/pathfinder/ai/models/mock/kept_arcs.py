@@ -104,7 +104,7 @@ def remember() -> list[ToolCallPart]:
                 "content": {"statement": stated},
             },
         ),
-        lead_final(narrated(f"{_REMEMBER_PROSE} Stored: {stated}"), "await_user"),
+        lead_final(narrated(_REMEMBER_PROSE), "await_user"),
     ]
 
 

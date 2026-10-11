@@ -126,6 +126,15 @@ export class ChatPage {
     await this.expectIdle(TURN_BUDGET_MS);
   }
 
+  /** Approve the card that is waiting, and wait out the turn it resumes. */
+  async approveCard() {
+    const waiting = this.page
+      .getByTestId("approval-card")
+      .filter({ has: this.page.getByRole("button", { name: "Approve", exact: true }) });
+    await waiting.getByRole("button", { name: "Approve", exact: true }).click();
+    await this.expectIdle(TURN_BUDGET_MS);
+  }
+
   /** Wait out a turn the app started on its own, such as the edit a revert
    *  re-sends, on the same budget a sent turn gets. */
   async awaitTurn(pattern: RegExp) {

@@ -561,6 +561,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
     const stated =
       "Please remember for future sessions that I prefer the Su et al. strand-specific dataset for gametocyte expression, then tell me what you stored.";
     const id = await buildOn(chatPage, siteId, prompt("remember", stated));
+    await chatPage.approveCard();
 
     const reply = chatPage.assistantMessages;
     await openTrace(reply);

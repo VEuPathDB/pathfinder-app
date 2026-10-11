@@ -98,6 +98,7 @@ from pathfinder.ai.graph.turn_status import (
 from pathfinder.ai.lead.deleted_steps import ask_about_the_removals
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.lead_agent import LeadAgent
+from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_budget import (
@@ -166,10 +167,11 @@ def _absorb_run_result(
 async def _ask_about_what_it_parks(
     event: AgentRunResultEvent[Any], deps: LeadDeps, writer: Any
 ) -> None:
-    """Name the step each parked removal acts on, before its card is drawn."""
+    """Write the question of each parked removal and preference before its card is drawn."""
     output = event.result.output
     if isinstance(output, DeferredToolRequests):
         await ask_about_the_removals(deps, output, writer)
+        ask_about_the_preferences(output, writer)
 
 
 def _stream_ends_after(
