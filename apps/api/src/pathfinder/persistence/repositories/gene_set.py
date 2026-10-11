@@ -32,12 +32,10 @@ class GeneSetRepository:
         return result.scalar_one_or_none()
 
     async def list_newest_first(
-        self, *, user_id: UUID | None, site_id: str | None
+        self, *, user_id: UUID, site_id: str | None
     ) -> list[GeneSetRow]:
-        """The rows of one user and one site, when either is given."""
-        stmt = _owned()
-        if user_id is not None:
-            stmt = stmt.where(GeneSetRow.user_id == user_id)
+        """The rows of one user, on one site when a site is given."""
+        stmt = _owned().where(GeneSetRow.user_id == user_id)
         if site_id:
             stmt = stmt.where(GeneSetRow.site_id == site_id)
         result = await self.session.execute(stmt.order_by(GeneSetRow.created_at.desc()))

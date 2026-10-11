@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
 from assistant_core.graph.stream_events import ToolSummaryPayload
@@ -312,7 +313,8 @@ def _exportable_gene_set(monkeypatch: pytest.MonkeyPatch) -> None:
         source="paste",
     )
 
-    async def _one(gene_set_id: str) -> GeneSet | None:
+    async def _one(gene_set_id: str, *, user_id: UUID | None) -> GeneSet | None:
+        del user_id
         return saved if gene_set_id == saved.id else None
 
     monkeypatch.setattr(export, "get_gene_set", _one)

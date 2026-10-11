@@ -24,16 +24,12 @@ def _gene_set(name: str, user_id: UUID | None) -> GeneSet:
 
 @dataclass
 class _RecordingStore:
-    """Answers the two list calls and records which one the facade chose."""
+    """Answers the store calls the facade makes and records each one."""
 
     all_sets: list[GeneSet] = field(default_factory=list)
     user_sets: list[GeneSet] = field(default_factory=list)
     calls: list[tuple[str, UUID | None, str | None]] = field(default_factory=list)
     saved: list[GeneSet] = field(default_factory=list)
-
-    async def list_all(self, *, site_id: str | None = None) -> list[GeneSet]:
-        self.calls.append(("list_all", None, site_id))
-        return self.all_sets
 
     async def list_for_user(
         self, user_id: UUID, *, site_id: str | None = None
@@ -66,7 +62,7 @@ async def test_listing_for_a_user_asks_the_store_for_that_user(
     assert store.calls == [("list_for_user", user_id, "plasmodb")]
 
 
-async def test_listing_without_a_user_asks_the_store_for_the_whole_site(
+async def test_listing_without_a_user_finds_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     store = _RecordingStore(all_sets=[_gene_set("everyones", None)])
@@ -74,17 +70,18 @@ async def test_listing_without_a_user_asks_the_store_for_the_whole_site(
 
     found = await gene_sets.list_stored_gene_sets(site_id="toxodb", user_id=None)
 
-    assert [gs.name for gs in found] == ["everyones"]
-    assert store.calls == [("list_all", None, "toxodb")]
+    assert found == []
+    assert store.calls == []
 
 
 async def test_getting_a_gene_set_returns_the_stored_one(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    store = _RecordingStore(all_sets=[_gene_set("kinases", None)])
+    owner = uuid4()
+    store = _RecordingStore(all_sets=[_gene_set("kinases", owner)])
     _install(monkeypatch, store)
 
-    found = await gene_sets.get_gene_set("gs-kinases")
+    found = await gene_sets.get_gene_set("gs-kinases", user_id=owner)
 
     assert found is not None
     assert found.gene_ids == ["PF3D7_0102600", "PF3D7_0107600"]
@@ -96,7 +93,7 @@ async def test_getting_an_unknown_gene_set_returns_none(
     store = _RecordingStore()
     _install(monkeypatch, store)
 
-    assert await gene_sets.get_gene_set("gs-absent") is None
+    assert await gene_sets.get_gene_set("gs-absent", user_id=uuid4()) is None
     assert store.calls == [("get", None, "gs-absent")]
 
 
@@ -110,3 +107,16 @@ async def test_saving_a_gene_set_writes_it_to_the_store(
     await gene_sets.store_gene_set(gs)
 
     assert [saved.id for saved in store.saved] == ["gs-gametocyte markers"]
+
+
+@pytest.mark.parametrize("asker", [uuid4(), None])
+async def test_a_gene_set_another_user_owns_is_not_found(
+    monkeypatch: pytest.MonkeyPatch, asker: UUID | None
+) -> None:
+    store = _RecordingStore(all_sets=[_gene_set("kinases", uuid4())])
+    _install(monkeypatch, store)
+
+    found = await gene_sets.get_gene_set("gs-kinases", user_id=asker)
+
+    assert [found] == [None]
+    assert store.calls == [("get", None, "gs-kinases")]

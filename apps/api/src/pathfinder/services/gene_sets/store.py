@@ -107,13 +107,14 @@ class GeneSetStore:
             await session.commit()
             return removed
 
-    async def list_all(self, *, site_id: str | None = None) -> list[GeneSet]:
-        return await self._list(user_id=None, site_id=site_id)
-
     async def list_for_user(
         self, user_id: UUID, *, site_id: str | None = None
     ) -> list[GeneSet]:
-        return await self._list(user_id=user_id, site_id=site_id)
+        async with async_session_factory() as session:
+            rows = await GeneSetRepository(session).list_newest_first(
+                user_id=user_id, site_id=site_id
+            )
+            return [_gene_set_from_row(r) for r in rows]
 
     async def find_strategy_import(
         self, user_id: UUID, wdk_strategy_id: int
@@ -124,15 +125,6 @@ class GeneSetStore:
                 user_id, wdk_strategy_id
             )
             return None if row is None else _gene_set_from_row(row)
-
-    async def _list(
-        self, *, user_id: UUID | None, site_id: str | None
-    ) -> list[GeneSet]:
-        async with async_session_factory() as session:
-            rows = await GeneSetRepository(session).list_newest_first(
-                user_id=user_id, site_id=site_id
-            )
-            return [_gene_set_from_row(r) for r in rows]
 
 
 @cache

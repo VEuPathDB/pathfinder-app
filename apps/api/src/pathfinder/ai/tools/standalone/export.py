@@ -58,7 +58,7 @@ async def export_gene_set(
         raise ModelRetry(msg)
 
     deps = ctx.deps
-    gs = await get_gene_set(gene_set_id)
+    gs = await get_gene_set(gene_set_id, user_id=deps.user_id)
     if gs is None:
         available = await _available_gene_sets(deps.site_id, deps.user_id)
         msg = (

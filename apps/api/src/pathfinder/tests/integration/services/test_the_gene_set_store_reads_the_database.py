@@ -129,6 +129,7 @@ async def test_a_list_is_newest_first_and_narrowed_by_site(seed_user: User) -> N
     listed = await GeneSetStore().list_for_user(seed_user.id, site_id="plasmodb")
 
     assert [gs.id for gs in listed] == ["gs-new", "gs-old"]
-    assert [gs.id for gs in await GeneSetStore().list_all(site_id="toxodb")] == [
-        "gs-toxo"
-    ]
+    assert [
+        gs.id
+        for gs in await GeneSetStore().list_for_user(seed_user.id, site_id="toxodb")
+    ] == ["gs-toxo"]
