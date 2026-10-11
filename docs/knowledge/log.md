@@ -2,6 +2,12 @@
 
 ## 2026-10-11
 
+* **A chat reply loads no image.** Markdown the model writes renders an image as its alt
+  text in the reply, the reasoning and the ledger rail (`ModelImage`), and the web app sends
+  `Content-Security-Policy: img-src 'self' data: blob:`, so a reply cannot make the browser
+  fetch an address that carries the conversation's words. The reply check counts a
+  protocol-relative `//host` address as a link.
+
 * **`config.toml` sets no database address.** The image carries `config.toml`, the last
   settings source, so its `database_url` stood beside `POSTGRES_PASSWORD` and the estate api
   and worker refused to start with "Set DATABASE_URL or POSTGRES_PASSWORD, not both." A

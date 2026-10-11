@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { toUserMessage } from "@/lib/api/errors";
+import { modelMarkdownComponents } from "@/lib/markdown/modelImage";
 import { useEntrance } from "@/lib/motion";
 
 import {
@@ -55,6 +56,7 @@ const markdownRemarkPlugins = [remarkGfm];
 const Text: TextMessagePartComponent = () => (
   <MarkdownTextPrimitive
     remarkPlugins={markdownRemarkPlugins}
+    components={modelMarkdownComponents}
     className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
   />
 );

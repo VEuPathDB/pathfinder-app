@@ -264,6 +264,13 @@ def test_a_link_outside_a_reference_names_its_reference() -> None:
     ]
 
 
+def test_a_protocol_relative_link_is_a_link_fault() -> None:
+    faults = prose_faults("The figure: ![x](//example.invalid/p.png?q=kinase).", _MICRO)
+    assert [(f.token, f.kind) for f in faults] == [
+        ("//example.invalid/p.png?q=kinase", "link")
+    ]
+
+
 def test_who_set_a_value_is_prose_the_reply_may_write() -> None:
     prose = (
         "The pattern is the default, and the organism is what you asked for. "

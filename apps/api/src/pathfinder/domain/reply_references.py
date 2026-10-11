@@ -27,7 +27,7 @@ from pathfinder.domain.statistic_facts import statistic_references, statistic_va
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 
-_A_LINK = re.compile(r"(?:https?://|www\.)[^\s<>()\[\]\"'`]+")
+_A_LINK = re.compile(r"(?:https?://|www\.|(?<![:\w/])//(?=[\w-]+\.))[^\s<>()\[\]\"'`]+")
 _A_TOKEN = re.compile(r"[\w:./,%+-]+")
 _EDGE_MARKS = ".,:;/+-_"
 _A_UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", re.IGNORECASE)

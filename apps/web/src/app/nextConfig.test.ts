@@ -32,4 +32,15 @@ describe("the Next config", () => {
       "/api/:path*",
     ]);
   });
+
+  it("lets every page load images from its own origin only", async () => {
+    const rules = (await nextConfig.headers?.()) ?? [];
+    const policies = rules
+      .filter((rule) => rule.source === "/:path*")
+      .flatMap((rule) => rule.headers)
+      .filter((header) => header.key === "Content-Security-Policy")
+      .map((header) => header.value);
+
+    expect(policies).toEqual(["img-src 'self' data: blob:"]);
+  });
 });

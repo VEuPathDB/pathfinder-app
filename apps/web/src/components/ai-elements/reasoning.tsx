@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils/cn";
 import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
+
+import { modelMarkdownComponents } from "@/lib/markdown/modelImage";
 import { mermaid } from "@streamdown/mermaid";
 import { ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
@@ -215,7 +217,9 @@ export const ReasoningContent = memo(
           className="max-h-[200px] overflow-y-auto rounded-lg border border-border/20 bg-muted/30 px-3 py-2 text-[11px] leading-relaxed no-scrollbar"
           ref={scrollRef}
         >
-          <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
+          <Streamdown plugins={streamdownPlugins} components={modelMarkdownComponents}>
+            {children}
+          </Streamdown>
         </div>
       </div>
     );

@@ -75,3 +75,16 @@ describe("a response with math", () => {
     expect(math.querySelector("msup")?.textContent).toBe("x2");
   });
 });
+
+describe("a response with an image", () => {
+  it("does not load an image from another host", async () => {
+    const { container } = render(
+      <MessageResponse>
+        {"See ![the figure](https://example.invalid/p.png?q=genes) here."}
+      </MessageResponse>,
+    );
+    await screen.findByText("See", { exact: false });
+    expect(container.querySelector('img[src*="example.invalid"]')).toBeNull();
+    expect(container.textContent).toContain("the figure");
+  });
+});

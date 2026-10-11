@@ -29,6 +29,16 @@ const nextConfig: NextConfig = {
     // answer; a purge that also deletes WDK strategies runs longer than that.
     proxyTimeout: 300_000,
   },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "img-src 'self' data: blob:" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const apiBase = getConfiguredServerApiBaseUrl();
     return {

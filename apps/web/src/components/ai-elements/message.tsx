@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils/cn";
+import { modelMarkdownComponents } from "@/lib/markdown/modelImage";
 import { normalizeLatex } from "@/lib/markdown/normalizeLatex";
 import { THREAD_BLOCK_GAP } from "@/components/ai-elements/rhythm";
 import { cjk } from "@streamdown/cjk";
@@ -316,6 +317,7 @@ export const MessageResponse = memo(
         plugins={streamdownPlugins}
         parseIncompleteMarkdown
         {...props}
+        components={modelMarkdownComponents}
       >
         {normalized}
       </Streamdown>
