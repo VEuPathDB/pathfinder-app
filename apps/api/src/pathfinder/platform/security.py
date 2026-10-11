@@ -48,8 +48,6 @@ auth_cookie = APIKeyCookie(name=_SESSION_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 service_token_header = APIKeyHeader(name=SERVICE_AUTH_HEADER, auto_error=False)
 
-limiter = Limiter(key_func=get_remote_address)
-
 
 def set_session_cookie(response: Response, token: str) -> None:
     response.set_cookie(
@@ -103,6 +101,21 @@ def decode_user_id(token: str) -> UUID | None:
     """Return the user a PathFinder JWT names, or None when it is not one."""
     claims = decode_session_token(token)
     return None if claims is None else claims.user_id
+
+
+def rate_limit_key(request: Request) -> str:
+    """Count a request against its signed-in user, or its connection when it has none."""
+    scheme, _, bearer = request.headers.get("authorization", "").partition(" ")
+    token = (
+        bearer if scheme.lower() == "bearer" else request.cookies.get(_SESSION_COOKIE)
+    )
+    user_id = decode_user_id(token) if token else None
+    if user_id is not None:
+        return f"user:{user_id}"
+    return f"address:{get_remote_address(request)}"
+
+
+limiter = Limiter(key_func=rate_limit_key)
 
 
 def _application_id(service_token: str | None) -> str:

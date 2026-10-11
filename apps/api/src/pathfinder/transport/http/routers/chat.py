@@ -5,7 +5,7 @@ from uuid import UUID
 
 from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 
 from pathfinder.ai.conversation.attachments import ReadAttachment, read_attachments
 from pathfinder.ai.conversation.dispatcher import dispatch
@@ -16,6 +16,7 @@ from pathfinder.assistants.registry import (
     prompt_reader_model,
 )
 from pathfinder.platform.model_catalog import get_model_entry
+from pathfinder.platform.security import limiter
 from pathfinder.services.wdk_identity import require_session_matches_wdk_identity
 from pathfinder.transport.http.deps import (
     CurrentPrincipal,
@@ -103,10 +104,13 @@ async def paid_turn_user(
         Depends(require_readable_attachments),
     ],
 )
+@limiter.limit("20/minute")
 async def chat(
+    request: Request,
     body: ChatRequestBody,
     session: DBSession,
     user_id: Annotated[UUID, Depends(paid_turn_user)],
     spec: ChatAssistant,
 ) -> Response:
+    del request
     return await dispatch(body=body, session=session, user_id=user_id, spec=spec)

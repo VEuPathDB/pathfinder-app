@@ -174,6 +174,7 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     input_screening_model: str = DEFAULT_MODEL_ID
 
     # Background worker
+    max_turns_in_flight_per_user: int = Field(default=2, ge=1)
     worker_concurrency: int = Field(
         default=4,
         ge=1,
@@ -202,8 +203,11 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
     langfuse_host: str = ""
 
     # CORS
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
-    cors_origin_regex: str | None = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+    cors_origins: list[str] = Field(default_factory=list)
+    cors_origin_regex: str | None = None
+
+    # The largest request body the api reads; one message with every attachment fits.
+    max_request_body_bytes: int = Field(default=64 * 1024 * 1024, gt=0)
 
     # Default monthly usage quota in USD. The `users` row can override it.
     pathfinder_user_monthly_cost_limit_usd: float = 20.0

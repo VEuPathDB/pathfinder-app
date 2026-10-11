@@ -2,6 +2,19 @@
 
 ## 2026-10-11
 
+* **A user's turns and request bodies have limits.** A request body over
+  `MAX_REQUEST_BODY_BYTES` (64 MiB, one message with every attachment) is a 413 before any
+  middleware reads it, and the web proxy streams the chat body through instead of reading
+  it. A user may have `MAX_TURNS_IN_FLIGHT_PER_USER` (2) turns queued or running in other
+  conversations and send 20 chat messages a minute; a rate limit counts the signed-in user,
+  and the connection only when there is none.
+
+* **Narrower defaults.** The api allows no cross-origin caller unless `CORS_ORIGINS` names
+  one, since the browser reaches it through the web app's own origin. The api image runs as
+  the `pathfinder` user (uid 10001), which owns `/app/data/catalogs`. A gene set is read for
+  export only by its owner, and no listing returns another user's sets. The fold-change
+  phrase is matched in linear time.
+
 * **A preference is stored on the researcher's yes.** `remember` is the Lead's only, and a
   preference it would store parks on a card that asks "Remember in your later
   conversations: <name>: <summary>?"; FRAME, EXECUTION and VERIFY hold no `remember`.

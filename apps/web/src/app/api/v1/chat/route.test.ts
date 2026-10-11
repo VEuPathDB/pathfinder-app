@@ -47,7 +47,7 @@ async function collect(stream: ReadableStream<Uint8Array>): Promise<string[]> {
 }
 
 describe("POST /api/v1/chat", () => {
-  it("forwards the request body, cookie, and Accept header to the upstream API", async () => {
+  it("streams the request body to the upstream API with the cookie and Accept header", async () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(upstreamStream(["data: hi\n\n"]), {
@@ -69,7 +69,12 @@ describe("POST /api/v1/chat", () => {
     ];
     expect(url).toBe("http://api.test/api/v1/chat");
     expect(init.method).toBe("POST");
-    expect(init.body).toBe('{"message":"hi"}');
+    if (!(init.body instanceof ReadableStream)) {
+      throw new Error("the request body was read before it was sent on");
+    }
+    expect((await collect(init.body as ReadableStream<Uint8Array>)).join("")).toBe(
+      '{"message":"hi"}',
+    );
     expect(init.headers["Cookie"]).toBe("session=abc");
     expect(init.headers["Accept"]).toBe("text/event-stream");
     expect(init.headers["Content-Type"]).toBe("application/json");

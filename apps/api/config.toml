@@ -9,5 +9,3 @@ pathfinder_site = "veupathdb"
 log_level = "INFO"
 log_format = "json"
 
-cors_origins = ["http://localhost:3000"]
-cors_origin_regex = "^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"

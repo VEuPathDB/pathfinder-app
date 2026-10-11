@@ -140,7 +140,7 @@ def test_empty_env_value_is_ignored_for_complex_settings(
         langfuse_secret_key="",
     )
 
-    assert settings.cors_origins == ["http://localhost:3000"]
+    assert settings.cors_origins == []
 
 
 def test_pathfinder_chat_provider_must_be_explicit() -> None:
@@ -460,6 +460,17 @@ def test_the_bundled_config_lets_the_postgres_settings_give_the_address(
     assert settings.database_url == (
         f"postgresql+asyncpg://pathfinder:{_DB_VALUE}@pathfinder-db:5432/pathfinder"
     )
+
+
+def test_the_bundled_config_lets_no_other_origin_call_the_api(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
+    monkeypatch.delenv("CORS_ORIGIN_REGEX", raising=False)
+
+    settings = make_settings()
+
+    assert (settings.cors_origins, settings.cors_origin_regex) == ([], None)
 
 
 def test_no_database_address_fails_startup() -> None:

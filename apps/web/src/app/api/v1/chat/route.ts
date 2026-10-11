@@ -28,14 +28,13 @@ function buildUpstreamHeaders(req: NextRequest): Record<string, string> {
 
 export async function POST(req: NextRequest): Promise<Response> {
   const upstreamUrl = `${getConfiguredServerApiBaseUrl()}/api/v1/chat`;
-  const body = await req.text();
 
   let upstream: Response;
   try {
     upstream = await fetch(upstreamUrl, {
       method: "POST",
       headers: buildUpstreamHeaders(req),
-      body,
+      body: req.body,
       duplex: "half",
     } as RequestInit & { duplex: "half" });
   } catch (err) {

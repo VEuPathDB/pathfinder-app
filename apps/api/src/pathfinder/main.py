@@ -38,6 +38,7 @@ from pathfinder.ai.capabilities.security import warm_up_screening
 from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.jobs.job_context import WdkJobContext
+from pathfinder.platform.body_limit import RequestBodyLimitMiddleware
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.error_handlers import (
     RUNTIME_REFUSALS,
@@ -336,6 +337,9 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
 
     # PostgreSQL text cannot hold a NUL byte, so a NUL is a 422 and not a 500.
     app.add_middleware(RejectNullBytesMiddleware)
+    app.add_middleware(
+        RequestBodyLimitMiddleware, max_bytes=settings.max_request_body_bytes
+    )
 
     @app.middleware("http")
     async def add_request_id(

@@ -23,6 +23,7 @@ from pathfinder.platform.errors import AssistantMismatchError
 from pathfinder.platform.langfuse.events import ProductEvent, record_product_event
 from pathfinder.platform.metrics import CHAT_TURNS_STARTED
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.services.conversations.turn_slots import require_a_free_turn
 
 
 async def dispatch(
@@ -43,6 +44,9 @@ async def dispatch(
       ``state.approval_responses`` from the request body and resumes the
       deferred tool.
     """
+    await require_a_free_turn(
+        session, user_id=user_id, conversation_id=body.conversation_id
+    )
     begun = await begin_conversation(
         session=session,
         conversation_id=body.conversation_id,
