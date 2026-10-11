@@ -75,3 +75,12 @@ def test_an_ignored_path_is_not_in_a_clean_checkout() -> None:
     )
 
     assert [_ignored(path, rules) for path in paths] == [True, False, True, False]
+
+
+@pytest.mark.parametrize("dockerfile", _DOCKERFILES)
+def test_every_image_runs_as_a_user_that_is_not_root(dockerfile: str) -> None:
+    lines = (REPO_ROOT / dockerfile).read_text().splitlines()
+    users = [line.split()[1] for line in lines if line.startswith("USER ")]
+
+    assert users, f"{dockerfile} names no USER"
+    assert users[-1] not in ("root", "0")

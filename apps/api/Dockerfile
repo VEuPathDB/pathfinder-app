@@ -52,6 +52,11 @@ ENV PATHFINDER_CHAT_PROVIDER=default
 ENV VEUPATHDB_INTERNAL_STRATEGY_NAME_PREFIX=__pathfinder_internal__:
 WORKDIR /app/apps/api
 
+RUN useradd --system --uid 10001 --no-create-home --home-dir /nonexistent pathfinder \
+    && mkdir -p /app/data/catalogs \
+    && chown pathfinder /app/data/catalogs
+USER pathfinder
+
 EXPOSE 8000
 
 # The server binds before the warm-up finishes and loads a catalog on demand,
