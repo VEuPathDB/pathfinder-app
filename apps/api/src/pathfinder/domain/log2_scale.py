@@ -21,7 +21,7 @@ _LOG2_PHRASE = re.compile(
 )
 # A fold is a number joined to the word, or a number that follows "fold change".
 _FOLD_PHRASES = (
-    re.compile(rf"{_NUMBER}\s*-?\s*fold\b", re.IGNORECASE),
+    re.compile(rf"{_NUMBER}\s*(?:-\s*)?fold\b", re.IGNORECASE),
     re.compile(rf"\bfold[\s-]*change[^\d.,;]{{0,20}}?{_NUMBER}", re.IGNORECASE),
 )
 # A fold written with three significant digits comes back from a log2 value

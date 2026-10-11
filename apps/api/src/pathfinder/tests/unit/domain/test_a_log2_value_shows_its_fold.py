@@ -4,6 +4,8 @@ the fold it stands for."""
 
 from __future__ import annotations
 
+import time
+
 from pathfinder.domain.log2_scale import (
     fold_label,
     in_the_sites_scale,
@@ -111,3 +113,17 @@ def test_a_parameter_that_names_neither_scale_takes_the_number_as_written() -> N
         in_the_sites_scale(1.5, "Minimum score", ["loosen it to 1.5-fold"]),
         stated_on_the_other_scale(1.5, "Minimum score", ["loosen it to 1.5-fold"]),
     ) == (None, "")
+
+
+def test_a_long_run_of_spaces_after_a_number_is_read_in_linear_time() -> None:
+    text = "1" + " " * 200_000 + "end"
+    started = time.perf_counter()
+
+    found = stated_numbers(text)
+
+    assert found == []
+    assert time.perf_counter() - started < 1.0
+
+
+def test_a_fold_written_with_spaces_around_its_hyphen_is_read() -> None:
+    assert [s.number for s in stated_numbers("a 2 - fold rise")] == [2.0]
