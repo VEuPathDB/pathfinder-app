@@ -38,8 +38,11 @@ The backend Pydantic models are the source of truth. Regenerate after changing t
 
 ```bash
 cd apps/api
-uv run python -m pathfinder.devtools.openapi generate
+VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m pathfinder.devtools.openapi generate
 ```
+
+The app is built in process and connects to nothing, so the database address is a
+placeholder; settings refuse a process with no address.
 
 CI and the pre-commit hook run `... openapi check` instead: it fails when the
 committed spec is behind the app rather than rewriting it.

@@ -440,6 +440,28 @@ def test_the_postgres_settings_give_the_database_address() -> None:
     )
 
 
+def test_the_bundled_config_lets_the_postgres_settings_give_the_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv("POSTGRES_HOST", "pathfinder-db")
+    monkeypatch.setenv("POSTGRES_USER", "pathfinder")
+    monkeypatch.setenv("POSTGRES_PASSWORD", _DB_VALUE)
+    monkeypatch.setenv("POSTGRES_DB", "pathfinder")
+
+    settings = _EnvOnlySettings.model_validate(
+        {
+            "api_env": "test",
+            "api_secret_key": "pathfinder-test-secret-key-1234567890",
+            "pathfinder_chat_provider": "mock",
+        }
+    )
+
+    assert settings.database_url == (
+        f"postgresql+asyncpg://pathfinder:{_DB_VALUE}@pathfinder-db:5432/pathfinder"
+    )
+
+
 def test_no_database_address_fails_startup() -> None:
     with pytest.raises(ValueError, match="DATABASE_URL or POSTGRES_PASSWORD"):
         make_settings(database_url="")

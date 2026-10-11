@@ -4,8 +4,6 @@ api_port = 8000
 api_debug = false
 api_docs_enabled = true
 
-database_url = "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder"
-
 pathfinder_site = "veupathdb"
 
 log_level = "INFO"

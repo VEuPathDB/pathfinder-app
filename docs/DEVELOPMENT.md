@@ -39,7 +39,7 @@ uv run lint-imports
 uv run vulture
 uv run python scripts/check_max_lines.py
 uv run python scripts/check_weak_assertions.py
-uv run python -m pathfinder.devtools.openapi check
+VEUPATHDB_SITES_CONFIG=../../deploy/sites/qa.yml DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder uv run python -m pathfinder.devtools.openapi check
 uv run pip-audit
 uv run --group docs sphinx-build -b html docs docs/_build/html  # the CI build-docs job
 

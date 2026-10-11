@@ -2,6 +2,12 @@
 
 ## 2026-10-11
 
+* **`config.toml` sets no database address.** The image carries `config.toml`, the last
+  settings source, so its `database_url` stood beside `POSTGRES_PASSWORD` and the estate api
+  and worker refused to start with "Set DATABASE_URL or POSTGRES_PASSWORD, not both." A
+  process now reads its database address from `DATABASE_URL` or the four `POSTGRES_*`
+  settings only.
+
 * **A formula renders once.** The global stylesheet imports KaTeX's stylesheet, which hides
   the MathML copy KaTeX writes beside each typeset formula; without it a response showed
   every formula twice, typeset and then as flat text. `katex` is a direct dependency of
