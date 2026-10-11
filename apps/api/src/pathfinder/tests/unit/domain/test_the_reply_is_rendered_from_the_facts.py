@@ -271,6 +271,28 @@ def test_a_protocol_relative_link_is_a_link_fault() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    "address",
+    [
+        "HTTPS://example.invalid/p?q=kinase",
+        "Http://example.invalid/p",
+        "https:/example.invalid/p",
+        "https:example.invalid/p",
+        "\\\\example.invalid/p",
+        "/\\example.invalid/p",
+        "WWW.example.invalid/p",
+    ],
+)
+def test_an_address_a_browser_reads_as_absolute_is_a_link_fault(address: str) -> None:
+    faults = prose_faults(f"Open {address} to see it.", _MICRO)
+    assert [(f.token, f.kind) for f in faults] == [(address, "link")]
+
+
+def test_a_label_written_with_a_colon_is_not_a_link() -> None:
+    faults = prose_faults("Organism:falciparum and stage: gametocyte.", _MICRO)
+    assert [f.kind for f in faults if f.kind == "link"] == []
+
+
 def test_who_set_a_value_is_prose_the_reply_may_write() -> None:
     prose = (
         "The pattern is the default, and the organism is what you asked for. "
