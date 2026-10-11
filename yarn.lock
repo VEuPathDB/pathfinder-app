@@ -11960,6 +11960,7 @@ __metadata:
     geist: "npm:^1.7.2"
     immer: "npm:^11.1.18"
     jsdom: "npm:^30.0.1"
+    katex: "npm:0.18.11"
     lucide-react: "npm:^1.39.0"
     motion: "npm:^12.43.0"
     msw: "npm:^2.15.0"

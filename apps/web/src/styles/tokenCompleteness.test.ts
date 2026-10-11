@@ -113,9 +113,10 @@ describe("the token layer defines every color on both grounds", () => {
 
 describe("the dark ground is an attribute, not an operating system setting", () => {
   it("declares the dark utility variant right after the plugin", () => {
-    expect(significantLines().slice(0, 4)).toEqual([
+    expect(significantLines().slice(0, 5)).toEqual([
       '@import "tailwindcss";',
       '@import "tw-animate-css";',
+      '@import "katex/dist/katex.min.css";',
       '@plugin "@tailwindcss/typography";',
       '@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));',
     ]);

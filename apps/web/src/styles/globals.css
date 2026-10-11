@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "katex/dist/katex.min.css";
 @plugin "@tailwindcss/typography";
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@source "../../node_modules/@streamdown/math/dist/*.js";
 
 /* ==============================================================================
    Tailwind 4 CSS-first theme - replaces tailwind.config.ts entirely.

@@ -1,5 +1,13 @@
 # Log
 
+## 2026-10-11
+
+* **A formula renders once.** The global stylesheet imports KaTeX's stylesheet, which hides
+  the MathML copy KaTeX writes beside each typeset formula; without it a response showed
+  every formula twice, typeset and then as flat text. `katex` is a direct dependency of
+  `apps/web` at the version the root `resolutions` pins, so the renderer and its stylesheet
+  are one release.
+
 ## 2026-10-10
 
 * **A search is indexed without its site's shared properties.** With `veupathdb-mcp` 0.2.0b13
