@@ -4,7 +4,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { Message, MessageAction, MessageContent } from "./message";
+import { Message, MessageAction, MessageContent, MessageResponse } from "./message";
 
 describe("a message's blocks", () => {
   it("are spaced by the one paragraph gap the content container owns", () => {
@@ -61,5 +61,17 @@ describe("a message action button", () => {
     expect(
       screen.getByRole("button", { name: "Regenerate" }).getAttribute("aria-label"),
     ).toBe("Regenerate");
+  });
+});
+
+describe("a response with math", () => {
+  it("renders inline math as KaTeX with its MathML", async () => {
+    const { container } = render(
+      <MessageResponse>{"The fold change is $x^2$."}</MessageResponse>,
+    );
+    await screen.findByText("The fold change is", { exact: false });
+    const math = container.querySelector(".katex math");
+    if (!(math instanceof Element)) throw new Error("the math drew no KaTeX markup");
+    expect(math.querySelector("msup")?.textContent).toBe("x2");
   });
 });

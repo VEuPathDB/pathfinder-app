@@ -17,6 +17,8 @@
     "postcss": "8.5.26",
     "ai": "7.0.87",
     "@ai-sdk/react": "4.0.90",
-    "assistant-cloud": "0.1.42"
+    "assistant-cloud": "0.1.42",
+    "katex": "0.18.11",
+    "postcss-selector-parser": "7.1.6"
   }
 }
