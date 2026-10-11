@@ -2,6 +2,10 @@
 
 ## 2026-10-11
 
+* **research-mcp reads a page summary only from a public address.** With `veupathdb-mcp`
+  0.2.0b16 a web result's redirect is followed by hand, a loopback, private or link-local
+  host is never requested, and the request connects to the address that was checked.
+
 * **A user's turns and request bodies have limits.** A request body over
   `MAX_REQUEST_BODY_BYTES` (64 MiB, one message with every attachment) is a 413 before any
   middleware reads it, and the web proxy streams the chat body through instead of reading
