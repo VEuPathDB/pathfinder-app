@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import time
 
+import pytest
+
 from pathfinder.domain.log2_scale import (
     fold_label,
     in_the_sites_scale,
@@ -115,8 +117,12 @@ def test_a_parameter_that_names_neither_scale_takes_the_number_as_written() -> N
     ) == (None, "")
 
 
-def test_a_long_run_of_spaces_after_a_number_is_read_in_linear_time() -> None:
-    text = "1" + " " * 200_000 + "end"
+@pytest.mark.parametrize(
+    "text",
+    ["1" + " " * 200_000 + "end", "1" * 200_000, "1." * 100_000, "1 - " * 50_000],
+    ids=["spaces", "digits", "dotted", "hyphens"],
+)
+def test_a_long_message_is_read_in_linear_time(text: str) -> None:
     started = time.perf_counter()
 
     found = stated_numbers(text)

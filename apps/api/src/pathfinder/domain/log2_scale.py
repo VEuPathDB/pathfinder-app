@@ -14,7 +14,7 @@ Scale = Literal["log2", "fold"]
 # a fold, and no log2, holds a fold.
 _LOG2 = re.compile(r"\blog\s*2(?![\d.])", re.IGNORECASE)
 _FOLD = re.compile(r"\bfold\b", re.IGNORECASE)
-_NUMBER = r"(\d+(?:\.\d+)?)"
+_NUMBER = r"(?<![\d.])(\d+(?:\.\d+)?)"
 # A number on the log2 scale follows the scale's name within one short clause.
 _LOG2_PHRASE = re.compile(
     rf"\blog\s*2(?![\d.])[^\d.,;]{{0,30}}?{_NUMBER}", re.IGNORECASE
