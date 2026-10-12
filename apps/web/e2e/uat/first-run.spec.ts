@@ -406,7 +406,6 @@ test.describe("First run and navigation", () => {
     page,
     chatPage,
     sidebarPage,
-    settingsPage,
     apiClient,
     siteId,
   }) => {
@@ -439,56 +438,18 @@ test.describe("First run and navigation", () => {
     await page.getByTestId("conversations-new-assistant-button").click();
     const menu = page.getByRole("menu");
     await expect(menu).toContainText("New conversation with");
+    await expect(menu.locator('[data-testid^="new-chat-assistant-"]')).toHaveCount(1);
     await expect(page.getByTestId("new-chat-assistant-pathfinder")).toHaveText(
       "Strategy builder",
-    );
-    await expect(page.getByTestId("new-chat-assistant-site_help")).toHaveText(
-      "Site help",
     );
     await expect(page.getByTestId("open-wdk-strategy-menu-item")).toHaveText(
       "Open a VEuPathDB strategy...",
     );
-    await page.getByTestId("new-chat-assistant-site_help").click();
-    await page.waitForURL(
-      (url) =>
-        url.pathname === `/pathfinder/${siteId}/conversation` &&
-        url.searchParams.get("assistant") === "site_help",
-      { timeout: 60_000 },
-    );
-    await expect(page.getByTestId("chat-assistant-label")).toHaveText("Site help");
+    await page.getByTestId("new-chat-assistant-pathfinder").click();
+    await expect(page).toHaveURL(new RegExp(`/pathfinder/${siteId}/conversation$`));
     await expect(blurb).toHaveText(
-      "Find your way around the VEuPathDB sites: which site covers an organism, and what each one lets you search.",
+      `Build and refine multi-step ${siteShortName(siteId)} search strategies with guided parameter selection and validation.`,
     );
-    for (const suggestion of suggestions) {
-      await expect(
-        page.getByRole("button", { name: suggestion, exact: true }),
-      ).toHaveCount(0);
-    }
-
-    const question = "Which site holds Aedes aegypti?";
-    await chatPage.sendTurn(
-      question,
-      new RegExp(`\\[mock\\] ${escapeRegExp(question)}`),
-    );
-    const helpId = await openConversationId(page);
-    expect((await readConversation(apiClient, helpId)).assistantId).toBe("site_help");
-    await chatPage.refreshConversationsButton.click();
-    await expect(sidebarPage.item(helpId)).toContainText(
-      new RegExp(`Site help · ${TODAY_TIME}`),
-      { timeout: 30_000 },
-    );
-
-    await settingsPage.open();
-    await settingsPage.openTab("Model");
-    const settings = page.getByRole("dialog", { name: "Settings", exact: true });
-    await expect(settings).toContainText(
-      "Site help runs each stage below on its own model.",
-    );
-    await expect(settings.locator('[data-testid^="phase-row-"]')).toHaveCount(1);
-    await expect(settings.getByTestId("phase-row-site_help")).toContainText(
-      "Site help",
-    );
-    await settingsPage.close();
   });
 });
 

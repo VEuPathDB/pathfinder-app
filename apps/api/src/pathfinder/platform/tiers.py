@@ -17,10 +17,7 @@ from assistant_core.platform.types import ModelProvider, ReasoningEffort, TierNa
 from pydantic import ConfigDict
 
 from pathfinder.domain.provider_keys import KEYABLE_PROVIDERS
-from pathfinder.platform.identity import (
-    PATHFINDER_ASSISTANT_ID,
-    SITE_HELP_ASSISTANT_ID,
-)
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_catalog import (
     ModelEntry,
     ModelRank,
@@ -160,13 +157,6 @@ def _pathfinder_preset(tier: _Tier) -> TierPreset:
     )
 
 
-def _site_help_preset(tier: _Tier) -> TierPreset:
-    """Site help is one agent that reports what the catalog holds, so its one
-    role takes the cheaper model. A one-agent assistant names its role after
-    itself."""
-    return TierPreset(roles={SITE_HELP_ASSISTANT_ID: tier.worker})
-
-
 type _Presets = dict[str, dict[ModelProvider, dict[TierName, TierPreset]]]
 
 
@@ -176,10 +166,7 @@ def _presets(by_provider: dict[ModelProvider, dict[TierName, _Tier]]) -> _Preset
             provider: {name: build(tier) for name, tier in tiers.items()}
             for provider, tiers in by_provider.items()
         }
-        for assistant_id, build in (
-            (PATHFINDER_ASSISTANT_ID, _pathfinder_preset),
-            (SITE_HELP_ASSISTANT_ID, _site_help_preset),
-        )
+        for assistant_id, build in ((PATHFINDER_ASSISTANT_ID, _pathfinder_preset),)
     }
 
 

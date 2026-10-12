@@ -30,8 +30,7 @@ outside the network.
   jar, a runner inside the network) decides whether this is a change to the client
   library's release or to this repository.
 - Re-record on QA every response that waits in `fixtures-production-backup-2026-10-09/`
-  (the api's `tests/fixtures/wdk`, `organisms`, `eda`, `separation` and `controls`, the
-  site-help run capture `tests/unit/devtools/site_help_mock_run.events.jsonl`, the web
+  (the api's `tests/fixtures/wdk`, `organisms`, `eda`, `separation` and `controls`, the web
   `__fixtures__/separationResult.json`, and `packages/spec/phyletic_conformance.json`),
   put each back where its test reads it, and delete the backup directory and its
   `.dockerignore` line. Every test that skips with "needs a QA recording: re-record once

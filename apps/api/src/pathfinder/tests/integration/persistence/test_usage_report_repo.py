@@ -14,6 +14,7 @@ from pathfinder.devtools.usage import build_report
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.usage_report import UsageReportRepository
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.second_assistant import HELPER
 
 pytestmark = pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
 
@@ -40,7 +41,7 @@ async def _seed(session_maker: async_sessionmaker[AsyncSession]) -> tuple[UUID, 
             name="kinases",
         )
         toxo = Conversation(
-            assistant_id="site_help",
+            assistant_id=HELPER,
             user_id=user.id,
             site_id="toxodb",
             name="help",

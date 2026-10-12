@@ -1,9 +1,7 @@
-"""A site-help-shaped assistant whose one tool needs the user's approval.
+"""A one-agent assistant whose one tool needs the user's approval.
 
-Same architecture as site help - one agent over the bare turn state on
-``single_agent_graph`` - with a tool the runtime must ask about before it
-runs. It stands in for site help so the whole HTTP path (route, worker,
-stream, resume) carries a real approval.
+It is served under the second assistant's id, so the whole HTTP path (route,
+worker, stream, resume) carries a real approval.
 """
 
 from __future__ import annotations
@@ -28,15 +26,15 @@ from pydantic_ai import Agent, Tool
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
-from pathfinder.assistants.site_help.agent import SiteHelpDeps
-from pathfinder.assistants.site_help.spec import (
-    SiteHelpTurnContext,
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    HelperDeps,
+    HelperTurnContext,
     build_deps,
     build_initial_state,
     build_turn_context,
     charge_usage,
 )
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 
 CONFIRM_TOOL = "delete_saved_gene_set"
 CONFIRM_CALL_ID = "call_delete_set"
@@ -77,11 +75,11 @@ def build_confirming_mock() -> FunctionModel:
     return _MODEL.as_function_model()
 
 
-def build_confirming_agent() -> Agent[SiteHelpDeps, str]:
+def build_confirming_agent() -> Agent[HelperDeps, str]:
     return Agent(
         build_confirming_mock(),
         output_type=str,
-        deps_type=SiteHelpDeps,
+        deps_type=HelperDeps,
         instructions="Help the user, and confirm anything destructive.",
         tools=[Tool(delete_saved_gene_set, requires_approval=True)],
         name="confirming",
@@ -91,11 +89,11 @@ def build_confirming_agent() -> Agent[SiteHelpDeps, str]:
 
 def _build_graph(
     checkpointer: BaseCheckpointSaver[Any],
-) -> CompiledStateGraph[TurnState, SiteHelpTurnContext, TurnState, TurnState]:
+) -> CompiledStateGraph[TurnState, HelperTurnContext, TurnState, TurnState]:
     return single_agent_graph(
         checkpointer=checkpointer,
         state_type=TurnState,
-        context_type=SiteHelpTurnContext,
+        context_type=HelperTurnContext,
         build_agent=build_confirming_agent,
         build_deps=build_deps,
         charge_usage=charge_usage,
@@ -103,9 +101,8 @@ def _build_graph(
 
 
 def build_confirming_spec() -> AssistantSpec:
-    """Registered under site help's id, so the route and the gate are unchanged."""
     return AssistantSpec(
-        assistant_id=SITE_HELP_ASSISTANT_ID,
+        assistant_id=HELPER,
         build_graph=_build_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,

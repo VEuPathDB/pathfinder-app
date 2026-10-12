@@ -29,16 +29,14 @@ from pathfinder.ai.conversation import _turn_helpers
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.graph import runtime
 from pathfinder.platform import tiers
-from pathfinder.platform.identity import (
-    PATHFINDER_ASSISTANT_ID,
-    SITE_HELP_ASSISTANT_ID,
-)
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tiers import (
     TIER_PRESETS,
     TierPreset,
     resolve_phase_tier_config,
 )
 from pathfinder.tests._support.models import DEFAULT_MODEL
+from pathfinder.tests._support.second_assistant import HELPER
 
 CORE_MODULES: tuple[ModuleType, ...] = (
     runtime,
@@ -84,10 +82,8 @@ def test_tier_preset_owns_the_mapping_from_role_to_config() -> None:
 
 def test_a_preset_names_the_roles_of_the_assistant_it_belongs_to() -> None:
     pathfinder = TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"]["quality"]
-    site_help = TIER_PRESETS[SITE_HELP_ASSISTANT_ID]["openai"]["quality"]
 
     assert set(pathfinder.roles) == ROLE_NAMES
-    assert set(site_help.roles) == {SITE_HELP_ASSISTANT_ID}
 
 
 def test_every_declared_role_still_resolves_a_tier_config() -> None:
@@ -110,14 +106,14 @@ def test_a_role_of_one_assistant_resolves_nothing_for_another() -> None:
         assistant_id: resolve_phase_tier_config(
             assistant_id, "openai", "quality", "execution"
         )
-        for assistant_id in (PATHFINDER_ASSISTANT_ID, SITE_HELP_ASSISTANT_ID)
+        for assistant_id in (PATHFINDER_ASSISTANT_ID, HELPER)
     }
 
     assert resolved == {
         PATHFINDER_ASSISTANT_ID: TIER_PRESETS[PATHFINDER_ASSISTANT_ID]["openai"][
             "quality"
         ].roles["execution"],
-        SITE_HELP_ASSISTANT_ID: None,
+        HELPER: None,
     }
 
 
@@ -142,7 +138,7 @@ def test_request_boundary_still_refuses_a_role_no_assistant_runs() -> None:
 
 
 def test_request_boundary_accepts_every_declared_role() -> None:
-    roles = (*PHASE_ROLES, SITE_HELP_ASSISTANT_ID)
+    roles = PHASE_ROLES
     body = ChatRequestBody.model_validate(
         {
             "conversationId": str(uuid4()),

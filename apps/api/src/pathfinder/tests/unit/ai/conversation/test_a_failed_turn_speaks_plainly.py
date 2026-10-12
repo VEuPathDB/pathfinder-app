@@ -61,7 +61,7 @@ class _StubWriter:
 
 @dataclass
 class _RuntimeCtx:
-    """The context of an assistant that holds no strategy, such as site help."""
+    """The context of an assistant that holds no strategy."""
 
     cancel_event: asyncio.Event
 

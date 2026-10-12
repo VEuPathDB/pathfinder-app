@@ -12,12 +12,9 @@ from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants import registry
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import AttachmentNotReadableError, ErrorCode
-from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID, SITE_HELP_ASSISTANT_ID
-from pathfinder.tests._support.models import (
-    DEFAULT_MODEL,
-    GOOGLE_STANDARD,
-    display_name,
-)
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.models import DEFAULT_MODEL, display_name
+from pathfinder.tests._support.second_assistant import HELPER, second_assistant
 from pathfinder.transport.http.routers.chat import refuse_unreadable_attachments
 
 _PNG = "data:image/png;base64,iVBORw0KGgo="
@@ -85,11 +82,19 @@ def test_a_pick_for_another_role_does_not_decide_what_the_reader_reads() -> None
         refuse_unreadable_attachments(body, PATHFINDER_ASSISTANT_ID)
 
 
-@pytest.mark.usefixtures("blind_default_lead")
-def test_the_site_help_agent_is_the_reader_of_its_own_turns() -> None:
-    body = _body(phaseModels={SITE_HELP_ASSISTANT_ID: GOOGLE_STANDARD})
+def test_a_one_agent_assistant_s_own_role_reads_its_turns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with second_assistant(monkeypatch):
+        monkeypatch.setattr(
+            registry,
+            "assistant_role_models",
+            lambda _assistant, _picks: {"lead": _BLIND, HELPER: DEFAULT_MODEL},
+        )
 
-    assert refuse_unreadable_attachments(body, SITE_HELP_ASSISTANT_ID) == [_READ]
+        assert refuse_unreadable_attachments(_body(), HELPER) == [_READ]
+        with pytest.raises(AttachmentNotReadableError):
+            refuse_unreadable_attachments(_body(), PATHFINDER_ASSISTANT_ID)
 
 
 def test_a_message_without_files_reads_none() -> None:

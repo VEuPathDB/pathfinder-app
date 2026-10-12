@@ -90,9 +90,9 @@ describe("buildChatRequestBody", () => {
       trigger: "submit-message",
       messages: [],
       baseBody: undefined,
-      assistantId: "site_help",
+      assistantId: "helper",
     });
-    expect(out["assistantId"]).toBe("site_help");
+    expect(out["assistantId"]).toBe("helper");
   });
 
   it("omits the assistant when the caller names none", () => {

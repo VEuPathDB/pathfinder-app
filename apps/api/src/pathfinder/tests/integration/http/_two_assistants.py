@@ -14,8 +14,7 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from pathfinder.assistants import registry
-from pathfinder.assistants.registry import get_assistant_registry
+from pathfinder.tests._support.second_assistant import HELPER, second_assistant
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -31,8 +30,6 @@ from pathfinder.tests.integration.http._confirming_assistant import (
 from pathfinder.tests.integration.http.conftest import bearer_client_for
 
 UNAUTHORIZED = 401
-SITE_HELP = "site_help"
-SITES_PROMPT = "which sites can I search"
 
 
 async def turn(
@@ -92,11 +89,9 @@ def text_of(chunks: list[dict[str, Any]]) -> str:
 
 @pytest.fixture
 def confirming_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Serve site help's id from an assistant whose one tool needs approval."""
-    monkeypatch.setattr(registry, "build_site_help_spec", build_confirming_spec)
-    get_assistant_registry.cache_clear()
-    yield
-    get_assistant_registry.cache_clear()
+    """Serve the second assistant's id from one whose one tool needs approval."""
+    with second_assistant(monkeypatch, build_confirming_spec):
+        yield
 
 
 def approval_body(
@@ -133,5 +128,5 @@ def approval_body(
         ],
         "conversationId": str(conversation_id),
         "siteId": "plasmodb",
-        "assistantId": SITE_HELP,
+        "assistantId": HELPER,
     }

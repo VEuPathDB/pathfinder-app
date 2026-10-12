@@ -21,7 +21,6 @@ src/pathfinder/
   main.py                    # FastAPI app factory
   assistants/                # Composition root: one spec per assistant, plus the registry
     pathfinder_spec.py       #   The Lead + ledger assistant
-    site_help/               #   A single-agent assistant: two catalog tools, no ledger
   ai/                        # The agents themselves
     agents/                  #   Sub-agent roles (frame, execution, verification), instructions,
                              #     history compaction, tool and parameter vocabulary
@@ -137,12 +136,12 @@ src/pathfinder/
    tailing the thread. A client that disconnects resumes from its cursor.
 6. Tool calls mutate strategy state through `services/strategies/` and are pushed to WDK.
 
-**The two assistants**:
+**The assistant**:
 
 `pathfinder` runs a Lead agent that is the only voice the user hears. It invokes FRAME, BUILD and
-VERIFY sub-agents as tools and reads a typed `InvestigationLedger` they write. `site_help` runs one
-agent with two catalog tools and no ledger, on the runtime's stock single-agent graph. Which
-assistant a thread uses is fixed when the thread is created.
+VERIFY sub-agents as tools and reads a typed `InvestigationLedger` they write. The registry in
+`assistants/registry.py` can install more than one assistant; which one a thread uses is fixed
+when the thread is created.
 
 **Durable tools**:
 

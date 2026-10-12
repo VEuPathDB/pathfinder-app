@@ -35,7 +35,6 @@ from pathfinder.ai.tools.standalone import (
     separation,
     strategy_edits,
 )
-from pathfinder.assistants.site_help.agent import build_site_help_agent
 from pathfinder.services.separation.offer import separation_report
 from pathfinder.tests._support.saved_controls import SAVED_SET_ID
 from pathfinder.tests._support.separation import (
@@ -106,7 +105,6 @@ def _registered() -> dict[str, Callable[..., Any]]:
         build_execution_agent,
         build_verification_agent,
         build_lead_agent,
-        build_site_help_agent,
     ):
         found |= _agent_functions(build())
     return found
@@ -125,7 +123,6 @@ def _every_implementation() -> list[tuple[str, Callable[..., Any]]]:
         build_execution_agent,
         build_verification_agent,
         build_lead_agent,
-        build_site_help_agent,
     ):
         for name, fn in _agent_functions(build()).items():
             key = (name, f"{fn.__module__}.{fn.__qualname__}")

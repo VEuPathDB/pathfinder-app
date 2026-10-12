@@ -56,12 +56,12 @@ const PRESETS = {
       ),
     },
   },
-  site_help: {
+  helper: {
     openai: {
-      default: { roles: { site_help: SMALL } },
-      quality: { roles: { site_help: STANDARD } },
-      balanced: { roles: { site_help: SMALL } },
-      fast: { roles: { site_help: SMALL_LOW } },
+      default: { roles: { lead: SMALL } },
+      quality: { roles: { lead: STANDARD } },
+      balanced: { roles: { lead: SMALL } },
+      fast: { roles: { lead: SMALL_LOW } },
     },
   },
 };
@@ -93,7 +93,7 @@ describe("rolesForAssistant", () => {
       "frame",
       "verification",
     ]);
-    expect(rolesForAssistant(PRESETS, "site_help", "openai")).toEqual(["site_help"]);
+    expect(rolesForAssistant(PRESETS, "helper", "openai")).toEqual(["lead"]);
   });
 
   it("names no role while the presets are loading", () => {
@@ -118,9 +118,9 @@ describe("applyTierPreset", () => {
   });
 
   it("sets the one role of a one-agent assistant", () => {
-    expect(applyTierPreset(PRESETS.site_help.openai.quality)).toEqual({
-      models: { site_help: DEFAULT_MODEL.id },
-      reasoning: { site_help: "medium" },
+    expect(applyTierPreset(PRESETS.helper.openai.quality)).toEqual({
+      models: { lead: DEFAULT_MODEL.id },
+      reasoning: { lead: "medium" },
     });
   });
 
@@ -155,48 +155,19 @@ describe("deriveActiveTier", () => {
   });
 
   it("distinguishes tiers that differ only by reasoning effort", () => {
-    // Site help runs one model on default and fast; only effort separates
+    // The helper runs one model on default and fast; only effort separates
     // them, so a model-only comparison would conflate the two.
-    const applied = applyTierPreset(PRESETS.site_help.openai.fast);
+    const applied = applyTierPreset(PRESETS.helper.openai.fast);
     expect(
       deriveActiveTier(
         PRESETS,
-        "site_help",
+        "helper",
         "openai",
         applied.models,
         applied.reasoning,
         "default",
       ),
     ).toBe("fast");
-  });
-
-  it("reads only the roles of the assistant it is asked about", () => {
-    const applied = applyTierPreset(PRESETS.site_help.openai.fast);
-    const mixed = { ...applyTierPreset(QUALITY_TIER).models, ...applied.models };
-    const mixedReasoning = {
-      ...applyTierPreset(QUALITY_TIER).reasoning,
-      ...applied.reasoning,
-    };
-    expect(
-      deriveActiveTier(
-        PRESETS,
-        "site_help",
-        "openai",
-        mixed,
-        mixedReasoning,
-        "default",
-      ),
-    ).toBe("fast");
-    expect(
-      deriveActiveTier(
-        PRESETS,
-        "pathfinder",
-        "openai",
-        mixed,
-        mixedReasoning,
-        "default",
-      ),
-    ).toBe("quality");
   });
 
   it("recognises a preset when every role the researcher picks matches it", () => {
@@ -257,12 +228,12 @@ describe("deriveActiveTier", () => {
   });
 
   it("prefers the deployment tier when two presets carry the same config", () => {
-    // site_help runs one config on default and balanced, so the picks alone
+    // The helper runs one config on default and balanced, so the picks alone
     // cannot separate them.
-    expect(deriveActiveTier(PRESETS, "site_help", "openai", {}, {}, "balanced")).toBe(
+    expect(deriveActiveTier(PRESETS, "helper", "openai", {}, {}, "balanced")).toBe(
       "balanced",
     );
-    expect(deriveActiveTier(PRESETS, "site_help", "openai", {}, {}, "default")).toBe(
+    expect(deriveActiveTier(PRESETS, "helper", "openai", {}, {}, "default")).toBe(
       "default",
     );
   });

@@ -72,8 +72,8 @@ invokes the specialists as tools and reads a typed ledger they write:
 - **BUILD**: create and edit **strategy graph steps** through validated tool calls, against real WDK searches
 - **VERIFY**: check what was built against what was asked, and report the difference
 
-A second assistant, `site_help`, runs a single agent with two catalog tools and no ledger. Which
-one a thread uses is fixed when the thread is created.
+The registry can serve more than one assistant. Which one a thread uses is fixed when the
+thread is created.
 
 ### Turns, the worker, and streaming
 

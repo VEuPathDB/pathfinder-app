@@ -136,10 +136,10 @@ describe("assistantRoles", () => {
           fast: { roles: { lead: {}, frame: {} } },
         },
       },
-      site_help: { openai: { default: { roles: { site_help: {} } } } },
+      helper: { openai: { default: { roles: { helper: {} } } } },
     };
     expect(assistantRoles(presets, "pathfinder")).toEqual(["lead", "frame"]);
-    expect(assistantRoles(presets, "site_help")).toEqual(["site_help"]);
+    expect(assistantRoles(presets, "helper")).toEqual(["helper"]);
     expect(assistantRoles(undefined, "pathfinder")).toEqual([]);
   });
 });

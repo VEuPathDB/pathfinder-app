@@ -98,11 +98,6 @@ const REGISTERED = [
   "research_web_search",
   "separate_controls",
   "adopt_separating_strategy",
-  // The site help assistant's wdk tool source, which prefixes its tools with
-  // the source name (`assistants/site_help/spec.py::WDK_TOOL_SOURCE`).
-  "wdk_list_record_types",
-  "wdk_search_for_searches",
-  "wdk_run_control_tests_on_search",
 ];
 
 describe("humanizeToolName", () => {
@@ -139,16 +134,6 @@ describe("humanizeToolName", () => {
     expect(humanizeToolName("read_gene_ids_from_strategy")).toBe(
       "Gene ids from strategy",
     );
-  });
-
-  it("labels the site help assistant's wdk tools like their own tools", () => {
-    expect(
-      [
-        "wdk_list_record_types",
-        "wdk_search_for_searches",
-        "wdk_run_control_tests_on_search",
-      ].map(humanizeToolName),
-    ).toEqual(["List record types", "Find searches", "Run control tests"]);
   });
 
   it("names the rename by what it does", () => {
@@ -201,12 +186,6 @@ describe("approvalPromptFor", () => {
     );
     expect(approvalPromptFor("some_new_tool")).toBe(
       "Some new tool needs your approval before it runs.",
-    );
-  });
-
-  it("asks for the site help control tests in the label's words", () => {
-    expect(approvalPromptFor("wdk_run_control_tests_on_search")).toBe(
-      "Run control tests needs your approval before it runs.",
     );
   });
 

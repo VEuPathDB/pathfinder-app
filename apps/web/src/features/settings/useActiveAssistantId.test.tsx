@@ -37,7 +37,7 @@ function recordReads(): string[] {
         id: CONVERSATION_ID,
         name: "strategy",
         siteId: "plasmodb",
-        assistantId: "site_help",
+        assistantId: "helper",
         steps: [],
         rootStepId: null,
         recordType: null,
@@ -81,7 +81,7 @@ describe("useActiveAssistantId", () => {
       wrapper: Wrapper,
     });
     await waitFor(() => {
-      expect(result.current).toBe("site_help");
+      expect(result.current).toBe("helper");
     });
     pathname = DRAFT_PATH;
     rerender();
@@ -100,7 +100,7 @@ describe("useActiveAssistantId", () => {
     const { result } = renderHook(() => useActiveAssistantId(), { wrapper: Wrapper });
 
     await waitFor(() => {
-      expect(result.current).toBe("site_help");
+      expect(result.current).toBe("helper");
     });
     expect(seen).toEqual(["detail"]);
   });

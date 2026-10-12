@@ -42,7 +42,7 @@ function stubSendFetch(isNew: boolean): Sent {
       sent.begin.push(readBody(init));
       return Promise.resolve(
         new Response(
-          JSON.stringify({ conversationId: CONVERSATION_ID, isNew, name: "Site help" }),
+          JSON.stringify({ conversationId: CONVERSATION_ID, isNew, name: "Helper" }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
       );
@@ -74,18 +74,18 @@ describe("the assistant a turn names", () => {
   it("creates the thread under the named assistant and names it on that turn", async () => {
     const sent = stubSendFetch(true);
 
-    await sendOneMessage("site_help");
+    await sendOneMessage("helper");
 
-    expect(sent.begin[0]?.["assistantId"]).toBe("site_help");
-    expect(sent.chat[0]?.["assistantId"]).toBe("site_help");
+    expect(sent.begin[0]?.["assistantId"]).toBe("helper");
+    expect(sent.chat[0]?.["assistantId"]).toBe("helper");
   });
 
   it("names no assistant on a turn of a thread that already existed", async () => {
     const sent = stubSendFetch(false);
 
-    await sendOneMessage("site_help");
+    await sendOneMessage("helper");
 
-    expect(sent.begin[0]?.["assistantId"]).toBe("site_help");
+    expect(sent.begin[0]?.["assistantId"]).toBe("helper");
     expect(sent.chat[0]).not.toHaveProperty("assistantId");
   });
 

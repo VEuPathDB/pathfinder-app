@@ -8,13 +8,13 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathfinder.tests._support.second_assistant import HELPER
 from pathfinder.tests.integration.http._confirming_assistant import (
     CONFIRM_CALL_ID,
     CONFIRM_PROMPT,
     CONFIRMED_REPLY,
 )
 from pathfinder.tests.integration.http._two_assistants import (
-    SITE_HELP,
     approval_body,
     confirming_assistant,
     text_of,
@@ -42,7 +42,7 @@ async def test_a_one_agent_assistant_asks_the_user_before_it_runs_the_tool(
         in_memory_jobs,
         conversation_id=uuid4(),
         prompt=CONFIRM_PROMPT,
-        assistant_id=SITE_HELP,
+        assistant_id=HELPER,
     )
 
     types = [c["type"] for c in chunks]
@@ -68,7 +68,7 @@ async def test_the_answered_card_runs_the_tool_on_the_next_request(
         in_memory_jobs,
         conversation_id=conversation_id,
         prompt=CONFIRM_PROMPT,
-        assistant_id=SITE_HELP,
+        assistant_id=HELPER,
     )
 
     chunks = await turn_with_body(
@@ -99,7 +99,7 @@ async def test_a_refused_card_denies_the_call_over_the_same_route(
         in_memory_jobs,
         conversation_id=conversation_id,
         prompt=CONFIRM_PROMPT,
-        assistant_id=SITE_HELP,
+        assistant_id=HELPER,
     )
 
     chunks = await turn_with_body(

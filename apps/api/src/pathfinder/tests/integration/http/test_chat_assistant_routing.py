@@ -18,6 +18,7 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from pathfinder.tests._support.second_assistant import HELPER
 from pathfinder.tests.integration.http.conftest import (
     chat_body,
     chat_jobs,
@@ -132,6 +133,7 @@ async def test_an_unknown_assistant_is_refused_with_404(
     assert chat_jobs(in_memory_jobs) == []
 
 
+@pytest.mark.usefixtures("helper_assistant")
 async def test_naming_another_assistant_on_an_existing_thread_is_refused(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -151,7 +153,7 @@ async def test_naming_another_assistant_on_an_existing_thread_is_refused(
     db_session.add(conversation)
     await db_session.flush()
     await db_session.commit()
-    body = {**chat_body(conversation.id), "assistantId": "site_help"}
+    body = {**chat_body(conversation.id), "assistantId": HELPER}
 
     async with client_for(ends_at_first_frame(app), owner.id) as client:
         status = await _post_chat(client, body)
@@ -161,6 +163,7 @@ async def test_naming_another_assistant_on_an_existing_thread_is_refused(
     assert await _assistant_of(session_maker, conversation.id) == "pathfinder"
 
 
+@pytest.mark.usefixtures("helper_assistant")
 async def test_a_thread_created_under_another_assistant_mid_dispatch_is_refused(
     app: FastAPI,
     patch_app_db_engine: None,
@@ -179,7 +182,7 @@ async def test_a_thread_created_under_another_assistant_mid_dispatch_is_refused(
         conversation = Conversation(
             id=conversation_id,
             user_id=owner.id,
-            assistant_id="site_help",
+            assistant_id=HELPER,
             site_id="plasmodb",
             name="raced",
         )

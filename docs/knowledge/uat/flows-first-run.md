@@ -57,11 +57,8 @@ Needs the deployment operator (see `R1` in [resilience flows](flows-resilience.m
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Sidebar | `New conversation` (pencil) | URL `/<site>/conversation`; greeting (`Good morning` / `Good afternoon` / `Good evening` / `Still up?`), blurb `Build and refine multi-step <Site> search strategies with guided parameter selection and validation.`, four suggestion cards. |
-| 2 | Sidebar | `Choose an assistant` (chevron) | Menu `NEW CONVERSATION WITH` (CSS): `Strategy builder`, `Site help`, `Open a VEuPathDB strategy...`. |
-| 3 | Assistant menu | `Site help` | URL ends `?assistant=site_help`; chip `Site help`; blurb `Find your way around the VEuPathDB sites: which site covers an organism, and what each one lets you search.` No suggestion cards. |
-| 4 | Composer | Send `Which site holds Aedes aegypti?` | A reply naming VectorBase; the new sidebar row's meta line starts `Site help`. |
-| 5 | Settings, `Model` tab | Read | The intro names `Site help`, one stage row `Site help`. |
-| 6 | Cleanup | Delete the conversation (F7) | - |
+| 2 | Sidebar | `Choose an assistant` (chevron) | Menu `NEW CONVERSATION WITH` (CSS): `Strategy builder`, `Open a VEuPathDB strategy...`. |
+| 3 | Assistant menu | `Strategy builder` | URL `/<site>/conversation`; the blurb of step 1. |
 
 ## F6 - Rename - core
 

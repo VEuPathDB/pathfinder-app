@@ -71,9 +71,6 @@ src/pathfinder/tests/unit/ai/test_tool_surface_agreement.py::test_verify_toolset
 src/pathfinder/tests/unit/ai/tools/toolsets/test_scratchpad_in_toolsets.py::test_phase_agent_exposes_scratchpad_tools
 src/pathfinder/tests/unit/ai/tools/toolsets/test_scratchpad_in_toolsets.py::test_scratchpad_toolset_is_prepared_for_dynamic_filtering
 src/pathfinder/tests/unit/ai/tools/toolsets/test_scratchpad_in_toolsets.py::test_scratchpad_toolset_lists_all_tools
-src/pathfinder/tests/unit/assistants/site_help/test_boundary.py::test_no_pilot_module_imports_pathfinder_s_orchestration
-src/pathfinder/tests/unit/assistants/site_help/test_spec.py::test_a_turn_that_resolved_nothing_hands_the_agent_no_toolset
-src/pathfinder/tests/unit/assistants/site_help/test_spec.py::test_its_mock_factory_returns_its_own_script
 src/pathfinder/tests/unit/assistants/test_pathfinder_spec.py::test_its_mock_factory_returns_the_scripted_function_model
 src/pathfinder/tests/unit/devtools/test_chat_assistant_flag.py::test_the_flag_is_absent_by_default
 src/pathfinder/tests/unit/devtools/test_diagnosis.py::test_detects_no_plan_terminal

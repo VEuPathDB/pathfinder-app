@@ -36,7 +36,7 @@ inline file, or a kind the reader does not read (`ai/conversation/attachments.py
 `transport/http/routers/chat.py::refuse_unreadable_attachments`).
 
 **The reader is the role that reads the message.** For PathFinder that is the
-Lead; for site help it is its one agent (`assistants/registry.py::prompt_reader_model`,
+Lead; for a one-agent assistant it is its one agent (`assistants/registry.py::prompt_reader_model`,
 `lib/models/attachments.ts::readerModel`). A pick for another role does not
 decide what may be attached.
 

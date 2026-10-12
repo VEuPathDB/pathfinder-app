@@ -52,19 +52,12 @@ from pathfinder.ai.tools.standalone import eda_catalog
 from pathfinder.ai.tools.standalone._eda_models import EdaSubsetPreviewResult
 from pathfinder.ai.tools.standalone.eda_step import EdaStepCreated
 from pathfinder.ai.tools.toolsets.eda import build_toolset
-from pathfinder.assistants import registry
 from pathfinder.assistants.pathfinder_spec import (
     _register_product_stream_parts,
     build_turn_context,
 )
-from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.assistants.site_help.spec import (
-    build_initial_state,
-    charge_usage,
-)
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.services.eda import authoring, binding, catalog
 from pathfinder.services.eda.binding import bound_conversation_analysis
 from pathfinder.services.strategies import commit
@@ -77,6 +70,12 @@ from pathfinder.tests._support.eda_wire import (
 )
 from pathfinder.tests._support.published_studies import published_on
 from pathfinder.tests._support.recorded_vdi import no_own_datasets
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    build_initial_state,
+    charge_usage,
+    second_assistant,
+)
 from pathfinder.tests._support.step_params import string_param
 from pathfinder.tests._support.wdk_cleanup import delete_the_threads_strategy
 from pathfinder.tests.integration.chat._helpers import (
@@ -194,9 +193,9 @@ def _build_graph(
 
 
 def _build_spec() -> AssistantSpec:
-    """Served under site help's id, so the turn needs no WDK identity gate."""
+    """Served under the second assistant's id, so the turn needs no WDK identity gate."""
     return AssistantSpec(
-        assistant_id=SITE_HELP_ASSISTANT_ID,
+        assistant_id=HELPER,
         build_graph=_build_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,
@@ -293,21 +292,21 @@ async def seam(
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> AsyncIterator[_Seam]:
-    """The EDA assistant under site help's id, over the recorded EDA wire."""
+    """The EDA agent under the second assistant's id, over the recorded wire."""
     store = _AnalysesStore()
     client = EdaClient(base_url="https://qa.plasmodb.org/eda", transport=_wire(store))
     wire_eda_client(monkeypatch, client)
     # The researcher's own uploads are a VDI read this wire does not record.
     monkeypatch.setattr(eda_catalog, "own_dataset_cards", no_own_datasets)
-    monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
-    get_assistant_registry.cache_clear()
     # The api syncs the study index at warm-up; the turn only searches it.
     token = veupathdb_auth_token_ctx.set("t")
     await sync_study_index(await catalog.list_studies("plasmodb"))
     veupathdb_auth_token_ctx.reset(token)
-    async with published_on("plasmodb", _DATASET, organism="Plasmodium berghei ANKA"):
-        yield _Seam(app=app, jobs=in_memory_jobs, store=store)
-    get_assistant_registry.cache_clear()
+    with second_assistant(monkeypatch, _build_spec):
+        async with published_on(
+            "plasmodb", _DATASET, organism="Plasmodium berghei ANKA"
+        ):
+            yield _Seam(app=app, jobs=in_memory_jobs, store=store)
 
 
 async def _fixed_wdk_user(site_id: str) -> str:
@@ -344,7 +343,7 @@ async def _turn(seam: _Seam, *, wdk_token: str) -> UUID:
         await session.commit()
     conversation_id = uuid4()
     body = chat_post_body(conversation_id, _PROMPT)
-    body["assistantId"] = SITE_HELP_ASSISTANT_ID
+    body["assistantId"] = HELPER
     queued = len(chat_turn_jobs(seam.jobs))
     async with client_for(seam.app, user_id) as client:
         client.headers[WDK_AUTH_HEADER] = wdk_token

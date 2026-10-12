@@ -50,8 +50,8 @@ entry point that installs at start states the order instead of depending on it.
 
 # The consequence, stated
 
-A dev stack that sets no token admits nothing, so site help answers with its
-two local tools and the turn is unchanged. Turning the pilot on is two
+A dev stack that sets no token admits nothing, so an assistant that declares
+the source answers with its own tools and the turn is unchanged. Turning the pilot on is two
 variables on the api and worker services, plus the same secret in the served
 container's `WDK_MCP_SERVICE_TOKENS`. A second admitted server means a
 second record built beside this one, not a new configuration format.

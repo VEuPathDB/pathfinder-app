@@ -44,7 +44,7 @@ past a run that raised, so the prompt is not in its next request.
 
 **Every agent of this deployment carries the wording.**
 `platform/declined.py::DeclinedRequests` is one of `agent_capabilities`, so
-the Lead, FRAME, BUILD, VERIFY and site_help all turn a `ContentFilterError`
+the Lead, FRAME, BUILD and VERIFY all turn a `ContentFilterError`
 into `ModelDeclinedError`. The text names the model by its catalog name, says
 the provider's biological safety filters blocked it (safety filters when the
 provider names another category), says the filters have false positives, and

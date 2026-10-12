@@ -46,8 +46,8 @@ from `pathfinder` into the unit, in the toolsets, the transport routers, the
 durable jobs and the experiment engine.
 
 **The rejected alternative is making PathFinder an MCP client of the served
-process**, which `assistants/site_help` already is through its declared
-`wdk-mcp` source. It is the cleaner end state - one deployment, one credential
+process**, which any assistant that declares the `wdk-mcp` source already is.
+It is the cleaner end state - one deployment, one credential
 path, one place a tool is defined - and those 132 edges are its cost: every one
 becomes a served call with a wire schema, a bearer and a timeout, and the agent
 tools that wrap them in typed results would have to parse them back. In-process

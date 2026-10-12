@@ -31,6 +31,7 @@ from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.tests._support.network_guard import refuse_veupathdb
 from pathfinder.tests._support.organism_reads import serve_catalog_marks
 from pathfinder.tests._support.record_classes import serve_record_classes
+from pathfinder.tests._support.second_assistant import second_assistant
 
 
 @pytest.fixture(autouse=True)
@@ -93,6 +94,12 @@ async def _truncate_embedding_index(db_engine: AsyncEngine) -> None:
         await conn.exec_driver_sql(
             "TRUNCATE TABLE embedding_index_entries, embedding_vectors",
         )
+
+
+@pytest.fixture
+def helper_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    with second_assistant(monkeypatch):
+        yield
 
 
 @pytest.fixture

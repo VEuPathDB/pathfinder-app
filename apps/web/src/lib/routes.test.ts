@@ -17,8 +17,8 @@ describe("route builders", () => {
   });
 
   it("names the assistant a new thread opens under, and only that one", () => {
-    expect(chatRoot("plasmodb", "site_help")).toBe(
-      "/plasmodb/conversation?assistant=site_help",
+    expect(chatRoot("plasmodb", "helper")).toBe(
+      "/plasmodb/conversation?assistant=helper",
     );
     expect(chatRoot("plasmodb", "pathfinder")).toBe("/plasmodb/conversation");
   });
@@ -29,7 +29,7 @@ describe("route builders", () => {
     expect(conversationIdFromPath("/plasmodb/conversation/c1?x=1")).toBe("c1");
     expect(conversationIdFromPath("/plasmodb/conversation")).toBeNull();
     expect(
-      conversationIdFromPath("/plasmodb/conversation?assistant=site_help"),
+      conversationIdFromPath("/plasmodb/conversation?assistant=helper"),
     ).toBeNull();
   });
 

@@ -25,6 +25,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ErrorCode, ForkRefusedError
 from pathfinder.services.conversations.fork import ForkError, fork_conversation
 from pathfinder.services.conversations.revert import revert_conversation_to_message
+from pathfinder.tests._support.second_assistant import HELPER
 from pathfinder.tests.integration.persistence._thread_surgery import (
     FIRST_PUSHED_WDK_STRATEGY_ID,
     THREE_STEPS,
@@ -311,7 +312,7 @@ async def test_a_fork_log_survives_a_parent_revert_and_delete(
     assert await event_count(fork_id) == before
 
 
-async def test_a_branch_of_a_site_help_thread_stays_site_help(
+async def test_a_branch_of_a_second_assistant_thread_keeps_its_assistant(
     patch_app_db_engine: None,
     db_cleaner: None,
     monkeypatch: pytest.MonkeyPatch,
@@ -319,7 +320,7 @@ async def test_a_branch_of_a_site_help_thread_stays_site_help(
     del patch_app_db_engine, db_cleaner
     install_fake_push(monkeypatch)
     user_id = await seed_user()
-    conversation_id = await seed_conversation(user_id, assistant_id="site_help")
+    conversation_id = await seed_conversation(user_id, assistant_id=HELPER)
     anchor = await add_assistant_message(conversation_id)
 
     async with db.async_session_factory() as session:
@@ -337,7 +338,7 @@ async def test_a_branch_of_a_site_help_thread_stays_site_help(
         branch = await session.get(Conversation, fork_id)
         assert source is not None
         assert branch is not None
-        assert branch.assistant_id == "site_help"
+        assert branch.assistant_id == HELPER
         assert branch.application_id == source.application_id
 
 

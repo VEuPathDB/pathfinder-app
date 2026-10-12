@@ -3,7 +3,6 @@
 // ConversationResponse carry.
 
 export const DEFAULT_ASSISTANT_ID = "pathfinder";
-export const SITE_HELP_ASSISTANT_ID = "site_help";
 
 export interface AssistantChoice {
   id: string;
@@ -19,13 +18,6 @@ export const ASSISTANT_CHOICES: readonly AssistantChoice[] = [
     blurb: (siteName) =>
       `Build and refine multi-step ${siteName} search strategies with guided ` +
       `parameter selection and validation.`,
-  },
-  {
-    id: SITE_HELP_ASSISTANT_ID,
-    label: "Site help",
-    blurb: () =>
-      "Find your way around the VEuPathDB sites: which site covers an " +
-      "organism, and what each one lets you search.",
   },
 ];
 

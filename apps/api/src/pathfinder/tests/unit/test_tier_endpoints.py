@@ -13,10 +13,7 @@ from collections.abc import Iterator
 import pytest
 from pydantic import ValidationError
 
-from pathfinder.platform.identity import (
-    PATHFINDER_ASSISTANT_ID,
-    SITE_HELP_ASSISTANT_ID,
-)
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.model_catalog import deployment_may_pay, get_model_entry
 from pathfinder.platform.tiers import (
     OWN_KEY_TIER_PRESETS,
@@ -26,14 +23,11 @@ from pathfinder.platform.tiers import (
 from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.transport.http.routers.tiers import TierListResponse, list_tiers
 
-EXPECTED_ASSISTANTS: frozenset[str] = frozenset(
-    {PATHFINDER_ASSISTANT_ID, SITE_HELP_ASSISTANT_ID},
-)
+EXPECTED_ASSISTANTS: frozenset[str] = frozenset({PATHFINDER_ASSISTANT_ID})
 EXPECTED_PROVIDERS: frozenset[str] = frozenset({"anthropic", "openai", "google"})
 EXPECTED_TIERS: frozenset[str] = frozenset({"default", "quality", "balanced", "fast"})
 EXPECTED_ROLES: dict[str, frozenset[str]] = {
     PATHFINDER_ASSISTANT_ID: frozenset({"lead", "frame", "execution", "verification"}),
-    SITE_HELP_ASSISTANT_ID: frozenset({SITE_HELP_ASSISTANT_ID}),
 }
 VALID_REASONING_EFFORTS: frozenset[str] = frozenset({"low", "medium", "high"})
 

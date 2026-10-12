@@ -1,8 +1,8 @@
 ---
 type: Decision
 title: A declared tool source reaches a one-agent assistant through its deps
-description: site_help carries the turn's resolved toolsets on its own TurnContext subclass into its own deps model, and its agent names them with a run-context toolset function that pydantic-ai wraps in a DynamicToolset. Widening the runtime's agent factory to take toolsets, and carrying them in a context variable, were both rejected.
-tags: [assistants, mcp, site-help, pydantic-ai, toolsets]
+description: A one-agent assistant carries the turn's resolved toolsets on its own TurnContext subclass into its own deps model, and its agent names them with a run-context toolset function that pydantic-ai wraps in a DynamicToolset. Widening the runtime's agent factory to take toolsets, and carrying them in a context variable, were both rejected.
+tags: [assistants, mcp, pydantic-ai, toolsets]
 generated: { by: claude-code/opus-5, at: 2026-08-25T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-25T00:00:00Z }
 status: stable
@@ -13,10 +13,10 @@ status: stable
 The turn's driver resolves an assistant's declarations before the turn context
 exists and hands the ready toolsets to the assistant as
 `TurnContextRequest.tool_sources`
-(`assistant-platform: docs/knowledge/decisions/a-tool-source-session-belongs-to-the-turn.md`). Site help receives them on
-`SiteHelpTurnContext`, a frozen subclass of the runtime's `TurnContext`, and
-`build_deps` folds them into one `CombinedToolset` on `SiteHelpDeps`. The agent
-declares `toolsets=[turn_tool_sources]`, a function of the run context that
+(`assistant-platform: docs/knowledge/decisions/a-tool-source-session-belongs-to-the-turn.md`). A one-agent assistant
+receives them on a frozen subclass of the runtime's `TurnContext`, and its
+`build_deps` folds them into one `CombinedToolset` on its own deps model. The
+agent declares `toolsets=[turn_tool_sources]`, a function of the run context that
 answers with `ctx.deps.tool_sources`.
 
 `pydantic_ai.Agent` accepts a toolset OR a function of the run context and
@@ -30,8 +30,8 @@ turn's driver already holds keeps the session open across the run's own entry
 and exit (`pydantic_ai/mcp.py:1165-1268`).
 
 A turn that resolved nothing puts `None` on the deps and the function answers
-`None`, which is the toolset-free agent site help was before it declared
-anything.
+`None`, which is the toolset-free agent the assistant is without a
+declaration.
 
 # What was rejected
 
@@ -59,7 +59,8 @@ which is why `build_deps` and not the toolset function does the combining.
 
 # Anchor
 
-`apps/api/src/pathfinder/assistants/site_help/spec.py` and `agent.py`, pinned
-by `tests/unit/assistants/site_help/test_spec.py` (the sources reach the deps,
-and an empty turn hands the agent nothing) and `test_mock.py` (a tool the
-turn's source serves is the one the agent calls).
+The test-only second assistant `tests/_support/second_assistant.py` holds the
+shape, pinned by `tests/integration/http/test_a_declared_tool_source.py` (a
+tool the turn's source serves is the one the agent calls, and a deployment that
+admits nothing still answers). This deployment installs no assistant that
+declares a source.

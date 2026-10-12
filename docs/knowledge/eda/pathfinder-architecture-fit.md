@@ -396,10 +396,9 @@ The design doc's own example of a namespaced kind is, verbatim,
 
 ### 3.5 Multi-assistant reuse: a ClinEpiDB assistant is the proof
 
-`ToolSourceDeclaration` is per-assistant with its own tool allowlist. `site_help`
-shows the pattern at `apps/api/src/pathfinder/assistants/site_help/spec.py:34-40`:
-it declares one source and names three of the sixteen tools that source serves.
-A ClinEpiDB assistant declares the same `veupathdb-eda-mcp` source with a
+`ToolSourceDeclaration` is per-assistant with its own tool allowlist: an
+`AssistantSpec` declares a source and names the tools of it that assistant may
+call. A ClinEpiDB assistant declares the same `veupathdb-eda-mcp` source with a
 different allowlist, and inherits the credential, the approval predicate, the
 untrusted-output wrapper and the per-turn session with no code in common with
 PathFinder.

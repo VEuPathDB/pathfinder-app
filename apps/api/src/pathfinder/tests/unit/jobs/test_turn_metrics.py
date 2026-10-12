@@ -111,11 +111,11 @@ async def test_spend_no_agent_names_is_the_turn_models() -> None:
     tokens, cost = _tokens(_HELPER, "deployment"), _cost(_HELPER, "deployment")
     durations = _sample(
         "pathfinder_chat_turn_duration_seconds_count",
-        {"assistant": "site_help", "outcome": "completed"},
+        {"assistant": "helper", "outcome": "completed"},
     )
 
     async with metered_turn(
-        assistant_id="site_help", model_id=_HELPER, writer=_Sink()
+        assistant_id="helper", model_id=_HELPER, writer=_Sink()
     ) as writer:
         await writer.write(_wire(turn_usage_event(total_tokens=300, cost_usd="0.004")))
         await writer.write(_wire(FinishChunk(finish_reason="stop")))
@@ -125,7 +125,7 @@ async def test_spend_no_agent_names_is_the_turn_models() -> None:
     assert (
         _sample(
             "pathfinder_chat_turn_duration_seconds_count",
-            {"assistant": "site_help", "outcome": "completed"},
+            {"assistant": "helper", "outcome": "completed"},
         )
         == durations + 1
     )

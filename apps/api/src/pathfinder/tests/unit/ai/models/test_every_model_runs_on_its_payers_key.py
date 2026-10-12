@@ -22,7 +22,6 @@ from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_stream import _phase_agent
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
-from pathfinder.assistants.site_help.agent import build_site_help_agent
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.model_catalog import get_smallest_model
@@ -95,15 +94,6 @@ async def test_a_stage_runs_on_the_researchers_key(resolved: _Resolved) -> None:
         _phase_agent(lead_deps(pipeline_state()), "frame")
 
     assert await _sent_key(resolved.by_role["frame"], wire) == f"Bearer {_USER_KEY}"
-
-
-async def test_site_help_runs_on_the_researchers_key() -> None:
-    wire = ProviderWire()
-
-    with attach_keyring(_KEYRING, build=wire.build):
-        agent = build_site_help_agent()
-
-    assert await _sent_key(agent.model or "", wire) == f"Bearer {_USER_KEY}"
 
 
 async def test_the_compactor_runs_on_the_researchers_key() -> None:

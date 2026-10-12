@@ -21,7 +21,8 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.ai.capabilities import security
-from pathfinder.assistants.site_help.mock import (
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
     RECORD_TYPES_PROMPT,
     RECORD_TYPES_REPLY,
     WDK_RECORD_TYPES_TOOL,
@@ -29,14 +30,13 @@ from pathfinder.assistants.site_help.mock import (
 from pathfinder.tests.integration.chat._helpers import chat_post_body
 from pathfinder.tests.integration.http._wdk_mcp_double import (
     ANNOTATIONS,
-    SITE_HELP,
     admit_wdk_mcp,
-    run_site_help_turn,
+    run_helper_turn,
     serve_mcp,
 )
 from pathfinder.tests.integration.http.conftest import make_user
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_matches_session", "helper_assistant")
 
 
 INJECTED_RECORD_TYPE = (
@@ -75,7 +75,7 @@ def admitted_injecting_source(
 
 def _record_types_body() -> dict[str, Any]:
     body = chat_post_body(uuid4(), RECORD_TYPES_PROMPT)
-    body["assistantId"] = SITE_HELP
+    body["assistantId"] = HELPER
     return body
 
 
@@ -84,7 +84,7 @@ async def _turn(
     user_id: UUID,
     in_memory_jobs: InMemoryConnector,
 ) -> list[dict[str, Any]]:
-    return await run_site_help_turn(
+    return await run_helper_turn(
         app,
         user_id,
         in_memory_jobs,

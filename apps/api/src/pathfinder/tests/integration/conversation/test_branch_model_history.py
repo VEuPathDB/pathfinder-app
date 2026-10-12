@@ -47,19 +47,19 @@ from sqlalchemy import select
 
 from pathfinder.ai.conversation import turn_runner
 from pathfinder.ai.conversation.request_body import ChatRequestBody
-from pathfinder.assistants.site_help.agent import SiteHelpDeps
-from pathfinder.assistants.site_help.spec import (
-    SiteHelpTurnContext,
+from pathfinder.persistence.models import User
+from pathfinder.platform.config import get_settings
+from pathfinder.services.conversations.fork import fork_conversation
+from pathfinder.services.conversations.revert import revert_conversation_to_message
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    HelperDeps,
+    HelperTurnContext,
     build_deps,
     build_initial_state,
     build_turn_context,
     charge_usage,
 )
-from pathfinder.persistence.models import User
-from pathfinder.platform.config import get_settings
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
-from pathfinder.services.conversations.fork import fork_conversation
-from pathfinder.services.conversations.revert import revert_conversation_to_message
 
 RECORD_TOOL = "record_finding"
 FIRST_LABEL = "gametocyte-proteases"
@@ -91,11 +91,11 @@ class _Recorder:
             unknown=self.script,
         ).as_function_model()
 
-    def agent(self) -> Agent[SiteHelpDeps, str]:
+    def agent(self) -> Agent[HelperDeps, str]:
         return Agent(
             self.model(),
             output_type=str,
-            deps_type=SiteHelpDeps,
+            deps_type=HelperDeps,
             instructions="Write down what the user reports.",
             tools=[Tool(record_finding)],
             name="recording",
@@ -128,18 +128,18 @@ async def saver(patch_app_db_engine: None) -> AsyncIterator[AsyncPostgresSaver]:
 def _spec(recorder: _Recorder, saver: BaseCheckpointSaver[Any]) -> AssistantSpec:
     def _build_graph(
         checkpointer: BaseCheckpointSaver[Any],
-    ) -> CompiledStateGraph[TurnState, SiteHelpTurnContext, TurnState, TurnState]:
+    ) -> CompiledStateGraph[TurnState, HelperTurnContext, TurnState, TurnState]:
         return single_agent_graph(
             checkpointer=checkpointer,
             state_type=TurnState,
-            context_type=SiteHelpTurnContext,
+            context_type=HelperTurnContext,
             build_agent=recorder.agent,
             build_deps=build_deps,
             charge_usage=charge_usage,
         )
 
     return AssistantSpec(
-        assistant_id=SITE_HELP_ASSISTANT_ID,
+        assistant_id=HELPER,
         build_graph=_build_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,
@@ -158,7 +158,7 @@ async def _seed_thread() -> tuple[UUID, UUID]:
                 user_id=user_id,
                 site_id="plasmodb",
                 name="findings",
-                assistant_id=SITE_HELP_ASSISTANT_ID,
+                assistant_id=HELPER,
             ),
         )
         await session.commit()

@@ -296,7 +296,7 @@ describe("ChatShell.routeKey", () => {
   });
 
   it("tells two assistants on one path apart", () => {
-    expect(routeKey("/plasmodb/conversation", "site_help")).not.toBe(
+    expect(routeKey("/plasmodb/conversation", "helper")).not.toBe(
       routeKey("/plasmodb/conversation", null),
     );
   });
@@ -312,7 +312,7 @@ describe("ChatShell.needsNewDraftId", () => {
   it("mints when the draft route changes assistant", () => {
     expect(
       needsNewDraftId(
-        "/plasmodb/conversation?assistant=site_help",
+        "/plasmodb/conversation?assistant=helper",
         "/plasmodb/conversation",
       ),
     ).toBe(true);
@@ -370,12 +370,12 @@ describe("ChatShell drafts", () => {
     if (draft === undefined) throw new Error("ChatView never rendered");
     expect(draft.requestedAssistantId).toBe(null);
 
-    search = new URLSearchParams("assistant=site_help");
+    search = new URLSearchParams("assistant=helper");
     view.rerender(<ChatShell />);
 
     const picked = seen.at(-1);
     if (picked === undefined) throw new Error("ChatView never rendered");
-    expect(picked.requestedAssistantId).toBe("site_help");
+    expect(picked.requestedAssistantId).toBe("helper");
     expect(picked.conversationId).not.toBe(draft.conversationId);
   });
 
@@ -430,7 +430,7 @@ describe("ChatShell drafts", () => {
   });
 
   it("keeps the draft thread while the assistant stays the same", async () => {
-    const search = new URLSearchParams("assistant=site_help");
+    const search = new URLSearchParams("assistant=helper");
     vi.doMock("next/navigation", () => ({
       usePathname: () => "/plasmodb/conversation",
       useSearchParams: () => search,

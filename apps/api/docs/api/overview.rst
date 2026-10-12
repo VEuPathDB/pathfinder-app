@@ -8,9 +8,10 @@ phase sub-agents do, and which layer is allowed to call which.
 Installed Assistants
 --------------------
 
-The backend serves more than one assistant. An ``AssistantSpec`` supplies the
-graph, the state and the context a turn needs; the registry says which specs
-this deployment installs and which one answers when the request names none.
+The backend can serve more than one assistant. An ``AssistantSpec`` supplies
+the graph, the state and the context a turn needs; the registry says which
+specs this deployment installs and which one answers when the request names
+none. This deployment installs one.
 
 .. list-table:: Assistants
    :widths: 20 40 40
@@ -22,9 +23,6 @@ this deployment installs and which one answers when the request names none.
    * - **pathfinder**
      - ``lead`` then ``finalize_turn``
      - The default. Strategy construction, verification and EDA.
-   * - **site_help**
-     - ``agent`` then ``finalize_turn``
-     - One agent, two catalog tools. No Lead, no ledger, no phases.
 
 A conversation records its assistant. The request may name one only while the
 thread is being created; naming a different one on an existing thread is

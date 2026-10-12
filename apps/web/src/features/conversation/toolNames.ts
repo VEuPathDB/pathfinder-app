@@ -92,10 +92,6 @@ export const TOOL_LABELS: Record<string, string> = {
   // Research, served by the research tool source
   research_web_search: "Web search",
   research_literature_search: "Literature search",
-  // Site help, served by the wdk tool source
-  wdk_list_record_types: "List record types",
-  wdk_search_for_searches: "Find searches",
-  wdk_run_control_tests_on_search: "Run control tests",
 };
 
 /**

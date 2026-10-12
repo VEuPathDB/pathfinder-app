@@ -57,7 +57,6 @@ NAMED_FACTORIES = frozenset(
         "build_frame_agent",
         "build_execution_agent",
         "build_verification_agent",
-        "build_site_help_agent",
     },
 )
 

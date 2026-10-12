@@ -30,11 +30,12 @@ from veupathdb_mcp.controls import (
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
-from pathfinder.assistants import registry
-from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.persistence.models import User
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    second_assistant,
+)
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
     chat_turn_jobs,
@@ -67,10 +68,8 @@ pytestmark = pytest.mark.usefixtures(
 
 @pytest.fixture
 def controls_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setattr(registry, "build_site_help_spec", build_spec)
-    get_assistant_registry.cache_clear()
-    yield
-    get_assistant_registry.cache_clear()
+    with second_assistant(monkeypatch, build_spec):
+        yield
 
 
 @pytest.fixture
@@ -173,7 +172,7 @@ async def _turn(
     conversation_id: UUID,
 ) -> list[dict[str, Any]]:
     body = chat_post_body(conversation_id, _PROMPT)
-    body["assistantId"] = SITE_HELP_ASSISTANT_ID
+    body["assistantId"] = HELPER
     queued = len(chat_turn_jobs(jobs))
     async with client_for(app, user_id) as client:
         client.headers[WDK_AUTH_HEADER] = "t"

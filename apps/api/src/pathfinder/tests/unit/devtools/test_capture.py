@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from assistant_core.capabilities.repetition_guard import RepetitionBlock
 from assistant_core.platform.types import JSONObject
-from pydantic import TypeAdapter
 
 from pathfinder.devtools.capture import (
     OUTPUT_TOOL,
@@ -18,7 +17,6 @@ from pathfinder.devtools.capture import (
 )
 from pathfinder.devtools.diagnosis import LOOP_THRESHOLD
 from pathfinder.platform.durable_worker import durable_call_refusal
-from pathfinder.tests._support.qa_recording import qa_recording
 
 
 def _write(cap: RunCapture, chunk: JSONObject) -> None:
@@ -310,22 +308,35 @@ class TestDiagnosisReadsTheReply:
         assert [a for a in cap.anomalies() if a.kind == "silent_zero"]
 
 
-def _fixture_run() -> list[JSONObject]:
-    path = Path(__file__).parent / "site_help_mock_run.events.jsonl"
-    event: TypeAdapter[JSONObject] = TypeAdapter(JSONObject)
-    return [
-        event.validate_json(line)
-        for line in qa_recording(path).read_text().splitlines()
-        if line
-    ]
+_CALL = "call_list_site_ids"
+
+_ONE_AGENT_RUN: list[JSONObject] = [
+    {"type": "start", "messageId": "m1"},
+    {"type": "start-step"},
+    {"type": "tool-input-start", "toolCallId": _CALL, "toolName": "list_site_ids"},
+    {"type": "tool-input-delta", "toolCallId": _CALL, "inputTextDelta": "{}"},
+    {
+        "type": "tool-input-available",
+        "toolCallId": _CALL,
+        "toolName": "list_site_ids",
+        "input": {},
+    },
+    {"type": "tool-output-available", "toolCallId": _CALL, "output": ["plasmodb"]},
+    {"type": "finish-step"},
+    {"type": "start-step"},
+    {"type": "text-delta", "delta": "Those are the sites.", "id": "t1"},
+    {"type": "finish-step"},
+    {"type": "finish", "finishReason": "stop"},
+    {"type": "done"},
+]
 
 
 def test_a_one_agent_run_counts_the_calls_its_event_log_announces(
     tmp_path: Path,
 ) -> None:
-    """A recorded site_help turn holds one ``tool-input-available``."""
+    """A one-agent turn that holds one ``tool-input-available`` counts one call."""
     cap = _new(tmp_path)
-    for chunk in _fixture_run():
+    for chunk in _ONE_AGENT_RUN:
         _write(cap, chunk)
 
     assert cap.summary().tool_calls == 1

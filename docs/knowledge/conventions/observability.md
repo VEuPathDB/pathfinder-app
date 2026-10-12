@@ -38,7 +38,7 @@ on the same session.
 
 | Attribute on the root span | Langfuse field | Value |
 |---|---|---|
-| span name, `langfuse.trace.name` | trace name | the assistant id (`pathfinder`, `site_help`) or the durable tool |
+| span name, `langfuse.trace.name` | trace name | the assistant id (`pathfinder`) or the durable tool |
 | `session.id`, `langfuse.session.id` | sessionId | the conversation id |
 | `user.id`, `langfuse.user.id` | userId | the researcher's user id |
 | `langfuse.trace.tags` | tags | the site id; `durable-task` for a task |

@@ -32,8 +32,8 @@ runs.
 raises `OwnKeyRequiredError` (422 `OWN_KEY_REQUIRED`) for a model the deployment
 may not pay for. `deployment_model` calls it before it builds a provider, so the
 injection judge, and every turn model that falls to the deployment's key through
-`keyed_model` (the Lead, each sub-agent, site help, the thread title and the
-notes compaction), is refused before a request leaves. The chat gate
+`keyed_model` (the Lead, each sub-agent, the thread title and the notes
+compaction), is refused before a request leaves. The chat gate
 (`services/provider_keys.py::require_payers`, which `require_turn_paid` and
 `jobs/turn_keys.py` call) refuses a request body whose per-role picks name such
 a model with no live researcher key for its provider, before the message is

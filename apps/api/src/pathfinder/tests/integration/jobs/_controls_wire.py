@@ -32,13 +32,13 @@ from pathfinder.ai.graph.runtime import AgentDeps, Context, VerificationScope
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone.experiment import run_control_tests_on_step
 from pathfinder.assistants.pathfinder_spec import build_turn_context
-from pathfinder.assistants.site_help.spec import (
+from pathfinder.domain.evidence import NamedControlSet
+from pathfinder.persistence.models import ControlSet
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
     build_initial_state,
     charge_usage,
 )
-from pathfinder.domain.evidence import NamedControlSet
-from pathfinder.persistence.models import ControlSet
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 
 TOOL = "run_control_tests_on_step"
 STEP_A = 440230693
@@ -194,9 +194,9 @@ def _build_graph(
 
 
 def build_spec() -> AssistantSpec:
-    """Served under site help's id, so the turn needs no WDK identity."""
+    """Served under the second assistant's id, so the turn needs no WDK identity."""
     return AssistantSpec(
-        assistant_id=SITE_HELP_ASSISTANT_ID,
+        assistant_id=HELPER,
         build_graph=_build_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,

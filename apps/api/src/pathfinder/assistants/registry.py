@@ -2,53 +2,53 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from functools import lru_cache
 
 from assistant_core.platform.types import ModelProvider, TierName
 from assistant_core.registry import AssistantRegistry
+from assistant_core.spec import AssistantSpec
 
 from pathfinder.ai.agents.registry import phase_defaults
 from pathfinder.assistants.pathfinder_spec import build_pathfinder_spec
-from pathfinder.assistants.site_help.agent import SITE_HELP_MODEL
-from pathfinder.assistants.site_help.spec import build_site_help_spec
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.identity import (
-    PATHFINDER_ASSISTANT_ID,
-    SITE_HELP_ASSISTANT_ID,
-)
+from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.tiers import resolve_phase_tier_config
+
+
+@dataclass(frozen=True, kw_only=True)
+class InstalledAssistant:
+    build_spec: Callable[[], AssistantSpec]
+    compile_time_models: Callable[[], dict[str, str]]
+    prompt_role: str
+
+
+def installed_assistants() -> dict[str, InstalledAssistant]:
+    return {
+        PATHFINDER_ASSISTANT_ID: InstalledAssistant(
+            build_spec=build_pathfinder_spec,
+            compile_time_models=phase_defaults,
+            prompt_role="lead",
+        ),
+    }
 
 
 @lru_cache(maxsize=1)
 def get_assistant_registry() -> AssistantRegistry:
     """Every installed assistant. Built once; the specs hold no per-turn state."""
     return AssistantRegistry(
-        specs=[build_pathfinder_spec(), build_site_help_spec()],
+        specs=[one.build_spec() for one in installed_assistants().values()],
         default_id=PATHFINDER_ASSISTANT_ID,
     )
-
-
-def _compile_time_models() -> dict[str, dict[str, str]]:
-    """Each installed assistant's roles and the model each role bakes in."""
-    return {
-        PATHFINDER_ASSISTANT_ID: phase_defaults(),
-        SITE_HELP_ASSISTANT_ID: {SITE_HELP_ASSISTANT_ID: SITE_HELP_MODEL},
-    }
-
-
-# The role whose agent reads the user's message, and so each file it carries.
-_PROMPT_ROLES = {
-    PATHFINDER_ASSISTANT_ID: "lead",
-    SITE_HELP_ASSISTANT_ID: SITE_HELP_ASSISTANT_ID,
-}
 
 
 def _defaults_of(
     assistant_id: str, provider: ModelProvider, tier: TierName
 ) -> dict[str, str]:
     resolved: dict[str, str] = {}
-    for role, baked_in in _compile_time_models()[assistant_id].items():
+    models = installed_assistants()[assistant_id].compile_time_models()
+    for role, baked_in in models.items():
         config = resolve_phase_tier_config(assistant_id, provider, tier, role)
         resolved[role] = baked_in if config is None else config.model_id
     return resolved
@@ -60,7 +60,7 @@ def installed_phase_defaults(provider: ModelProvider, tier: TierName) -> dict[st
     role's compile-time model where the tier names no config for it.
     """
     resolved: dict[str, str] = {}
-    for assistant_id in _compile_time_models():
+    for assistant_id in installed_assistants():
         resolved.update(_defaults_of(assistant_id, provider, tier))
     return resolved
 
@@ -90,12 +90,15 @@ def turn_trace_labels(assistant_id: str, picks: Mapping[str, str]) -> dict[str, 
 
 def prompt_reader_model(assistant_id: str, picks: Mapping[str, str]) -> str:
     """The model that reads the user's message this turn."""
-    return assistant_role_models(assistant_id, picks)[_PROMPT_ROLES[assistant_id]]
+    role = installed_assistants()[assistant_id].prompt_role
+    return assistant_role_models(assistant_id, picks)[role]
 
 
 __all__ = [
+    "InstalledAssistant",
     "assistant_role_models",
     "get_assistant_registry",
+    "installed_assistants",
     "installed_phase_defaults",
     "prompt_reader_model",
     "turn_trace_labels",

@@ -16,7 +16,6 @@ from assistant_core.platform.db import async_session_factory
 from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.ai.models.mock.consult_arc import OPEN_QUESTION
-from pathfinder.assistants.site_help.mock import SITES_REPLY
 from pathfinder.devtools import chat
 from pathfinder.devtools.capture import RunCapture
 from pathfinder.devtools.chat import (
@@ -44,6 +43,12 @@ from pathfinder.tests._support.models import DEFAULT_MODEL
 from pathfinder.tests._support.recorded_searches import (
     serve_recorded_plasmodb,
     suite_search,
+)
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    LIST_SITES_TOOL,
+    SITES_PROMPT,
+    SITES_REPLY,
 )
 
 # The durable tool the separation arc calls, under the name the model uses.
@@ -300,20 +305,20 @@ async def test_respond_finds_gate_from_checkpoint_not_run_dir(
     assert [q.prompt for q in derived.consult_questions] == [OPEN_QUESTION]
 
 
-@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
-async def test_a_site_help_run_answers_in_process_with_no_wdk_login(
+@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner", "helper_assistant")
+async def test_a_second_assistant_run_answers_in_process_with_no_wdk_login(
     tmp_path: Path,
 ) -> None:
     """The second assistant runs through the same debugger, and needs no login."""
     run_dir = tmp_path / "run"
     args = parse_run_args(
         [
-            "which sites can I search",
+            SITES_PROMPT,
             "--site",
             "plasmodb",
             "--mock",
             "--assistant",
-            "site_help",
+            HELPER,
             "--quiet",
             "--run-dir",
             str(run_dir),
@@ -329,7 +334,7 @@ async def test_a_site_help_run_answers_in_process_with_no_wdk_login(
         if line.strip()
     ]
     called = [e["toolName"] for e in events if e["type"] == "tool-input-available"]
-    assert called == ["list_veupathdb_sites"]
+    assert called == [LIST_SITES_TOOL]
     text = "".join(e["delta"] for e in events if e["type"] == "text-delta")
     assert text == SITES_REPLY
     summary = json.loads((run_dir / "summary.json").read_text())
@@ -384,18 +389,18 @@ async def test_run_once_leaves_the_global_logger_config_alone(tmp_path: Path) ->
     assert structlog.get_config() == before
 
 
-@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner")
+@pytest.mark.usefixtures("patch_app_db_engine", "db_cleaner", "helper_assistant")
 async def test_the_worker_payload_names_the_thread_s_assistant(tmp_path: Path) -> None:
     """A worker run of the second assistant must not defer PathFinder's turn."""
     conversation_id = uuid4()
     args = parse_run_args(
         [
-            "which sites can I search",
+            SITES_PROMPT,
             "--site",
             "plasmodb",
             "--mock",
             "--assistant",
-            "site_help",
+            HELPER,
             "--quiet",
             "--conversation-id",
             str(conversation_id),
@@ -410,7 +415,7 @@ async def test_the_worker_payload_names_the_thread_s_assistant(tmp_path: Path) -
             conversation_id=conversation_id,
             user_id=DEV_USER_ID,
             site_id="plasmodb",
-            assistant_id="site_help",
+            assistant_id=HELPER,
         )
         await session.commit()
     capture = RunCapture(
@@ -424,7 +429,7 @@ async def test_the_worker_payload_names_the_thread_s_assistant(tmp_path: Path) -
 
     payload = await _worker_payload(args, capture, body, wdk_token=None)
 
-    assert payload.assistant_id == "site_help"
+    assert payload.assistant_id == HELPER
 
 
 class _ToolChunk(BaseModel):

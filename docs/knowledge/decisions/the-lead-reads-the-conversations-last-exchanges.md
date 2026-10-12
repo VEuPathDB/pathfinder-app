@@ -33,8 +33,8 @@ experiment in 3 of 3 runs.
 # What was rejected
 
 - **Earlier turns as model message history, the runtime's thread history.**
-  `assistant_core.graph.thread_history`, which the one-agent graph `site_help`
-  runs on replays, carries every model message of every turn: each tool call and
+  `assistant_core.graph.thread_history`, which the runtime's one-agent graph
+  replays, carries every model message of every turn: each tool call and
   result, unbounded, and each answer as its raw references. A Lead turn holds
   tens of sub-agent calls and their deltas, so the replay grows without bound and
   brings each turn's stale counts back into every request; the Lead's run also

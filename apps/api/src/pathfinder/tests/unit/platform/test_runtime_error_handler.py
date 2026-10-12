@@ -86,8 +86,8 @@ async def test_an_assistant_this_deployment_does_not_serve_reads_as_not_found() 
 
 async def test_naming_another_assistant_than_the_threads_is_a_conflict() -> None:
     resp = await assistant_mismatch_handler(
-        _request(), AssistantMismatchError("site_help", "pathfinder")
+        _request(), AssistantMismatchError("helper", "pathfinder")
     )
     assert resp.status_code == 409
     assert _body(resp)["code"] == "ASSISTANT_MISMATCH"
-    assert "site_help" in str(_body(resp)["detail"])
+    assert "helper" in str(_body(resp)["detail"])

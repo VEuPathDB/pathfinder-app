@@ -42,19 +42,18 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone.eda_compute import run_eda_compute
-from pathfinder.assistants import registry
 from pathfinder.assistants.pathfinder_spec import build_turn_context
-from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.assistants.site_help.spec import (
-    build_initial_state,
-    charge_usage,
-)
 from pathfinder.jobs.impls import register_all_tools
 from pathfinder.persistence.models import User
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.services.eda.binding import (
     bind_conversation_analysis,
     bound_conversation_analysis,
+)
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    build_initial_state,
+    charge_usage,
+    second_assistant,
 )
 from pathfinder.tests.integration.chat._helpers import (
     chat_post_body,
@@ -170,9 +169,9 @@ def _build_graph(
 
 
 def _build_spec() -> AssistantSpec:
-    """Served under site help's id, so the turn needs no WDK identity."""
+    """Served under the second assistant's id, so the turn needs no WDK identity."""
     return AssistantSpec(
-        assistant_id=SITE_HELP_ASSISTANT_ID,
+        assistant_id=HELPER,
         build_graph=_build_graph,
         build_initial_state=build_initial_state,
         build_turn_context=build_turn_context,
@@ -182,10 +181,8 @@ def _build_spec() -> AssistantSpec:
 
 @pytest.fixture
 def eda_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setattr(registry, "build_site_help_spec", _build_spec)
-    get_assistant_registry.cache_clear()
-    yield
-    get_assistant_registry.cache_clear()
+    with second_assistant(monkeypatch, _build_spec):
+        yield
 
 
 @pytest.fixture
@@ -209,7 +206,7 @@ async def _turn(
     conversation_id: UUID,
 ) -> list[dict[str, Any]]:
     body = chat_post_body(conversation_id, _PROMPT)
-    body["assistantId"] = SITE_HELP_ASSISTANT_ID
+    body["assistantId"] = HELPER
     queued = len(chat_turn_jobs(jobs))
     async with client_for(app, user_id) as client:
         # The compute reads EDA as the caller, so the turn carries a token.

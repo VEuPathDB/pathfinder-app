@@ -9,6 +9,7 @@ import pytest
 from assistant_core.registry import AssistantMismatchError, UnknownAssistantError
 
 from pathfinder.devtools import chat
+from pathfinder.tests._support.second_assistant import HELPER, second_assistant
 
 _RUN_ARGV = ["hi", "--site", "plasmodb", "--mock"]
 
@@ -31,7 +32,7 @@ def test_the_flag_is_absent_by_default() -> None:
 
 
 def test_the_flag_is_parsed_on_run_and_respond(tmp_path: Path) -> None:
-    run = chat.parse_run_args([*_RUN_ARGV, "--assistant", "site_help"])
+    run = chat.parse_run_args([*_RUN_ARGV, "--assistant", HELPER])
     respond = chat.parse_respond_args(
         [
             "--site",
@@ -41,12 +42,12 @@ def test_the_flag_is_parsed_on_run_and_respond(tmp_path: Path) -> None:
             "--run-dir",
             str(tmp_path),
             "--assistant",
-            "site_help",
+            HELPER,
         ],
     )
 
-    assert run.assistant == "site_help"
-    assert respond.assistant == "site_help"
+    assert run.assistant == HELPER
+    assert respond.assistant == HELPER
 
 
 async def test_a_new_conversation_runs_under_the_named_assistant(
@@ -54,9 +55,10 @@ async def test_a_new_conversation_runs_under_the_named_assistant(
 ) -> None:
     _install_existing(monkeypatch, None)
 
-    spec = await chat.resolve_run_assistant(uuid4(), "site_help")
+    with second_assistant(monkeypatch):
+        spec = await chat.resolve_run_assistant(uuid4(), HELPER)
 
-    assert spec.assistant_id == "site_help"
+    assert spec.assistant_id == HELPER
     assert spec.identity_gate is None
 
 
@@ -84,5 +86,5 @@ async def test_naming_another_assistant_than_the_thread_s_is_refused(
 ) -> None:
     _install_existing(monkeypatch, "pathfinder")
 
-    with pytest.raises(AssistantMismatchError):
-        await chat.resolve_run_assistant(uuid4(), "site_help")
+    with second_assistant(monkeypatch), pytest.raises(AssistantMismatchError):
+        await chat.resolve_run_assistant(uuid4(), HELPER)

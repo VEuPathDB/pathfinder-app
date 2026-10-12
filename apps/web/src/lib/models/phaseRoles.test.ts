@@ -18,7 +18,6 @@ describe("phase role metadata", () => {
       execution: "Building",
       verification: "Checking",
       recover_failed_steps: "Repairing",
-      site_help: "Site help",
     });
   });
 
@@ -26,7 +25,6 @@ describe("phase role metadata", () => {
     expect(Object.keys(PICKABLE_ROLE_DESCRIPTIONS).sort()).toEqual([
       "frame",
       "lead",
-      "site_help",
       "verification",
     ]);
     for (const text of Object.values(PICKABLE_ROLE_DESCRIPTIONS)) {
@@ -40,7 +38,6 @@ describe("phase role metadata", () => {
   it("offers no pick for the repair role, which runs on the deployment's tier", () => {
     expect(isPickableRole("execution")).toBe(false);
     expect(isPickableRole("lead")).toBe(true);
-    expect(isPickableRole("site_help")).toBe(true);
   });
 
   it("falls back to the role name for a label", () => {

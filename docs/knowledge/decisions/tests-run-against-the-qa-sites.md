@@ -52,7 +52,7 @@ roots.
 
 No production data stays in a test path either. Every response PathFinder recorded from
 a production site (`tests/fixtures/wdk`, `organisms`, `eda`, `separation`, `controls`,
-the site-help run capture, the web separation result and the phyletic conformance file)
+the web separation result and the phyletic conformance file)
 moved to `fixtures-production-backup-2026-10-09/` at the repository root, which no test,
 build or image reads. A test that needs one skips with one reason, "needs a QA
 recording: re-record once QA access exists", and only while that recording is missing

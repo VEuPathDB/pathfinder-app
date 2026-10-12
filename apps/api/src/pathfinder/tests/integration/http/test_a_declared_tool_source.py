@@ -1,4 +1,4 @@
-"""Site help answers with tools a declared MCP source serves over the network.
+"""A one-agent assistant answers with tools a declared MCP source serves.
 
 The turn takes the whole path: the chat route defers the job, the worker
 resolves the assistant's declaration against what this deployment admits,
@@ -20,9 +20,12 @@ from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb_mcp.server import TOOLS
 
-from pathfinder.assistants.site_help.mock import (
+from pathfinder.tests._support.second_assistant import (
+    CHECK_PROMPT,
+    CHECK_REPLY,
     CONTROL_TESTS_PROMPT,
     CONTROL_TESTS_REPLY,
+    HELPER,
     RECORD_TYPES_PROMPT,
     RECORD_TYPES_REPLY,
     WDK_CONTROL_TESTS_CALL_ID,
@@ -34,14 +37,13 @@ from pathfinder.tests.integration.http._wdk_mcp_double import (
     ANNOTATIONS,
     CONTROL_TEST_RESULT,
     RECORD_TYPES,
-    SITE_HELP,
     admit_wdk_mcp,
-    run_site_help_turn,
+    run_helper_turn,
     served_double,
 )
 from pathfinder.tests.integration.http.conftest import make_user
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_matches_session", "helper_assistant")
 
 
 @pytest.fixture(scope="module")
@@ -56,7 +58,7 @@ def admitted_double(
     served_endpoint: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[str]:
-    """Admit the served double under the id site help declares."""
+    """Admit the served double under the id the second assistant declares."""
     with admit_wdk_mcp(served_endpoint, monkeypatch) as endpoint:
         yield endpoint
 
@@ -76,12 +78,12 @@ async def _turn(
     *,
     body: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    return await run_site_help_turn(app, user_id, in_memory_jobs, body)
+    return await run_helper_turn(app, user_id, in_memory_jobs, body)
 
 
 def _prompt_body(conversation_id: UUID, prompt: str) -> dict[str, Any]:
     body = chat_post_body(conversation_id, prompt)
-    body["assistantId"] = SITE_HELP
+    body["assistantId"] = HELPER
     return body
 
 
@@ -111,7 +113,7 @@ def _approval_body(conversation_id: UUID) -> dict[str, Any]:
         ],
         "conversationId": str(conversation_id),
         "siteId": "plasmodb",
-        "assistantId": SITE_HELP,
+        "assistantId": HELPER,
     }
 
 
@@ -253,8 +255,8 @@ async def test_a_deployment_that_admits_nothing_still_answers(
         app,
         owner.id,
         in_memory_jobs,
-        body=_prompt_body(uuid4(), "site help check"),
+        body=_prompt_body(uuid4(), CHECK_PROMPT),
     )
 
     assert _of_type(chunks, "error") == []
-    assert _text(chunks) == "Site help is online."
+    assert _text(chunks) == CHECK_REPLY

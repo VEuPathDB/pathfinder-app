@@ -4,7 +4,7 @@ The double answers under the served server's own tool names and annotations,
 so the path a declaration takes to reach the agent is exercised over a socket.
 The served server's live behaviour is proven by its own integration lane.
 Beside it: how a test serves an MCP source, how this deployment admits one,
-and how one site-help turn runs against it.
+and how one turn of the second assistant runs against it.
 """
 
 from __future__ import annotations
@@ -41,7 +41,6 @@ from pathfinder.tests.integration.chat._helpers import (
 )
 from pathfinder.tests.integration.http.conftest import client_for
 
-SITE_HELP = "site_help"
 SERVICE_TOKEN = "wdk-mcp-client-secret-0123456789abcdef"
 CALL_SECONDS = 30
 
@@ -109,7 +108,7 @@ ANNOTATIONS: dict[str, ToolAnnotations] = {
 
 
 def build_double() -> FastMCP[None]:
-    """The three tools site help declares, under the names the server serves."""
+    """The three tools the second assistant declares, under the served names."""
     server: FastMCP[None] = FastMCP(name="veupathdb-wdk-mcp-double")
     for tool in (list_record_types, search_for_searches, run_control_tests_on_search):
         server.tool(tool, annotations=ANNOTATIONS[tool.__name__])
@@ -159,7 +158,7 @@ async def served_double() -> AsyncIterator[str]:
 
 @contextmanager
 def admit_wdk_mcp(endpoint: str, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
-    """Admit one served endpoint under the id site help declares."""
+    """Admit one served endpoint under the id the second assistant declares."""
     install_admitted_sources(
         AdmittedSources(
             records=(
@@ -182,13 +181,13 @@ def admit_wdk_mcp(endpoint: str, monkeypatch: pytest.MonkeyPatch) -> Iterator[st
         get_settings.cache_clear()
 
 
-async def run_site_help_turn(
+async def run_helper_turn(
     app: FastAPI,
     user_id: UUID,
     connector: InMemoryConnector,
     body: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    """Post one site-help body, run the deferred turn, and return its chunks."""
+    """Post one body, run the deferred turn, and return its chunks."""
     queued = len(chat_turn_jobs(connector))
     async with client_for(app, user_id) as client:
         task = asyncio.create_task(

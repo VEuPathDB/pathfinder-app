@@ -107,7 +107,7 @@ describe("messageRefusal", () => {
 });
 
 describe("readerModel", () => {
-  const defaults = { lead: BLIND.id, frame: READER.id, site_help: FLASH.id };
+  const defaults = { lead: BLIND.id, frame: READER.id, helper: FLASH.id };
 
   it("reads the Lead's model for a PathFinder thread", () => {
     expect(readerModel("pathfinder", {}, defaults, CATALOG)).toBe(BLIND);
@@ -116,8 +116,8 @@ describe("readerModel", () => {
     );
   });
 
-  it("reads the one agent's model for a site help thread", () => {
-    expect(readerModel("site_help", {}, defaults, CATALOG)).toBe(FLASH);
+  it("reads the role named after a one-agent assistant for its thread", () => {
+    expect(readerModel("helper", {}, defaults, CATALOG)).toBe(FLASH);
   });
 
   it("is unknown while the catalog has not loaded", () => {

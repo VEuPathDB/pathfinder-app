@@ -18,8 +18,8 @@ other lineup at import. `DEFAULT_MODEL_ID` is the OpenAI default entry, and
 every role's compile-time model and the injection judge read it.
 
 `platform/tiers.py::derive_tiers` reads the ranks. Each tier names a model for
-the planning roles (Lead, FRAME) and one for the worker roles (BUILD, VERIFY,
-site help): quality runs the flagship at high over the standard entry at
+the planning roles (Lead, FRAME) and one for the worker roles (BUILD,
+VERIFY): quality runs the flagship at high over the standard entry at
 medium; balanced the standard entry over the small one, both at medium;
 default runs the provider's default entry at medium for every role; fast
 runs the small entry at low for every role. VERIFY checks at high on the

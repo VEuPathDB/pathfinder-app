@@ -35,8 +35,6 @@ from veupathdb_mcp.controls import (
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
-from pathfinder.assistants import registry
-from pathfinder.assistants.registry import get_assistant_registry
 from pathfinder.devtools import chat
 from pathfinder.devtools.capture import RunCapture
 from pathfinder.devtools.chat import (
@@ -51,8 +49,11 @@ from pathfinder.devtools.gates import user_body
 from pathfinder.jobs.impls import control_tests_impl, register_all_tools
 from pathfinder.jobs.payloads import ChatTurnPayload
 from pathfinder.persistence.repositories.user import UserRepository
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.tests._support.second_assistant import (
+    HELPER,
+    second_assistant,
+)
 from pathfinder.tests.integration.chat._helpers import run_deferred_chat_turns
 from pathfinder.tests.integration.jobs._controls_wire import (
     STEP_A,
@@ -88,7 +89,7 @@ async def _opened(tmp_path: Path) -> tuple[RunArgs, RunCapture]:
             "--site",
             "plasmodb",
             "--assistant",
-            SITE_HELP_ASSISTANT_ID,
+            HELPER,
             "--via-worker",
             "--conversation-id",
             str(conversation_id),
@@ -103,7 +104,7 @@ async def _opened(tmp_path: Path) -> tuple[RunArgs, RunCapture]:
             conversation_id=conversation_id,
             user_id=DEV_USER_ID,
             site_id="plasmodb",
-            assistant_id=SITE_HELP_ASSISTANT_ID,
+            assistant_id=HELPER,
         )
         await session.commit()
     capture = RunCapture(
@@ -115,6 +116,7 @@ async def _opened(tmp_path: Path) -> tuple[RunArgs, RunCapture]:
     return args, capture
 
 
+@pytest.mark.usefixtures("helper_assistant")
 async def test_the_run_waits_out_the_park_and_captures_the_answer(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -168,10 +170,8 @@ async def test_the_run_waits_out_the_park_and_captures_the_answer(
 
 @pytest.fixture
 def controls_assistant(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setattr(registry, "build_site_help_spec", build_spec)
-    get_assistant_registry.cache_clear()
-    yield
-    get_assistant_registry.cache_clear()
+    with second_assistant(monkeypatch, build_spec):
+        yield
 
 
 class _NoSteps:

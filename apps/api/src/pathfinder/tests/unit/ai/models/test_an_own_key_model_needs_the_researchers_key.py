@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import pytest
-from assistant_core.platform.context import PhaseOverrides, attach_phase_overrides
 from assistant_core.platform.types import PaidBy
 from pydantic import SecretStr
 from pydantic_ai.models import Model
@@ -13,7 +12,6 @@ from pathfinder.ai.capabilities.metering import SpendMeter
 from pathfinder.ai.graph._lead_model import resolve_lead_model_context
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_stream import _phase_agent
-from pathfinder.assistants.site_help.agent import build_site_help_agent
 from pathfinder.domain.provider_keys import KeyStatuses, ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import (
@@ -21,7 +19,6 @@ from pathfinder.platform.errors import (
     OwnKeyRequiredError,
     ProviderKeyRefusedError,
 )
-from pathfinder.platform.identity import SITE_HELP_ASSISTANT_ID
 from pathfinder.platform.model_keys import (
     attach_keyring,
     deployment_model,
@@ -63,13 +60,6 @@ def _stage(model_id: str) -> object:
     return _phase_agent(deps, "frame")
 
 
-def _site_help(model_id: str) -> object:
-    with attach_phase_overrides(
-        PhaseOverrides(models={SITE_HELP_ASSISTANT_ID: model_id})
-    ):
-        return build_site_help_agent()
-
-
 def _compactor(model_id: str) -> object:
     return build_compactor_agent(meter=SpendMeter(), model_id=model_id)
 
@@ -77,7 +67,6 @@ def _compactor(model_id: str) -> object:
 _PATHS: list[Callable[[str], object]] = [
     _lead,
     _stage,
-    _site_help,
     _compactor,
     keyed_model,
 ]

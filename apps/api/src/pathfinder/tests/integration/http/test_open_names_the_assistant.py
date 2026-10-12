@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
+from pathfinder.tests._support.second_assistant import HELPER
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 
 _OK = 200
@@ -74,22 +75,23 @@ async def test_a_thread_opened_without_an_assistant_is_begun_by_this_one(
     )
 
 
+@pytest.mark.usefixtures("helper_assistant")
 async def test_a_thread_opened_under_a_named_assistant_keeps_it(
     api_client: httpx.AsyncClient,
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     async with api_client as client:
-        opened = await _open(client, assistantId="site_help")
+        opened = await _open(client, assistantId=HELPER)
         assert opened.status_code == _OK, opened.text
         conversation_id = UUID(opened.json()["conversationId"])
 
         begun = await client.post(
             f"/api/v1/conversations/{conversation_id}/begin",
-            json={"siteId": "plasmodb", "assistantId": "site_help"},
+            json={"siteId": "plasmodb", "assistantId": HELPER},
         )
 
     assert begun.status_code == _OK, begun.text
-    assert await _assistant_of(session_maker, conversation_id) == "site_help"
+    assert await _assistant_of(session_maker, conversation_id) == HELPER
 
 
 async def test_an_unknown_assistant_is_refused_when_the_thread_is_opened(
