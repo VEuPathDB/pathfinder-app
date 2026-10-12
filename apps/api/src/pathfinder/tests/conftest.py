@@ -79,6 +79,7 @@ from pathfinder.services.eda import catalog
 from pathfinder.tests._support.database import can_connect
 
 pytest_plugins = [
+    "pathfinder.tests._support.hermetic_guest",
     "pathfinder.tests._support.signed_in",
     "pathfinder.tests._support.site_session",
 ]

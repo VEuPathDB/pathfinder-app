@@ -18,9 +18,12 @@ _RECORDED_ROOT = FIXTURE_ROOT / "vdi" / "service_root.json"
 
 
 async def _served(body: object) -> str:
-    service_url = get_site("plasmodb").service_url
+    site = get_site("plasmodb")
     with respx.mock(assert_all_mocked=True) as router:
-        router.get(f"{service_url}/").mock(return_value=httpx.Response(200, json=body))
+        router.get(f"{site.web_base_url}/app").mock(return_value=httpx.Response(200))
+        router.get(f"{site.service_url}/").mock(
+            return_value=httpx.Response(200, json=body)
+        )
         return await site_build("plasmodb")
 
 

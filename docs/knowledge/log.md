@@ -1,5 +1,23 @@
 # Log
 
+## 2026-10-12
+
+* **The deployment holds no VEuPathDB account.** `VEUPATHDB_AUTH_TOKEN` leaves the stack, the
+  cedar env file and the nightlies; a read that names no user travels as the one process guest
+  the client library mints and reuses, and a keyed path only as the researcher
+  ([decision](decisions/wdk-requires-registered-login.md)). `services/eda/catalog.py::preload_study_index`
+  syncs the study index as the guest with the researcher context cleared, so the index holds
+  the public studies. Every test that is not `live_wdk` mints the guest with no network.
+
+* **The site help assistant is removed; the mechanism that serves more than one stays.**
+  `assistants/registry.py::installed_assistants` is the one table of what this deployment
+  serves (spec, compile-time role models, the role that reads the message), and it holds
+  PathFinder alone. The `assistantId` routing, the 409 on a mismatched id, the per-assistant
+  gate and tiers, tool-source declarations and the wdk-mcp admission are unchanged. Tests
+  install a one-agent assistant of their own (`tests/_support/second_assistant.py`). Revision
+  `2026_10_12_0001` deletes every `site_help` thread with its rows and checkpoints; its
+  downgrade restores nothing.
+
 ## 2026-10-11
 
 * **research-mcp reads a page summary only from a public address.** With `veupathdb-mcp`

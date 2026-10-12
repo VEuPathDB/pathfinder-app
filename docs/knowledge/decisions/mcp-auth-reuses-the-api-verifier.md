@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: The MCP server verifies with the client library's bearer verifier, and publishes RFC 9728
-description: veupathdb-wdk-mcp reuses the client library's ES512 verifier for the VEuPathDB token, names the OAuth subject as the caller, names three credential modes on the wire, keeps its service secrets in a registry separate from the API's, and builds its protected-resource document and 401 challenge from the mcp SDK. A second JWKS client, reusing PATHFINDER_SERVICE_TOKENS, accepting VEUPATHDB_AUTH_TOKEN from a caller, and hand-rolling the RFC 9728 document were all rejected.
+description: veupathdb-wdk-mcp reuses the client library's ES512 verifier for the VEuPathDB token, names the OAuth subject as the caller, names three credential modes on the wire, keeps its service secrets in a registry separate from the API's, and builds its protected-resource document and 401 challenge from the mcp SDK. A second JWKS client, reusing PATHFINDER_SERVICE_TOKENS, accepting a deployment credential from a caller, and hand-rolling the RFC 9728 document were all rejected.
 tags: [security, auth, veupathdb, oauth, mcp, transport]
 generated: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-08-24T00:00:00Z }
@@ -57,10 +57,11 @@ secret a caller sends to an MCP server would then also authenticate to the
 application's own API as that application. The MCP server therefore reads a
 separate `WDK_MCP_SERVICE_TOKENS`, parsed by the same registry type.
 
-**Accepting `VEUPATHDB_AUTH_TOKEN` from a caller.** The service account is
-confined by a transport guard rather than by call sites; a caller that could
-present it would carry that confinement past the guard. It stays the server's
-own outbound credential and is never an inbound one.
+**Accepting a deployment credential from a caller.** A caller that could
+present it would carry the deployment's access past the transport guard. The
+deployment now holds no VEuPathDB account: the server's user-independent reads
+travel as the process guest, and the only VEuPathDB token a caller presents is
+its own.
 
 **Hand-rolling the protected-resource document and the challenge header.** The
 `mcp` distribution that pins the protocol revision already models RFC 9728 and

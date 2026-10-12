@@ -39,8 +39,8 @@ Its names carry no underscore: the other two units import them too.
    that calls `structlog.configure`.
 
 3. *A host fact the library read.* `veupathdb/settings.py` declares
-   `VEuPathDBSettings(BaseSettings)` with `veupathdb_sites_config` and
-   `veupathdb_auth_token`, plus `use_veupathdb_settings_source` /
+   `VEuPathDBSettings(BaseSettings)` with `veupathdb_sites_config` and the
+   client's other settings, plus `use_veupathdb_settings_source` /
    `get_veupathdb_settings`. `pathfinder.platform.config.Settings` now
    subclasses both `RuntimeSettings` and `VEuPathDBSettings` and installs
    itself into both sources at import time, so one settings instance still

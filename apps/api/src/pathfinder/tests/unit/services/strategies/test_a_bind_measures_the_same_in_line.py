@@ -48,9 +48,10 @@ async def _report(request: httpx.Request) -> httpx.Response:
 @pytest.fixture
 def a_slow_site(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setattr(measurements, "MEASUREMENT_BUDGET_SECONDS", _BUDGET)
-    service_url = get_site("plasmodb").service_url
+    site = get_site("plasmodb")
     with respx.mock(assert_all_mocked=True) as router:
-        router.post(url__startswith=service_url).mock(side_effect=_report)
+        router.get(f"{site.web_base_url}/app").mock(return_value=httpx.Response(200))
+        router.post(url__startswith=site.service_url).mock(side_effect=_report)
         yield
 
 

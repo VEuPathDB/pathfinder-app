@@ -1,10 +1,10 @@
 ---
 type: Decision
 title: A WDK-backed feature requires a registered VEuPathDB login
-description: Every route that reads or writes a user's WDK resources refuses a request that names no registered VEuPathDB user, with 401 WDK_LOGIN_REQUIRED, and refuses one whose token names another account, with 401 WDK_IDENTITY_MISMATCH, except a dev-login session, which is synthetic and acts as its token; guest minting is deleted; the application's service token serves user-independent reads only; a shared guest or service identity for anonymous users was rejected.
+description: Every route that reads or writes a user's WDK resources refuses a request that names no registered VEuPathDB user, with 401 WDK_LOGIN_REQUIRED, and refuses one whose token names another account, with 401 WDK_IDENTITY_MISMATCH, except a dev-login session, which is synthetic and acts as its token; per-user guest minting is deleted; the deployment holds no VEuPathDB account, and user-independent reads travel as one shared process guest; a shared guest or service identity for anonymous users, and a deployment service account, were rejected.
 tags: [security, auth, veupathdb, wdk, guests, transport]
 generated: { by: claude-code/opus-5, at: 2026-08-19T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-08-30T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-10-12T00:00:00Z }
 status: stable
 ---
 
@@ -98,35 +98,37 @@ the only caller of `create_dev_login_token`. Without this, every Playwright
 worker signs in as `worker-N` and shares one registered VEuPathDB test account,
 so the gate answers 401 `WDK_IDENTITY_MISMATCH` on every WDK-backed route.
 
-**The service account is the application, never a user.** `VEUPATHDB_AUTH_TOKEN`
-is the fallback in `veupathdb/wdk/_http.py`, and it may serve only
-user-independent reads: record types, searches, parameter metadata and
-vocabularies, catalog warmup and semantic-index builds. The transport enforces
-it rather than trusting call sites: a request whose path starts `/users/` and
-whose `veupathdb_auth_token_ctx` is empty raises `WDK_LOGIN_REQUIRED` before
-anything leaves the process. `/users/current` is included, because it resolves
-which WDK account the caller is, and without a token the answer is the
-application's own account or a fresh guest - neither of which may own the
-caller's work.
+**The deployment holds no VEuPathDB account.** A read that names no user, such
+as record types, the ontology categories, the dataset report or the EDA study
+list, travels as one shared process guest:
+`veupathdb-py: src/veupathdb/guest_token.py::GuestTokens` mints it once at a
+site's service root and reuses it for its lifetime. A keyed path travels only as
+the researcher. The transport enforces it rather than trusting call sites: a
+request whose path starts `/users/` and whose `veupathdb_auth_token_ctx` is
+empty raises `WDK_LOGIN_REQUIRED` before anything leaves the process, and a
+path a site refuses to the guest raises the same error. `/users/current` is
+included, because it resolves which WDK account the caller is, and without a
+token the answer is a guest, which may not own the caller's work.
 
 # What was deleted
 
-Guest minting, in full. `auth_login.py::mint_guest_token`,
+Guest minting per user, in full. `auth_login.py::mint_guest_token`,
 `extract_any_auth_cookie`, `services/wdk_identity.py::ensure_wdk_identity`, the
 `users.wdk_guest_token` column and its repository setter are gone, with an
 alembic revision dropping the column. Nothing in the product mints a WDK
-identity any more; the user brings one or the request is refused.
+identity for a user any more; the user brings one or the request is refused.
+The process guest is not a user identity: it reads only what the sites open to
+everyone.
 
 `veupathdb-py: src/veupathdb/wdk/current_user.py::fetch_current_user` also
 returns `None` when the request
-carries no token. It reads `GET /users/current`, and with the service account
-configured it would otherwise report the **application's** account as the
-signed-in user on `GET /api/v1/veupathdb/auth/status`.
+carries no token. It reads `GET /users/current`, and it would otherwise report
+a guest as the signed-in user on `GET /api/v1/veupathdb/auth/status`.
 
 # The rejected alternative: one shared identity for anonymous users
 
-Keep guest mode working by sending the service account (or one shared
-registered account) for users who are not logged in. It is refused for reasons
+Keep guest mode working by sending one shared registered account for users
+who are not logged in. It is refused for reasons
 that are not stylistic:
 
 - Every strategy, step and dataset those users create would land in **one**
@@ -137,8 +139,13 @@ that are not stylistic:
 - The researcher would never find the work again. A strategy built in
   PathFinder is meant to open on the VEuPathDB website under the researcher's
   own login, which is the whole point of pushing it there.
-- It hands PathFinder's own credential the blast radius of every user's
+- It hands one shared credential the blast radius of every user's
   mistakes, with no per-user attribution on VEuPathDB's side.
+
+Also replaced: a deployment service account for the user-independent reads. A
+shared account's private access reaches every index built under it, such as the
+EDA study index, and a call with no token makes the site write a new guest
+account row each time; one guest minted per process avoids both.
 
 Also rejected: keeping a per-user persisted guest token as a fallback for
 whoever cannot log in. VEuPathDB refuses guest tokens on these endpoints today,

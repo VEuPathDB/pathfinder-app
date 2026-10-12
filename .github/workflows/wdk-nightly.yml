@@ -39,7 +39,6 @@ jobs:
           PATHFINDER_CHAT_PROVIDER: mock
           WDK_TEST_EMAIL: ${{ secrets.WDK_TEST_EMAIL }}
           WDK_TEST_PASSWORD: ${{ secrets.WDK_TEST_PASSWORD }}
-          VEUPATHDB_AUTH_TOKEN: ${{ secrets.VEUPATHDB_AUTH_TOKEN }}
           WDK_LIVE_SUMMARY: wdk-live-summary.json
           WDK_HIDDEN_DEFAULTS_REPORT: wdk-hidden-defaults.json
         run: uv run pytest src/pathfinder/tests -m live_wdk -q

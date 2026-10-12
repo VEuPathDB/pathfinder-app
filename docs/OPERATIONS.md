@@ -20,7 +20,7 @@ Every command below runs as root on the host that runs the stage. Replace `dev` 
 | `pathfinder-db@` | `docker.io/pgvector/pgvector:pg16` | Postgres with pgvector: every stored record, the job queue, the embedding index | nothing |
 | `pathfinder-api@` | `docker.io/veupathdb/pathfinder-api` | The HTTP API on 8000. Migrates the database at start, loads the site catalogs, writes the embedding index | db (and pulls in the worker) |
 | `pathfinder-worker@` | `pathfinder-api`, `Exec=... -m pathfinder.jobs.worker` | Runs every chat turn and every background task (control tests, optimization, EDA compute) | db, api, wdk-mcp, research-mcp |
-| `pathfinder-wdk-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for the site help assistant | db |
+| `pathfinder-wdk-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp` | The WDK catalog tools over MCP on 8100, for an assistant that declares the source | db |
 | `pathfinder-research-mcp@` | `pathfinder-api`, `Exec=... -m veupathdb_mcp.research` | Literature and web search over MCP on 8110 | searxng |
 | `pathfinder-searxng@` | `docker.io/searxng/searxng` | The web search engine research-mcp asks first, on 8080 | nothing |
 | `pathfinder-service@` | `docker.io/veupathdb/pathfinder-web` | The Next.js site on 3000. Forwards `/pathfinder/api/*` and `/pathfinder/health/*` to the api | api |
@@ -145,7 +145,6 @@ need randomness: `openssl rand -hex 32`.
 | `OPENAI_API_KEY` | api, worker, wdk-mcp | The deployment's OpenAI account: the default chat models, the injection judge and every embedding (memories and the catalog index). | Restart all three. Without it the worker refuses to start, because it cannot build the injection judge, and the api reports `embedding_backend` not ready. |
 | `ANTHROPIC_API_KEY` | api, worker | Lets the deployment pay for Claude Haiku 5.5. Sonnet 5.5 and Opus 5.5 run only on a researcher's own key. | Restart api and worker. Without it, Claude models need a researcher's key. |
 | `PROVIDER_KEY_ENCRYPTION_KEY` | api, worker | Seals the model keys researchers store in Settings (AES-256-GCM). The base64url encoding of 32 random bytes: `python3 -c 'import base64,os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'`. Empty turns the feature off. A malformed value stops both processes. | Every stored key stops opening. At the researcher's next turn the worker marks the key unreadable and refuses a turn that needs it; the deployment's key never stands in. Each researcher enters the key again in Settings. Keep this secret with the database backups. |
-| `VEUPATHDB_AUTH_TOKEN` | api, worker, wdk-mcp | A registered VEuPathDB service account's token for reads that name no user: record types, searches, parameters. Everything a researcher does runs under the researcher's own website login. | Restart all three. If the sites refuse it, catalogs do not load and every site shows as unavailable. |
 | `WDK_MCP_SERVICE_TOKENS` | wdk-mcp, worker | The applications wdk-mcp admits, as `app_id:secret[,app_id:secret...]`: `pathfinder:<secret>`, the secret at least 32 characters. wdk-mcp admits each entry; the worker presents the secret of the `pathfinder` entry. | Change the value and restart wdk-mcp and the worker. Without a `pathfinder` entry the worker admits no wdk-mcp source. |
 | `RESEARCH_MCP_SERVICE_TOKENS` | research-mcp, worker | The same form and the same use, for research-mcp. | As for wdk-mcp. Without it literature and web search end. |
 | `SEARXNG_SECRET` | searxng | SearXNG's server secret. The stack's `config/searxng-settings.yml` turns the limiter and the image proxy off. | Restart searxng. Nothing else reads it. |
@@ -238,8 +237,11 @@ never back.
 **A site shows as unavailable** ("Couldn't reach" in the site menu, 503 `SITE_UNAVAILABLE` on its
 routes). Its catalog did not load inside its 30 s budget. `/health/ready` lists it under
 `degraded`, and the api retries it every 60 s with no action needed. The api log names it:
-`journalctl -u pathfinder-api@dev | grep 'Site catalog did not load'`. If every site is degraded,
-check `VEUPATHDB_AUTH_TOKEN` and that the host reaches the URLs in the stage's sites file.
+`journalctl -u pathfinder-api@dev | grep 'Site catalog did not load'`. The deployment holds no
+VEuPathDB account: each process reads catalogs as one guest, which it mints once with a `GET` of a
+site's service root and reuses. If every site is degraded, check that the host reaches the URLs
+in the stage's sites file and that `curl -si <base_url>` from the host answers with a
+`Set-Cookie: Authorization=` header.
 
 **Chat hangs.** Check the worker first; the api never runs a turn.
 

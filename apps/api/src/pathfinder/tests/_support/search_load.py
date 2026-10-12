@@ -34,7 +34,9 @@ def a_counted_site(
     site_id: str = "plasmodb",
 ) -> Iterator[tuple[VEuPathDBClient, SiteLoad]]:
     load = SiteLoad()
-    service_url = get_site(site_id).service_url
+    site = get_site(site_id)
+    service_url = site.service_url
     with respx.mock(assert_all_mocked=True) as router:
+        router.get(f"{site.web_base_url}/app").mock(return_value=httpx.Response(200))
         router.post(url__startswith=service_url).mock(side_effect=load.answer)
         yield VEuPathDBClient(base_url=service_url, site_id=site_id), load

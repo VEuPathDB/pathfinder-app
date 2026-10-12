@@ -1,8 +1,8 @@
-"""The own-datasets listing reads VDI as the researcher, never as the deployment."""
+"""The own-datasets listing reads VDI as the researcher, never as the guest."""
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable
 from typing import cast
 from uuid import UUID, uuid4
 
@@ -12,7 +12,6 @@ from fastapi import FastAPI, Request, Response
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.errors import VEuPathDBError
 
-from pathfinder.platform.config import get_settings
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.services.eda import catalog, private_datasets
 from pathfinder.tests._support.recorded_vdi import (
@@ -29,17 +28,7 @@ from pathfinder.transport.http.routers import eda_datasets
 
 _Handler = Callable[[Request, Exception], Awaitable[Response]]
 _RESEARCHER = "researcher.token"
-_SERVICE = "service.account.token"
 _FAILED = "MoZ5BBpM8U0IM"
-
-
-@pytest.fixture(autouse=True)
-def service_token(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    monkeypatch.setenv("VEUPATHDB_AUTH_TOKEN", _SERVICE)
-    get_settings.cache_clear()
-    assert get_settings().veupathdb_auth_token == _SERVICE
-    yield
-    get_settings.cache_clear()
 
 
 def _app(monkeypatch: pytest.MonkeyPatch, vdi: RecordedVdi) -> FastAPI:
@@ -88,7 +77,7 @@ async def test_the_listing_and_a_failed_rows_read_carry_the_researchers_bearer(
 async def test_with_no_request_token_no_vdi_call_is_made(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The deployment's token is set and the researcher's is absent: VDI hears nothing."""
+    """With no researcher token VDI hears nothing; the guest never stands in."""
     vdi = RecordedVdi()
 
     status = await _list(_app(monkeypatch, vdi))

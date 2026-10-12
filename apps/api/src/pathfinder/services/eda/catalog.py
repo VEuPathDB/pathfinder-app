@@ -168,7 +168,7 @@ async def list_studies(site_id: str) -> list[EdaStudyOverview]:
 
 
 async def preload_study_index() -> SyncReport | None:
-    """Sync the study index once, under the service account token.
+    """Sync the study index once, as the guest, so it holds the public studies.
 
     The EDA service answers with the portal's catalog on every site, so one
     index serves them all: the first site that answers is the one that syncs.
@@ -177,12 +177,15 @@ async def preload_study_index() -> SyncReport | None:
     if not settings.embedding_index_sync_enabled:
         logger.info("[warm-up] This process does not sync the EDA study index")
         return None
-    token = settings.veupathdb_auth_token
-    if not token:
-        logger.info("[warm-up] No service token, so no EDA study index is synced")
-        return None
-    veupathdb_auth_token_ctx.set(token)
-    for site_id in _preload_order(settings.pathfinder_site):
+    researcher = veupathdb_auth_token_ctx.set(None)
+    try:
+        return await _sync_from_first_answering_site(settings.pathfinder_site)
+    finally:
+        veupathdb_auth_token_ctx.reset(researcher)
+
+
+async def _sync_from_first_answering_site(default_site: str) -> SyncReport | None:
+    for site_id in _preload_order(default_site):
         try:
             report = await sync_study_index(await list_studies(site_id))
         except (

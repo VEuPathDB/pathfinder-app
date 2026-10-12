@@ -188,7 +188,7 @@ def test_the_carried_token_masks_itself_and_reads_back_at_the_point_of_use() -> 
 
 
 async def test_restoring_the_state_installs_the_token_for_the_body() -> None:
-    """The body reads the caller's token, not the service account's."""
+    """The body reads the caller's token, not the guest's."""
     state = WdkJobState.model_validate({"veupathdb_auth_token": _TOKEN})
 
     async with WdkJobContext().restore(state):

@@ -128,6 +128,8 @@ The unit tier refuses every connection made through Python's socket module. An a
 
 Two limits are worth knowing. The guard runs per test, so anything at collection time is outside it. And a C extension that opens its own socket without going through the `socket` module is not covered.
 
+No test mints a real guest token: an autouse fixture in `src/pathfinder/tests/conftest.py` installs `veupathdb.testing.hermetic_guest_tokens` for every test that is not `live_wdk`, and a `live_wdk` test mints its guest on the QA site.
+
 A unit test that needs a real connection carries `@pytest.mark.allow_network`. No production test does: the two database-backed ones live in `tests/integration/`, where they belong. A new marked test needs a reason, because the marker is how the guard is defeated.
 
 The integration tier must pass with no VEuPathDB credential and no provider key, because CI runs it that way; `live_wdk` is the only marker allowed to need the credential and `live_model` the only one allowed to need the key; CI skips the tests that ask for the registered account, and `live_model` is deselected by `addopts` so a developer's key in `.env` is never spent by a default run (the pre-release report selects it with `-m live_model`). An autouse fixture in `src/pathfinder/tests/integration/conftest.py` installs `refuse_veupathdb` from the same module: every other test that opens a connection to a VEuPathDB site host, or a subdomain of one, fails and names itself, whether or not the site would have answered it anonymously. The same fixture clears `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD` for every test that is not `live_wdk`, because a mocked debugger run signs in when they are set. Such a test serves the read from a recording (`tests/_support/recorded_searches.py`: `serve_recorded_definitions` for the definition reads, `serve_recorded_plasmodb` for a whole mock turn, `validate_against` in `tests/_support/wdk_write_stubs.py` for a write), or carries `live_wdk` when the live read is the point of the test. The local reproduction runs from `apps/api` with no `LANGFUSE_*` or `OTEL_*` in the shell, against a database created for the run, as CI's service container is: the suite builds its tables with `create_all`, which never alters a table that already exists, so a long-lived `pathfinder_test` keeps the constraints of the release that created it. It moves the three laptop-only files aside for the run and back whatever the result:
@@ -135,7 +137,7 @@ The integration tier must pass with no VEuPathDB credential and no provider key,
 ```
 D=pathfinder_test_$(date +%s); docker compose --env-file ../../.env.dev exec db createdb -U postgres "$D"; \
 H=$(mktemp -d); mv .env "$H/api.env"; mv ../../.env "$H/root.env"; mv ../../ollama_models.yaml "$H/"; \
-env VEUPATHDB_AUTH_TOKEN= WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST_TOKEN= \
+env WDK_DEV_EMAIL= WDK_DEV_PASSWORD= WDK_TEST_EMAIL= WDK_TEST_PASSWORD= WDK_TEST_TOKEN= \
   OPENAI_API_KEY= ANTHROPIC_API_KEY= GEMINI_API_KEY= OLLAMA_BASE_URL= PATHFINDER_RESEARCH_MCP_URL= \
   API_ENV=test API_SECRET_KEY=test-secret-key-xxxxx-xxxxx-xxxxx PATHFINDER_CHAT_PROVIDER=mock \
   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/$D \
@@ -207,7 +209,7 @@ cd apps/api && uv run python -m veupathdb.devtools.eda_schemas verify    # offli
 cd apps/api && uv run python -m veupathdb.devtools.eda_schemas vendor    # re-pin
 ```
 
-**A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `veupathdb-py: src/veupathdb/devtools/fixtures.py` holds the manifest - what to ask, where, which rules read it, and which schema each direction binds - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording needs `VEUPATHDB_AUTH_TOKEN`, because VEuPathDB refuses anonymous service calls; every manifest entry is user-independent, so no account is addressed.
+**A confirmed drift is answered by re-recording, not by editing a fixture.** No fixture is written by hand. `veupathdb-py: src/veupathdb/devtools/fixtures.py` holds the manifest - what to ask, where, which rules read it, and which schema each direction binds - and `record` refreshes the store. Each file carries its own provenance as data: site, method, url, status, content type, and the date it was recorded. Recording acts as the registered test account that `WDK_TEST_TOKEN` or `WDK_TEST_EMAIL` and `WDK_TEST_PASSWORD` name (`veupathdb-py: src/veupathdb/testing/wdk_credentials.py::act_as_the_test_account`), because most service paths refuse a guest; every manifest entry is user-independent, so no resource of the account is addressed.
 
 **A vendored schema is re-downloaded, not edited either.** `vendor` fetches the enforced schemas and their transitive `$ref` closure at the commit the pin names, deletes what the closure no longer reaches, and rewrites the pin only when a byte changed. Moving to a newer WDK is one edit to the pin's `sha` followed by `vendor`; a hand-edited copy fails `verify` instead of passing quietly.
 

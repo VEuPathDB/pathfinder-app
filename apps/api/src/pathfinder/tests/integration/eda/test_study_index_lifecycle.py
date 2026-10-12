@@ -71,9 +71,11 @@ class _Client:
 
     def __init__(self) -> None:
         self.list_calls = 0
+        self.tokens: list[str | None] = []
 
     async def list_studies(self) -> list[EdaStudyOverview]:
         self.list_calls += 1
+        self.tokens.append(veupathdb_auth_token_ctx.get())
         return _studies()
 
     async def get_permissions(self) -> dict[str, object]:
@@ -101,7 +103,6 @@ async def wired(
 @pytest.fixture
 def sync_enabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("EMBEDDING_INDEX_SYNC_ENABLED", "true")
-    monkeypatch.setenv("VEUPATHDB_AUTH_TOKEN", "service-account-token")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -110,7 +111,6 @@ def sync_enabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 @pytest.fixture
 def sync_disabled(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("EMBEDDING_INDEX_SYNC_ENABLED", "false")
-    monkeypatch.setenv("VEUPATHDB_AUTH_TOKEN", "service-account-token")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -161,6 +161,8 @@ async def test_the_warm_up_syncs_the_index_once(
     del sync_enabled
     await preload_study_index()
     assert wired.list_calls == 1
+    assert wired.tokens == [None]
+    assert veupathdb_auth_token_ctx.get() == "t"
     found = await search_studies("plasmodb", "phenotype")
     assert found.guidance == ""
 

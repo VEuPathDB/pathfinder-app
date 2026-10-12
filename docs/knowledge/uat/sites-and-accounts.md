@@ -61,7 +61,7 @@ The default of `isSyntenic` on every site is `no`. A request that does not say "
 | A clean start | Both accounts start with no PathFinder data. On a dedicated UAT account: Settings, `Data` tab, `Clear ALL data + VEuPathDB`, type `delete my data`, `Confirm`. A leftover memory changes what the assistant recalls, so a flow run on a used account is not comparable. |
 | Test files | The attachment files listed in [composer flows](flows-composer.md). |
 
-The engineering dev account is named in the gitignored `.env.dev` as `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD`; the service token there is `VEUPATHDB_AUTH_TOKEN`, and it resolves to the same VEuPathDB user as the dev email, so it cannot serve as account B. Never paste a credential, a token or an account id into a bug report or into this folder.
+The engineering dev account is named in the gitignored `.env.dev` as `WDK_DEV_EMAIL` and `WDK_DEV_PASSWORD`; it is one VEuPathDB user, so it cannot serve as both account A and account B. Never paste a credential, a token or an account id into a bug report or into this folder.
 
 ## User datasets of the dev account
 

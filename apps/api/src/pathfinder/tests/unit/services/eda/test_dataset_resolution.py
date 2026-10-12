@@ -153,16 +153,16 @@ async def test_a_dataset_whose_study_is_unlisted_reads_its_detail_again(
 
 
 _RESTRICTED = "restricted-token"
-_SERVICE = "service-token"
+_FIRST = "first-account-token"
 
 
 def _per_account(seen: list[str]) -> httpx.MockTransport:
-    """The service account reads the whole fixture; the second account reads none."""
+    """The first account reads the whole fixture; the second account reads none."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         token = request.headers["Cookie"].removeprefix("Authorization=")
         seen.append(token)
-        if token == _SERVICE:
+        if token == _FIRST:
             return httpx.Response(200, json=_permissions())
         return httpx.Response(200, json={"perDataset": {}})
 
@@ -179,7 +179,7 @@ async def test_a_second_account_is_not_served_the_first_account_s_datasets(
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
-    veupathdb_auth_token_ctx.set(_SERVICE)
+    veupathdb_auth_token_ctx.set(_FIRST)
     entry = await catalog.resolve_dataset("plasmodb", "DS_53f554ec6a")
     veupathdb_auth_token_ctx.set(_RESTRICTED)
     with pytest.raises(catalog.UnknownEdaDatasetError):
@@ -187,7 +187,7 @@ async def test_a_second_account_is_not_served_the_first_account_s_datasets(
     await client.close()
 
     assert entry.study_id == "STUDY_53f554ec6a"
-    assert seen == [_SERVICE, _RESTRICTED]
+    assert seen == [_FIRST, _RESTRICTED]
 
 
 async def test_two_accounts_in_one_process_hold_two_permission_maps(
@@ -202,13 +202,13 @@ async def test_two_accounts_in_one_process_hold_two_permission_maps(
     monkeypatch.setattr(catalog, "list_studies", _fixture_studies)
     monkeypatch.setattr(catalog, "sites_publishing", AsyncMock(return_value={}))
 
-    veupathdb_auth_token_ctx.set(_SERVICE)
-    service_cards = await catalog.browse_studies("plasmodb", limit=100)
+    veupathdb_auth_token_ctx.set(_FIRST)
+    first_cards = await catalog.browse_studies("plasmodb", limit=100)
     veupathdb_auth_token_ctx.set(_RESTRICTED)
     restricted_cards = await catalog.browse_studies("plasmodb", limit=100)
     await client.close()
 
-    assert len(service_cards) > 0
+    assert len(first_cards) > 0
     assert restricted_cards == []
 
 
@@ -221,12 +221,12 @@ async def test_one_account_asking_twice_still_reads_once(
     )
     monkeypatch.setattr(catalog, "get_eda_client", lambda _site: client)
 
-    veupathdb_auth_token_ctx.set(_SERVICE)
+    veupathdb_auth_token_ctx.set(_FIRST)
     await catalog.resolve_dataset("plasmodb", "DS_53f554ec6a")
     await catalog.resolve_dataset("plasmodb", "DS_16bc228c8e")
     await client.close()
 
-    assert seen == [_SERVICE]
+    assert seen == [_FIRST]
 
 
 async def _fixture_studies(site_id: str) -> list[EdaStudyOverview]:

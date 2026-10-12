@@ -32,12 +32,9 @@ logger = get_logger(__name__)
 
 
 async def run_chat_turn(payload: dict[str, Any]) -> None:
-    """Procrastinate job body - drives one chat turn through the worker.
+    """Drive one chat turn in the worker under the researcher's VEuPathDB token.
 
-    Payload crosses a process boundary (api -> worker) so we re-install the
-    user's VEuPathDB auth cookie on ``veupathdb_auth_token_ctx`` for the
-    duration of the turn. Without this, every WDK call from the agent
-    would fall through to the service-account token in settings.
+    Without it on ``veupathdb_auth_token_ctx``, every WDK call travels as the guest.
     """
     parsed = ChatTurnPayload.model_validate(payload)
     body = parsed.body
