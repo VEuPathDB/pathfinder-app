@@ -9,7 +9,7 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKRecordType, WDKSearch
 
-from pathfinder.ai.tools.standalone import frame_structure
+from pathfinder.ai.tools.standalone import _frame_organisms, frame_structure
 from pathfinder.services.strategies import (
     data_marks,
     organism_params,
@@ -137,6 +137,25 @@ def serve_organism_reads(
     monkeypatch.setattr(frame_structure, "list_organisms", _organisms)
     monkeypatch.setattr(frame_structure, "get_raw_record_types", _record_types)
     return reads
+
+
+def serve_organism_trees(
+    monkeypatch: pytest.MonkeyPatch, taxa: Mapping[str, frozenset[str]]
+) -> list[dict[str, str]]:
+    """Answer each read of a site's organism trees with ``taxa``, the organisms
+    under each entry. Each read is recorded as the organism parameters it named."""
+    read: list[dict[str, str]] = []
+
+    async def _taxa(
+        site_id: str, record_type: str | None, organism_params: Mapping[str, str]
+    ) -> dict[str, frozenset[str]]:
+        del site_id, record_type
+        read.append(dict(organism_params))
+        return dict(taxa)
+
+    monkeypatch.setattr(organism_params, "organism_taxa", _taxa)
+    monkeypatch.setattr(_frame_organisms, "organism_taxa", _taxa)
+    return read
 
 
 def serve_universe_counts(

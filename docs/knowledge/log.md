@@ -2,6 +2,15 @@
 
 ## 2026-10-12
 
+* **A taxon meets the organisms under it.** The check that refuses an INTERSECT of two
+  organism scopes compares the organisms each entry of the site's organism tree stands
+  for, so a search on `Apicomplexa` meets a search or a study on one of its organisms, and
+  a species entry meets its own strain. The commit, FRAME's `set_structure`, the plan
+  validation and the sync read the tree through `organism_params.tree_taxa`, only when two
+  scopes differ by name. The remedy texts moved to `domain/strategy/organism_remedy.py`.
+  Decision:
+  [an organism scope is the organisms a name stands for](decisions/an-organism-scope-is-the-organisms-a-name-stands-for.md).
+
 * **A pass names a requirement by its number.** FRAME reads the researcher's requirements
   as a numbered list and reports each one the strategy does not answer as asked in
   `FrameResult.requirement_problems`, by number, with one of four problems. A

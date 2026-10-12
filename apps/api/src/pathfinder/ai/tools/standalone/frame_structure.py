@@ -14,6 +14,9 @@ from veupathdb_mcp.gene_lookup import list_organisms
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._frame_organisms import (
+    stated_cross_organism_refusal,
+)
 from pathfinder.domain.strategy.combination_check import (
     first_combination_violation,
     unstated_union,
@@ -30,8 +33,6 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.organism_scope import (
-    dataset_organisms_of,
-    organism_params_of,
     universe_key,
 )
 from pathfinder.domain.strategy.orthology import (
@@ -51,7 +52,6 @@ from pathfinder.domain.strategy.spec_fold import (
     intersected_leaves,
 )
 from pathfinder.domain.strategy.validate import (
-    first_cross_organism_refusal,
     transform_input_refusal,
 )
 from pathfinder.domain.strategy.words import words_of
@@ -213,8 +213,8 @@ def _refuse_a_tree_of_another_orthology_shape(
         raise ModelRetry(msg)
 
 
-def _refuse_a_tree_the_site_cannot_run(
-    state: AgentToolState, proposed: SpecStructure
+async def _refuse_a_tree_the_site_cannot_run(
+    site_id: str, state: AgentToolState, proposed: SpecStructure
 ) -> None:
     """A copy restates a subtree the tree holds, a round trip keeps the source,
     and an INTERSECT joins genes of one organism."""
@@ -225,11 +225,7 @@ def _refuse_a_tree_the_site_cannot_run(
         refusal = (
             None
             if steps is None
-            else first_cross_organism_refusal(
-                steps,
-                organism_params_of(stated.criteria),
-                dataset_organisms_of(stated.criteria),
-            )
+            else await stated_cross_organism_refusal(site_id, stated, steps)
         )
     if refusal is not None:
         msg = f"The structure is refused: {refusal} Nothing was recorded."
@@ -349,7 +345,7 @@ async def set_structure(
     _refuse_a_union_no_one_stated(state, proposed, live)
     _refuse_a_node_the_role_contradicts(state, proposed)
     _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)
-    _refuse_a_tree_the_site_cannot_run(state, proposed)
+    await _refuse_a_tree_the_site_cannot_run(ctx.deps.site_id, state, proposed)
     _refuse_a_tree_of_another_orthology_shape(state, proposed)
     await _refuse_a_transform_over_another_record_class(ctx, proposed)
     deduped = fold_duplicate_inputs(

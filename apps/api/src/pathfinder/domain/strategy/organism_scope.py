@@ -4,10 +4,22 @@ marks as the organism, or from the dataset of a search that marks none."""
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping
+from types import MappingProxyType
 
 from veupathdb.domain.strategy import StrategyStepNode, extract_output_organisms
 
 from pathfinder.domain.strategy.operational_spec import Criterion
+
+# No entry of an organism tree is known to hold organisms.
+NO_TAXA: Mapping[str, frozenset[str]] = MappingProxyType({})
+
+
+def organisms_of(
+    scope: Collection[str], taxa: Mapping[str, frozenset[str]]
+) -> set[str]:
+    """The organisms a scope stands for: an entry of the organism tree that holds
+    organisms stands for those under it."""
+    return {organism for entry in scope for organism in taxa.get(entry, {entry})}
 
 
 def organism_params_of(criteria: Iterable[Criterion]) -> dict[str, str]:

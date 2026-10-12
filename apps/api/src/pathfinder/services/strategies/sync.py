@@ -32,6 +32,7 @@ from pathfinder.services.strategies.naming import name_for_the_push
 from pathfinder.services.strategies.organism_params import (
     tree_dataset_organisms,
     tree_organism_parameters,
+    tree_taxa,
 )
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -291,7 +292,12 @@ async def sync_strategy_for_site(
     datasets = await tree_dataset_organisms(
         site_id, root_step, sync_state.organism_params
     )
-    _validate_graph(root_step, graph.record_type, sync_state.organism_params, datasets)
+    taxa = await tree_taxa(
+        site_id, graph.record_type, root_step, sync_state.organism_params, datasets
+    )
+    _validate_graph(
+        root_step, graph.record_type, sync_state.organism_params, datasets, taxa
+    )
 
     step_tree = build_step_tree_from_graph(root_step, sync_state.wdk_step_ids)
 
@@ -346,12 +352,13 @@ def _validate_graph(
     record_type: str | None,
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
+    taxa: Mapping[str, frozenset[str]],
 ) -> None:
     """Validate the strategy structure when a record type is known."""
     if not record_type:
         return
     validation_result = validate_strategy(
-        root_step, record_type, organism_params, dataset_organisms
+        root_step, record_type, organism_params, dataset_organisms, taxa=taxa
     )
     if not validation_result.valid:
         errors = [

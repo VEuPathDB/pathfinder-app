@@ -30,7 +30,10 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.spec_hydration import spec_from_ast
 from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests._support.organism_reads import serve_organism_reads
+from pathfinder.tests._support.organism_reads import (
+    serve_organism_reads,
+    serve_organism_trees,
+)
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -386,7 +389,10 @@ class TestAnIntersectOfTwoOrganismsIsRefusedBeforeTheBuild:
     """Gene ids of two species never match, so the tree is refused at FRAME."""
 
     @pytest.mark.asyncio
-    async def test_the_two_organism_intersect_is_refused(self) -> None:
+    async def test_the_two_organism_intersect_is_refused(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        serve_organism_trees(monkeypatch, {})
         st = AgentToolState()
         st.frame_set_criterion(_signal_peptide("c_pf", "Plasmodium falciparum 3D7"))
         st.frame_set_criterion(_signal_peptide("c_pv", "Plasmodium vivax P01"))

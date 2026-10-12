@@ -5,7 +5,10 @@ from veupathdb.domain.strategy import StrategyAst
 from veupathdb.errors import ValidationError
 
 from pathfinder.domain.strategy.validate import validate_strategy
-from pathfinder.services.strategies.organism_params import tree_organism_parameters
+from pathfinder.services.strategies.organism_params import (
+    tree_organism_parameters,
+    tree_taxa,
+)
 
 
 async def validate_plan_or_raise(plan: JSONObject, *, site_id: str) -> StrategyAst:
@@ -21,7 +24,8 @@ async def validate_plan_or_raise(plan: JSONObject, *, site_id: str) -> StrategyA
         ) from exc
 
     marks = await tree_organism_parameters(site_id, payload.record_type, payload.root)
-    validation = validate_strategy(payload.root, payload.record_type, marks)
+    taxa = await tree_taxa(site_id, payload.record_type, payload.root, marks, {})
+    validation = validate_strategy(payload.root, payload.record_type, marks, taxa=taxa)
     if not validation.valid:
         raise ValidationError(
             title="Invalid strategy",

@@ -16,7 +16,12 @@ from pathfinder.services.strategies.commit import apply_and_commit
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests._support import organism_reads
-from pathfinder.tests._support.organism_reads import GT1, ME49, ME49_STUDY
+from pathfinder.tests._support.organism_reads import (
+    GT1,
+    ME49,
+    ME49_STUDY,
+    serve_organism_trees,
+)
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
     combine,
@@ -83,8 +88,9 @@ def _config_writes(api: StubAPI) -> list[int]:
 
 
 async def test_another_strain_beside_the_study_is_refused_and_nothing_is_pushed(
-    api: StubAPI,
+    api: StubAPI, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    serve_organism_trees(monkeypatch, {})
     session = _session()
 
     with pytest.raises(ApplyError) as excinfo:

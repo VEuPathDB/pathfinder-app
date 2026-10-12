@@ -13,7 +13,10 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone.frame_structure import set_structure
 from pathfinder.domain.strategy.operational_spec import Criterion, StructureNode
 from pathfinder.tests._support.bound_values import bound
-from pathfinder.tests._support.organism_reads import serve_organism_reads
+from pathfinder.tests._support.organism_reads import (
+    serve_organism_reads,
+    serve_organism_trees,
+)
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 
@@ -71,7 +74,10 @@ class TestAnIntersectWithADatasetSearch:
     """A search that marks no organism parameter runs on its dataset's organism."""
 
     @pytest.mark.asyncio
-    async def test_a_dataset_search_of_another_species_is_refused(self) -> None:
+    async def test_a_dataset_search_of_another_species_is_refused(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        serve_organism_trees(monkeypatch, {})
         st = AgentToolState()
         st.frame_set_criterion(
             _signal_peptide("c_sp", "Cryptosporidium meleagridis strain UKMEL1")

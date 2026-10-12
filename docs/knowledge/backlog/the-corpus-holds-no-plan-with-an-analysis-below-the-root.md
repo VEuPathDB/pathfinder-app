@@ -27,5 +27,8 @@ ran on it, because the QA sites redirect a client outside the network to a login
   count measured on QA.
 - Add a case whose request names a property the site has no search for beside
   one it has, and expect the gap row in the held words and no refused pass.
+- Add a case that intersects a search scoped to a taxon with a search or a study
+  scoped to one organism under it, and expect a built step tree with no orthology
+  transform ([an organism scope is the organisms a name stands for](../decisions/an-organism-scope-is-the-organisms-a-name-stands-for.md)).
 - Run the whole corpus once and compare the count of FRAME dispatches that end
   in a refusal with the last saved run.
