@@ -37,8 +37,8 @@ It holds:
   that took a step's place shows that step's count, and the root shows the count of the root
   the message found after any write, a delete included;
 - the caveats (`caveats_for` over the verdict on the strategy, so an assumed value shows even
-  before a check), the gaps (with each requirement a framing pass found no search on the site
-  states, `FrameResult.unstated`, in words a researcher message carries, so a turn that builds
+  before a check), the gaps (with each requirement a framing pass reports the site has no
+  search for, `FrameResult.requirement_problems`, in the words the thread holds, so a turn that builds
   nothing still shows what the site lacks), the column fits, and the requirements the researcher withdrew or
   an answer replaced (`retired_requirements`), shown as retired and never as gaps; a
   withdrawn combination shows only the sides a delete removed

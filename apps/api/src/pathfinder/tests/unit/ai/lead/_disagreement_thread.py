@@ -22,6 +22,7 @@ from veupathdb.domain.strategy import (
 )
 from veupathdb_mcp.catalog import ParameterInfo
 
+from pathfinder.ai.agents.frame_result_checks import hold_the_questions_to_the_draft
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import (
@@ -177,6 +178,8 @@ class DisagreementThread:
         """The workspace each FRAME pass found, newest last."""
         self.work_orders: list[str] = []
         """The work order each FRAME pass received, newest last."""
+        self.sent_back: list[str] = []
+        """What a FRAME pass was told inside its own run, newest last."""
         graph = session.get_graph(None)
         answered = (
             None
@@ -421,11 +424,18 @@ class DisagreementThread:
             agent_deps.agent_state.operational_spec_draft = draft(
                 found.model_copy(deep=True)
             )
-            return FrameResult(
+            result = FrameResult(
                 disposition=disposition,
                 summary="framed",
                 open_questions=list(asks or []),
             )
+            try:
+                hold_the_questions_to_the_draft(run_context_for(agent_deps), result)
+            except ModelRetry as told:
+                # The pass is told once inside its own run, and here it answers
+                # the same again, which reaches the dispatch.
+                self.sent_back.append(str(told))
+            return result
 
         self.monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _pass)
 

@@ -85,10 +85,10 @@ def _records_the_pending_choice() -> Draft:
     return _draft
 
 
-async def test_a_pass_that_asks_before_it_records_the_choice_is_refused(
+async def test_a_pass_that_asks_before_it_records_the_choice_is_told(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The question reaches no criterion, so the pass is sent back to record it."""
+    """The question reaches no criterion, so the pass is told to record it."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
     thread.frames(
@@ -97,14 +97,14 @@ async def test_a_pass_that_asks_before_it_records_the_choice_is_refused(
         asks=[WHICH_ONE],
     )
 
-    refusal = await thread.edit()
+    await thread.edit()
 
-    assert isinstance(refusal, str), refusal
-    assert WHICH_ONE.question in refusal
+    [told] = thread.sent_back
+    assert WHICH_ONE.question in told
     assert thread.criteria == [SURFACE, STAGE]
 
 
-async def test_the_refusal_names_a_way_a_saved_strategy_question_can_follow(
+async def test_the_pass_is_told_a_way_a_saved_strategy_question_can_follow(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A saved-strategy criterion has no sheet, so nulling a parameter is no path."""
@@ -116,11 +116,11 @@ async def test_the_refusal_names_a_way_a_saved_strategy_question_can_follow(
         asks=[WHICH_ONE],
     )
 
-    refusal = await thread.edit()
+    await thread.edit()
 
-    assert isinstance(refusal, str), refusal
-    assert "saved_strategy" in refusal
-    assert "set_criterion" in refusal
+    [told] = thread.sent_back
+    assert "saved_strategy" in told
+    assert "set_criterion" in told
 
 
 async def test_a_pass_that_records_the_pending_choice_stands(
@@ -144,18 +144,12 @@ async def test_a_pass_that_records_the_pending_choice_stands(
     assert _open_slots(thread) == [SAVED_STRATEGY_SLOT]
 
 
-async def test_the_retry_records_the_choice_the_first_pass_asked_about(
+async def test_a_pass_that_records_the_choice_ends_with_the_question(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The refused turn still ends with the question and an address for it."""
+    """The turn ends with the question and an address for it."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    thread.frames(
-        _read_the_listing_only(),
-        disposition="needs_user",
-        asks=[WHICH_ONE],
-    )
-    assert isinstance(await thread.edit(), str)
     thread.frames(
         _records_the_pending_choice(),
         disposition="needs_user",

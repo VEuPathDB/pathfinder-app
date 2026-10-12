@@ -7,7 +7,11 @@ from veupathdb.domain.parameters import NumberValue
 
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
-from pathfinder.domain.strategy.constraints import ConstraintKind
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
 from pathfinder.domain.strategy.operational_spec import (
     BoundValue,
     Criterion,
@@ -56,12 +60,16 @@ def _asks(criterion_id: str, param_name: str) -> SlotQuestion:
     )
 
 
-def _asked(*questions: SlotQuestion, unstated: tuple[str, ...] = ()) -> FrameResult:
-    return FrameResult(
-        disposition="needs_user",
-        open_questions=list(questions),
-        unstated=list(unstated),
-    )
+def _asked(*questions: SlotQuestion) -> FrameResult:
+    return FrameResult(disposition="needs_user", open_questions=list(questions))
+
+
+_GPI = Constraint(
+    kind=ConstraintKind.OTHER,
+    label="predicted GPI anchor",
+    requested_value="predicted GPI anchor",
+    source=ConstraintSource.USER_EXPLICIT,
+)
 
 
 def test_a_question_on_an_open_slot_binds() -> None:
@@ -110,7 +118,7 @@ def test_a_question_that_names_half_a_slot_is_refused() -> None:
     assert "criterion_id and param_name" in refusal
 
 
-def test_a_question_about_a_requirement_the_pass_names_unstated_binds() -> None:
+def test_a_question_about_a_requirement_the_site_lacks_binds() -> None:
     """Its answer lands on the requirement, through the drop and keep options."""
     free = SlotQuestion(
         question="No search on this site states a predicted GPI anchor. Drop it?",
@@ -120,9 +128,7 @@ def test_a_question_about_a_requirement_the_pass_names_unstated_binds() -> None:
 
     assert (
         questions_that_bind_to_nothing(
-            _asked(free, unstated=("predicted GPI anchor",)),
-            _draft(open_floor=False),
-            None,
+            _asked(free), _draft(open_floor=False), None, lacking=[_GPI]
         )
         == ""
     )
@@ -136,9 +142,7 @@ def test_a_free_question_on_a_draft_with_no_open_slot_is_refused() -> None:
     )
 
     refusal = questions_that_bind_to_nothing(
-        _asked(free, unstated=("predicted GPI anchor",)),
-        _draft(open_floor=False),
-        None,
+        _asked(free), _draft(open_floor=False), None, lacking=[_GPI]
     )
 
     assert "no criterion of the spec holds an open slot" in refusal

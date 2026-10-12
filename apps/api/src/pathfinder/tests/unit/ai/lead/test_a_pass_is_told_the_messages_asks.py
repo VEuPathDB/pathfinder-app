@@ -1,5 +1,5 @@
 """A frame or edit pass reads which parts of the message the Lead answers, so
-it never records an ask as a requirement or an unstated entry."""
+it never records an ask as a criterion or a requirement problem."""
 
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ _OPERATIONALIZE = (
 )
 _TOLD = (
     "The Lead answers the message's asks after this pass: "
-    f"'{_ASK}'. An ask states no requirement, so no criterion and no `unstated` "
-    "entry holds one."
+    f"'{_ASK}'. An ask states no requirement, so no criterion and no "
+    "`requirement_problems` entry holds one."
 )
 
 

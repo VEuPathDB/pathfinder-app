@@ -18,7 +18,6 @@ from pathfinder.domain.strategy.spec_diff import diff_specs
 from pathfinder.domain.strategy.spec_fold import (
     fold_option_criteria,
 )
-from pathfinder.domain.strategy.spec_hydration import root_join_operator
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
 )
@@ -142,39 +141,6 @@ def test_the_spec_the_strategy_answers_to_waits_for_no_analysis() -> None:
 
     assert [c.id for c in answered.criteria] == [EXPORTED]
     assert answered.structure == SpecStructure(root=_leaf(EXPORTED))
-
-
-class TestTheRootJoin:
-    """Where an export takes a waiting criterion's place in the strategy."""
-
-    def test_a_leaf_under_the_root_combine_joins_at_its_operator(self) -> None:
-        structure = _joined(CombineOp.INTERSECT, _leaf(EXPORTED), _leaf("c_36"))
-
-        assert root_join_operator(structure, "c_36") is CombineOp.INTERSECT
-
-    def test_the_last_input_of_a_minus_joins_at_minus(self) -> None:
-        structure = _joined(CombineOp.MINUS, _leaf(EXPORTED), _leaf("c_36"))
-
-        assert root_join_operator(structure, "c_36") is CombineOp.MINUS
-
-    def test_a_leaf_the_root_join_cannot_reach_has_no_join(self) -> None:
-        """The first input of a MINUS, a leaf in a branch, and a lone leaf."""
-        branch = StructureNode(
-            kind="combine",
-            operator=CombineOp.UNION,
-            inputs=[_leaf(EXPORTED), _leaf("c_36")],
-        )
-        structures = [
-            _joined(CombineOp.MINUS, _leaf("c_36"), _leaf(EXPORTED)),
-            _joined(CombineOp.INTERSECT, branch, _leaf("step_k1")),
-            SpecStructure(root=_leaf("c_36")),
-        ]
-
-        assert [root_join_operator(s, "c_36") for s in structures] == [
-            None,
-            None,
-            None,
-        ]
 
 
 def test_the_steps_a_built_spec_mints_hold_every_analysis_document() -> None:

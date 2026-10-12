@@ -1,5 +1,6 @@
 """An edit pass that ends in a question pushes nothing: its delta carries no
-diff and names the criteria the plan moved as pending."""
+diff, names the criteria the plan moved as pending, and keeps what the pass
+reported about a requirement."""
 
 from __future__ import annotations
 
@@ -16,6 +17,10 @@ from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.domain.strategy.operational_spec import BoundValue
+from pathfinder.domain.strategy.requirement_reports import (
+    ReportedRequirement,
+    RequirementProblem,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -54,6 +59,12 @@ def _session() -> StrategySession:
     return session
 
 
+_REPORTED = ReportedRequirement(
+    requirement="a 4-fold cutoff",
+    problem=RequirementProblem.NEEDS_THE_ANALYSIS_WORKFLOW,
+)
+
+
 async def _edit_that_stops_on_a_question(monkeypatch: pytest.MonkeyPatch) -> EditDelta:
     state = pipeline_state(user_prompt=_SWAP, domain=StrategyDomainState())
     intent = UserIntent(
@@ -67,7 +78,11 @@ async def _edit_that_stops_on_a_question(monkeypatch: pytest.MonkeyPatch) -> Edi
         signal.resolved_params["organism"] = BoundValue(
             value=StringValue(value="P01"), source="chosen"
         )
-        return FrameResult(disposition="needs_user", summary="stopped on the TM step")
+        return FrameResult(
+            disposition="needs_user",
+            summary="stopped on the TM step",
+            reported=[_REPORTED],
+        )
 
     async def _no_sheets(**_kwargs: Any) -> dict[str, Any]:
         return {}
@@ -94,3 +109,12 @@ async def test_the_delta_names_the_moved_criterion_as_pending_and_carries_no_dif
         ["signal"],
     )
     assert delta.operations_applied == 0
+
+
+@pytest.mark.asyncio
+async def test_the_delta_carries_what_the_pass_reported(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    delta = await _edit_that_stops_on_a_question(monkeypatch)
+
+    assert delta.reported == [_REPORTED]

@@ -2,40 +2,29 @@
 
 from __future__ import annotations
 
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 from pydantic_ai.exceptions import ModelRetry
-from veupathdb.domain.strategy import CombineOp
 
+from pathfinder.ai.tools.standalone._eda_step_write import AskedPlacement, StepJoin
+from pathfinder.domain.strategy.join_point import branch_step, join_point
 from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
     pending_analyses,
+    structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_hydration import root_join_operator
 
 
 class WaitingPlacement(NamedTuple):
     """The spec that holds the waiting criterion, and the join its step takes.
 
-    ``operator`` is None when the export becomes the strategy's first step.
+    ``join`` is None when the export becomes the strategy's first step.
     """
 
     spec: OperationalSpec
     criterion_id: str
-    operator: CombineOp | None
-
-
-class AskedPlacement(NamedTuple):
-    """The placement arguments one export call sent."""
-
-    attach_to_step_id: str | None
-    slot: Literal["primary", "secondary"] | None
-    replace_step_id: str | None
-    combine_with_root: CombineOp | None
-
-    def named(self) -> list[str]:
-        return [name for name, value in self._asdict().items() if value is not None]
+    join: StepJoin | None
 
 
 def export_placement(
@@ -115,17 +104,31 @@ def waiting_placement(
     if graph.primary_root_id() is None:
         _refuse_a_first_step_beside_unbuilt_searches(spec, criterion_id)
         return WaitingPlacement(spec, criterion_id, None)
-    operator = root_join_operator(spec.structure, criterion_id)
-    if operator is None:
+    return WaitingPlacement(spec, criterion_id, _join(spec, graph, criterion_id))
+
+
+def _join(spec: OperationalSpec, graph: StrategyGraph, criterion_id: str) -> StepJoin:
+    """The step the structure joins this criterion to, or why none is held."""
+    point = join_point(spec.structure, graph.steps, criterion_id)
+    if point is None:
         msg = (
-            f"{criterion_id} is not an input of the structure's root combine, or "
-            f"it stands first under an operator that reads its inputs in order, "
-            f"and an export joins the strategy's root as its last input. Nothing "
-            f"was written. Dispatch edit_strategy to place {criterion_id} under "
-            f"the root combine, then export again."
+            f"The structure joins {criterion_id} to no step the strategy holds: "
+            f"it names {sorted(structure_criteria(spec.structure))} and the "
+            f"strategy holds {sorted(graph.steps)}. Nothing was written. Dispatch "
+            f"edit_strategy so the structure places {criterion_id} beside a step "
+            f"the strategy holds, then export again."
         )
         raise ModelRetry(msg)
-    return WaitingPlacement(spec, criterion_id, operator)
+    step_id = branch_step(graph, spec.structure, point.anchor)
+    if step_id is None:
+        msg = (
+            f"The structure joins {criterion_id} to {sorted(point.anchor)} as one "
+            f"branch, and the strategy holds no step that joins exactly those. "
+            f"Nothing was written. Dispatch edit_strategy so the strategy holds "
+            f"the structure's branches, then export again."
+        )
+        raise ModelRetry(msg)
+    return StepJoin(step_id, point.operator, export_first=point.comes_first)
 
 
 def _refuse_a_first_step_beside_unbuilt_searches(
@@ -137,6 +140,6 @@ def _refuse_a_first_step_beside_unbuilt_searches(
         msg = (
             f"The strategy holds no step, and the spec states {unbuilt} beside "
             f"{criterion_id}. Call build_strategy for them first; this export "
-            f"then joins the strategy's root."
+            f"then joins them where the structure places it."
         )
         raise ModelRetry(msg)

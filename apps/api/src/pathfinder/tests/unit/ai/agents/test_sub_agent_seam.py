@@ -225,6 +225,7 @@ def test_the_registry_agrees_with_the_dispatch_map() -> None:
 
 STRATEGY_RENDERERS = {
     "base_system_prompt",
+    "pinned_requirements",
     "pinned_frame_workspace",
     "pinned_frame_sheets",
     "pinned_graph_state",
@@ -245,6 +246,7 @@ INSTRUCTION_ORDER = {
         "pinned_user_memories",
         "pinned_conversation_so_far",
         "pinned_scratchpad",
+        "pinned_requirements",
         "pinned_frame_workspace",
         "pinned_frame_sheets",
         "pinned_run_budget",

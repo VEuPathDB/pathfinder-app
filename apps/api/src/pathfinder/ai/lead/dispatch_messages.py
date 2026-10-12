@@ -85,7 +85,8 @@ def asks_lines(asks: Sequence[str]) -> list[str]:
     return [
         (
             f"The Lead answers the message's asks after this pass: {named}. An ask "
-            "states no requirement, so no criterion and no `unstated` entry holds one."
+            "states no requirement, so no criterion and no `requirement_problems` entry "
+            "holds one."
         )
     ]
 

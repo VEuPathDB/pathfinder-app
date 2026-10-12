@@ -223,34 +223,6 @@ async def test_second_empty_result_becomes_needs_user(
     assert "no bound criterion" in result.summary
 
 
-async def test_a_pass_that_asks_about_nothing_it_bound_is_a_retry(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A question over a draft with no open slot is refused once."""
-    _stub_stream(
-        monkeypatch,
-        FrameResult(
-            disposition="needs_user",
-            summary="which threshold?",
-            open_questions=[
-                SlotQuestion(question="Which percentile?", recommended_value="10"),
-            ],
-        ),
-        binds=True,
-    )
-    deps = _deps()
-
-    with pytest.raises(ModelRetry) as excinfo:
-        await run_frame(
-            deps=deps,
-            parent_tool_call_id="t1",
-            work_order=frame_work_order("frame it", deps),
-        )
-
-    assert "set_criterion" in str(excinfo.value)
-    assert deps.state.domain.open_questions == []
-
-
 async def test_a_needs_user_result_over_an_empty_draft_is_not_a_retry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

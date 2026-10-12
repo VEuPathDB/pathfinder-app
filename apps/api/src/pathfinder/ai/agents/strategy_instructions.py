@@ -18,6 +18,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.prompts.loader import load_system_prompt
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.build_outcome import built_counts
+from pathfinder.domain.strategy.requirement_reports import requirements_block
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.services.eda.export import exported_analysis
 
@@ -98,6 +99,11 @@ def pinned_frame_sheets(ctx: RunContext[AgentDeps]) -> str | None:
         lambda cid: _sheet_block(cid, _without_vocabulary(sheets[cid])),
     )
     return "\n\n".join([_SHEETS_HEADER, *blocks])
+
+
+def pinned_requirements(ctx: RunContext[AgentDeps]) -> str | None:
+    """The requirements the researcher stated, each under the number a report names."""
+    return requirements_block(ctx.deps.agent_state.stated_requirements)
 
 
 def pinned_frame_workspace(ctx: RunContext[AgentDeps]) -> str | None:

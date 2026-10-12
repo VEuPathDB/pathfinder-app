@@ -205,6 +205,12 @@ class AgentToolState:
     # The requirements the thread states. A dropped criterion holds open the one
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)
+    # Whether this pass was already told a report names a number the list lacks.
+    unknown_requirements_sent_back: bool = False
+    # The spec the dispatch found, which a pass that changes nothing still holds.
+    spec_the_dispatch_found: OperationalSpec | None = None
+    # Whether this pass was already told its questions bind nothing.
+    unbound_questions_sent_back: bool = False
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)

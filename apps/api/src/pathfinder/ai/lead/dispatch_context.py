@@ -92,6 +92,7 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             orthology_request=OrthologyRequest.read(state.user_prompt),
             stated_operators=stated_operators(state.user_prompt),
             stated_requirements=list(state.domain.requirements),
+            spec_the_dispatch_found=found,
             created_gene_sets=deps.created_gene_sets,
             request_messages=state.researcher_messages(),
             turn_counts=deps.turn_counts,

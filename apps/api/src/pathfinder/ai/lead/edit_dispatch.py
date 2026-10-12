@@ -162,6 +162,7 @@ async def run_edit(
                 q for q in deps.state.domain.open_questions if q.question in asked
             ],
             card_questions=frame.card_questions,
+            reported=frame.reported,
             pending_step_ids=[
                 c.criterion_id
                 for c in diff.changes
@@ -176,7 +177,7 @@ async def run_edit(
     )
     if moved is not None:
         refuse_and_restore(deps, moved)
-    return await _push_the_edit(
+    pushed = await _push_the_edit(
         deps=deps,
         after=after,
         diff=diff,
@@ -184,6 +185,7 @@ async def run_edit(
         base_revision=base_revision,
         undo=False,
     )
+    return pushed.model_copy(update={"reported": frame.reported})
 
 
 async def _undo(

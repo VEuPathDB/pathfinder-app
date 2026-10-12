@@ -7,7 +7,6 @@ from typing import Any
 from uuid import uuid4
 
 import pytest
-from pydantic_ai import ModelRetry
 
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
@@ -47,12 +46,19 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
+from pathfinder.domain.strategy.requirement_reports import (
+    ReportedRequirement,
+    RequirementProblem,
+    RequirementReport,
+)
 from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import kinds, reply
 from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     requirement,
+    site_lacks,
 )
 
 _POSITIVES = [f"PF3D7_01{n:05d}" for n in range(80)]
@@ -185,30 +191,54 @@ def test_a_gap_a_requirement_the_researcher_withdrew_names_is_no_gap() -> None:
 _GPI_REQUEST = "Find Plasmodium falciparum 3D7 genes with a predicted GPI anchor"
 
 
-def _framed_nothing(monkeypatch: pytest.MonkeyPatch, unstated: list[str]) -> LeadDeps:
+_GPI = Constraint(
+    kind=ConstraintKind.OTHER,
+    label="predicted GPI anchor",
+    requested_value="predicted GPI anchor",
+    source=ConstraintSource.USER_EXPLICIT,
+)
+
+
+def _framed_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+    reports: list[RequirementReport],
+    held: list[Constraint],
+) -> LeadDeps:
     async def _no_search(**_: Any) -> FrameResult:
         return FrameResult(
             disposition="needs_research",
-            summary="No search on this site states a predicted GPI anchor.",
-            unstated=unstated,
+            summary=(
+                "No search on this site states a predicted GPI anchor; the "
+                "nearest is the text search, which reads annotation words."
+            ),
+            requirement_problems=reports,
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _no_search)
     return lead_deps(
-        pipeline_state("plasmodb", user_prompt=_GPI_REQUEST, user_message_id=uuid4())
+        pipeline_state(
+            "plasmodb",
+            user_prompt=_GPI_REQUEST,
+            user_message_id=uuid4(),
+            domain=StrategyDomainState(requirements=held),
+        )
     )
 
 
-@pytest.mark.asyncio
-async def test_a_requirement_no_search_states_is_a_gap_with_nothing_built(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    deps = _framed_nothing(monkeypatch, ["predicted GPI anchor"])
-
+async def _facts_after_framing(deps: LeadDeps) -> TurnFacts:
     await run_frame(
         deps=deps, parent_tool_call_id="t1", work_order=frame_work_order("go", deps)
     )
-    facts = turn_facts(deps)
+    return turn_facts(deps)
+
+
+@pytest.mark.asyncio
+async def test_a_requirement_the_site_lacks_is_a_gap_in_the_held_words(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    facts = await _facts_after_framing(
+        _framed_nothing(monkeypatch, site_lacks("R1"), [_GPI])
+    )
 
     assert (facts.steps, facts.gaps) == (
         [],
@@ -220,18 +250,41 @@ async def test_a_requirement_no_search_states_is_a_gap_with_nothing_built(
 
 
 @pytest.mark.asyncio
-async def test_a_requirement_the_researcher_did_not_state_is_refused(
+@pytest.mark.parametrize(
+    "problem",
+    [
+        RequirementProblem.STAND_IN_BOUND,
+        RequirementProblem.NEEDS_THE_ANALYSIS_WORKFLOW,
+        RequirementProblem.REQUEST_LEAVES_IT_OPEN,
+    ],
+)
+async def test_a_report_of_another_problem_is_carried_and_is_no_gap(
+    monkeypatch: pytest.MonkeyPatch, problem: RequirementProblem
+) -> None:
+    report = RequirementReport(requirement="R1", problem=problem)
+    deps = _framed_nothing(monkeypatch, [report], [_GPI])
+
+    result = await run_frame(
+        deps=deps, parent_tool_call_id="t1", work_order=frame_work_order("go", deps)
+    )
+
+    assert isinstance(result, FrameResult)
+    assert result.reported == [
+        ReportedRequirement(requirement="predicted GPI anchor", problem=problem)
+    ]
+    assert "requirementProblems" not in result.model_dump(by_alias=True)
+    assert turn_facts(deps).gaps == []
+
+
+@pytest.mark.asyncio
+async def test_a_number_the_list_lacks_is_no_gap_and_ends_no_pass(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    deps = _framed_nothing(monkeypatch, ["glycosylphosphatidylinositol anchor"])
+    facts = await _facts_after_framing(
+        _framed_nothing(monkeypatch, site_lacks("R1"), [])
+    )
 
-    with pytest.raises(ModelRetry, match="glycosylphosphatidylinositol anchor"):
-        await run_frame(
-            deps=deps,
-            parent_tool_call_id="t1",
-            work_order=frame_work_order("go", deps),
-        )
-    assert turn_facts(deps).gaps == []
+    assert facts.gaps == []
 
 
 def test_a_study_step_check_short_of_the_request_is_a_facts_row() -> None:

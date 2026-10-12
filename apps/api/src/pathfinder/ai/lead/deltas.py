@@ -16,6 +16,10 @@ from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     SlotQuestion,
 )
+from pathfinder.domain.strategy.requirement_reports import (
+    ReportedRequirement,
+    RequirementReport,
+)
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
 
@@ -43,14 +47,20 @@ class FrameResult(CamelModel):
             "Lead asks it on the question card with those options."
         ),
     )
-    unstated: list[str] = Field(
+    requirement_problems: list[RequirementReport] = Field(
         default_factory=list,
+        exclude=True,
         description=(
-            "Each requirement of the request that no search on this site "
-            "states, in the researcher's own words. Nothing is bound for it. "
-            "A note about a count, the build or a later step is no requirement "
-            "and is never listed."
+            "One entry for each requirement, from 'Requirements the researcher "
+            "stated' in your instructions, that the strategy does not answer as "
+            "asked. A requirement a bound search answers as asked is never "
+            "listed. Empty when every requirement is answered."
         ),
+    )
+    # The reports with the held words in place of each number. The dispatch
+    # sets it, so FRAME's schema omits it and the Lead reads it.
+    reported: Annotated[list[ReportedRequirement], OmittedFromInput] = Field(
+        default_factory=list
     )
     # What the pass did to each criterion the workspace held: kept only when
     # its wire values did not move. The dispatch derives it from the two
@@ -128,6 +138,8 @@ class EditDelta(CamelModel):
     open_questions: list[OpenQuestion] = Field(default_factory=list)
     # The open questions as the question card asks them, option by option.
     card_questions: list[CardQuestion] = Field(default_factory=list)
+    # What the framing pass reported about a requirement the edit does not answer.
+    reported: list[ReportedRequirement] = Field(default_factory=list)
     description: str = ""
     operations_applied: int = 0
     added_step_ids: list[str] = Field(

@@ -8,6 +8,7 @@ instead of verifying.
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 from assistant_core.models.scripted import (
     called_tool_parts,
@@ -235,11 +236,13 @@ def extend_or_build(
 
 
 def framed_only(
-    messages: list[ModelMessage], prose: Callable[[list[ModelMessage]], str]
+    messages: list[ModelMessage],
+    prose: Callable[[list[ModelMessage]], str],
+    *requirements: dict[str, Any],
 ) -> list[ToolCallPart]:
     """Frame and answer with what the pass found, building nothing."""
     return [
-        classify("new_strategy"),
+        classify("new_strategy", *requirements),
         scripted_call("frame_problem", {"reason": "mock frame"}),
         lead_final(prose(messages), "await_user"),
     ]

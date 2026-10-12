@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.domain.strategy.card_answers import params_held
-from pathfinder.domain.strategy.constraints import message_states
+from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.questions import SlotQuestion
 
@@ -43,7 +43,9 @@ def _unheld_slot_questions(
         f"sets the parameter its question names, so each question names a "
         f"criterion_id and param_name the draft holds. The draft holds {holds or 'none'}. "
         f"Name one of those, or record the criterion first with set_criterion and "
-        f"null for the parameter the user must decide."
+        f"null for the parameter the user must decide. If no search on this site "
+        f"can answer the requirement, or it needs the analysis workflow, report "
+        f"it in requirement_problems and ask no question about it."
     )
 
 
@@ -51,11 +53,14 @@ def questions_that_bind_to_nothing(
     result: FrameResult,
     draft: OperationalSpec,
     found: OperationalSpec | None,
+    *,
+    lacking: Sequence[Constraint] = (),
 ) -> str:
     """Why a pass that stops on the user asks about nothing it recorded, or "".
 
-    A slot question binds its criterion's parameter, a question on an unstated
-    requirement binds through drop and keep, and any other needs an open slot."""
+    A slot question binds its criterion's parameter, a question on a
+    requirement the site ``lacking`` a search for binds through drop and keep,
+    and any other needs an open slot."""
     questions = result.open_questions
     unheld = _unheld_slot_questions(questions, draft)
     if unheld:
@@ -64,7 +69,7 @@ def questions_that_bind_to_nothing(
         q
         for q in questions
         if not q.names_a_slot
-        and not any(message_states(q.question, text) for text in result.unstated)
+        and not any(message_states(q.question, c.requested_value) for c in lacking)
     ]
     if not free:
         return ""

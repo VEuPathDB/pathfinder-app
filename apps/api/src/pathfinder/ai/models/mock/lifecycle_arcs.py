@@ -9,7 +9,7 @@ from typing import Any
 from assistant_core.models.scripted import current_scope_id, scripted_call
 from pydantic_ai.messages import ModelMessage, ToolCallPart
 
-from pathfinder.ai.models.mock.calls import CLASSIFY, lead_final
+from pathfinder.ai.models.mock.calls import CLASSIFY, lead_final, stated
 from pathfinder.ai.models.mock.site_values import SiteValues
 
 # The requirement the withdrawal arc takes back, as the classifier states it.
@@ -17,16 +17,6 @@ WITHDRAWN_VALUE = "transmembrane domain"
 
 _NARROWED = "The strategy now reads the narrower organism."
 _WITHDRAWN = "The transmembrane domain requirement is taken back."
-
-
-def _constraint(kind: str, label: str, value: str) -> dict[str, Any]:
-    return {
-        "kind": kind,
-        "label": label,
-        "requestedValue": value,
-        "source": "user_explicit",
-        "hard": True,
-    }
 
 
 def _classified(**intent: Any) -> ToolCallPart:
@@ -47,9 +37,7 @@ def narrowed_organism(messages: list[ModelMessage]) -> list[ToolCallPart]:
     del messages
     organism = SiteValues.for_site(current_scope_id.get()).organism
     return [
-        _classified(
-            explicitConstraints=[_constraint("organism", "organism", organism)]
-        ),
+        _classified(explicitConstraints=[stated("organism", "organism", organism)]),
         lead_final(_NARROWED, "await_user"),
     ]
 
@@ -58,6 +46,6 @@ def withdrawn_requirement(messages: list[ModelMessage]) -> list[ToolCallPart]:
     """An edit that takes one requirement back by its dimension and value."""
     del messages
     return [
-        _classified(withdrawn=[_constraint("other", "domain", WITHDRAWN_VALUE)]),
+        _classified(withdrawn=[stated("other", "domain", WITHDRAWN_VALUE)]),
         lead_final(_WITHDRAWN, "await_user"),
     ]

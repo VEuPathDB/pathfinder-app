@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An EDA analysis is a criterion of the spec
-description: An exported EDA step is a criterion that carries an AnalysisBinding (dataset, comparison, method, direction, thresholds, subset sentences, words, and the step's document as an opaque value) and states no parameter of its own. FRAME reads it as bound and cannot re-bind, drop or leave it out of the structure. A comparison only the analysis workflow realizes waits in the spec under FRAME's own id with needs_analysis_on, and create_eda_step(criterion_id=...) binds it where the structure places it. Teaching FRAME to bind EDA searches, keeping EDA steps outside the spec, keying the handoff on the analysis id, and matching a fold-change criterion to the step by its words were rejected.
+description: An exported EDA step is a criterion that carries an AnalysisBinding (dataset, comparison, method, direction, thresholds, subset sentences, words, and the step's document as an opaque value) and states no parameter of its own. FRAME reads it as bound and cannot re-bind, drop or leave it out of the structure. A comparison only the analysis workflow realizes waits in the spec under FRAME's own id with needs_analysis_on, and create_eda_step(criterion_id=...) binds it where the structure places it, at any depth. Teaching FRAME to bind EDA searches, keeping EDA steps outside the spec, keying the handoff on the analysis id, and matching a fold-change criterion to the step by its words were rejected.
 tags: [eda, agents, strategy, spec]
 generated: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-23T00:00:00Z }
@@ -129,13 +129,19 @@ criteria and records that spec as the answer, while the plan keeps them, and
 no later edit owes a disposition for one (`the_edit_the_strategy_owes`). The
 Lead's pinned route and the turn contract name the criterion's id, and
 `create_eda_step(criterion_id=...)` binds it: the id must name a waiting
-criterion on the analysis's dataset, the step joins the strategy's root under
-the operator of the root combine the structure hangs it from (the root join
-`spec_hydration.root_join_operator` reads), the criterion takes the step's id
+criterion on the analysis's dataset, the step joins the built part of the
+smallest branch of the structure that names the criterion, under that branch's
+operator and at any depth (`domain/strategy/join_point.py::join_point`, and
+`branch_step` for the step that holds that branch). Under an operator that reads
+its inputs in order the export joins the built inputs before it, or comes first
+before the first built input after it. The join is an added step, a combine over
+the joined step and the export, and a rewire of the joined step's consumer when
+it has one. The criterion takes the step's id
 and its binding on the plan, the answer and the dispatch record, the turn's
 entry spec takes the same id so the turn's diff reads the criterion as changed
-and not as dropped, and any other place is refused with the structure's
-reason. `StrategyDomainState.restate_every_record` does that for the export
+and not as dropped. An export is refused only when no combine above its
+criterion names a step the strategy holds, or when the strategy does not hold
+the joined criteria as one branch. `StrategyDomainState.restate_every_record` does that for the export
 and re-keys the same records for `build_strategy`, so a resumed dispatch
 never plans against a criterion whose step exists.
 An export on a dataset a criterion waits on that names no criterion is
@@ -180,6 +186,7 @@ restated an exported comparison and left its step out of the structure.
 `domain/strategy/step_words.py`, `services/eda/analysis_kinds.py`,
 `services/eda/export.py::exported_analysis`,
 `services/eda/export.py::read_beside_the_document`,
+`domain/strategy/join_point.py`, `ai/tools/standalone/_eda_step_write.py`,
 `ai/lead/analysis_readings.py`, `ai/tools/standalone/_frame_eda.py`, `ai/tools/standalone/_eda_step_criterion.py`,
 `ai/tools/standalone/_eda_step_spec.py`, `ai/lead/edit_dispatch.py`,
 `ai/lead/lead_pins.py::eda_route_blocks`,

@@ -127,7 +127,6 @@ def union_frame(messages: list[ModelMessage]) -> ToolCallPart:
                 "summary": refused,
                 "disposition": "needs_research",
                 "openQuestions": [],
-                "unstated": [],
             }
         )
     return spec_frame(union_spec)(messages)

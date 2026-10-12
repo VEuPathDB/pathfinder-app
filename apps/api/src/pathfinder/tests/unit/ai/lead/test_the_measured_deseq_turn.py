@@ -10,6 +10,7 @@ from veupathdb_mcp.catalog import COMPUTE_QUERY
 from pathfinder.ai.lead.deltas import EditDelta
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_pins import eda_route_blocks
+from pathfinder.ai.tools.standalone._eda_step_write import ExportJoin
 from pathfinder.domain.eda_parts import EdaComparison
 from pathfinder.domain.strategy.operational_spec import SpecStructure
 from pathfinder.tests._support.eda_step_doubles import DE_DATASET
@@ -106,8 +107,13 @@ async def test_both_comparisons_are_deseq2_branches_with_a_significance_cut(
 
     second = await export(thread, reference="36h", criterion_id=WAITING)
 
-    assert second.combined_with_root is CombineOp.INTERSECT
     root = thread.graph.steps[thread.graph.primary_root_id() or ""]
+    assert second.join == ExportJoin(
+        combine_step_id=root.id,
+        operator=CombineOp.INTERSECT,
+        joined_step_id=first.step_id,
+        export_first=False,
+    )
     assert (root.kind, root.operator) == (StepKind.COMBINE, CombineOp.INTERSECT)
     assert (root.primary_input_id, root.secondary_input_id) == (
         first.step_id,

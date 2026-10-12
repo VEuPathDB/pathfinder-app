@@ -78,19 +78,19 @@ def _binds_with_an_open_slot(thread: DisagreementThread) -> None:
     )
 
 
-async def test_a_pass_that_asks_without_binding_is_refused(
+async def test_a_pass_that_asks_without_binding_is_told_inside_its_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The questions reach no criterion, so the pass is sent back to record one."""
+    """The questions reach no criterion, so the pass is told to record one."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
     _asks_without_binding(thread)
 
-    refusal = await thread.edit()
+    await thread.edit()
 
-    assert isinstance(refusal, str), refusal
-    assert "set_criterion" in refusal
-    assert THRESHOLD.question in refusal
+    [told] = thread.sent_back
+    assert "set_criterion" in told
+    assert THRESHOLD.question in told
     assert thread.criteria == [SURFACE, STAGE]
     assert thread.committed == []
 
@@ -111,12 +111,12 @@ async def test_a_pass_that_binds_before_it_asks_stands(
     assert _open_params(thread) == [PROTEOME_PARAM]
 
 
-async def test_a_pass_that_binds_and_asks_about_nothing_open_is_refused(
+async def test_a_pass_that_binds_and_asks_about_nothing_open_is_told(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A draft with every value decided holds no slot the answer lands in.
 
-    The refusal keeps the criterion the pass bound for the retry.
+    The pass keeps the criterion it bound.
     """
     thread = _thread(monkeypatch)
     await thread.next_turn()
@@ -126,21 +126,19 @@ async def test_a_pass_that_binds_and_asks_about_nothing_open_is_refused(
         asks=[THRESHOLD],
     )
 
-    refusal = await thread.edit()
+    await thread.edit()
 
-    assert isinstance(refusal, str), refusal
-    assert "open slot" in refusal
+    [told] = thread.sent_back
+    assert "open slot" in told
     assert thread.criteria == [SURFACE, STAGE, PROTEOME]
 
 
-async def test_the_pass_is_refused_once_a_turn(
+async def test_a_pass_that_still_asks_about_nothing_reaches_the_lead(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A second pass that still asks about nothing reaches the Lead."""
+    """A pass is told once, and what it answers after that is the Lead's to read."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    _asks_without_binding(thread)
-    assert isinstance(await thread.edit(), str)
     _asks_without_binding(thread)
 
     delta = await thread.edit()
@@ -150,14 +148,12 @@ async def test_the_pass_is_refused_once_a_turn(
     assert [q.question for q in delta.open_questions] == [THRESHOLD.question]
 
 
-async def test_the_retry_records_the_criterion_and_the_answer_builds_it(
+async def test_a_pass_records_the_criterion_and_the_answer_builds_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The refused turn ends with the criterion open, and the answer pushes it."""
+    """The turn ends with the criterion open, and the answer pushes it."""
     thread = _thread(monkeypatch)
     await thread.next_turn()
-    _asks_without_binding(thread)
-    assert isinstance(await thread.edit(), str)
     _binds_with_an_open_slot(thread)
     asked = await thread.edit()
     assert isinstance(asked, EditDelta), asked

@@ -122,13 +122,40 @@ def test_the_saved_gene_set_reply_names_the_set_and_no_count(site_id: str) -> No
 def test_a_search_no_site_search_states_is_named(site_id: str) -> None:
     text = "Find genes with a predicted GPI anchor [[arc:no-search-states-it]]"
 
-    calls = play("frame", site_id, text, work_order=_ORDER)
+    listed = Scene(
+        instructions=(
+            "## Requirements the researcher stated\n"
+            f"- R1: {site_id}\n"
+            "- R2: a predicted GPI anchor"
+        )
+    )
+
+    calls = play("frame", site_id, text, work_order=_ORDER, scene=listed)
 
     answer = calls[-1].args_as_dict()
-    assert (answer["summary"], answer["unstated"]) == (
+    assert (answer["summary"], answer["requirementProblems"]) == (
         f"No search on {site_id} states: a predicted GPI anchor.",
-        ["a predicted GPI anchor"],
+        [{"requirement": "R2", "problem": "site_has_no_search"}],
     )
+
+
+@pytest.mark.parametrize("site_id", SITES)
+def test_the_property_no_search_states_is_classified_as_a_requirement(
+    site_id: str,
+) -> None:
+    text = "Find genes with a predicted GPI anchor [[arc:no-search-states-it]]"
+
+    calls = play("lead", site_id, text)
+
+    assert calls[0].args_as_dict()["intent"]["explicitConstraints"] == [
+        {
+            "kind": "other",
+            "label": "a predicted GPI anchor",
+            "requestedValue": "a predicted GPI anchor",
+            "source": "user_explicit",
+            "hard": True,
+        }
+    ]
 
 
 @pytest.mark.parametrize("site_id", SITES)

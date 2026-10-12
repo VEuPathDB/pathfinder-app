@@ -10,6 +10,7 @@ from veupathdb.domain.strategy import CombineOp
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
+from pathfinder.ai.tools.standalone._eda_step_write import ExportJoin
 from pathfinder.domain.strategy.analysis_binding import AnalysisKind
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -28,12 +29,16 @@ from pathfinder.tests._support.eda_wire import PHENOTYPE_DATASET
 from pathfinder.tests._support.run_context import lead_run_context
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
+    combine,
     install_stub_api,
     leaf,
     session_with,
 )
+from pathfinder.tests.unit.ai.tools.conftest import summary_of
+from pathfinder.tests.unit.domain.strategy._builders import shape
 
 _WAITING = "c_essential"
+_NO_STEP_TO_JOIN = f"The structure joins {_WAITING} to no step the strategy holds"
 # The study names the species variable, so the words name it too.
 _WORDS = "The genes of the analysis 'berghei subset': Species is one of P. berghei"
 
@@ -70,10 +75,12 @@ def _spec(root: StructureNode, *, dataset: str = PHENOTYPE_DATASET) -> Operation
     )
 
 
+def _joined(operator: CombineOp, *inputs: StructureNode) -> StructureNode:
+    return StructureNode(kind="combine", operator=operator, inputs=list(inputs))
+
+
 def _under_the_root(operator: CombineOp = CombineOp.INTERSECT) -> StructureNode:
-    return StructureNode(
-        kind="combine", operator=operator, inputs=[_node("step_k1"), _node(_WAITING)]
-    )
+    return _joined(operator, _node("step_k1"), _node(_WAITING))
 
 
 def _graph(ctx: RunContext[LeadDeps]) -> StrategyGraph:
@@ -99,7 +106,12 @@ async def test_the_waiting_criterion_becomes_the_step_where_the_tree_puts_it(
         "step_k1",
         exported.step_id,
     )
-    assert exported.combined_with_root is CombineOp.INTERSECT
+    assert exported.join == ExportJoin(
+        combine_step_id=root.id,
+        operator=CombineOp.INTERSECT,
+        joined_step_id="step_k1",
+        export_first=False,
+    )
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
     assert [c.id for c in spec.criteria] == ["step_k1", exported.step_id]
@@ -148,24 +160,17 @@ async def test_an_export_with_no_spec_states_one(
         (_spec(_under_the_root()), "c_missing"),
         (_spec(_under_the_root(), dataset="DS_other"), "waits on dataset DS_other"),
         (
-            _spec(
-                StructureNode(
-                    kind="combine",
-                    operator=CombineOp.INTERSECT,
-                    inputs=[
-                        StructureNode(
-                            kind="combine",
-                            operator=CombineOp.UNION,
-                            inputs=[_node("step_k1"), _node(_WAITING)],
-                        ),
-                        _node("step_k1"),
-                    ],
-                )
-            ),
-            "not an input of the structure's root combine",
+            _spec(_joined(CombineOp.INTERSECT, _node("step_k9"), _node(_WAITING))),
+            f"{_NO_STEP_TO_JOIN}: it names ['{_WAITING}', 'step_k9'] and",
         ),
+        (_spec(_node("step_k1")), f"{_NO_STEP_TO_JOIN}: it names ['step_k1'] and"),
     ],
-    ids=["an id the spec lacks", "another dataset", "a place inside a branch"],
+    ids=[
+        "an id the spec lacks",
+        "another dataset",
+        "no sibling the strategy holds",
+        "a structure that does not place it",
+    ],
 )
 async def test_a_criterion_the_export_cannot_take_is_refused_and_nothing_written(
     monkeypatch: pytest.MonkeyPatch, spec: OperationalSpec, refusal: str
@@ -234,3 +239,48 @@ async def test_the_first_export_of_a_spec_that_only_waits_is_the_strategy(
     spec = ctx.deps.state.domain.operational_spec
     assert spec is not None
     assert spec.structure == SpecStructure(root=_node(exported))
+
+
+async def test_a_place_inside_a_branch_joins_the_step_that_branch_holds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ctx = _ctx(session_with(combine("step_c1", leaf("step_k1"), leaf("step_k2")), {}))
+    kinases, waiting = _spec(_node("step_k1")).criteria
+    spec = OperationalSpec(
+        goal="essential kinases",
+        criteria=[kinases, kinases.model_copy(update={"id": "step_k2"}), waiting],
+        structure=SpecStructure(
+            root=_joined(
+                CombineOp.INTERSECT,
+                _node("step_k1"),
+                _joined(CombineOp.UNION, _node("step_k2"), _node(_WAITING)),
+            )
+        ),
+    )
+    ctx.deps.state.domain.operational_spec = spec
+    _wire(monkeypatch)
+
+    answer = await eda_step.create_eda_step(ctx, criterion_id=_WAITING)
+
+    exported = returned(answer, eda_step.EdaStepCreated)
+    graph = _graph(ctx)
+    assert graph.roots == {"step_c1"}
+    assert shape(graph) == f"(step_k1 INTERSECT (step_k2 UNION {exported.step_id}))"
+    assert exported.join == ExportJoin(
+        combine_step_id=graph.steps["step_c1"].secondary_input_id or "",
+        operator=CombineOp.UNION,
+        joined_step_id="step_k2",
+        export_first=False,
+    )
+    assert summary_of(answer).data["summary"] == (
+        f"Step {exported.step_id} combined with step_k2 (UNION)"
+    )
+    stated = ctx.deps.state.domain.operational_spec
+    assert stated is not None
+    assert stated.structure == SpecStructure(
+        root=_joined(
+            CombineOp.INTERSECT,
+            _node("step_k1"),
+            _joined(CombineOp.UNION, _node("step_k2"), _node(exported.step_id)),
+        )
+    )

@@ -35,7 +35,6 @@ __all__ = [
     "criterion_analysing",
     "hidden_params_dropped",
     "read_under_their_parents",
-    "root_join_operator",
     "sheet_bound",
     "sheet_marked",
     "spec_from_ast",
@@ -49,7 +48,6 @@ Sheets = Mapping[str, Sequence[ParameterInfo]]
 # A sheet whose dependent vocabularies the step's own parents answer, by step id.
 StepSheets = Mapping[str, Sequence[ParameterInfo]]
 _NO_ANALYSES: Analyses = {}
-_SYMMETRIC = frozenset({CombineOp.INTERSECT, CombineOp.UNION})
 
 
 class StepRead(NamedTuple):
@@ -180,24 +178,6 @@ def _hanging_at_the_root(
     if {node.criterion_id for node in hanging} != set(pending):
         return None
     return hanging
-
-
-def root_join_operator(
-    structure: SpecStructure | None, criterion_id: str
-) -> CombineOp | None:
-    """The operator that joins a step for this leaf to the strategy's root.
-
-    The leaf is an input of the root combine, and the join puts it after the
-    root, so an operator that reads its inputs in order needs the leaf last.
-    None when the structure places the leaf anywhere else.
-    """
-    if structure is None or _hanging_at_the_root(structure, [criterion_id]) is None:
-        return None
-    root = structure.root
-    operator = root.combine_operator
-    if operator in _SYMMETRIC or root.inputs[-1].criterion_id == criterion_id:
-        return operator
-    return None
 
 
 def _deepest_primary_leaf(node: StrategyStepNode) -> StrategyStepNode:

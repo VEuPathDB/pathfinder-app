@@ -1,5 +1,5 @@
 """Every card the Lead asks offers a choice: a question card with one option is
-refused where it is built, and a requirement FRAME names as unstated is asked
+refused where it is built, and a requirement FRAME reports the site lacks is asked
 as its own drop-or-keep question, so a free-text card about it is refused."""
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     requirement,
+    site_lacks,
 )
 
 _BRL01_CARD = {
@@ -126,7 +127,7 @@ _SUBSTITUTE_CARD = CardQuestion.model_validate(
 )
 
 
-async def test_a_requirement_the_pass_names_unstated_is_asked_to_drop_or_keep(
+async def test_a_requirement_the_site_lacks_is_asked_to_drop_or_keep(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def _signal_peptide_only(**kwargs: Any) -> FrameResult:
@@ -148,7 +149,7 @@ async def test_a_requirement_the_pass_names_unstated_is_asked_to_drop_or_keep(
         )
         return FrameResult(
             summary="The signal peptide search is bound; no search states spores.",
-            unstated=["expressed in spores"],
+            requirement_problems=site_lacks("R1"),
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _signal_peptide_only)
@@ -226,7 +227,7 @@ def _winnie_deps() -> Any:
     )
 
 
-async def test_a_pass_that_asks_about_an_unstated_requirement_is_not_refused(
+async def test_a_pass_that_asks_about_a_requirement_the_site_lacks_is_not_refused(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The piroplasmadb pass: FRAME asks the question its instructions ask for."""
@@ -248,7 +249,7 @@ async def test_a_pass_that_asks_about_an_unstated_requirement_is_not_refused(
                     ],
                 )
             ],
-            unstated=["predicted GPI anchor"],
+            requirement_problems=site_lacks("R1"),
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _needs_user)
@@ -274,7 +275,7 @@ async def test_a_pass_that_asks_about_an_unstated_requirement_is_not_refused(
     ]
 
 
-async def test_a_refused_pass_keeps_the_criteria_it_bound(
+async def test_a_pass_that_asks_about_a_slot_it_lacks_keeps_what_it_bound(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The vectorbase pass named a slot its draft does not hold."""
@@ -300,12 +301,9 @@ async def test_a_refused_pass_keeps_the_criteria_it_bound(
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _unheld_slot)
     deps = _winnie_deps()
 
-    with pytest.raises(ModelRetry, match="options that bind nothing"):
-        await run_frame(
-            deps=deps,
-            parent_tool_call_id="t1",
-            work_order=frame_work_order("go", deps),
-        )
+    await run_frame(
+        deps=deps, parent_tool_call_id="t1", work_order=frame_work_order("go", deps)
+    )
 
     spec = deps.state.domain.operational_spec
     assert spec is not None

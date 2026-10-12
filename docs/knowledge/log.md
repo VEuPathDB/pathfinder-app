@@ -2,6 +2,33 @@
 
 ## 2026-10-12
 
+* **A pass names a requirement by its number.** FRAME reads the researcher's requirements
+  as a numbered list and reports each one the strategy does not answer as asked in
+  `FrameResult.requirement_problems`, by number, with one of four problems. A
+  `site_has_no_search` report is the gap the facts part shows, in the words the thread
+  holds, and the requirement the card offers to drop. The Lead reads `reported` on the
+  `FrameResult` and the `EditDelta`: the held words, the problem and what to do about it.
+  `FrameResult.unstated`, its word match against the researcher's messages and the
+  refusal of a pass over it are gone. Decision:
+  [a pass names a requirement by its number](decisions/a-pass-names-a-requirement-by-its-number.md).
+
+* **FRAME is corrected inside its own run.** A report whose number the list lacks, and a
+  pass that stops on the user with a question that binds nothing, go back to FRAME once
+  through its output validators (`ai/agents/frame_result_checks.py`), with its history,
+  draft and tools in place. The dispatch no longer refuses such a pass to the Lead; when a
+  pass still ends on such a question, each criterion the dispatch found takes back the
+  values it was found with. `LeadDeps.unbound_questions_reported` is gone.
+
+* **An export joins its own branch.** An export for a waiting criterion joins the built
+  part of the smallest branch of the structure that names it, under that branch's operator
+  and in the structure's input order, at any depth
+  (`domain/strategy/join_point.py`). The join is an added step, a combine over the joined
+  step and the export, and a rewire of the joined step's consumer when it has one. An
+  export is refused only when no combine above its criterion names a step the strategy
+  holds, or when the strategy does not hold the joined criteria as one branch.
+  `spec_hydration.root_join_operator` and the two refusals of a place below the root are
+  gone, and `create_eda_step` returns `join` in place of `combined_with_root`.
+
 * **The deployment holds no VEuPathDB account.** `VEUPATHDB_AUTH_TOKEN` leaves the stack, the
   cedar env file and the nightlies; a read that names no user travels as the one process guest
   the client library mints and reuses, and a keyed path only as the researcher

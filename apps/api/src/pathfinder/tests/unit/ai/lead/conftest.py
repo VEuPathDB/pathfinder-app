@@ -30,6 +30,10 @@ from pathfinder.domain.strategy.constraints import (
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.requirement_reports import (
+    RequirementProblem,
+    RequirementReport,
+)
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.site_organisms import serve_recorded_organisms
@@ -139,6 +143,16 @@ def requirement(kind: ConstraintKind, label: str, value: str) -> Constraint:
         requested_value=value,
         source=ConstraintSource.USER_EXPLICIT,
     )
+
+
+def site_lacks(*numbers: str) -> list[RequirementReport]:
+    """Reports that the site has no search for each numbered requirement."""
+    return [
+        RequirementReport(
+            requirement=number, problem=RequirementProblem.SITE_HAS_NO_SEARCH
+        )
+        for number in numbers
+    ]
 
 
 class ChunkCollector:

@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 from pydantic_ai import RunContext
 
 from pathfinder.ai.lead.deltas import FrameResult
-from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.dispatch_context import (
     agent_deps_for,
     defer_dispatch,
@@ -31,6 +28,10 @@ from pathfinder.ai.lead.dispatch_messages import (
 )
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
+from pathfinder.ai.lead.frame_requirements import (
+    requirements_no_search_states,
+    requirements_the_site_lacks,
+)
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_consult import card_questions
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
@@ -46,16 +47,16 @@ from pathfinder.ai.lead.sub_agent_tools import (
     criteria_floor,
 )
 from pathfinder.domain.strategy.constraints import (
-    STRATEGY_SCOPES,
     Constraint,
-    ConstraintSource,
-    ConstraintStatus,
     message_states,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.questions import (
     unanswered_questions,
     with_withdrawals,
+)
+from pathfinder.domain.strategy.requirement_reports import (
+    resolved_reports,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
 
@@ -200,37 +201,27 @@ async def run_frame(
     )
     if isinstance(result, FrameResult):
         domain = deps.state.domain
+        lacking = requirements_the_site_lacks(deps, result)
         asked = unanswered_questions(
             with_withdrawals(
                 result.questions(domain.operational_spec),
-                _unstated_requirements(deps, result.unstated),
+                requirements_no_search_states(deps, lacking),
             ),
             answered=[q.question for q in domain.answered_questions],
         )
         deps.state.domain.record_questions(asked)
-        deps.state.turn_markers.unstated_requirements = list(result.unstated)
-        return result.model_copy(update={"card_questions": card_questions(asked)})
-    return result
-
-
-def _unstated_requirements(deps: LeadDeps, named: Sequence[str]) -> list[Constraint]:
-    """The held requirements the researcher stated that no search of the spec
-    states: each one the ledger lists as ungroundable, and each one the pass
-    names in ``unstated`` that is no scope every search runs in."""
-    held = {c.key for c in deps.state.domain.requirements}
-    return [
-        g.constraint
-        for g in derive_ledger(deps.state, deps.intent).constraints.grounded
-        if g.constraint.source is ConstraintSource.USER_EXPLICIT
-        and g.constraint.key in held
-        and (
-            g.status is ConstraintStatus.UNGROUNDABLE
-            or (
-                g.constraint.kind not in STRATEGY_SCOPES
-                and any(_names_the_requirement(text, g.constraint) for text in named)
-            )
+        deps.state.turn_markers.unstated_requirements = [
+            c.requested_value for c in lacking
+        ]
+        return result.model_copy(
+            update={
+                "card_questions": card_questions(asked),
+                "reported": resolved_reports(
+                    result.requirement_problems, domain.requirements
+                ),
+            }
         )
-    ]
+    return result
 
 
 def _names_the_requirement(text: str, requirement: Constraint) -> bool:
@@ -309,11 +300,40 @@ def _accepted(
             return frame_bound_nothing_result()
         deps.empty_frame_reported = True
         refuse_and_restore(deps, frame_claimed_more_than_it_bound(delta.summary))
+    draft = _without_what_an_unbound_question_moved(deps, delta, draft)
     delta = delta.model_copy(update={"changes": derived_changes(found, draft)})
-    _refuse_questions_that_bind_to_nothing(deps, delta, draft)
-    _refuse_an_unstated_requirement_the_researcher_did_not_write(deps, delta)
     _refuse_an_added_criterion_the_message_does_not_state(deps, found, draft)
     return delta
+
+
+def _without_what_an_unbound_question_moved(
+    deps: LeadDeps, delta: FrameResult, draft: OperationalSpec
+) -> OperationalSpec:
+    """The spec a pass leaves when it still ends on a question that binds nothing.
+
+    The pass was told so inside its own run. Each criterion the dispatch found
+    takes back the values it was found with, so the plan moves no built step
+    before an answer; what the pass added or dropped stays.
+    """
+    found = deps.state.domain.spec_before_dispatch
+    if (
+        found is None
+        or delta.disposition != "needs_user"
+        or not questions_that_bind_to_nothing(
+            delta, draft, found, lacking=requirements_the_site_lacks(deps, delta)
+        )
+    ):
+        return draft
+    as_found = {c.id: c for c in found.criteria}
+    kept = draft.model_copy(
+        update={
+            "criteria": [
+                as_found.get(c.id, c).model_copy(deep=True) for c in draft.criteria
+            ]
+        }
+    )
+    deps.state.domain.operational_spec = kept
+    return kept
 
 
 def derived_changes(
@@ -334,32 +354,6 @@ def derived_changes(
         for change in diff_specs(found, draft).changes
         if change.criterion_id in texts
     ]
-
-
-def unwritten_requirements_refusal(unwritten: list[str]) -> str:
-    """Why a pass whose unstated list names entries no message of the researcher
-    states is refused, with both ways to correct an entry."""
-    return (
-        f"unstated names {unwritten}, which no message of the researcher states. "
-        "Each entry is a requirement of the request that no search on the site "
-        "states, in the words the researcher wrote it in. Restate a requirement "
-        "in those words, and remove an entry that names no requirement of the "
-        "request, such as a note about a count, the build or a later step."
-    )
-
-
-def _refuse_an_unstated_requirement_the_researcher_did_not_write(
-    deps: LeadDeps, delta: FrameResult
-) -> None:
-    """Refuse a pass that names a requirement no message of the researcher states."""
-    messages = deps.state.researcher_messages()
-    unwritten = [
-        text
-        for text in delta.unstated
-        if not any(message_states(message, text) for message in messages)
-    ]
-    if unwritten:
-        refuse_and_keep_what_it_bound(deps, unwritten_requirements_refusal(unwritten))
 
 
 def _refuse_an_added_criterion_the_message_does_not_state(
@@ -392,24 +386,6 @@ def _refuse_an_added_criterion_the_message_does_not_state(
             "requirement the message states for it.",
             refused={criterion.id},
         )
-
-
-def _refuse_questions_that_bind_to_nothing(
-    deps: LeadDeps, delta: FrameResult, draft: OperationalSpec
-) -> None:
-    """Refuse once a pass that asks about a criterion its draft does not hold.
-
-    The answer to such a question lands nowhere, so the turn that follows has
-    nothing to build from it. The retry keeps what the pass bound.
-    """
-    if delta.disposition != "needs_user" or deps.unbound_questions_reported:
-        return
-    unbound = questions_that_bind_to_nothing(
-        delta, draft, deps.state.domain.spec_before_dispatch
-    )
-    if unbound:
-        deps.unbound_questions_reported = True
-        refuse_and_keep_what_it_bound(deps, unbound)
 
 
 async def frame_problem(

@@ -16,6 +16,10 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
+from pathfinder.ai.agents.frame_result_checks import (
+    hold_the_questions_to_the_draft,
+    hold_the_reports_to_the_requirement_list,
+)
 from pathfinder.ai.agents.scratchpad_guidance import (
     PATHFINDER_SCRATCHPAD_GUIDANCE,
     PROMOTED_NOTE_KIND,
@@ -24,6 +28,7 @@ from pathfinder.ai.agents.strategy_instructions import (
     base_system_prompt,
     pinned_frame_sheets,
     pinned_frame_workspace,
+    pinned_requirements,
 )
 from pathfinder.ai.agents.tool_vocabulary import SEARCH_LOOKUP_TOOLS
 from pathfinder.ai.agents.vocabulary import with_vocabulary
@@ -76,8 +81,9 @@ Procedure:
       summary states what the criterion asks. When no search on the site states it, do not
       bind the nearest one: set disposition="needs_user" and ask the user, naming what the
       site lacks, with dimension "data_type" and the nearest search as the recommended value.
-      Put that requirement in `unstated`, in the words the user wrote it in. Only
-      such a requirement goes there, never a note about a count, the build or a later step.
+      Report that requirement in `requirement_problems` by its number, from
+      "Requirements the researcher stated" below, with the problem it has. Everything
+      else you have to say goes in `summary`.
       Its last entry may be `otherSites`: experiments on other VEuPathDB sites, each labelled
       with its site. They inform and never bind: none is a search on this site. To use one,
       `read_experiment(dataset_id)` answers its card, whose record URL and PMIDs you may cite
@@ -320,9 +326,12 @@ def build_frame_agent() -> FrameAgent:
         pinned_user_memories,
         pinned_conversation_so_far,
         pinned_scratchpad,
+        pinned_requirements,
         pinned_frame_workspace,
         pinned_frame_sheets,
         pinned_run_budget,
     ):
         agent.instructions(stable.section(fn))
+    agent.output_validator(hold_the_reports_to_the_requirement_list)
+    agent.output_validator(hold_the_questions_to_the_draft)
     return agent

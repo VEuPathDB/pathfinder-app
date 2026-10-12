@@ -1,8 +1,5 @@
-"""Attacks on the refusal of a needs_user pass whose questions bind to nothing.
-
-Each test states a case the release verifier constructed; the assertions pin
-what the dispatch does with it today.
-"""
+"""A needs_user pass whose questions bind to nothing is told once inside its
+own run; each test pins what the dispatch does with what the pass answers next."""
 
 from __future__ import annotations
 
@@ -89,19 +86,18 @@ def _asks_over_an_unchanged_draft(thread: DisagreementThread) -> None:
 async def test_1a_a_fresh_frame_that_bound_everything_and_asks_a_fork(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Case (a): a design fork with every value bound is refused once.
+    """Case (a): a design fork with every value bound is told once.
 
-    The refusal asks for a null parameter and keeps the criteria the pass
-    bound, so the retry does not bind them again.
+    The pass is asked for a null parameter and keeps the criteria it bound.
     """
     thread = _fresh_thread(monkeypatch)
     thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
 
-    result = await thread.frame()
+    await thread.frame()
 
-    assert isinstance(result, str), result
-    assert "no criterion of the spec holds an open slot" in result
-    assert "null for every parameter" in result
+    [told] = thread.sent_back
+    assert "no criterion of the spec holds an open slot" in told
+    assert "null for every parameter" in told
     spec = thread.deps.state.domain.operational_spec
     assert spec is not None
     assert [c.id for c in spec.criteria] == [
@@ -109,12 +105,10 @@ async def test_1a_a_fresh_frame_that_bound_everything_and_asks_a_fork(
     ]
 
 
-async def test_1a_second_pass_with_the_same_fork_is_accepted(
+async def test_1a_a_pass_that_keeps_the_same_fork_is_accepted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     thread = _fresh_thread(monkeypatch)
-    thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
-    assert isinstance(await thread.frame(), str)
     thread.frames(_binds_everything, disposition="needs_user", asks=[FORK])
 
     result = await thread.frame()
@@ -151,7 +145,7 @@ def _moves_a_built_value(found: OperationalSpec) -> OperationalSpec:
     return found
 
 
-async def test_1c_an_edit_that_moves_a_value_and_asks_is_refused(
+async def test_1c_an_edit_that_moves_a_value_and_asks_goes_back_as_found(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Case (c): no open slot anywhere, the value moved, one question asked.
@@ -168,21 +162,21 @@ async def test_1c_an_edit_that_moves_a_value_and_asks_is_refused(
 
     result = await thread.edit()
 
-    assert isinstance(result, str), result
-    assert "and no criterion o" in result
+    [told] = thread.sent_back
+    assert "and no criterion o" in told
+    assert isinstance(result, EditDelta), result
+    assert (result.disposition, thread.committed) == ("needs_user", [])
     stage = next(c for c in thread.spec.criteria if c.id == STAGE)
     assert stage.param_values[STAGE_PERCENTILE] == NumberValue(value=80)
 
 
-async def test_1d_the_latched_second_pass_records_questions_over_nothing(
+async def test_1d_a_pass_that_asks_over_nothing_records_its_questions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Case (d): after the latch the questions are recorded; the next turn
-    reads the recommendation and refuses the same pass once again."""
+    """Case (d): the questions are recorded; the next turn reads the
+    recommendation, and its pass is told once again."""
     thread = _built_thread(monkeypatch)
     await thread.next_turn()
-    _asks_over_an_unchanged_draft(thread)
-    assert isinstance(await thread.edit(), str)
     _asks_over_an_unchanged_draft(thread)
     delta = await thread.edit()
     assert isinstance(delta, EditDelta)
@@ -196,10 +190,10 @@ async def test_1d_the_latched_second_pass_records_questions_over_nothing(
     domain.record_recommendations()
     assert [c.requested_value for c in domain.recommendations] == ["2"]
     assert domain.requirements == []
-    assert thread.deps.unbound_questions_reported is False
     _asks_over_an_unchanged_draft(thread)
-    third = await thread.edit()
-    assert isinstance(third, str), third
+    again = await thread.edit()
+    assert isinstance(again, EditDelta), again
+    assert len(thread.sent_back) == 2
 
 
 def _drops_stage_and_binds_proteome_open(found: OperationalSpec) -> OperationalSpec:

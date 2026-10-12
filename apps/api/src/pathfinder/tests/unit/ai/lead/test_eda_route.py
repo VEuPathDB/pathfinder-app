@@ -156,6 +156,36 @@ class TestTheRouteThePinPrints:
         assert 'create_eda_step(criterion_id="c_essential")' in blocks[0]
         assert 'create_eda_step(criterion_id="c_24h_vs_36_up")' in blocks[1]
 
+    def test_a_waiting_criterion_inside_a_branch_is_routed_by_its_id(self) -> None:
+        """The structure places the export at any depth, so the route is one."""
+        spec = _spec()
+        spec.criteria.append(_waiting("c_essential_toxo", "essential in tachyzoites"))
+        spec.structure = SpecStructure(
+            root=StructureNode(
+                kind="combine",
+                operator=CombineOp.INTERSECT,
+                inputs=[
+                    _leaf("step_k1"),
+                    StructureNode(
+                        kind="combine",
+                        operator=CombineOp.UNION,
+                        inputs=[_leaf("c_essential"), _leaf("c_essential_toxo")],
+                    ),
+                ],
+            )
+        )
+        session = _session(StrategyStepNode(id="step_k1", search_name="GenesByText"))
+
+        blocks = eda_route_blocks(run_context_for(_deps(session, spec=spec)))
+
+        assert [block.splitlines()[5] for block in blocks] == [
+            (
+                f'4. create_eda_step(criterion_id="{waiting}") - the structure '
+                f"places the step, so name no other placement."
+            )
+            for waiting in ("c_essential", "c_essential_toxo")
+        ]
+
     def test_a_criterion_with_no_step_is_built_before_the_export(self) -> None:
         """The export joins a strategy, so the strategy is built first."""
         pinned = self._pin(_deps(_session(), spec=_spec()))

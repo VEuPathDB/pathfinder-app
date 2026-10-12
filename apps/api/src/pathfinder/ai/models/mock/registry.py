@@ -16,7 +16,7 @@ from pathfinder.ai.models.mock import (
     unset_value_arcs,
 )
 from pathfinder.ai.models.mock.arc import Arc, Script, Sequence, history_free
-from pathfinder.ai.models.mock.calls import classify, lead_final, narrated
+from pathfinder.ai.models.mock.calls import classify, lead_final, narrated, stated
 from pathfinder.ai.models.mock.consult_arc import consult, open_value_frame, withdraw
 from pathfinder.ai.models.mock.control_flow_arcs import (
     comparison_after_a_refused_union,
@@ -132,7 +132,8 @@ def _built_when_framed(messages: list[ModelMessage]) -> list[ToolCallPart]:
 
 
 def _summarized(messages: list[ModelMessage]) -> list[ToolCallPart]:
-    return framed_only(messages, _summary_prose)
+    asked = frame_arcs.asked_property()
+    return framed_only(messages, _summary_prose, stated("other", asked, asked))
 
 
 ARCS: dict[str, Arc] = {

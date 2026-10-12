@@ -12,6 +12,7 @@ from veupathdb.domain.strategy import (
     StrategyStepNode,
     generate_step_id,
 )
+from veupathdb.model import CamelModel
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_step_spec import criterion_note
@@ -25,15 +26,46 @@ from pathfinder.domain.strategy.operations.types import (
     AttachNewRoot,
     AttachPoint,
     ReplaceSubtreeOp,
+    WireInputOp,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
 
 
+class AskedPlacement(NamedTuple):
+    """The placement arguments one export call sent."""
+
+    attach_to_step_id: str | None
+    slot: Literal["primary", "secondary"] | None
+    replace_step_id: str | None
+    combine_with_root: CombineOp | None
+
+    def named(self) -> list[str]:
+        return [name for name, value in self._asdict().items() if value is not None]
+
+
+class StepJoin(NamedTuple):
+    """The step an export combines with, the operator, and whether the export
+    is the combine's first input."""
+
+    step_id: str
+    operator: CombineOp
+    export_first: bool = False
+
+
+class ExportJoin(CamelModel):
+    """The combine that joined an export to a step the strategy held."""
+
+    combine_step_id: str
+    operator: CombineOp
+    joined_step_id: str
+    export_first: bool
+
+
 class ExportWrite(NamedTuple):
-    """The operations the export lands as, and the combine they may create."""
+    """The operations the export lands as, and the join they may make."""
 
     ops: list[GraphOperation]
-    combine: AddCombineOp | None = None
+    join: ExportJoin | None = None
 
 
 def _attach_point(
@@ -111,10 +143,7 @@ def _refuse_a_second_target(
     raise ModelRetry(msg)
 
 
-def _joined_with_the_root(
-    graph: StrategyGraph, node: StrategyStepNode, operator: CombineOp
-) -> ExportWrite:
-    """Add the export, then combine it with the strategy's one root."""
+def _root_join(graph: StrategyGraph, operator: CombineOp) -> StepJoin:
     roots = sorted(graph.roots)
     if len(roots) != 1:
         msg = (
@@ -123,17 +152,48 @@ def _joined_with_the_root(
             f"or name the step to replace or the free slot to fill."
         )
         raise ModelRetry(msg)
+    return StepJoin(roots[0], operator)
+
+
+def join_write(
+    graph: StrategyGraph, node: StrategyStepNode, join: StepJoin
+) -> ExportWrite:
+    """Add the export, combine it with the joined step, and give the combine
+    the place that step held."""
+    inputs = (node.id, join.step_id) if join.export_first else (join.step_id, node.id)
     combine = AddCombineOp(
         step=StrategyStepNode(
             id=generate_step_id(),
             search_name=COMBINE_SEARCH_NAME,
-            operator=operator,
+            operator=join.operator,
         ),
-        left_id=roots[0],
-        right_id=node.id,
+        left_id=inputs[0],
+        right_id=inputs[1],
     )
+    ops: list[GraphOperation] = [
+        AddLeafOp(step=node, attach=AttachNewRoot()),
+        combine,
+    ]
+    consumer = graph.parent_of(join.step_id)
+    if consumer is not None:
+        parent, _ = consumer
+        ops.append(
+            WireInputOp(
+                target_step_id=parent.id,
+                slot="primary"
+                if parent.primary_input_id == join.step_id
+                else "secondary",
+                source_step_id=combine.step.id,
+            )
+        )
     return ExportWrite(
-        ops=[AddLeafOp(step=node, attach=AttachNewRoot()), combine], combine=combine
+        ops=ops,
+        join=ExportJoin(
+            combine_step_id=combine.step.id,
+            operator=join.operator,
+            joined_step_id=join.step_id,
+            export_first=join.export_first,
+        ),
     )
 
 
@@ -142,15 +202,20 @@ def export_write(
     graph: StrategyGraph,
     node: StrategyStepNode,
     *,
-    attach_to_step_id: str | None,
-    slot: Literal["primary", "secondary"] | None,
-    replace_step_id: str | None,
-    combine_with_root: CombineOp | None,
+    asked: AskedPlacement,
+    join: StepJoin | None,
 ) -> ExportWrite:
-    """Add the export as a new step, join it to the root, or replace one."""
+    """Add the export as a new step, join it to a step, or replace one.
+
+    ``join`` is where the structure places the export, and ``asked`` names a
+    place only when the structure places none.
+    """
+    attach_to_step_id, slot, replace_step_id, combine_with_root = asked
     if combine_with_root is not None:
         _refuse_a_second_target(attach_to_step_id, slot, replace_step_id)
-        return _joined_with_the_root(graph, node, combine_with_root)
+        join = _root_join(graph, combine_with_root)
+    if join is not None:
+        return join_write(graph, node, join)
     if replace_step_id is None:
         attach = _attach_point(attach_to_step_id, slot)
         _refuse_an_occupied_slot(ctx, graph, attach)

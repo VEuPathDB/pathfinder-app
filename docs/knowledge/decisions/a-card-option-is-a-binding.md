@@ -42,16 +42,18 @@ whose display name names the log2 scale is offered in both readings, the fold an
 the log2 value, each labelled with the fold it stands for ("0.585 (1.5-fold)" and
 "1.5 (2.83-fold)"), so a card over a fold threshold never offers a bare log2
 number. The FRAME dispatch asks no question the researcher answered. A requirement
-the pass names in `unstated` gets the same drop-or-keep question as one the ledger
+the pass reports as `site_has_no_search`
+([a pass names a requirement by its number](a-pass-names-a-requirement-by-its-number.md))
+gets the same drop-or-keep question as one the ledger
 lists as ungroundable, so a card of the Lead's own about it is refused as a card
 that leaves a recorded binding question out. An organism or a record type is a scope
-every search runs in, so words in `unstated` that carry it never offer to drop it.
+every search runs in, so a report that names it never offers to drop it.
 A FRAME question with no option that carries the words of such a requirement is that
 drop-or-keep question. It keeps its own prompt, and the card's note takes an answer
 in the researcher's words, such as a substitute the prompt offers, and
 `questions_that_bind_to_nothing` (`ai/lead/frame_questions.py`) counts it as bound.
-A refusal of what a pass asks keeps each criterion the pass bound
-(`refuse_and_keep_what_it_bound`).
+A pass whose question binds nothing is told so once inside its own run
+(`ai/agents/frame_result_checks.py::hold_the_questions_to_the_draft`).
 The FRAME result hands the Lead `cardQuestions`, the card those questions become,
 each a `CardQuestion` that carries the dimension its answer states. The
 `consult_user` tool's arguments validator refuses a card that does not ask each

@@ -51,14 +51,17 @@ def _site() -> SiteValues:
     return SiteValues.for_site(current_scope_id.get())
 
 
-def _unbound(summary: str, unstated: Sequence[str] = ()) -> ToolCallPart:
+def _unbound(summary: str, lacking: Sequence[str] = ()) -> ToolCallPart:
     return scripted_call(
         "final_result",
         {
             "summary": summary,
             "disposition": "needs_research",
             "openQuestions": [],
-            "unstated": list(unstated),
+            "requirementProblems": [
+                {"requirement": number, "problem": "site_has_no_search"}
+                for number in lacking
+            ],
         },
     )
 
@@ -100,16 +103,29 @@ def loop_frame() -> ToolCallPart:
     return scripted_call("list_searches", _LOOP_ARGS)
 
 
+_NUMBERED = re.compile(r"^- (R\d+): (.+)$", re.MULTILINE)
+
+
+def asked_property() -> str:
+    """The property the message asks for after its last "with"."""
+    return message().rstrip(".").rpartition(" with ")[2]
+
+
 def no_search_frame(messages: list[ModelMessage]) -> ToolCallPart:
-    """Rank and list the searches, find none that states the request, and name
-    the requirement after its last "with" as unstated, binding nothing."""
+    """Rank and list the searches, find none that states the request, and
+    report the requirement after its last "with" by its number, binding nothing."""
     called = acted_tool_names(messages)
     if "search_for_searches" not in called:
         return scripted_call("search_for_searches", {"query": message()})
     if "list_searches" not in called:
         return scripted_call("list_searches", {"record_type": "transcript"})
-    asked = message().rstrip(".").rpartition(" with ")[2]
-    return _unbound(f"No search on {current_scope_id.get()} states: {asked}.", [asked])
+    asked = asked_property()
+    lacking = [
+        number
+        for number, value in _NUMBERED.findall(instructions_of(messages))
+        if value == asked
+    ]
+    return _unbound(f"No search on {current_scope_id.get()} states: {asked}.", lacking)
 
 
 class _Experiment(ToolAnswer):

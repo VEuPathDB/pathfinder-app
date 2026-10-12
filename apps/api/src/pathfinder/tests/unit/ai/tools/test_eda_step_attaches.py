@@ -14,6 +14,7 @@ from veupathdb.domain.strategy import (
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone import eda_step
+from pathfinder.ai.tools.standalone._eda_step_write import ExportJoin
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
@@ -243,8 +244,12 @@ class TestCombiningTheExportWithTheRoot:
         )
 
         result = returned(answer, eda_step.EdaStepCreated)
-        assert result.combined_with_root is CombineOp.INTERSECT
-        assert result.combine_step_id == _graph(ctx).primary_root_id()
+        assert result.join == ExportJoin(
+            combine_step_id=_graph(ctx).primary_root_id() or "",
+            operator=CombineOp.INTERSECT,
+            joined_step_id="step_k1",
+            export_first=False,
+        )
         assert summary_of(answer).data["summary"] == (
             f"Step {result.step_id} combined with step_k1 (INTERSECT)"
         )

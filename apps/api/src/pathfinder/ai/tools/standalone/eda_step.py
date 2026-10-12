@@ -18,7 +18,6 @@ from veupathdb_mcp import ToolErrorPayload
 from pathfinder.ai.lead.answered_strategy import the_strategy_now_answers_to
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.tools.standalone._eda_step_criterion import (
-    AskedPlacement,
     WaitingPlacement,
     export_placement,
 )
@@ -36,7 +35,11 @@ from pathfinder.ai.tools.standalone._eda_step_spec import (
     state_the_exported_step,
     structure_states_the_graph,
 )
-from pathfinder.ai.tools.standalone._eda_step_write import export_write
+from pathfinder.ai.tools.standalone._eda_step_write import (
+    AskedPlacement,
+    ExportJoin,
+    export_write,
+)
 from pathfinder.ai.tools.standalone._validation_helpers import (
     get_graph,
     validation_model_retry,
@@ -84,10 +87,8 @@ class EdaStepCreated(EdaExport):
     guidance: str = ""
     # Every step that left with the one this export took the place of.
     dropped_step_ids: list[str] = Field(default_factory=list)
-    # The operator this export was joined to the strategy's root with, and the
-    # combine step that join created, which is the strategy's new root.
-    combined_with_root: CombineOp | None = None
-    combine_step_id: str | None = None
+    # The combine that joined this export to a step the strategy held.
+    join: ExportJoin | None = None
     # The genes a compute export kept, named by the group they are higher in.
     selection: str | None = None
 
@@ -139,17 +140,14 @@ def _record_the_build(ctx: RunContext[LeadDeps], commit: CommitResult) -> None:
     )
 
 
-def _landed(
-    step_id: str,
-    replace_step_id: str | None,
-    combine_with_root: CombineOp | None,
-    root_before: str | None,
-) -> str:
+def _landed(step_id: str, replace_step_id: str | None, join: ExportJoin | None) -> str:
     """The one line this export is summarized by."""
     if replace_step_id is not None:
         return f"Step {step_id} replaced {replace_step_id}"
-    if combine_with_root is not None:
-        return f"Step {step_id} combined with {root_before} ({combine_with_root.value})"
+    if join is not None:
+        side = f", {step_id} first" if join.export_first else ""
+        joined = f"{join.joined_step_id} ({join.operator.value})"
+        return f"Step {step_id} combined with {joined}{side}"
     return f"Step {step_id} added to the strategy"
 
 
@@ -252,8 +250,12 @@ async def create_eda_step(
 
     Set ``criterion_id`` to the id of a criterion the pinned route names as
     waiting for this analysis: the export becomes that criterion and takes the
-    place the structure gives it, so it travels with no other placement. An
-    export on a dataset a criterion waits on without it is refused.
+    place the structure gives it, at any depth, so it travels with no other
+    placement. It joins the steps the strategy already holds of the smallest
+    branch that names the criterion, under that branch's operator and in the
+    structure's order; ``join`` in the result names that step, the operator,
+    the new combine and whether the export is its first input. An export on a
+    dataset a criterion waits on without it is refused.
 
     Leave ``attach_to_step_id`` unset to add the step as a new root. Set it,
     with ``slot``, to wire the step into an existing combine. The slot must be
@@ -323,27 +325,13 @@ async def create_eda_step(
     graph = _the_graph(session)
     if replace_step_id is not None:
         refuse_a_recut_of_another_dataset(graph, replace_step_id, binding.dataset_id)
-    root_before = graph.primary_root_id()
     spec = ctx.deps.state.domain.operational_spec
+    asked = AskedPlacement(attach_to_step_id, slot, replace_step_id, combine_with_root)
     waiting = export_placement(
-        spec,
-        graph,
-        criterion_id,
-        dataset_id=binding.dataset_id,
-        asked=AskedPlacement(
-            attach_to_step_id, slot, replace_step_id, combine_with_root
-        ),
+        spec, graph, criterion_id, dataset_id=binding.dataset_id, asked=asked
     )
-    if waiting is not None:
-        combine_with_root = waiting.operator
     write = export_write(
-        ctx,
-        graph,
-        node,
-        attach_to_step_id=attach_to_step_id,
-        slot=slot,
-        replace_step_id=replace_step_id,
-        combine_with_root=combine_with_root,
+        ctx, graph, node, asked=asked, join=None if waiting is None else waiting.join
     )
 
     restate = structure_states_the_graph(ctx, graph)
@@ -404,8 +392,7 @@ async def create_eda_step(
         ),
         replaced_step_id=replace_step_id,
         dropped_step_ids=list(result.dropped_step_ids),
-        combined_with_root=combine_with_root,
-        combine_step_id=None if write.combine is None else write.combine.step.id,
+        join=write.join,
         selection=(
             None
             if comparison is None
@@ -428,5 +415,5 @@ async def create_eda_step(
             status="warn",
             extra=metadata,
         )
-    landed = _landed(node.id, replace_step_id, combine_with_root, root_before)
+    landed = _landed(node.id, replace_step_id, write.join)
     return with_summary(created, landed, ctx=ctx, extra=metadata)

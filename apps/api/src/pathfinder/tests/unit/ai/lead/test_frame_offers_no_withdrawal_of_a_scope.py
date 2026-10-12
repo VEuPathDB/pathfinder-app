@@ -1,5 +1,5 @@
-"""The organism a request runs in is never offered for withdrawal because a
-pass names the whole request as unstated, and a question the pass wrote keeps
+"""The organism a request runs in is never offered for withdrawal when a pass
+reports the site lacks a search for it, and a question the pass wrote keeps
 its prompt and takes an answer in the researcher's words beside drop and keep."""
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     lead_deps,
     pipeline_state,
     requirement,
+    site_lacks,
 )
 
 _REQUEST = "Find P. falciparum 3D7 genes with a predicted GPI anchor"
@@ -43,7 +44,7 @@ _SUBSTITUTE = SlotQuestion(
 
 
 def _deps(monkeypatch: pytest.MonkeyPatch) -> LeadDeps:
-    """A pass that binds nothing and names the whole request as unstated."""
+    """A pass that binds nothing and reports every requirement as lacking a search."""
 
     async def _fake(**kwargs: Any) -> FrameResult:
         kwargs["agent_deps"].agent_state.operational_spec_draft.goal = _REQUEST
@@ -51,11 +52,11 @@ def _deps(monkeypatch: pytest.MonkeyPatch) -> LeadDeps:
             disposition="needs_user",
             summary="no search states a predicted GPI anchor",
             open_questions=[_SUBSTITUTE],
-            unstated=[_REQUEST],
+            requirement_problems=site_lacks("R1", "R2"),
         )
 
     monkeypatch.setattr(frame_dispatch, "stream_sub_agent", _fake)
-    deps = lead_deps(
+    return lead_deps(
         pipeline_state(
             "plasmodb",
             user_prompt=_REQUEST,
@@ -66,9 +67,6 @@ def _deps(monkeypatch: pytest.MonkeyPatch) -> LeadDeps:
             ),
         )
     )
-    # The pass was refused once for its unbound question and asked it again.
-    deps.unbound_questions_reported = True
-    return deps
 
 
 async def _framed(deps: LeadDeps) -> FrameResult:
