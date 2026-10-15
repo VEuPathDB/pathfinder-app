@@ -244,14 +244,25 @@ async def _refuse_a_search_another_one_outstates(
 def _sibling_names(
     ctx: RunContext[AgentDeps], record_type: str, bound: str
 ) -> set[str]:
-    """The searches of this record type the pass ranked or opened a sheet for."""
+    """The searches of this record type the pass ranked or opened a sheet for. A
+    sheet the pass's catalog reads list under another record type is left out."""
     state = ctx.deps.agent_state
+    elsewhere = {
+        hit.name
+        for read in state.catalog_reads
+        for hit in read.hits
+        if hit.record_type and hit.record_type != record_type
+    }
     names = {
         hit.name
         for read in state.catalog_reads
         if read.ranked and read.record_type == record_type
         for hit in read.hits
-    } | {sheet.search_name for sheet in state.open_sheets.values()}
+    } | {
+        sheet.search_name
+        for sheet in state.open_sheets.values()
+        if sheet.search_name not in elsewhere
+    }
     names.discard(bound)
     return names
 

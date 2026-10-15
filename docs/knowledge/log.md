@@ -6,7 +6,9 @@
   push (`organism_params.py`), given the root's record type, and the text query sheets
   VERIFY reads (`text_queries.py`), given the spec's, take each search's own type from
   `search_record_types`, so a BLAST step under an OrthoMCL group root is read as
-  `sequence` and sends no refused request first.
+  `sequence` and sends no refused request first. A bound search's neighbours, which
+  `_frame_qualifiers.py` reads for a dropped qualifier, leave out an open sheet the
+  pass's catalog reads list under another record type.
 
 * **A sampled value keeps its lines and no indent.** veupathdb-py 0.1.0b10 joins each line's
   words with one space and drops blank lines, so an OrthoMCL group's clade counts reach
