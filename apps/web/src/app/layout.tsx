@@ -3,7 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "@/styles/globals.css";
 import "streamdown/styles.css";
-import { withBasePath } from "@/lib/basePath";
+import { BRAND_ICONS } from "@/lib/brand";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Providers } from "./components/Providers";
 
@@ -13,9 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "PathFinder",
   description: "AI-powered search strategy builder for VEuPathDB",
-  icons: {
-    icon: withBasePath("/favicon.svg"),
-  },
+  icons: BRAND_ICONS,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

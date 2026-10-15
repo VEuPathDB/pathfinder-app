@@ -1,7 +1,6 @@
-import Image from "next/image";
 import { RefreshCw, ServerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { withBasePath } from "@/lib/basePath";
+import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
 
 interface SetupRequiredScreenProps {
   onRetry: () => void;
@@ -12,7 +11,7 @@ export function SetupRequiredScreen({ onRetry }: SetupRequiredScreenProps) {
     <div className="flex h-full flex-col items-center justify-center bg-background px-6 text-foreground">
       <div className="w-full max-w-md space-y-6 text-center">
         <div className="flex flex-col items-center gap-3">
-          <Image src={withBasePath("/pathfinder.svg")} alt="" width={48} height={48} />
+          <PathFinderLogo size={48} />
           <ServerOff className="h-10 w-10 text-muted-foreground" />
         </div>
 

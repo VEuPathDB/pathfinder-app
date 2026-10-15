@@ -61,8 +61,8 @@ the next PathFinder request is refused and the notice returns.
 **One layout, inside the website's page.** The web app has no top bar and no
 embedded variant, since the website's header names the product. The rail carries
 the spending meter at the bottom (`AppNavRail.tsx`, `RailQuotaMeter.tsx` under
-`apps/web/src/app/components/`), and the PathFinder mark sits at the end of the
-composer's notice line (`apps/web/src/lib/components/PathFinderMark.tsx`). When the parent window has the same origin, a
+`apps/web/src/app/components/`), and the PathFinder mark sits at the bottom of
+the conversation's right rail (`apps/web/src/lib/components/PathFinderMark.tsx`). When the parent window has the same origin, a
 route change posts `{ type: "pathfinder:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
 on the PathFinder page.

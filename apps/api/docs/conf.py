@@ -72,8 +72,7 @@ intersphinx_mapping = {
 
 html_theme = "furo"
 
-html_logo = "_static/pathfinder-logo.png"
-html_favicon = "_static/pathfinder-logo.png"
+html_favicon = "../../../assets/brand/favicon.svg"
 
 html_theme_options = {
     "light_css_variables": {
@@ -90,6 +89,8 @@ html_theme_options = {
         "color-announcement-background": "#1e3a5f",
         "color-announcement-text": "#e2e8f0",
     },
+    "light_logo": "pathfinder-mark-light.svg",
+    "dark_logo": "pathfinder-mark-dark.svg",
     "sidebar_hide_name": False,
     "navigation_with_keys": True,
     "top_of_page_buttons": ["view", "edit"],
@@ -117,7 +118,7 @@ html_theme_options = {
     ],
 }
 
-html_static_path = ["_static"]
+html_static_path = ["_static", "../../../assets/brand"]
 html_css_files = ["custom.css"]
 
 # Announcement banner

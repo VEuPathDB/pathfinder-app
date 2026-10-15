@@ -283,12 +283,11 @@ describe("the composer says the assistant can make mistakes", () => {
 });
 
 describe("the composer footer", () => {
-  it("ends with the PathFinder mark, after the notice", () => {
+  it("carries the notice and no PathFinder mark", () => {
     renderComposer(true);
 
-    const notice = screen.getByTestId("ai-notice");
-    const mark = screen.getByRole("img", { name: "PathFinder" });
-    expect(notice.parentElement?.lastElementChild).toBe(mark);
+    expect(screen.getByTestId("ai-notice")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "PathFinder" })).toBeNull();
   });
 });
 

@@ -1,12 +1,10 @@
-import Image from "next/image";
-
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { withBasePath } from "@/lib/basePath";
+import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
 
 export function PathFinderMark() {
   return (
@@ -17,17 +15,12 @@ export function PathFinderMark() {
             role="img"
             aria-label="PathFinder"
             tabIndex={0}
-            className="flex size-6 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="flex size-9 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <Image
-              src={withBasePath("/pathfinder.svg")}
-              alt=""
-              width={16}
-              height={16}
-            />
+            <PathFinderLogo size={22} />
           </span>
         </TooltipTrigger>
-        <TooltipContent side="top">PathFinder</TooltipContent>
+        <TooltipContent side="left">PathFinder</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

@@ -1,0 +1,166 @@
+<title>PathFinder Brand Set</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap">
+<style>
+/* layout: a brand guide; each section shows the real files at real pixel sizes, light then dark */
+:root{
+  --bg:#f3f1ee; --fg:#0f2230; --muted:#5f6a72; --panel:#ffffff; --line:#e2ddd6; --accent:#c4520f;
+  --navy:#00304c; --navy2:#0b3d5c; --orange:#e87722;
+  --font:"Geist","Helvetica Neue",Arial,sans-serif; --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0a1822;--fg:#e8edf0;--muted:#94a3ad;--panel:#ffffff;--line:#1d3242;--accent:#f0965a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0a1822;--fg:#e8edf0;--muted:#94a3ad;--panel:#ffffff;--line:#1d3242;--accent:#f0965a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 72px;display:grid;gap:56px}
+h1{font-weight:600;font-size:clamp(28px,4vw,40px);letter-spacing:-.02em;line-height:1.1;margin:0}
+h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0}
+h3{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0;text-wrap:balance}
+p{margin:0;max-width:66ch}
+.muted{color:var(--muted)}
+section{display:grid;gap:18px}
+.head{display:grid;gap:6px}
+.hero{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.stage{border-radius:6px;display:grid;place-items:center;padding:48px 16px;min-width:0}
+.light{background:var(--panel);border:1px solid var(--line)}
+.dark{background:var(--navy);border:1px solid var(--navy)}
+.stage img{max-width:100%;height:auto}
+.ladder{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;justify-content:center}
+.ladder figure{margin:0;display:grid;justify-items:center;gap:8px}
+.ladder figcaption{font:12px var(--mono);color:#7b8791;font-variant-numeric:tabular-nums}
+.dark .ladder figcaption{color:#9fb7c7}
+.pair{display:flex;gap:10px;align-items:flex-end}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media (max-width:760px){.hero,.two,.three{grid-template-columns:1fr}}
+.cap{display:grid;gap:4px}
+.cap b{font-weight:600}
+.cap span{color:var(--muted);font-size:14px}
+.tabs{width:100%;max-width:420px;border-radius:10px 10px 0 0;padding:8px 8px 0;display:flex}
+.tabs.l{background:#dfe3e7} .tabs.d{background:#1d232a}
+.tab{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px 8px 0 0;font-size:13px;min-width:0}
+.tabs.l .tab{background:#fff;color:#1f2933} .tabs.d .tab{background:#2c333b;color:#e6e9ec}
+.tab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{width:100%;max-width:420px;height:34px;border-radius:0 0 10px 10px}
+.tabs.l + .bar{background:#fff;border:1px solid #dfe3e7;border-top:0} .tabs.d + .bar{background:#2c333b}
+.mock{display:grid;justify-items:center;width:100%}
+.home{background:linear-gradient(160deg,#16405e,#0a2136 60%,#08182a);border-radius:22px;padding:28px 22px;display:grid;grid-template-columns:repeat(4,60px);gap:20px 18px;justify-content:center}
+.app{display:grid;justify-items:center;gap:6px;font-size:11px;color:#e8eef3}
+.app img,.ghost{width:60px;height:60px;border-radius:14px}
+.ghost{background:rgba(255,255,255,.12)}
+.header{box-sizing:border-box;width:100%;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:6px;display:flex;align-items:center;gap:18px;padding:10px 16px;flex-wrap:wrap}
+.header nav{display:flex;gap:16px;font-size:14px;color:#3b4a56;flex-wrap:wrap}
+.header nav b{color:var(--navy);font-weight:600}
+.rail{background:var(--navy);border-radius:6px;padding:14px 10px;display:grid;gap:16px;justify-items:center;width:64px}
+.rail i{width:22px;height:22px;border-radius:5px;background:rgba(255,255,255,.18);display:block}
+.swatches{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.swatches li{display:grid;grid-template-columns:28px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center}
+.swatches i{grid-row:1 / 3;width:28px;height:28px;border-radius:4px}
+.swatches span{font-size:14px;font-weight:500}
+code{font:12.5px var(--mono);color:var(--muted)}
+.spec{height:14px;border-radius:7px;background:linear-gradient(90deg,#b0101e,#f07a30,#6b7f1e,#6f9a32,#22a814,#2f7a45,#5fa88a,#1890a8,#00a8c4,#3f8fd0,#303078,#00304c,#6a3fa0,#c4607c,#b0101e)}
+.guide{position:relative;display:inline-block;padding:24px;outline:1.5px dashed #e87722;outline-offset:-1px}
+.guide::after{content:"";position:absolute;inset:24px;outline:1px solid rgba(0,48,76,.25)}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:4px 0 4px 14px;color:var(--muted)}
+</style>
+<div class="wrap">
+
+<header class="head">
+<h2>Brand set</h2>
+<h1>PathFinder</h1>
+<p class="muted">A tsetse fly with its proboscis on the point where a search starts, search waves spreading from it, inside a loop of the fourteen VEuPathDB site colours. The loop has three parts for frame, build and verify, and turns while the agent works. Everything below is the real file at its real pixel size.</p>
+</header>
+
+<section>
+<div class="hero">
+<div class="stage light"><picture><source media="(prefers-reduced-motion: reduce)" srcset="pathfinder-mark-light.svg"><img src="pathfinder-mark-light-animated.svg" width="300" height="300" alt="PathFinder logo" class=""></picture></div>
+<div class="stage dark"><picture><source media="(prefers-reduced-motion: reduce)" srcset="pathfinder-mark-dark.svg"><img src="pathfinder-mark-dark-animated.svg" width="300" height="300" alt="PathFinder logo" class=""></picture></div>
+</div>
+<p class="muted">The logo is the mark alone, with no name. The loop turns once every seven seconds. Static files are used wherever motion is not wanted, and the animated file falls back to the static one for viewers who ask for reduced motion.</p>
+</section>
+
+<section>
+<div class="head"><h2>Sizes</h2><h3>The mark from 128 px down to 16 px</h3></div>
+<div class="stage light"><div class="ladder"><figure><img src="pathfinder-mark-light.svg" width="128" height="128" alt=""><figcaption>128</figcaption></figure><figure><img src="pathfinder-mark-light.svg" width="64" height="64" alt=""><figcaption>64</figcaption></figure><figure><img src="pathfinder-mark-light.svg" width="48" height="48" alt=""><figcaption>48</figcaption></figure><figure><img src="pathfinder-mark-light.svg" width="32" height="32" alt=""><figcaption>32</figcaption></figure><figure><img src="pathfinder-mark-light.svg" width="24" height="24" alt=""><figcaption>24</figcaption></figure><figure><img src="pathfinder-mark-light.svg" width="16" height="16" alt=""><figcaption>16</figcaption></figure></div></div>
+<div class="stage dark"><div class="ladder"><figure><img src="pathfinder-mark-dark.svg" width="128" height="128" alt=""><figcaption>128</figcaption></figure><figure><img src="pathfinder-mark-dark.svg" width="64" height="64" alt=""><figcaption>64</figcaption></figure><figure><img src="pathfinder-mark-dark.svg" width="48" height="48" alt=""><figcaption>48</figcaption></figure><figure><img src="pathfinder-mark-dark.svg" width="32" height="32" alt=""><figcaption>32</figcaption></figure><figure><img src="pathfinder-mark-dark.svg" width="24" height="24" alt=""><figcaption>24</figcaption></figure><figure><img src="pathfinder-mark-dark.svg" width="16" height="16" alt=""><figcaption>16</figcaption></figure></div></div>
+</section>
+
+<section>
+<div class="head"><h2>Small sizes</h2><h3>Below 32 px, the favicon cut takes over</h3>
+<p class="muted">Each pair shows the full mark on the left and the favicon cut on the right. The cut keeps the same insect and proportions, with a heavier ring and three bold waves in place of fourteen fine ones.</p></div>
+<div class="stage light"><div class="ladder"><figure><div class="pair"><img src="pathfinder-mark-light.svg" width="48" height="48" alt=""><img src="favicon.svg" width="48" height="48" alt=""></div><figcaption>48 px</figcaption></figure><figure><div class="pair"><img src="pathfinder-mark-light.svg" width="32" height="32" alt=""><img src="favicon.svg" width="32" height="32" alt=""></div><figcaption>32 px</figcaption></figure><figure><div class="pair"><img src="pathfinder-mark-light.svg" width="24" height="24" alt=""><img src="favicon.svg" width="24" height="24" alt=""></div><figcaption>24 px</figcaption></figure><figure><div class="pair"><img src="pathfinder-mark-light.svg" width="16" height="16" alt=""><img src="favicon.svg" width="16" height="16" alt=""></div><figcaption>16 px</figcaption></figure></div></div>
+</section>
+
+<section>
+<div class="head"><h2>In context</h2><h3>Where it will appear</h3></div>
+<div class="two">
+<div class="stage light"><div class="mock">
+<div class="tabs l"><div class="tab"><img src="favicon.svg" width="16" height="16" alt=""><span>PathFinder · PlasmoDB</span></div></div><div class="bar"></div>
+</div></div>
+<div class="stage dark"><div class="mock">
+<div class="tabs d"><div class="tab"><img src="favicon-dark.svg" width="16" height="16" alt=""><span>PathFinder · PlasmoDB</span></div></div><div class="bar"></div>
+</div></div>
+</div>
+<div class="cap"><b>Browser tab</b><span>favicon.svg in a light browser, favicon-dark.svg in a dark one.</span></div>
+<div class="three">
+<div class="stage light" style="padding:28px 16px"><div class="header"><img src="pathfinder-mark-light.svg" width="36" height="36" alt="PathFinder"><nav><b>Chat</b><span>Strategies</span><span>Saved</span><span>Settings</span></nav></div></div>
+<div class="stage light" style="padding:28px 16px"><div class="rail"><img src="pathfinder-mark-dark.svg" width="40" height="40" alt="PathFinder"><i></i><i></i><i></i><i></i></div></div>
+<div class="stage light" style="padding:28px 16px"><div class="home"><div class="app"><img src="app-icon.svg" alt="PathFinder app icon"><span>PathFinder</span></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div></div>
+</div>
+<div class="three">
+<div class="cap"><b>App header</b><span>The light mark at 36 px.</span></div>
+<div class="cap"><b>Navigation rail</b><span>The dark mark at 40 px on navy.</span></div>
+<div class="cap"><b>Home screen</b><span>app-icon.svg at 60 px.</span></div>
+</div>
+<div class="stage dark" style="padding:24px"><img src="social-card.svg" width="600" height="315" alt="PathFinder link preview"></div>
+<div class="cap"><b>Link preview</b><span>social-card.svg, 1200 by 630, logo only.</span></div>
+</section>
+
+<section>
+<div class="head"><h2>App icons</h2><h3>Rounded square on navy</h3></div>
+<div class="stage light"><div class="ladder">
+<figure><img src="app-icon.svg" width="180" height="180" alt=""><figcaption>180, app-icon.svg</figcaption></figure>
+<figure><img src="app-icon.svg" width="96" height="96" alt=""><figcaption>96</figcaption></figure>
+<figure><img src="app-icon-small.svg" width="48" height="48" alt=""><figcaption>48, small cut</figcaption></figure>
+<figure><img src="app-icon-small.svg" width="32" height="32" alt=""><figcaption>32, small cut</figcaption></figure>
+</div></div>
+</section>
+
+<section>
+<div class="head"><h2>Optional</h2><h3>With the name beside it</h3>
+<p class="muted">For places that need the name spelled out, such as a slide or a partner page. The logo itself stays the mark alone. The name is Geist SemiBold, the app's own typeface, converted to outlines so the file needs no font.</p></div>
+<div class="stage light"><img src="pathfinder-lockup-light.svg" width="460" alt="PathFinder logo with name"></div>
+<div class="stage dark"><img src="pathfinder-lockup-dark.svg" width="460" alt="PathFinder logo with name, dark"></div>
+</section>
+
+<section>
+<div class="head"><h2>Colour</h2><h3>Fourteen site colours, one accent</h3>
+<p class="muted">The loop runs through the colour of each VEuPathDB site, sampled from its icon, in hue order. Navy draws the insect and the waves. Orange marks the one point where the search starts. On dark surfaces the dark end of the loop is lifted toward white so no part of it disappears.</p></div>
+<div class="spec" role="img" aria-label="The fourteen site colours as one gradient"></div>
+<ul class="swatches"><li><i style="background:#b0101e"></i><span>PlasmoDB</span><code>#b0101e</code></li><li><i style="background:#f07a30"></i><span>TriTrypDB</span><code>#f07a30</code></li><li><i style="background:#6b7f1e"></i><span>TrichDB</span><code>#6b7f1e</code></li><li><i style="background:#6f9a32"></i><span>VectorBase</span><code>#6f9a32</code></li><li><i style="background:#22a814"></i><span>ToxoDB</span><code>#22a814</code></li><li><i style="background:#2f7a45"></i><span>GiardiaDB</span><code>#2f7a45</code></li><li><i style="background:#5fa88a"></i><span>AmoebaDB</span><code>#5fa88a</code></li><li><i style="background:#1890a8"></i><span>HostDB</span><code>#1890a8</code></li><li><i style="background:#00a8c4"></i><span>FungiDB</span><code>#00a8c4</code></li><li><i style="background:#3f8fd0"></i><span>CryptoDB</span><code>#3f8fd0</code></li><li><i style="background:#303078"></i><span>OrthoMCL</span><code>#303078</code></li><li><i style="background:#00304c"></i><span>VEuPathDB</span><code>#00304c</code></li><li><i style="background:#6a3fa0"></i><span>MicrosporidiaDB</span><code>#6a3fa0</code></li><li><i style="background:#c4607c"></i><span>PiroplasmaDB</span><code>#c4607c</code></li><li><i style="background:#e87722"></i><span>Search point</span><code>#e87722</code></li></ul>
+</section>
+
+<section>
+<div class="head"><h2>Use</h2><h3>Clear space and minimum size</h3></div>
+<div class="two">
+<div class="stage light"><span class="guide"><img src="pathfinder-mark-light.svg" width="160" height="160" alt=""></span></div>
+<div class="cap" style="align-content:center">
+<b>Clear space</b><span>Keep a margin of at least 15 percent of the mark's width on every side, shown by the dashed line. Nothing else goes inside it.</span>
+<b style="margin-top:12px">Minimum size</b><span>Use the full mark at 32 px and up. From 31 px down to 16 px, use the favicon cut. Below 16 px, do not use the mark.</span>
+<b style="margin-top:12px">Backgrounds</b><span>The light mark on white or very light surfaces, the dark mark on navy or anything darker. Never place it on a photograph or a mid-tone.</span>
+</div>
+</div>
+</section>
+
+<section>
+<div class="head"><h2>Files</h2><h3>Everything in the set</h3></div>
+<div class="table"><table><thead><tr><th>File</th><th>Use</th><th>Size</th></tr></thead><tbody><tr><td><code>pathfinder-mark-light.svg</code></td><td>The logo. Use on white and light surfaces.</td><td class="num">32 KB</td></tr><tr><td><code>pathfinder-mark-dark.svg</code></td><td>The logo on navy and dark surfaces. Navy and violet in the ring are lifted so the loop stays whole.</td><td class="num">32 KB</td></tr><tr><td><code>pathfinder-mark-light-animated.svg</code></td><td>The logo with the loop turning. For the agent's working state.</td><td class="num">32 KB</td></tr><tr><td><code>pathfinder-mark-dark-animated.svg</code></td><td>The animated logo for dark surfaces.</td><td class="num">32 KB</td></tr><tr><td><code>favicon.svg</code></td><td>The small-size cut: heavier ring, three bold waves. Switches to its dark colours by itself when the browser is in dark mode.</td><td class="num">31 KB</td></tr><tr><td><code>favicon-dark.svg</code></td><td>The small-size cut in its dark colours only, for places that cannot follow the browser theme.</td><td class="num">30 KB</td></tr><tr><td><code>favicon.ico</code></td><td>16, 32 and 48 px in one file, for browsers that ask for /favicon.ico.</td><td class="num">15 KB</td></tr><tr><td><code>app-icon.svg</code></td><td>The logo on a navy rounded square, for home screens and the PWA manifest.</td><td class="num">32 KB</td></tr><tr><td><code>app-icon-small.svg</code></td><td>The app icon built from the small-size cut, for 48 px and under.</td><td class="num">31 KB</td></tr><tr><td><code>apple-touch-icon.png</code></td><td>180 px app icon for iOS home screens.</td><td class="num">18 KB</td></tr><tr><td><code>png/icon-192.png</code></td><td>192 px app icon for the manifest.</td><td class="num">20 KB</td></tr><tr><td><code>png/icon-512.png</code></td><td>512 px app icon for the manifest.</td><td class="num">68 KB</td></tr><tr><td><code>social-card.svg</code></td><td>1200 by 630 link preview, logo only.</td><td class="num">32 KB</td></tr><tr><td><code>pathfinder-lockup-light.svg</code></td><td>Optional. The logo with the name beside it, in Geist SemiBold outlined from the app's own font file.</td><td class="num">35 KB</td></tr><tr><td><code>pathfinder-lockup-dark.svg</code></td><td>Optional. The same lockup for dark surfaces.</td><td class="num">35 KB</td></tr></tbody></table></div>
+<p class="note">This folder is assets/brand in the repository. The web app serves its own copies of the marks, the favicons and the iOS icon from apps/web/public/brand, names them in one place, apps/web/src/lib/brand.ts, and fails a test if any copy differs from this folder. The API documentation reads its logo and favicon from this folder directly.</p>
+</section>
+
+</div>

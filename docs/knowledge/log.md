@@ -2,6 +2,13 @@
 
 ## 2026-10-15
 
+* **PathFinder has a logo of its own.** The mark is a tsetse with search waves from its
+  proboscis inside a loop of the fourteen site colours; `assets/brand/` holds every form
+  of it, `apps/web/src/lib/brand.ts` is the web app's one name for the served copies, and
+  `PathFinderLogo` draws it in the light or dark theme. The old magnifier files in
+  `apps/web/public/` and `apps/api/docs/_static/` are gone. See
+  [the decision](decisions/the-logo-is-a-tsetse-in-a-loop-of-the-site-colours.md).
+
 * **PathFinder keeps no session of its own.** A browser request acts as the account the
   website's `Authorization` cookie names: `site_login_user` maps it to the internal user
   on every request, under the per-token cache `resolve_veupathdb_user_id` already kept,
@@ -11,8 +18,8 @@
   stack's dev-login cookie is `pathfinder-dev-login`. A proxied site whose browser never
   returned the session cookie answered every signed-in call "Not authenticated".
 
-* **The PathFinder mark sits at the end of the composer's notice line.** The rail opens
-  with the sidebar toggle; the website's header names the product.
+* **The PathFinder mark sits at the bottom of the conversation's right rail.** The left
+  rail opens with the sidebar toggle; the website's header names the product.
 
 * **A search is read under the record type that lists it.** The organism reads before a
   push (`organism_params.py`), given the root's record type, and the text query sheets

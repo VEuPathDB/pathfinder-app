@@ -1,12 +1,12 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { withBasePath } from "@/lib/basePath";
+import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
 import { yourDataUrl } from "@/lib/routes";
 import { goToSiteSignIn, signInHref } from "@/lib/siteSignIn";
 
@@ -32,7 +32,7 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
     <div data-testid="signed-out-notice" className="overflow-hidden rounded-xl">
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-6 pb-4 pt-6">
         <div className="flex items-center gap-3">
-          <Image src={withBasePath("/pathfinder.svg")} alt="" width={36} height={36} />
+          <PathFinderLogo size={36} />
           <div>
             <div className="text-base font-semibold tracking-tight text-foreground">
               PathFinder

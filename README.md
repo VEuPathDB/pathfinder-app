@@ -1,11 +1,14 @@
 <div align="center">
   <h1>
-    <img
-      src="apps/web/public/pathfinder.svg"
-      alt="PathFinder"
-      height="32"
-      style="vertical-align: middle; margin-right: 8px;"
-    />
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/brand/pathfinder-mark-dark.svg" />
+      <img
+        src="assets/brand/pathfinder-mark-light.svg"
+        alt="PathFinder"
+        height="32"
+        style="vertical-align: middle; margin-right: 8px;"
+      />
+    </picture>
     PathFinder
   </h1>
   <p>An open-source tool-calling LLM agent for constructing VEuPathDB search strategies.</p>
@@ -51,6 +54,7 @@ This repo is organized as:
 - **`packages/shared-ts/`**: shared TypeScript types (`@pathfinder/shared`) plus the Kubb-generated `src/generated/{types,zod,hooks}`.
   - The web app imports types via TS path mapping to `packages/shared-ts/src` (see `apps/web/tsconfig.json`).
 - **`packages/spec/`**: OpenAPI spec (`packages/spec/openapi.json` and `.yaml`)
+- **`assets/brand/`**: the PathFinder logo in every form (marks, favicons, app icons, a link preview), with its rules and a guide page. The web app and the API documentation take their logo from here.
 
 Three libraries are repositories of their own, consumed by URL at a release tag
 (`apps/api/pyproject.toml` `[tool.uv.sources]`, `apps/web/package.json`):

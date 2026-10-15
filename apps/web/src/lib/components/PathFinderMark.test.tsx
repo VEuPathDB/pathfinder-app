@@ -12,10 +12,13 @@ describe("PathFinderMark", () => {
     render(<PathFinderMark />);
 
     const mark = screen.getByRole("img", { name: "PathFinder" });
-    expect(mark.querySelector("img")).toHaveAttribute(
-      "src",
-      "/pathfinder/pathfinder.svg",
+    const sources = Array.from(mark.querySelectorAll("img")).map((img) =>
+      img.getAttribute("src"),
     );
+    expect(sources).toEqual([
+      "/pathfinder/brand/pathfinder-mark-light.svg",
+      "/pathfinder/brand/pathfinder-mark-dark.svg",
+    ]);
     expect(screen.queryByRole("link", { name: "PathFinder" })).toBeNull();
     expect(screen.queryByRole("button", { name: "PathFinder" })).toBeNull();
   });

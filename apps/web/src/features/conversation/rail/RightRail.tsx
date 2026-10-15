@@ -14,6 +14,7 @@ import { useState } from "react";
 
 import type { Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
+import { PathFinderMark } from "@/lib/components/PathFinderMark";
 import {
   Tooltip,
   TooltipContent,
@@ -214,6 +215,9 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
             </Tooltip>
           );
         })}
+        <div className="mt-auto">
+          <PathFinderMark />
+        </div>
       </div>
     </TooltipProvider>
   );

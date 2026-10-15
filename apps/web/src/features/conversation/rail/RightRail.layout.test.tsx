@@ -96,3 +96,20 @@ describe("the rail panel never covers the thread", () => {
     expect(panel.getAttribute("data-overlay")).toBe(null);
   });
 });
+
+describe("the right rail ends with the PathFinder mark", () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
+  it("puts the mark below the panel buttons, as the last item of the rail", () => {
+    renderRail("c-mark", []);
+
+    const rail = screen.getByLabelText("Right rail");
+    const mark = screen.getByRole("img", { name: "PathFinder" });
+    expect(rail.lastElementChild?.contains(mark)).toBe(true);
+    expect(rail).toContainElement(
+      screen.getByRole("button", { name: "Open Strategy" }),
+    );
+  });
+});
