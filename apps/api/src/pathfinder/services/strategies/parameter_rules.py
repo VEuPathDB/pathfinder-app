@@ -9,6 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 from veupathdb.domain.parameters import (
+    PHYLETIC_EXPRESSION_PARAM,
     PHYLETIC_LIST_PARAMS,
     PHYLETIC_PARAM_NAMES,
     ParamKind,
@@ -24,6 +25,7 @@ MeasurementRule = Literal[
     "site_default",
     "site_fixed",
     "not_measurable",
+    "expression_reading",
 ]
 LabelRule = Literal[
     "vocabulary_display",
@@ -35,7 +37,12 @@ SourceRule = Literal["words", "site"]
 ParameterClass = (
     ParamKind
     | Literal[
-        "numeric_string", "tree_pick", "phyletic_list", "phyletic_pattern", "site_fixed"
+        "numeric_string",
+        "tree_pick",
+        "phyletic_list",
+        "phyletic_pattern",
+        "phyletic_expression",
+        "site_fixed",
     ]
 )
 
@@ -102,6 +109,9 @@ PARAMETER_RULES: Mapping[ParameterClass, ParameterRules] = MappingProxyType(
             label="tree_organism",
             reason="the pattern is derived from the species lists",
         ),
+        "phyletic_expression": ParameterRules(
+            measurement="expression_reading", label="own_label"
+        ),
         "site_fixed": ParameterRules(
             measurement="site_fixed", label="own_label", source="site"
         ),
@@ -119,11 +129,19 @@ def site_fixed(info: ParameterInfo) -> bool:
     return info.is_read_only or (not info.is_visible and not info.vocabulary())
 
 
+# The phyletic parameters are classed by name: their kind is a plain string.
+_NAMED_CLASSES: Mapping[str, ParameterClass] = MappingProxyType(
+    {
+        **dict.fromkeys(PHYLETIC_PARAM_NAMES, "phyletic_pattern"),
+        **dict.fromkeys(PHYLETIC_LIST_PARAMS, "phyletic_list"),
+        PHYLETIC_EXPRESSION_PARAM: "phyletic_expression",
+    }
+)
+
+
 def parameter_class(info: ParameterInfo) -> ParameterClass:
-    if info.name in PHYLETIC_LIST_PARAMS:
-        return "phyletic_list"
-    if info.name in PHYLETIC_PARAM_NAMES:
-        return "phyletic_pattern"
+    if info.name in _NAMED_CLASSES:
+        return _NAMED_CLASSES[info.name]
     if site_fixed(info):
         return "site_fixed"
     if info.param_kind == "string" and info.is_number:

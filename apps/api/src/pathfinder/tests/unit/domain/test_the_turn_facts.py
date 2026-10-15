@@ -10,8 +10,8 @@ from pathfinder.domain.turn_facts import (
     SavedSetFact,
     StepFact,
     TurnFacts,
-    uncarried_assumptions,
 )
+from pathfinder.domain.uncarried_assumptions import uncarried_assumptions
 from pathfinder.domain.value_caveats import AssumedValueCaveat, UnmeasuredValueCaveat
 
 _CLAUSE = (

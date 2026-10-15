@@ -209,3 +209,19 @@ def test_transcripts_is_met_by_the_transcript_class() -> None:
     row = _held(checked, _record(_spec("transcript"), ()))
 
     assert (row.status, row.note) == ("met", "the strategy returns genes")
+
+
+def test_genes_is_met_by_orthomcls_protein_class() -> None:
+    row = _held(_GENES_ROW, _record(_spec("sequence")))
+
+    assert (row.status, row.answered_by, row.note) == (
+        "met",
+        ["c_obp", "c_chr3"],
+        "the strategy returns sequences",
+    )
+
+
+def test_verify_judges_a_species_count_from_the_expression() -> None:
+    told = " ".join(_VERIFICATION_INSTRUCTIONS.split())
+
+    assert "is met by the step whose `phyletic_expression` states it" in told

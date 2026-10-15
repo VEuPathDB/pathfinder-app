@@ -189,12 +189,16 @@ def _with_noun(count: int | None, facts: TurnFacts) -> str | None:
 
 def _step_count(facts: TurnFacts, body: str) -> str | None:
     step = facts.step(body)
-    return None if step is None else _with_noun(step.count, facts)
+    if step is None or step.count is None:
+        return None
+    return counted(step.count, step.record_noun)
 
 
 def _step_count_before(facts: TurnFacts, body: str) -> str | None:
     step = facts.step(body)
-    return None if step is None else _with_noun(step.count_before, facts)
+    if step is None or step.count_before is None:
+        return None
+    return counted(step.count_before, step.record_noun)
 
 
 def _value(facts: TurnFacts, body: str) -> str | None:
@@ -243,7 +247,7 @@ def render_reply(prose: str, facts: TurnFacts) -> str:
             rendered if reference_kind(match) in COUNTED_REFERENCES else rendered + noun
         )
 
-    return reference_and_its_noun(facts.record_noun).sub(replaced, prose)
+    return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose)
 
 
 def _count_references(facts: TurnFacts) -> Iterator[tuple[str, int]]:
@@ -414,7 +418,7 @@ def shape_faults(prose: str, facts: TurnFacts | None = None) -> list[ProseFault]
     ]
     placed = [
         ProseFault(token=m.token, kind=m.kind, references=(m.reference,))
-        for m in misplacements(prose, held.record_noun)
+        for m in misplacements(prose, held.counted_nouns())
     ]
     return list(dict.fromkeys([*brackets, *links, *tokens, *placed]))
 

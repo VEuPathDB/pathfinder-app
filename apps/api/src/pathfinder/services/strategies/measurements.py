@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.operational_spec import (
     Measurement,
 )
 from pathfinder.domain.strategy.text_expression import TextExpression
+from pathfinder.services.strategies.expression_readings import expression_readings
 from pathfinder.services.strategies.parameter_rules import rules_of, text_query
 from pathfinder.services.strategies.pick_readings import default_reading, tree_note
 from pathfinder.services.strategies.slow_searches import counts_slowly, timed
@@ -366,7 +367,7 @@ async def _readings_of(
             )
         case "not_measurable":
             return [_not_measurable(info.name, rules.reason)]
-        case "site_fixed":
+        case "site_fixed" | "expression_reading":
             return []
 
 
@@ -403,19 +404,26 @@ async def measure_binding(
     binding whose own count did not arrive records each such value unmeasured.
     """
     by_name = {info.name: info for info in infos}
+    worded = expression_readings(values, by_name, tree)
     measured = {
         name: bound
         for name, bound in values.items()
         if name in by_name
         and bound.source in _MEASURED_SOURCES
+        and rules_of(by_name[name]).measurement != "expression_reading"
         and _has_readings(by_name[name], bound)
     }
     if binding.count is None:
         return [
-            m for name, b in measured.items() for m in _unread(by_name[name], b.value)
+            *worded,
+            *(
+                m
+                for name, b in measured.items()
+                for m in _unread(by_name[name], b.value)
+            ),
         ]
     if counts_slowly(binding.site_id, binding.search_name):
-        return [_not_measurable(name, _SLOW_SEARCH) for name in measured]
+        return [*worded, *(_not_measurable(name, _SLOW_SEARCH) for name in measured)]
     counts.remember(
         binding.site_id,
         binding.record_type,
@@ -438,4 +446,4 @@ async def measure_binding(
             for name, text in quoted.items()
         ),
     )
-    return [measurement for group in read for measurement in group]
+    return [*worded, *(measurement for group in read for measurement in group)]

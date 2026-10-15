@@ -29,7 +29,8 @@ from pathfinder.devtools.models import (
     sub_agent_step_data,
 )
 from pathfinder.devtools.transcript import assumed_lines, facts_lines
-from pathfinder.domain.turn_facts import TurnFacts, uncarried_assumptions
+from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.domain.uncarried_assumptions import uncarried_assumptions
 from pathfinder.domain.value_caveats import assumed_value_caveats
 
 RESULT_CLIP = 140

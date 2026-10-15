@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 
 from veupathdb.domain.parameters import to_wire
-from veupathdb.domain.strategy import StrategyStep
+from veupathdb.domain.strategy import StrategyStep, record_class_of
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead.analysis_facts import analysis_parameters
@@ -149,6 +149,7 @@ def _step_fact(
         reason=_reason(criterion),
         parameters=[] if criterion is None else _parameters(criterion, noun, said),
         error=errors.get(step.id, ""),
+        record_noun=noun,
     )
 
 
@@ -175,7 +176,14 @@ def _built_steps(
     )
     return [
         _step_fact(
-            step, criteria, counts, errors, counted_noun(graph.record_type), said
+            step,
+            criteria,
+            counts,
+            errors,
+            counted_noun(
+                record_class_of(step.id, graph.steps, fallback=graph.record_type or "")
+            ),
+            said,
         )
         for step in graph.steps_in_tree_order(root_id)
     ]
@@ -195,13 +203,15 @@ def _draft_steps(spec: OperationalSpec | None, said: Sequence[str]) -> list[Step
     """The bound criteria of a spec nothing is built from yet."""
     if spec is None:
         return []
+    noun = counted_noun(spec.record_type)
     return [
         StepFact(
             step_id=c.id,
             display_name=c.search_display_name or c.text,
             count=c.result_count,
             reason=_reason(c),
-            parameters=_parameters(c, counted_noun(spec.record_type), said),
+            parameters=_parameters(c, noun, said),
+            record_noun=noun,
         )
         for c in spec.criteria
         if c.bound

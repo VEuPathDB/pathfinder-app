@@ -25,7 +25,7 @@ def _flat(text: str) -> str:
 def test_the_lead_gives_the_portal_sentence_and_offers_no_switch() -> None:
     lead = _flat(LEAD_INSTRUCTIONS)
 
-    assert "**A request only the VEuPathDB Portal answers opens there.**" in lead
+    assert "**A request only another site answers opens there.**" in lead
     assert (
         "A conversation is bound to its site, so never offer, ask about or confirm "
         "a site switch, in prose or on a card." in lead

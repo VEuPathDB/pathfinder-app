@@ -25,8 +25,8 @@ def _parameter_lines(fact: ParameterFact) -> list[str]:
     ]
 
 
-def _step_lines(step: StepFact, noun: str, sources: list[SourceFact]) -> list[str]:
-    title, *reason = step.model_copy(update={"parameters": [], "error": ""}).lines(noun)
+def _step_lines(step: StepFact, sources: list[SourceFact]) -> list[str]:
+    title, *reason = step.model_copy(update={"parameters": [], "error": ""}).lines()
     return [
         title,
         *(f"  {line}" for line in reason),
@@ -46,11 +46,7 @@ def facts_lines(facts: TurnFacts) -> list[str]:
     ).lines()
     return [
         "Plan" if facts.draft else "Strategy",
-        *(
-            line
-            for step in facts.steps
-            for line in _step_lines(step, facts.record_noun, step_sources)
-        ),
+        *(line for step in facts.steps for line in _step_lines(step, step_sources)),
         *rest,
         *(
             f"not shown, its step is not in the facts: {s.line()}"

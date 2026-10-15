@@ -12865,6 +12865,10 @@ components:
           - type: integer
           - type: 'null'
           title: Countbefore
+        recordNoun:
+          default: gene
+          title: Recordnoun
+          type: string
       required:
       - stepId
       - displayName

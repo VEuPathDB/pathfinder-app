@@ -32,6 +32,9 @@ STRATEGY_SCOPES = frozenset({ConstraintKind.ORGANISM, ConstraintKind.RECORD_TYPE
 
 # The nouns every site counts a gene answer in.
 GENE_RECORD_NOUNS = frozenset({"gene", "genes", "transcript", "transcripts"})
+# The record classes a request for genes is answered by: a genomics site's
+# transcripts, and OrthoMCL's proteins, the gene level that site holds.
+GENE_ANSWERING_CLASSES = frozenset({"transcript", "sequence"})
 # The words a record-type phrase adds to the noun it names.
 _RECORD_QUALIFIERS = frozenset({"record", "records", "level", "data", "type", "types"})
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
+from veupathdb.wdk import get_site_router
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.deltas import FrameResult
@@ -61,7 +62,34 @@ def hold_the_questions_to_the_draft(
     raise ModelRetry(unbound)
 
 
+def hold_the_route_to_another_site(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    """Send back a report that routes to no site, or to this conversation's own."""
+    if not isinstance(output, FrameResult):
+        return output
+    others = sorted(
+        site.id
+        for site in get_site_router().list_sites()
+        if site.id != ctx.deps.site_id
+    )
+    named = [
+        report.site
+        for report in output.requirement_problems
+        if report.problem is RequirementProblem.ANOTHER_SITE_ANSWERS
+        and report.site not in others
+    ]
+    if named:
+        msg = (
+            f"another_site_answers names {named}, which is no other site. Name one "
+            f"of {', '.join(others)}, or bind the search this site holds."
+        )
+        raise ModelRetry(msg)
+    return output
+
+
 __all__ = [
     "hold_the_questions_to_the_draft",
     "hold_the_reports_to_the_requirement_list",
+    "hold_the_route_to_another_site",
 ]

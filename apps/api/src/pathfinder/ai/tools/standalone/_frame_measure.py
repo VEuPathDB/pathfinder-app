@@ -7,8 +7,13 @@ from collections.abc import Mapping, Sequence
 
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import ParamValue
-from veupathdb.wdk import WDKSearch, phyletic_tree_of
-from veupathdb_mcp.catalog import ParameterInfo, ParamFetcher, ResolvedParams
+from veupathdb.wdk import WDKSearch
+from veupathdb_mcp.catalog import (
+    ParameterInfo,
+    ParamFetcher,
+    ResolvedParams,
+    phyletic_tree_for_search,
+)
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_count import record_and_count_criterion
@@ -103,7 +108,7 @@ async def record_measurements(
         ),
         values=criterion.resolved_params,
         infos=infos,
-        tree=phyletic_tree_of(definition.parameters or []),
+        tree=await phyletic_tree_for_search(ctx.deps.site_id, definition),
     )
     overview = ctx.deps.agent_state.get_overview(criterion.search_name)
     reads = overview.options_reads() if overview else []

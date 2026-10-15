@@ -1,5 +1,47 @@
 # Log
 
+## 2026-10-15
+
+* **A step counts in its own records.** `StepFact.record_noun` is the noun of the record
+  class the step's search is listed under (`record_class_of`), so a `group` step under a
+  `sequence` result reads as groups in the facts, in a count reference and in the web card.
+  `TurnFacts.counted_nouns` is every noun a reference may be followed by.
+
+* **A declarative build pushes each step under its own record class.** `_push_tree_to_wdk`
+  keeps the class validation resolves and passes `record_class_of` to the push, as
+  `push_steps_with_plan` already did. The client reads a transform's `input-step` names under
+  that class and sends each as the empty string; under the strategy's class the read fails
+  on OrthoMCL and WDK refuses `FromGroups` for a missing `group_answer`.
+
+* **The route to another site quotes the requirement.** The sentence names the requirement
+  in the words the researcher stated it in, when the report's number is one the list holds.
+
+## 2026-10-14
+
+* **A count across species opens on OrthoMCL.** "Absent from at least k of these", "some
+  but not all" and any OR across species are OrthoMCL's `GroupsByPhyleticPattern`; the
+  phylogenetic profile states only all-present and all-absent lists. FRAME reports such a
+  requirement as `another_site_answers` with the site's id, binds nothing for it and asks
+  nothing, and the dispatch answers with the sentence that opens a conversation there
+  (`ai/lead/site_routes.py`, which the portal route now uses too). A route to no site, or
+  to the conversation's own, goes back to FRAME inside its run.
+
+* **OrthoMCL's expression is its own parameter class.** `phyletic_expression` is no text
+  query and no phrase the researcher must have typed. Its value is read back in words with
+  the size of each list it counts across, as a `vocabulary_label` measurement that needs no
+  count from the site (`services/strategies/expression_readings.py`), so FRAME and the facts
+  show a count that does not match the request. The codes come from the site's taxonomy
+  through `veupathdb_mcp.catalog.phyletic_tree_for_search`. FRAME's instructions name
+  OrthoMCL's `group` and `sequence` record types, the `FromGroups` transform and the
+  `ByTaxonomy` intersection.
+
+* **A site without gene records reads none.** `read_gene_record`, for the Lead and for a
+  check, is not offered on a site that publishes neither a `gene` nor a `transcript` record
+  class (`offered_where_genes_are_held`, a tool `prepare`). On OrthoMCL a
+  protein record is the gene-level answer: a record-type row for genes is met by the
+  `sequence` class as it is by `transcript` (`GENE_ANSWERING_CLASSES`), and VERIFY judges a
+  count across species from the step whose `phyletic_expression` states it.
+
 ## 2026-10-12
 
 * **A taxon meets the organisms under it.** The check that refuses an INTERSECT of two

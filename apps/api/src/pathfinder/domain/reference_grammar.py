@@ -4,7 +4,7 @@ brackets that attempt a reference and are none."""
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 
 # The references that name a fact after a colon, and those that are one word.
 REFERENCE_KINDS = (
@@ -38,11 +38,12 @@ def reference_kind(match: re.Match[str]) -> str:
     return match.group("bare") or match.group("kind")
 
 
-def reference_and_its_noun(noun: str) -> re.Pattern[str]:
-    """A reference, and the record noun written after it in any case, with the
+def reference_and_its_noun(nouns: Sequence[str]) -> re.Pattern[str]:
+    """A reference, and a record noun written after it in any case, with the
     spaces, hyphens or colons between them."""
+    named = "|".join(re.escape(noun) for noun in nouns)
     return re.compile(
-        rf"{A_REFERENCE.pattern}(?P<noun>(?i:[ \t:-]*\b{re.escape(noun)}s?\b))?"
+        rf"{A_REFERENCE.pattern}(?P<noun>(?i:[ \t:-]*\b(?:{named})s?\b))?"
     )
 
 

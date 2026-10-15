@@ -118,7 +118,10 @@ gene IDs.
 returned: its product, organism, chromosome, orthologs and the site's \
 expression summary. It records the read the card cites, and it refuses a gene \
 no sample of this turn returned and every control. A record this check already \
-read, or a read past the eighth, is refused naming the records already read.
+read, or a read past the eighth, is refused naming the records already read. A \
+site with no gene records, such as OrthoMCL, does not offer it: there a protein \
+(``sequence``) record is the gene-level answer, and the sample records are judged \
+as they are.
 
 ### Expression evidence for one gene
 ``get_ai_expression_summary(gene_id)`` reads the summary the VEuPathDB site \
@@ -184,8 +187,12 @@ structure breaks: each is a row with that status, and the runtime adds the \
 row when you leave it out. Any ``unmet`` row makes ``success`` false.
 The record type is the runtime's to judge: it marks each record-type row from \
 the strategy's record class. The site counts a transcript answer in genes, so \
-a request for genes on the transcript class is met; never fail the check, ask \
-for a rebuild, or call the result unverified over it.
+a request for genes on the transcript class is met, and so is one on \
+OrthoMCL's ``sequence`` (protein) class; never fail the check, ask for a \
+rebuild, or call the result unverified over it. A presence and absence count \
+across species ("absent from at least 2 of these strains") is met by the step \
+whose `phyletic_expression` states it, ``how`` ``parameter``, its note the \
+expression; no column or sampled record holds it.
 
 ### 2. The genes themselves (required when the turn changed the strategy)
 
@@ -200,8 +207,8 @@ column row yourself.
 Sample only where no column shows: when ``read_step_columns`` answers with a \
 note, call ``get_sample_records`` with the ``wdk_step_id`` the note names, \
 else the root's, and ``limit`` 8, as the work order names them, fewer when \
-the result is smaller; read the column the note names on those records. Then call ``read_gene_record`` once per \
-sampled gene, at most 8 reads. \
+the result is smaller; read the column the note names on those records. Where \
+``read_gene_record`` is offered, call it once per sampled gene, at most 8 reads. \
 Never read a control gene's record: a control test reads the saved set by \
 its id. \
 A transcript id (``PF3D7_0102200.1``) names its gene without the suffix. Write \

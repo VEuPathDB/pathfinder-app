@@ -35,6 +35,7 @@ from pathfinder.ai.lead.frame_requirements import (
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_consult import card_questions
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.site_routes import site_route_sentence
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
     SubAgentApprovalWait,
@@ -56,6 +57,8 @@ from pathfinder.domain.strategy.questions import (
     with_withdrawals,
 )
 from pathfinder.domain.strategy.requirement_reports import (
+    RequirementProblem,
+    numbered_requirements,
     resolved_reports,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
@@ -278,7 +281,29 @@ async def _run_frame(
         deps,
         delta,
         agent_deps.agent_state.operational_spec_draft,
-        agent_deps.agent_state.portal_route,
+        agent_deps.agent_state.portal_route or _another_site_route(deps, delta),
+    )
+
+
+def _another_site_route(deps: LeadDeps, delta: FrameResult) -> str:
+    """The sentence for the first requirement the pass reports another site
+    answers, in the words the researcher stated it in."""
+    routed = [
+        report
+        for report in delta.requirement_problems
+        if report.problem is RequirementProblem.ANOTHER_SITE_ANSWERS
+    ]
+    if not routed:
+        return ""
+    stated = numbered_requirements(deps.state.domain.requirements).get(
+        routed[0].requirement
+    )
+    if stated is None:
+        return site_route_sentence(deps.site_id, routed[0].site)
+    return site_route_sentence(
+        deps.site_id,
+        routed[0].site,
+        f'whose searches state "{stated.requested_value}"',
     )
 
 
@@ -286,8 +311,8 @@ def _accepted(
     deps: LeadDeps, delta: FrameResult, draft: OperationalSpec, route: str
 ) -> FrameResult:
     """The result the Lead reads from a pass that answered, its changes read
-    from the wire values, or a refusal. A pass sent to the portal carries the
-    portal's sentence, alone when the pass changed nothing."""
+    from the wire values, or a refusal. A pass sent to another site carries
+    that site's sentence, alone when the pass changed nothing."""
     found = deps.state.domain.spec_before_dispatch
     if route and draft == (found or OperationalSpec(goal=draft.goal)):
         return FrameResult(disposition="needs_user", summary=route)

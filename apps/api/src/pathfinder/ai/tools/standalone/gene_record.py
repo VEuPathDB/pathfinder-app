@@ -7,12 +7,14 @@ from typing import Protocol
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext, ToolFailed
 from pydantic_ai.messages import ToolReturn
+from pydantic_ai.tools import ToolDefinition
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.turn_records import ReadRecord, TurnMarkers
 from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT
 from pathfinder.services.gene_records import read
 from pathfinder.services.gene_records.read import GeneRecordSummary
+from pathfinder.services.strategies.record_classes import record_class_names
 
 
 def _read_record(found: GeneRecordSummary) -> ReadRecord:
@@ -30,6 +32,11 @@ def _read_record(found: GeneRecordSummary) -> ReadRecord:
     )
 
 
+# A genomics site lists its gene searches under transcript and reads a gene's
+# record as gene; a site that publishes neither holds no gene records.
+_GENE_RECORD_CLASSES = frozenset({"gene", "transcript"})
+
+
 class GeneRecordReader(Protocol):
     """What a record read needs of its caller: the site and the turn's reads."""
 
@@ -38,6 +45,14 @@ class GeneRecordReader(Protocol):
 
     @property
     def turn_markers(self) -> TurnMarkers: ...
+
+
+async def offered_where_genes_are_held(
+    ctx: RunContext[GeneRecordReader], tool_def: ToolDefinition
+) -> ToolDefinition | None:
+    """The record read, offered only on a site that publishes a gene record class."""
+    classes = await record_class_names(ctx.deps.site_id)
+    return tool_def if _GENE_RECORD_CLASSES & classes.keys() else None
 
 
 async def read_gene_record(

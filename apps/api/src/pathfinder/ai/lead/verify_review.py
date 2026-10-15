@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.combination_check import (
     match_terms,
 )
 from pathfinder.domain.strategy.constraints import (
+    GENE_ANSWERING_CLASSES,
     GENE_RECORD_NOUNS,
     CombinationRequest,
     Constraint,
@@ -171,6 +172,8 @@ def _with_the_record_type(
     noun = counted_noun(spec.record_type)
     named_class = (spec.record_type or noun).replace("_", " ")
     returned = {noun, f"{noun}s", named_class, f"{named_class}s"}
+    if spec.record_type in GENE_ANSWERING_CLASSES:
+        returned |= GENE_RECORD_NOUNS
     record_nouns = (
         GENE_RECORD_NOUNS
         | returned

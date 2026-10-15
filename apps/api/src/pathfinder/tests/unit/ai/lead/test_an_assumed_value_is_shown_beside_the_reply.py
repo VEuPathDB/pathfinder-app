@@ -25,7 +25,7 @@ from pathfinder.domain.strategy.operational_spec import (
     StructureNode,
 )
 from pathfinder.domain.strategy.revision import strategy_revision
-from pathfinder.domain.turn_facts import uncarried_assumptions
+from pathfinder.domain.uncarried_assumptions import uncarried_assumptions
 from pathfinder.domain.value_caveats import assumed_value_caveats
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
 

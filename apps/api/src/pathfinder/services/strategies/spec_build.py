@@ -11,6 +11,7 @@ from veupathdb.domain.strategy import (
     StrategyStep,
     StrategyStepNode,
     flatten_tree,
+    record_class_of,
     subtree_ids,
     wdk_search_name,
 )
@@ -296,17 +297,15 @@ async def _push_tree_to_wdk(
         push_parameters: dict[str, ParamValue] = dict(node.parameters)
         if names_a_wdk_question(node):
             try:
-                push_parameters = (
-                    await validate_parameters(
-                        SearchContext(
-                            site_id=site_id,
-                            record_type=graph_record_type,
-                            search_name=search_name,
-                        ),
-                        parameters=dict(node.parameters),
-                        callbacks=callbacks,
-                    )
-                ).params
+                validated = await validate_parameters(
+                    SearchContext(
+                        site_id=site_id,
+                        record_type=graph_record_type,
+                        search_name=search_name,
+                    ),
+                    parameters=dict(node.parameters),
+                    callbacks=callbacks,
+                )
             except ValidationError as exc:
                 detail = exc.detail or exc.title
                 sync_state.wdk_push_errors[node.id] = detail
@@ -320,11 +319,16 @@ async def _push_tree_to_wdk(
                     ),
                 )
                 continue
+            push_parameters = validated.params
+            if validated.record_class:
+                node.record_class = validated.record_class
         wdk_id, _validation, failure = await push_step_to_wdk(
             sync_state=sync_state,
             step=node,
             site_id=site_id,
-            record_type=graph_record_type,
+            record_type=record_class_of(
+                node.id, steps_by_id, fallback=graph_record_type
+            ),
             search_name=search_name,
             parameters=push_parameters,
         )

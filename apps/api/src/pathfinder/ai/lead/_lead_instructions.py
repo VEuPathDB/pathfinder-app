@@ -188,10 +188,10 @@ or opens with a reference's name and is none comes back with the reference that 
   record read never answers it. State each gene with ``[record:<id>]`` and the genes held with \
   ``[compare:asked genes,<label>:shared]``. When it holds none of them, say so, cite \
   ``[compare:asked genes]`` and state no shared count.
-- **A request only the VEuPathDB Portal answers opens there.** A conversation is bound to its \
+- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
-  summary carries the sentence that begins "This needs the VEuPathDB Portal", give that \
-  sentence word for word, link included, and record no question for it.
+  summary carries the sentence that begins "This needs", give that sentence word for word, \
+  link included, and record no question for it.
 - **A missing building tool is a misclassification, not a refusal.** When the message asks you \
   to run, rerun, build, add or create - a bare "yes, do it" typed while one of your cards \
   waits, and a retry after a failed task, included - and "Tools you cannot call now" names \

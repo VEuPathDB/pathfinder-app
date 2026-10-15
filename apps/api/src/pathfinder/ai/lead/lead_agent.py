@@ -77,7 +77,10 @@ from pathfinder.ai.tools.standalone.control_sets import (
     read_gene_ids_from_strategy,
     use_control_set,
 )
-from pathfinder.ai.tools.standalone.gene_record import read_gene_record
+from pathfinder.ai.tools.standalone.gene_record import (
+    offered_where_genes_are_held,
+    read_gene_record,
+)
 from pathfinder.ai.tools.standalone.optimization import (
     optimize_search_parameters,
     sweep_can_run,
@@ -128,7 +131,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(read_step_ids),
             Tool(export_gene_set),
             Tool(read_ledger_section),
-            Tool(read_gene_record),
+            Tool(read_gene_record, prepare=offered_where_genes_are_held),
             Tool(get_live_strategy_state),
             Tool(frame_problem),
             Tool(edit_strategy),

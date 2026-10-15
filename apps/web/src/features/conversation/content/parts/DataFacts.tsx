@@ -75,12 +75,10 @@ function Parameter({ fact }: { fact: ParameterFact }): ReactElement {
 
 function Step({
   step,
-  noun,
   sources,
   listed,
 }: {
   step: StepFact;
-  noun: string;
   sources: SourceFact[];
   listed: ListedFact[];
 }): ReactElement {
@@ -95,7 +93,7 @@ function Step({
           {step.displayName}
         </span>
         <span data-testid="facts-step-count" data-count={step.count ?? ""}>
-          {withBefore(step.count, step.countBefore, noun)}
+          {withBefore(step.count, step.countBefore, step.recordNoun ?? "gene")}
         </span>
       </div>
       {(step.reason ?? "") === "" ? null : (
@@ -184,7 +182,6 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
             <Step
               key={step.stepId}
               step={step}
-              noun={noun}
               sources={sources.filter((s) => s.stepId === step.stepId)}
               listed={listed.filter((l) => l.stepId === step.stepId)}
             />

@@ -19,6 +19,7 @@ from pathfinder.ai.agents._instructions import (
 from pathfinder.ai.agents.frame_result_checks import (
     hold_the_questions_to_the_draft,
     hold_the_reports_to_the_requirement_list,
+    hold_the_route_to_another_site,
 )
 from pathfinder.ai.agents.scratchpad_guidance import (
     PATHFINDER_SCRATCHPAD_GUIDANCE,
@@ -133,6 +134,20 @@ Procedure:
         (codes or labels from the sheet; a clade selects all its species;
         `lookup_phyletic_codes(query)` finds a code from a common name); the hidden
         `profile_pattern` is derived from those two lists, never write it;
+      - a count across a list of species ("absent from at least 2 of these strains",
+        "present in some but not all", any OR across species) is OrthoMCL's
+        `GroupsByPhyleticPattern`: the phylogenetic profile states only "every one
+        present" and "every one absent". On any other site, report that requirement as
+        `another_site_answers` with `site` "orthomcl", bind nothing for it and ask no
+        question about it. On OrthoMCL, write it in `phyletic_expression` from the codes
+        `lookup_phyletic_codes` returns, in the grammar its sheet states; a list of N codes
+        absent from at least k of them is `list<=(N-k)T`. `set_criterion` answers the
+        expression in words with the size of each list; when those words do not say what
+        the request asks, correct the expression and bind it again. OrthoMCL's record types are
+        `group` (ortholog groups) and `sequence` (proteins, the genes a request asks
+        for): `GroupsByPhyleticPattern` returns groups, the `FromGroups` transform of
+        record type `sequence` turns them into proteins, and a `ByTaxonomy` step of record
+        type `sequence` intersected with those keeps one organism's proteins;
       - orthology: "orthologs in X", "carry these to X", "their X counterparts" ask for X's
         genes: one `transform` criterion on the site's orthology transform, `organism` = X.
         A carry, map, translate or move to orthologs in X is that one transform even when
@@ -334,4 +349,5 @@ def build_frame_agent() -> FrameAgent:
         agent.instructions(stable.section(fn))
     agent.output_validator(hold_the_reports_to_the_requirement_list)
     agent.output_validator(hold_the_questions_to_the_draft)
+    agent.output_validator(hold_the_route_to_another_site)
     return agent

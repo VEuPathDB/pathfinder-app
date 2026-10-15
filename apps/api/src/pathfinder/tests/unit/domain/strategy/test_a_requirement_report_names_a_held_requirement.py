@@ -123,4 +123,9 @@ def test_each_report_tells_the_lead_what_to_do() -> None:
         RequirementProblem.REQUEST_LEAVES_IT_OPEN: (
             "The request gives no value for it. The card asks for the value."
         ),
+        RequirementProblem.ANOTHER_SITE_ANSWERS: (
+            "Another site answers it. FRAME's summary carries the sentence that "
+            "opens a conversation there; give it word for word and ask nothing "
+            "about it."
+        ),
     }

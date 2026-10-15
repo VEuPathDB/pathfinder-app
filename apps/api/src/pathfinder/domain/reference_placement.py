@@ -4,7 +4,7 @@ and with no noun after a count it renders with its noun."""
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -74,10 +74,12 @@ class Misplacement:
     reference: str
 
 
-def _count_nouns(record_noun: str) -> frozenset[str]:
-    """The words that count records: gene, record and the strategy's noun."""
-    head = (record_noun.split() or ["gene"])[-1].casefold()
-    return frozenset({"gene", "genes", "record", "records", head, f"{head}s"})
+def _count_nouns(record_nouns: Sequence[str]) -> frozenset[str]:
+    """The words that count records: gene, record and the nouns the facts count in."""
+    heads = {(noun.split() or ["gene"])[-1].casefold() for noun in record_nouns}
+    return frozenset(
+        {"gene", "genes", "record", "records", *heads, *(f"{h}s" for h in heads)}
+    )
 
 
 def _clauses(masked: str) -> Iterator[tuple[int, int]]:
@@ -119,11 +121,11 @@ def _in_clause(
             yield Misplacement("noun_after_count", token, match.group())
 
 
-def misplacements(prose: str, record_noun: str) -> list[Misplacement]:
+def misplacements(prose: str, record_nouns: Sequence[str]) -> list[Misplacement]:
     """Each clause that writes a number word beside a count or value reference,
     and each count reference with a count noun after it."""
     masked = A_REFERENCE.sub(lambda m: _MASK * len(m.group()), prose)
-    nouns = _count_nouns(record_noun)
+    nouns = _count_nouns(record_nouns)
     return [
         found
         for span in _clauses(masked)

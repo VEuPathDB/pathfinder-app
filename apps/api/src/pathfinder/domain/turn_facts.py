@@ -3,7 +3,7 @@ values, what the check measured, and what the turn saved or was refused."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
@@ -96,15 +96,16 @@ class StepFact(CamelModel):
     error: str = ""
     # The count the step held before this turn's first edit of it.
     count_before: int | None = None
+    record_noun: str = "gene"
 
-    def lines(self, noun: str) -> list[str]:
+    def lines(self) -> list[str]:
         title = (
             f"{self.operator} {self.display_name}"
             if self.operator
             else self.display_name
         )
         return [
-            f"{title}: {_with_before(self.count, self.count_before, noun)}",
+            f"{title}: {_with_before(self.count, self.count_before, self.record_noun)}",
             *([self.reason] if self.reason else []),
             *(line for p in self.parameters for line in p.lines()),
             *([self.error] if self.error else []),
@@ -321,6 +322,12 @@ class TurnFacts(CamelModel):
             )
         )
 
+    def counted_nouns(self) -> list[str]:
+        """The noun of the result and of each step, once each."""
+        return list(
+            dict.fromkeys([self.record_noun, *(s.record_noun for s in self.steps)])
+        )
+
     def step(self, step_id: str) -> StepFact | None:
         """The step or criterion of that id, or None."""
         return next((s for s in self.steps if s.step_id == step_id), None)
@@ -390,7 +397,7 @@ class TurnFacts(CamelModel):
 
     def _step_rows(self, step: StepFact) -> list[str]:
         return [
-            *step.lines(self.record_noun),
+            *step.lines(),
             *(s.line() for s in self.sources if s.step_id == step.step_id),
             *(
                 listed.line()
@@ -473,15 +480,6 @@ def _drawn_by_a_row(caveat: Caveat, noted: set[tuple[str, str]]) -> bool:
             return False
 
 
-def uncarried_assumptions(
-    caveats: Sequence[ValueCaveat], facts: TurnFacts | None
-) -> int:
-    """How many values the request did not state, and that narrow their step,
-    no step row shows with who set them and their measurement."""
-    narrowing = [c for c in caveats if c.kind == "assumed_value"]
-    return sum(1 for c in narrowing if facts is None or not facts.carries(c))
-
-
 __all__ = [
     "ListedFact",
     "ParameterFact",
@@ -491,5 +489,4 @@ __all__ = [
     "StepFact",
     "TurnFacts",
     "counted",
-    "uncarried_assumptions",
 ]

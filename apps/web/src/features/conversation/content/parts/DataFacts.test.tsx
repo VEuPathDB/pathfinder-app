@@ -97,6 +97,38 @@ describe("DataFacts", () => {
     );
   });
 
+  it("counts each step in its own records under a result of another kind", () => {
+    render(
+      <DataFacts
+        data={{
+          recordNoun: "sequence",
+          steps: [
+            {
+              stepId: "step_pattern",
+              displayName: "Phyletic Pattern",
+              count: 297,
+              recordNoun: "group",
+            },
+            {
+              stepId: "step_proteins",
+              displayName: "Transform Groups to Proteins",
+              count: 103766,
+              recordNoun: "sequence",
+            },
+          ],
+          rootCount: 300,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getAllByTestId("facts-step-count").map((count) => count.textContent),
+    ).toEqual(["297 groups", "103,766 sequences"]);
+    expect(screen.getByTestId("facts-root-count")).toHaveTextContent(
+      "Result: 300 sequences",
+    );
+  });
+
   it("shows why a step runs its search under its name", () => {
     render(<DataFacts data={FACTS} />);
 

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from enum import StrEnum
 
 from assistant_core.platform.pydantic_base import computed
-from pydantic import Field
+from pydantic import Field, model_validator
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintSource
@@ -18,6 +18,7 @@ class RequirementProblem(StrEnum):
     STAND_IN_BOUND = "stand_in_bound"
     NEEDS_THE_ANALYSIS_WORKFLOW = "needs_the_analysis_workflow"
     REQUEST_LEAVES_IT_OPEN = "request_leaves_it_open"
+    ANOTHER_SITE_ANSWERS = "another_site_answers"
 
 
 class RequirementReport(CamelModel):
@@ -35,9 +36,29 @@ class RequirementReport(CamelModel):
             "needs_the_analysis_workflow: it changes or needs a study analysis "
             "that only the Lead's analysis tools write. request_leaves_it_open: "
             "the request does not give a value a parameter needs, and you ask "
-            "for it in open_questions."
+            "for it in open_questions. another_site_answers: no search on this "
+            "site can state it, a search on the site you name in `site` can, "
+            "and nothing is bound for it."
         )
     )
+    site: str = Field(
+        default="",
+        description=(
+            "Only for another_site_answers: the id of the site whose search "
+            "answers it, such as orthomcl."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _a_site_only_for_another_site(self) -> RequirementReport:
+        names_a_site = self.problem is RequirementProblem.ANOTHER_SITE_ANSWERS
+        if names_a_site != bool(self.site):
+            msg = (
+                "site names the site whose search answers the requirement, so it "
+                "is set for another_site_answers and for no other problem"
+            )
+            raise ValueError(msg)
+        return self
 
 
 _WHAT_THE_LEAD_DOES = {
@@ -54,6 +75,10 @@ _WHAT_THE_LEAD_DOES = {
     ),
     RequirementProblem.REQUEST_LEAVES_IT_OPEN: (
         "The request gives no value for it. The card asks for the value."
+    ),
+    RequirementProblem.ANOTHER_SITE_ANSWERS: (
+        "Another site answers it. FRAME's summary carries the sentence that opens "
+        "a conversation there; give it word for word and ask nothing about it."
     ),
 }
 

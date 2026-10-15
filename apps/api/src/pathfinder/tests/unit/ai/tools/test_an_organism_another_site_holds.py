@@ -13,9 +13,9 @@ from veupathdb_mcp.catalog import format_param_info_typed
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.lead.site_routes import portal_route_sentence
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
-    portal_only_sentence,
     refuse_unmatched_values,
 )
 from pathfinder.tests._support.qa_recording import client_recording
@@ -85,7 +85,7 @@ async def test_an_organism_on_another_site_opens_the_portal_and_asks_no_switch(
 
 
 def test_the_portal_link_stays_under_the_base_path() -> None:
-    sentence = portal_only_sentence("plasmodb")
+    sentence = portal_route_sentence("plasmodb")
 
     assert "(/pathfinder/veupathdb/conversation)" in sentence
 

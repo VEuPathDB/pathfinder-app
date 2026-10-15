@@ -7,6 +7,8 @@ what left.
 
 ## Ranked
 
+38. [A drop card asks about a combination as one requirement](a-drop-card-asks-about-a-combination-as-one-requirement.md) - "a GPI anchor and a signal peptide" is held as one requirement, so the card offers to drop the searchable part with the unsearchable one; choose between the intent gate and the numbered list by replay.
+37. [A drop card asks about a requirement the plan answers](a-drop-card-asks-about-a-requirement-the-plan-answers.md) - the card asks about every requirement the ledger lists as ungroundable, and one turn offered to drop a data type a bound transcript search answers; trace the grounding first.
 36. [The corpus holds no plan with an analysis below the root](the-corpus-holds-no-plan-with-an-analysis-below-the-root.md) - BLOCKED on QA admitting automated clients: no case states two study analyses under one OR, and the requirement reports are measured by replay and unit tests only; two cases and one full corpus run close both.
 35. [A join under a saved-strategy branch is not measured](a-join-under-a-saved-strategy-branch-is-not-measured.md) - a combine added above a step inside an inserted saved strategy may land inside the nested strategy on the site; measure the WDK tree, then write the six headings.
 34. [QA sites need a pass for automated clients](qa-sites-need-a-pass-for-automated-clients.md) - BLOCKED on the VEuPathDB team: outside the network the QA sites redirect every service call to a pre-release login, so the e2e jobs and both nightlies stay disabled; then re-measure every value the live tests and e2e specs pin.

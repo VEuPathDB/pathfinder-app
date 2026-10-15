@@ -21,7 +21,7 @@ from veupathdb.domain.parameters import (
     match_exact_option,
     nearest_entries,
 )
-from veupathdb.wdk import WDKSearch, get_site, get_site_router
+from veupathdb.wdk import WDKSearch
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import (
     RADIO_OFF,
@@ -44,13 +44,13 @@ from veupathdb_mcp.catalog import (
 from veupathdb_mcp.embeddings import SemanticIndexUnavailableError
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.lead.site_routes import portal_route_sentence
 from pathfinder.ai.tools.standalone._catalog_elsewhere import (
     joined,
     reach_sentence,
     tree_tops,
 )
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
-from pathfinder.platform.config import BASE_PATH
 from pathfinder.services.strategies.parameter_rules import site_fixed
 from pathfinder.services.strategies.user_dataset_searches import (
     dataset_parameter,
@@ -257,7 +257,7 @@ async def refuse_unmatched_values(
             value, msg = retry
             others = await _other_sites_holding(site_id, definition, info.name, value)
             if others:
-                state.portal_route = portal_only_sentence(site_id)
+                state.portal_route = portal_route_sentence(site_id)
                 msg += (
                     f" {reach_sentence(definition, info.name, site_id, value)} "
                     f"{value} is on {joined(others)}. A conversation stays on its "
@@ -318,17 +318,6 @@ async def _other_sites_holding(
     except SemanticIndexUnavailableError:
         return []
     return [held for held in holders if held != site_id]
-
-
-def portal_only_sentence(site_id: str) -> str:
-    """What the researcher does when only the portal holds both organisms."""
-    portal = next(site for site in get_site_router().list_sites() if site.is_portal)
-    link = f"{BASE_PATH}/{portal.id}/conversation"
-    return (
-        f"This needs the {portal.name} Portal, where one strategy holds both "
-        f"organisms. [Open a new conversation there]({link}); "
-        f"this conversation stays on {get_site(site_id).name}."
-    )
 
 
 def phyletic_overrides(
