@@ -30,6 +30,7 @@ from pathfinder.tests._support.memory_store_double import (
     seeded_memory,
 )
 from pathfinder.transport.http.deps import get_memory_store
+from pathfinder.transport.http.routers import veupathdb_auth
 
 
 @pytest.fixture
@@ -82,6 +83,18 @@ async def api_client(
         headers={"authorization": f"Bearer {token}"},
     ) as client:
         yield client
+
+
+async def _reject_login(
+    site_id: str, email: str, password: str, *, redirect_url: str = "/"
+) -> str | None:
+    """Refuse the fuzzer's random credentials without a call to VEuPathDB.
+
+    The live sign-in would answer 5xx whenever a VEuPathDB site is down, and
+    the check cannot tell that from a fault of this server.
+    """
+    del site_id, email, password, redirect_url
+    return None
 
 
 @asynccontextmanager
@@ -166,6 +179,8 @@ async def patched_app(
     # Readiness also needs one loaded site catalog; this app loads none.
     readiness.mark_catalog_ready("plasmodb")
 
-    # A cancel reads the job table, so the served app needs an open app.
-    async with procrastinate_app.open_async():
-        yield app, user_id
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(veupathdb_auth, "password_login", _reject_login)
+        # A cancel reads the job table, so the served app needs an open app.
+        async with procrastinate_app.open_async():
+            yield app, user_id

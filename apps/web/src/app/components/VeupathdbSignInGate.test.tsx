@@ -30,17 +30,14 @@ beforeEach(() => {
 });
 
 describe("VeupathdbSignInGate", () => {
-  it("takes the whole screen with the website's sign-in link when the session is signed out", () => {
+  it("takes the whole screen with the sign-in form when the session is signed out", () => {
     renderWithConfig(<VeupathdbSignInGate forced />);
     const region = screen.getByRole("region", { name: "Sign in to VEuPathDB" });
     expect(region).toContainElement(screen.getByTestId("signed-out-notice"));
     expect(
       screen.getByRole("heading", { level: 1, name: "Sign in to VEuPathDB" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Sign in to VEuPathDB" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("/app/user/login?destination="),
-    );
+    expect(region).toContainElement(screen.getByRole("button", { name: "Sign in" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });
@@ -66,10 +63,7 @@ describe("VeupathdbSignInGate", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Sign in to VEuPathDB" });
     expect(dialog).toHaveTextContent(LOGIN_REQUIRED_BODY.detail);
-    expect(screen.getByRole("link", { name: "Sign in to VEuPathDB" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("/app/user/login?destination="),
-    );
+    expect(dialog).toContainElement(screen.getByPlaceholderText("Password"));
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

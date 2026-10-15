@@ -12,11 +12,11 @@ images to `docker.io/veupathdb`, and the systems team runs them from the
 estate's service-definitions repository
 ([the decision](../../docs/knowledge/decisions/the-images-come-from-the-registry-and-cedar-pulls.md)).
 This file, `install.sh`, `quadlets/` and the GHCR workflow are deleted once that
-stack serves the development site. A release that serves PathFinder under
-`/pathfinder` signs in only through the VEuPathDB website that hosts it, and the
-website's login cookie never reaches `localhost`, so such a release signs nobody
-in behind the tunnel below. The tester stack stays on the release it runs until
-the cutover.
+stack serves the development site. A release from `main` signs in only through
+the VEuPathDB website that hosts it, and the website's login cookie never
+reaches `localhost`, so this stack runs a release from the `cedar` branch: the
+same application with the VEuPathDB email and password sign-in, served at
+`http://localhost:3010/pathfinder`.
 
 Thirteen units make the stack. Seven run the application: `pathfinder-db`,
 `pathfinder-wdk-mcp`, `pathfinder-searxng`, `pathfinder-research-mcp`,
@@ -31,7 +31,7 @@ Langfuse view answers which question is `docs/knowledge/conventions/observabilit
 
 ## First install
 
-On a workstation, with a release tag published:
+On a workstation, once a push to the `cedar` branch has published its images:
 
 ```bash
 ssh -p 2112 amuharram@cedar.penn.apidb.org
@@ -90,11 +90,12 @@ chmod 600 ~/.config/pathfinder/langfuse.env
 $EDITOR ~/.config/pathfinder/langfuse.env
 ```
 
-Install and start the stack. `PATHFINDER_TAG` is the release the units pull:
+Install and start the stack from a checkout of the `cedar` branch. `PATHFINDER_TAG`
+is `cedar-` plus the short commit the units pull:
 
 ```bash
 cd ~/pathfinder
-PATHFINDER_TAG=v0.2.0a2 ./deploy/cedar/install.sh
+PATHFINDER_TAG=cedar-1a2b3c4 ./deploy/cedar/install.sh
 ```
 
 The installer copies the units, the network and the volumes to
@@ -111,7 +112,7 @@ migrations, so give it several minutes before the smoke test.
 
 ```bash
 cd ~/pathfinder && git pull
-PATHFINDER_TAG=v0.2.0a3 ./deploy/cedar/install.sh
+PATHFINDER_TAG=cedar-5d6e7f8 ./deploy/cedar/install.sh
 ```
 
 The five units whose image name carries the tag restart; the postgres and searxng
@@ -121,7 +122,7 @@ units are only started. The postgres volume and the catalog volume are not touch
 `--purge-checkpoints`:**
 
 ```bash
-PATHFINDER_TAG=v0.2.0a19 ./deploy/cedar/install.sh --purge-checkpoints
+PATHFINDER_TAG=cedar-5d6e7f8 ./deploy/cedar/install.sh --purge-checkpoints
 ```
 
 The installer starts the database, truncates the three checkpoint tables and
@@ -168,7 +169,7 @@ Until the vhost exists, tunnel the three ports from a workstation:
 ssh -p 2112 -L 3010:localhost:3010 -L 8010:localhost:8010 -L 3110:localhost:3110 amuharram@cedar.penn.apidb.org
 ```
 
-The app is then `http://localhost:3010`, the api `http://localhost:8010` and
+The app is then `http://localhost:3010` (it opens `/pathfinder`), the api `http://localhost:8010` and
 Langfuse `http://localhost:3110`. Langfuse stays behind the tunnel: it is not part
 of the tester vhost.
 
@@ -195,8 +196,8 @@ curl -s http://localhost:8010/health/ready | python3 -m json.tool
 Every subsystem reads ready and at least one site catalog is loaded. Then, in a
 browser on `http://localhost:3010`:
 
-1. Sign in against a VEuPathDB site and confirm the site menu reports it
-   available.
+1. Sign in with a VEuPathDB email and password and confirm the site menu
+   reports the site available.
 2. Send one chat turn and confirm it streams and completes. The provider is the
    real one; the mock provider is a test stack only.
 3. Confirm a durable task (a control test, an enrichment, a parameter sweep)

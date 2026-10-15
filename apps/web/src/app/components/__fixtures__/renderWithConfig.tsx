@@ -5,7 +5,7 @@ import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/Sy
 
 import { createTestWrapper } from "@/lib/query/testing";
 
-export const SITE_SIGN_IN_URL =
+const SITE_SIGN_IN_URL =
   "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login";
 
 export function renderWithConfig(ui: ReactElement): RenderResult {

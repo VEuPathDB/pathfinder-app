@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Installs the PathFinder quadlet units for one rootless podman user.
 #
-# Reads PATHFINDER_TAG, the release the units pull from the registry. Run it
+# Reads PATHFINDER_TAG, the cedar build the units pull from the registry. Run it
 # again after a tag bump: it rewrites only the files that changed and restarts
 # only the units behind them.
 set -euo pipefail
 
-: "${PATHFINDER_TAG:?set PATHFINDER_TAG to the release to run, for example v0.2.0a2}"
+: "${PATHFINDER_TAG:?set PATHFINDER_TAG to the cedar build to run, for example cedar-1a2b3c4}"
 
 TAG_PLACEHOLDER='__PATHFINDER_TAG__'
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

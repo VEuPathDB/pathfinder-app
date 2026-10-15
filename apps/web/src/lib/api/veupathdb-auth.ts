@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import type { LoginPayload } from "@pathfinder/shared/generated/types/LoginPayload";
 import { authStatusResponseSchema } from "@pathfinder/shared/generated/zod/authStatusResponseSchema";
 import { authSuccessResponseSchema } from "@pathfinder/shared/generated/zod/authSuccessResponseSchema";
 
@@ -31,6 +32,28 @@ export async function getVeupathdbAuthStatus(
     throw new AppError("The VEuPathDB sign-in check did not answer.", "TIMEOUT");
   });
   return { signedIn: raw.signedIn };
+}
+
+export async function loginVeupathdb(
+  email: string,
+  password: string,
+  siteId: string,
+): Promise<{ success: boolean }> {
+  if (!email || !password) {
+    throw new AppError("Email and password are required.", "INVARIANT_VIOLATION");
+  }
+  return await requestJson(authSuccessResponseSchema, `/api/v1/veupathdb/auth/login`, {
+    method: "POST",
+    query: { siteId },
+    body: { email, password } satisfies LoginPayload,
+  });
+}
+
+export async function logoutVeupathdb(siteId: string): Promise<{ success: boolean }> {
+  return await requestJson(authSuccessResponseSchema, `/api/v1/veupathdb/auth/logout`, {
+    method: "POST",
+    query: { siteId },
+  });
 }
 
 /**

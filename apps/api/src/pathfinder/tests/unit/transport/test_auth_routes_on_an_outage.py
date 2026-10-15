@@ -1,6 +1,7 @@
 """The auth routes answer 503 naming the site when its identity read does not answer.
 
-A refused token still reads as signed out; only an outage is a 503.
+A refused token still reads as signed out, and a bad password still reads as
+invalid credentials; only an outage is a 503.
 """
 
 from __future__ import annotations
@@ -18,10 +19,12 @@ from veupathdb.wdk import WDKUserInfo
 
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.platform.readiness import reset_readiness
-from pathfinder.platform.security import create_user_token
+from pathfinder.platform.security import create_user_token, limiter
 from pathfinder.services import wdk_identity
+from pathfinder.transport.http.routers import veupathdb_auth
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
+_CREDENTIALS = {"email": "researcher@example.org", "password": "secret"}
 _UNAVAILABLE = "Could not connect to plasmodb (the site did not answer in time)."
 
 
@@ -42,6 +45,7 @@ def _app() -> FastAPI:
         yield None
 
     app = FastAPI()
+    app.state.limiter = limiter
     app.include_router(router)
     app.add_exception_handler(
         VEuPathDBError,
@@ -122,6 +126,22 @@ class TestStatus:
 
         assert response.status_code == 200
         assert response.json()["signedIn"] is False
+
+
+class TestLogin:
+    async def test_an_outage_is_a_503_not_a_bad_password(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        async def _login(*args: object, **kwargs: object) -> str:
+            del args, kwargs
+            return "veupathdb-jwt"
+
+        monkeypatch.setattr(veupathdb_auth, "password_login", _login)
+        _registered_email(monkeypatch, _outage())
+
+        response = await _call(_app(), "POST", "login", json=_CREDENTIALS)
+
+        assert _refusal(response) == _REFUSAL
 
 
 class TestRefresh:

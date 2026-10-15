@@ -71,12 +71,21 @@ on the PathFinder page.
 download link and the development sign-in address carry no host, so the browser
 resolves them on the website that serves PathFinder and no setting names it.
 
+**The `cedar` branch keeps the password form until the estate stack serves the
+development site.** The rootless tunnel stack has no website on its host, so the
+`cedar` branch adds back `POST /api/v1/veupathdb/auth/login` and `/logout`, which
+write `Authorization` at `Path=/` and the session under `/pathfinder`, the
+password form in the signed-out notice and a sign-out button in the rail. The
+session rule is unchanged: the login the form writes is the one the session
+follows. A push to the branch publishes `ghcr.io/veupathdb/*:cedar-<sha>`, and
+the branch is deleted at the cutover with the tunnel stack.
+
 # What would falsify this
 
 - `apps/api/src/pathfinder/tests/unit/platform/test_session_follows_site_login.py`
   serves a session with no website login, or one whose login names another user.
 - `apps/api/src/pathfinder/tests/unit/transport/test_auth_cookies.py` finds a
-  route other than the development sign-in that writes `Authorization`, or a
+  route other than the two sign-in routes that writes `Authorization`, or a
   `pathfinder-auth` cookie outside `Path=/pathfinder`.
 - `apps/api/src/pathfinder/tests/unit/transport/test_dev_login_is_test_only.py`
   finds `/api/v1/dev/site-login` on the production app, or on a development app

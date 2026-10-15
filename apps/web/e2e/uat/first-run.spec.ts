@@ -18,7 +18,6 @@ import {
   siteShortName,
 } from "@pathfinder/shared";
 import type { ReadinessResponse } from "@pathfinder/shared/generated/types/ReadinessResponse";
-import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
 import type { TaskListResponse } from "@pathfinder/shared/generated/types/TaskListResponse";
 import type { WdkStrategyListItem } from "@pathfinder/shared/generated/types/WdkStrategyListItem";
 import * as fs from "node:fs";
@@ -263,15 +262,8 @@ test.describe("First run and navigation", () => {
     await expect(signedOut).toContainText(
       "Sign in to VEuPathDB to build and manage search strategies.",
     );
-    const config = (await (
-      await context.request.get(`${BASE_URL}/health/config`)
-    ).json()) as SystemConfigResponse;
-    const loginPage = new URL(config.siteSignInUrl);
-    loginPage.searchParams.set("destination", `/pathfinder/${entry}/conversation`);
-    await expect(
-      signedOut.getByRole("link", { name: "Sign in to VEuPathDB" }),
-    ).toHaveAttribute("href", loginPage.href);
-    await expect(page.locator("input[type='password']")).toHaveCount(0);
+    await expect(signedOut.getByPlaceholder("Email")).toBeVisible();
+    await expect(page.locator("input[type='password']")).toHaveCount(1);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByTestId("message-composer")).toHaveCount(0);
 
@@ -304,7 +296,7 @@ test.describe("First run and navigation", () => {
     );
     await context.clearCookies({ name: "Authorization" });
     await page.reload();
-    await expect(page.getByRole("link", { name: "Sign in to VEuPathDB" })).toBeVisible({
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible({
       timeout: 30_000,
     });
     await signInAsWdkAccount(context, siteId);

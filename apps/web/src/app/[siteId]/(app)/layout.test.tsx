@@ -186,7 +186,7 @@ function drawSession(signedIn: boolean) {
   );
 }
 
-describe("AppShellLayout for a session the website has not signed in", () => {
+describe("AppShellLayout for a signed-out session", () => {
   beforeEach(holdUnseededReads);
   afterEach(() => {
     cleanup();
@@ -194,20 +194,16 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders the signed-out notice in place of the content", () => {
+  it("renders the password sign-in in place of the content", () => {
     const { container } = drawSession(false);
 
     expect(screen.getByTestId("signed-out-notice")).toBeVisible();
-    expect(screen.getByRole("link", { name: "Sign in to VEuPathDB" })).toHaveAttribute(
-      "href",
-      "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login?destination=" +
-        encodeURIComponent("/pathfinder/veupathdb/conversation"),
-    );
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeVisible();
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: "Monthly spend" }),
     ).not.toBeInTheDocument();
-    expect(container.querySelectorAll("input[type='password']")).toHaveLength(0);
+    expect(container.querySelectorAll("input[type='password']")).toHaveLength(1);
   });
 
   it("draws the nav rail beside the content once the session is signed in", () => {

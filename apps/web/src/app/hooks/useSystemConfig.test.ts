@@ -80,20 +80,6 @@ describe("useSystemConfig", () => {
     expect(result.current.setupRequired).toBe(true);
   });
 
-  it("returns the deployment's sign-in address", async () => {
-    mockGetSystemConfig.mockResolvedValue(makeConfigResponse({ llmConfigured: true }));
-
-    const { result } = await importAndRender();
-
-    await waitFor(() => {
-      expect(result.current).not.toBeNull();
-    });
-
-    expect(result.current.siteSignInUrl).toBe(
-      "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
-    );
-  });
-
   it("retry() triggers a refetch after initial success", async () => {
     mockGetSystemConfig
       .mockResolvedValueOnce(makeConfigResponse({ llmConfigured: false }))

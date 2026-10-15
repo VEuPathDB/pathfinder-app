@@ -39,6 +39,9 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [{ source: "/", destination: BASE_PATH, basePath: false, permanent: false }];
+  },
   async rewrites() {
     const apiBase = getConfiguredServerApiBaseUrl();
     return {

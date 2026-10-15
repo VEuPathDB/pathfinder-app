@@ -3,18 +3,25 @@
 from typing import Annotated
 from uuid import UUID
 
+import httpx
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.wdk import password_login, password_logout
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.errors import UnauthorizedError
+from pathfinder.platform.errors import (
+    SiteUnavailableError,
+    UnauthorizedError,
+    site_failure_reason,
+)
 from pathfinder.platform.security import (
     auth_cookie,
     clear_session_cookie,
     create_user_token,
     decode_session_token,
     decode_user_id,
+    limiter,
     set_session_cookie,
 )
 from pathfinder.services.users import get_or_create_user_id
@@ -26,6 +33,7 @@ from pathfinder.transport.http.deps import DBSession
 from pathfinder.transport.http.schemas import (
     AuthStatusResponse,
     AuthSuccessResponse,
+    LoginPayload,
 )
 from pathfinder.transport.http.schemas.site_id import SiteId
 
@@ -40,6 +48,52 @@ async def _link_internal_user(
     if not email:
         return None
     return await get_or_create_user_id(session, email)
+
+
+@router.post("/login", response_model=AuthSuccessResponse)
+@limiter.limit("10/minute")
+async def login_with_password(
+    request: Request,
+    session: DBSession,
+    payload: LoginPayload,
+    site_id: Annotated[SiteId, Query(alias="siteId")] = "veupathdb",
+) -> JSONResponse:
+    """Sign in to VEuPathDB and link the internal user. Tokens travel only in cookies."""
+    try:
+        token = await password_login(site_id, payload.email, payload.password)
+    except httpx.HTTPError as e:
+        raise SiteUnavailableError(site_id, site_failure_reason(e)) from e
+    internal_id = await _link_internal_user(session, token, site_id) if token else None
+    if token is None or internal_id is None:
+        raise UnauthorizedError(detail="Invalid email or password")
+    response = JSONResponse({"success": True})
+    response.set_cookie(
+        key="Authorization",
+        value=token,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=not get_settings().is_development,
+    )
+    set_session_cookie(response, create_user_token(internal_id))
+    return response
+
+
+@router.post("/logout", response_model=AuthSuccessResponse)
+async def logout(
+    request: Request,
+    site_id: Annotated[SiteId, Query(alias="siteId")] = "veupathdb",
+) -> JSONResponse:
+    """End the VEuPathDB session and clear both cookies, even when WDK refuses.
+
+    ``success`` reports what WDK did.
+    """
+    token = request.cookies.get("Authorization")
+    ended = await password_logout(site_id, token) if token else False
+    response = JSONResponse({"success": ended})
+    response.delete_cookie(key="Authorization", path="/")
+    clear_session_cookie(response)
+    return response
 
 
 @router.post("/refresh", response_model=AuthSuccessResponse)

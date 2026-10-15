@@ -35,7 +35,7 @@ from .sites import (
 from .steps import (
     RecordDetailRequest,
 )
-from .veupathdb_auth import AuthStatusResponse, AuthSuccessResponse
+from .veupathdb_auth import AuthStatusResponse, AuthSuccessResponse, LoginPayload
 
 __all__ = [
     "AuthStatusResponse",
@@ -47,6 +47,7 @@ __all__ = [
     "CreateConversationRequest",
     "DependentParamsRequest",
     "HealthResponse",
+    "LoginPayload",
     "OpenConversationRequest",
     "OpenConversationResponse",
     "ParamSpecsRequest",

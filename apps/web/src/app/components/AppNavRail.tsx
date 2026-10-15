@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { siteShortName } from "@pathfinder/shared";
+import { siteShortName, type SiteResponse } from "@pathfinder/shared";
 import {
   AlertTriangle,
   Bookmark,
@@ -44,6 +44,7 @@ import { useSessionStore } from "@/state/useSessionStore";
 
 import { RailLogo } from "./RailLogo";
 import { RailQuotaMeter } from "./RailQuotaMeter";
+import { RailSignOut } from "./RailSignOut";
 
 interface AppNavRailProps {
   siteId: string;
@@ -182,6 +183,8 @@ export function AppNavRail({
             </TooltipTrigger>
             <TooltipContent side="right">Help</TooltipContent>
           </Tooltip>
+
+          <RailSignOut siteId={siteId} />
         </div>
       </div>
     </TooltipProvider>
@@ -216,6 +219,17 @@ function SiteSwitcherButton({
     setSelectedSite(id);
     onChange(id);
   };
+
+  const menuItem = (site: SiteResponse) => (
+    <SiteMenuItem
+      key={site.id}
+      id={site.id}
+      label={site.displayName}
+      active={site.id === siteId}
+      available={site.available}
+      onPick={pick}
+    />
+  );
 
   return (
     <DropdownMenu>
@@ -252,36 +266,14 @@ function SiteSwitcherButton({
         <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
           Component sites
         </DropdownMenuLabel>
-        <DropdownMenuGroup>
-          {components.map((site) => (
-            <SiteMenuItem
-              key={site.id}
-              id={site.id}
-              label={site.displayName}
-              active={site.id === siteId}
-              available={site.available}
-              onPick={pick}
-            />
-          ))}
-        </DropdownMenuGroup>
+        <DropdownMenuGroup>{components.map(menuItem)}</DropdownMenuGroup>
         {portal.length > 0 && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Portal
             </DropdownMenuLabel>
-            <DropdownMenuGroup>
-              {portal.map((site) => (
-                <SiteMenuItem
-                  key={site.id}
-                  id={site.id}
-                  label={site.displayName}
-                  active={site.id === siteId}
-                  available={site.available}
-                  onPick={pick}
-                />
-              ))}
-            </DropdownMenuGroup>
+            <DropdownMenuGroup>{portal.map(menuItem)}</DropdownMenuGroup>
           </>
         )}
       </DropdownMenuContent>

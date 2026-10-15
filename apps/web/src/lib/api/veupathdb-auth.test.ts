@@ -9,6 +9,8 @@ import {
   authRefreshOptions,
   authStatusOptions,
   getVeupathdbAuthStatus,
+  loginVeupathdb,
+  logoutVeupathdb,
 } from "./veupathdb-auth";
 
 function fetchThatNeverAnswers() {
@@ -87,5 +89,72 @@ describe("authStatusOptions", () => {
 
     expect(signals[0]?.aborted).toBe(true);
     expect(client.getQueryData(refresh)).toEqual({ refreshed: true });
+  });
+});
+
+describe("password sign-in", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function recordedFetch(body: unknown) {
+    const calls: { url: string; method: string; body: unknown }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => {
+        calls.push({
+          url: String(url),
+          method: init?.method ?? "GET",
+          body: typeof init?.body === "string" ? JSON.parse(init.body) : null,
+        });
+        return Promise.resolve(Response.json(body));
+      }),
+    );
+    return calls;
+  }
+
+  it("posts the email and password to the site's login", async () => {
+    const calls = recordedFetch({ success: true });
+
+    await expect(
+      loginVeupathdb("r@example.org", "secret", "plasmodb"),
+    ).resolves.toEqual({
+      success: true,
+    });
+
+    expect(calls).toEqual([
+      {
+        url: expect.stringMatching(
+          /\/api\/v1\/veupathdb\/auth\/login\?siteId=plasmodb$/,
+        ),
+        method: "POST",
+        body: { email: "r@example.org", password: "secret" },
+      },
+    ]);
+  });
+
+  it("refuses an empty field without a request", async () => {
+    const calls = recordedFetch({ success: true });
+
+    await expect(loginVeupathdb("", "secret", "plasmodb")).rejects.toMatchObject({
+      code: "INVARIANT_VIOLATION",
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it("signs out on the site", async () => {
+    const calls = recordedFetch({ success: true });
+
+    await expect(logoutVeupathdb("plasmodb")).resolves.toEqual({ success: true });
+
+    expect(calls).toEqual([
+      {
+        url: expect.stringMatching(
+          /\/api\/v1\/veupathdb\/auth\/logout\?siteId=plasmodb$/,
+        ),
+        method: "POST",
+        body: null,
+      },
+    ]);
   });
 });

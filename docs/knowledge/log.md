@@ -2,6 +2,13 @@
 
 ## 2026-10-15
 
+* **The `cedar` branch signs in with a password for the tunnel stack.** Main signs in only
+  through the hosting website, whose cookie never reaches the tunnel's `localhost`. The
+  branch adds back the password login and logout routes, the form in the signed-out notice,
+  a sign-out button in the rail and a redirect from `/` to `/pathfinder`, and publishes its
+  images as `cedar-<sha>` on every push. See
+  [the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md).
+
 * **A step counts in its own records.** `StepFact.record_noun` is the noun of the record
   class the step's search is listed under (`record_class_of`), so a `group` step under a
   `sequence` result reads as groups in the facts, in a count reference and in the web card.

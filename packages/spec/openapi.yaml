@@ -2130,6 +2130,81 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/veupathdb/auth/login:
+    post:
+      tags:
+      - veupathdb-auth
+      summary: Login With Password
+      description: Sign in to VEuPathDB and link the internal user. Tokens travel only in cookies.
+      operationId: login_with_password_api_v1_veupathdb_auth_login_post
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          default: veupathdb
+          title: Siteid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+  /api/v1/veupathdb/auth/logout:
+    post:
+      tags:
+      - veupathdb-auth
+      summary: Logout
+      description: 'End the VEuPathDB session and clear both cookies, even when WDK refuses.
+
+
+        ``success`` reports what WDK did.'
+      operationId: logout_api_v1_veupathdb_auth_logout_post
+      parameters:
+      - name: siteId
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 50
+          default: veupathdb
+          title: Siteid
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/veupathdb/auth/refresh:
     post:
       tags:
@@ -5568,6 +5643,22 @@ components:
       - openai
       - anthropic
       - google
+    LoginPayload:
+      properties:
+        email:
+          type: string
+          minLength: 1
+          title: Email
+        password:
+          type: string
+          minLength: 1
+          title: Password
+      type: object
+      required:
+      - email
+      - password
+      title: LoginPayload
+      description: A VEuPathDB email and password.
     LongPromptPrices:
       properties:
         aboveTokens:

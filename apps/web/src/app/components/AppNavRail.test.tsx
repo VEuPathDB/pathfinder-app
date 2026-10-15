@@ -132,14 +132,16 @@ describe("AppNavRail section links", () => {
     expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved", "/help"]);
   });
 
-  it("closes the bottom group with help, after the settings", async () => {
+  it("closes the bottom group with sign-out, after help and the settings", async () => {
     draw();
     const help = await screen.findByRole("link", { name: "Help" });
     const settings = screen.getByRole("button", { name: "Settings" });
+    const signOut = screen.getByRole("button", { name: "Sign out" });
 
     expect(help).toHaveAttribute("href", "/help");
     expect(help.parentElement).toBe(settings.parentElement);
-    expect(help.parentElement?.lastElementChild).toBe(help);
+    expect(help.nextElementSibling).toBe(signOut);
+    expect(help.parentElement?.lastElementChild).toBe(signOut);
   });
 });
 

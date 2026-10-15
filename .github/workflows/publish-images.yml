@@ -1,11 +1,11 @@
 name: Publish images
 
-# A release tag of this repository is what publishes images. `latest` is never
-# written: a deployment names the tag it runs.
+# A push to the cedar branch publishes the tunnel stack's images, tagged with
+# the commit. A release tag of main is never built from this branch.
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - cedar
 
 permissions:
   contents: read
@@ -42,8 +42,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check the tag names the api version and the MCP release
-        run: node scripts/check-release.mjs "$GITHUB_REF_NAME"
+      - name: Check the api version and the MCP release agree
+        run: node scripts/check-release.mjs
 
       - uses: docker/setup-buildx-action@v3
 
@@ -70,5 +70,4 @@ jobs:
           provenance: false
           push: true
           tags: |
-            ghcr.io/veupathdb/${{ matrix.image }}:${{ github.ref_name }}
-            ghcr.io/veupathdb/${{ matrix.image }}:sha-${{ steps.commit.outputs.short }}
+            ghcr.io/veupathdb/${{ matrix.image }}:cedar-${{ steps.commit.outputs.short }}

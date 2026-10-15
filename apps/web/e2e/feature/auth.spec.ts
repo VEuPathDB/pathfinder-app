@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
 import { entrySiteId } from "../fixtures/entry-site";
@@ -7,13 +6,6 @@ import { listConversations } from "../fixtures/api-client";
 import { currentSiteId } from "../pages/navigation";
 
 const SIGNED_OUT_STATUS = { signedIn: false };
-
-/** The website login address returning to `destination`. */
-function websiteLogin(siteSignInUrl: string, destination: string): string {
-  const url = new URL(siteSignInUrl);
-  url.searchParams.set("destination", destination);
-  return url.href;
-}
 
 /** The signed-in shell: no sign-in dialog over the app, composer ready. */
 async function expectSignedIn(page: Page) {
@@ -24,7 +16,7 @@ async function expectSignedIn(page: Page) {
 }
 
 test.describe("VEuPathDB login gate", () => {
-  test("a session with no VEuPathDB login is offered the website's sign-in in place of the app", async ({
+  test("a session with no VEuPathDB login is offered the password sign-in in place of the app", async ({
     page,
     context,
   }) => {
@@ -33,29 +25,14 @@ test.describe("VEuPathDB login gate", () => {
     await page.route("**/api/v1/veupathdb/auth/status*", (route) =>
       route.fulfill({ json: SIGNED_OUT_STATUS }),
     );
-    const config = (await (
-      await context.request.get(`${BASE_URL}/health/config`)
-    ).json()) as SystemConfigResponse;
-    const here = `${BASE_URL}/${siteId}/conversation?embedded=true`;
-    await page.goto(here);
+    await page.goto(`${BASE_URL}/${siteId}/conversation`);
 
     const notice = page.getByRole("region", { name: "Sign in to VEuPathDB" });
     await expect(notice).toBeVisible({ timeout: 20_000 });
-    const link = notice.getByRole("link", { name: "Sign in to VEuPathDB" });
-    await expect(link).toHaveAttribute(
-      "href",
-      websiteLogin(config.siteSignInUrl, new URL(here).pathname + new URL(here).search),
-    );
+    await expect(notice.getByPlaceholder("Email")).toBeVisible();
+    await expect(notice.locator("input[type='password']")).toHaveCount(1);
+    await expect(notice.getByRole("button", { name: "Sign in" })).toBeVisible();
     await expect(page.getByTestId("message-composer")).toHaveCount(0);
-    await expect(page.locator("input[type='password']")).toHaveCount(0);
-
-    // The website login is another host; the click is what reaches it.
-    await page.route(
-      (url) => url.href.startsWith(`${config.siteSignInUrl}?`),
-      (route) => route.fulfill({ contentType: "text/html", body: "website login" }),
-    );
-    await link.click();
-    await expect(page).toHaveURL(websiteLogin(config.siteSignInUrl, here));
   });
 
   test("the postcondition API client carries both the PathFinder and the VEuPathDB cookie", async ({

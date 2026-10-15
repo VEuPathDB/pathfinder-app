@@ -1,4 +1,4 @@
-"""PathFinder keeps its own session under its base path and leaves the website login alone."""
+"""PathFinder keeps its own session under its base path, and only its sign-in routes write the VEuPathDB login."""
 
 from __future__ import annotations
 
@@ -17,14 +17,17 @@ import pathfinder
 from pathfinder.main import create_app
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.readiness import reset_readiness
-from pathfinder.platform.security import create_user_token
+from pathfinder.platform.security import create_user_token, limiter
 from pathfinder.services import wdk_identity
 from pathfinder.tests._support.routes import api_routes
-from pathfinder.transport.http.routers import dev
+from pathfinder.transport.http.routers import dev, veupathdb_auth
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
 _AUTH = "/api/v1/veupathdb/auth"
-_SITE_LOGIN_WRITER = Path("transport/http/routers/dev_site_login.py")
+_SITE_LOGIN_WRITERS = {
+    Path("transport/http/routers/dev_site_login.py"),
+    Path("transport/http/routers/veupathdb_auth.py"),
+}
 _SESSION_SCOPE = ["HttpOnly", "Path=/pathfinder", "SameSite=lax", "Secure"]
 
 
@@ -37,7 +40,7 @@ def _scope(header: str) -> list[str]:
     )
 
 
-def test_pathfinder_neither_signs_in_nor_signs_out() -> None:
+def test_pathfinder_signs_in_and_out_with_a_password() -> None:
     routes = api_routes(create_app(include_dev_routes=False).routes)
     auth = sorted(
         pair for route in routes if route.path.startswith(_AUTH) for pair in route.pairs
@@ -45,6 +48,8 @@ def test_pathfinder_neither_signs_in_nor_signs_out() -> None:
 
     assert auth == [
         ("GET", f"{_AUTH}/status"),
+        ("POST", f"{_AUTH}/login"),
+        ("POST", f"{_AUTH}/logout"),
         ("POST", f"{_AUTH}/refresh"),
     ]
 
@@ -90,7 +95,7 @@ def _writes_the_site_login(node: ast.AST) -> bool:
     return False
 
 
-def test_only_the_development_sign_in_writes_the_website_login_cookie() -> None:
+def test_only_the_sign_in_routes_write_the_website_login_cookie() -> None:
     root = Path(pathfinder.__file__).parent
     writers = {
         source.relative_to(root)
@@ -102,7 +107,7 @@ def test_only_the_development_sign_in_writes_the_website_login_cookie() -> None:
         )
     }
 
-    assert writers == {_SITE_LOGIN_WRITER}
+    assert writers == _SITE_LOGIN_WRITERS
 
 
 def _names_the_session_cookie(node: ast.AST) -> bool:
@@ -220,3 +225,42 @@ async def test_a_mock_provider_reads_a_session_cookie_as_signed_in(
         get_settings.cache_clear()
 
     assert response.json() == {"signedIn": True}
+
+
+async def test_a_password_sign_in_writes_the_login_at_the_root_and_the_session_under_the_base_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _login(*args: object, **kwargs: object) -> str:
+        del args, kwargs
+        return "veupathdb-jwt"
+
+    async def _link(session: object, token: str, site_id: str) -> UUID:
+        del session, token, site_id
+        return uuid4()
+
+    async def _db() -> AsyncGenerator[None]:
+        yield None
+
+    monkeypatch.setattr(veupathdb_auth, "password_login", _login)
+    monkeypatch.setattr(veupathdb_auth, "_link_internal_user", _link)
+    app = FastAPI()
+    app.state.limiter = limiter
+    app.include_router(router)
+    app.dependency_overrides[get_db_session] = _db
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            f"{_AUTH}/login",
+            params={"siteId": "plasmodb"},
+            json={"email": "researcher@example.org", "password": "secret"},
+        )
+
+    written = {
+        entry.split("=", 1)[0]: _scope(entry)
+        for entry in response.headers.get_list("set-cookie")
+    }
+    assert response.json() == {"success": True}
+    assert written == {
+        "Authorization": ["HttpOnly", "Path=/", "SameSite=lax", "Secure"],
+        "pathfinder-auth": _SESSION_SCOPE,
+    }

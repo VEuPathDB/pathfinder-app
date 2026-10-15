@@ -1,32 +1,20 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
 
-import { useSystemConfig } from "@/app/hooks/useSystemConfig";
+import { SignInForm } from "@/features/sites/components/SignInForm";
 import { withBasePath } from "@/lib/basePath";
+import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import { yourDataUrl } from "@/lib/routes";
-import { goToSiteSignIn, signInHref } from "@/lib/siteSignIn";
+import { useAuthGateStore } from "@/state/useAuthGateStore";
 
 const STANDING_TEXT = "Sign in to VEuPathDB to build and manage search strategies.";
 
-function opensElsewhere(event: MouseEvent<HTMLAnchorElement>): boolean {
-  return (
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  );
-}
-
 export function SignedOutNotice({ reason }: { reason?: string | null }) {
-  const { siteSignInUrl } = useSystemConfig();
-  const pathname = usePathname();
-  const query = useSearchParams().toString();
-  const here = withBasePath(query === "" ? pathname : `${pathname}?${query}`);
+  const queryClient = useQueryClient();
+  const dismissSignIn = useAuthGateStore((s) => s.dismissSignIn);
 
   return (
     <div data-testid="signed-out-notice" className="overflow-hidden rounded-xl">
@@ -48,18 +36,12 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
       </div>
 
       <div className="border-t border-border px-6 py-5">
-        <a
-          href={signInHref(siteSignInUrl, here)}
-          target="_top"
-          onClick={(event) => {
-            if (opensElsewhere(event)) return;
-            event.preventDefault();
-            goToSiteSignIn(window, siteSignInUrl);
+        <SignInForm
+          onSuccess={() => {
+            dismissSignIn();
+            invalidateUserScopedQueries(queryClient);
           }}
-          className="block w-full rounded-md bg-primary px-3 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:-translate-y-px hover:bg-primary/90 active:translate-y-0"
-        >
-          Sign in to VEuPathDB
-        </a>
+        />
         <Link
           href={yourDataUrl()}
           className="mt-3 block text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"

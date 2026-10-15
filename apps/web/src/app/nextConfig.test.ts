@@ -19,6 +19,12 @@ describe("the Next config", () => {
     expect(nextConfig.basePath).toBe("/pathfinder");
   });
 
+  it("sends the bare host to the app", async () => {
+    expect(await nextConfig.redirects?.()).toEqual([
+      { source: "/", destination: "/pathfinder", basePath: false, permanent: false },
+    ]);
+  });
+
   it("proxies only the health and API routes to the api", async () => {
     vi.stubEnv("NEXT_PUBLIC_API_URL", "http://api:8000");
     const rewrites = await nextConfig.rewrites?.();
