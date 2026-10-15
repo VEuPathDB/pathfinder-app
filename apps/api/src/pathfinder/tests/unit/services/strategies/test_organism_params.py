@@ -101,3 +101,29 @@ async def test_a_sync_records_the_marks_of_the_tree_it_pushed(
     )
 
     assert state.organism_params == {"GenesByTaxon": "organism"}
+
+
+async def test_each_search_is_read_under_the_record_type_that_lists_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A BLAST step under an OrthoMCL group transform is read as a protein search."""
+    asked: list[tuple[str, str]] = []
+
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        listed = {"ByBlast": "sequence", "GroupsFromSequences": "group"}
+        return {name: listed[name] for name in names if name in listed}
+
+    async def _marked(_site: str, record_type: str, search_name: str) -> str | None:
+        asked.append((record_type, search_name))
+        return None
+
+    monkeypatch.setattr(organism_params, "search_record_types", _listed)
+    monkeypatch.setattr(organism_params, "organism_parameter", _marked)
+    tree = StrategyStepNode(
+        search_name="GroupsFromSequences",
+        primary_input=StrategyStepNode(search_name="ByBlast"),
+    )
+
+    await tree_organism_parameters("orthomcl", "group", tree)
+
+    assert sorted(asked) == [("group", "GroupsFromSequences"), ("sequence", "ByBlast")]
