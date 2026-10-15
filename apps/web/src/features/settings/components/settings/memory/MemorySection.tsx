@@ -31,7 +31,7 @@ export function MemorySection({
   const Chevron = open ? ChevronDown : ChevronRight;
 
   return (
-    <section className="rounded-md border border-border">
+    <section>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}

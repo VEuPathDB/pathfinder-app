@@ -13,7 +13,7 @@ import {
 } from "@/lib/api/privacy";
 import { yourDataUrl } from "@/lib/routes";
 
-import { SettingsField } from "./SettingsField";
+import { SettingsSection, SettingsSwitch } from "./SettingsRow";
 
 export function PrivacySettings() {
   const qc = useQueryClient();
@@ -34,30 +34,33 @@ export function PrivacySettings() {
 
   return (
     <div className="space-y-4">
-      <SettingsField label="Learning from your strategies">
-        <p
-          data-testid="privacy-learning-copy"
-          className="text-sm leading-relaxed text-muted-foreground"
-        >
-          When this is on, PathFinder may use copies of your conversations and
-          strategies to improve PathFinder for everyone, for example for review by the
-          team, as test cases, or as shared examples the assistant draws on. A copy used
-          beyond review never carries your name, your account or a link to your
-          conversation. Today, PathFinder copies your finished conversations each night,
-          and a conversation when you dislike one of its replies. Turning this off
-          deletes your copies that are waiting for review and stops new ones.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          More in{" "}
-          <Link
-            href={yourDataUrl("learning")}
-            className="text-primary underline underline-offset-2"
-          >
-            Your data in PathFinder
-          </Link>
-          .
-        </p>
-      </SettingsField>
+      <SettingsSection
+        title="Learning from your strategies"
+        description={
+          <>
+            <span data-testid="privacy-learning-copy">
+              PathFinder may use copies of your conversations and strategies to improve
+              it for everyone. A copy used beyond review never carries your name or
+              account. Turning this off deletes the copies waiting for review.
+            </span>{" "}
+            <Link
+              href={yourDataUrl("learning")}
+              className="text-foreground underline underline-offset-2"
+            >
+              Your data in PathFinder
+            </Link>
+          </>
+        }
+      >
+        {data != null && (
+          <SettingsSwitch
+            label="Let PathFinder learn from my strategies"
+            checked={data.evalDataConsent}
+            disabled={setConsent.isPending}
+            onCheckedChange={(next) => setConsent.mutate(next)}
+          />
+        )}
+      </SettingsSection>
 
       {isPending && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -71,21 +74,6 @@ export function PrivacySettings() {
           Failed to load privacy settings:{" "}
           {error instanceof Error ? error.message : "unknown error"}
         </div>
-      )}
-
-      {data != null && (
-        <label className="flex items-center justify-between gap-4 rounded-md border border-border px-3 py-2.5">
-          <span className="text-sm text-foreground">
-            Let PathFinder learn from my strategies
-          </span>
-          <input
-            type="checkbox"
-            checked={data.evalDataConsent}
-            disabled={setConsent.isPending}
-            onChange={(e) => setConsent.mutate(e.target.checked)}
-            className="h-4 w-4 accent-primary"
-          />
-        </label>
       )}
 
       {setConsent.error != null && (

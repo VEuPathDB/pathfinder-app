@@ -2,6 +2,11 @@
 
 ## 2026-10-15
 
+* **Settings is a side list of tabs with one control per row.** Reasoning effort and
+  the preset are sliders, the on and off settings are switches, and each row carries
+  one short line. The release left Settings: the PathFinder mark's tooltip names it as
+  `PathFinder v<version>`.
+
 * **A PathFinder page opened on its own goes to the website page.** On the website's
   host, a tab that shows `/pathfinder/...` outside a frame replaces itself with the
   deployment site's `/app/pathfinder` page for the same path, so the website's header

@@ -11,7 +11,10 @@ import { purgeUserDataEndpoint } from "@pathfinder/shared/generated/hooks/usePur
 import type { PurgeCounts } from "@pathfinder/shared/generated/types/PurgeCounts";
 import { useAsyncAction } from "@/features/settings/asyncAction";
 import { Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 
 interface DataSettingsProps {
   siteId: string;
@@ -92,6 +95,9 @@ export function DataSettings({ siteId }: DataSettingsProps) {
     setWdkConfirmText("");
   };
 
+  const wdkArmed = confirmAction === "all-wdk";
+  const wdkPhraseTyped = wdkConfirmText.trim().toLowerCase() === "delete my data";
+
   return (
     <div className="space-y-4">
       {error != null && (
@@ -100,135 +106,148 @@ export function DataSettings({ siteId }: DataSettingsProps) {
         </div>
       )}
 
-      <DangerAction
-        label="Clear strategies"
-        description={`Remove every conversation for ${siteName} from PathFinder. A conversation linked to a VEuPathDB strategy moves to Recently deleted instead, and the strategy itself stays. Gene sets, runs and control sets are untouched.`}
-        loading={clearing === "strategies"}
-        confirmed={confirmAction === "strategies"}
-        onConfirm={() => setConfirmAction("strategies")}
-        onExecute={() => {
-          void clearStrategies();
-        }}
-        onCancel={() => setConfirmAction(null)}
-      />
-
-      <DangerAction
-        label="Clear site data"
-        description={`Delete the gene sets, runs and control sets for ${siteName}, and move every conversation on it to Recently deleted. The investigations from ${siteName} still waiting for review go with them. A conversation in Recently deleted can be restored from the sidebar. VEuPathDB strategies and your memories stay.`}
-        loading={clearing === "site"}
-        confirmed={confirmAction === "site"}
-        onConfirm={() => setConfirmAction("site")}
-        onExecute={() => {
-          void clearSiteData();
-        }}
-        onCancel={() => setConfirmAction(null)}
-      />
-
-      <DangerAction
-        label="Clear ALL data"
-        description="Delete the gene sets, runs and control sets on every site, and your memories with them. The investigations still waiting for review go too. Every conversation moves to Recently deleted, and can be restored from the sidebar. VEuPathDB strategies are kept but hidden from sync. Your monthly spend counter and exports stay."
-        loading={clearing === "all-local"}
-        confirmed={confirmAction === "all-local"}
-        onConfirm={() => setConfirmAction("all-local")}
-        onExecute={() => {
-          void clearAllLocal();
-        }}
-        onCancel={() => setConfirmAction(null)}
-      />
-
-      {/* Clear ALL data + WDK - requires typing "delete my data" */}
-      <div className="rounded-md border border-destructive/30 px-3 py-2.5">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-medium text-foreground">
-              Clear ALL data + VEuPathDB
-            </div>
-            <div
-              data-testid="wdk-purge-description"
-              className="text-xs text-muted-foreground"
-            >
-              Delete everything locally, memories and the investigations still waiting
-              for review included, <strong>and</strong> the strategies PathFinder
-              created in VEuPathDB. A conversation or a run whose strategy the site
-              keeps is kept too, so you can try again. Your monthly spend counter and
-              exports stay. This cannot be undone.
-            </div>
-          </div>
-          {confirmAction === "all-wdk" ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
+      <SettingsSection
+        title="Clear data"
+        description="A conversation in Recently deleted can be restored from the sidebar."
+      >
+        <DangerAction
+          label="Clear strategies"
+          description={`Remove the ${siteName} conversations. One linked to a VEuPathDB strategy moves to Recently deleted, and the strategy stays.`}
+          loading={clearing === "strategies"}
+          confirmed={confirmAction === "strategies"}
+          onConfirm={() => setConfirmAction("strategies")}
+          onExecute={() => {
+            void clearStrategies();
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+        <DangerAction
+          label="Clear site data"
+          description={`Delete the ${siteName} gene sets, runs, control sets and copies waiting for review. Conversations move to Recently deleted. Strategies and memories stay.`}
+          loading={clearing === "site"}
+          confirmed={confirmAction === "site"}
+          onConfirm={() => setConfirmAction("site")}
+          onExecute={() => {
+            void clearSiteData();
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+        <DangerAction
+          label="Clear ALL data"
+          description="Delete the gene sets, runs, control sets, memories and copies waiting for review on every site. Conversations move to Recently deleted. Strategies stay but stop syncing."
+          loading={clearing === "all-local"}
+          confirmed={confirmAction === "all-local"}
+          onConfirm={() => setConfirmAction("all-local")}
+          onExecute={() => {
+            void clearAllLocal();
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+        <div>
+          <SettingsRow
+            label="Clear ALL data + VEuPathDB"
+            hint={
+              <span data-testid="wdk-purge-description">
+                Everything above, plus the strategies PathFinder created in VEuPathDB.
+                This cannot be undone.
+              </span>
+            }
+          >
+            {wdkArmed ? (
+              <ConfirmButtons
+                loading={clearing === "all-wdk"}
+                ready={wdkPhraseTyped}
+                onCancel={() => {
                   setConfirmAction(null);
                   setWdkConfirmText("");
                 }}
-                disabled={clearing === "all-wdk"}
-                className="rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
+                onExecute={() => {
                   void clearAllWithWdk();
                 }}
-                disabled={
-                  clearing === "all-wdk" ||
-                  wdkConfirmText.trim().toLowerCase() !== "delete my data"
-                }
-                className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground transition hover:bg-destructive/90 disabled:opacity-60"
-              >
-                {clearing === "all-wdk" && <Loader2 className="h-3 w-3 animate-spin" />}
-                Confirm
-              </button>
+              />
+            ) : (
+              <ClearButton
+                name="Clear ALL + VEuPathDB"
+                onClick={() => setConfirmAction("all-wdk")}
+              />
+            )}
+          </SettingsRow>
+          {wdkArmed && (
+            <div className="mb-3 space-y-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+              <p className="flex items-start gap-2 text-xs font-medium text-destructive">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                This permanently deletes the strategies PathFinder created in your
+                VEuPathDB account, on every site. Strategies you made in VEuPathDB
+                yourself are kept.
+              </p>
+              <Input
+                type="text"
+                value={wdkConfirmText}
+                onChange={(e) => setWdkConfirmText(e.target.value)}
+                placeholder="delete my data"
+                aria-label="Type delete my data to confirm"
+                className="h-8 bg-background text-sm"
+                autoFocus
+              />
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmAction("all-wdk")}
-              className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2 py-1 text-xs font-medium text-destructive transition hover:bg-destructive/5"
-            >
-              <Trash2 className="h-3 w-3" />
-              Clear ALL + VEuPathDB
-            </button>
           )}
         </div>
-
-        {confirmAction === "all-wdk" && (
-          <div className="mt-3 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-destructive">
-                  This permanently deletes the strategies PathFinder created in your
-                  VEuPathDB account, on every site. Strategies you made in VEuPathDB
-                  yourself are kept.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Type{" "}
-                  <span className="font-mono font-semibold text-foreground">
-                    delete my data
-                  </span>{" "}
-                  to confirm:
-                </p>
-                <Input
-                  type="text"
-                  value={wdkConfirmText}
-                  onChange={(e) => setWdkConfirmText(e.target.value)}
-                  placeholder="delete my data"
-                  className="bg-background px-2 py-1 placeholder:text-muted-foreground"
-                  autoFocus
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      </SettingsSection>
     </div>
   );
 }
 
-// --- DangerAction (internal to DataSettings) ---
+function ClearButton({ name, onClick }: { name: string; onClick: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      aria-label={name}
+      onClick={onClick}
+      className="border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive"
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+      Clear
+    </Button>
+  );
+}
+
+function ConfirmButtons({
+  loading,
+  ready,
+  onCancel,
+  onExecute,
+}: {
+  loading: boolean;
+  ready: boolean;
+  onCancel: () => void;
+  onExecute: () => void;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onCancel}
+        disabled={loading}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        onClick={onExecute}
+        disabled={loading || !ready}
+      >
+        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        Confirm
+      </Button>
+    </>
+  );
+}
 
 function DangerAction({
   label,
@@ -248,41 +267,17 @@ function DangerAction({
   onCancel: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2.5">
-      <div>
-        <div className="text-sm font-medium text-foreground">{label}</div>
-        <div className="text-xs text-muted-foreground">{description}</div>
-      </div>
+    <SettingsRow label={label} hint={description}>
       {confirmed ? (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            className="rounded-md border border-border px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted disabled:opacity-60"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onExecute}
-            disabled={loading}
-            className="inline-flex items-center gap-1 rounded-md bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground transition hover:bg-destructive/90 disabled:opacity-60"
-          >
-            {loading && <Loader2 className="h-3 w-3 animate-spin" />}
-            Confirm
-          </button>
-        </div>
+        <ConfirmButtons
+          loading={loading}
+          ready
+          onCancel={onCancel}
+          onExecute={onExecute}
+        />
       ) : (
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="inline-flex items-center gap-1 rounded-md border border-destructive/30 px-2 py-1 text-xs font-medium text-destructive transition hover:bg-destructive/5"
-        >
-          <Trash2 className="h-3 w-3" />
-          {label}
-        </button>
+        <ClearButton name={label} onClick={onConfirm} />
       )}
-    </div>
+    </SettingsRow>
   );
 }

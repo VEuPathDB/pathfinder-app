@@ -1,7 +1,10 @@
 "use client";
 
 import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
-import { CUSTOM_TIER } from "@/features/settings/tierPresets";
+import { Slider } from "@/components/ui/slider";
+import { cn } from "@/lib/utils/cn";
+
+const TIER_ORDER = ["fast", "default", "balanced", "quality"];
 
 const TIER_LABELS: Record<string, string> = {
   quality: "Quality",
@@ -17,6 +20,11 @@ const TIER_HINTS: Record<string, string> = {
   fast: "Same model at low reasoning effort; quickest turnaround.",
 };
 
+function rank(tier: string): number {
+  const at = TIER_ORDER.indexOf(tier);
+  return at === -1 ? TIER_ORDER.length : at;
+}
+
 interface TierPickerProps {
   presets: Record<string, TierPreset>;
   activeTier: string;
@@ -24,20 +32,32 @@ interface TierPickerProps {
 }
 
 export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
-  const tiers = Object.keys(presets);
+  const tiers = Object.keys(presets).sort((a, b) => rank(a) - rank(b));
   if (tiers.length === 0) return null;
+  const active = tiers.indexOf(activeTier);
+  const label = (tier: string) => TIER_LABELS[tier] ?? tier;
 
   return (
-    <div className="mb-4">
-      <div className="mb-1.5 flex items-baseline justify-between">
-        <span className="text-xs font-medium text-foreground">Preset</span>
-        {activeTier === CUSTOM_TIER && (
-          <span className="text-[10px] text-muted-foreground">
-            Custom - phases below don&apos;t match a preset
-          </span>
-        )}
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-medium text-foreground">Preset</span>
+        <span className="text-xs text-muted-foreground">
+          {active === -1 ? "Custom" : (TIER_HINTS[activeTier] ?? "")}
+        </span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <Slider
+        min={0}
+        max={Math.max(tiers.length - 1, 1)}
+        step={1}
+        value={active === -1 ? [] : [active]}
+        onValueChange={([next]) => {
+          const tier = next === undefined ? undefined : tiers[next];
+          if (tier !== undefined && tier !== activeTier) onSelect(tier);
+        }}
+        thumbLabel="Preset"
+        valueText={active === -1 ? "Custom" : label(activeTier)}
+      />
+      <div className="flex justify-between">
         {tiers.map((tier) => {
           const selected = tier === activeTier;
           return (
@@ -47,20 +67,18 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
               aria-pressed={selected}
               title={TIER_HINTS[tier] ?? ""}
               onClick={() => onSelect(tier)}
-              className={
+              className={cn(
+                "rounded px-1 text-xs transition-colors",
                 selected
-                  ? "rounded-md border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground"
-                  : "rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/50"
-              }
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
             >
-              {TIER_LABELS[tier] ?? tier}
+              {label(tier)}
             </button>
           );
         })}
       </div>
-      <p className="mt-1.5 text-[11px] text-muted-foreground">
-        Presets fill in every phase below. Changing any phase switches this to Custom.
-      </p>
     </div>
   );
 }

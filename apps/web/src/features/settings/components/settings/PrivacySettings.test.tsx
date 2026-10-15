@@ -38,9 +38,13 @@ describe("PrivacySettings", () => {
 
     render(<PrivacySettings />);
 
-    expect(await screen.findByRole("checkbox")).toBeChecked();
+    expect(
+      await screen.findByRole("switch", {
+        name: "Let PathFinder learn from my strategies",
+      }),
+    ).toBeChecked();
     expect(screen.getByTestId("privacy-learning-copy")).toHaveTextContent(
-      "When this is on, PathFinder may use copies of your conversations and strategies to improve PathFinder for everyone, for example for review by the team, as test cases, or as shared examples the assistant draws on. A copy used beyond review never carries your name, your account or a link to your conversation. Today, PathFinder copies your finished conversations each night, and a conversation when you dislike one of its replies. Turning this off deletes your copies that are waiting for review and stops new ones.",
+      "PathFinder may use copies of your conversations and strategies to improve it for everyone. A copy used beyond review never carries your name or account. Turning this off deletes the copies waiting for review.",
     );
     expect(
       screen.getByRole("link", { name: "Your data in PathFinder" }),
@@ -52,7 +56,9 @@ describe("PrivacySettings", () => {
 
     render(<PrivacySettings />);
 
-    const toggle = await screen.findByRole("checkbox");
+    const toggle = await screen.findByRole("switch", {
+      name: "Let PathFinder learn from my strategies",
+    });
     expect(toggle).toBeChecked();
   });
 
@@ -61,7 +67,11 @@ describe("PrivacySettings", () => {
 
     render(<PrivacySettings />);
 
-    expect(await screen.findByRole("checkbox")).not.toBeChecked();
+    expect(
+      await screen.findByRole("switch", {
+        name: "Let PathFinder learn from my strategies",
+      }),
+    ).not.toBeChecked();
   });
 
   it("turns consent off and reflects the server answer", async () => {
@@ -69,13 +79,17 @@ describe("PrivacySettings", () => {
     mockedUpdate.mockResolvedValue(settings(false));
 
     render(<PrivacySettings />);
-    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(
+      await screen.findByRole("switch", {
+        name: "Let PathFinder learn from my strategies",
+      }),
+    );
 
     await waitFor(() => {
       expect(mockedUpdate).toHaveBeenCalledWith({ evalDataConsent: false });
     });
     await waitFor(() => {
-      expect(screen.getByRole("checkbox")).not.toBeChecked();
+      expect(screen.getByRole("switch")).not.toBeChecked();
     });
   });
 
@@ -84,13 +98,17 @@ describe("PrivacySettings", () => {
     mockedUpdate.mockResolvedValue(settings(true));
 
     render(<PrivacySettings />);
-    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(
+      await screen.findByRole("switch", {
+        name: "Let PathFinder learn from my strategies",
+      }),
+    );
 
     await waitFor(() => {
       expect(mockedUpdate).toHaveBeenCalledWith({ evalDataConsent: true });
     });
     await waitFor(() => {
-      expect(screen.getByRole("checkbox")).toBeChecked();
+      expect(screen.getByRole("switch")).toBeChecked();
     });
   });
 
@@ -118,7 +136,11 @@ describe("PrivacySettings", () => {
     mockedUpdate.mockRejectedValue(new Error("nope"));
 
     render(<PrivacySettings />);
-    fireEvent.click(await screen.findByRole("checkbox"));
+    fireEvent.click(
+      await screen.findByRole("switch", {
+        name: "Let PathFinder learn from my strategies",
+      }),
+    );
 
     expect(await screen.findByText(/Failed to save/i)).toBeVisible();
   });

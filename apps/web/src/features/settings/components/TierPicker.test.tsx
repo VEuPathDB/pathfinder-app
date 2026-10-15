@@ -28,41 +28,59 @@ const PRESETS: Record<string, TierPreset> = {
 };
 
 describe("TierPicker", () => {
-  it("renders a button per tier with readable labels", () => {
+  it("lays the tiers out from fastest to best, each a stop on the slider", () => {
     render(<TierPicker presets={PRESETS} activeTier="default" onSelect={vi.fn()} />);
+
     expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
-      "Quality",
-      "Default",
       "Fast",
+      "Default",
+      "Quality",
     ]);
+    const slider = screen.getByRole("slider", { name: "Preset" });
+    expect(slider).toHaveAttribute("aria-valuemax", "2");
+    expect(slider).toHaveAttribute("aria-valuenow", "1");
+    expect(slider).toHaveAttribute("aria-valuetext", "Default");
   });
 
   it("marks only the active tier as pressed", () => {
     render(<TierPicker presets={PRESETS} activeTier="fast" onSelect={vi.fn()} />);
-    expect(
-      screen.getByRole("button", { name: "Fast" }).getAttribute("aria-pressed"),
-    ).toBe("true");
-    expect(
-      screen.getByRole("button", { name: "Quality" }).getAttribute("aria-pressed"),
-    ).toBe("false");
+    expect(screen.getByRole("button", { name: "Fast" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Quality" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
-  it("emits the tier key when a preset is clicked", () => {
+  it("emits the tier key when a tier's name is clicked", () => {
     const onSelect = vi.fn();
     render(<TierPicker presets={PRESETS} activeTier="default" onSelect={onSelect} />);
     fireEvent.click(screen.getByRole("button", { name: "Quality" }));
     expect(onSelect).toHaveBeenCalledWith("quality");
   });
 
-  it("explains the Custom state so the empty selection isn't confusing", () => {
+  it("emits the next tier when the slider moves", () => {
+    const onSelect = vi.fn();
+    render(<TierPicker presets={PRESETS} activeTier="default" onSelect={onSelect} />);
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Preset" }), {
+      key: "ArrowRight",
+    });
+    expect(onSelect).toHaveBeenCalledWith("quality");
+  });
+
+  it("names the Custom state and presses no tier", () => {
     render(
       <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={vi.fn()} />,
     );
-    expect(screen.getByText(/don't match a preset/i)).toBeVisible();
+    expect(screen.getByText("Custom")).toBeVisible();
+    expect(screen.queryByRole("slider")).toBeNull();
     for (const tier of ["Quality", "Default", "Fast"]) {
-      expect(
-        screen.getByRole("button", { name: tier }).getAttribute("aria-pressed"),
-      ).toBe("false");
+      expect(screen.getByRole("button", { name: tier })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
     }
   });
 
@@ -73,7 +91,7 @@ describe("TierPicker", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("hints only at the stages a preset fills in", () => {
+  it("hints at what a tier fills in", () => {
     render(
       <TierPicker
         presets={{ balanced: uniform(DEFAULT_MODEL.id, "medium") }}
@@ -87,16 +105,19 @@ describe("TierPicker", () => {
     );
   });
 
-  it("falls back to the raw key for a tier it has no label for", () => {
+  it("places a tier it has no label for after the known ones, by its raw key", () => {
     render(
       <TierPicker
-        presets={{ experimental: uniform(OPENAI_SMALL.id, "low") }}
+        presets={{ experimental: uniform(OPENAI_SMALL.id, "low"), ...PRESETS }}
         activeTier={CUSTOM_TIER}
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "experimental" })).toHaveTextContent(
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Fast",
+      "Default",
+      "Quality",
       "experimental",
-    );
+    ]);
   });
 });

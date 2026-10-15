@@ -16,7 +16,10 @@ import type { ProviderKeyView } from "@pathfinder/shared/generated/types/Provide
 import { toUserMessage } from "@/lib/api/errors";
 import { yourDataUrl } from "@/lib/routes";
 
-import { SettingsField } from "./SettingsField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 
 const PROVIDERS: readonly { id: KeyableProvider; name: string }[] = [
   { id: "openai", name: "OpenAI" },
@@ -28,7 +31,7 @@ const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric
 
 function standing(stored: ProviderKeyView | undefined, name: string): string {
   if (stored === undefined)
-    return "No key. The deployment's key is used, if it has one.";
+    return "Not set. The deployment's key is used, if it has one.";
   if (stored.status === "active") {
     return `...${stored.hint}, added ${dateFmt.format(new Date(stored.createdAt))}.`;
   }
@@ -81,54 +84,52 @@ function KeyRow({
   });
 
   return (
-    <div className="space-y-2 rounded-md border border-border px-3 py-2.5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-sm font-medium text-foreground">{name}</div>
-          <div className="text-xs text-muted-foreground">{standing(stored, name)}</div>
-        </div>
-        {stored !== undefined && (
-          <button
-            type="button"
-            aria-label={`Remove ${name} key`}
-            disabled={remove.isPending}
-            onClick={() => remove.mutate({ provider })}
-            className="rounded-md border border-input px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-          >
-            Remove
-          </button>
-        )}
-      </div>
-      <form
-        className="flex gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const key = draft.trim();
-          if (key === "") return;
-          setDraft("");
-          setRefusal(null);
-          save.mutate({ provider, data: { key } }, { onSettled: () => save.reset() });
-        }}
-      >
-        <input
-          type="password"
-          aria-label={`${name} key`}
-          autoComplete="off"
-          spellCheck={false}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={stored === undefined ? "Paste a key" : "Paste a new key"}
-          className="min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-sm outline-none"
-        />
-        <button
-          type="submit"
-          aria-label={`Save ${name} key`}
-          disabled={save.isPending || draft.trim() === ""}
-          className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+    <div className="py-3">
+      <SettingsRow label={name} hint={standing(stored, name)}>
+        <form
+          className="flex items-center gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const key = draft.trim();
+            if (key === "") return;
+            setDraft("");
+            setRefusal(null);
+            save.mutate({ provider, data: { key } }, { onSettled: () => save.reset() });
+          }}
         >
-          {save.isPending ? "Checking..." : "Save"}
-        </button>
-      </form>
+          <Input
+            type="password"
+            aria-label={`${name} key`}
+            autoComplete="off"
+            spellCheck={false}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={stored === undefined ? "Paste a key" : "Paste a new key"}
+            className="h-8 w-44 text-sm"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            aria-label={`Save ${name} key`}
+            disabled={save.isPending || draft.trim() === ""}
+          >
+            {save.isPending ? "Checking..." : "Save"}
+          </Button>
+          {stored !== undefined && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={`Remove ${name} key`}
+              disabled={remove.isPending}
+              onClick={() => remove.mutate({ provider })}
+              className="text-muted-foreground"
+            >
+              Remove
+            </Button>
+          )}
+        </form>
+      </SettingsRow>
       {refusal !== null && (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {refusal}
@@ -143,24 +144,21 @@ export function ProviderKeySettings() {
   if (data == null) return null;
 
   return (
-    <div className="space-y-4">
-      <SettingsField label="Your own provider keys">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          A key you add pays for every model of its provider, and PathFinder checks it
-          with one short request before saving it. It is stored sealed, never shown
-          again, and spend on it does not count against your monthly allowance.
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          What a key pays for and how it is kept:{" "}
+    <SettingsSection
+      title="Your own provider keys"
+      description={
+        <>
+          A key pays for its provider&apos;s models, outside your monthly allowance.
+          PathFinder checks it once, stores it sealed and never shows it again.{" "}
           <Link
             href={yourDataUrl("your-key")}
-            className="text-primary underline underline-offset-2"
+            className="text-foreground underline underline-offset-2"
           >
             Your data in PathFinder
           </Link>
-          .
-        </p>
-      </SettingsField>
+        </>
+      }
+    >
       {data.enabled ? (
         PROVIDERS.map(({ id, name }) => (
           <KeyRow
@@ -171,10 +169,10 @@ export function ProviderKeySettings() {
           />
         ))
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="py-3 text-sm text-muted-foreground">
           This deployment does not accept personal keys.
         </p>
       )}
-    </div>
+    </SettingsSection>
   );
 }

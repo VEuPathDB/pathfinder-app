@@ -6,7 +6,6 @@ import type { ModelCatalogEntry, ReasoningEffort } from "@pathfinder/shared";
 import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
 import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
 import { useSettingsStore } from "@/state/useSettingsStore";
-import { assistantLabel } from "@/lib/assistants";
 import { useActiveAssistantId } from "@/features/settings/useActiveAssistantId";
 import { useProviderPayers } from "@/lib/hooks/useProviderPayers";
 import { withPayers } from "@/lib/models/payers";
@@ -18,7 +17,10 @@ import {
 import { PROVIDER_TABS } from "@/lib/models/providerMeta";
 import { ModelPicker } from "@/features/settings/components/ModelPicker";
 import { TierPicker } from "@/features/settings/components/TierPicker";
-import { ReasoningToggle } from "@/features/settings/components/ReasoningToggle";
+import { ReasoningSlider } from "@/features/settings/components/ReasoningSlider";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
+import { SettingsRow, SettingsSection } from "./SettingsRow";
 import {
   applyTierPreset,
   deriveActiveTier,
@@ -63,33 +65,25 @@ export function ModelSettings() {
   );
 
   return (
-    <div className="space-y-1">
-      <div className="mb-3">
-        <p className="text-xs text-muted-foreground">
-          {assistantLabel(assistantId)} runs each stage below on its own model. Pick a
-          preset, or set a model + reasoning effort per stage; leave a stage blank to
-          use the default.
-        </p>
-      </div>
-
+    <div className="space-y-8">
       {providers.length > 1 && (
-        <div className="mb-3 flex flex-wrap gap-1.5">
-          {providers.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              aria-pressed={tab.key === provider}
-              onClick={() => setChosenProvider(tab.key)}
-              className={
-                tab.key === provider
-                  ? "rounded-md border border-primary bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground"
-                  : "rounded-md border border-border/60 px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/50"
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <SettingsRow label="Provider">
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={provider}
+            onValueChange={(next) => {
+              if (next !== "") setChosenProvider(next);
+            }}
+          >
+            {providers.map((tab) => (
+              <ToggleGroupItem key={tab.key} value={tab.key} className="px-3 text-xs">
+                {tab.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </SettingsRow>
       )}
 
       <TierPicker
@@ -103,7 +97,7 @@ export function ModelSettings() {
         }}
       />
 
-      <div className="divide-y divide-border/40">
+      <SettingsSection title="Stages">
         {roles.map((role) => (
           <PhaseRow
             key={role}
@@ -116,7 +110,7 @@ export function ModelSettings() {
             onSelectReasoning={(effort) => setPhaseReasoning(role, effort)}
           />
         ))}
-      </div>
+      </SettingsSection>
     </div>
   );
 }
@@ -149,33 +143,39 @@ function PhaseRow({
   return (
     <div
       data-testid={`phase-row-${role}`}
-      className="grid grid-cols-[1fr_auto_auto] items-start gap-3 py-3"
+      className="flex items-center justify-between gap-4 py-3"
     >
-      <div>
-        <div className="text-sm font-medium text-foreground">{phaseLabel(role)}</div>
-        <div className="text-xs text-muted-foreground">{phaseDescription(role)}</div>
+      <div className="min-w-0">
+        <div
+          className="text-sm font-medium text-foreground"
+          title={phaseDescription(role)}
+        >
+          {phaseLabel(role)}
+        </div>
         {defaultModel !== null && selectedModelId === null && (
-          <div className="mt-0.5 text-[10px] text-muted-foreground">
+          <div className="mt-0.5 truncate text-xs text-muted-foreground">
             Default: {defaultModel.name}
           </div>
         )}
       </div>
-      <ModelPicker
-        models={models}
-        selectedModelId={selectedModelId}
-        onSelect={(id) => onSelectModel(id || null)}
-        serverDefaultId={defaultModelId}
-      />
-      {supportsReasoning ? (
-        <ReasoningToggle
-          value={effectiveEffort}
-          onChange={(effort) => onSelectReasoning(effort)}
+      <div className="flex shrink-0 items-center gap-4">
+        <ModelPicker
+          models={models}
+          selectedModelId={selectedModelId}
+          onSelect={(id) => onSelectModel(id || null)}
+          serverDefaultId={defaultModelId}
         />
-      ) : (
-        <div className="text-[10px] text-muted-foreground self-center">
-          no reasoning
-        </div>
-      )}
+        {supportsReasoning ? (
+          <ReasoningSlider
+            value={effectiveEffort}
+            onChange={(effort) => onSelectReasoning(effort)}
+          />
+        ) : (
+          <span className="w-[11.75rem] text-xs text-muted-foreground">
+            No reasoning
+          </span>
+        )}
+      </div>
     </div>
   );
 }

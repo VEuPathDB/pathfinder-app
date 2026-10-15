@@ -18,7 +18,7 @@ import {
 } from "@/features/conversation/usageFormat";
 import { formatCompactClean, formatPrice } from "@/features/settings/format";
 import { presetsForProvider, rolesForAssistant } from "@/features/settings/tierPresets";
-import { DEFAULT_ASSISTANT_ID, assistantLabel } from "@/lib/assistants";
+import { DEFAULT_ASSISTANT_ID } from "@/lib/assistants";
 import { readsLabel } from "@/lib/models/attachments";
 import { phaseLabel } from "@/lib/models/phaseRoles";
 
@@ -152,9 +152,6 @@ test.describe("Settings and account", () => {
       dialog.getByRole("tab", { name: "Model", exact: true }),
     ).toHaveAttribute("aria-selected", "true");
 
-    await expect(dialog).toContainText(
-      `${assistantLabel(DEFAULT_ASSISTANT_ID)} runs each stage below on its own model.`,
-    );
     expect(roles.map(phaseLabel)).toEqual(["Assistant", "Planning", "Checking"]);
     await expect(dialog.locator('[data-testid^="phase-row-"]')).toHaveCount(3);
     for (const role of roles) {
@@ -167,7 +164,7 @@ test.describe("Settings and account", () => {
     const presets = dialog.getByRole("button", {
       name: /^(Quality|Balanced|Default|Fast)$/,
     });
-    await expect(presets).toHaveText(["Quality", "Balanced", "Default", "Fast"]);
+    await expect(presets).toHaveText(["Fast", "Default", "Balanced", "Quality"]);
     const deployed = dialog.getByRole("button", {
       name: TIER_LABELS[models.defaultTier] ?? "",
       exact: true,
@@ -408,10 +405,10 @@ test.describe("Settings and account", () => {
     await expect(
       dialog.getByText("Learning from your strategies", { exact: true }),
     ).toBeVisible();
-    await expect(dialog).toContainText(
-      "Before review, PathFinder removes email addresses and passwords in web addresses.",
+    await expect(dialog.getByTestId("privacy-learning-copy")).toHaveText(
+      "PathFinder may use copies of your conversations and strategies to improve it for everyone. A copy used beyond review never carries your name or account. Turning this off deletes the copies waiting for review.",
     );
-    const consent = dialog.getByRole("checkbox", {
+    const consent = dialog.getByRole("switch", {
       name: "Let PathFinder learn from my strategies",
     });
     await expect(consent).toBeVisible();

@@ -9,17 +9,17 @@ status: draft
 
 # Settings and account (A)
 
-Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. Tabs: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. Under every tab, `PathFinder v<version>` names the release the api reports, which a finding quotes. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
+Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the PathFinder mark at the bottom of the right rail: `PathFinder v<version>`. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
 
 ## A1 - The model a turn runs on - core, once
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Model` | Read | `Strategy builder runs each stage below on its own model. ...`; stage rows `Assistant`, `Planning`, `Building`, `Checking`; `Preset` with `Quality`, `Balanced`, `Default`, `Fast`; each unpinned row `Default: <model id>`: on the default preset `openai:gpt-5.6-luna` for `Assistant` and `Planning`, `openai:gpt-6-luna` for `Building` and `Checking`. |
+| 1 | Settings, `Model` | Read | `Preset` slider with stops `Fast`, `Default`, `Balanced`, `Quality`; `Stages` rows `Assistant`, `Planning`, `Checking`, each with a model and a `Reasoning effort` slider from `Low` to `Max`; each unpinned row `Default: <model id>`: on the default preset `openai:gpt-5.6-luna` for `Assistant` and `Planning`, `openai:gpt-6-luna` for `Building` and `Checking`. |
 | 2 | `Preset` | `Fast`; close Settings; send the S1 prompt in a new conversation | The trace header's usage reads `gpt-6-luna (low) - <tokens>, <cost>` |
 | 3 | `Preset` | `Default`; send the S1 prompt again | `gpt-5.6-luna (medium) - <tokens>, <cost>` |
 | 4 | `Preset` | `Quality`; send the S1 prompt | `gpt-6-sol (high) - ...`; in Settings, `Assistant` and `Planning` run GPT-6 Sol at `High`, `Building` and `Checking` GPT-5.6 Luna at `Medium`; the S1 result is the same 479 genes |
-| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom - phases below don't match a preset`; the next turn's usage names `gpt-6-luna (high)` |
+| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom` and the slider loses its thumb; the next turn's usage names `gpt-6-luna (high)` |
 | 6 | Model Catalog | Read | Columns `Model`, `Context`, `Input $/MTok`, `Output $/MTok`, `Cached $/MTok`, `Best For`; GPT-5.6 Luna `$0.20` input, `$1.20` output; tag `reads images and PDFs` on the three OpenAI models |
 | 7 | Settings, `Advanced` | `Reset all local settings`, confirm | The page reloads with the default preset |
 
@@ -54,7 +54,7 @@ Measured turn costs on `openai:gpt-5.6-luna`: a one-search build $0.074, a two-s
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Data` | Read | Four actions: `Clear strategies`, `Clear site data`, `Clear ALL data`, `Clear ALL data + VEuPathDB`, each with its description. There is no export of all data (known limit) |
+| 1 | Settings, `Data` | Read | `Clear data`, then four rows: `Clear strategies`, `Clear site data`, `Clear ALL data`, `Clear ALL data + VEuPathDB`, each with a one-line description and a `Clear` button. There is no export of all data (known limit) |
 | 2 | `Clear site data` | Click, `Confirm` | The page reloads; gene sets, runs and control sets of this site are gone; conversations move to `Dismissed (<n>)`; memories stay |
 | 3 | `Clear ALL data + VEuPathDB` | Click; type `delete my data`; `Confirm` | Toast `Data cleared` with `VEuPathDB strategies deleted: <n>. Memories deleted: <m>.`; reload after 4 s |
 
@@ -64,13 +64,13 @@ This is the sweep of `H1` in the [runner checklist](runner-checklist.md).
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Privacy` | Read | `LEARNING FROM YOUR STRATEGIES` (CSS); what a copy holds, what is removed before review, that a person reads it, what an accepted copy keeps, what turning it off deletes; link `Your data in PathFinder`; checkbox `Let PathFinder learn from my strategies` |
-| 2 | Checkbox | Untick, reload, reopen | Still unticked |
+| 1 | Settings, `Privacy` | Read | `Learning from your strategies`; what a copy may be used for, that a copy used beyond review carries no name or account, what turning it off deletes; link `Your data in PathFinder`; switch `Let PathFinder learn from my strategies` |
+| 2 | Switch | Turn off, reload, reopen | Still off |
 
 ## A6 - Advanced - once
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Settings, `Advanced` | Untick `Show token usage` | The trace header loses its usage; the composer usage pill stays |
-| 2 | Same | Tick `Show raw tool calls in the conversation` | Each trace row gains a `Raw` toggle showing `Parameters` and `Result` |
-| 3 | Same | Tick `Also delete on VEuPathDB`, then delete a conversation from the sidebar | The dialog's own checkbox still decides; this toggle changes nothing today (record a minor if so) |
+| 1 | Settings, `Advanced` | Turn off `Show token usage` | The trace header loses its usage; the composer usage pill stays |
+| 2 | Same | Turn on `Show raw tool calls` | Each trace row gains a `Raw` toggle showing `Parameters` and `Result` |
+| 3 | Same | Turn on `Also delete on VEuPathDB`, then delete a conversation from the sidebar | The dialog's own checkbox still decides; this toggle changes nothing today (record a minor if so) |

@@ -102,6 +102,16 @@ describe("ProviderKeySettings", () => {
     expect(link).toHaveAttribute("href", "/help/your-data#your-key");
   });
 
+  it("says in one line what a key pays for and how it is kept", async () => {
+    renderTab();
+
+    expect(
+      await screen.findByText(
+        "A key pays for its provider's models, outside your monthly allowance. PathFinder checks it once, stores it sealed and never shows it again.",
+      ),
+    ).toBeVisible();
+  });
+
   it("sends the key once and keeps it nowhere after", async () => {
     const { queryClient, view } = renderTab();
     const field = await screen.findByLabelText("OpenAI key");

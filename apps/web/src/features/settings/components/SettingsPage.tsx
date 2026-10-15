@@ -1,8 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { healthCheckQueryOptions } from "@pathfinder/shared/generated/hooks/useHealthCheck";
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Modal } from "@/lib/components/Modal";
 import type { SettingsTab } from "../types";
@@ -46,53 +43,39 @@ export function SettingsPage({
       showCloseButton
     >
       <Tabs
+        orientation="vertical"
         value={tab}
         onValueChange={(next) => {
           const picked = TABS.find((t) => t.id === next);
           if (picked !== undefined) onTabChange(picked.id);
         }}
-        className="min-h-0 flex-1 gap-0"
+        className="h-[min(85vh,36rem)] min-h-0 gap-0"
       >
-        <TabsList
-          variant="line"
-          className="h-auto w-full justify-start gap-0 rounded-none border-b border-border p-0 px-5"
-        >
-          {TABS.map((t) => (
-            <TabsTrigger
-              key={t.id}
-              value={t.id}
-              className="h-auto flex-none rounded-none px-4 py-2.5 text-sm font-semibold text-muted-foreground after:bg-primary group-data-[orientation=horizontal]/tabs:after:bottom-0"
-            >
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="flex w-32 shrink-0 flex-col gap-3 border-r border-border bg-muted/30 p-3 sm:w-44">
+          <p className="px-2 pt-1 text-sm font-semibold text-foreground">Settings</p>
+          <TabsList variant="line" className="w-full items-stretch gap-0.5 p-0">
+            {TABS.map((t) => (
+              <TabsTrigger
+                key={t.id}
+                value={t.id}
+                className="h-8 flex-none rounded-md px-2 text-[13px] font-medium text-muted-foreground after:hidden hover:bg-muted/60 group-data-[variant=line]/tabs-list:data-[state=active]:bg-muted data-[state=active]:text-foreground"
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
         {TABS.map((t) => (
           <TabsContent
             key={t.id}
             value={t.id}
-            className="min-h-0 overflow-y-auto px-5 py-4"
+            className="min-h-0 min-w-0 overflow-y-auto px-6 pt-12 pb-6"
           >
             <TabBody tab={t.id} siteId={siteId} />
           </TabsContent>
         ))}
       </Tabs>
-      <ReleaseVersion />
     </Modal>
-  );
-}
-
-/** The release the api reports; nothing while it loads or when the call fails. */
-function ReleaseVersion() {
-  const { data } = useQuery(healthCheckQueryOptions());
-  if (data === undefined) return null;
-  return (
-    <p
-      data-testid="settings-release"
-      className="shrink-0 border-t border-border px-5 py-2 text-xs text-muted-foreground"
-    >
-      {`PathFinder v${data.version}`}
-    </p>
   );
 }
 

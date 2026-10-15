@@ -55,6 +55,7 @@ const CATALOG = {
       rank: "standard",
       deploymentMayPay: true,
       enabled: true,
+      supportsReasoning: true,
     },
     {
       id: ANTHROPIC_SMALL.id,
@@ -111,7 +112,7 @@ describe("ModelSettings providers", () => {
   it("offers the presets of a provider the researcher's key pays for", async () => {
     renderSettings();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Anthropic" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Anthropic" }));
 
     expect(await screen.findByRole("button", { name: "Quality" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Default" })).toBeNull();
@@ -120,7 +121,7 @@ describe("ModelSettings providers", () => {
   it("applies a preset on the researcher's key to every stage", async () => {
     renderSettings();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Anthropic" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Anthropic" }));
     fireEvent.click(await screen.findByRole("button", { name: "Quality" }));
 
     expect(useSettingsStore.getState().phaseModels["lead"]).toBe(ANTHROPIC_FLAGSHIP.id);
@@ -130,7 +131,7 @@ describe("ModelSettings providers", () => {
     payers = { openai: "deployment", anthropic: "deployment" };
     renderSettings();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Anthropic" }));
+    fireEvent.click(await screen.findByRole("radio", { name: "Anthropic" }));
     fireEvent.click(await screen.findByRole("button", { name: "Quality" }));
 
     expect(useSettingsStore.getState().phaseModels["lead"]).toBe(ANTHROPIC_SMALL.id);
@@ -141,7 +142,7 @@ describe("ModelSettings providers", () => {
     renderSettings();
 
     expect(await screen.findByRole("button", { name: "Default" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Anthropic" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Anthropic" })).toBeNull();
   });
 });
 
@@ -159,6 +160,18 @@ describe("ModelSettings stages", () => {
     expect(rows[1]).toHaveTextContent(/^Planning/);
     expect(rows[2]).toHaveTextContent(/^Checking/);
     expect(screen.queryByText("Building")).toBeNull();
+  });
+});
+
+describe("ModelSettings stage controls", () => {
+  it("gives each stage a reasoning slider, and names the stage's job on hover", async () => {
+    renderSettings();
+
+    const row = await screen.findByTestId("phase-row-lead");
+    expect(
+      await within(row).findByRole("slider", { name: "Reasoning effort" }),
+    ).toHaveAttribute("aria-valuetext", "Medium");
+    expect(within(row).getByText("Assistant")).toHaveAttribute("title");
   });
 });
 

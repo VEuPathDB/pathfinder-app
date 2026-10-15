@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import { healthCheckQueryOptions } from "@pathfinder/shared/generated/hooks/useHealthCheck";
+
 import {
   Tooltip,
   TooltipContent,
@@ -7,6 +10,8 @@ import {
 import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
 
 export function PathFinderMark() {
+  const { data } = useQuery(healthCheckQueryOptions());
+  const name = data === undefined ? "PathFinder" : `PathFinder v${data.version}`;
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip tapToOpen>
@@ -20,7 +25,7 @@ export function PathFinderMark() {
             <PathFinderLogo size={22} />
           </span>
         </TooltipTrigger>
-        <TooltipContent side="left">PathFinder</TooltipContent>
+        <TooltipContent side="left">{name}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );

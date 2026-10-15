@@ -116,18 +116,20 @@ export function MemorySettings() {
 
       {data != null && (
         <div className="space-y-2">
-          {memorySections(data).map(({ kind, items }) => (
-            <MemorySection
-              key={kind}
-              title={MEMORY_KIND_LABELS[kind].many}
-              items={items}
-              focusedKey={focused?.kind === kind ? focused.key : null}
-              defaultOpen={focused?.kind === kind}
-              onEdit={(m) => setEditing(m)}
-              onDelete={handleDelete}
-              onToggleAutoRetrieve={handleToggleAutoRetrieve}
-            />
-          ))}
+          <div className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border">
+            {memorySections(data).map(({ kind, items }) => (
+              <MemorySection
+                key={kind}
+                title={MEMORY_KIND_LABELS[kind].many}
+                items={items}
+                focusedKey={focused?.kind === kind ? focused.key : null}
+                defaultOpen={focused?.kind === kind}
+                onEdit={(m) => setEditing(m)}
+                onDelete={handleDelete}
+                onToggleAutoRetrieve={handleToggleAutoRetrieve}
+              />
+            ))}
+          </div>
 
           {(data.hasMore || offset > 0) && (
             <div className="flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">

@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState, type ReactElement } from "react";
@@ -25,19 +25,6 @@ vi.mock("./settings/PrivacySettings", () => ({
 vi.mock("./settings/AdvancedSettings", () => ({
   AdvancedSettings: () => <p>Advanced body</p>,
 }));
-
-const HEALTH = {
-  status: "healthy",
-  version: "0.2.0a23",
-  timestamp: "2026-10-04T00:00:00Z",
-};
-
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
 
 function Harness({ initial }: { initial: SettingsTab }): ReactElement {
   const [tab, setTab] = useState<SettingsTab>(initial);
@@ -66,17 +53,7 @@ function selectedTab(): string {
   return screen.getByRole("tab", { selected: true }).textContent;
 }
 
-beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => jsonResponse(HEALTH)),
-  );
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(cleanup);
 
 describe("SettingsPage tabs", () => {
   it("names the tabs in a tablist and ties the selected one to its panel", () => {
@@ -113,18 +90,24 @@ describe("SettingsPage tabs", () => {
     ]);
   });
 
-  it("moves with the arrow keys and wraps at the ends", async () => {
+  it("lists the tabs down the side", () => {
+    renderSettings("model");
+
+    expect(screen.getByRole("tablist")).toHaveAttribute("aria-orientation", "vertical");
+  });
+
+  it("moves with the up and down arrow keys and wraps at the ends", async () => {
     renderSettings("model");
 
     screen.getByRole("tab", { name: "Model" }).focus();
-    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.keyboard("{ArrowDown}");
     expect(selectedTab()).toBe("Provider keys");
     expect(screen.getByRole("tabpanel")).toHaveTextContent("Keys body");
     expect(document.activeElement).toBe(
       screen.getByRole("tab", { name: "Provider keys" }),
     );
 
-    await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
     expect(selectedTab()).toBe("Advanced");
   });
 
@@ -142,49 +125,12 @@ describe("SettingsPage tabs", () => {
 });
 
 describe("SettingsPage release", () => {
-  it("names the release the api reports, under every tab", async () => {
-    renderSettings("model");
-
-    const release = await screen.findByTestId("settings-release");
-    expect(release.textContent).toBe("PathFinder v0.2.0a23");
-    expect(screen.getByRole("tabpanel")).not.toContainElement(release);
-
-    await userEvent.click(screen.getByRole("tab", { name: "Privacy" }));
-    expect(screen.getByTestId("settings-release")).toHaveTextContent(
-      "PathFinder v0.2.0a23",
-    );
-  });
-
-  it("shows no release until the api answers", async () => {
-    let answer: (response: Response) => void = () => {};
-    const fetchMock = vi.fn(
-      () =>
-        new Promise<Response>((resolve) => {
-          answer = resolve;
-        }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-    renderSettings("model");
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(screen.queryByTestId("settings-release")).not.toBeInTheDocument();
-
-    answer(jsonResponse(HEALTH));
-    expect((await screen.findByTestId("settings-release")).textContent).toBe(
-      "PathFinder v0.2.0a23",
-    );
-  });
-
-  it("shows no release when the api call fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => jsonResponse({ detail: "down" }, 500)),
-    );
+  it("names no release, which the PathFinder mark carries instead", async () => {
     const queryClient = renderSettings("model");
 
     await waitFor(() =>
-      expect(queryClient.getQueryState(healthCheckQueryKey())?.status).toBe("error"),
+      expect(queryClient.getQueryState(healthCheckQueryKey())).toBe(undefined),
     );
-    expect(screen.queryByTestId("settings-release")).not.toBeInTheDocument();
+    expect(screen.queryByText(/PathFinder v/)).toBeNull();
   });
 });
