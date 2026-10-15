@@ -19,7 +19,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-vi.mock("./rail/RightRail", () => ({ RightRail: () => null }));
+const railSites = vi.hoisted((): string[] => []);
+vi.mock("./rail/RightRail", () => ({
+  RightRail: ({ siteId }: { siteId: string }) => {
+    railSites.push(siteId);
+    return null;
+  },
+}));
 
 import { redirect } from "next/navigation";
 
@@ -127,6 +133,18 @@ describe("a draft thread", () => {
       expect(screen.getByTestId("message-composer")).toBeInTheDocument();
     });
     expect(vi.mocked(redirect)).not.toHaveBeenCalled();
+  });
+});
+
+describe("a draft thread's right rail", () => {
+  it("names the route's site before the conversation has a row", async () => {
+    recordReads();
+    railSites.length = 0;
+
+    renderView();
+
+    expect(await screen.findByTestId("message-composer")).toBeInTheDocument();
+    expect(new Set(railSites)).toEqual(new Set(["plasmodb"]));
   });
 });
 

@@ -60,7 +60,7 @@ export function ChatView({
   }
 
   const strategy = detailQuery.data ?? null;
-  const siteId = strategy?.siteId ?? "";
+  const siteId = strategy?.siteId ?? siteSegment;
   const assistantId = resolveAssistantId({
     existing: strategy?.assistantId,
     requested: requestedAssistantId,

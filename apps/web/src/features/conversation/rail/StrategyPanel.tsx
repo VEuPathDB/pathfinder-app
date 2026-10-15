@@ -8,6 +8,7 @@ import { siteShortName, type Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { CompactStrategyView } from "@/features/strategy/graph/components/CompactStrategyView";
 import { InsertSavedDialog } from "@/features/saved/InsertSavedDialog";
+import { beginConversation } from "@/features/conversation/api/beginConversation";
 import { SaveSubstrategyDialog } from "@/features/strategy/editor/SaveSubstrategyDialog";
 import { useRefreshStepCountsMutation } from "@/features/strategy/mutations/useRefreshStepCountsMutation";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
@@ -158,6 +159,7 @@ export function StrategyPanel({
           conversationId={conversationId}
           siteId={siteId}
           targetStepId=""
+          beginThread={() => beginConversation(conversationId, { siteId })}
         />
       )}
       {strategy != null && (
@@ -190,6 +192,7 @@ export function StrategyPanel({
             conversationId={strategy.id}
             siteId={siteId}
             targetStepId={insertTargetId ?? ""}
+            beginThread={() => beginConversation(strategy.id, { siteId })}
           />
         </>
       )}

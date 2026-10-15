@@ -28,6 +28,7 @@ vi.mock("@/lib/api/client", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const mockClient = vi.mocked(client);
+const beginThread = vi.fn(() => Promise.resolve());
 
 function conv(over: Partial<ConversationResponse>): ConversationResponse {
   return {
@@ -64,6 +65,7 @@ function renderDialog(convs = ELIGIBLE, targetStepId = "step-x"): QueryClient {
         conversationId="current"
         siteId="plasmodb"
         targetStepId={targetStepId}
+        beginThread={beginThread}
       />
     </QueryClientProvider>
   );
@@ -72,7 +74,10 @@ function renderDialog(convs = ELIGIBLE, targetStepId = "step-x"): QueryClient {
 }
 
 afterEach(cleanup);
-beforeEach(() => mockClient.mockClear());
+beforeEach(() => {
+  mockClient.mockClear();
+  beginThread.mockClear();
+});
 
 describe("InsertSavedDialog", () => {
   it("lists only eligible saved strategies, sorted by name", async () => {
@@ -176,5 +181,17 @@ describe("InsertSavedDialog", () => {
       params: { siteId: "plasmodb" },
       data: { targetStepId: "", savedWdkStrategyId: 11 },
     });
+  });
+
+  it("begins the thread before it posts the insert", async () => {
+    renderDialog(ELIGIBLE, "");
+
+    await userEvent.click(await screen.findByTestId("insert-saved-pick-11"));
+    await userEvent.click(screen.getByTestId("insert-saved-confirm"));
+
+    await waitFor(() => expect(mockClient).toHaveBeenCalledTimes(1));
+    expect(beginThread.mock.invocationCallOrder[0]).toBeLessThan(
+      mockClient.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 });

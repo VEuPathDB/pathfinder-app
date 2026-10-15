@@ -1,14 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { beginStrategy } from "@pathfinder/shared/generated/hooks/useBeginStrategy";
 import { client } from "@/lib/api/client";
 import { insertSavedStrategy } from "./conversations";
 
-vi.mock("@pathfinder/shared/generated/hooks/useBeginStrategy", () => ({
-  beginStrategy: vi.fn(() =>
-    Promise.resolve({ conversationId: "new-1", isNew: true, name: "" }),
-  ),
-}));
 vi.mock("@/lib/api/client", () => ({
   client: vi.fn(() =>
     Promise.resolve({
@@ -23,11 +17,9 @@ vi.mock("@/lib/api/client", () => ({
 }));
 
 const mockClient = vi.mocked(client);
-const mockBegin = vi.mocked(beginStrategy);
 
 beforeEach(() => {
   mockClient.mockClear();
-  mockBegin.mockClear();
 });
 
 describe("insertSavedStrategy", () => {

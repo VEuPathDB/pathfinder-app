@@ -39,6 +39,7 @@ interface InsertSavedDialogProps {
   siteId: string;
   /** The step to combine with; empty when the strategy has no steps yet. */
   targetStepId: string;
+  beginThread: () => Promise<unknown>;
 }
 
 export function InsertSavedDialog(props: InsertSavedDialogProps) {
@@ -65,6 +66,7 @@ function InsertSavedDialogBody({
   conversationId,
   siteId,
   targetStepId,
+  beginThread,
   onOpenChange,
 }: InsertSavedDialogProps) {
   const queryClient = useQueryClient();
@@ -86,14 +88,16 @@ function InsertSavedDialogBody({
 
   const isRoot = targetStepId === "";
   const insert = useMutation({
-    mutationFn: () =>
-      insertSavedStrategy({
+    mutationFn: async () => {
+      await beginThread();
+      return insertSavedStrategy({
         conversationId,
         siteId,
         targetStepId,
         savedWdkStrategyId: pickedId ?? 0,
         operator: isRoot ? undefined : operator,
-      }),
+      });
+    },
     onSuccess: (data) => {
       void refetchStrategy(queryClient, conversationId);
       void queryClient.invalidateQueries({
