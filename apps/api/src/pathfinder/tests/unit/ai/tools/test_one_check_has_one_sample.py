@@ -68,7 +68,8 @@ async def _sampled(step_id: int, message_id: UUID) -> list[str]:
 
 @pytest.fixture(autouse=True)
 def served(monkeypatch: pytest.MonkeyPatch) -> _Step:
-    async def _none(*_: object) -> list[str]:
+    async def _none(*_: object, own_search: str | None) -> list[str]:
+        del own_search
         return []
 
     step = _Step()

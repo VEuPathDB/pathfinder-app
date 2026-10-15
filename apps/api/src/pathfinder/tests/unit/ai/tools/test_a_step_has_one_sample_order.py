@@ -81,7 +81,8 @@ class _Step:
 
 @pytest.fixture(autouse=True)
 def _served(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _none(*_: object) -> list[str]:
+    async def _none(*_: object, own_search: str | None) -> list[str]:
+        del own_search
         return []
 
     step = _Step()

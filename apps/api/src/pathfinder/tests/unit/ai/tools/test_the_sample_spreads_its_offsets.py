@@ -144,8 +144,10 @@ async def test_the_id_read_and_the_sample_answer_the_same_genes_in_order(
     step = _Step()
     monkeypatch.setattr(results, "get_strategy_api", lambda site_id: step)
 
-    async def no_selected(site_id: str, record_type: str, graph: object) -> list[str]:
-        del site_id, record_type, graph
+    async def no_selected(
+        site_id: str, record_type: str, graph: object, *, own_search: str | None
+    ) -> list[str]:
+        del site_id, record_type, graph, own_search
         return []
 
     monkeypatch.setattr(results, "sample_attributes", no_selected)

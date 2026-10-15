@@ -45,9 +45,13 @@ def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         )
 
     async def selected(
-        site_id: str, record_type: str, graph: StrategyGraph | None
+        site_id: str,
+        record_type: str,
+        graph: StrategyGraph | None,
+        *,
+        own_search: str | None,
     ) -> list[str]:
-        del site_id, graph
+        del site_id, graph, own_search
         seen.append(record_type)
         return []
 

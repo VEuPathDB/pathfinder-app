@@ -4,14 +4,14 @@ and each count this turn's writes moved beside the count the message found."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from pathfinder.ai.graph.turn_records import ReadRecord, TurnMarkers
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.domain.turn_facts import ListedFact, SourceFact, StepFact
-from pathfinder.services.gene_records.read import gene_record_url
+from pathfinder.services.record_pages import record_page_url
 
 
 def with_counts_before(
@@ -81,9 +81,10 @@ def listed_ids(
     steps: Sequence[StepFact],
     sync: SyncStateProtocol | None,
     sources: Sequence[SourceFact],
+    record_types: Mapping[str, str],
 ) -> list[ListedFact]:
-    """The ids each listing of this turn returned, each with its record page,
-    under the step it listed, in tree order. A record shown as a source of that
+    """The ids each listing of this turn returned, each with the page of its
+    step's record type, under the step it listed, in tree order. A record shown as a source of that
     step is not listed again, and a listing of a step the strategy no longer
     holds is no fact."""
     step_of = _step_of(sync)
@@ -98,7 +99,10 @@ def listed_ids(
             step_id=step.step_id,
             step_name=step.display_name,
             records=[
-                ListedRecord(record_id=g, url=gene_record_url(site_id, g))
+                ListedRecord(
+                    record_id=g,
+                    url=record_page_url(site_id, record_types[step.step_id], g),
+                )
                 for g in listed[step.step_id]
             ],
         )

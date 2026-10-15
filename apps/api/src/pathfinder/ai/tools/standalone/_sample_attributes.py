@@ -8,6 +8,7 @@ from collections.abc import Collection, Iterable, Sequence
 from veupathdb.domain.strategy import StepKind
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import get_raw_record_types, get_raw_searches
+from veupathdb_mcp.tool_payloads import gene_sample_attributes
 
 from pathfinder.domain.strategy.session import StrategyGraph
 
@@ -45,10 +46,26 @@ def _leaf_search_names(graph: StrategyGraph) -> list[str]:
     ]
 
 
-async def sample_attributes(
+async def _own_columns(
+    site_id: str, record_type: str, search_name: str | None
+) -> list[str]:
+    """The columns a step's own search shows: every default for a record type
+    with no gene columns, else the columns it adds that few other searches show."""
+    if search_name is None:
+        return []
+    searches = await get_raw_searches(site_id, record_type)
+    search = next((s for s in searches if s.url_segment == search_name), None)
+    if search is None:
+        return []
+    if gene_sample_attributes(record_type) is None:
+        return [n for n in search.default_attributes if n != "primary_key"]
+    added = {field.name for field in search.dynamic_attributes}
+    return selecting_attributes(searches, added, [search_name])
+
+
+async def _selected(
     site_id: str, record_type: str, graph: StrategyGraph | None
 ) -> list[str]:
-    """The attributes the graph's searches select on, as the site's catalog lists them."""
     if graph is None:
         return []
     record = next(
@@ -67,3 +84,18 @@ async def sample_attributes(
         {field.name for field in fields},
         _leaf_search_names(graph),
     )
+
+
+async def sample_attributes(
+    site_id: str,
+    record_type: str,
+    graph: StrategyGraph | None,
+    *,
+    own_search: str | None,
+) -> list[str]:
+    """The attributes the graph's searches select on, then the columns the
+    sampled step's own search shows, as the site's catalog lists them."""
+    return [
+        *await _selected(site_id, record_type, graph),
+        *await _own_columns(site_id, record_type, own_search),
+    ]

@@ -13702,6 +13702,10 @@ components:
       properties:
         classification:
           $ref: '#/components/schemas/IntentClassification'
+          description: 'What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such
+            as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins,
+            ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which
+            search answers it: FRAME finds the search in the site''s catalog.'
         inferredGoal:
           maxLength: 500
           title: Inferredgoal

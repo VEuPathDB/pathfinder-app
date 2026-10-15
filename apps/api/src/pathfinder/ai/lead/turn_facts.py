@@ -185,19 +185,22 @@ def _built_steps(
         if outcome is None
         else {n.node_id: n.error for n in outcome.node_results if n.error}
     )
+    record_types = _record_types(graph)
     return [
         _step_fact(
-            step,
-            criteria,
-            counts,
-            errors,
-            counted_noun(
-                record_class_of(step.id, graph.steps, fallback=graph.record_type or "")
-            ),
-            said,
+            step, criteria, counts, errors, counted_noun(record_types[step.id]), said
         )
         for step in graph.steps_in_tree_order(root_id)
     ]
+
+
+def _record_types(graph: StrategyGraph | None) -> dict[str, str]:
+    if graph is None:
+        return {}
+    return {
+        step_id: record_class_of(step_id, graph.steps, fallback=graph.record_type or "")
+        for step_id in graph.steps
+    }
 
 
 def _counted_live(
@@ -388,7 +391,12 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         ],
         sources=sources,
         listed=listed_ids(
-            deps.runtime.site_id, markers, built, session.sync_state, sources
+            deps.runtime.site_id,
+            markers,
+            built,
+            session.sync_state,
+            sources,
+            _record_types(graph),
         ),
         named_genes=named_genes(markers),
         shown_before=list(domain.shown_records),

@@ -2,6 +2,23 @@
 
 ## 2026-10-15
 
+* **A record links to the page of its own record type.** `record_page_url`
+  (`services/record_pages.py`) names the page by the record type, a transcript's on the
+  gene page, so an OrthoMCL group links to `/app/record/group/<id>` and a protein to
+  `/app/record/sequence/<id>`. A listing takes its step's class, a membership its search's.
+
+* **A sample reads a step under its own record type, with its own search's columns.**
+  `get_sample_records` reads a named step under `record_class_of`, not the root's class,
+  and `sample_attributes` adds the columns the step's own search shows: every default
+  for a record type with no gene columns, else the added columns few other searches show.
+  A BLAST step reads each hit's `evalue` and `score`; veupathdb-py 0.1.0b9 drops the
+  sort key the site hides in front of the value.
+
+* **Off topic has a definition.** `UserIntent.classification` tells the Lead that only a
+  message no site holds data for is off topic, and that pasted sequences never are. On
+  the saved Lead request of a pasted proteome on OrthoMCL, Luna refused 5 of 10 replays
+  without it and 0 of 10 with it; a code request and an essay stayed off topic 10 of 10.
+
 * **The `cedar` branch signs in with a password for the tunnel stack.** Main signs in only
   through the hosting website, whose cookie never reaches the tunnel's `localhost`. The
   branch adds back the password login and logout routes, the form in the signed-out notice,

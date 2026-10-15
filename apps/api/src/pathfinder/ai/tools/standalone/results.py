@@ -57,6 +57,7 @@ from pathfinder.ai.tools.standalone._step_columns import (
     measured,
     settled,
 )
+from pathfinder.ai.tools.standalone._step_read import graph_step_id, read_as
 from pathfinder.domain.evidence import ColumnFit, CountedIn
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
@@ -111,17 +112,9 @@ def _step_answer(session: StrategySession, wdk_step_id: int) -> str:
 
     Empty when the strategy holds no step with that WDK id.
     """
-    sync = session.sync_state
     graph = session.get_graph(None)
     ast = None if graph is None else graph.to_strategy_ast()
-    step_id = next(
-        (
-            s
-            for s, w in ({} if sync is None else sync.wdk_step_ids).items()
-            if w == wdk_step_id
-        ),
-        None,
-    )
+    step_id = graph_step_id(session, wdk_step_id)
     node = (
         None
         if ast is None
@@ -211,18 +204,25 @@ async def sample_page(
 
 
 async def _sample(
-    session: StrategySession, wdk_step_id: int, limit: int, record_type: str
+    session: StrategySession, wdk_step_id: int, limit: int
 ) -> SampledRecords:
-    """The step's sample, with the attributes the strategy's searches select on."""
+    """The step's sample, with the attributes the strategy's searches select on
+    and the columns the step's own search shows."""
+    record_type, own_search = read_as(session, wdk_step_id)
     attributes = [
         *(gene_sample_attributes(record_type) or []),
-        *await sample_attributes(session.site_id, record_type, session.get_graph(None)),
+        *await sample_attributes(
+            session.site_id,
+            record_type,
+            session.get_graph(None),
+            own_search=own_search,
+        ),
     ]
     return await sample_page(
         session.site_id,
         wdk_step_id,
         limit=limit,
-        attributes=attributes or None,
+        attributes=list(dict.fromkeys(attributes)) or None,
         record_type=record_type,
         seed=step_sample_seed(session, wdk_step_id),
     )
@@ -240,7 +240,9 @@ async def get_sample_records(
     call answers the same records while the step's answer is unchanged, in this
     message or a later one. Each
     carries its id plus, for gene/transcript steps, the product description,
-    gene symbol, and organism, and the attributes the strategy's searches select on, as the site states
+    gene symbol, and organism, the attributes the strategy's searches select on,
+    and the columns the step's own search shows, such as a BLAST hit's
+    ``evalue`` and ``score``, as the site states
     them. Read a step's columns with ``read_step_columns`` first; sample only
     for a criterion no column shows.
 
@@ -254,12 +256,10 @@ async def get_sample_records(
     wdk_step_id = named_or_root(session.sync_state, wdk_step_id)
     _validate_sample_inputs(wdk_step_id)
 
-    graph = session.get_graph(None)
-    record_type = (graph.record_type if graph is not None else None) or "transcript"
     sample = await read_in_time(
         "get_sample_records",
         f"step {wdk_step_id}",
-        _sample(session, wdk_step_id, limit, record_type),
+        _sample(session, wdk_step_id, limit),
         deadline=READ_DEADLINE_SECONDS,
     )
     ctx.deps.turn_markers.record_sampled_genes(sample.gene_ids)

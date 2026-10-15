@@ -20388,7 +20388,8 @@
         "description": "The Lead's typed parsing of the latest user message.\n\nThe message is the turn's own and is read from the state, so this model\ncarries what the classification decides and no text of the message.\nDistinct from ``ProblemFrame``: ``UserIntent`` is per-message and\nre-derived each turn; ``ProblemFrame`` is the durable scoping artifact.\nThe Lead writes this via the ``classify_user_intent`` tool as its\nfirst action on a new user message; the Ledger then derives downstream\nbooleans (e.g. ``intent_satisfied``) from typed fields here.",
         "properties": {
           "classification": {
-            "$ref": "#/components/schemas/IntentClassification"
+            "$ref": "#/components/schemas/IntentClassification",
+            "description": "What the message asks for. off_topic is only for a message no VEuPathDB site holds data for, such as a request for code, an essay or small talk. A message that pastes sequences, or asks about genes, proteins, ortholog groups, organisms or any other data a site holds, is never off_topic, also when you do not know which search answers it: FRAME finds the search in the site's catalog."
           },
           "inferredGoal": {
             "maxLength": 500,

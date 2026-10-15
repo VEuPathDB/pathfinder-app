@@ -49,7 +49,8 @@ Use **VEuPathDB Portal** when:
 ## Record Type Availability
 
 Not all record types are available on all sites:
-- **gene** - Available everywhere
+- **gene** - Every site except OrthoMCL
+- **group** and **sequence** - OrthoMCL only: ortholog groups and the proteins in them
 - **snp** - Limited availability
 - **compound** - PlasmoDB, ToxoDB mainly
 - **pathway** - Most sites

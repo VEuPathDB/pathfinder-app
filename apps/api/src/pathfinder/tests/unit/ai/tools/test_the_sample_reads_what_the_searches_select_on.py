@@ -182,8 +182,10 @@ async def test_a_sample_the_site_does_not_answer_in_time_fails_the_call(
     """The read is bounded; a failed call is not held as answered, and the
     check goes on without the sample."""
 
-    async def selected(site_id: str, record_type: str, graph: object) -> list[str]:
-        del site_id, record_type, graph
+    async def selected(
+        site_id: str, record_type: str, graph: object, *, own_search: str | None
+    ) -> list[str]:
+        del site_id, record_type, graph, own_search
         return []
 
     async def never(
