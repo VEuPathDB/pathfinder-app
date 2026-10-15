@@ -70,6 +70,21 @@ describe("DataNotice", () => {
     ]);
   });
 
+  it("reads wide, and only the statement scrolls, inside the rounded box", async () => {
+    mockedGet.mockResolvedValue(DUE);
+
+    render(<DataNotice />);
+
+    const notice = await screen.findByRole("alertdialog", {
+      name: "Your data in PathFinder",
+    });
+    expect(notice).toHaveClass("sm:max-w-3xl", "overflow-hidden");
+    expect(notice).not.toHaveClass("overflow-y-auto");
+    const body = notice.querySelector("ul")?.closest(".overflow-y-auto");
+    expect(body).toBeInstanceOf(HTMLElement);
+    expect(body).not.toContainElement(screen.getByRole("button", { name: "Continue" }));
+  });
+
   it("opens the full statement in a new tab", async () => {
     mockedGet.mockResolvedValue(DUE);
 

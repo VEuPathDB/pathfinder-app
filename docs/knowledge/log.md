@@ -2,6 +2,13 @@
 
 ## 2026-10-15
 
+* **The data notice reads wide and keeps its corners.** `DataNotice` is `sm:max-w-3xl` and
+  only its statement scrolls, inside the rounded box, so no scrollbar paints over the
+  corners and `Continue` stays in view.
+
+* **The model settings open from Settings alone.** The rail's `AI model settings` button
+  opened the same dialog as `Settings`, which opens on the `Model` tab, so it left the rail.
+
 * **A record links to the page of its own record type.** `record_page_url`
   (`services/record_pages.py`) names the page by the record type, a transcript's on the
   gene page, so an OrthoMCL group links to `/app/record/group/<id>` and a protein to

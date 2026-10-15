@@ -9,7 +9,7 @@ status: draft
 
 # Settings and account (A)
 
-Settings opens from the nav rail (`Settings`, gear) or on the `Model` tab from `AI model settings` (brain). Tabs: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. Under every tab, `PathFinder v<version>` names the release the api reports, which a finding quotes. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
+Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. Tabs: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. Under every tab, `PathFinder v<version>` names the release the api reports, which a finding quotes. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
 
 ## A1 - The model a turn runs on - core, once
 
@@ -45,7 +45,7 @@ Needs a deployment with personal keys on (`PROVIDER_KEY_ENCRYPTION_KEY` set). Th
 |---|---|---|---|
 | 1 | After S1, under the composer | Read | `Conversation`, `<tokens> tokens`, `<cost>` joined by middle dots; tooltip `This conversation's total across all turns.` with rows `Assistant`, `Sub-agents`, `Total` |
 | 2 | The trace header | Read | `<model> (<effort>) - <tokens>, <cost>`, tooltip `This turn` |
-| 3 | The rail's spending meter (`Monthly spend`, above `AI model settings`) | Hover | `Account total this month, across all conversations.`, `$<used> of $<limit> this month` and `<tokens> tokens, resets <Mon D>`; the ring fills to the share of the allowance spent, amber from 80% and red at 100% |
+| 3 | The rail's spending meter (`Monthly spend`, above `Settings`) | Hover | `Account total this month, across all conversations.`, `$<used> of $<limit> this month` and `<tokens> tokens, resets <Mon D>`; the ring fills to the share of the allowance spent, amber from 80% and red at 100% |
 | 4 | Compare | The meter's spend grows by the conversation's total after the turn | Within a cent. The title and compaction calls are not charged (the backlog item "The title and the compactor are metered") |
 
 Measured turn costs on `openai:gpt-5.6-luna`: a one-search build $0.074, a two-search build $0.05 to $0.14, an orthology edit $0.09 to $0.11, an off-topic reply $0.005.

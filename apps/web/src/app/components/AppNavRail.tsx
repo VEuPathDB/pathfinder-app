@@ -5,7 +5,6 @@ import { siteShortName } from "@pathfinder/shared";
 import {
   AlertTriangle,
   Bookmark,
-  Brain,
   CircleHelp,
   MessageCircle,
   PanelLeft,
@@ -49,7 +48,6 @@ interface AppNavRailProps {
   siteId: string;
   onSiteChange: (siteId: string) => void;
   onOpenSettings: () => void;
-  onOpenModelSettings: () => void;
   onToggleSidebar: () => void;
   sidebarExpanded: boolean;
 }
@@ -69,7 +67,6 @@ export function AppNavRail({
   siteId,
   onSiteChange,
   onOpenSettings,
-  onOpenModelSettings,
   onToggleSidebar,
   sidebarExpanded,
 }: AppNavRailProps) {
@@ -139,21 +136,6 @@ export function AppNavRail({
           <RailQuotaMeter siteId={siteId} />
 
           <SiteSwitcherButton siteId={siteId} onChange={onSiteChange} />
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenModelSettings}
-                aria-label="AI model settings"
-                data-testid="nav-rail-ai-button"
-              >
-                <Brain className="h-4 w-4" aria-hidden />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">AI model</TooltipContent>
-          </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>

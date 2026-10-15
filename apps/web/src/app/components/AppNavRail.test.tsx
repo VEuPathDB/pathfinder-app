@@ -59,7 +59,6 @@ function draw() {
       siteId="plasmodb"
       onSiteChange={() => undefined}
       onOpenSettings={() => undefined}
-      onOpenModelSettings={() => undefined}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
     />,
@@ -72,7 +71,6 @@ function drawFor(siteId: string, onSiteChange: (id: string) => void = () => unde
       siteId={siteId}
       onSiteChange={onSiteChange}
       onOpenSettings={() => undefined}
-      onOpenModelSettings={() => undefined}
       onToggleSidebar={() => undefined}
       sidebarExpanded={false}
     />,
@@ -166,16 +164,24 @@ describe("AppNavRail logo and spending meter", () => {
     expect(await screen.findByRole("tooltip")).toHaveTextContent("PathFinder");
   });
 
-  it("opens the bottom group with the spending meter, before the AI model settings", async () => {
+  it("opens the bottom group with the spending meter, before the settings", async () => {
     draw();
     const meter = await screen.findByRole("img", { name: "Monthly spend" });
-    const model = screen.getByRole("button", { name: "AI model settings" });
+    const settings = screen.getByRole("button", { name: "Settings" });
 
-    expect(meter.parentElement).toBe(model.parentElement);
+    expect(meter.parentElement).toBe(settings.parentElement);
     expect(meter.parentElement?.firstElementChild).toBe(meter);
     expect(
-      meter.compareDocumentPosition(model) & Node.DOCUMENT_POSITION_FOLLOWING,
+      meter.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("reaches the model settings only through Settings, which opens on them", async () => {
+    draw();
+    await screen.findByRole("img", { name: "Monthly spend" });
+
+    expect(screen.queryByRole("button", { name: "AI model settings" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Settings" })).toBeVisible();
   });
 });
 
