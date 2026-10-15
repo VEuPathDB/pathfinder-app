@@ -7,7 +7,6 @@ what left.
 
 ## Ranked
 
-41. [A stated record type is compared by its words](a-stated-record-type-is-compared-by-its-words.md) - an OrthoMCL group bind is refused once as "returns group, not Ortholog groups"; trace the record type check, then compare with display names.
 39. [A step's search is looked up under the strategy's record type](a-step-search-is-looked-up-under-the-strategys-record-type.md) - a two-record-type OrthoMCL strategy sends four refused search reads before the right one; the import's cause is named, the build's is not traced.
 38. [A drop card asks about a combination as one requirement](a-drop-card-asks-about-a-combination-as-one-requirement.md) - "a GPI anchor and a signal peptide" is held as one requirement, so the card offers to drop the searchable part with the unsearchable one; choose between the intent gate and the numbered list by replay.
 37. [A drop card asks about a requirement the plan answers](a-drop-card-asks-about-a-requirement-the-plan-answers.md) - the card asks about every requirement the ledger lists as ungroundable, and one turn offered to drop a data type a bound transcript search answers; trace the grounding first.

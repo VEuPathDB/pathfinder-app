@@ -15,7 +15,7 @@ from pydantic import Field
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.domain.parameters import ParamValue, to_wire
 from veupathdb_mcp import tool_payloads
-from veupathdb_mcp.catalog import ParameterInfo
+from veupathdb_mcp.catalog import ParameterInfo, get_raw_record_types
 
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -150,6 +150,7 @@ async def rationale_for(
         values=values,
         defaulted=defaulted,
         transform=transform,
+        record_names=await _record_names(ctx.deps.site_id, record_type),
     )
     chosen = checked_term(why.basis, why.term, binding)
     _refuse_a_long_reason(criterion_id, why, chosen.term)
@@ -174,6 +175,28 @@ async def rationale_for(
     )
     corrections = () if chosen.correction is None else (chosen.correction,)
     return ChosenWhy(rationale, corrections)
+
+
+async def _record_names(site_id: str, record_type: str) -> list[str]:
+    """The record type's own name, then each other name the site shows it by."""
+    listed = next(
+        (
+            r
+            for r in await get_raw_record_types(site_id)
+            if r.url_segment == record_type
+        ),
+        None,
+    )
+    shown = (
+        []
+        if listed is None
+        else [
+            listed.display_name,
+            listed.display_name_plural,
+            listed.short_display_name,
+        ]
+    )
+    return list(dict.fromkeys(name for name in [record_type, *shown] if name))
 
 
 def _names_the_old_value(kept: SearchRationale, changed: Sequence[str]) -> bool:
