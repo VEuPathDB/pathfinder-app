@@ -52,6 +52,8 @@ import type {
   GraphCleared,
   GraphSnapshot,
   InvestigationLedger,
+  ListedGeneSet,
+  ListedGeneSets,
   MemoryEditRequest,
   MemoryItem,
   MemoryListResponse,
@@ -324,6 +326,7 @@ export type {
   TurnFacts,
 };
 export type GeneSetPart = GeneSetStreamPart;
+export type { ListedGeneSet, ListedGeneSets };
 export type TaskProgressChunk = TaskProgressStreamPart;
 
 export type {
@@ -386,6 +389,7 @@ export type KnownDataPartKind =
   | "data-scored-comparison"
   | "data-memory-retrieved"
   | "data-gene-set"
+  | "data-gene-set-list"
   | "data-strategy-revision"
   | "data-delete-cascade"
   | "data-user-question-answers"
@@ -430,6 +434,7 @@ export interface DataPartPayloadMap {
   "data-scored-comparison": ScoredComparison;
   "data-memory-retrieved": RecalledMemoriesPayload;
   "data-gene-set": GeneSetStreamPart;
+  "data-gene-set-list": ListedGeneSets;
   "data-strategy-revision": StrategyRevisionPayload;
   "data-delete-cascade": DeleteCascadePayload;
   "data-user-question-answers": UserQuestionAnswersPayload;

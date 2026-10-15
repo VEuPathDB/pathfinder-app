@@ -24,6 +24,7 @@ const KINASES = {
   geneIds: ["PF3D7_1133400", "PF3D7_0709000"],
   source: "strategy",
   geneCount: 2,
+  geneCountHere: 2,
   membershipDigest: "0000000000000010",
   wdkStrategyId: 322476870,
   wdkStepId: 440299573,

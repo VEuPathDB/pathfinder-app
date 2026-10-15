@@ -36,6 +36,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset({"search_name"}),
     ),
     "get_strategy": (frozenset({"summary_only"}), frozenset()),
+    "list_gene_sets": (frozenset(), frozenset()),
     "list_saved_strategies": (frozenset(), frozenset()),
     "list_searches": (frozenset({"record_type"}), frozenset()),
     "list_transforms": (frozenset({"record_type"}), frozenset()),
@@ -58,6 +59,7 @@ _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
         frozenset(
             {
                 "criterion_id",
+                "gene_set",
                 "params",
                 "role",
                 "saved_strategy",

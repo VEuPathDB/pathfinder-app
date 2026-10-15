@@ -4,6 +4,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import { chatRoot } from "@/lib/routes";
@@ -11,6 +12,7 @@ import { chatRoot } from "@/lib/routes";
 const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
+import { server } from "../../../../vitest.msw-setup";
 import { SlashPopover } from "./SlashPopover";
 import { matchCommandName } from "./parser";
 import { commands } from "./registry";
@@ -101,6 +103,47 @@ describe("the slash registry", () => {
       "gene-set-csv",
       "gene-set-txt",
     ]);
+  });
+
+  it("/export writes the newest gene set saved on this site", async () => {
+    const api = "http://localhost:3000/pathfinder/api/v1/gene-sets";
+    const set = (id: string, siteId: string) => ({
+      id,
+      name: id,
+      siteId,
+      geneIds: ["PF3D7_1133400"],
+      source: "strategy",
+      geneCount: 1,
+      geneCountHere: 1,
+      membershipDigest: "0000000000000d5c",
+      createdAt: "2026-10-15T00:00:00Z",
+    });
+    const exported: string[] = [];
+    server.use(
+      http.get(api, () =>
+        HttpResponse.json([set("gs-ortho", "orthomcl"), set("gs-plasmo", "plasmodb")]),
+      ),
+      http.post(`${api}/:id/export`, ({ params }) => {
+        exported.push(String(params["id"]));
+        return HttpResponse.json({
+          exportId: "ex-1",
+          filename: "gs.csv",
+          contentType: "text/csv",
+          url: "/exports/gs.csv",
+        });
+      }),
+    );
+    const exportCommand = command("export");
+    if (exportCommand.kind !== "deterministic") throw new Error("not deterministic");
+
+    const result = await exportCommand.run({ what: "gene-set-csv" }, ctx());
+
+    expect(exported).toEqual(["gs-plasmo"]);
+    expect(result).toEqual({
+      kind: "download",
+      url: "/exports/gs.csv",
+      filename: "gs.csv",
+    });
   });
 
   it("/export refuses the strategy of a chat that has none", async () => {

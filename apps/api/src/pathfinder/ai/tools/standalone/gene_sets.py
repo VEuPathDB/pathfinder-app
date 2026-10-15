@@ -14,6 +14,7 @@ from veupathdb.errors import ValidationError
 
 from pathfinder.ai.agents.state import CreatedGeneSet
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.stream_part_payloads import ListedGeneSet, ListedGeneSets
 from pathfinder.ai.tools.standalone._saved_here import saved_here
 from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetCreatedResponse,
@@ -22,11 +23,19 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetListResponse,
     WdkProvenance,
 )
-from pathfinder.ai.tools.standalone.stream_parts import gene_set_chunk
+from pathfinder.ai.tools.standalone.stream_parts import (
+    gene_set_chunk,
+    gene_set_list_chunk,
+)
 from pathfinder.domain.strategy.session import StrategySession, strategy_root_id
 from pathfinder.services.evidence.gene_sets import (
     list_stored_gene_sets,
     store_gene_set,
+)
+from pathfinder.services.gene_sets.homes import (
+    gene_homes,
+    site_kind,
+    sites_that_list,
 )
 from pathfinder.services.gene_sets.step_genes import (
     step_gene_ids,
@@ -181,6 +190,9 @@ async def save_gene_set(
         record_type=record_type,
         parameters=src.parameters,
         conversation_id=deps.conversation_id,
+        homes=await gene_homes(
+            deps.site_id, ids, record_type=record_type, wdk_step_id=src.wdk_step_id
+        ),
     )
     await store_gene_set(gs)
     created = CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))
@@ -205,7 +217,10 @@ async def save_gene_set(
             ),
             message=(
                 f"Gene set '{gs.name}' with {len(gs.gene_ids)} genes has been "
-                f"saved." + ("" if gs.wdk_step_id is not None else f" {_NO_WDK_STEP}")
+                f"saved in PathFinder. A conversation on "
+                f"{_or(sites_that_list(gs.site_id, gs.homes))} can start from it; "
+                "it reaches the VEuPathDB workspace only when it is published."
+                + ("" if gs.wdk_step_id is not None else f" {_NO_WDK_STEP}")
             ),
         ),
         f"{gs.name}: {len(gs.gene_ids):,} genes",
@@ -221,16 +236,23 @@ async def save_gene_set(
     )
 
 
+def _or(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} or {names[-1]}"
+
+
 async def list_gene_sets(
     ctx: RunContext[AgentDeps],
 ) -> ToolReturn[GeneSetListResponse]:
-    """List the gene sets the user saved on this site.
+    """List the gene sets the user saved that hold genes of this site.
 
     The sets this conversation saved come first, each marked ``savedHere``.
-    Every row names its gene count, source and id.
+    Every row names its gene count, source and id, the site it was saved on,
+    and how many of its genes this site holds: a set saved on OrthoMCL or the
+    portal lists here with this site's genes alone.
     """
     deps = ctx.deps
     stored = await list_stored_gene_sets(site_id=deps.site_id, user_id=deps.user_id)
+    kind = site_kind(deps.site_id)
     rows = [
         GeneSetListItem(
             id=gs.id,
@@ -240,15 +262,30 @@ async def list_gene_sets(
             search_name=gs.search_name,
             has_wdk_step=gs.wdk_step_id is not None,
             saved_here=saved_here(gs.conversation_id, deps.conversation_id),
+            saved_on=gs.site_id,
+            genes_on_this_site=len(gs.genes_on(deps.site_id, kind)),
         )
         for gs in stored
     ]
+    ordered = sorted(rows, key=lambda row: not row.saved_here)
     here = sum(row.saved_here for row in rows)
+    listed = ListedGeneSets(
+        site_id=deps.site_id,
+        gene_sets=[
+            ListedGeneSet(
+                id=row.id,
+                name=row.name,
+                gene_count=row.gene_count,
+                genes_here=row.genes_on_this_site,
+                saved_on=row.saved_on,
+                saved_here=row.saved_here,
+            )
+            for row in ordered
+        ],
+    )
     return with_summary(
-        GeneSetListResponse(
-            gene_sets=sorted(rows, key=lambda row: not row.saved_here),
-            total_sets=len(rows),
-        ),
+        GeneSetListResponse(gene_sets=ordered, total_sets=len(rows)),
         f"{count_noun(len(rows), 'gene set')}, {here} saved in this conversation",
         ctx=ctx,
+        extra=[gene_set_list_chunk(listed)],
     )

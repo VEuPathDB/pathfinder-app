@@ -7,10 +7,19 @@ from veupathdb.wdk import StrategyAPI, WDKRecordInstance, get_strategy_api
 from veupathdb_mcp.catalog import get_search_parameters
 from veupathdb_mcp.wdk import step_view_filters
 
-from pathfinder.services.gene_sets.operations import dedup_ordered
-
 # A transcript record names its gene beside its own id. A set holds the gene id.
 _GENE_ID_PARTS = ("gene_source_id", "source_id")
+
+
+def dedup_ordered(gene_ids: list[str]) -> list[str]:
+    """Remove duplicate gene IDs and keep first-seen order."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for gid in gene_ids:
+        if gid not in seen:
+            seen.add(gid)
+            out.append(gid)
+    return out
 
 
 class StepIds(CamelModel):

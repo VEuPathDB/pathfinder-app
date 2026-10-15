@@ -11,14 +11,14 @@ from pathfinder.ai.tools.standalone.catalog import record_a_listing
 from pathfinder.domain.strategy.operational_spec import CriterionRole
 
 
-def refuse_a_transform_on_a_saved_strategy(
-    criterion_id: str, role: CriterionRole
+def refuse_a_transform_on_a_saved_input(
+    criterion_id: str, role: CriterionRole, saved: str
 ) -> None:
-    """A saved strategy is an input, so no criterion maps one."""
+    """A saved strategy or gene set is an input, so no criterion maps one."""
     if role != "transform":
         return
     msg = (
-        f"{criterion_id} starts from a saved strategy, which is an input and not "
+        f"{criterion_id} starts from a {saved}, which is an input and not "
         f'a search that maps one, so bind it with role="seed".'
     )
     raise ModelRetry(msg)

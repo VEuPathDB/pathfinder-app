@@ -56,6 +56,9 @@ class GeneSetListItem(CamelModel):
     search_name: str | None = None
     has_wdk_step: bool = False
     saved_here: bool = False
+    saved_on: str = ""
+    """The site the set was saved on."""
+    genes_on_this_site: int = 0
 
 
 class GeneSetListResponse(CamelModel):

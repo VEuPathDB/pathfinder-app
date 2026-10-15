@@ -18,6 +18,7 @@ from pathfinder.ai.stream_part_payloads import (
     GraphEdgeOperator,
     GraphNode,
     GraphSnapshot,
+    ListedGeneSets,
     StrategyLink,
     StrategyMeta,
 )
@@ -206,4 +207,11 @@ def gene_set_chunk(
     return DataChunk(
         type="data-gene-set",
         data=payload.model_dump(by_alias=True, mode="json"),
+    )
+
+
+def gene_set_list_chunk(listed: ListedGeneSets) -> DataChunk:
+    return DataChunk(
+        type="data-gene-set-list",
+        data=listed.model_dump(by_alias=True, mode="json"),
     )

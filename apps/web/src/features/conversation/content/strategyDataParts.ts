@@ -2,6 +2,7 @@ import { DataControlTestResults } from "./parts/DataControlTestResults";
 import { DataEvidenceCard } from "./parts/DataEvidenceCard";
 import { DataFacts } from "./parts/DataFacts";
 import { DataGeneSet } from "./parts/DataGeneSet";
+import { DataGeneSetList } from "./parts/DataGeneSetList";
 import { DataGraphCleared } from "./parts/DataGraphCleared";
 import { DataGraphSnapshot } from "./parts/DataGraphSnapshot";
 import { DataScoredComparison } from "./parts/DataScoredComparison";
@@ -27,6 +28,7 @@ export type StrategyDataPartKind =
   | "data-variant-comparison"
   | "data-scored-comparison"
   | "data-gene-set"
+  | "data-gene-set-list"
   | "data-strategy-revision"
   | "data-delete-cascade";
 
@@ -43,6 +45,7 @@ export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKi
   "data-variant-comparison": DataVariantComparison,
   "data-scored-comparison": DataScoredComparison,
   "data-gene-set": DataGeneSet,
+  "data-gene-set-list": DataGeneSetList,
   // SupersededBadge reads the revision off the parts array.
   "data-strategy-revision": noRender,
   // The approval card reads the cascade off the parts array.

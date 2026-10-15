@@ -7,6 +7,8 @@ from veupathdb.errors import ValidationError
 from veupathdb_mcp.wdk import GeneSetWdkContext, resolve_wdk_context
 
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.gene_sets.homes import gene_homes
+from pathfinder.services.gene_sets.step_genes import dedup_ordered
 from pathfinder.services.gene_sets.store import GeneSetStore
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
@@ -37,17 +39,6 @@ class EmptyResyncError(ValidationError):
                 "Check that the strategy still runs on the site, then try again."
             ),
         )
-
-
-def dedup_ordered(gene_ids: list[str]) -> list[str]:
-    """Remove duplicate gene IDs and keep first-seen order."""
-    seen: set[str] = set()
-    out: list[str] = []
-    for gid in gene_ids:
-        if gid not in seen:
-            seen.add(gid)
-            out.append(gid)
-    return out
 
 
 class GeneSetService:
@@ -100,6 +91,9 @@ class GeneSetService:
             user_id=user_id,
         )
         gs.take_wdk_context(ctx, step_count=step_count)
+        gs.homes = await gene_homes(
+            site_id, gs.gene_ids, record_type=gs.record_type, wdk_step_id=gs.wdk_step_id
+        )
         await self._store.save(gs)
         logger.info(
             "Gene set created",
@@ -142,6 +136,9 @@ class GeneSetService:
             raise EmptyResyncError(gs.name)
         gs.gene_ids = fresh_gene_ids
         gs.take_wdk_context(ctx, step_count=step_count)
+        gs.homes = await gene_homes(
+            site_id, gs.gene_ids, record_type=gs.record_type, wdk_step_id=gs.wdk_step_id
+        )
         gs.answer_revision = answer_revision
         await self._store.save(gs)
         logger.info(
@@ -172,7 +169,7 @@ class GeneSetService:
         *,
         site_id: str | None = None,
     ) -> list[GeneSet]:
-        """List gene sets for a user, filtered by site when one is given."""
+        """The user's gene sets; on a site, the sets with genes there."""
         return await self._store.list_for_user(user_id, site_id=site_id)
 
     async def find_strategy_import(

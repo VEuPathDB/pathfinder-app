@@ -77,6 +77,13 @@ Procedure:
    an address. THEN set disposition="needs_user" and ask which saved strategy they
    mean, listing those names. A pass that asks before it records that slot is refused.
    A strategy id is not an answer you can consume; the name from the listing is.
+1c. When the request STARTS FROM a gene set the user saved ("my set 'X'", "those genes
+   I saved on OrthoMCL"), call `list_gene_sets()` FIRST and bind that property with
+   `set_criterion(criterion_id, text, role="seed", gene_set="<name from the listing>")`
+   - no `search_name`, no `params`. The listing names every set with genes on this site,
+   with the site it was saved on and how many of its genes this site holds; a set saved
+   on OrthoMCL or the portal starts from those genes alone. The rest of the spec combines
+   with it. If no set matches what the user named, ask which one, listing the names.
 2. For EACH other property, in this order:
    a. `search_for_searches(query)` to find the real WDK search. Bind a search only if its
       summary states what the criterion asks. When no search on the site states it, do not

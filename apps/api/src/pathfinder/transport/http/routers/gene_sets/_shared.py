@@ -3,6 +3,7 @@
 from fastapi import Depends
 
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.gene_sets.homes import site_kind
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetMembership
@@ -18,7 +19,8 @@ def gene_set_service() -> GeneSetService:
     return GeneSetService(get_gene_set_store())
 
 
-def to_response(gs: GeneSet) -> GeneSetResponse:
+def to_response(gs: GeneSet, *, site_id: str | None = None) -> GeneSetResponse:
+    here = gs.gene_ids if site_id is None else gs.genes_on(site_id, site_kind(site_id))
     return GeneSetResponse(
         id=gs.id,
         site_id=gs.site_id,
@@ -26,6 +28,7 @@ def to_response(gs: GeneSet) -> GeneSetResponse:
         gene_ids=gs.gene_ids,
         source=gs.source,
         gene_count=len(gs.gene_ids),
+        gene_count_here=len(here),
         membership_digest=GeneSetMembership.of(gs.gene_ids).digest,
         wdk_strategy_id=gs.wdk_strategy_id,
         wdk_step_id=gs.wdk_step_id,

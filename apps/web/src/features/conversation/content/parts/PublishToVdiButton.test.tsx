@@ -34,6 +34,7 @@ function geneSet(overrides: Partial<GeneSet> = {}): GeneSet {
     geneIds: ["PF3D7_1133400", "PF3D7_0709000"],
     source: "strategy",
     geneCount: 2,
+    geneCountHere: 2,
     membershipDigest: "0000000000000010",
     createdAt: "2026-09-05T00:00:00Z",
     stepCount: 1,
@@ -77,7 +78,7 @@ describe("PublishToVdiButton", () => {
   });
 
   it("refuses to offer the action for a set with no genes", () => {
-    renderButton(geneSet({ geneIds: [], geneCount: 0 }));
+    renderButton(geneSet({ geneIds: [], geneCount: 0, geneCountHere: 0 }));
 
     const button = screen.getByRole<HTMLButtonElement>("button", {
       name: /Publish to VEuPathDB workspace/,

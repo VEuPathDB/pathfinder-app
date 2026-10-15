@@ -13,6 +13,13 @@
   that class and sends each as the empty string; under the strategy's class the read fails
   on OrthoMCL and WDK refuses `FromGroups` for a missing `group_answer`.
 
+* **A gene set shows where its genes live.** A saved set records each gene's home
+  (`GeneSet.homes`, filled by `services/gene_sets/homes.py`), a site lists every set
+  with genes there with `geneCountHere`, and `set_criterion(gene_set=...)` starts a
+  criterion from the genes a site reads through its id-list search. The route to
+  another site says the result comes back as a gene set. See
+  [the decision](decisions/a-gene-set-shows-where-its-genes-live.md).
+
 * **The route to another site quotes the requirement.** The sentence names the requirement
   in the words the researcher stated it in, when the report's number is one the list holds.
 

@@ -32,7 +32,9 @@ from pathfinder.tests.unit.ai.lead.conftest import (
 
 _ORTHOMCL = (
     "This needs OrthoMCL, whose searches answer it. [Open a new conversation "
-    "there](/pathfinder/orthomcl/conversation); this conversation stays on PlasmoDB."
+    "there](/pathfinder/orthomcl/conversation); this conversation stays on PlasmoDB. "
+    "Save the result there as a gene set, and a conversation on PlasmoDB can start "
+    "from its PlasmoDB genes."
 )
 
 

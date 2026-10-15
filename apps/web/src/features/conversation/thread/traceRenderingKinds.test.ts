@@ -14,6 +14,7 @@ describe("traceRenderingKinds", () => {
       "data-control-test-results",
       "data-strategy-link",
       "data-gene-set",
+      "data-gene-set-list",
     ]) {
       expect(kinds.has(kind)).toBe(true);
     }

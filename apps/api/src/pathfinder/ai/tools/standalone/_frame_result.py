@@ -25,6 +25,17 @@ from pathfinder.domain.strategy.step_rationale import SearchRationale
 from pathfinder.services.strategies.saved_library import SavedStrategyListing
 
 
+class GeneSetBinding(CamelModel):
+    """The saved gene set a criterion starts from, and how many of its genes
+    this site holds."""
+
+    id: str
+    name: str
+    saved_on: str
+    gene_count: int
+    genes_here: int
+
+
 class SetCriterionResult(CamelModel):
     """Result of binding a criterion to a WDK search and resolving its params."""
 
@@ -35,6 +46,8 @@ class SetCriterionResult(CamelModel):
     what_runs: str = ""
     # The saved strategy this criterion reuses as its input, when it names one.
     saved_strategy: SavedStrategyListing | None = None
+    # The saved gene set this criterion starts from, when it names one.
+    gene_set: GeneSetBinding | None = None
     # Every visible parameter name mapped to null, in sheet order.
     params_template: dict[str, None] = Field(default_factory=dict)
     # True when this call opened the parameter sheet. Nothing is recorded then:

@@ -31,6 +31,7 @@ from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_search_the_criterion_cannot_use,
     refuse_a_waiting_criterion,
 )
+from pathfinder.ai.tools.standalone._frame_gene_set import set_gene_set_criterion
 from pathfinder.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
 from pathfinder.ai.tools.standalone._frame_measure import (
     display_names,
@@ -59,7 +60,7 @@ from pathfinder.ai.tools.standalone._frame_result import (
     criterion_return,
 )
 from pathfinder.ai.tools.standalone._frame_roles import (
-    refuse_a_transform_on_a_saved_strategy,
+    refuse_a_transform_on_a_saved_input,
 )
 from pathfinder.ai.tools.standalone._frame_saved import bind_saved_criterion
 from pathfinder.ai.tools.standalone._frame_sheet import (
@@ -182,6 +183,7 @@ async def set_criterion(
     role: CriterionRole = "filter",
     params: ParamProposals | None = None,
     saved_strategy: str = "",
+    gene_set: str = "",
     why: SearchChoice | None = None,
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
@@ -197,6 +199,12 @@ async def set_criterion(
     input, collapsed under the combine that uses it. There are no parameters to
     decide then, and a reference the listing does not hold comes back as a retry
     naming the ones it does; ask the user which one rather than dropping it.
+
+    Pass ``gene_set`` INSTEAD of ``search_name`` when the criterion's input is
+    a gene set the user saved: give the name (or the id) from
+    ``list_gene_sets``. A set saved on another site, such as OrthoMCL or the
+    portal, starts from the genes it holds on this site. The set's genes run
+    through the site's gene id search; there are no parameters to decide.
 
     Call this ONCE with no ``params`` to open the PARAMETER SHEET: every
     visible parameter of the search with its type, help, default, dependency,
@@ -259,9 +267,11 @@ async def set_criterion(
     state = ctx.deps.agent_state
     refuse_a_bound_analysis(state, criterion_id)
     stated = Criterion(id=criterion_id, text=text, role=role)
+    if gene_set:
+        return await set_gene_set_criterion(ctx, stated, reference=gene_set)
     if saved_strategy:
         refuse_a_waiting_criterion(state, criterion_id)
-        refuse_a_transform_on_a_saved_strategy(criterion_id, role)
+        refuse_a_transform_on_a_saved_input(criterion_id, role, "saved strategy")
         match = await bind_saved_criterion(
             ctx,
             criterion_id=criterion_id,
@@ -278,9 +288,10 @@ async def set_criterion(
         )
     if not search_name:
         msg = (
-            "set_criterion needs a search_name, or a saved_strategy when the "
+            "set_criterion needs a search_name, a saved_strategy when the "
             "criterion starts from a strategy the user saved "
-            "(list_saved_strategies names them)."
+            "(list_saved_strategies names them), or a gene_set when it starts "
+            "from a gene set the user saved (list_gene_sets names them)."
         )
         raise ModelRetry(msg)
     record_type = await _record_type(ctx, search_name)

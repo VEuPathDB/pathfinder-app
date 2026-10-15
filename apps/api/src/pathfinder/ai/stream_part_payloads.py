@@ -71,6 +71,20 @@ class GeneSet(CamelModel):
     site_id: str
 
 
+class ListedGeneSet(CamelModel):
+    id: str
+    name: str
+    gene_count: int = Field(ge=0)
+    genes_here: int = Field(ge=0)
+    saved_on: str
+    saved_here: bool
+
+
+class ListedGeneSets(CamelModel):
+    site_id: str
+    gene_sets: list[ListedGeneSet]
+
+
 class ControlSetSummary(CamelModel):
     """One control set of a control test: its size, its hits, its rate and every
     id it was given. ``hit_ids`` are the controls the target returned and

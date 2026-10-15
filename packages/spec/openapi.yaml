@@ -2221,7 +2221,7 @@ paths:
       tags:
       - gene-sets
       summary: List Gene Sets
-      description: List all gene sets for the current user, optionally filtered by site.
+      description: List the current user's gene sets; on a site, the sets with genes there.
       operationId: list_gene_sets_api_v1_gene_sets_get
       security:
       - APIKeyCookie: []
@@ -5361,6 +5361,9 @@ components:
         geneCount:
           type: integer
           title: Genecount
+        geneCountHere:
+          type: integer
+          title: Genecounthere
         membershipDigest:
           type: string
           title: Membershipdigest
@@ -5436,6 +5439,7 @@ components:
       - geneIds
       - source
       - geneCount
+      - geneCountHere
       - membershipDigest
       - createdAt
       title: GeneSetResponse
@@ -11452,6 +11456,52 @@ components:
       - stepId
       title: ListedFact
       type: object
+    ListedGeneSet:
+      properties:
+        id:
+          title: Id
+          type: string
+        name:
+          title: Name
+          type: string
+        geneCount:
+          minimum: 0
+          title: Genecount
+          type: integer
+        genesHere:
+          minimum: 0
+          title: Geneshere
+          type: integer
+        savedOn:
+          title: Savedon
+          type: string
+        savedHere:
+          title: Savedhere
+          type: boolean
+      required:
+      - id
+      - name
+      - geneCount
+      - genesHere
+      - savedOn
+      - savedHere
+      title: ListedGeneSet
+      type: object
+    ListedGeneSets:
+      properties:
+        siteId:
+          title: Siteid
+          type: string
+        geneSets:
+          items:
+            $ref: '#/components/schemas/ListedGeneSet'
+          title: Genesets
+          type: array
+      required:
+      - siteId
+      - geneSets
+      title: ListedGeneSets
+      type: object
     ListedRecord:
       description: One id a listing returned, and the site's page of its record.
       properties:
@@ -14076,6 +14126,10 @@ components:
         geneSet:
           anyOf:
           - $ref: '#/components/schemas/GeneSet'
+          - type: 'null'
+        geneSetList:
+          anyOf:
+          - $ref: '#/components/schemas/ListedGeneSets'
           - type: 'null'
         graphCleared:
           anyOf:

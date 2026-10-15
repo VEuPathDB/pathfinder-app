@@ -23,6 +23,7 @@ from pathfinder.ai.stream_part_payloads import (
     GeneSet,
     GraphCleared,
     GraphSnapshot,
+    ListedGeneSets,
     StrategyLink,
     StrategyMeta,
 )
@@ -40,6 +41,7 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-strategy-link", StrategyLink)
     registry.register("data-strategy-revision", StrategyRevisionPayload)
     registry.register("data-gene-set", GeneSet)
+    registry.register("data-gene-set-list", ListedGeneSets)
     registry.register("data-control-test-results", ControlTestResults)
     registry.register("data-evidence-card", EvidenceCard)
     registry.register("data-separation-result", SeparationReport)

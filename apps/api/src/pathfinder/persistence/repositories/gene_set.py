@@ -31,13 +31,9 @@ class GeneSetRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list_newest_first(
-        self, *, user_id: UUID, site_id: str | None
-    ) -> list[GeneSetRow]:
-        """The rows of one user, on one site when a site is given."""
+    async def list_newest_first(self, *, user_id: UUID) -> list[GeneSetRow]:
+        """The rows of one user."""
         stmt = _owned().where(GeneSetRow.user_id == user_id)
-        if site_id:
-            stmt = stmt.where(GeneSetRow.site_id == site_id)
         result = await self.session.execute(stmt.order_by(GeneSetRow.created_at.desc()))
         return list(result.scalars().all())
 

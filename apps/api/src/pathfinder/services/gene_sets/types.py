@@ -13,6 +13,8 @@ from pydantic import ConfigDict
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
+from pathfinder.domain.gene_homes import GeneHome, SiteKind, genes_on
+
 GeneSetSource = Literal["strategy", "paste", "upload", "derived", "saved"]
 
 
@@ -66,6 +68,14 @@ class GeneSet:
     """The thread the set was saved in, or None for a set saved outside one."""
     answer_revision: str | None = None
     """The answer revision of the strategy root the genes were read from."""
+    homes: dict[str, GeneHome] = field(default_factory=dict)
+    """Each saved id that names a gene, with the gene and the site that holds it."""
+
+    def genes_on(self, site_id: str, kind: SiteKind) -> list[str]:
+        """The ids of this set that ``site_id`` reads."""
+        return genes_on(
+            self.site_id, self.gene_ids, self.homes, site_id=site_id, kind=kind
+        )
 
     def take_wdk_context(self, ctx: GeneSetWdkContext, *, step_count: int) -> None:
         """Adopt a resolved WDK context whole.

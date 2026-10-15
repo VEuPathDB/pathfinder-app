@@ -8,7 +8,7 @@ const NUMBERED_CAPTION = `${CAPTION} text-center italic`;
 
 interface FigureProps {
   title: string | null;
-  caption: string | null;
+  caption: string | ReactElement | null;
   /** Which counter numbers this exhibit, and its number. A numbered exhibit
    * presents its caption the way a paper does, carries the anchor a citation
    * jumps to, and offers the control that copies that citation. */
@@ -56,7 +56,13 @@ export function Figure({
           data-testid="figure-caption"
           className={number === null ? CAPTION : NUMBERED_CAPTION}
         >
-          {number === null ? caption : `${exhibitLabel(kind, number)}. ${caption}`}
+          {number === null ? (
+            caption
+          ) : (
+            <>
+              {exhibitLabel(kind, number)}. {caption}
+            </>
+          )}
         </div>
       ) : null}
       {footer}

@@ -10,6 +10,7 @@ import { queryKeyPrefixes } from "@/lib/query/keys";
 
 import { DeleteGeneSetButton } from "./DeleteGeneSetButton";
 import { PublishToVdiButton } from "./PublishToVdiButton";
+import { SavedOnIcon } from "./SavedOnIcon";
 
 /** The set as the researcher's list holds it now: the set, "deleted" when the
  * list no longer carries it, or null while the list is unread. */
@@ -34,7 +35,12 @@ export function DataGeneSet({ data }: { data: GeneSetPart }) {
     <Figure
       testId="data-gene-set"
       title={data.name}
-      caption={`${data.geneCount.toLocaleString()} genes on ${siteShortName(data.siteId)}`}
+      caption={
+        <span className="inline-flex items-center gap-1.5">
+          <SavedOnIcon siteId={data.siteId} />
+          {`${data.geneCount.toLocaleString()} genes on ${siteShortName(data.siteId)}`}
+        </span>
+      }
     >
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span

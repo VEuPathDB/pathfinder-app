@@ -10,13 +10,16 @@ from pathfinder.platform.config import BASE_PATH
 def site_route_sentence(
     site_id: str, target_id: str, why: str = "whose searches answer it"
 ) -> str:
-    """A conversation stays on its site, so the route is a link to a new one."""
+    """A conversation stays on its site, so the route is a link to a new one, and
+    a gene set saved there brings its genes back."""
     target = get_site(target_id)
     name = f"the {target.name} Portal" if target.is_portal else target.name
+    here = get_site(site_id).name
     return (
         f"This needs {name}, {why}. [Open a new conversation there]"
         f"({BASE_PATH}/{target.id}/conversation); "
-        f"this conversation stays on {get_site(site_id).name}."
+        f"this conversation stays on {here}. Save the result there as a gene set, "
+        f"and a conversation on {here} can start from its {here} genes."
     )
 
 

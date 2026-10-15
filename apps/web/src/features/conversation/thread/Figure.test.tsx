@@ -117,6 +117,21 @@ describe("Figure", () => {
     );
   });
 
+  it("numbers a caption that is an element, with the element inside it", () => {
+    render(
+      <Figure
+        title={null}
+        caption={<span data-testid="caption-body">target 132 records.</span>}
+        exhibit={{ kind: "table", number: 1 }}
+      >
+        <p>body</p>
+      </Figure>,
+    );
+    const caption = screen.getByTestId("figure-caption");
+    expect(caption.textContent).toBe("Table 1. target 132 records.");
+    expect(caption).toContainElement(screen.getByTestId("caption-body"));
+  });
+
   it("draws no numbered caption when the caption is null", () => {
     render(
       <Figure

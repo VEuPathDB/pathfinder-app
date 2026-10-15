@@ -35,7 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SiteIcon } from "@/features/sites/components/SiteIcon";
+import { SiteIcon } from "@/lib/components/SiteIcon";
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { sitesOptions } from "@/lib/api/sites";
 import { siteIsDown } from "@/lib/sites/availability";

@@ -41,7 +41,8 @@ _ROUTE = (
     "included: This needs the VEuPathDB Portal, where one strategy holds both "
     "organisms. [Open a new conversation "
     "there](/pathfinder/veupathdb/conversation); this conversation stays on "
-    "PlasmoDB."
+    "PlasmoDB. Save the result there as a gene set, and a conversation on PlasmoDB "
+    "can start from its PlasmoDB genes."
 )
 
 
@@ -124,7 +125,8 @@ async def test_vectorbase_to_plasmodium_links_the_portal(
         "for word, link included: This needs the VEuPathDB Portal, where one "
         "strategy holds both organisms. [Open a new conversation "
         "there](/pathfinder/veupathdb/conversation); this conversation stays on "
-        "VectorBase."
+        "VectorBase. Save the result there as a gene set, and a conversation on "
+        "VectorBase can start from its VectorBase genes."
     )
 
 

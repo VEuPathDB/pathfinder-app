@@ -17,6 +17,8 @@ class GeneSetResponse(CamelModel):
     gene_ids: list[str]
     source: GeneSetSource
     gene_count: int
+    gene_count_here: int
+    """How many of its genes the site it was listed for holds."""
     membership_digest: str
     """Names the genes this set holds now."""
     wdk_strategy_id: int | None = Field(None)

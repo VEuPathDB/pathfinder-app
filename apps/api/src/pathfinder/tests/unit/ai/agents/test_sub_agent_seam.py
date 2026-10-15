@@ -64,6 +64,7 @@ FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "get_record_types",
     "get_search_overview",
     "get_strategy",
+    "list_gene_sets",
     "list_saved_strategies",
     "list_searches",
     "list_transforms",

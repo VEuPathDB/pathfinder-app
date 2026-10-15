@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from pathfinder.domain.gene_homes import GeneHome
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.services.gene_sets.operations import GeneSetService
@@ -133,3 +134,41 @@ async def test_a_list_is_newest_first_and_narrowed_by_site(seed_user: User) -> N
         gs.id
         for gs in await GeneSetStore().list_for_user(seed_user.id, site_id="toxodb")
     ] == ["gs-toxo"]
+
+
+async def test_a_site_lists_the_sets_whose_genes_it_holds(seed_user: User) -> None:
+    """A set saved on OrthoMCL lists on the sites its genes live on, with its homes."""
+    store = GeneSetStore()
+    ortho = GeneSet(
+        id="gs-ortho",
+        name="3D7 strain gaps",
+        site_id="orthomcl",
+        gene_ids=["PF3D7_0103400.1-p1"],
+        source="strategy",
+        user_id=seed_user.id,
+        created_at=datetime(2026, 10, 15, tzinfo=UTC),
+        homes={
+            "PF3D7_0103400.1-p1": GeneHome(gene_id="PF3D7_0103400", site_id="plasmodb")
+        },
+    )
+    await store.save(
+        replace(_set(seed_user.id), created_at=datetime(2026, 10, 14, tzinfo=UTC))
+    )
+    await store.save(ortho)
+
+    listed = {
+        site_id: [
+            gs.id for gs in await store.list_for_user(seed_user.id, site_id=site_id)
+        ]
+        for site_id in ("plasmodb", "toxodb", "orthomcl", "veupathdb")
+    }
+
+    assert listed == {
+        "plasmodb": ["gs-ortho", _SET],
+        "toxodb": [],
+        "orthomcl": ["gs-ortho"],
+        "veupathdb": ["gs-ortho"],
+    }
+    read = await store.get("gs-ortho")
+    assert read is not None
+    assert read.homes == ortho.homes

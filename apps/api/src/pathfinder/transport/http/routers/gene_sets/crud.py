@@ -41,9 +41,9 @@ async def list_gene_sets(
     user_id: CurrentUser,
     site_id: SiteIdQuery = None,
 ) -> list[GeneSetResponse]:
-    """List all gene sets for the current user, optionally filtered by site."""
+    """List the current user's gene sets; on a site, the sets with genes there."""
     sets = await gene_set_service().list_for_user(user_id, site_id=site_id)
-    return [to_response(gs) for gs in sets]
+    return [to_response(gs, site_id=site_id) for gs in sets]
 
 
 @router.delete("/{gene_set_id}")

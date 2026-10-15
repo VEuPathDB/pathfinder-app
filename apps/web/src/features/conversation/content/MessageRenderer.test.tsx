@@ -153,6 +153,23 @@ describe("dataPartRenderers dispatch", () => {
     });
     expect(screen.getByTestId("data-gene-set")).toBeInTheDocument();
   });
+
+  it("dispatches data-gene-set-list to the correct component", () => {
+    renderPart("gene-set-list", {
+      siteId: "plasmodb",
+      geneSets: [
+        {
+          id: "gs1",
+          name: "Test Set",
+          geneCount: 42,
+          genesHere: 42,
+          savedOn: "plasmodb",
+          savedHere: false,
+        },
+      ],
+    });
+    expect(screen.getByTestId("data-gene-set-list")).toHaveTextContent("Test Set");
+  });
 });
 
 describe("ReasoningPart", () => {

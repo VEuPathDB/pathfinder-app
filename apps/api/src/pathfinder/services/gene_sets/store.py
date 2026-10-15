@@ -12,11 +12,14 @@ from assistant_core.platform.db import async_session_factory
 from pydantic import TypeAdapter
 from veupathdb.domain.parameters import ParamValue
 
+from pathfinder.domain.gene_homes import GeneHome
 from pathfinder.persistence.models import GeneSetRow
 from pathfinder.persistence.repositories.gene_set import GeneSetRepository
+from pathfinder.services.gene_sets.homes import site_kind
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
 _PARAMS_ADAPTER: TypeAdapter[dict[str, ParamValue]] = TypeAdapter(dict[str, ParamValue])
+_HOMES_ADAPTER: TypeAdapter[dict[str, GeneHome]] = TypeAdapter(dict[str, GeneHome])
 
 
 def _row_from_gene_set(gs: GeneSet) -> GeneSetRow:
@@ -42,6 +45,7 @@ def _row_from_gene_set(gs: GeneSet) -> GeneSetRow:
         vdi_id=gs.vdi_id,
         conversation_id=gs.conversation_id,
         answer_revision=gs.answer_revision,
+        homes=_HOMES_ADAPTER.dump_python(gs.homes, by_alias=True, mode="json"),
         created_at=gs.created_at,
     )
 
@@ -73,6 +77,7 @@ def _gene_set_from_row(row: GeneSetRow) -> GeneSet:
         vdi_id=row.vdi_id,
         conversation_id=row.conversation_id,
         answer_revision=row.answer_revision,
+        homes=_HOMES_ADAPTER.validate_python(row.homes or {}),
     )
 
 
@@ -110,11 +115,14 @@ class GeneSetStore:
     async def list_for_user(
         self, user_id: UUID, *, site_id: str | None = None
     ) -> list[GeneSet]:
+        """The user's sets, newest first; on a site, the sets with genes there."""
         async with async_session_factory() as session:
-            rows = await GeneSetRepository(session).list_newest_first(
-                user_id=user_id, site_id=site_id
-            )
-            return [_gene_set_from_row(r) for r in rows]
+            rows = await GeneSetRepository(session).list_newest_first(user_id=user_id)
+            sets = [_gene_set_from_row(r) for r in rows]
+        if site_id is None:
+            return sets
+        kind = site_kind(site_id)
+        return [gs for gs in sets if gs.genes_on(site_id, kind)]
 
     async def find_strategy_import(
         self, user_id: UUID, wdk_strategy_id: int

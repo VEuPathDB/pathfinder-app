@@ -21,7 +21,7 @@ async def get_gene_set(gene_set_id: str, *, user_id: UUID | None) -> GeneSet | N
 
 
 async def list_stored_gene_sets(*, site_id: str, user_id: UUID | None) -> list[GeneSet]:
-    """The user's gene sets on the site; none when no user is given."""
+    """The user's gene sets with genes on the site; none when no user is given."""
     if user_id is None:
         return []
     return await get_gene_set_store().list_for_user(user_id, site_id=site_id)

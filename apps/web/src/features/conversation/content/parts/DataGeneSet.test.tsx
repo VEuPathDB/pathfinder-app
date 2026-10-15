@@ -30,6 +30,7 @@ function listed(overrides: Record<string, unknown> = {}) {
     geneIds: ["PF3D7_1133400", "PF3D7_0709000"],
     source: "strategy",
     geneCount: 3420,
+    geneCountHere: 3420,
     membershipDigest: "0000000000000d5c",
     createdAt: "2026-09-05T00:00:00Z",
     stepCount: 2,
@@ -79,6 +80,18 @@ describe("DataGeneSet", () => {
     expect(screen.getByTestId("figure-caption").textContent).toBe(
       "3,420 genes on PlasmoDB",
     );
+  });
+
+  it("draws the icon of the site the set was saved on beside the caption", () => {
+    serve([listed()]);
+    const { Wrapper } = createTestWrapper();
+    render(<DataGeneSet data={{ ...PART, siteId: "orthomcl" }} />, {
+      wrapper: Wrapper,
+    });
+
+    const origin = screen.getByRole("img", { name: "Saved on OrthoMCL" });
+    expect(origin).toHaveAttribute("data-site-id", "orthomcl");
+    expect(screen.getByTestId("figure-caption")).toContainElement(origin);
   });
 
   it("draws no divider, no card and no outer margin", () => {

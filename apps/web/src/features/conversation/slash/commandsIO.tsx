@@ -81,7 +81,8 @@ async function exportLatestGeneSet(
   ctx: CommandContext,
   format: "csv" | "txt",
 ): Promise<CommandResult> {
-  const [latest] = await listGeneSets(ctx.siteId);
+  const sets = await listGeneSets(ctx.siteId);
+  const latest = sets.find((set) => set.siteId === ctx.siteId);
   if (latest === undefined) return failure("No gene sets to export.");
   const exported = await exportGeneSetEndpoint(latest.id, { format });
   return { kind: "download", url: exported.url, filename: exported.filename };
