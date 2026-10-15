@@ -172,7 +172,7 @@ Until the vhost exists, tunnel the three ports from a workstation:
 ssh -p 2112 -L 3010:localhost:3010 -L 8010:localhost:8010 -L 3110:localhost:3110 amuharram@cedar.penn.apidb.org
 ```
 
-The app is then `http://localhost:3010` (it opens `/pathfinder`), the api `http://localhost:8010` and
+The app is then `http://localhost:3010` (it opens `/pathfinder`, and a link from before the base path opens the same page under it), the api `http://localhost:8010` and
 Langfuse `http://localhost:3110`. Langfuse stays behind the tunnel: it is not part
 of the tester vhost.
 

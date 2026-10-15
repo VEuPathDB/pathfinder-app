@@ -2,6 +2,10 @@
 
 ## 2026-10-15
 
+* **An old cedar link opens the same page under `/pathfinder`.** The branch redirects every
+  path outside the base path to the same path inside it, so a link saved before the base
+  path, such as `/plasmodb/conversation/<id>`, no longer lands on the not-found page.
+
 * **The data notice reads wide and keeps its corners.** `DataNotice` is `sm:max-w-3xl` and
   only its statement scrolls, inside the rounded box, so no scrollbar paints over the
   corners and `Continue` stays in view.

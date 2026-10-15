@@ -19,9 +19,15 @@ describe("the Next config", () => {
     expect(nextConfig.basePath).toBe("/pathfinder");
   });
 
-  it("sends the bare host to the app", async () => {
+  it("sends the bare host, and any path outside the base path, into the app", async () => {
     expect(await nextConfig.redirects?.()).toEqual([
       { source: "/", destination: "/pathfinder", basePath: false, permanent: false },
+      {
+        source: "/:path((?!pathfinder(?:/|$)).+)",
+        destination: "/pathfinder/:path",
+        basePath: false,
+        permanent: false,
+      },
     ]);
   });
 
