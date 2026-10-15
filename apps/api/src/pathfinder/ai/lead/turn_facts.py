@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 
-from veupathdb.domain.parameters import to_wire
+from veupathdb.domain.parameters import InputDatasetValue, to_wire
 from veupathdb.domain.strategy import StrategyStep, record_class_of
 
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -82,6 +82,21 @@ def _notes(criterion: Criterion, param: str, bound: BoundValue, noun: str) -> li
             return read_pick_clauses(criterion, param, noun=noun)
 
 
+def _shown(criterion: Criterion, name: str, bound: BoundValue) -> tuple[str, str]:
+    """The value and its label as a researcher reads them. A list reads as what
+    it holds, never as the site's id for it."""
+    match bound.value:
+        case InputDatasetValue():
+            return bound.label or "an uploaded list", ""
+        case _ if bound.taxon is not None:
+            return bound.taxon.name, bound.taxon.label()
+        case _:
+            return (
+                bound.rounded() or plain_value(bound.value),
+                _label(criterion, name, bound),
+            )
+
+
 def _parameter(
     criterion: Criterion, name: str, bound: BoundValue, noun: str
 ) -> ParameterFact:
@@ -97,11 +112,7 @@ def _parameter(
             label="site placeholder",
             source=bound.source,
         )
-    value, label = (
-        (bound.rounded() or plain_value(bound.value), _label(criterion, name, bound))
-        if bound.taxon is None
-        else (bound.taxon.name, bound.taxon.label())
-    )
+    value, label = _shown(criterion, name, bound)
     return ParameterFact(
         name=name,
         display_name=shown,

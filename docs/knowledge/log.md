@@ -18,7 +18,9 @@
   with genes there with `geneCountHere`, and `set_criterion(gene_set=...)` starts a
   criterion from the genes a site reads through its id-list search. The route to
   another site says the result comes back as a gene set. See
-  [the decision](decisions/a-gene-set-shows-where-its-genes-live.md).
+  [the decision](decisions/a-gene-set-shows-where-its-genes-live.md). In the facts, a
+  list value reads as what it holds (its label, else "an uploaded list"), never as the
+  site's dataset id.
 
 * **The route to another site quotes the requirement.** The sentence names the requirement
   in the words the researcher stated it in, when the report's number is one the list holds.
