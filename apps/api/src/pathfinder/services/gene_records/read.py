@@ -26,6 +26,7 @@ from veupathdb_mcp.wdk import get_gene_expression_summary, order_primary_key
 
 from pathfinder.domain.strategy.constraints import message_states
 from pathfinder.platform.errors import NotFoundError
+from pathfinder.services.record_pages import record_page_url
 
 GENE_RECORD_TYPE = "gene"
 ORTHOLOGS_TABLE = "Orthologs"
@@ -48,7 +49,7 @@ WANTED_ATTRIBUTES = (
 
 def gene_record_url(site_id: str, gene_id: str) -> str:
     """The page where ``site_id`` shows the record of ``gene_id``."""
-    return f"{get_site(site_id).web_base_url}/app/record/{GENE_RECORD_TYPE}/{gene_id}"
+    return record_page_url(site_id, GENE_RECORD_TYPE, gene_id)
 
 
 class UnknownGeneRecordError(NotFoundError):

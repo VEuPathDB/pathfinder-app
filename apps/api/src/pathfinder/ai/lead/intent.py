@@ -109,7 +109,16 @@ class UserIntent(CamelModel):
     booleans (e.g. ``intent_satisfied``) from typed fields here.
     """
 
-    classification: IntentClassification
+    classification: IntentClassification = Field(
+        description=(
+            "What the message asks for. off_topic is only for a message no VEuPathDB "
+            "site holds data for, such as a request for code, an essay or small "
+            "talk. A message that pastes sequences, or asks about genes, proteins, "
+            "ortholog groups, organisms or any other data a site holds, is never "
+            "off_topic, also when you do not know which search answers it: FRAME "
+            "finds the search in the site's catalog."
+        )
+    )
     inferred_goal: str = Field(max_length=500)
     is_differential: bool = False
     differential_sides: list[str] = Field(

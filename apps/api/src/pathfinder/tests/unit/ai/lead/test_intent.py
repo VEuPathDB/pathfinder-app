@@ -211,3 +211,18 @@ def test_a_question_is_asked_whole() -> None:
     assert intent.researcher_asks(message) == [
         ResearcherAsk(message=message, text=message)
     ]
+
+
+def test_the_classifier_is_told_a_message_about_site_data_is_never_off_topic() -> None:
+    """A pasted proteome is a request the site's catalog answers, not chat."""
+    classification = UserIntent.model_json_schema()["properties"]["classification"]
+
+    assert classification["$ref"] == "#/$defs/IntentClassification"
+    assert classification["description"] == (
+        "What the message asks for. off_topic is only for a message no VEuPathDB "
+        "site holds data for, such as a request for code, an essay or small "
+        "talk. A message that pastes sequences, or asks about genes, proteins, "
+        "ortholog groups, organisms or any other data a site holds, is never "
+        "off_topic, also when you do not know which search answers it: FRAME "
+        "finds the search in the site's catalog."
+    )

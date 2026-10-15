@@ -31,7 +31,7 @@ from pathfinder.services.experiment.variant_comparison import (
     VariantInput,
     VariantSpec,
 )
-from pathfinder.services.gene_records.read import gene_record_url
+from pathfinder.services.record_pages import record_page_url
 from pathfinder.services.strategies.record_classes import search_record_types
 
 _LOOKUP_LIMIT = 5
@@ -164,7 +164,9 @@ async def genes_in_search(
         MembershipFact(
             search_label=spec.label,
             records=[
-                ListedRecord(record_id=g, url=gene_record_url(site_id, g))
+                ListedRecord(
+                    record_id=g, url=record_page_url(site_id, spec.record_type, g)
+                )
                 for g in asked
             ],
             held=membership.held,

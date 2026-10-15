@@ -7,6 +7,8 @@ what left.
 
 ## Ranked
 
+40. [A search the site failed to run is reported as missing](a-search-the-site-failed-to-run-is-reported-as-missing.md) - the site's 500 on `MapProteinsByDiamond` became a card saying no search states it; trace the grounding with card 37.
+39. [A step's search is looked up under the strategy's record type](a-step-search-is-looked-up-under-the-strategys-record-type.md) - a two-record-type OrthoMCL strategy sends four refused search reads before the right one; the import's cause is named, the build's is not traced.
 38. [A drop card asks about a combination as one requirement](a-drop-card-asks-about-a-combination-as-one-requirement.md) - "a GPI anchor and a signal peptide" is held as one requirement, so the card offers to drop the searchable part with the unsearchable one; choose between the intent gate and the numbered list by replay.
 37. [A drop card asks about a requirement the plan answers](a-drop-card-asks-about-a-requirement-the-plan-answers.md) - the card asks about every requirement the ledger lists as ungroundable, and one turn offered to drop a data type a bound transcript search answers; trace the grounding first.
 36. [The corpus holds no plan with an analysis below the root](the-corpus-holds-no-plan-with-an-analysis-below-the-root.md) - BLOCKED on QA admitting automated clients: no case states two study analyses under one OR, and the requirement reports are measured by replay and unit tests only; two cases and one full corpus run close both.

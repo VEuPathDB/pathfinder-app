@@ -16,6 +16,7 @@ from veupathdb.wdk import WDKAnswer, WDKSearchConfig
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import ParameterInfo, SearchMatch, format_param_info_typed
 
+from pathfinder.ai.tools.standalone import search_reads
 from pathfinder.ai.tools.standalone.search_reads import count_search, genes_in_search
 from pathfinder.domain.comparison_facts import (
     ComparedVariant,
@@ -29,10 +30,11 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.turn_facts import SourceFact, TurnFacts
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.search_reads import SearchCount, SearchMembership
-from pathfinder.services.experiment.variant_comparison import VariantInput
+from pathfinder.services.experiment.variant_comparison import VariantInput, VariantSpec
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.qa_recording import qa_recording
 from pathfinder.tests._support.record_classes import (
+    list_searches_under,
     recorded_searches,
     serve_record_classes,
 )
@@ -409,3 +411,39 @@ def test_a_facts_part_that_shows_no_record_keeps_the_earlier_records() -> None:
     domain.record_shown([])
 
     assert domain.shown_records == _SHOWN
+
+
+async def test_a_protein_search_links_each_asked_protein_to_its_sequence_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    proteins = ["A0H76_3082-t39_1-p1", "A8A55_0005-t41_1-p1"]
+    list_searches_under(monkeypatch, "sequence", ["ByMotif"])
+
+    async def _under_sequence(
+        _session: StrategySession, stated: list[VariantInput]
+    ) -> list[VariantSpec]:
+        return [VariantSpec(**s.model_dump(), record_type="sequence") for s in stated]
+
+    async def _held(
+        _site_id: str, spec: VariantSpec, asked: list[str]
+    ) -> SearchMembership:
+        return SearchMembership(
+            label=spec.label, search_name=spec.search_name, gene_count=1, held=asked[:1]
+        )
+
+    monkeypatch.setattr(search_reads, "resolved_variants", _under_sequence)
+    monkeypatch.setattr(search_reads, "run_search_membership", _held)
+    motif = VariantInput(label="Motif", search_name="ByMotif", parameters={})
+    ctx = lead_run_context(
+        site_id="orthomcl", strategy_session=StrategySession(site_id="orthomcl")
+    )
+
+    await genes_in_search(ctx, motif, proteins)
+
+    assert ctx.deps.state.turn_markers.memberships[0].records == [
+        ListedRecord(
+            record_id=p,
+            url=f"https://qa.orthomcl.org/orthomcl.qa/app/record/sequence/{p}",
+        )
+        for p in proteins
+    ]

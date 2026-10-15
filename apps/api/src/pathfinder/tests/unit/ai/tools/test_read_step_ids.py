@@ -84,7 +84,8 @@ class _Reports(StrategyAPI):
 
 @pytest.fixture
 def reports(monkeypatch: pytest.MonkeyPatch) -> _Reports:
-    async def _no_attributes(*_: object) -> list[str]:
+    async def _no_attributes(*_: object, own_search: str | None) -> list[str]:
+        del own_search
         return []
 
     api = _Reports()
