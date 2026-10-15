@@ -20,6 +20,7 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.domain.strategy.named_taxa import organism_trees
 from pathfinder.domain.strategy.validate import first_cross_organism_refusal
+from pathfinder.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
 
@@ -27,16 +28,18 @@ logger = get_logger(__name__)
 async def organism_parameters(
     site_id: str, record_type: str | None, search_names: Collection[str]
 ) -> dict[str, str]:
-    """Each search the catalog reads that marks an organism parameter, and its name.
+    """Each search the catalog reads that marks an organism parameter, and its name,
+    each read under the record type the catalog lists it under.
 
     A search the catalog cannot read names none, so a check that reads the map
     abstains on it.
     """
     marks: dict[str, str] = {}
+    listed = await search_record_types(site_id, search_names)
     for search_name in sorted(set(search_names)):
         try:
             listed_under = await resolve_search_record_type(
-                site_id, search_name, record_type
+                site_id, search_name, listed.get(search_name, record_type)
             )
             marked = await organism_parameter(site_id, listed_under, search_name)
         except (VEuPathDBError, OSError) as exc:
@@ -118,10 +121,11 @@ async def organism_taxa(
     A search the catalog cannot read gives none, so its entries stand for themselves.
     """
     taxa: dict[str, frozenset[str]] = {}
+    listed = await search_record_types(site_id, organism_params)
     for search_name, param in sorted(organism_params.items()):
         try:
             listed_under = await resolve_search_record_type(
-                site_id, search_name, record_type
+                site_id, search_name, listed.get(search_name, record_type)
             )
             definition = await read_search_definition(
                 site_id, listed_under, search_name

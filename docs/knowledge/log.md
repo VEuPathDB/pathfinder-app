@@ -2,6 +2,17 @@
 
 ## 2026-10-15
 
+* **A search is read under the record type that lists it.** The organism reads before a
+  push (`organism_params.py`), given the root's record type, and the text query sheets
+  VERIFY reads (`text_queries.py`), given the spec's, take each search's own type from
+  `search_record_types`, so a BLAST step under an OrthoMCL group root is read as
+  `sequence` and sends no refused request first.
+
+* **A sampled value keeps its lines and no indent.** veupathdb-py 0.1.0b10 joins each line's
+  words with one space and drops blank lines, so an OrthoMCL group's clade counts reach
+  the agents as one clade per line; one sampled group read 2,218 characters before and
+  1,297 after.
+
 * **A record type term takes the names the site shows.** A `record_type` rationale accepts
   the record type's own name or any display name the catalog lists for it, so "Ortholog
   groups" backs `GroupsFromSequences` on OrthoMCL and "genes" a transcript search; a name

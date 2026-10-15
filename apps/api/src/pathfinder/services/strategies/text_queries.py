@@ -19,6 +19,7 @@ from veupathdb_mcp.catalog import (
 from pathfinder.domain.shown_requirements import TextQuery
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.services.strategies.parameter_rules import text_query
+from pathfinder.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
 
@@ -53,13 +54,16 @@ async def _definition(
 async def search_definitions(
     site_id: str, spec: OperationalSpec | None
 ) -> dict[str, WDKSearch]:
-    """The sheet of each search a bound criterion of the spec runs. A search the
-    catalog cannot read has no sheet."""
+    """The sheet of each search a bound criterion of the spec runs, read under the
+    record type the catalog lists it under. A search the catalog cannot read has
+    no sheet."""
     if spec is None:
         return {}
     searches = sorted({c.search_name for c in spec.criteria if c.resolved_params})
+    listed = await search_record_types(site_id, searches)
     read = {
-        name: await _definition(site_id, spec.record_type, name) for name in searches
+        name: await _definition(site_id, listed.get(name, spec.record_type), name)
+        for name in searches
     }
     return {name: sheet for name, sheet in read.items() if sheet is not None}
 

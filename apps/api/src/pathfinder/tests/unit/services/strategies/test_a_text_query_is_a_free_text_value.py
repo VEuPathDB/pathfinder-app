@@ -315,3 +315,31 @@ def test_the_knowlesi_organism_and_domain_rows_stand_met_on_unclear_records() ->
     queries = text_query_criteria(spec, _recorded_sheets())
 
     assert (queries, held_to_the_records(review, queries)) == ([], review)
+
+
+async def test_a_sheet_is_read_under_the_record_type_that_lists_its_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A BLAST criterion of an OrthoMCL spec is read as a protein search."""
+    read_under: list[str] = []
+
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        return {name: "sequence" for name in names if name == "ByBlast"}
+
+    async def _definition(_site: str, record_type: str, name: str) -> WDKSearch:
+        read_under.append(record_type)
+        return WDKSearch(url_segment=name)
+
+    monkeypatch.setattr(text_queries, "search_record_types", _listed)
+    monkeypatch.setattr(text_queries, "read_search_definition", _definition)
+    blast = _criterion(
+        "ByBlast",
+        {"BlastQuerySequence": StringValue(value="MPENNEHLTF")},
+        [_info("BlastQuerySequence")],
+    )
+
+    await search_definitions(
+        "orthomcl", OperationalSpec(goal="BLAST a protein", criteria=[blast])
+    )
+
+    assert read_under == ["sequence"]

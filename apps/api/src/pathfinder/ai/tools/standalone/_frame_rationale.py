@@ -150,7 +150,11 @@ async def rationale_for(
         values=values,
         defaulted=defaulted,
         transform=transform,
-        record_names=await _record_names(ctx.deps.site_id, record_type),
+        record_names=(
+            await _record_names(ctx.deps.site_id, record_type)
+            if why.basis == "record_type"
+            else [record_type]
+        ),
     )
     chosen = checked_term(why.basis, why.term, binding)
     _refuse_a_long_reason(criterion_id, why, chosen.term)
