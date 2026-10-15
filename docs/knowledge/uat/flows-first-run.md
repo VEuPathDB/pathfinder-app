@@ -48,17 +48,16 @@ Needs the deployment operator (see `R1` in [resilience flows](flows-resilience.m
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Sidebar, after any S flow | Read the rows | Header `Conversations` (CSS). Each row: the title, then `<n> steps` when the strategy has steps, then the time (`2:34 PM`, `Yesterday`, `Feb 14`). |
+| 1 | Sidebar, after any S flow | Read the rows | No header title; the search box sits beside the refresh, open-strategy and new-conversation buttons. Each row: the title, then `<n> steps` when the strategy has steps, then the time (`2:34 PM`, `Yesterday`, `Feb 14`). |
 | 2 | Sidebar, `Search conversations...` | Type two letters of one title | Only the rows whose title holds them stay; an unmatched text reads `No conversations match your search.` |
 | 3 | Sidebar | `Refresh conversations` | The rows reload; the order is newest activity first. |
 
-## F5 - New conversation and the assistant menu - core
+## F5 - New conversation and the header buttons - core
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Sidebar | `New conversation` (pencil) | URL `/<site>/conversation`; greeting (`Good morning` / `Good afternoon` / `Good evening` / `Still up?`), blurb `Build and refine multi-step <Site> search strategies with guided parameter selection and validation.`, four suggestion cards. |
-| 2 | Sidebar | `Choose an assistant` (chevron) | Menu `NEW CONVERSATION WITH` (CSS): `Strategy builder`, `Open a VEuPathDB strategy...`. |
-| 3 | Assistant menu | `Strategy builder` | URL `/<site>/conversation`; the blurb of step 1. |
+| 2 | Sidebar header | Read the buttons | `Refresh conversations`, `Open a VEuPathDB strategy` (folder), `New conversation`; no assistant menu. |
 
 ## F6 - Rename - core
 

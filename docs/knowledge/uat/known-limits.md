@@ -49,7 +49,7 @@ Named as in the [backlog](../backlog/index.md) on 2026-10-05; the list moves as 
 | A dark-mode switch; the app does not follow the operating system (a host page can set `data-theme="dark"`) | L4 |
 | A page that lists gene sets; they live in the thread, `/export` and `/import` | G1 |
 | An export of all of a researcher's data; the `Data` tab only deletes | A4 |
-| Importing a shared strategy by its public link; `Open a VEuPathDB strategy...` opens the account's own strategies by link or id | S8 |
+| Importing a shared strategy by its public link; `Open a VEuPathDB strategy` opens the account's own strategies by link or id | S8 |
 | A liveness route at `/health/live`; `/health` serves liveness and the version | D2 |
 | A per-message model picker in the composer; the model is chosen in Settings and shown on the trace | A1 |
 

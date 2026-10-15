@@ -73,21 +73,29 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("opening a VEuPathDB strategy from the conversations sidebar", () => {
-  it("offers the import in the sidebar's own header menu", async () => {
+  it("offers the import as a button in the sidebar's header", () => {
     renderSidebar();
 
-    await userEvent.click(screen.getByTestId("conversations-new-assistant-button"));
-
-    expect(await screen.findByTestId("open-wdk-strategy-menu-item")).toHaveTextContent(
+    expect(screen.getByTestId("open-wdk-strategy-button")).toHaveAccessibleName(
       "Open a VEuPathDB strategy",
     );
+  });
+
+  it("shows the search beside the header buttons, with no title and no assistant menu", () => {
+    renderSidebar();
+
+    const search = screen.getByTestId("conversations-search-input");
+    expect(search.parentElement).toBe(
+      screen.getByTestId("conversations-new-button").parentElement,
+    );
+    expect(screen.queryByText("Conversations")).toBeNull();
+    expect(screen.queryByTestId("conversations-new-assistant-button")).toBeNull();
   });
 
   it("opens a conversation on the strategy the researcher names by link", async () => {
     renderSidebar();
 
-    await userEvent.click(screen.getByTestId("conversations-new-assistant-button"));
-    await userEvent.click(await screen.findByTestId("open-wdk-strategy-menu-item"));
+    await userEvent.click(screen.getByTestId("open-wdk-strategy-button"));
 
     const input = await screen.findByTestId("open-wdk-strategy-input");
     await userEvent.type(
@@ -109,8 +117,7 @@ describe("opening a VEuPathDB strategy from the conversations sidebar", () => {
   it("refuses to send an entry that names no strategy", async () => {
     renderSidebar();
 
-    await userEvent.click(screen.getByTestId("conversations-new-assistant-button"));
-    await userEvent.click(await screen.findByTestId("open-wdk-strategy-menu-item"));
+    await userEvent.click(screen.getByTestId("open-wdk-strategy-button"));
 
     await userEvent.type(
       await screen.findByTestId("open-wdk-strategy-input"),

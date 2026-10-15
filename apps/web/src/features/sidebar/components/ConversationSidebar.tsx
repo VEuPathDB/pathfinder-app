@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   AlertTriangle,
   Archive,
-  ChevronDown,
+  FolderOpen,
   RefreshCw,
   RotateCcw,
   SquarePen,
@@ -21,17 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { ASSISTANT_CHOICES } from "@/lib/assistants";
 import { useConversationSidebarData } from "@/features/sidebar/hooks/useConversationSidebarData";
 import { useConversationSidebarActions } from "@/features/sidebar/hooks/useConversationSidebarActions";
 import { ConversationList } from "@/features/sidebar/components/ConversationList";
@@ -56,10 +47,15 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 px-2 py-3">
-      <div className="flex items-center gap-1 px-1">
-        <div className="flex-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Conversations
-        </div>
+      <div className="flex items-center gap-1">
+        <Input
+          data-testid="conversations-search-input"
+          value={data.query}
+          onChange={(e) => data.setQuery(e.target.value)}
+          placeholder="Search conversations..."
+          aria-label="Search conversations"
+          className="h-8 min-w-0 flex-1 border-transparent bg-muted/40 text-sm shadow-none focus-visible:border-input focus-visible:bg-background"
+        />
         <Button
           data-testid="conversations-refresh-button"
           type="button"
@@ -75,6 +71,17 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
           />
         </Button>
         <Button
+          data-testid="open-wdk-strategy-button"
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setShowOpenWdkStrategy(true)}
+          aria-label="Open a VEuPathDB strategy"
+          title="Open a VEuPathDB strategy"
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+        </Button>
+        <Button
           data-testid="conversations-new-button"
           type="button"
           variant="ghost"
@@ -85,51 +92,7 @@ export function ConversationSidebar({ siteId }: ConversationSidebarProps) {
         >
           <SquarePen className="h-4 w-4" />
         </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              data-testid="conversations-new-assistant-button"
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Choose an assistant"
-              title="Choose an assistant"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[220px]">
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              New conversation with
-            </DropdownMenuLabel>
-            {ASSISTANT_CHOICES.map((choice) => (
-              <DropdownMenuItem
-                key={choice.id}
-                data-testid={`new-chat-assistant-${choice.id}`}
-                onSelect={() => void actions.handleNewConversation(choice.id)}
-              >
-                {choice.label}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              data-testid="open-wdk-strategy-menu-item"
-              onSelect={() => setShowOpenWdkStrategy(true)}
-            >
-              Open a VEuPathDB strategy...
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
-
-      <Input
-        data-testid="conversations-search-input"
-        value={data.query}
-        onChange={(e) => data.setQuery(e.target.value)}
-        placeholder="Search conversations..."
-        aria-label="Search conversations"
-        className="h-8 border-transparent bg-muted/40 text-sm shadow-none focus-visible:border-input focus-visible:bg-background"
-      />
 
       {(!data.hasInitiallyLoaded || data.isSyncing) && data.filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground animate-fade-in">

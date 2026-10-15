@@ -16,13 +16,6 @@ describe("route builders", () => {
     expect(chatUrl("plasmodb", "c1")).toBe("/plasmodb/conversation/c1");
   });
 
-  it("names the assistant a new thread opens under, and only that one", () => {
-    expect(chatRoot("plasmodb", "helper")).toBe(
-      "/plasmodb/conversation?assistant=helper",
-    );
-    expect(chatRoot("plasmodb", "pathfinder")).toBe("/plasmodb/conversation");
-  });
-
   it("reads the conversation id out of a path, past a query or a hash", () => {
     expect(conversationIdFromPath("/plasmodb/conversation/c1")).toBe("c1");
     expect(conversationIdFromPath("/plasmodb/conversation/c1/strategy")).toBe("c1");

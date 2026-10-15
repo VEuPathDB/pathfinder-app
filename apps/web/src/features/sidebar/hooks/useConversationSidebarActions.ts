@@ -26,7 +26,7 @@ interface UseConversationSidebarActionsArgs {
 
 interface ConversationSidebarActions extends RenameWorkflow, DeleteWorkflow {
   activeId: string | null;
-  handleNewConversation: (assistantId?: string) => Promise<void>;
+  handleNewConversation: () => Promise<void>;
   handleToggleSaved: (item: ConversationItem) => Promise<void>;
   handleDuplicate: (item: ConversationItem) => Promise<void>;
 }
@@ -49,8 +49,8 @@ export function useConversationSidebarActions({
 
   const listKey = listStrategiesQueryOptions({ siteId }).queryKey;
 
-  const handleNewConversation = async (assistantId?: string): Promise<void> => {
-    router.push(chatRoot(siteId, assistantId));
+  const handleNewConversation = async (): Promise<void> => {
+    router.push(chatRoot(siteId));
   };
 
   const handleToggleSaved = async (item: ConversationItem): Promise<void> => {

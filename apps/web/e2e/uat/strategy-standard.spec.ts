@@ -298,8 +298,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(dropped.ok(), `delete ${dropped.status()}`).toBe(true);
 
     await page.goto(`${siteId}/conversation`);
-    await page.getByTestId("conversations-new-assistant-button").click();
-    await page.getByTestId("open-wdk-strategy-menu-item").click();
+    await page.getByTestId("open-wdk-strategy-button").click();
     const dialog = page.getByTestId("open-wdk-strategy-dialog");
     await expect(dialog.getByRole("heading")).toHaveText("Open a VEuPathDB strategy");
     const pick = dialog.getByTestId(`open-wdk-strategy-pick-${wdkStrategyId}`);

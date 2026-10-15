@@ -108,7 +108,7 @@ Today: plasmodb 142 (pass). toxodb and vectorbase build `isSyntenic=yes` (69 and
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | plasmodb.org, signed in as account A | Build `Predicted Signal Peptide` for P. falciparum 3D7 (SignalP-6.0) and save it | The site shows 479 genes |
-| 2 | Sidebar, `Choose an assistant` | `Open a VEuPathDB strategy...` | Dialog `Open a VEuPathDB strategy`, `Pick one of your PlasmoDB strategies, or paste a strategy's link or its numeric id. PathFinder opens a conversation that holds it.`; the list shows the step-1 strategy with `479 results` |
+| 2 | Sidebar header | `Open a VEuPathDB strategy` (folder) | Dialog `Open a VEuPathDB strategy`, `Pick one of your PlasmoDB strategies, or paste a strategy's link or its numeric id. PathFinder opens a conversation that holds it.`; the list shows the step-1 strategy with `479 results` |
 | 3 | Dialog | Pick it, `Open` | Toast `Strategy opened`, `PlasmoDB strategy <id>`; a conversation holding the one step, 479 genes |
 | 4 | Dialog | Paste a toxodb strategy link | `That link names a ToxoDB strategy. Switch to ToxoDB to open it.`; `Open` stays disabled |
 | 5 | Composer | Send `How many genes does this strategy return?` | 479 |

@@ -43,7 +43,7 @@ never read.
 | A saved set of genes PathFinder holds | gene set | gene list | all | The API, the table and every panel say gene set. |
 | The person using PathFinder | researcher | user | researcher | Copy addresses them as "you" and names them researcher. |
 | A question the assistant asks before it builds | question | consult | researcher | Consult is the tool's name. |
-| The assistant the researcher talks to | assistant | agent | researcher | The composer, the empty states and the assistant menu say assistant; agent is the code's word. |
+| The assistant the researcher talks to | assistant | agent | researcher | The composer and the empty states say assistant; agent is the code's word. |
 | The models a conversation runs on, set in the Model tab of Settings | model | engine, orchestrator | researcher | The Settings tab is called Model; no tab is called AI Engine, and orchestrator is the code's word for the Lead. |
 | A site PathFinder cannot reach now | couldn't reach | not responding | researcher | The site menu, the rail trigger and the notice say "Couldn't reach" and the site's short name. |
 | A conversation the researcher deleted, restorable from the sidebar | recently deleted | dismissed | researcher | The sidebar's list is called Recently deleted; dismissed is the column's name in the code. |

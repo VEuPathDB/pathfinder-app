@@ -402,7 +402,7 @@ test.describe("First run and navigation", () => {
     );
   });
 
-  test("F5 - New conversation and the assistant menu", async ({
+  test("F5 - New conversation and the header buttons", async ({
     page,
     chatPage,
     sidebarPage,
@@ -435,20 +435,9 @@ test.describe("First run and navigation", () => {
       "pathfinder",
     );
 
-    await page.getByTestId("conversations-new-assistant-button").click();
-    const menu = page.getByRole("menu");
-    await expect(menu).toContainText("New conversation with");
-    await expect(menu.locator('[data-testid^="new-chat-assistant-"]')).toHaveCount(1);
-    await expect(page.getByTestId("new-chat-assistant-pathfinder")).toHaveText(
-      "Strategy builder",
-    );
-    await expect(page.getByTestId("open-wdk-strategy-menu-item")).toHaveText(
-      "Open a VEuPathDB strategy...",
-    );
-    await page.getByTestId("new-chat-assistant-pathfinder").click();
-    await expect(page).toHaveURL(new RegExp(`/pathfinder/${siteId}/conversation$`));
-    await expect(blurb).toHaveText(
-      `Build and refine multi-step ${siteShortName(siteId)} search strategies with guided parameter selection and validation.`,
+    await expect(page.getByTestId("conversations-new-assistant-button")).toHaveCount(0);
+    await expect(page.getByTestId("open-wdk-strategy-button")).toHaveAccessibleName(
+      "Open a VEuPathDB strategy",
     );
   });
 });
@@ -519,7 +508,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     const empty = await namedConversation(apiClient, siteId, "UAT F4 beta");
 
     await sidebarPage.refresh();
-    await expect(page.getByText("Conversations", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("conversations-search-input")).toBeVisible();
     await expect(sidebarPage.item(built)).toContainText("UAT F4 alpha", {
       timeout: 30_000,
     });
