@@ -19,6 +19,7 @@ class RequirementProblem(StrEnum):
     NEEDS_THE_ANALYSIS_WORKFLOW = "needs_the_analysis_workflow"
     REQUEST_LEAVES_IT_OPEN = "request_leaves_it_open"
     ANOTHER_SITE_ANSWERS = "another_site_answers"
+    SITE_REFUSED_THE_SEARCH = "site_refused_the_search"
 
 
 class RequirementReport(CamelModel):
@@ -38,7 +39,9 @@ class RequirementReport(CamelModel):
             "the request does not give a value a parameter needs, and you ask "
             "for it in open_questions. another_site_answers: no search on this "
             "site can state it, a search on the site you name in `site` can, "
-            "and nothing is bound for it."
+            "and nothing is bound for it. site_refused_the_search: a search on "
+            "this site answers it, the site refused to run that search, which "
+            "you name in `search`, and nothing is bound for it."
         )
     )
     site: str = Field(
@@ -48,6 +51,25 @@ class RequirementReport(CamelModel):
             "answers it, such as orthomcl."
         ),
     )
+
+    search: str = Field(
+        default="",
+        description=(
+            "Only for site_refused_the_search: the name of the search the site "
+            "refused to run, such as MapProteinsByDiamond."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _a_search_only_for_a_refusal(self) -> RequirementReport:
+        names_a_search = self.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
+        if names_a_search != bool(self.search):
+            msg = (
+                "search names the search the site refused to run, so it is set "
+                "for site_refused_the_search and for no other problem"
+            )
+            raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def _a_site_only_for_another_site(self) -> RequirementReport:
@@ -79,6 +101,10 @@ _WHAT_THE_LEAD_DOES = {
     RequirementProblem.ANOTHER_SITE_ANSWERS: (
         "Another site answers it. FRAME's summary carries the sentence that opens "
         "a conversation there; give it word for word and ask nothing about it."
+    ),
+    RequirementProblem.SITE_REFUSED_THE_SEARCH: (
+        "The site has a search for it and failed to run it. The card asks whether "
+        "to keep it for a later try; say the site failed, never that it lacks the search."
     ),
 }
 
@@ -121,6 +147,20 @@ def reported_requirements(
         numbered[report.requirement]
         for report in reports
         if report.problem is problem and report.requirement in numbered
+    ]
+
+
+def refused_requirements(
+    reports: Sequence[RequirementReport], requirements: Sequence[Constraint]
+) -> list[tuple[Constraint, str]]:
+    """Each held requirement a report says the site refused to run a search for,
+    with that search."""
+    numbered = numbered_requirements(requirements)
+    return [
+        (numbered[report.requirement], report.search)
+        for report in reports
+        if report.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
+        and report.requirement in numbered
     ]
 
 

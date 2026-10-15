@@ -211,6 +211,10 @@ class AgentToolState:
     spec_the_dispatch_found: OperationalSpec | None = None
     # Whether this pass was already told its questions bind nothing.
     unbound_questions_sent_back: bool = False
+    # The searches the site refused to run this pass, with what it answered.
+    refused_searches: dict[str, str] = field(default_factory=dict)
+    # Whether this pass was already told a refused search is no missing one.
+    refusals_sent_back: bool = False
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)

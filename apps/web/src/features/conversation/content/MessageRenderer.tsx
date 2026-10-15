@@ -57,8 +57,12 @@ const Text: TextMessagePartComponent = () => (
   <MarkdownTextPrimitive
     remarkPlugins={markdownRemarkPlugins}
     components={modelMarkdownComponents}
-    className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+    className="prose prose-sm max-w-none break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
   />
+);
+
+const UserText: TextMessagePartComponent = ({ text }) => (
+  <p className="whitespace-pre-wrap break-words">{text}</p>
 );
 
 export const ReasoningPart: ReasoningMessagePartComponent = ({ text, status }) => {
@@ -132,6 +136,8 @@ const contentComponents = {
   data: { by_name: dataPartRenderers, Fallback: UnknownDataPartError },
 } as const;
 
+const userContentComponents = { ...contentComponents, Text: UserText } as const;
+
 const MESSAGE_ENTRANCE = {
   initial: { opacity: 0, y: 6 },
   transition: { duration: 0.2, ease: "easeOut" as const },
@@ -145,7 +151,7 @@ export function UserMessage() {
       <Message from="user">
         <UserAttachments />
         <MessageContent>
-          <MessagePrimitive.Content components={contentComponents} />
+          <MessagePrimitive.Content components={userContentComponents} />
         </MessageContent>
         <ActionBarPrimitive.Root asChild hideWhenRunning>
           <MessageActions className="justify-end opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">

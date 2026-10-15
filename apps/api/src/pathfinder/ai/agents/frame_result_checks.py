@@ -88,8 +88,46 @@ def hold_the_route_to_another_site(
     return output
 
 
+def hold_the_reports_to_the_refusals(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    """Send back a refusal of a search the site ran, and, once per pass, a
+    missing search reported after the site refused one."""
+    if not isinstance(output, FrameResult):
+        return output
+    state = ctx.deps.agent_state
+    refused = state.refused_searches
+    reports = output.requirement_problems
+    unrefused = [
+        r.search
+        for r in reports
+        if r.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
+        and r.search not in refused
+    ]
+    if unrefused:
+        named = ", ".join(refused) or "none"
+        msg = (
+            f"site_refused_the_search names {unrefused}, and this pass saw the "
+            f"site refuse only {named}. Name a search the site refused."
+        )
+        raise ModelRetry(msg)
+    missing = any(r.problem is RequirementProblem.SITE_HAS_NO_SEARCH for r in reports)
+    if not refused or not missing or state.refusals_sent_back:
+        return output
+    state.refusals_sent_back = True
+    answers = "; ".join(f"{name} ({answer})" for name, answer in refused.items())
+    msg = (
+        f"The site refused to run {answers} this pass. A requirement that search "
+        "answers is site_refused_the_search with that search named in search, not "
+        "site_has_no_search. Keep site_has_no_search for a requirement no search "
+        "on this site answers."
+    )
+    raise ModelRetry(msg)
+
+
 __all__ = [
     "hold_the_questions_to_the_draft",
+    "hold_the_reports_to_the_refusals",
     "hold_the_reports_to_the_requirement_list",
     "hold_the_route_to_another_site",
 ]

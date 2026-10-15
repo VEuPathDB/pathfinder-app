@@ -2,6 +2,17 @@
 
 ## 2026-10-15
 
+* **A researcher's message shows as typed.** `UserMessage` renders its text as plain text
+  that keeps its line breaks and wraps a long word, so a pasted FASTA record is no quote
+  block and its sequence is not cut off; an assistant reply breaks a long word too.
+
+* **A search the site refused is reported as refused.** `bound_count` records the site's
+  answer for the pass, FRAME reports the requirement as `site_refused_the_search` with the
+  search, `hold_the_reports_to_the_refusals` sends back a missing search reported after a
+  refusal, and the card asks to keep it for a later try or drop it. On QA OrthoMCL, which
+  answers 500 to `MapProteinsByDiamond`, the card read "The site failed to run Map
+  Proteins by Diamond" and FRAME chose the kind without being sent back.
+
 * **The data notice reads wide and keeps its corners.** `DataNotice` is `sm:max-w-3xl` and
   only its statement scrolls, inside the rounded box, so no scrollbar paints over the
   corners and `Continue` stays in view.

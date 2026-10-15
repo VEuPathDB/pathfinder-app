@@ -128,4 +128,9 @@ def test_each_report_tells_the_lead_what_to_do() -> None:
             "opens a conversation there; give it word for word and ask nothing "
             "about it."
         ),
+        RequirementProblem.SITE_REFUSED_THE_SEARCH: (
+            "The site has a search for it and failed to run it. The card asks "
+            "whether to keep it for a later try; say the site failed, never that "
+            "it lacks the search."
+        ),
     }

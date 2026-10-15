@@ -18,6 +18,7 @@ from pathfinder.ai.agents._instructions import (
 )
 from pathfinder.ai.agents.frame_result_checks import (
     hold_the_questions_to_the_draft,
+    hold_the_reports_to_the_refusals,
     hold_the_reports_to_the_requirement_list,
     hold_the_route_to_another_site,
 )
@@ -357,4 +358,5 @@ def build_frame_agent() -> FrameAgent:
     agent.output_validator(hold_the_reports_to_the_requirement_list)
     agent.output_validator(hold_the_questions_to_the_draft)
     agent.output_validator(hold_the_route_to_another_site)
+    agent.output_validator(hold_the_reports_to_the_refusals)
     return agent
