@@ -29,7 +29,7 @@ from pathfinder.ai.lead.dispatch_messages import (
 from pathfinder.ai.lead.edit_messages import edit_continuation_work_order
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
 from pathfinder.ai.lead.frame_requirements import (
-    requirements_no_search_states,
+    questions_for_the_card,
     requirements_the_site_lacks,
 )
 from pathfinder.ai.lead.intent import IntentClassification
@@ -52,10 +52,6 @@ from pathfinder.domain.strategy.constraints import (
     message_states,
 )
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
-from pathfinder.domain.strategy.questions import (
-    unanswered_questions,
-    with_withdrawals,
-)
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     numbered_requirements,
@@ -205,13 +201,7 @@ async def run_frame(
     if isinstance(result, FrameResult):
         domain = deps.state.domain
         lacking = requirements_the_site_lacks(deps, result)
-        asked = unanswered_questions(
-            with_withdrawals(
-                result.questions(domain.operational_spec),
-                requirements_no_search_states(deps, lacking),
-            ),
-            answered=[q.question for q in domain.answered_questions],
-        )
+        asked = questions_for_the_card(deps, result, lacking)
         deps.state.domain.record_questions(asked)
         deps.state.turn_markers.unstated_requirements = [
             c.requested_value for c in lacking

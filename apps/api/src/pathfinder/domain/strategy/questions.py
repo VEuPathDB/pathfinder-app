@@ -432,6 +432,27 @@ def with_withdrawals(
     return asked
 
 
+def with_refusals(
+    questions: Sequence[OpenQuestion], refused: Sequence[tuple[Constraint, str]]
+) -> list[OpenQuestion]:
+    """The questions, with one per requirement whose search the site failed to
+    run, offering to keep it for a later try or to drop it."""
+    return [
+        *questions,
+        *(
+            OpenQuestion(
+                question=(
+                    f"The site failed to run {search}. Keep "
+                    f"{requirement.requested_value!r} to try again later, or drop it?"
+                )[:_QUESTION_LIMIT],
+                dimension=requirement.kind,
+                options=[_keeping(requirement), _withdrawal(requirement)],
+            )
+            for requirement, search in refused
+        ),
+    ]
+
+
 def unanswered_questions(
     questions: Sequence[OpenQuestion], *, answered: Sequence[str] = ()
 ) -> list[OpenQuestion]:

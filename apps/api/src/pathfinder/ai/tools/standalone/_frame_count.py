@@ -61,10 +61,13 @@ async def bound_count(
             ctx.deps.site_id, record_type, search_name, resolved.params
         )
     except WDKError as refused:
+        answer = f"HTTP {refused.status}: {refused.detail}"
+        ctx.deps.agent_state.refused_searches[search_name] = answer
         msg = (
-            f"The site refused to run {search_name} at these values "
-            f"(HTTP {refused.status}: {refused.detail}). The criterion is not "
-            f"bound. Bind another search for this requirement, or other values."
+            f"The site refused to run {search_name} at these values ({answer}). "
+            f"The criterion is not bound. Bind another search for this "
+            f"requirement, or other values. A requirement only this search "
+            f"answers is site_refused_the_search, never site_has_no_search."
         )
         raise ModelRetry(msg) from refused
 
