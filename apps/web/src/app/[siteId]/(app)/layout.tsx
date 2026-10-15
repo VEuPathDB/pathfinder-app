@@ -121,7 +121,6 @@ function AppShellInner({
           siteId={selectedSite}
           onSiteChange={handleSiteChange}
           onOpenSettings={() => modals.openSettings()}
-          onOpenModelSettings={() => modals.openSettings("model")}
           onToggleSidebar={toggleLeft}
           sidebarExpanded={!leftCollapsed}
         />

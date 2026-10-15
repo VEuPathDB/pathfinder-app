@@ -147,8 +147,6 @@ test.describe("Settings and account", () => {
 
     await settingsPage.open();
     await expect(settingsDialog(page).getByRole("tab")).toHaveText(TAB_LABELS);
-    await settingsPage.close();
-    await page.getByRole("button", { name: "AI model settings" }).click();
     const dialog = settingsDialog(page);
     await expect(
       dialog.getByRole("tab", { name: "Model", exact: true }),
