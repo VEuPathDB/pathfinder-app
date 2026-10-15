@@ -15,7 +15,7 @@ from pathfinder.persistence.models import User
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_names_the_user")
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ async def api_client(
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
-        client.cookies.set("pathfinder-auth", create_user_token(seed_user.id))
+        client.cookies.set("Authorization", create_user_token(seed_user.id))
         yield client
 
 
@@ -84,7 +84,7 @@ async def api_client_other_user(
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
-        client.cookies.set("pathfinder-auth", create_user_token(other.id))
+        client.cookies.set("Authorization", create_user_token(other.id))
         yield client
 
 

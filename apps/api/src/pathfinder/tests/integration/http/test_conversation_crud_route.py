@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from pathfinder.persistence.models import ConversationStrategy, User
 from pathfinder.platform.security import create_user_token
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_names_the_user")
 
 
 _AST = {
@@ -50,7 +50,7 @@ def _client_for(app: FastAPI, user_id: UUID) -> httpx.AsyncClient:
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     )
-    client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    client.cookies.set("Authorization", create_user_token(user_id))
     return client
 
 

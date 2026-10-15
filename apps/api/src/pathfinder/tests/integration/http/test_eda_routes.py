@@ -16,7 +16,7 @@ from pathfinder.tests.integration.http._eda_routes import (
     api_client,
     eda_wired,
 )
-from pathfinder.tests.integration.http.conftest import client_for, make_user
+from pathfinder.tests.integration.http.conftest import bearer_client_for, make_user
 
 pytestmark = pytest.mark.asyncio
 
@@ -73,11 +73,11 @@ async def test_a_request_with_no_wdk_token_is_refused(
     session_maker: async_sessionmaker[AsyncSession],
     db_cleaner: None,
 ) -> None:
-    """EDA refuses a guest, so a request naming no registered login is a 401."""
+    """EDA refuses a request that carries no registered VEuPathDB login with a 401."""
     del patch_app_db_engine, db_cleaner
     async with session_maker() as session:
         user = await make_user(session)
-    async with client_for(app, user.id) as client:
+    async with bearer_client_for(app, user.id) as client:
         response = await client.get(
             "/api/v1/eda/studies", params={"siteId": "plasmodb"}
         )

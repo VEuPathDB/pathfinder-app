@@ -1,9 +1,8 @@
-"""A PathFinder identity and a VEuPathDB token that name two accounts are refused.
+"""A PathFinder bearer and a VEuPathDB token that name two accounts are refused.
 
-The two credentials arrive independently. When they disagree the request is
-refused before it writes anything: by the WDK gate for a bearer, and by the
-principal for a session cookie. The refresh route relinks the session to the
-account the token names.
+A bearer and a VEuPathDB token arrive independently, so the WDK gate refuses
+them when they disagree. A browser has no PathFinder credential of its own: its
+website login names the one account it acts as.
 """
 
 from __future__ import annotations
@@ -23,8 +22,6 @@ from veupathdb.wdk import get_site
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
-from pathfinder.platform.security import decode_user_id
-from pathfinder.services.users import get_or_create_user_id
 from pathfinder.tests._support.veupathdb_tokens import (
     JWKS_URL,
     OAUTH_URL,
@@ -39,7 +36,6 @@ from pathfinder.tests.integration.http.conftest import (
     bearer_client_for,
     chat_body,
     chat_jobs,
-    client_for,
     make_user,
 )
 
@@ -138,18 +134,6 @@ async def mismatched(
         yield client
 
 
-@pytest.fixture
-async def mismatched_session(
-    app: FastAPI,
-    session_user_id: UUID,
-    another_veupathdb_account: str,
-) -> AsyncIterator[httpx.AsyncClient]:
-    """The session of one user, carrying another account's VEuPathDB token."""
-    async with client_for(app, session_user_id) as client:
-        client.headers[WDK_AUTH_HEADER] = another_veupathdb_account
-        yield client
-
-
 def _assert_identity_mismatch(response: httpx.Response) -> None:
     assert response.status_code == _UNAUTHORIZED, response.text
     assert response.headers["content-type"].startswith("application/problem+json")
@@ -186,73 +170,20 @@ class TestNoTurnIsDispatchedForTheSecondAccount:
         assert chat_jobs(in_memory_jobs) == []
 
 
-class TestRefreshRelinksTheSessionToTheTokensAccount:
-    async def test_the_cookie_is_reminted_for_the_account_the_token_names(
+class TestAWebsiteLoginActsAsItsOwnAccount:
+    async def test_another_accounts_login_does_not_see_the_first_users_work(
         self,
-        mismatched_session: httpx.AsyncClient,
-        session_user_id: UUID,
+        app: FastAPI,
+        conversation_id: UUID,
+        another_veupathdb_account: str,
     ) -> None:
-        response = await mismatched_session.post(
-            f"/api/v1/veupathdb/auth/refresh?siteId={SITE_ID}",
-        )
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+            cookies={"Authorization": another_veupathdb_account},
+        ) as client:
+            response = await client.get(CONVERSATIONS_PATH, params={"siteId": SITE_ID})
 
         assert response.status_code == _OK, response.text
-        relinked = response.cookies["pathfinder-auth"]
-        relinked_user_id = decode_user_id(relinked)
-        assert relinked_user_id is not None
-        assert relinked_user_id != session_user_id
-
-    async def test_the_relinked_session_reaches_the_route(
-        self,
-        app: FastAPI,
-        mismatched_session: httpx.AsyncClient,
-        another_veupathdb_account: str,
-    ) -> None:
-        """After the relink the token and the cookie name one account."""
-        refreshed = await mismatched_session.post(
-            f"/api/v1/veupathdb/auth/refresh?siteId={SITE_ID}",
-        )
-        relinked_user_id = decode_user_id(refreshed.cookies["pathfinder-auth"])
-        assert relinked_user_id is not None
-
-        async with client_for(app, relinked_user_id) as client:
-            client.headers[WDK_AUTH_HEADER] = another_veupathdb_account
-            response = await client.get(
-                f"/api/v1/gene-sets/{uuid4()}/vdi-publication",
-            )
-
-        assert response.status_code == _NOT_FOUND, response.text
-
-
-class TestASiteLoginForAnotherAccountSignsTheSessionOut:
-    async def test_a_local_route_is_refused_until_the_refresh_relinks(
-        self,
-        app: FastAPI,
-        db_session: AsyncSession,
-        patch_app_db_engine: None,
-        signing_key: ec.EllipticCurvePrivateKey,
-        another_veupathdb_account: str,
-    ) -> None:
-        del patch_app_db_engine
-        signed_in = await get_or_create_user_id(db_session, SIGNED_IN_ACCOUNT_EMAIL)
-        await db_session.commit()
-
-        async with client_for(app, signed_in) as client:
-            client.cookies.set("Authorization", veupathdb_token(signing_key))
-            before = await client.get(CONVERSATIONS_PATH)
-            client.cookies.set("Authorization", another_veupathdb_account)
-            refused = await client.get(CONVERSATIONS_PATH)
-            refreshed = await client.post(
-                f"/api/v1/veupathdb/auth/refresh?siteId={SITE_ID}",
-            )
-        relinked = decode_user_id(refreshed.cookies["pathfinder-auth"])
-        assert relinked is not None
-        async with client_for(app, relinked) as client:
-            client.cookies.set("Authorization", another_veupathdb_account)
-            after = await client.get(CONVERSATIONS_PATH)
-
-        assert before.status_code == _OK, before.text
-        _assert_identity_mismatch(refused)
-        assert refreshed.status_code == _OK, refreshed.text
-        assert relinked != signed_in
-        assert after.status_code == _OK, after.text
+        assert str(conversation_id) not in response.text

@@ -372,7 +372,7 @@ async def authed_client(
     """Returns a client that carries a valid authentication cookie."""
     del signed_in_to_veupathdb
     token = create_user_token(authed_user_id)
-    client.cookies.set("pathfinder-auth", token)
+    client.cookies.set("Authorization", token)
     return client
 
 

@@ -27,7 +27,7 @@ from pathfinder.tests.integration.jobs._dead_worker import (
     turn_chunks,
 )
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_names_the_user")
 
 
 _NO_CONTENT = 204

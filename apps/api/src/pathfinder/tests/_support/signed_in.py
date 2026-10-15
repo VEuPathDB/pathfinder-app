@@ -7,35 +7,38 @@ from uuid import UUID
 import pytest
 from assistant_core.registry import resolve_turn_assistant
 from assistant_core.spec import AssistantSpec
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.platform.security import auth_cookie, decode_user_id, site_login_user
+from pathfinder.platform.security import decode_user_id, site_login_user
 from pathfinder.transport.http.deps import (
     get_current_user_with_db_row,
     require_registered_wdk_identity,
 )
 from pathfinder.transport.http.routers.chat import resolve_chat_assistant
 
+# The cookie a test client signs in with, as a website login does. Its value is
+# a PathFinder token naming the user, read in place of VEuPathDB's account lookup.
+SITE_LOGIN_COOKIE = "Authorization"
+
 
 @pytest.fixture
-def site_login_matches_session(app: FastAPI) -> Generator[None]:
-    """Let the website login of every request name the user its session names."""
+def site_login_names_the_user(app: FastAPI) -> Generator[None]:
+    """Let the website login of every request name the user its token names."""
 
-    async def _session_user(
-        cookie_token: Annotated[str | None, Depends(auth_cookie)] = None,
-    ) -> UUID | None:
-        return None if cookie_token is None else decode_user_id(cookie_token)
+    async def _site_user(request: Request) -> UUID | None:
+        token = request.cookies.get(SITE_LOGIN_COOKIE)
+        return None if token is None else decode_user_id(token)
 
-    app.dependency_overrides[site_login_user] = _session_user
+    app.dependency_overrides[site_login_user] = _site_user
     yield
     app.dependency_overrides.pop(site_login_user, None)
 
 
 @pytest.fixture
 def signed_in_to_veupathdb(
-    app: FastAPI, site_login_matches_session: None
+    app: FastAPI, site_login_names_the_user: None
 ) -> Generator[None]:
     """Let the WDK-backed routes run as a user who holds a VEuPathDB session.
 
@@ -44,7 +47,7 @@ def signed_in_to_veupathdb(
     its gate from the assistant, so that route drops the requirement instead
     of the dependency, and still routes and refuses as it does in production.
     """
-    del site_login_matches_session
+    del site_login_names_the_user
 
     async def _identity(
         user_id: Annotated[UUID, Depends(get_current_user_with_db_row)],

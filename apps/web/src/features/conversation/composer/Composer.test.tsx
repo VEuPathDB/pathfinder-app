@@ -282,6 +282,16 @@ describe("the composer says the assistant can make mistakes", () => {
   });
 });
 
+describe("the composer footer", () => {
+  it("ends with the PathFinder mark, after the notice", () => {
+    renderComposer(true);
+
+    const notice = screen.getByTestId("ai-notice");
+    const mark = screen.getByRole("img", { name: "PathFinder" });
+    expect(notice.parentElement?.lastElementChild).toBe(mark);
+  });
+});
+
 describe("a slash command takes the Enter key alone", () => {
   function typeAndEnter(value: string): HTMLElement {
     const input = screen.getByTestId("message-input");

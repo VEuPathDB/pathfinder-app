@@ -36,6 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { PathFinderMark } from "@/lib/components/PathFinderMark";
 
 const SEND_TO_STOP_GUARD_MS = 500;
 
@@ -63,6 +64,7 @@ function ComposerFooter() {
       >
         {AI_NOTICE}
       </p>
+      <PathFinderMark />
     </div>
   );
 }

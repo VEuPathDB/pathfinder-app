@@ -42,7 +42,7 @@ class ChatRequestBody(CamelModel):
     (``trigger``, ``id``, ``messages``) with PathFinder-scoped fields
     (``conversationId``, ``siteId``, ``mode``) layered on
     via ``body`` on the client transport. The authenticated user UUID still
-    comes from the ``pathfinder-auth`` cookie. ``messages`` uses pydantic-ai's
+    comes from the website login the request carries. ``messages`` uses pydantic-ai's
     ``UIMessage`` so deferred-tool approval-responded parts deserialize into
     the discriminated union and ``iter_tool_approval_responses`` works.
     """

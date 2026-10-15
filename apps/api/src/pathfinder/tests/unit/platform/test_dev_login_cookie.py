@@ -1,4 +1,4 @@
-"""The PathFinder session cookie carries one set of attributes wherever it is written."""
+"""The mock stack's dev-login cookie is scoped to PathFinder and secure outside development."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import pytest
 from fastapi import Response
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.security import clear_session_cookie, set_session_cookie
+from pathfinder.platform.security import set_dev_login_cookie
 
 _SCOPE = {"httponly": True, "path": "/pathfinder", "samesite": "lax"}
 
@@ -39,40 +39,22 @@ def _written(response: Response) -> tuple[str, str, dict[str, object]]:
     return name, morsel.value, attributes
 
 
-def test_a_set_session_is_secure_outside_development() -> None:
+def test_a_dev_login_is_secure_outside_development() -> None:
     response = Response()
 
-    set_session_cookie(response, "session-token")
+    set_dev_login_cookie(response, "dev-token")
 
     assert _written(response) == (
-        "pathfinder-auth",
-        "session-token",
+        "pathfinder-dev-login",
+        "dev-token",
         {**_SCOPE, "secure": True},
     )
 
 
 @pytest.mark.usefixtures("_development")
-def test_a_set_session_is_not_secure_in_development() -> None:
+def test_a_dev_login_is_not_secure_in_development() -> None:
     response = Response()
 
-    set_session_cookie(response, "session-token")
+    set_dev_login_cookie(response, "dev-token")
 
-    assert _written(response) == ("pathfinder-auth", "session-token", _SCOPE)
-
-
-def test_a_cleared_session_expires_under_the_same_scope() -> None:
-    response = Response()
-
-    clear_session_cookie(response)
-
-    assert _written(response) == ("pathfinder-auth", "", {**_SCOPE, "secure": True})
-    assert "Max-Age=0" in response.headers["set-cookie"].split("; ")
-
-
-@pytest.mark.usefixtures("_development")
-def test_a_cleared_session_is_not_secure_in_development() -> None:
-    response = Response()
-
-    clear_session_cookie(response)
-
-    assert _written(response) == ("pathfinder-auth", "", _SCOPE)
+    assert _written(response) == ("pathfinder-dev-login", "dev-token", _SCOPE)

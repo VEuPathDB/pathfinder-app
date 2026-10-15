@@ -18,13 +18,13 @@ def _assign(target: object, field: str, value: str) -> None:
 
 class TestPrincipal:
     def test_the_application_defaults_to_pathfinder(self) -> None:
-        principal = Principal(user_id=USER_ID, credential="pathfinder-cookie")
+        principal = Principal(user_id=USER_ID, credential="veupathdb-cookie")
 
         assert principal.application_id == PATHFINDER_APPLICATION_ID
         assert principal.application_id == "pathfinder"
 
     def test_the_principal_is_immutable(self) -> None:
-        principal = Principal(user_id=USER_ID, credential="pathfinder-cookie")
+        principal = Principal(user_id=USER_ID, credential="veupathdb-cookie")
 
         with pytest.raises(ValidationError):
             _assign(principal, "application_id", "other")

@@ -2130,48 +2130,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
-  /api/v1/veupathdb/auth/refresh:
-    post:
-      tags:
-      - veupathdb-auth
-      summary: Refresh Internal Auth
-      description: 'Re-derive the internal auth token from a live VEuPathDB session.
-
-
-        Use this when the internal token is absent or expired, and to relink a
-
-        session whose VEuPathDB cookie now names another account. A dev-login
-
-        session names no VEuPathDB account, so no token can move it.'
-      operationId: refresh_internal_auth_api_v1_veupathdb_auth_refresh_post
-      security:
-      - APIKeyCookie: []
-      parameters:
-      - name: siteId
-        in: query
-        required: false
-        schema:
-          type: string
-          minLength: 1
-          maxLength: 50
-          default: veupathdb
-          title: Siteid
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthSuccessResponse'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetail'
   /api/v1/veupathdb/auth/status:
     get:
       tags:
@@ -2180,13 +2138,11 @@ paths:
       description: 'Return the current VEuPathDB auth status.
 
 
-        A refused token or a guest is signed out, and a signed-out answer clears the
+        A refused token or a guest is signed out; a site that does not answer is a
 
-        PathFinder session; a site that does not answer is a 503. A mock chat
+        503. A mock chat provider has no VEuPathDB session, so its dev-login cookie
 
-        provider has no VEuPathDB session, so the internal cookie alone proves
-
-        identity there.'
+        alone proves identity there.'
       operationId: auth_status_api_v1_veupathdb_auth_status_get
       security:
       - APIKeyCookie: []
@@ -3432,16 +3388,6 @@ components:
       - signedIn
       title: AuthStatusResponse
       description: Current auth status response.
-    AuthSuccessResponse:
-      properties:
-        success:
-          type: boolean
-          title: Success
-      type: object
-      required:
-      - success
-      title: AuthSuccessResponse
-      description: Success response. Auth token is set via httpOnly cookie only.
     BeginConversationRequest:
       properties:
         siteId:
@@ -3648,7 +3594,7 @@ components:
 
         via ``body`` on the client transport. The authenticated user UUID still
 
-        comes from the ``pathfinder-auth`` cookie. ``messages`` uses pydantic-ai''s
+        comes from the website login the request carries. ``messages`` uses pydantic-ai''s
 
         ``UIMessage`` so deferred-tool approval-responded parts deserialize into
 
@@ -14857,7 +14803,7 @@ components:
     APIKeyCookie:
       type: apiKey
       in: cookie
-      name: pathfinder-auth
+      name: pathfinder-dev-login
     HTTPBearer:
       type: http
       scheme: bearer

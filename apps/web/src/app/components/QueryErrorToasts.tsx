@@ -12,7 +12,7 @@ import { handleWdkAuthRefusal } from "@/state/useAuthGateStore";
  */
 export function QueryErrorToasts(): null {
   setQueryErrorHandler((notice) => {
-    if (handleWdkAuthRefusal(notice.error, notice.retry)) return;
+    if (handleWdkAuthRefusal(notice.error)) return;
     toast.error(notice.message);
   });
   return null;

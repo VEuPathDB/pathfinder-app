@@ -109,16 +109,16 @@ async def api_client(
     patch_app_db_engine: None,
     app_memory_store: MemoryStore,
     seed_user: User,
-    site_login_matches_session: None,
+    site_login_names_the_user: None,
 ) -> AsyncGenerator[httpx.AsyncClient]:
-    del patch_app_db_engine, app_memory_store, site_login_matches_session
+    del patch_app_db_engine, app_memory_store, site_login_names_the_user
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
         transport=transport,
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
-        client.cookies.set("pathfinder-auth", create_user_token(seed_user.id))
+        client.cookies.set("Authorization", create_user_token(seed_user.id))
         yield client
 
 
@@ -129,11 +129,11 @@ async def other_application_client(
     app_memory_store: MemoryStore,
     seed_user: User,
     other_application: str,
-    site_login_matches_session: None,
+    site_login_names_the_user: None,
 ) -> AsyncGenerator[httpx.AsyncClient]:
     """The same user, calling from a second application."""
     del patch_app_db_engine, app_memory_store, other_application
-    del site_login_matches_session
+    del site_login_names_the_user
     async with other_application_client_for(app, seed_user.id) as client:
         yield client
 

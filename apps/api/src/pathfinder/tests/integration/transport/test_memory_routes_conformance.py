@@ -48,7 +48,7 @@ async def test_the_fuzzed_user_holds_a_memory_of_every_kind(
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
-        client.cookies.set("pathfinder-auth", create_user_token(user_id))
+        client.cookies.set("Authorization", create_user_token(user_id))
         listed = await client.get(
             "/api/v1/memories", params={"limit": "50", "offset": "0"}
         )
@@ -97,7 +97,7 @@ async def test_memory_endpoints_have_store_in_conformance_app(
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
-        client.cookies.set("pathfinder-auth", create_user_token(user_id))
+        client.cookies.set("Authorization", create_user_token(user_id))
         listed = await client.get(
             "/api/v1/memories", params={"limit": "1", "offset": "0"}
         )

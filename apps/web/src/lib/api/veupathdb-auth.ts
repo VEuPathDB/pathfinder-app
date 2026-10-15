@@ -1,9 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { authStatusResponseSchema } from "@pathfinder/shared/generated/zod/authStatusResponseSchema";
-import { authSuccessResponseSchema } from "@pathfinder/shared/generated/zod/authSuccessResponseSchema";
 
 import { AppError } from "@/lib/errors/AppError";
-import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import { requestJson } from "./http";
 
 // VEuPathDB auth bridge
@@ -33,45 +31,10 @@ export async function getVeupathdbAuthStatus(
   return { signedIn: raw.signedIn };
 }
 
-/**
- * Re-derive the internal ``pathfinder-auth`` token from a live VEuPathDB session.
- * Called on page load when the internal token is missing/expired.
- */
-export async function refreshAuth(siteId: string): Promise<{ success: boolean }> {
-  return await requestJson(
-    authSuccessResponseSchema,
-    `/api/v1/veupathdb/auth/refresh`,
-    { method: "POST", query: { siteId } },
-  );
-}
-
-function authRefreshKey(siteId: string) {
-  return ["auth", "refresh", siteId] as const;
-}
-
 export function authStatusOptions(siteId: string) {
   return queryOptions({
     queryKey: ["auth", "status", siteId] as const,
-    queryFn: async ({ client, signal }) => {
-      const status = await getVeupathdbAuthStatus(siteId, signal);
-      if (!status.signedIn) client.removeQueries({ queryKey: authRefreshKey(siteId) });
-      return status;
-    },
+    queryFn: ({ signal }) => getVeupathdbAuthStatus(siteId, signal),
     enabled: siteId !== "",
-  });
-}
-
-export function authRefreshOptions(siteId: string) {
-  return queryOptions({
-    queryKey: authRefreshKey(siteId),
-    queryFn: async ({ client }) => {
-      await refreshAuth(siteId);
-      invalidateUserScopedQueries(client);
-      return { refreshed: true };
-    },
-    staleTime: Infinity,
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
   });
 }

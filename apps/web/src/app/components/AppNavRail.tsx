@@ -41,7 +41,6 @@ import { siteIsDown } from "@/lib/sites/availability";
 import { conversationIdFromPath, helpUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
-import { RailLogo } from "./RailLogo";
 import { RailQuotaMeter } from "./RailQuotaMeter";
 
 interface AppNavRailProps {
@@ -75,10 +74,6 @@ export function AppNavRail({
   return (
     <TooltipProvider delayDuration={150}>
       <div className="flex h-full w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar py-2">
-        <RailLogo />
-
-        <div className="my-1 h-px w-6 bg-border" />
-
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

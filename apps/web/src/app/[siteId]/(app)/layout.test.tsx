@@ -12,10 +12,6 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent: vi.fn() }));
 
-const session = vi.hoisted(() => ({ authRefreshed: true }));
-vi.mock("@/lib/query/hooks/useAuthRefresh", () => ({
-  useAuthRefresh: () => ({ authRefreshed: session.authRefreshed }),
-}));
 vi.mock("@/features/sites/hooks/useSiteTheme", () => ({
   useSiteTheme: () => undefined,
 }));
@@ -231,31 +227,12 @@ describe("AppShellLayout for a session the website has not signed in", () => {
   });
 });
 
-describe("AppShellLayout while the session cookie is minted", () => {
+describe("AppShellLayout once the website login is signed in", () => {
   beforeEach(holdUnseededReads);
   afterEach(() => {
     cleanup();
-    session.authRefreshed = true;
     vi.unstubAllGlobals();
   });
-
-  function drawBeforeRefresh() {
-    session.authRefreshed = false;
-    const { queryClient, Wrapper } = createTestWrapper();
-    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
-      signedIn: true,
-    });
-    queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
-    const shell = () => (
-      <Wrapper>
-        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
-          <div data-testid="routed-content" />
-        </AppShellLayout>
-      </Wrapper>
-    );
-    const view = render(shell());
-    return { rerender: () => view.rerender(shell()) };
-  }
 
   function quotaReads(): string[] {
     return vi
@@ -264,25 +241,19 @@ describe("AppShellLayout while the session cookie is minted", () => {
       .filter((url) => url.includes("/api/v1/me/quota"));
   }
 
-  it("shows the loading screen in place of the routed content", () => {
-    drawBeforeRefresh();
-
-    expect(screen.getByText("Loading...")).toBeInTheDocument();
-    expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
-  });
-
-  it("starts no quota read before the refresh settles", async () => {
-    drawBeforeRefresh();
-    await act(async () => {});
-
-    expect(quotaReads()).toEqual([]);
-  });
-
-  it("mounts the routed content and reads the quota once the refresh settles", async () => {
-    const { rerender } = drawBeforeRefresh();
-
-    session.authRefreshed = true;
-    rerender();
+  it("mounts the routed content and reads the quota with no wait", async () => {
+    const { queryClient, Wrapper } = createTestWrapper();
+    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
+      signedIn: true,
+    });
+    queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
+    render(
+      <Wrapper>
+        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+          <div data-testid="routed-content" />
+        </AppShellLayout>
+      </Wrapper>,
+    );
     await act(async () => {});
 
     expect(screen.getByTestId("routed-content")).toBeInTheDocument();

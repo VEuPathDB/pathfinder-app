@@ -97,10 +97,6 @@ UNGATED_BUT_REACHES_WDK: dict[tuple[str, str], str] = {
         "/api/v1/veupathdb/auth/status",
     ): "Reads the caller's own WDK session, and answers 'signed out' when the "
     "request carries no token.",
-    (
-        "POST",
-        "/api/v1/veupathdb/auth/refresh",
-    ): "Re-derives the internal token from a live VEuPathDB session.",
 }
 
 

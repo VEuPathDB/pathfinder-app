@@ -141,27 +141,15 @@ describe("AppNavRail section links", () => {
   });
 });
 
-describe("AppNavRail logo and spending meter", () => {
-  it("opens the rail with the PathFinder logo, which is neither a link nor a button", async () => {
+describe("AppNavRail spending meter", () => {
+  it("opens the rail with the sidebar toggle and carries no logo", async () => {
     draw();
-    const logo = await screen.findByRole("img", { name: "PathFinder" });
-    const rail = logo.parentElement;
 
-    expect(rail?.firstElementChild).toBe(logo);
-    expect(rail).toContainElement(screen.getByRole("link", { name: "Conversation" }));
-    expect(screen.queryByRole("link", { name: "PathFinder" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "PathFinder" })).toBeNull();
-    expect(logo.querySelector("img")).toHaveAttribute(
-      "src",
-      "/pathfinder/pathfinder.svg",
-    );
-  });
-
-  it("names the logo PathFinder on hover", async () => {
-    draw();
-    await userEvent.hover(await screen.findByRole("img", { name: "PathFinder" }));
-
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("PathFinder");
+    const toggle = await screen.findByRole("button", {
+      name: "Open conversation sidebar",
+    });
+    expect(toggle.parentElement?.firstElementChild).toBe(toggle);
+    expect(screen.queryByRole("img", { name: "PathFinder" })).toBeNull();
   });
 
   it("opens the bottom group with the spending meter, before the settings", async () => {

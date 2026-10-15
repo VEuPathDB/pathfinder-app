@@ -140,7 +140,7 @@ async def test_a_turn_under_a_key_writes_the_key_nowhere(
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://test",
-            cookies={"pathfinder-auth": create_user_token(authed_user_id)},
+            cookies={"Authorization": create_user_token(authed_user_id)},
             headers={"X-Requested-With": "XMLHttpRequest"},
         ) as client:
             post = asyncio.create_task(

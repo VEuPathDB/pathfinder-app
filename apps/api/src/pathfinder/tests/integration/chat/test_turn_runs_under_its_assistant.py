@@ -48,7 +48,7 @@ async def test_a_completed_turn_records_the_assistant_that_answered(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": create_user_token(authed_user_id)},
+        cookies={"Authorization": create_user_token(authed_user_id)},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post = asyncio.create_task(

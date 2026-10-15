@@ -56,7 +56,7 @@ def client_for(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
         headers=headers,
-        cookies={"pathfinder-auth": create_user_token(user_id)},
+        cookies={"Authorization": create_user_token(user_id)},
     )
 
 

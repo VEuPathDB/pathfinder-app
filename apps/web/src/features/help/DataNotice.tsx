@@ -21,7 +21,6 @@ import {
   getPrivacySettings,
 } from "@/lib/api/privacy";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
-import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import { yourDataUrl } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
@@ -33,14 +32,13 @@ const LEARN_HELP_ID = "data-notice-learn-help";
 export function DataNotice() {
   const qc = useQueryClient();
   const selectedSite = useSessionStore((s) => s.selectedSite);
-  const { authRefreshed } = useAuthRefresh(selectedSite);
   const { data: authStatus } = useQuery(authStatusOptions(selectedSite));
   const { data } = useQuery({
     queryKey: PRIVACY_QUERY_KEY,
     queryFn: getPrivacySettings,
     staleTime: Infinity,
     retry: false,
-    enabled: authRefreshed && authStatus?.signedIn === true,
+    enabled: authStatus?.signedIn === true,
   });
   const [learn, setLearn] = useState(true);
   const record = useMutation({

@@ -6,9 +6,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { APIError, requestJson } from "@/lib/api/http";
-import { refreshAuth } from "@/lib/api/veupathdb-auth";
-import { getQueryClient } from "@/lib/query/client";
-import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import {
   WDK_LOGIN_REQUIRED_TOAST_ID,
   handleWdkAuthRefusal,
@@ -16,10 +13,6 @@ import {
 } from "./useAuthGateStore";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
-vi.mock("@/lib/api/veupathdb-auth", () => ({ refreshAuth: vi.fn() }));
-vi.mock("@/lib/query/invalidateUserScoped", () => ({
-  invalidateUserScopedQueries: vi.fn(),
-}));
 
 const LOGIN_REQUIRED_BODY = {
   type: "about:blank",
@@ -51,9 +44,6 @@ function mismatchError(): APIError {
 beforeEach(() => {
   useAuthGateStore.getState().dismissSignIn();
   vi.mocked(toast.error).mockClear();
-  vi.mocked(refreshAuth).mockReset();
-  vi.mocked(refreshAuth).mockResolvedValue({ success: true });
-  vi.mocked(invalidateUserScopedQueries).mockClear();
 });
 
 afterEach(() => {
@@ -97,7 +87,6 @@ describe("handleWdkAuthRefusal", () => {
     );
     expect(useAuthGateStore.getState().signInRequired).toBe(true);
     expect(useAuthGateStore.getState().signInReason).toBe(LOGIN_REQUIRED_BODY.detail);
-    expect(vi.mocked(refreshAuth)).not.toHaveBeenCalled();
   });
 
   it("reuses one toast id so concurrent refusals do not stack", () => {
@@ -155,71 +144,15 @@ describe("handleWdkAuthRefusal", () => {
 });
 
 describe("handleWdkAuthRefusal on a second VEuPathDB account", () => {
-  it("relinks the session and retries instead of prompting", async () => {
-    const retry = vi.fn();
+  it("prompts with the server detail, as for a missing login", () => {
+    expect(handleWdkAuthRefusal(mismatchError())).toBe(true);
 
-    expect(handleWdkAuthRefusal(mismatchError(), retry)).toBe(true);
-
-    await vi.waitFor(() => expect(retry).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(refreshAuth)).toHaveBeenCalledTimes(1);
-    expect(useAuthGateStore.getState().signInRequired).toBe(false);
-    expect(vi.mocked(toast.error)).not.toHaveBeenCalled();
-  });
-
-  it("drops the previous account's cached reads once the relink succeeds", async () => {
-    const retry = vi.fn();
-
-    handleWdkAuthRefusal(mismatchError(), retry);
-
-    await vi.waitFor(() => expect(retry).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(invalidateUserScopedQueries).mock.calls).toEqual([
-      [getQueryClient()],
-    ]);
-  });
-
-  it("relinks once for a burst of refusals", async () => {
-    const retry = vi.fn();
-
-    handleWdkAuthRefusal(mismatchError(), retry);
-    handleWdkAuthRefusal(mismatchError(), retry);
-
-    await vi.waitFor(() => expect(retry).toHaveBeenCalledTimes(2));
-    expect(vi.mocked(refreshAuth)).toHaveBeenCalledTimes(1);
-  });
-
-  it("prompts with the server detail when the relink fails", async () => {
-    vi.mocked(refreshAuth).mockRejectedValue(
-      new APIError("No VEuPathDB session", {
-        status: 401,
-        statusText: "Unauthorized",
-        url: "/api/v1/veupathdb/auth/refresh",
-        data: null,
-      }),
-    );
-    const retry = vi.fn();
-
-    handleWdkAuthRefusal(mismatchError(), retry);
-
-    await vi.waitFor(() =>
-      expect(useAuthGateStore.getState().signInRequired).toBe(true),
-    );
+    expect(useAuthGateStore.getState().signInRequired).toBe(true);
     expect(useAuthGateStore.getState().signInReason).toBe(
       IDENTITY_MISMATCH_BODY.detail,
     );
     expect(vi.mocked(toast.error)).toHaveBeenCalledWith(IDENTITY_MISMATCH_BODY.detail, {
       id: WDK_LOGIN_REQUIRED_TOAST_ID,
     });
-    expect(retry).not.toHaveBeenCalled();
-    expect(vi.mocked(invalidateUserScopedQueries)).not.toHaveBeenCalled();
-  });
-
-  it("prompts when the relink answers that it did not succeed", async () => {
-    vi.mocked(refreshAuth).mockResolvedValue({ success: false });
-
-    handleWdkAuthRefusal(mismatchError());
-
-    await vi.waitFor(() =>
-      expect(useAuthGateStore.getState().signInRequired).toBe(true),
-    );
   });
 });

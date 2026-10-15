@@ -67,10 +67,6 @@ BODY_GATED: dict[tuple[str, str], str] = {
 # Routes that reach a site without the gate, and the reason each one may.
 UNGATED_BUT_REACHES_A_SITE: dict[tuple[str, str], str] = {
     (
-        "POST",
-        "/api/v1/veupathdb/auth/refresh",
-    ): "Re-derives the internal token from a live VEuPathDB session.",
-    (
         "GET",
         "/api/v1/veupathdb/auth/status",
     ): "Reads the caller's own session and answers 'signed out' without one.",

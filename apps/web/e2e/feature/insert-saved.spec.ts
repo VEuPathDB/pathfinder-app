@@ -85,7 +85,7 @@ test.describe("Insert a saved strategy", { tag: "@turn" }, () => {
     siteId,
   }) => {
     const ctx = page.context().request;
-    await signInAsWdkAccount(page.context(), siteId);
+    await signInAsWdkAccount(page.context());
     await page.reload();
 
     const created: string[] = [];

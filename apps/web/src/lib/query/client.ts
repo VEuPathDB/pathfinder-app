@@ -24,8 +24,6 @@ export interface QueryErrorNotice {
   message: string;
   queryKey: readonly unknown[];
   error: unknown;
-  /** Run the query again, for a handler that repaired what refused it. */
-  retry: () => void;
 }
 
 type NoticeHandler = (notice: QueryErrorNotice) => void;
@@ -51,10 +49,7 @@ function makeQueryClient(): QueryClient {
         if (!actionable && query.meta?.shownInline === true) return;
         if (!actionable && error instanceof APIError && error.status === 401) return;
         const message = extractMessage(error, "Request failed");
-        const retry = (): void => {
-          void query.fetch().catch(() => {});
-        };
-        handler?.({ message, queryKey: query.queryKey, error, retry });
+        handler?.({ message, queryKey: query.queryKey, error });
       },
     }),
     defaultOptions: {

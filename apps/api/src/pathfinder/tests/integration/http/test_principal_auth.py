@@ -226,11 +226,10 @@ async def test_a_bearer_post_needs_no_csrf_header(
 @pytest.mark.asyncio
 async def test_a_cookie_post_still_needs_the_csrf_header(
     bare_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
+    site_login: tuple[UUID, str],
 ) -> None:
-    async with session_maker() as session:
-        user = await make_user(session)
-    bare_client.cookies.set("pathfinder-auth", create_user_token(user.id))
+    _, site_token = site_login
+    bare_client.cookies.set("Authorization", site_token)
 
     response = await bare_client.post(
         CONVERSATIONS_PATH,
@@ -246,14 +245,11 @@ async def test_an_invalid_bearer_never_falls_back_to_the_cookie(
     bare_client: httpx.AsyncClient,
     principal_client: httpx.AsyncClient,
     signing_key: ec.EllipticCurvePrivateKey,
-    session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
     """The CSRF exemption must not become a way in: a bad bearer is 401, not 2xx."""
-    async with session_maker() as session:
-        user = await make_user(session)
-    cookie = create_user_token(user.id)
-    bare_client.cookies.set("pathfinder-auth", cookie)
-    principal_client.cookies.set("pathfinder-auth", cookie)
+    site_token = veupathdb_token(signing_key)
+    bare_client.cookies.set("Authorization", site_token)
+    principal_client.cookies.set("Authorization", site_token)
 
     with respx.mock(assert_all_called=False) as respx_mock:
         stub_oauth_and_wdk(respx_mock, signing_key)
@@ -294,12 +290,11 @@ async def test_an_unreachable_identity_provider_is_not_an_authentication_failure
 @pytest.mark.asyncio
 async def test_a_non_ascii_service_token_is_rejected(
     principal_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
+    site_login: tuple[UUID, str],
 ) -> None:
     """A header byte outside ASCII must be 401, not a 500 from the comparison."""
-    async with session_maker() as session:
-        user = await make_user(session)
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user.id))
+    _, site_token = site_login
+    principal_client.cookies.set("Authorization", site_token)
 
     # The value goes out as raw bytes, which is the only way an 0x80-0xFF byte
     # reaches the server; Starlette decodes it as latin-1.
@@ -352,23 +347,22 @@ async def test_a_pathfinder_bearer_token_is_read_before_any_veupathdb_meaning(
 
 
 @pytest.mark.asyncio
-async def test_a_cookie_names_the_cookie_credential(
+async def test_the_site_login_alone_names_its_user(
     principal_client: httpx.AsyncClient,
     site_login: tuple[UUID, str],
 ) -> None:
     user_id, site_token = site_login
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user_id))
     principal_client.cookies.set("Authorization", site_token)
 
     response = await principal_client.get(PRINCIPAL_PATH)
 
     assert response.status_code == _OK, response.text
-    assert response.json()["credential"] == "pathfinder-cookie"
+    assert response.json()["credential"] == "veupathdb-cookie"
     assert response.json()["userId"] == str(user_id)
 
 
 @pytest.mark.asyncio
-async def test_a_cookie_with_no_site_login_is_signed_out(
+async def test_a_pathfinder_session_cookie_alone_signs_nobody_in(
     principal_client: httpx.AsyncClient,
     session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
@@ -379,49 +373,40 @@ async def test_a_cookie_with_no_site_login_is_signed_out(
     response = await principal_client.get(PRINCIPAL_PATH)
 
     assert response.status_code == _UNAUTHORIZED, response.text
-    assert response.json()["code"] == "WDK_LOGIN_REQUIRED"
+    assert response.json()["detail"] == "Not authenticated"
 
 
 @pytest.mark.asyncio
-async def test_a_cookie_whose_site_login_names_another_account_is_refused(
+async def test_a_guest_site_login_signs_nobody_in(
     principal_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
-    site_login: tuple[UUID, str],
+    signing_key: ec.EllipticCurvePrivateKey,
 ) -> None:
-    _, site_token = site_login
-    async with session_maker() as session:
-        user = await make_user(session)
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user.id))
-    principal_client.cookies.set("Authorization", site_token)
+    principal_client.cookies.set(
+        "Authorization", veupathdb_token(signing_key, is_guest=True)
+    )
 
-    response = await principal_client.get(PRINCIPAL_PATH)
+    with respx.mock(assert_all_called=False) as respx_mock:
+        stub_oauth_and_wdk(respx_mock, signing_key, is_guest=True)
+        response = await principal_client.get(PRINCIPAL_PATH)
 
     assert response.status_code == _UNAUTHORIZED, response.text
-    assert response.json()["code"] == "WDK_IDENTITY_MISMATCH"
 
 
 @pytest.mark.asyncio
-async def test_a_local_route_signs_out_a_cookie_with_no_site_login(
+async def test_a_local_route_refuses_a_request_with_no_site_login(
     bare_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
 ) -> None:
-    async with session_maker() as session:
-        user = await make_user(session)
-    bare_client.cookies.set("pathfinder-auth", create_user_token(user.id))
-
     response = await bare_client.get(CONVERSATIONS_PATH)
 
     assert response.status_code == _UNAUTHORIZED, response.text
-    assert response.json()["code"] == "WDK_LOGIN_REQUIRED"
 
 
 @pytest.mark.asyncio
-async def test_a_local_route_serves_a_cookie_its_site_login_names(
+async def test_a_local_route_serves_the_user_its_site_login_names(
     bare_client: httpx.AsyncClient,
     site_login: tuple[UUID, str],
 ) -> None:
-    user_id, site_token = site_login
-    bare_client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    _, site_token = site_login
     bare_client.cookies.set("Authorization", site_token)
 
     response = await bare_client.get(CONVERSATIONS_PATH)
@@ -443,8 +428,7 @@ async def test_a_service_token_names_the_calling_application(
     principal_client: httpx.AsyncClient,
     site_login: tuple[UUID, str],
 ) -> None:
-    user_id, site_token = site_login
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    _, site_token = site_login
     principal_client.cookies.set("Authorization", site_token)
 
     response = await principal_client.get(
@@ -459,11 +443,10 @@ async def test_a_service_token_names_the_calling_application(
 @pytest.mark.asyncio
 async def test_an_unknown_service_token_is_rejected(
     principal_client: httpx.AsyncClient,
-    session_maker: async_sessionmaker[AsyncSession],
+    site_login: tuple[UUID, str],
 ) -> None:
-    async with session_maker() as session:
-        user = await make_user(session)
-    principal_client.cookies.set("pathfinder-auth", create_user_token(user.id))
+    _, site_token = site_login
+    principal_client.cookies.set("Authorization", site_token)
 
     response = await principal_client.get(
         PRINCIPAL_PATH,

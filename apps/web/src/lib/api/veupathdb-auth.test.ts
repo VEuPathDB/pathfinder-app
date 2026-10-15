@@ -5,11 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppError } from "@/lib/errors/AppError";
 import { createTestQueryClient } from "@/lib/query/testing";
-import {
-  authRefreshOptions,
-  authStatusOptions,
-  getVeupathdbAuthStatus,
-} from "./veupathdb-auth";
+import { authStatusOptions, getVeupathdbAuthStatus } from "./veupathdb-auth";
 
 function fetchThatNeverAnswers() {
   return vi.fn(
@@ -64,7 +60,7 @@ describe("authStatusOptions", () => {
     vi.unstubAllGlobals();
   });
 
-  it("aborts a cancelled status read before it can drop the refresh", async () => {
+  it("aborts a status read that is cancelled", async () => {
     const signals: (AbortSignal | null | undefined)[] = [];
     vi.stubGlobal(
       "fetch",
@@ -76,8 +72,6 @@ describe("authStatusOptions", () => {
       }),
     );
     const client = createTestQueryClient();
-    const refresh = authRefreshOptions("plasmodb").queryKey;
-    client.setQueryData(refresh, { refreshed: true });
     const status = authStatusOptions("plasmodb");
 
     const read = client.fetchQuery(status).catch(() => null);
@@ -86,6 +80,5 @@ describe("authStatusOptions", () => {
     await read;
 
     expect(signals[0]?.aborted).toBe(true);
-    expect(client.getQueryData(refresh)).toEqual({ refreshed: true });
   });
 });

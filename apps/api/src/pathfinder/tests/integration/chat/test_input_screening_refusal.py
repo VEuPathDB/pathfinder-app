@@ -34,7 +34,7 @@ async def test_a_judged_injection_is_refused_and_queues_no_turn(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": create_user_token(authed_user_id)},
+        cookies={"Authorization": create_user_token(authed_user_id)},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         response = await client.post(
@@ -70,7 +70,7 @@ async def test_a_judge_that_does_not_answer_refuses_with_a_503(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": create_user_token(authed_user_id)},
+        cookies={"Authorization": create_user_token(authed_user_id)},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         response = await client.post(

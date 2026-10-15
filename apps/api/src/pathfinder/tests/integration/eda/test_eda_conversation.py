@@ -87,7 +87,7 @@ from pathfinder.tests.integration.chat._helpers import (
 from pathfinder.tests.integration.http.conftest import WDK_AUTH_HEADER, client_for
 
 pytestmark = pytest.mark.usefixtures(
-    "patch_app_db_engine", "db_cleaner", "site_login_matches_session"
+    "patch_app_db_engine", "db_cleaner", "site_login_names_the_user"
 )
 
 _PROMPT = "look at the rodent malaria phenotypes and keep the P. berghei rows"

@@ -36,7 +36,7 @@ from pathfinder.tests.integration.http._wdk_mcp_double import (
 )
 from pathfinder.tests.integration.http.conftest import make_user
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session", "helper_assistant")
+pytestmark = pytest.mark.usefixtures("site_login_names_the_user", "helper_assistant")
 
 
 INJECTED_RECORD_TYPE = (

@@ -275,7 +275,7 @@ test.describe("First run and navigation", () => {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByTestId("message-composer")).toHaveCount(0);
 
-    await signInAsWdkAccount(context, siteId);
+    await signInAsWdkAccount(context);
     await page.reload();
     await expect(signedOut).toHaveCount(0, { timeout: 60_000 });
     await expect(page).toHaveURL(new RegExp(`/pathfinder/${entry}/conversation$`));
@@ -307,7 +307,7 @@ test.describe("First run and navigation", () => {
     await expect(page.getByRole("link", { name: "Sign in to VEuPathDB" })).toBeVisible({
       timeout: 30_000,
     });
-    await signInAsWdkAccount(context, siteId);
+    await signInAsWdkAccount(context);
     await page.reload();
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
     const after = (await listConversations(context.request, entry)).map(

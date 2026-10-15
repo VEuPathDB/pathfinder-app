@@ -43,9 +43,9 @@ def recorded(monkeypatch: pytest.MonkeyPatch) -> list[ProductEvent]:
 
 @pytest.fixture
 async def client(
-    app: FastAPI, user_id: UUID, site_login_matches_session: None
+    app: FastAPI, user_id: UUID, site_login_names_the_user: None
 ) -> AsyncGenerator[httpx.AsyncClient]:
-    del site_login_matches_session
+    del site_login_names_the_user
     async with client_for(app, user_id) as client:
         yield client
 

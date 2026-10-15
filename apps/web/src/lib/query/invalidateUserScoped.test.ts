@@ -5,7 +5,7 @@ import { listStrategiesQueryKey } from "@pathfinder/shared/generated/hooks/useLi
 import { listModelsQueryKey } from "@pathfinder/shared/generated/hooks/useListModels";
 
 import { strategyQueryKey } from "@/lib/api/strategy";
-import { authRefreshOptions, authStatusOptions } from "@/lib/api/veupathdb-auth";
+import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { createTestQueryClient } from "@/lib/query/testing";
 
 import { invalidateUserScopedQueries } from "./invalidateUserScoped";
@@ -21,7 +21,6 @@ const USER_SCOPED = [
 
 const SHARED = [
   authStatusOptions("plasmodb").queryKey,
-  authRefreshOptions("plasmodb").queryKey,
   listModelsQueryKey(),
   ["conversations", "c1", "reattach", "t1", 0],
 ] as const;

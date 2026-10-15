@@ -17,7 +17,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_names_the_user")
 
 
 _E2E_SITES = Path(__file__).resolve().parents[7] / "e2e-sites.yaml"

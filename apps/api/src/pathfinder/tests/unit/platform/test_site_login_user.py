@@ -1,5 +1,5 @@
-"""The website login of a request names a user only for a cookie session whose
-token verifies locally."""
+"""The website login of a request names its user once the token verifies
+locally as registered."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from veupathdb.wdk import VEuPathDBClaims
 
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.security import (
-    create_dev_login_token,
     create_user_token,
     site_login_user,
 )
@@ -67,7 +66,7 @@ async def test_a_token_that_is_not_a_registered_login_names_nobody_without_a_wdk
     _validations(monkeypatch, claims)
     resolved = _resolutions(monkeypatch)
 
-    site_user = await site_login_user(cookie_token=create_user_token(uuid4()))
+    site_user = await site_login_user()
 
     assert site_user is None
     assert resolved == []
@@ -79,7 +78,7 @@ async def test_a_registered_token_names_the_user_its_account_maps_to(
     _validations(monkeypatch, REGISTERED)
     resolved = _resolutions(monkeypatch)
 
-    site_user = await site_login_user(cookie_token=create_user_token(uuid4()))
+    site_user = await site_login_user()
 
     assert site_user == SITE_USER
     assert resolved == [(SITE_TOKEN, get_settings().pathfinder_site)]
@@ -93,31 +92,21 @@ async def test_a_bearer_request_reads_no_site_login(
         scheme="Bearer", credentials=create_user_token(uuid4())
     )
 
-    site_user = await site_login_user(
-        cookie_token=create_user_token(uuid4()), bearer=bearer
-    )
+    site_user = await site_login_user(bearer=bearer)
 
     assert site_user is None
     assert validated == []
 
 
-async def test_a_request_with_no_session_cookie_reads_no_site_login(
+async def test_a_request_with_no_site_login_reads_nothing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     validated = _validations(monkeypatch, REGISTERED)
-
-    site_user = await site_login_user()
-
-    assert site_user is None
-    assert validated == []
-
-
-async def test_a_dev_login_session_reads_no_site_login(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    validated = _validations(monkeypatch, REGISTERED)
-
-    site_user = await site_login_user(cookie_token=create_dev_login_token(uuid4()))
+    reset = veupathdb_auth_token_ctx.set(None)
+    try:
+        site_user = await site_login_user()
+    finally:
+        veupathdb_auth_token_ctx.reset(reset)
 
     assert site_user is None
     assert validated == []

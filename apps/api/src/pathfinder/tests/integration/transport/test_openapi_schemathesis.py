@@ -47,7 +47,6 @@ from schemathesis.specs.openapi.checks import (
 )
 
 from pathfinder.platform.config import get_settings
-from pathfinder.platform.security import create_user_token
 from pathfinder.tests._support.memory_store_double import LoopFreeMemoryStore
 from pathfinder.tests._support.openapi_negation import (
     labels_with_uncomplementable_union,
@@ -105,7 +104,6 @@ class _SchemaArtifacts:
 
     schema: BaseSchema
     user_id: UUID
-    auth_token: str
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -173,7 +171,6 @@ def api_schema(
     return _SchemaArtifacts(
         schema=schema,
         user_id=user_id,
-        auth_token=create_user_token(user_id),
     )
 
 
@@ -220,7 +217,6 @@ def test_openapi_conformance(
     del seeded_memories
     response: Response = case.call_and_validate(
         checks=_CHECKS,
-        cookies={"pathfinder-auth": api_schema.auth_token},
         headers={"X-Requested-With": "XMLHttpRequest"},
     )
     assert response.status_code >= 100

@@ -35,11 +35,10 @@ from .sites import (
 from .steps import (
     RecordDetailRequest,
 )
-from .veupathdb_auth import AuthStatusResponse, AuthSuccessResponse
+from .veupathdb_auth import AuthStatusResponse
 
 __all__ = [
     "AuthStatusResponse",
-    "AuthSuccessResponse",
     "BeginConversationRequest",
     "BeginConversationResponse",
     "ConversationDuplicateResponse",

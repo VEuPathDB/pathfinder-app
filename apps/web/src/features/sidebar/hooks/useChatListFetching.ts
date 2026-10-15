@@ -3,7 +3,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import type { ConversationResponse } from "@pathfinder/shared/generated/types/ConversationResponse";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
 import { listDismissedStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListDismissedStrategies";
@@ -27,12 +26,11 @@ export function useChatListFetching({
   siteId,
 }: UseChatListFetchingArgs): ChatListFetchingResult {
   const { data: authStatus } = useQuery(authStatusOptions(siteId));
-  const { authRefreshed } = useAuthRefresh(siteId);
   const queryClient = useQueryClient();
 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const queryEnabled = authStatus?.signedIn === true && authRefreshed && siteId !== "";
+  const queryEnabled = authStatus?.signedIn === true && siteId !== "";
 
   const listOpts = listStrategiesQueryOptions({ siteId });
   const dismissedOpts = listDismissedStrategiesQueryOptions({ siteId });

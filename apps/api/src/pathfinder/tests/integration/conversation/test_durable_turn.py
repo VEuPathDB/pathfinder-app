@@ -108,7 +108,7 @@ async def test_post_chat_enqueues_runs_and_streams_until_done(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": token},
+        cookies={"Authorization": token},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post_task = asyncio.create_task(
@@ -155,7 +155,7 @@ async def test_post_chat_does_not_replay_prior_turn_events(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": token},
+        cookies={"Authorization": token},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post_task = asyncio.create_task(
@@ -195,7 +195,7 @@ async def test_events_endpoint_returns_204_when_turn_complete(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": token},
+        cookies={"Authorization": token},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post_task = asyncio.create_task(
@@ -226,17 +226,17 @@ async def test_events_endpoint_returns_204_on_empty_conversation(
     patch_app_db_engine: None,
     db_cleaner: None,
     authed_user_id: UUID,
-    site_login_matches_session: None,
+    site_login_names_the_user: None,
 ) -> None:
     """A conversation with zero events has nothing to resume."""
-    del patch_app_db_engine, db_cleaner, site_login_matches_session
+    del patch_app_db_engine, db_cleaner, site_login_names_the_user
     conv_id = await _seed_conversation(authed_user_id)
     token = create_user_token(authed_user_id)
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": token},
+        cookies={"Authorization": token},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         res = await client.get(
@@ -253,10 +253,10 @@ async def test_events_endpoint_streams_when_the_turns_job_is_running(
     patch_app_db_engine: None,
     db_cleaner: None,
     authed_user_id: UUID,
-    site_login_matches_session: None,
+    site_login_names_the_user: None,
 ) -> None:
     """The events endpoint streams while a live worker holds the thread."""
-    del patch_app_db_engine, db_cleaner, site_login_matches_session
+    del patch_app_db_engine, db_cleaner, site_login_names_the_user
     conv_id = await _seed_conversation(authed_user_id)
     await clear_workers()
     await insert_worker_heartbeat(age_seconds=2)
@@ -276,7 +276,7 @@ async def test_events_endpoint_streams_when_the_turns_job_is_running(
         httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://test",
-            cookies={"pathfinder-auth": token},
+            cookies={"Authorization": token},
             headers={"X-Requested-With": "XMLHttpRequest"},
         ) as client,
     ):
@@ -317,7 +317,7 @@ async def test_two_concurrent_subscribers_consistent_204_when_complete(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": token},
+        cookies={"Authorization": token},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post_task = asyncio.create_task(

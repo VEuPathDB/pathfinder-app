@@ -62,7 +62,7 @@ _DURABLE_TASK = f"durable:{TOOL}"
 # through, the seams the worker installs over it, the WDK double, and a
 # session the site login names.
 pytestmark = pytest.mark.usefixtures(
-    "controls_assistant", "worker_seams", "controls_wire", "site_login_matches_session"
+    "controls_assistant", "worker_seams", "controls_wire", "site_login_names_the_user"
 )
 
 

@@ -2,6 +2,18 @@
 
 ## 2026-10-15
 
+* **PathFinder keeps no session of its own.** A browser request acts as the account the
+  website's `Authorization` cookie names: `site_login_user` maps it to the internal user
+  on every request, under the per-token cache `resolve_veupathdb_user_id` already kept,
+  and `resolve_principal` serves it as `veupathdb-cookie`. The `pathfinder-auth` cookie,
+  `POST /api/v1/veupathdb/auth/refresh`, the web app's `useAuthRefresh` and the relink on
+  `WDK_IDENTITY_MISMATCH` are gone; the rate limit keys a browser by its login. The mock
+  stack's dev-login cookie is `pathfinder-dev-login`. A proxied site whose browser never
+  returned the session cookie answered every signed-in call "Not authenticated".
+
+* **The PathFinder mark sits at the end of the composer's notice line.** The rail opens
+  with the sidebar toggle; the website's header names the product.
+
 * **A search is read under the record type that lists it.** The organism reads before a
   push (`organism_params.py`), given the root's record type, and the text query sheets
   VERIFY reads (`text_queries.py`), given the spec's, take each search's own type from

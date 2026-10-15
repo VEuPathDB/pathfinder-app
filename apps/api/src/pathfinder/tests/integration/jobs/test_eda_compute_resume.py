@@ -65,7 +65,7 @@ from pathfinder.tests.integration.chat._helpers import (
 from pathfinder.tests.integration.http.conftest import WDK_AUTH_HEADER, client_for
 from pathfinder.tests.integration.jobs import _eda_wire
 
-pytestmark = pytest.mark.usefixtures("site_login_matches_session")
+pytestmark = pytest.mark.usefixtures("site_login_names_the_user")
 
 
 _PROMPT = "compare the febrile samples against the normal ones"

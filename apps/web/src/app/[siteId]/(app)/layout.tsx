@@ -12,7 +12,6 @@ import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
 import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
 import { VeupathdbSignInGate } from "@/app/components/VeupathdbSignInGate";
-import { useAuthRefresh } from "@/lib/query/hooks/useAuthRefresh";
 import { useAutoCollapsePanels } from "@/app/hooks/useAutoCollapsePanels";
 import { useModalState } from "@/app/hooks/useModalState";
 import { useSidebarResize } from "@/app/hooks/useSidebarResize";
@@ -71,7 +70,6 @@ function AppShellInner({
   }
 
   const access = useSiteAccess(selectedSite);
-  const { authRefreshed } = useAuthRefresh(selectedSite);
   useSiteTheme(selectedSite);
   const { setupRequired, retry: retryConfig } = useSystemConfig();
 
@@ -109,8 +107,6 @@ function AppShellInner({
       </>
     );
   }
-  if (access.kind === "up" && !authRefreshed) return <LoadingScreen />;
-
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <QueryErrorToasts />

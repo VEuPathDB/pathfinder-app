@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from typing import Any, cast
-from uuid import UUID
 
 import httpx
 import pytest
@@ -18,7 +17,6 @@ from veupathdb.wdk import WDKUserInfo
 
 from pathfinder.platform.error_handlers import veupathdb_error_handler
 from pathfinder.platform.readiness import reset_readiness
-from pathfinder.platform.security import create_user_token
 from pathfinder.services import wdk_identity
 from pathfinder.transport.http.routers.veupathdb_auth import router
 
@@ -122,37 +120,3 @@ class TestStatus:
 
         assert response.status_code == 200
         assert response.json()["signedIn"] is False
-
-
-class TestRefresh:
-    async def test_an_outage_is_a_503(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        _registered_email(monkeypatch, _outage())
-
-        response = await _call(
-            _app(),
-            "POST",
-            "refresh",
-            cookies={"Authorization": "veupathdb-jwt"},
-        )
-
-        assert _refusal(response) == _REFUSAL
-
-    async def test_an_outage_leaves_the_session_cookie_alone(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        _registered_email(monkeypatch, _outage())
-
-        response = await _call(
-            _app(),
-            "POST",
-            "refresh",
-            cookies={
-                "pathfinder-auth": create_user_token(
-                    UUID("aa873910-0000-4000-8000-000000000001")
-                ),
-                "Authorization": "veupathdb-jwt",
-            },
-        )
-
-        assert _refusal(response) == _REFUSAL
-        assert "set-cookie" not in response.headers

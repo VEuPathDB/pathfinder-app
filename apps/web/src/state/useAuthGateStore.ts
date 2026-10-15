@@ -7,11 +7,7 @@
 import { toast } from "sonner";
 
 import { wdkAuthRefusal } from "@/lib/api/errors";
-import { refreshAuth } from "@/lib/api/veupathdb-auth";
-import { getQueryClient } from "@/lib/query/client";
-import { invalidateUserScopedQueries } from "@/lib/query/invalidateUserScoped";
 import { createStore } from "./middleware";
-import { useSessionStore } from "./useSessionStore";
 
 interface AuthGateState {
   signInRequired: boolean;
@@ -48,38 +44,13 @@ function promptSignIn(detail: string): void {
   useAuthGateStore.getState().requestSignIn(detail);
 }
 
-/** The relink in flight, so a burst of refusals costs one refresh. */
-let relinking: Promise<boolean> | null = null;
-
-async function relink(detail: string, retry?: () => void): Promise<void> {
-  relinking ??= refreshAuth(useSessionStore.getState().selectedSite)
-    .then((result) => {
-      if (result.success) invalidateUserScopedQueries(getQueryClient());
-      return result.success;
-    })
-    .catch(() => false);
-  const relinked = await relinking;
-  relinking = null;
-  if (!relinked) {
-    promptSignIn(detail);
-    return;
-  }
-  retry?.();
-}
-
 /**
- * Route a refusal about the caller's VEuPathDB account. A missing login opens
- * the sign-in prompt. A token that names another account relinks the session
- * first, and calls ``retry`` when the relink succeeds. Returns false for every
- * other error, which stays with its own handler.
+ * Route a refusal about the caller's VEuPathDB account to the sign-in prompt.
+ * Returns false for every other error, which stays with its own handler.
  */
-export function handleWdkAuthRefusal(err: unknown, retry?: () => void): boolean {
+export function handleWdkAuthRefusal(err: unknown): boolean {
   const refusal = wdkAuthRefusal(err);
   if (refusal === null) return false;
-  if (refusal.code === "WDK_IDENTITY_MISMATCH") {
-    void relink(refusal.detail, retry);
-    return true;
-  }
   promptSignIn(refusal.detail);
   return true;
 }

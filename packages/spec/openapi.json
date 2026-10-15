@@ -3458,69 +3458,13 @@
         }
       }
     },
-    "/api/v1/veupathdb/auth/refresh": {
-      "post": {
-        "tags": [
-          "veupathdb-auth"
-        ],
-        "summary": "Refresh Internal Auth",
-        "description": "Re-derive the internal auth token from a live VEuPathDB session.\n\nUse this when the internal token is absent or expired, and to relink a\nsession whose VEuPathDB cookie now names another account. A dev-login\nsession names no VEuPathDB account, so no token can move it.",
-        "operationId": "refresh_internal_auth_api_v1_veupathdb_auth_refresh_post",
-        "security": [
-          {
-            "APIKeyCookie": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "siteId",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 50,
-              "default": "veupathdb",
-              "title": "Siteid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthSuccessResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetail"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/veupathdb/auth/status": {
       "get": {
         "tags": [
           "veupathdb-auth"
         ],
         "summary": "Auth Status",
-        "description": "Return the current VEuPathDB auth status.\n\nA refused token or a guest is signed out, and a signed-out answer clears the\nPathFinder session; a site that does not answer is a 503. A mock chat\nprovider has no VEuPathDB session, so the internal cookie alone proves\nidentity there.",
+        "description": "Return the current VEuPathDB auth status.\n\nA refused token or a guest is signed out; a site that does not answer is a\n503. A mock chat provider has no VEuPathDB session, so its dev-login cookie\nalone proves identity there.",
         "operationId": "auth_status_api_v1_veupathdb_auth_status_get",
         "security": [
           {
@@ -5518,20 +5462,6 @@
         "title": "AuthStatusResponse",
         "description": "Current auth status response."
       },
-      "AuthSuccessResponse": {
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "title": "Success"
-          }
-        },
-        "type": "object",
-        "required": [
-          "success"
-        ],
-        "title": "AuthSuccessResponse",
-        "description": "Success response. Auth token is set via httpOnly cookie only."
-      },
       "BeginConversationRequest": {
         "properties": {
           "siteId": {
@@ -5821,7 +5751,7 @@
           "conversationId"
         ],
         "title": "ChatRequestBody",
-        "description": "Typed body for ``POST /api/v1/chat`` (AI SDK v6 + PathFinder extras).\n\nThe shape matches ``@ai-sdk/react``'s ``useChat`` submit payload\n(``trigger``, ``id``, ``messages``) with PathFinder-scoped fields\n(``conversationId``, ``siteId``, ``mode``) layered on\nvia ``body`` on the client transport. The authenticated user UUID still\ncomes from the ``pathfinder-auth`` cookie. ``messages`` uses pydantic-ai's\n``UIMessage`` so deferred-tool approval-responded parts deserialize into\nthe discriminated union and ``iter_tool_approval_responses`` works."
+        "description": "Typed body for ``POST /api/v1/chat`` (AI SDK v6 + PathFinder extras).\n\nThe shape matches ``@ai-sdk/react``'s ``useChat`` submit payload\n(``trigger``, ``id``, ``messages``) with PathFinder-scoped fields\n(``conversationId``, ``siteId``, ``mode``) layered on\nvia ``body`` on the client transport. The authenticated user UUID still\ncomes from the website login the request carries. ``messages`` uses pydantic-ai's\n``UIMessage`` so deferred-tool approval-responded parts deserialize into\nthe discriminated union and ``iter_tool_approval_responses`` works."
       },
       "ColocationParams": {
         "properties": {
@@ -22210,7 +22140,7 @@
       "APIKeyCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "pathfinder-auth"
+        "name": "pathfinder-dev-login"
       },
       "HTTPBearer": {
         "type": "http",

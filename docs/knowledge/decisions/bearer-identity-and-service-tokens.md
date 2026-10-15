@@ -17,7 +17,11 @@ Two identities travel on a request, and they are not the same question.
 
 1. `Authorization: Bearer <token>` that verifies as a PathFinder HS256 JWT -> `pathfinder-bearer`.
 2. The same header otherwise read as a VEuPathDB token -> `veupathdb-bearer`.
-3. The `pathfinder-auth` cookie -> `pathfinder-cookie`.
+3. The website's `Authorization` cookie, read as a VEuPathDB token -> `veupathdb-cookie`
+   ([PathFinder signs in through the site that hosts it](pathfinder-signs-in-through-the-site-that-hosts-it.md)).
+
+The mock stack's `pathfinder-dev-login` cookie names a synthetic user (`dev-login`) and is
+honored only for a token its mock-only route minted.
 
 Nothing else authenticates; a request with none of them is 401. The order
 matters: PathFinder's own token is checked first, so a locally minted token

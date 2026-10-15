@@ -58,17 +58,17 @@ test.describe("VEuPathDB login gate", () => {
     await expect(page).toHaveURL(websiteLogin(config.siteSignInUrl, here));
   });
 
-  test("the postcondition API client carries both the PathFinder and the VEuPathDB cookie", async ({
+  test("the postcondition API client signs in with the VEuPathDB cookie alone", async ({
     chatPage,
     apiClient,
   }) => {
     await chatPage.goto();
 
     const cookieNames = (await apiClient.storageState()).cookies.map((c) => c.name);
-    expect(cookieNames).toContain("pathfinder-auth");
     expect(cookieNames).toContain("Authorization");
+    expect(cookieNames).not.toContain("pathfinder-auth");
 
-    // Both cookies together are what a WDK-backed route needs.
+    // The website login alone is what a WDK-backed route needs.
     const geneSets = await apiClient.get("api/v1/gene-sets");
     expect(geneSets.status()).toBe(200);
   });

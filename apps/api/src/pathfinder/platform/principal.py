@@ -9,7 +9,7 @@ from pydantic import ConfigDict
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 
 CredentialKind = Literal[
-    "pathfinder-cookie",
+    "veupathdb-cookie",
     "pathfinder-bearer",
     "veupathdb-bearer",
     "dev-login",

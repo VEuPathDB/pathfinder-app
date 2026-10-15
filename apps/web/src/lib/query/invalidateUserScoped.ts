@@ -9,7 +9,7 @@ import { queryKeyPrefixes } from "@/lib/query/keys";
 /**
  * Invalidate all TanStack Query caches that hold user-scoped data.
  *
- * Call this whenever the auth state changes (login, logout, cookie refresh)
+ * Call this whenever the auth state changes (login, logout)
  * so that every list, detail and quota read is re-fetched with the current credentials.
  */
 export function invalidateUserScopedQueries(queryClient: QueryClient): void {

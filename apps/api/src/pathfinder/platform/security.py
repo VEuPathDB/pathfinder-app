@@ -1,5 +1,6 @@
 """Authentication, authorization, rate limiting, CSRF, and request guards."""
 
+import hashlib
 import json
 import time
 from collections.abc import Awaitable, Callable
@@ -30,7 +31,6 @@ from pathfinder.platform.error_handlers import problem_response
 from pathfinder.platform.errors import (
     ErrorCode,
     UnauthorizedError,
-    WDKIdentityMismatchError,
 )
 from pathfinder.platform.identity import PATHFINDER_APPLICATION_ID
 from pathfinder.platform.principal import SERVICE_AUTH_HEADER, Principal
@@ -39,31 +39,22 @@ from pathfinder.services.wdk_identity import resolve_veupathdb_bearer
 _JWT_ALGORITHM = "HS256"
 _JWT_DECODE_OPTIONS: Options = {"require": ["exp", "sub"]}
 
-_SESSION_COOKIE = "pathfinder-auth"
-_SESSION_COOKIE_PATH = BASE_PATH
+# The synthetic user of a mock stack, which has no VEuPathDB account to sign in.
+DEV_LOGIN_COOKIE = "pathfinder-dev-login"
+_DEV_LOGIN_COOKIE_PATH = BASE_PATH
 
-# A request proves who it is with the browser cookie, a PathFinder bearer token,
+# A request proves who it is with the website's login, a PathFinder bearer token,
 # or a VEuPathDB bearer token; the service-token header names the caller instead.
-auth_cookie = APIKeyCookie(name=_SESSION_COOKIE, auto_error=False)
+dev_login_cookie = APIKeyCookie(name=DEV_LOGIN_COOKIE, auto_error=False)
 bearer_scheme = HTTPBearer(auto_error=False)
 service_token_header = APIKeyHeader(name=SERVICE_AUTH_HEADER, auto_error=False)
 
 
-def set_session_cookie(response: Response, token: str) -> None:
+def set_dev_login_cookie(response: Response, token: str) -> None:
     response.set_cookie(
-        key=_SESSION_COOKIE,
+        key=DEV_LOGIN_COOKIE,
         value=token,
-        path=_SESSION_COOKIE_PATH,
-        httponly=True,
-        samesite="lax",
-        secure=not get_settings().is_development,
-    )
-
-
-def clear_session_cookie(response: Response) -> None:
-    response.delete_cookie(
-        key=_SESSION_COOKIE,
-        path=_SESSION_COOKIE_PATH,
+        path=_DEV_LOGIN_COOKIE_PATH,
         httponly=True,
         samesite="lax",
         secure=not get_settings().is_development,
@@ -104,14 +95,17 @@ def decode_user_id(token: str) -> UUID | None:
 
 
 def rate_limit_key(request: Request) -> str:
-    """Count a request against its signed-in user, or its connection when it has none."""
+    """Count a request against its login, or its connection when it has none."""
     scheme, _, bearer = request.headers.get("authorization", "").partition(" ")
-    token = (
-        bearer if scheme.lower() == "bearer" else request.cookies.get(_SESSION_COOKIE)
+    pathfinder_token = (
+        bearer if scheme.lower() == "bearer" else request.cookies.get(DEV_LOGIN_COOKIE)
     )
-    user_id = decode_user_id(token) if token else None
+    user_id = decode_user_id(pathfinder_token) if pathfinder_token else None
     if user_id is not None:
         return f"user:{user_id}"
+    site_login = request.cookies.get("Authorization")
+    if site_login:
+        return f"login:{hashlib.sha256(site_login.encode()).hexdigest()}"
     return f"address:{get_remote_address(request)}"
 
 
@@ -144,32 +138,28 @@ async def _veupathdb_principal(token: str, application_id: str) -> Principal:
 
 
 async def site_login_user(
-    cookie_token: Annotated[str | None, Depends(auth_cookie)] = None,
     bearer: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
     ] = None,
 ) -> UUID | None:
-    """The internal user the website login names, read for a cookie session only.
+    """The internal user the website login names, for a request with no bearer.
 
     The token verifies locally as registered before WDK maps it to an account.
     """
-    if bearer is not None or not cookie_token:
-        return None
-    claims = decode_session_token(cookie_token)
     token = veupathdb_auth_token_ctx.get()
-    if claims is None or claims.dev_login or not token:
+    if bearer is not None or not token:
         return None
     return (await resolve_veupathdb_bearer(token)).user_id
 
 
 async def _identify(
-    cookie_token: str | None,
+    dev_login: str | None,
     bearer: HTTPAuthorizationCredentials | None,
     application_id: str,
     site_user: UUID | None,
 ) -> Principal:
-    """Read the request's credential: bearer first, then the cookie."""
+    """Read the request's credential: bearer first, then the website login."""
     if bearer is not None:
         claims = decode_session_token(bearer.credentials)
         if claims is not None:
@@ -180,30 +170,29 @@ async def _identify(
             )
         return await _veupathdb_principal(bearer.credentials, application_id)
 
-    if cookie_token:
-        claims = decode_session_token(cookie_token)
-        if claims is not None and claims.dev_login:
-            return Principal(
-                user_id=claims.user_id,
-                application_id=application_id,
-                credential="dev-login",
-            )
-        if claims is not None:
-            if site_user is None:
-                raise WDKLoginRequiredError
-            if site_user != claims.user_id:
-                raise WDKIdentityMismatchError
-            return Principal(
-                user_id=claims.user_id,
-                application_id=application_id,
-                credential="pathfinder-cookie",
-            )
+    if site_user is not None:
+        return Principal(
+            user_id=site_user,
+            application_id=application_id,
+            credential="veupathdb-cookie",
+        )
 
+    claims = decode_session_token(dev_login) if dev_login else None
+    if claims is not None and claims.dev_login:
+        return Principal(
+            user_id=claims.user_id,
+            application_id=application_id,
+            credential="dev-login",
+        )
+
+    # A website login that names no registered account asks for a sign-in.
+    if veupathdb_auth_token_ctx.get():
+        raise WDKLoginRequiredError
     raise UnauthorizedError(detail="Not authenticated")
 
 
 async def resolve_principal(
-    cookie_token: Annotated[str | None, Depends(auth_cookie)] = None,
+    dev_login: Annotated[str | None, Depends(dev_login_cookie)] = None,
     bearer: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
@@ -211,12 +200,9 @@ async def resolve_principal(
     service_token: Annotated[str | None, Depends(service_token_header)] = None,
     site_user: Annotated[UUID | None, Depends(site_login_user)] = None,
 ) -> Principal:
-    """Identify the request, or refuse it with a 401.
-
-    A cookie session is honored only while the website login names its user.
-    """
+    """Identify the request, or refuse it with a 401."""
     principal = await _identify(
-        cookie_token,
+        dev_login,
         bearer,
         _application_id(service_token),
         site_user,

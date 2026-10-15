@@ -43,7 +43,7 @@ test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
     siteId,
   }) => {
     const api = page.context().request;
-    await signInAsWdkAccount(page.context(), siteId);
+    await signInAsWdkAccount(page.context());
 
     const id = await buildOn(
       chatPage,

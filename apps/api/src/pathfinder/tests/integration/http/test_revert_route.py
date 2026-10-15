@@ -53,7 +53,7 @@ def _client(app: FastAPI, user_id: UUID) -> httpx.AsyncClient:
         base_url="http://test",
         headers={"X-Requested-With": "XMLHttpRequest"},
     )
-    client.cookies.set("pathfinder-auth", create_user_token(user_id))
+    client.cookies.set("Authorization", create_user_token(user_id))
     return client
 
 

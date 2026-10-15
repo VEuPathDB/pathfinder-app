@@ -132,7 +132,7 @@ class TestTheIdentityGate:
 
         with pytest.raises(SiteUnavailableError) as refusal:
             await require_registered_wdk_identity(
-                Principal(user_id=SESSION_USER, credential="pathfinder-cookie"),
+                Principal(user_id=SESSION_USER, credential="veupathdb-cookie"),
                 "plasmodb",
             )
 

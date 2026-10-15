@@ -37,7 +37,7 @@ def _clear_request_token() -> Generator[None]:
     veupathdb_auth_token_ctx.reset(reset)
 
 
-def _session(credential: CredentialKind = "pathfinder-cookie") -> Principal:
+def _session(credential: CredentialKind = "veupathdb-cookie") -> Principal:
     return Principal(user_id=SESSION_USER, credential=credential)
 
 

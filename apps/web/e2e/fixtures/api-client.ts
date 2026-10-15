@@ -7,7 +7,7 @@ export const CSRF_HEADERS = { "X-Requested-With": "XMLHttpRequest" } as const;
 
 /**
  * A client that asserts server state after UI actions, carrying the context's
- * `pathfinder-auth` and `Authorization` cookies. It never sets anything up.
+ * `Authorization` cookie. It never sets anything up.
  */
 export async function createApiClient(
   context: BrowserContext,

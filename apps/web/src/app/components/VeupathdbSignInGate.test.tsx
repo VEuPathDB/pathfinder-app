@@ -61,7 +61,6 @@ describe("VeupathdbSignInGate", () => {
         url: "/api/v1/gene-sets",
         data: LOGIN_REQUIRED_BODY,
       }),
-      vi.fn(),
     );
 
     const dialog = await screen.findByRole("dialog", { name: "Sign in to VEuPathDB" });

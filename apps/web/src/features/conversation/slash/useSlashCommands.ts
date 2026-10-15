@@ -92,8 +92,7 @@ export function useSlashCommands(args: UseSlashCommandsArgs) {
     try {
       apply(await command.run(values, ctx));
     } catch (err) {
-      const retry = (): void => void run(command, values);
-      if (!handleWdkAuthRefusal(err, retry)) {
+      if (!handleWdkAuthRefusal(err)) {
         toast.error(toUserMessage(err, `/${command.name} failed.`));
       }
     }

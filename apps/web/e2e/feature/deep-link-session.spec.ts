@@ -12,13 +12,12 @@ import { createApiClient } from "../fixtures/api-client";
 import { seedStrategy } from "../fixtures/strategy-builds";
 import { signInAsWdkAccount } from "../fixtures/website-login";
 
-test.describe("A deep link without a PathFinder session", () => {
+test.describe("A deep link opened on the website login alone", () => {
   test("renders the thread and the quota meter", async ({ page, context, siteId }) => {
-    await signInAsWdkAccount(context, siteId);
+    await signInAsWdkAccount(context);
     const api = await createApiClient(context, APP_ROOT);
     const { conversationId } = await seedStrategy(api, siteId);
 
-    await context.clearCookies({ name: "pathfinder-auth" });
     const refused: string[] = [];
     page.on("response", (response) => {
       if (response.status() === 401) refused.push(response.url());
@@ -43,7 +42,7 @@ test.describe("A deep link without a PathFinder session", () => {
     context,
     siteId,
   }) => {
-    await signInAsWdkAccount(context, siteId);
+    await signInAsWdkAccount(context);
     const api = await createApiClient(context, APP_ROOT);
     const { conversationId } = await seedStrategy(api, siteId);
     await page.clock.install();

@@ -53,7 +53,7 @@ async def test_a_key_refused_after_dispatch_fails_the_turn_with_the_sentence(
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
-        cookies={"pathfinder-auth": create_user_token(authed_user_id)},
+        cookies={"Authorization": create_user_token(authed_user_id)},
         headers={"X-Requested-With": "XMLHttpRequest"},
     ) as client:
         post = asyncio.create_task(
