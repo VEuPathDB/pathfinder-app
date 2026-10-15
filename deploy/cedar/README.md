@@ -26,7 +26,9 @@ trace store: `pathfinder-langfuse` (UI, public API, OTLP ingress),
 `pathfinder-langfuse-clickhouse`, `pathfinder-langfuse-minio` and
 `pathfinder-langfuse-redis`. Only the web, the api and the Langfuse UI publish a
 port, all on the loopback interface (3010, 8010 and 3110); the rest are reached
-by container name on the `pathfinder` network. What a trace holds and which
+by container name on the `pathfinder` network. The api, the worker and the WDK
+tool server read the QA sites: cedar serves those sites on its own address, so
+each unit maps every QA host to the host alias `169.254.1.2`. What a trace holds and which
 Langfuse view answers which question is `docs/knowledge/conventions/observability.md`.
 
 ## First install
@@ -100,7 +102,8 @@ PATHFINDER_TAG=cedar-1a2b3c4 ./deploy/cedar/install.sh
 
 The installer copies the units, the network and the volumes to
 `~/.config/containers/systemd/`, substitutes the tag, copies the metasearch
-settings to `~/.config/pathfinder/searxng/settings.yml`, enables linger so the
+settings to `~/.config/pathfinder/searxng/settings.yml` and `deploy/sites/qa.yml`
+to `~/.config/pathfinder/sites-qa.yml`, enables linger so the
 stack survives a logout, reloads systemd and starts the thirteen units. It is
 idempotent: a second run with the same tag writes nothing, restarts nothing and
 prints `systemctl --user status` for the thirteen units.

@@ -6,8 +6,9 @@
  * check is what holds the units on a developer machine and in CI: every file
  * parses as systemd INI, every image is the registry image at the one tag
  * placeholder the installer substitutes, only the web and the api publish a
- * port and both bind the loopback address, and the api and the worker name
- * both MCP servers by container.
+ * port and both bind the loopback address, the api and the worker name both
+ * MCP servers by container, and every unit that reads the sites reads the QA
+ * sites file and reaches each QA host on cedar itself.
  *
  * `offencesIn` takes the unit texts and the installer text and returns what it
  * found, so the suite can drive it over strings. The CLI wrapper at the bottom
@@ -20,6 +21,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const UNITS = join(ROOT, "quadlets");
 const INSTALLER = join(ROOT, "deploy/cedar/install.sh");
+const QA_SITES = join(ROOT, "deploy/sites/qa.yml");
 
 // The installer replaces this with the release tag the operator names.
 export const TAG_PLACEHOLDER = "__PATHFINDER_TAG__";
@@ -59,6 +61,17 @@ const MCP_URLS = new Map([
   ["PATHFINDER_RESEARCH_MCP_URL", "http://pathfinder-research-mcp:8110/mcp"],
 ]);
 const MCP_CLIENTS = ["pathfinder-api.container", "pathfinder-worker.container"];
+// The units that read the sites file. Cedar serves the QA sites on its own
+// address, which a rootless container reaches only through the host alias.
+const SITE_READERS = [
+  "pathfinder-api.container",
+  "pathfinder-worker.container",
+  "pathfinder-wdk-mcp.container",
+];
+const SITES_MOUNT = "%h/.config/pathfinder/sites-qa.yml:/etc/pathfinder/sites.yml:ro,z";
+const SITES_PATH = "/etc/pathfinder/sites.yml";
+const HOST_ALIAS = "169.254.1.2";
+const SITES_COPY = '"$REPO_ROOT/deploy/sites/qa.yml"';
 // The units that read the deployment's secrets. The database reads none.
 const SECRET_READERS = [
   "pathfinder-api.container",
@@ -212,11 +225,35 @@ function checkEnvironment(name, parsed, report) {
   }
 }
 
+/** The host of every QA site the QA sites file names. */
+export function qaHosts(sitesPath = QA_SITES) {
+  const hosts = readFileSync(sitesPath, "utf8").matchAll(/https:\/\/(qa\.[a-z]+\.org)/g);
+  return [...new Set([...hosts].map((match) => match[1]))].sort();
+}
+
+function checkSites(name, parsed, hosts, report) {
+  if (!SITE_READERS.includes(name)) return;
+  if (!valuesOf(parsed, "Container", "Volume").includes(SITES_MOUNT)) {
+    report(`${name}: does not mount the QA sites file`);
+  }
+  const config = environmentValue(parsed, "VEUPATHDB_SITES_CONFIG");
+  if (config !== SITES_PATH) {
+    report(`${name}: VEUPATHDB_SITES_CONFIG is ${config ?? "unset"}, expected ${SITES_PATH}`);
+  }
+  const added = valuesOf(parsed, "Container", "AddHost");
+  for (const host of hosts) {
+    if (!added.includes(`${host}:${HOST_ALIAS}`)) {
+      report(`${name}: does not send ${host} to the host`);
+    }
+  }
+}
+
 /**
  * `units` maps a file name to its text; `installer` is the text of
- * `deploy/cedar/install.sh`.
+ * `deploy/cedar/install.sh`; `hosts` are the QA hosts every site reader
+ * reaches on cedar.
  */
-export function offencesIn(units, installer) {
+export function offencesIn(units, installer, hosts) {
   const offences = [];
   const report = (message) => offences.push(message);
   const expected = [...REGISTRY_IMAGES.keys(), ...UPSTREAM_IMAGES.keys()].sort();
@@ -234,6 +271,7 @@ export function offencesIn(units, installer) {
     checkImage(name, parsed, report);
     checkPublishedPorts(name, parsed, report);
     checkEnvironment(name, parsed, report);
+    checkSites(name, parsed, hosts, report);
     if (!valuesOf(parsed, "Container", "Network").includes("pathfinder.network")) {
       report(`${name}: not on pathfinder.network`);
     }
@@ -249,6 +287,9 @@ export function offencesIn(units, installer) {
   if (!installer.includes(TAG_PLACEHOLDER)) {
     report(`deploy/cedar/install.sh: does not substitute ${TAG_PLACEHOLDER}`);
   }
+  if (!installer.includes(SITES_COPY)) {
+    report("deploy/cedar/install.sh: does not copy deploy/sites/qa.yml");
+  }
   return offences;
 }
 
@@ -258,7 +299,7 @@ export function collect(unitsDir = UNITS, installerPath = INSTALLER) {
       .filter((name) => name.endsWith(".container"))
       .map((name) => [name, readFileSync(join(unitsDir, name), "utf8")]),
   );
-  return offencesIn(units, readFileSync(installerPath, "utf8"));
+  return offencesIn(units, readFileSync(installerPath, "utf8"), qaHosts());
 }
 
 const invokedDirectly = process.argv[1]?.endsWith("check-quadlets.mjs");

@@ -39,7 +39,7 @@ SERVICES=(
 readonly SERVICES
 
 # The services whose unit file this run rewrote, and whether the network, a
-# volume or the metasearch settings changed under every unit.
+# volume, the metasearch settings or the sites file changed under every unit.
 changed_services=()
 shared_changed=0
 # The directory the tag substitution writes to, removed when the script ends.
@@ -135,6 +135,9 @@ install_units() {
     fi
   done
   if install_file "$APP_DIR/searxng/settings.yml" "$REPO_ROOT/deploy/searxng/settings.yml"; then
+    shared_changed=1
+  fi
+  if install_file "$APP_DIR/sites-qa.yml" "$REPO_ROOT/deploy/sites/qa.yml"; then
     shared_changed=1
   fi
   return 0

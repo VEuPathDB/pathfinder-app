@@ -9,6 +9,11 @@
   images as `cedar-<sha>` on every push. See
   [the decision](decisions/pathfinder-signs-in-through-the-site-that-hosts-it.md).
 
+* **The cedar units read the QA sites.** The api, worker and WDK tool server units mount
+  `~/.config/pathfinder/sites-qa.yml`, which the installer copies from `deploy/sites/qa.yml`,
+  and map each QA host to the host alias, since cedar serves the QA sites itself.
+  `check-quadlets` holds all three, so `install.sh` no longer drops what the host needs.
+
 * **A step counts in its own records.** `StepFact.record_noun` is the noun of the record
   class the step's search is listed under (`record_class_of`), so a `group` step under a
   `sequence` result reads as groups in the facts, in a count reference and in the web card.

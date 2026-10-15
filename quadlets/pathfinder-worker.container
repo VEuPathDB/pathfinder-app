@@ -11,6 +11,25 @@ Network=pathfinder.network
 PodmanArgs=--memory=2g
 
 Volume=pathfinder-catalogs.volume:/app/data/catalogs
+# The QA sites this stack serves, from the file the installer copies. Cedar
+# serves those sites on its own address, which a rootless container reaches
+# only through the host alias.
+Volume=%h/.config/pathfinder/sites-qa.yml:/etc/pathfinder/sites.yml:ro,z
+Environment=VEUPATHDB_SITES_CONFIG=/etc/pathfinder/sites.yml
+AddHost=qa.amoebadb.org:169.254.1.2
+AddHost=qa.cryptodb.org:169.254.1.2
+AddHost=qa.fungidb.org:169.254.1.2
+AddHost=qa.giardiadb.org:169.254.1.2
+AddHost=qa.hostdb.org:169.254.1.2
+AddHost=qa.microsporidiadb.org:169.254.1.2
+AddHost=qa.orthomcl.org:169.254.1.2
+AddHost=qa.piroplasmadb.org:169.254.1.2
+AddHost=qa.plasmodb.org:169.254.1.2
+AddHost=qa.toxodb.org:169.254.1.2
+AddHost=qa.trichdb.org:169.254.1.2
+AddHost=qa.tritrypdb.org:169.254.1.2
+AddHost=qa.vectorbase.org:169.254.1.2
+AddHost=qa.veupathdb.org:169.254.1.2
 # The directory the three services exchange catalog snapshots through.
 Environment=CATALOG_CACHE_DIR=/app/data/catalogs
 

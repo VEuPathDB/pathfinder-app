@@ -5,9 +5,22 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { collect, offencesIn, parseUnit, TAG_PLACEHOLDER } from "./check-quadlets.mjs";
+import {
+  collect,
+  offencesIn,
+  parseUnit,
+  qaHosts,
+  TAG_PLACEHOLDER,
+} from "./check-quadlets.mjs";
 
 const unit = (name, body) => [name, body];
+
+const QA_HOSTS = ["qa.plasmodb.org", "qa.toxodb.org"];
+const SITES = `Volume=%h/.config/pathfinder/sites-qa.yml:/etc/pathfinder/sites.yml:ro,z
+Environment=VEUPATHDB_SITES_CONFIG=/etc/pathfinder/sites.yml
+AddHost=qa.plasmodb.org:169.254.1.2
+AddHost=qa.toxodb.org:169.254.1.2
+`;
 
 const API = `[Unit]
 Description=Pathfinder API server
@@ -21,7 +34,7 @@ EnvironmentFile=%h/.config/pathfinder/.env
 Environment=PATHFINDER_WDK_MCP_URL=http://pathfinder-wdk-mcp:8100/mcp
 Environment=PATHFINDER_RESEARCH_MCP_URL=http://pathfinder-research-mcp:8110/mcp
 Environment=FORWARDED_ALLOW_IPS=*
-
+${SITES}
 [Install]
 WantedBy=default.target
 `;
@@ -33,7 +46,7 @@ Network=pathfinder.network
 EnvironmentFile=%h/.config/pathfinder/.env
 Environment=PATHFINDER_WDK_MCP_URL=http://pathfinder-wdk-mcp:8100/mcp
 Environment=PATHFINDER_RESEARCH_MCP_URL=http://pathfinder-research-mcp:8110/mcp
-
+${SITES}
 [Install]
 WantedBy=default.target
 `;
@@ -53,7 +66,7 @@ ContainerName=pathfinder-wdk-mcp
 Image=ghcr.io/veupathdb/pathfinder-wdk-mcp:${TAG_PLACEHOLDER}
 Network=pathfinder.network
 EnvironmentFile=%h/.config/pathfinder/.env
-
+${SITES}
 [Install]
 WantedBy=default.target
 `;
@@ -109,6 +122,7 @@ pathfinder-research-mcp.service pathfinder-api.service pathfinder-worker.service
 pathfinder-web.service pathfinder-langfuse.service pathfinder-langfuse-worker.service
 pathfinder-langfuse-db.service pathfinder-langfuse-clickhouse.service
 pathfinder-langfuse-minio.service pathfinder-langfuse-redis.service
+install_file "$APP_DIR/sites-qa.yml" "$REPO_ROOT/deploy/sites/qa.yml"
 `;
 
 const CLEAN = [
@@ -146,7 +160,7 @@ const withUnit = (name, text) =>
   new Map(CLEAN.map(([key, body]) => (key === name ? [key, text] : [key, body])));
 
 const only = (units, installer = INSTALLER) => {
-  const offences = offencesIn(units, installer);
+  const offences = offencesIn(units, installer, QA_HOSTS);
   assert.equal(offences.length, 1, `expected one offence, got ${offences}`);
   return offences[0];
 };
@@ -156,7 +170,7 @@ test("the shipped quadlets conform", () => {
 });
 
 test("a conformant set produces no offences", () => {
-  assert.deepEqual(offencesIn(new Map(CLEAN), INSTALLER), []);
+  assert.deepEqual(offencesIn(new Map(CLEAN), INSTALLER, QA_HOSTS), []);
 });
 
 test("a key outside a section is rejected", () => {
@@ -386,4 +400,48 @@ test("a key the example declares and the file lacks is named", () => {
 
 test("a key with an empty value counts as declared", () => {
   assert.deepEqual(missingEnvKeys("A=1\nB=\n", "A=\nB=\nEXTRA=1\n"), []);
+});
+
+test("a unit that reads the sites without the QA sites file is rejected", () => {
+  const broken = WDK_MCP.replace(
+    "Volume=%h/.config/pathfinder/sites-qa.yml:/etc/pathfinder/sites.yml:ro,z\n",
+    "",
+  );
+
+  assert.match(
+    only(withUnit("pathfinder-wdk-mcp.container", broken)),
+    /pathfinder-wdk-mcp\.container: does not mount the QA sites file/,
+  );
+});
+
+test("a unit that reads the sites from another file is rejected", () => {
+  const broken = API.replace(
+    "VEUPATHDB_SITES_CONFIG=/etc/pathfinder/sites.yml",
+    "VEUPATHDB_SITES_CONFIG=/app/config/sites/qa.yml",
+  );
+
+  assert.match(
+    only(withUnit("pathfinder-api.container", broken)),
+    /VEUPATHDB_SITES_CONFIG is \/app\/config\/sites\/qa\.yml, expected \/etc\/pathfinder\/sites\.yml/,
+  );
+});
+
+test("a QA host that does not resolve to the host is rejected", () => {
+  const broken = WORKER.replace("AddHost=qa.toxodb.org:169.254.1.2\n", "");
+
+  assert.match(
+    only(withUnit("pathfinder-worker.container", broken)),
+    /pathfinder-worker\.container: does not send qa\.toxodb\.org to the host/,
+  );
+});
+
+test("an installer that does not copy the QA sites file is rejected", () => {
+  const installer = INSTALLER.replace(/install_file "\$APP_DIR\/sites-qa\.yml".*\n/, "");
+
+  assert.match(only(new Map(CLEAN), installer), /does not copy deploy\/sites\/qa\.yml/);
+});
+
+test("the QA hosts are the hosts the QA sites file names", () => {
+  assert.equal(qaHosts().length, 14);
+  assert.ok(qaHosts().every((host) => /^qa\.[a-z]+\.org$/.test(host)));
 });
