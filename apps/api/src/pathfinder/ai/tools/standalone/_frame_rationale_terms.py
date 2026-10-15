@@ -32,6 +32,8 @@ class Binding:
     defaulted: Collection[str]
     # A search that runs on an input step maps it to the organism it names.
     transform: bool
+    # The record type's own name, then each name the site shows it by.
+    record_names: Sequence[str]
 
     @property
     def shown(self) -> list[ParameterInfo]:
@@ -245,8 +247,11 @@ def _not_a_parameter(cid: str, term: str, at: Binding) -> str:
 def _refuse_a_record_type_that_decides_nothing(
     cid: str, term: str, at: Binding
 ) -> None:
-    if term.casefold() != at.record_type.casefold():
-        msg = f"{cid}: {at.search_name} returns {at.record_type}, not {term}."
+    if term.casefold() not in {name.casefold() for name in at.record_names}:
+        msg = (
+            f"{cid}: {at.search_name} returns {at.record_type}, not {term}. With "
+            f"basis record_type the term is one of: {', '.join(at.record_names)}."
+        )
         raise ModelRetry(msg)
     if all(h.record_type == at.record_type for h in at.read.hits):
         msg = (

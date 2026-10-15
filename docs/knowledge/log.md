@@ -2,6 +2,11 @@
 
 ## 2026-10-15
 
+* **A record type term takes the names the site shows.** A `record_type` rationale accepts
+  the record type's own name or any display name the catalog lists for it, so "Ortholog
+  groups" backs `GroupsFromSequences` on OrthoMCL and "genes" a transcript search; a name
+  it does not show is refused with the names it does.
+
 * **A researcher's message shows as typed.** `UserMessage` renders its text as plain text
   that keeps its line breaks and wraps a long word, so a pasted FASTA record is no quote
   block and its sequence is not cut off; an assistant reply breaks a long word too.

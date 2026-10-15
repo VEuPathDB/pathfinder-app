@@ -11,10 +11,12 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic_ai import ModelRetry
 from veupathdb.domain.parameters import VocabOption
+from veupathdb.wdk import WDKRecordType
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import ParameterInfo, SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.tools.standalone import _frame_rationale
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.catalog import search_for_searches
@@ -113,10 +115,23 @@ def export_pred_sheet(_context: dict[str, str]) -> list[ParameterInfo]:
     ]
 
 
+# The transcript record type as qa.plasmodb.org names it.
+_TRANSCRIPT = WDKRecordType(
+    url_segment="transcript",
+    display_name="Gene",
+    display_name_plural="Genes",
+    short_display_name="Gene",
+)
+
+
 def serve_site(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The ExportPred sheet, and the site's listing of transcript searches."""
+    """The ExportPred sheet, the site's listing of transcript searches, and the
+    names the site gives the transcript record type."""
     serve_search(monkeypatch, export_pred_sheet)
     serve_site_listing(monkeypatch, SITE)
+    monkeypatch.setattr(
+        _frame_rationale, "get_raw_record_types", AsyncMock(return_value=[_TRANSCRIPT])
+    )
 
 
 async def read(

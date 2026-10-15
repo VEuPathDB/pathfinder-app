@@ -86,7 +86,10 @@ def _site(monkeypatch: pytest.MonkeyPatch) -> None:
             "record_type",
             "pathway",
             "returns pathway records",
-            "c_gpi: GenesByExportPrediction returns transcript, not pathway.",
+            (
+                "c_gpi: GenesByExportPrediction returns transcript, not pathway. "
+                "With basis record_type the term is one of: transcript, Gene, Genes."
+            ),
         ),
         (
             "only_match",
@@ -197,6 +200,19 @@ async def test_a_record_type_no_other_hit_returns_is_recorded(
 
     assert result.rationale is not None
     assert result.rationale.short == "returns transcript"
+
+
+@pytest.mark.asyncio
+async def test_a_record_type_named_as_the_site_shows_it_is_recorded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = AgentToolState()
+    await read(monkeypatch, state, EXPORTED, PATHWAY)
+
+    result = await choose(state, choice("record_type", "genes", "returns genes"))
+
+    assert result.rationale is not None
+    assert result.rationale.short == "returns genes"
 
 
 # The references FRAME read before it bound.
