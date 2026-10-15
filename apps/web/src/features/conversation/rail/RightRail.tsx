@@ -2,6 +2,7 @@
 
 import {
   Brain,
+  CircleHelp,
   FlaskConical,
   Notebook,
   ScrollText,
@@ -10,10 +11,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
 import { useState } from "react";
 
 import type { Strategy } from "@pathfinder/shared";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PathFinderMark } from "@/lib/components/PathFinderMark";
 import {
   Tooltip,
@@ -22,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { viewportIsNarrow } from "@/lib/layout/viewport";
+import { helpUrl } from "@/lib/routes";
 import { useEntrance } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 import { useChatHelpers } from "../runtime/chatHelpersContext";
@@ -215,7 +218,19 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
             </Tooltip>
           );
         })}
-        <div className="mt-auto">
+        <div data-rail-foot className="mt-auto flex flex-col items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href={helpUrl()}
+                aria-label="Help"
+                className={buttonVariants({ variant: "ghost", size: "icon" })}
+              >
+                <CircleHelp className="h-4 w-4" aria-hidden />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="left">Help</TooltipContent>
+          </Tooltip>
           <PathFinderMark />
         </div>
       </div>

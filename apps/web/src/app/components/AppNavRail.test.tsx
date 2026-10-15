@@ -123,21 +123,18 @@ describe("AppNavRail section links", () => {
     expect(click).toBe(true);
   });
 
-  it("links the chat, the saved strategies and help, and no workbench", async () => {
+  it("links the chat and the saved strategies, and neither help nor a workbench", async () => {
     draw();
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved", "/help"]);
+    expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved"]);
   });
 
-  it("closes the bottom group with help, after the settings", async () => {
+  it("closes the bottom group with the settings", async () => {
     draw();
-    const help = await screen.findByRole("link", { name: "Help" });
-    const settings = screen.getByRole("button", { name: "Settings" });
+    const settings = await screen.findByRole("button", { name: "Settings" });
 
-    expect(help).toHaveAttribute("href", "/help");
-    expect(help.parentElement).toBe(settings.parentElement);
-    expect(help.parentElement?.lastElementChild).toBe(help);
+    expect(settings.parentElement?.lastElementChild).toBe(settings);
   });
 });
 

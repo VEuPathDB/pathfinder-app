@@ -5,7 +5,6 @@ import { siteShortName } from "@pathfinder/shared";
 import {
   AlertTriangle,
   Bookmark,
-  CircleHelp,
   MessageCircle,
   PanelLeft,
   Settings,
@@ -38,7 +37,7 @@ import { SiteIcon } from "@/lib/components/SiteIcon";
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { sitesOptions } from "@/lib/api/sites";
 import { siteIsDown } from "@/lib/sites/availability";
-import { conversationIdFromPath, helpUrl } from "@/lib/routes";
+import { conversationIdFromPath } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
 import { RailQuotaMeter } from "./RailQuotaMeter";
@@ -145,19 +144,6 @@ export function AppNavRail({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">Settings</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href={helpUrl()}
-                aria-label="Help"
-                className={buttonVariants({ variant: "ghost", size: "icon" })}
-              >
-                <CircleHelp className="h-4 w-4" aria-hidden />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">Help</TooltipContent>
           </Tooltip>
         </div>
       </div>

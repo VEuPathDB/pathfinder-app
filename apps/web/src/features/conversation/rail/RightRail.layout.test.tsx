@@ -112,4 +112,14 @@ describe("the right rail ends with the PathFinder mark", () => {
       screen.getByRole("button", { name: "Open Strategy" }),
     );
   });
+
+  it("puts help directly above the mark", () => {
+    renderRail("c-help", []);
+
+    const help = screen.getByRole("link", { name: "Help" });
+    const mark = screen.getByRole("img", { name: "PathFinder" });
+    expect(help).toHaveAttribute("href", "/help");
+    expect(help.parentElement).toBe(mark.closest("[data-rail-foot]"));
+    expect(help.nextElementSibling?.contains(mark)).toBe(true);
+  });
 });
