@@ -37,6 +37,7 @@ function makeConfigResponse(overrides: { llmConfigured: boolean }) {
     },
     siteId: "veupathdb",
     siteSignInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
+    sitePageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
   };
 }
 
@@ -91,6 +92,20 @@ describe("useSystemConfig", () => {
 
     expect(result.current.siteSignInUrl).toBe(
       "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
+    );
+  });
+
+  it("returns the website page that frames PathFinder", async () => {
+    mockGetSystemConfig.mockResolvedValue(makeConfigResponse({ llmConfigured: true }));
+
+    const { result } = await importAndRender();
+
+    await waitFor(() => {
+      expect(result.current).not.toBeNull();
+    });
+
+    expect(result.current.sitePageUrl).toBe(
+      "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
     );
   });
 

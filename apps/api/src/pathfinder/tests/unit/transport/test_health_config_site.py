@@ -70,3 +70,13 @@ async def test_development_without_the_dev_account_signs_in_on_the_site(
     assert (
         body["siteSignInUrl"] == f"{get_site('plasmodb').web_base_url}/app/user/login"
     )
+
+
+async def test_the_site_page_is_the_websites_pathfinder_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "pathfinder_site", "plasmodb")
+
+    body = await _config()
+
+    assert body["sitePageUrl"] == f"{get_site('plasmodb').web_base_url}/app/pathfinder"

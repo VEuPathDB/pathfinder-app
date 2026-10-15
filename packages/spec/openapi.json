@@ -34,7 +34,7 @@
           "health"
         ],
         "summary": "System Config",
-        "description": "Report the model providers, the deployment's site and its sign-in address.\n\nThis is unauthenticated so the frontend can show a setup-required\nscreen before asking users to log in.",
+        "description": "Report the model providers, the deployment's site, its sign-in address and\nthe website page that frames PathFinder.\n\nThis is unauthenticated so the frontend can show a setup-required\nscreen before asking users to log in.",
         "operationId": "system_config_health_config_get",
         "responses": {
           "200": {
@@ -11718,6 +11718,10 @@
           "siteSignInUrl": {
             "type": "string",
             "title": "Sitesigninurl"
+          },
+          "sitePageUrl": {
+            "type": "string",
+            "title": "Sitepageurl"
           }
         },
         "type": "object",
@@ -11726,7 +11730,8 @@
           "llmConfigured",
           "providers",
           "siteId",
-          "siteSignInUrl"
+          "siteSignInUrl",
+          "sitePageUrl"
         ],
         "title": "SystemConfigResponse",
         "description": "System configuration status (unauthenticated)."

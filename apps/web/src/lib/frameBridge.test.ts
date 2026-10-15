@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { reportLocation, sameOriginFramer } from "./frameBridge";
+import { goToWebsitePage, reportLocation, sameOriginFramer } from "./frameBridge";
 
 const ORIGIN = "https://muharram.veupathdb.org";
 
@@ -102,5 +102,53 @@ describe("reportLocation", () => {
       { type: "pathfinder:location", path: "/toxodb/conversation" },
       { type: "pathfinder:location", path: "/toxodb/saved" },
     ]);
+  });
+});
+
+describe("goToWebsitePage", () => {
+  const SITE_PAGE = `${ORIGIN}/eupathdb.amuharram/app/pathfinder`;
+
+  function tab(origin: string, parent?: Window) {
+    const replace = vi.fn();
+    const win = { location: { origin, replace } } as unknown as Window & {
+      parent: Window;
+    };
+    win.parent = parent ?? win;
+    return { win, replace };
+  }
+
+  it("sends a page opened on its own to the website page for the same path", () => {
+    const { win, replace } = tab(ORIGIN);
+
+    goToWebsitePage(win, SITE_PAGE, "/veupathdb/conversation/c1?step=2");
+
+    expect(replace.mock.calls).toEqual([
+      [`${SITE_PAGE}/veupathdb/conversation/c1?step=2`],
+    ]);
+  });
+
+  it("keeps a page the website page frames", () => {
+    const { win: website } = tab(ORIGIN);
+    const { win, replace } = tab(ORIGIN, website);
+
+    goToWebsitePage(win, SITE_PAGE, "/veupathdb/conversation");
+
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("keeps a page on a host the website page is not on", () => {
+    const { win, replace } = tab("http://localhost:3010");
+
+    goToWebsitePage(win, SITE_PAGE, "/veupathdb/conversation");
+
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("keeps a page when the website address is not a URL", () => {
+    const { win, replace } = tab(ORIGIN);
+
+    goToWebsitePage(win, "not a url", "/veupathdb/conversation");
+
+    expect(replace).not.toHaveBeenCalled();
   });
 });

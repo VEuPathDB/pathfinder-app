@@ -42,6 +42,7 @@ function config(siteId: string): SystemConfigResponse {
     providers: { openai: true, anthropic: false, google: false, ollama: false },
     siteId,
     siteSignInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
+    sitePageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
   };
 }
 

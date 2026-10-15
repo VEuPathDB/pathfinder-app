@@ -54,3 +54,5 @@ class SystemConfigResponse(CamelModel):
     providers: ProviderStatus
     site_id: str
     site_sign_in_url: str
+    # The website page that frames PathFinder under the site's own header.
+    site_page_url: str

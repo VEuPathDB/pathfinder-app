@@ -1,14 +1,12 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
 import { useIsomorphicLayoutEffect } from "usehooks-ts";
 
+import { useAddressPath } from "@/app/hooks/useAddressPath";
 import { reportLocation } from "@/lib/frameBridge";
 
 export function FrameLocationReporter() {
-  const pathname = usePathname();
-  const search = useSearchParams().toString();
-  const path = search ? `${pathname}?${search}` : pathname;
+  const path = useAddressPath();
   useIsomorphicLayoutEffect(() => reportLocation(window, path), [path]);
   return null;
 }

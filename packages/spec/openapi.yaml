@@ -23,7 +23,9 @@ paths:
       tags:
       - health
       summary: System Config
-      description: 'Report the model providers, the deployment''s site and its sign-in address.
+      description: 'Report the model providers, the deployment''s site, its sign-in address and
+
+        the website page that frames PathFinder.
 
 
         This is unauthenticated so the frontend can show a setup-required
@@ -7585,6 +7587,9 @@ components:
         siteSignInUrl:
           type: string
           title: Sitesigninurl
+        sitePageUrl:
+          type: string
+          title: Sitepageurl
       type: object
       required:
       - chatProvider
@@ -7592,6 +7597,7 @@ components:
       - providers
       - siteId
       - siteSignInUrl
+      - sitePageUrl
       title: SystemConfigResponse
       description: System configuration status (unauthenticated).
     SystemReadyResponse:

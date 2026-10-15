@@ -17,6 +17,7 @@ export function renderWithConfig(ui: ReactElement): RenderResult {
     providers: { openai: false, anthropic: false, google: false, ollama: false },
     siteId: "veupathdb",
     siteSignInUrl: SITE_SIGN_IN_URL,
+    sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder",
   };
   queryClient.setQueryDefaults(queryKey, { staleTime: Infinity });
   queryClient.setQueryData(queryKey, config);

@@ -65,7 +65,11 @@ the spending meter at the bottom (`AppNavRail.tsx`, `RailQuotaMeter.tsx` under
 the conversation's right rail (`apps/web/src/lib/components/PathFinderMark.tsx`). When the parent window has the same origin, a
 route change posts `{ type: "pathfinder:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
-on the PathFinder page.
+on the PathFinder page. A PathFinder page opened in a tab of its own on the
+website's host replaces itself with the website page for the same path
+(`sitePageUrl` in `GET /health/config`, the deployment site's `/app/pathfinder`),
+so a bookmark or a shared link opens under the website's header. A host the
+website is not on keeps the page.
 
 **A link PathFinder writes for later is a path under `/pathfinder`.** An export
 download link and the development sign-in address carry no host, so the browser

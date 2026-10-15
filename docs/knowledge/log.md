@@ -2,6 +2,11 @@
 
 ## 2026-10-15
 
+* **A PathFinder page opened on its own goes to the website page.** On the website's
+  host, a tab that shows `/pathfinder/...` outside a frame replaces itself with the
+  deployment site's `/app/pathfinder` page for the same path, so the website's header
+  is always there; `GET /health/config` names that page as `sitePageUrl`.
+
 * **PathFinder has a logo of its own.** The mark is a tsetse with search waves from its
   proboscis inside a loop of the fourteen site colours; `assets/brand/` holds every form
   of it, `apps/web/src/lib/brand.ts` is the web app's one name for the served copies, and

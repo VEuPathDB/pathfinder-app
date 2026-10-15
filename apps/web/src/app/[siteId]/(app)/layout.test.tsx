@@ -19,6 +19,7 @@ vi.mock("@/app/hooks/useSystemConfig", () => ({
   useSystemConfig: () => ({
     setupRequired: false,
     siteSignInUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login",
+    sitePageUrl: "https://muharram.veupathdb.org/eupathdb.amuharram/app/pathfinder",
     retry: vi.fn(),
   }),
 }));

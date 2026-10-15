@@ -18,3 +18,9 @@ export function reportLocation(win: Window, path: string): void {
   framer.postMessage({ type: PATHFINDER_LOCATION, path }, win.location.origin);
   lastPosted = path;
 }
+
+export function goToWebsitePage(win: Window, sitePageUrl: string, path: string): void {
+  if (win.parent !== win || !URL.canParse(sitePageUrl)) return;
+  if (new URL(sitePageUrl).origin !== win.location.origin) return;
+  win.location.replace(`${sitePageUrl}${path}`);
+}

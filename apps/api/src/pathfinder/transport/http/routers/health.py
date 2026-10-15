@@ -42,7 +42,8 @@ def _site_sign_in_url() -> str:
 
 @router.get("/health/config", response_model=SystemConfigResponse)
 async def system_config() -> SystemConfigResponse:
-    """Report the model providers, the deployment's site and its sign-in address.
+    """Report the model providers, the deployment's site, its sign-in address and
+    the website page that frames PathFinder.
 
     This is unauthenticated so the frontend can show a setup-required
     screen before asking users to log in.
@@ -60,6 +61,7 @@ async def system_config() -> SystemConfigResponse:
         ),
         site_id=settings.pathfinder_site,
         site_sign_in_url=_site_sign_in_url(),
+        site_page_url=f"{get_site(settings.pathfinder_site).web_base_url}/app/pathfinder",
     )
 
 
