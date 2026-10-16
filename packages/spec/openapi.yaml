@@ -9516,6 +9516,64 @@ components:
       - none
       - not_shown
       type: string
+    ColumnTally:
+      properties:
+        id:
+          title: Id
+          type: string
+        title:
+          title: Title
+          type: string
+        searchName:
+          title: Searchname
+          type: string
+        recordType:
+          title: Recordtype
+          type: string
+        recordNoun:
+          title: Recordnoun
+          type: string
+        column:
+          title: Column
+          type: string
+        columnLabel:
+          title: Columnlabel
+          type: string
+        only:
+          anyOf:
+          - $ref: '#/components/schemas/TallyOnly'
+          - type: 'null'
+        onlyLabel:
+          default: ''
+          title: Onlylabel
+          type: string
+        total:
+          title: Total
+          type: integer
+        distinct:
+          title: Distinct
+          type: integer
+        missing:
+          default: 0
+          title: Missing
+          type: integer
+        rows:
+          items:
+            $ref: '#/components/schemas/TallyRow'
+          title: Rows
+          type: array
+      required:
+      - id
+      - title
+      - searchName
+      - recordType
+      - recordNoun
+      - column
+      - columnLabel
+      - total
+      - distinct
+      title: ColumnTally
+      type: object
     ComparedVariant:
       description: 'One variant a comparison ran: its genes, the genes no other variant
 
@@ -13157,6 +13215,78 @@ components:
       - state
       title: SubAgentStepPayload
       type: object
+    TallyFact:
+      description: One column of one search, counted by each of its values.
+      properties:
+        id:
+          title: Id
+          type: string
+        title:
+          title: Title
+          type: string
+        recordNoun:
+          title: Recordnoun
+          type: string
+        total:
+          title: Total
+          type: integer
+        distinct:
+          title: Distinct
+          type: integer
+        rows:
+          items:
+            $ref: '#/components/schemas/TallyRowFact'
+          title: Rows
+          type: array
+      required:
+      - id
+      - title
+      - recordNoun
+      - total
+      - distinct
+      title: TallyFact
+      type: object
+    TallyOnly:
+      properties:
+        column:
+          title: Column
+          type: string
+        values:
+          items:
+            type: string
+          title: Values
+          type: array
+      required:
+      - column
+      - values
+      title: TallyOnly
+      type: object
+    TallyRow:
+      properties:
+        value:
+          title: Value
+          type: string
+        count:
+          title: Count
+          type: integer
+      required:
+      - value
+      - count
+      title: TallyRow
+      type: object
+    TallyRowFact:
+      properties:
+        value:
+          title: Value
+          type: string
+        count:
+          title: Count
+          type: integer
+      required:
+      - value
+      - count
+      title: TallyRowFact
+      type: object
     TaskCompleted:
       properties:
         taskId:
@@ -13274,9 +13404,9 @@ components:
     TurnFacts:
       description: 'Everything a turn shows beside its reply, and every fact a reference of
 
-        the reply renders. ``comparisons`` and ``statistics`` alone make no facts
+        the reply renders. ``comparisons``, ``statistics`` and ``tallies`` alone make
 
-        part: their cards show them.'
+        no facts part: their cards show them.'
       properties:
         recordNoun:
           default: gene
@@ -13403,6 +13533,11 @@ components:
           items:
             $ref: '#/components/schemas/StatisticFact'
           title: Statistics
+          type: array
+        tallies:
+          items:
+            $ref: '#/components/schemas/TallyFact'
+          title: Tallies
           type: array
         stoppedCheck:
           default: ''
@@ -14052,6 +14187,10 @@ components:
         backgroundTaskStarted:
           anyOf:
           - $ref: '#/components/schemas/BackgroundTaskStarted'
+          - type: 'null'
+        columnTally:
+          anyOf:
+          - $ref: '#/components/schemas/ColumnTally'
           - type: 'null'
         consultQuestion:
           anyOf:

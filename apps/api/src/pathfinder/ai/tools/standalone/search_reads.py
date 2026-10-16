@@ -86,7 +86,9 @@ def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantInput) 
                 continue
 
 
-async def _resolved(ctx: RunContext[LeadDeps], search: VariantInput) -> VariantSpec:
+async def resolved_search(
+    ctx: RunContext[LeadDeps], search: VariantInput
+) -> VariantSpec:
     """The search under the record type the catalog lists it under, with each
     value as the entry its vocabulary names."""
     reject_combine_variants([search])
@@ -114,7 +116,7 @@ async def count_search(
     Args:
         search: The search, its parameter values and a short ``label``.
     """
-    spec = await _resolved(ctx, search)
+    spec = await resolved_search(ctx, search)
     counted = await run_search_count(ctx.deps.site_id, spec)
     ctx.deps.state.turn_markers.record_comparison(counted.fact())
     return with_summary(
@@ -156,7 +158,7 @@ async def genes_in_search(
             "Name the gene ids to check."
         )
         raise ModelRetry(msg)
-    spec = await _resolved(ctx, search)
+    spec = await resolved_search(ctx, search)
     site_id = ctx.deps.site_id
     membership = await run_search_membership(site_id, spec, asked)
     markers = ctx.deps.state.turn_markers

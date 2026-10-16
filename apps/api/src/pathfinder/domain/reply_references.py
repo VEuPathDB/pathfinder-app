@@ -25,6 +25,7 @@ from pathfinder.domain.reference_placement import misplacements
 from pathfinder.domain.scratchpad_facts import hard_facts
 from pathfinder.domain.statistic_facts import statistic_references, statistic_value
 from pathfinder.domain.strategy.operational_spec import ValueSource
+from pathfinder.domain.tally_facts import tally_count, tally_references
 from pathfinder.domain.turn_facts import ParameterFact, TurnFacts
 
 _A_LINK = re.compile(
@@ -224,6 +225,7 @@ _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "source": _source,
     "record": _record,
     "stat": lambda facts, body: statistic_value(facts.statistics, body),
+    "tally": lambda facts, body: tally_count(facts.tallies, body),
 }
 
 
@@ -305,6 +307,7 @@ def _number_references(facts: TurnFacts, number: str) -> tuple[str, ...]:
         if p.value == number
     )
     held.extend(statistic_references(facts.statistics, number))
+    held.extend(tally_references(facts.tallies, number))
     return tuple(dict.fromkeys(held))
 
 

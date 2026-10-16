@@ -20,6 +20,7 @@ from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.questions import OpenQuestion
 from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.domain.tally_facts import TallyFact
 
 # What a written reference carries before the identifier itself.
 _REFERENCE_PREFIXES = (
@@ -216,6 +217,7 @@ class TurnMarkers(CamelModel):
     comparisons: list[ComparisonFact] = Field(default_factory=list)
     # Which of the asked genes each membership check of this turn found held.
     memberships: list[MembershipFact] = Field(default_factory=list)
+    tallies: list[TallyFact] = Field(default_factory=list)
     # The checks whose digest was corrected once for its control results.
     refused_digests: list[str] = Field(default_factory=list)
     # Every url, DOI and PMID this turn's own reads retrieved. A reference the
@@ -376,6 +378,9 @@ class TurnMarkers(CamelModel):
     def record_comparison(self, comparison: ComparisonFact) -> None:
         """Keep the counts one completed comparison returned."""
         self.comparisons.append(comparison)
+
+    def record_tally(self, tally: TallyFact) -> None:
+        self.tallies.append(tally)
 
     def record_membership(self, membership: MembershipFact) -> None:
         """Keep which of the asked genes one membership check found held."""

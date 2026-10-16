@@ -2,6 +2,14 @@
 
 ## 2026-10-16
 
+* **A search's records are counted per value of a column.** `count_by_column` counts one
+  catalog search's whole result by each value of one column with the site's `byValue`
+  column reporter (veupathdb-py 0.1.0b12 `run_search_column_report`, taken with veupathdb-mcp 0.2.0b22), after keeping only the rows
+  another column holds a value for, and adds no step. The counts are `TurnFacts.tallies`
+  (`domain/tally_facts.py`); a reply states them with `[tally:<id>.<value>]` and
+  `[tally:<id>]`, in the tally's own noun, and the thread shows them as a numbered table,
+  ten rows a page. A value that lists several entries counts as one value.
+
 * **The facts' records are tables, ten rows a page.** The records a turn read, the genes the
   message names, each listing and each record's orthologs are paginated tables
   (`ExhibitTable`'s `pageSize`), so a long list never runs the appendix long. A record's

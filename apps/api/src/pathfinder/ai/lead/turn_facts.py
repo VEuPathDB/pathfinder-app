@@ -403,6 +403,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         comparisons=list(markers.comparisons),
         memberships=list(markers.memberships),
         statistics=list(domain.statistics),
+        tallies=list(markers.tallies),
         stopped_check=""
         if stop is None or stop.role != "verification"
         else stop.render(),

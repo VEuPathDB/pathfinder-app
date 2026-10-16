@@ -1,3 +1,4 @@
+import { DataColumnTally } from "./parts/DataColumnTally";
 import { DataFactsNotices } from "./parts/DataFactsNotices";
 import { DataGeneSet } from "./parts/DataGeneSet";
 import { DataGeneSetList } from "./parts/DataGeneSetList";
@@ -21,6 +22,7 @@ export type StrategyDataPartKind =
   | "data-graph-snapshot"
   | "data-graph-cleared"
   | "data-variant-comparison"
+  | "data-column-tally"
   | "data-scored-comparison"
   | "data-gene-set"
   | "data-gene-set-list"
@@ -38,6 +40,7 @@ export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKi
   "data-graph-snapshot": noRender,
   "data-graph-cleared": DataGraphCleared,
   "data-variant-comparison": DataVariantComparison,
+  "data-column-tally": DataColumnTally,
   "data-scored-comparison": DataScoredComparison,
   "data-gene-set": DataGeneSet,
   "data-gene-set-list": DataGeneSetList,

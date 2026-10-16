@@ -30,6 +30,7 @@ from pathfinder.ai.stream_part_payloads import (
 from pathfinder.domain.evidence import EvidenceCard
 from pathfinder.domain.separation import SeparationReport
 from pathfinder.domain.turn_facts import TurnFacts
+from pathfinder.services.experiment.column_tally import ColumnTally
 from pathfinder.services.experiment.scored_comparison import ScoredComparison
 from pathfinder.services.experiment.variant_comparison import VariantComparison
 
@@ -46,6 +47,7 @@ def register_strategy_stream_parts(registry: StreamPartRegistry) -> None:
     registry.register("data-evidence-card", EvidenceCard)
     registry.register("data-separation-result", SeparationReport)
     registry.register("data-variant-comparison", VariantComparison)
+    registry.register("data-column-tally", ColumnTally)
     registry.register("data-scored-comparison", ScoredComparison)
     registry.register("data-ledger-update", InvestigationLedger)
     registry.register("data-facts", TurnFacts)

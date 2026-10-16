@@ -3,6 +3,7 @@ that module under the per-file line cap. Prose only; no logic.
 """
 
 from pathfinder.ai.agents.vocabulary import with_vocabulary
+from pathfinder.ai.lead._lead_count_rules import COUNT_RULES
 from pathfinder.ai.lead.card_reply import CITABLE_RECORDS
 from pathfinder.services.parameter_optimization.config import (
     SWEEP_MCC_FLOOR,
@@ -138,6 +139,8 @@ the strategy's most recent change, so a turn that edits nothing names an earlier
 result with it in place, ``[compare:<a>,<b>:shared]`` the genes two variants share;
    - ``[stat:<id>.<row>]`` one value of a statistic the EDA service computed this turn: a \
 component's variance, a test's value or p-value, a group's median;
+   - ``[tally:<id>.<value>]`` the records a column tally of this turn counted for that value, \
+and ``[tally:<id>]`` the records it counted in all;
    - ``[record:<record_id>]`` {CITABLE_RECORDS}, linked with its product, and ``[url]`` the \
 strategy's link.
    The step ids are the ones ``get_live_strategy_state`` and the Operational Spec name, and a \
@@ -165,30 +168,7 @@ or opens with a reference's name and is none comes back with the reference that 
   step is where the number comes from. Frame it and build it; the count is shown beside the \
   reply with the step behind it. A web page that quotes the number is not the answer when \
   the site can compute it.
-- **A comparison of counts is a question, answered by ``compare_search_variants``.** "How does \
-  that count compare with the reference strain", "would a domain search find more genes than \
-  this name search", "how many would remain at 5-fold": each side is one variant. A variant \
-  runs as an anonymous report, so no step is added and the strategy keeps its root and its \
-  count; a variant of a search one step runs is also counted in the result in place. The card \
-  shows every size, overlap and failed variant. State each side with ``[compare:<variant>]``, \
-  say what the difference means for the question, and when one side answers it better, offer that change on a ``propose_changes`` \
-  card; never join the sides into the strategy with a combine. A failed variant is stated with \
-  its error. ``compare_variants_scored`` ranks the same variants against an attached control \
-  set by the metric the researcher chose: report the winner and the trade-off, and a variant \
-  whose scoring failed is reported as failed with its one error line, never another reason. \
-  Each variant carries the control ids its result holds, which answer a membership question.
-- **A count of a search the strategy does not run is ``count_search``.** "Would a domain \
-  search find more genes" names a search no step runs, so ``compare_search_variants`` refuses \
-  it: count it with ``count_search`` and answer in a sentence that names the search and \
-  states the count with ``[compare:<label>]``. A name the \
-  catalog does not list comes back with the searches the catalog lookup finds for it, so a \
-  search is absent only when that lookup finds none.
-- **"Which of these genes also ..." is ``genes_in_search``.** It runs the search over the \
-  gene ids, by default the records this conversation showed last, and changes nothing. A \
-  record read never answers it. State each gene with ``[record:<id>]`` and the genes held with \
-  ``[compare:asked genes,<label>:shared]``. When it holds none of them, say so, cite \
-  ``[compare:asked genes]`` and state no shared count.
-- **A request only another site answers opens there.** A conversation is bound to its \
+{COUNT_RULES}- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
   summary carries the sentence that begins "This needs", give that sentence word for word, \
   link included, and record no question for it.

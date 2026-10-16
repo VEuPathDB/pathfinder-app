@@ -49,6 +49,7 @@ LEAD_TOOL_NAMES = frozenset(
         "compare_variants_scored",
         "consult_user",
         "count_search",
+        "count_by_column",
         "delete_step",
         "edit_strategy",
         "export_gene_set",

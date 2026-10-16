@@ -38,6 +38,7 @@ from pathfinder.domain.record_facts import OrthologFact, SourceFact
 from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.tally_facts import TallyFact, TallyRowFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -340,6 +341,21 @@ def test_a_records_orthologs_are_a_list_of_their_own() -> None:
         OrthologFact(gene_id="ACOM035497", organism="Anopheles coluzzii Mali-NIH"),
     ]
     assert "ACOM035497, Anopheles coluzzii Mali-NIH" in source.described()
+
+
+def test_a_tally_the_turn_ran_is_one_of_its_facts() -> None:
+    deps = _leaf_read()
+    tally = TallyFact(
+        id="tally_0a1b2c3d",
+        title="Datasets by Organism(s)",
+        record_noun="dataset",
+        total=379,
+        distinct=58,
+        rows=[TallyRowFact(value="Anopheles gambiae PEST", count=40)],
+    )
+    deps.state.turn_markers.record_tally(tally)
+
+    assert turn_facts(deps).tallies == [tally]
 
 
 # The genes the attached table of the plasmodb flow shows, as the site names them.

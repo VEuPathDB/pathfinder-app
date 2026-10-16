@@ -36,6 +36,7 @@ export const TOOL_LABELS: Record<string, string> = {
   create_eda_step: "Add study step",
   // Comparisons and controls
   compare_search_variants: "Compare variants",
+  count_by_column: "Count by column",
   compare_variants_scored: "Score variants",
   build_control_set: "Build control set",
   list_control_sets: "List control sets",

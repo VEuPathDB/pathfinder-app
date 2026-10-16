@@ -26,6 +26,7 @@ const REGISTERED = [
   "compare_search_variants",
   "compare_variants_scored",
   "consult_user",
+  "count_by_column",
   "create_eda_step",
   "delete_note",
   "delete_step",

@@ -19,6 +19,7 @@ from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
+from pathfinder.domain.tally_facts import TallyFact
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
     ChoiceCaveat,
@@ -166,8 +167,8 @@ class SavedSetFact(CamelModel):
 
 class TurnFacts(CamelModel):
     """Everything a turn shows beside its reply, and every fact a reference of
-    the reply renders. ``comparisons`` and ``statistics`` alone make no facts
-    part: their cards show them."""
+    the reply renders. ``comparisons``, ``statistics`` and ``tallies`` alone make
+    no facts part: their cards show them."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -204,6 +205,8 @@ class TurnFacts(CamelModel):
     memberships: list[MembershipFact] = Field(default_factory=list, exclude=True)
     # The statistics the EDA service computed on the thread. Their card shows them.
     statistics: list[StatisticFact] = Field(default_factory=list)
+    # The column tallies this turn ran. Their card shows them.
+    tallies: list[TallyFact] = Field(default_factory=list)
     stopped_check: str = ""
     refusal: str = ""
     # The researcher's messages of the thread. A number they write is their word.
@@ -258,7 +261,13 @@ class TurnFacts(CamelModel):
     def counted_nouns(self) -> list[str]:
         """The noun of the result and of each step, once each."""
         return list(
-            dict.fromkeys([self.record_noun, *(s.record_noun for s in self.steps)])
+            dict.fromkeys(
+                [
+                    self.record_noun,
+                    *(s.record_noun for s in self.steps),
+                    *(t.record_noun for t in self.tallies),
+                ]
+            )
         )
 
     def step(self, step_id: str) -> StepFact | None:
@@ -322,6 +331,7 @@ class TurnFacts(CamelModel):
             *(v.row(noun) for c in self.comparisons for v in c.variants),
             *(line for m in self.memberships for line in m.lines()),
             *(line for s in self.statistics for line in s.lines()),
+            *(line for t in self.tallies for line in t.lines()),
             *(s.line() for s in self.sources if not s.step_id),
             *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
             *([self.stopped_check] if self.stopped_check else []),
@@ -386,6 +396,7 @@ class TurnFacts(CamelModel):
                 "comparisons": [c.redacted(redact) for c in self.comparisons],
                 "memberships": [m.redacted(redact) for m in self.memberships],
                 "statistics": [s.redacted(redact) for s in self.statistics],
+                "tallies": [t.redacted(redact) for t in self.tallies],
                 "stopped_check": redact(self.stopped_check),
                 "refusal": redact(self.refusal),
             }

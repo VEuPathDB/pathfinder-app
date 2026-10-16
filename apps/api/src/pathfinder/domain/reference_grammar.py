@@ -17,6 +17,7 @@ REFERENCE_KINDS = (
     "record",
     "last_change",
     "stat",
+    "tally",
 )
 BARE_REFERENCES = ("root_before", "root", "url")
 A_REFERENCE = re.compile(
@@ -29,7 +30,16 @@ _NAMES_A_REFERENCE = re.compile(
 )
 # The references that render a count with the record noun.
 COUNTED_REFERENCES = frozenset(
-    {"root", "root_before", "count", "before", "diff", "compare", "last_change"}
+    {
+        "root",
+        "root_before",
+        "count",
+        "before",
+        "diff",
+        "compare",
+        "last_change",
+        "tally",
+    }
 )
 
 

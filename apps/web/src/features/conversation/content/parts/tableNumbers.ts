@@ -1,5 +1,6 @@
 import type { UIMessage } from "ai";
 import type {
+  ColumnTally,
   ControlTestResults,
   EdaStatisticsPart,
   ScoredComparison,
@@ -12,7 +13,11 @@ import { statisticExhibitKind } from "./statisticExhibit";
 
 /** A part the thread numbers as a paper table. */
 export type TableExhibit =
-  ControlTestResults | EdaStatisticsPart | ScoredComparison | VariantComparison;
+  | ColumnTally
+  | ControlTestResults
+  | EdaStatisticsPart
+  | ScoredComparison
+  | VariantComparison;
 
 /** The one table kind a durable task produces. */
 const CONTROL_TESTS = "data-control-test-results";
@@ -21,6 +26,7 @@ const TABLE_KINDS: ReadonlySet<string> = new Set([
   CONTROL_TESTS,
   "data-scored-comparison",
   "data-variant-comparison",
+  "data-column-tally",
 ]);
 
 const STATISTICS = "data-eda.statistics";

@@ -1,0 +1,143 @@
+"""A column tally counts one search's records by each value of one column, with
+the site's own column reporter, after keeping only the rows another column
+holds a value for."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+from veupathdb.wdk import WDKSearchConfig
+from veupathdb.wdk.wdk_models import WDKColumnDistribution, WDKRecordType
+
+from pathfinder.domain.tally_facts import tally_id
+from pathfinder.services.experiment import column_tally
+from pathfinder.services.experiment.column_tally import (
+    ColumnTallyRefusedError,
+    TallyOnly,
+    run_column_tally,
+)
+from pathfinder.services.experiment.variant_comparison import VariantSpec
+
+_SPEC = VariantSpec(
+    label="datasets",
+    search_name="AllDatasets",
+    record_type="dataset",
+    parameters={},
+)
+
+_RECORD_TYPE = WDKRecordType.model_validate(
+    {
+        "urlSegment": "dataset",
+        "attributes": [
+            {
+                "name": "organism_prefix",
+                "displayName": "Organism(s)",
+                "tools": {"reports": ["byValue"], "filters": ["byValue"]},
+            },
+            {
+                "name": "newcategory",
+                "displayName": "Category",
+                "tools": {"reports": ["byValue"], "filters": ["byValue"]},
+            },
+            {"name": "overview", "displayName": "Overview"},
+        ],
+    }
+)
+
+_REPLY = WDKColumnDistribution.model_validate(
+    {
+        "statistics": {"subsetSize": 379, "numDistinctValues": 3},
+        "histogram": [
+            {"value": 11, "binLabel": "<i>Anopheles coluzzii</i> AcolN3"},
+            {"value": 67, "binLabel": "<i>Aedes aegypti</i> LVP_AGWG"},
+            {"value": 40, "binLabel": "<i>Anopheles gambiae</i> PEST"},
+        ],
+    }
+)
+
+
+class _Site:
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, str, WDKSearchConfig, str]] = []
+
+    async def get_record_type_info(self, record_type: str) -> WDKRecordType:
+        assert record_type == "dataset"
+        return _RECORD_TYPE
+
+    async def run_search_column_report(
+        self,
+        record_type: str,
+        search_name: str,
+        search_config: WDKSearchConfig,
+        column: str,
+        **_: Any,
+    ) -> WDKColumnDistribution:
+        self.sent.append((record_type, search_name, search_config, column))
+        return _REPLY
+
+
+@pytest.fixture
+def site(monkeypatch: pytest.MonkeyPatch) -> _Site:
+    fake = _Site()
+    monkeypatch.setattr(column_tally, "get_strategy_api", lambda _site_id: fake)
+    monkeypatch.setattr(column_tally, "get_wdk_client", lambda _site_id: fake)
+    return fake
+
+
+async def test_the_column_is_counted_after_the_rows_are_kept(site: _Site) -> None:
+    tally = await run_column_tally(
+        "vectorbase",
+        _SPEC,
+        "organism_prefix",
+        TallyOnly(column="newcategory", values=["RNASeq"]),
+        record_noun="dataset",
+    )
+
+    ((record_type, search_name, config, column),) = site.sent
+    assert (record_type, search_name, column) == (
+        "dataset",
+        "AllDatasets",
+        "organism_prefix",
+    )
+    assert config.column_filters == {"newcategory": {"byValue": {"values": ["RNASeq"]}}}
+    assert [(row.value, row.count) for row in tally.rows] == [
+        ("Aedes aegypti LVP_AGWG", 67),
+        ("Anopheles gambiae PEST", 40),
+        ("Anopheles coluzzii AcolN3", 11),
+    ]
+    assert (tally.total, tally.distinct) == (379, 3)
+    assert tally.title == "Datasets by Organism(s), where Category is RNASeq"
+    assert tally.id == tally_id(
+        "vectorbase", "AllDatasets", "organism_prefix", ("newcategory", ("RNASeq",))
+    )
+    assert tally.fact().count("Anopheles gambiae PEST") == 40
+
+
+async def test_a_column_the_site_does_not_count_is_refused_with_those_it_does(
+    site: _Site,
+) -> None:
+    with pytest.raises(ColumnTallyRefusedError) as refused:
+        await run_column_tally(
+            "vectorbase", _SPEC, "overview", None, record_noun="dataset"
+        )
+
+    assert str(refused.value) == (
+        "dataset records cannot be counted by overview. The columns they can be "
+        "counted by: organism_prefix (Organism(s)), newcategory (Category)."
+    )
+    assert site.sent == []
+
+
+async def test_a_column_the_site_does_not_filter_on_is_refused(site: _Site) -> None:
+    with pytest.raises(ColumnTallyRefusedError) as refused:
+        await run_column_tally(
+            "vectorbase",
+            _SPEC,
+            "organism_prefix",
+            TallyOnly(column="overview", values=["x"]),
+            record_noun="dataset",
+        )
+
+    assert str(refused.value).startswith("dataset records cannot be kept by overview.")
+    assert site.sent == []

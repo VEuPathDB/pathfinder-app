@@ -69,6 +69,7 @@ import type {
   PrivacySettings,
   PrivacyUpdate,
   VariantComparison,
+  ColumnTally,
   VariantResult,
   ScoredComparison,
   ScoredVariant,
@@ -288,6 +289,7 @@ export type {
   StrategyMeta,
   StrategyLink,
   VariantComparison,
+  ColumnTally,
   VariantResult,
   ScoredComparison,
   ScoredVariant,
@@ -386,6 +388,7 @@ export type KnownDataPartKind =
   | "data-graph-snapshot"
   | "data-graph-cleared"
   | "data-variant-comparison"
+  | "data-column-tally"
   | "data-scored-comparison"
   | "data-memory-retrieved"
   | "data-gene-set"
@@ -431,6 +434,7 @@ export interface DataPartPayloadMap {
   "data-graph-snapshot": GraphSnapshot;
   "data-graph-cleared": GraphCleared;
   "data-variant-comparison": VariantComparison;
+  "data-column-tally": ColumnTally;
   "data-scored-comparison": ScoredComparison;
   "data-memory-retrieved": RecalledMemoriesPayload;
   "data-gene-set": GeneSetStreamPart;
