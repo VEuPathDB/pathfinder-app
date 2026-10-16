@@ -246,9 +246,8 @@ describe("message dispatch", () => {
       />,
     );
     const card = screen.getByTestId("data-eda-analysis-state");
-    // The study name titles the figure, outside the part's own body.
     expect(
-      screen.getByText("Rodent malaria phenotypes").closest("figcaption"),
+      screen.getByText("A. Rodent malaria phenotypes", { exact: false }).closest("h3"),
     ).not.toBeNull();
     expect(card).toHaveTextContent("berghei subset");
     expect(card).toHaveTextContent("2 computations");

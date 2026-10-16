@@ -33,7 +33,7 @@ Notes belong to one conversation; memories reach every conversation of the accou
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Any turn after M1 and N11 | Read the figure above the reply | Title `Recalled memories`, caption `<n> memories`; each row a kind badge (`Gene set`, `Strategy`, `Preference`, `Knowledge`, `Case`) and a name |
+| 1 | Any turn after M1 and N11 | Open the appendix below the reply | Title `Recalled memories`, caption `<n> memories`; each row a kind badge (`Gene set`, `Strategy`, `Preference`, `Knowledge`, `Case`) and a name |
 | 2 | A long name | Hover | The name is cut with an ellipsis on screen; the full name shows as a tooltip |
 | 3 | Two memories with one name | Read | Each carries its date and time |
 | 4 | A `Strategy` row | Click | Its source conversation opens |

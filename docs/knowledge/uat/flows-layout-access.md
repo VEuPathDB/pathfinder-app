@@ -17,8 +17,9 @@ Run once, on plasmodb, on a conversation that holds S2 and its evidence card. Be
 |---|---|---|---|
 | 1 | Browser window 1024 x 768 | Open the S2 conversation | No horizontal scroll of the page; the composer, `Send` and the usage pill visible |
 | 2 | Right rail `Strategy` | Open | The panel shows the 3 steps and the footer `3 steps` without clipping |
-| 3 | Evidence card | Read | Every column of the step and requirement tables readable (wrapping allowed, no cut text) |
-| 4 | Canvas | `Open` | Nodes, counts and the topbar fit; `Fit to view` fits the tree |
+| 3 | Evidence card | Open the appendix below the reply, read `Evidence` | Every column of the step and requirement tables readable (wrapping allowed, no cut text) |
+| 4 | Appendix | Read the closed line, then open it | The closed line reads `Appendix · <n> sections · <count> genes` and, with caveats, `<n> caveats`. Open, the sections read `A. Strategy`, `B. Evidence` and on, in two columns from three sections, one heading size and one text size in every section |
+| 5 | Canvas | `Open` | Nodes, counts and the topbar fit; `Fit to view` fits the tree |
 
 ## L2 - Phone width - once
 
@@ -26,7 +27,7 @@ Run once, on plasmodb, on a conversation that holds S2 and its evidence card. Be
 |---|---|---|---|
 | 1 | Browser 390 x 844 | Open the app | The sidebar and the right rail are collapsed; `Open conversation sidebar` opens the list |
 | 2 | Conversation | Send `/help` | The slash menu fits the width |
-| 3 | Evidence card, question card, proposal card | Read and answer | Each fits; buttons reachable without zooming |
+| 3 | Evidence card, question card, proposal card | Read and answer | Each fits; buttons reachable without zooming; the open appendix is one column |
 
 ## L3 - Keyboard only - core, once
 

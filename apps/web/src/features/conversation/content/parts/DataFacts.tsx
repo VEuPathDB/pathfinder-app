@@ -159,9 +159,9 @@ function Sentences({
   );
 }
 
-/** What the turn holds, rendered beside the reply: the steps with their values
- * and counts, what the check measured, and what the turn saved or was refused.
- * The reply restates none of it. */
+/** What the turn holds, rendered in the turn's appendix: the steps with their
+ * values and counts, what the check measured, and what the turn saved. The
+ * reply restates none of it. */
 export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
   const noun = data.recordNoun ?? "gene";
   const steps = data.steps ?? [];
@@ -271,22 +271,6 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
       />
       <Sources sources={ungrouped} testId="facts-source" />
       <Sources sources={data.namedGenes ?? []} testId="facts-named-gene" />
-      <Sentences
-        testId="facts-stopped-check"
-        items={
-          (data.stoppedCheck ?? "") === ""
-            ? []
-            : [{ key: "stop", text: data.stoppedCheck ?? "" }]
-        }
-      />
-      <Sentences
-        testId="facts-refusal"
-        items={
-          (data.refusal ?? "") === ""
-            ? []
-            : [{ key: "refusal", text: data.refusal ?? "" }]
-        }
-      />
     </Figure>
   );
 }

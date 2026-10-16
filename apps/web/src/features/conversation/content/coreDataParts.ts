@@ -2,8 +2,6 @@ import type { FunctionComponent } from "react";
 
 import { SubAgentTraceAnchor } from "../thread/TraceAnchor";
 import { DataBackgroundTaskStarted } from "./parts/DataBackgroundTaskStarted";
-import { DataMemoryRetrieved } from "./parts/DataMemoryRetrieved";
-import { DataResearchSources } from "./parts/DataResearchSources";
 import { DataTurnFailed } from "./parts/DataTurnFailed";
 import { DataTurnStopped } from "./parts/DataTurnStopped";
 import { DataTurnWithdrawn } from "./parts/DataTurnWithdrawn";
@@ -42,7 +40,7 @@ export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   // The task row renders a task's progress and outcome from the message.
   "data-task-progress": noRender,
   "data-task-completed": noRender,
-  "data-memory-retrieved": DataMemoryRetrieved,
+  "data-memory-retrieved": noRender,
   "data-conversation-title": noRender,
   "data-scratchpad-updated": noRender,
   "data-turn-usage": noRender,
@@ -55,5 +53,5 @@ export const coreDataPartComponents: DataPartComponentMap<CoreDataPartKind> = {
   "data-tool-summary": noRender,
   // The consult answers travel back to the backend and draw nothing.
   "data-user-question-answers": noRender,
-  "data-research.sources": DataResearchSources,
+  "data-research.sources": noRender,
 };

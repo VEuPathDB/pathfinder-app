@@ -1,22 +1,28 @@
 import { describe, expect, it } from "vitest";
 
+import { APPENDIX_KINDS } from "../content/appendixParts";
 import { traceRenderingKinds } from "./traceRenderingKinds";
 
 describe("traceRenderingKinds", () => {
   it("hoists every science part a run produced", () => {
     const kinds = traceRenderingKinds();
     for (const kind of [
-      "data-eda.analysis-state",
-      "data-eda.subset-preview",
       "data-eda.viz",
       "data-eda.pca",
       "data-eda.statistics",
-      "data-control-test-results",
-      "data-strategy-link",
       "data-gene-set",
       "data-gene-set-list",
+      "data-variant-comparison",
+      "data-separation-result",
     ]) {
       expect(kinds.has(kind)).toBe(true);
+    }
+  });
+
+  it("hoists none of the parts the turn appendix draws", () => {
+    const kinds = traceRenderingKinds();
+    for (const kind of APPENDIX_KINDS) {
+      expect(kinds.has(kind)).toBe(false);
     }
   });
 

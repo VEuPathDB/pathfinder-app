@@ -2,10 +2,11 @@ import { dataPartComponents } from "../content/contentComponents";
 import { noRender } from "../content/coreDataParts";
 
 /**
- * Kinds that draw but are not figures a run produced: three turn-level notices
+ * Kinds that draw but are not figures a run produced: the turn-level notices
  * and the durable job, which the trace draws as a task row.
  */
 const NOT_A_FIGURE: ReadonlySet<string> = new Set([
+  "data-facts",
   "data-turn-failed",
   "data-turn-stopped",
   "data-turn-withdrawn",

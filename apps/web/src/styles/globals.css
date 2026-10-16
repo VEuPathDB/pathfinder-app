@@ -571,3 +571,14 @@
   border-left-width: 1px;
   padding-left: 0.75rem;
 }
+
+.turn-appendix-body * {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.turn-appendix-body h3,
+.turn-appendix-body h3 * {
+  font-size: 0.875rem;
+  break-after: avoid;
+}

@@ -26,7 +26,7 @@ Measured on 2026-09-25 (two nightly runs of `uat-n1-plasmodb`, build 71): the fi
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | New conversation | Send `Find P. falciparum 3D7 genes with a predicted GPI anchor` | No step titled with "GPI". Either a question that says the site has no GPI-anchor search and offers the nearest route, or a build whose steps are titled by the search they run and whose evidence card lists "GPI anchor" with status `No search states it` |
-| 2 | Reply | Read | The facts beside the reply list the GPI anchor requirement, in the words sent, as a gap no search on this site states |
+| 2 | Appendix | Open, read `Strategy` | The Strategy section lists the GPI anchor requirement, in the words sent, as a gap no search on this site states |
 
 Measured: a question, no build: "VEuPathDB does not provide a dedicated search for predicted GPI anchors in this organism. I can use an annotation-text search ... as an approximation", with the text search recommended. 38 s, $0.027.
 
@@ -133,6 +133,6 @@ Not measured. Expected: measure at UAT start.
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | New conversation | Send `Find P. falciparum 3D7 genes with a predicted signal peptide, up at least 2-fold.` | A question card asking `No search on this site states '2-fold'. Drop it from the request?` with the one option `Drop 2-fold`; no strategy yet |
-| 2 | Question card | Pick `Drop 2-fold`, `Submit` | The signal peptide step is built; the facts part beside the reply lists `2-fold` as withdrawn and no gap names it |
+| 2 | Question card | Pick `Drop 2-fold`, `Submit` | The signal peptide step is built; the appendix's Strategy section lists `2-fold` as withdrawn and no gap names it |
 
 Not measured. Expected: measure at UAT start.

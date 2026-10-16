@@ -111,8 +111,8 @@ function renderPart(shortName: string, data: unknown) {
 }
 
 describe("dataPartRenderers dispatch", () => {
-  it("dispatches data-memory-retrieved to the correct component", () => {
-    renderPart("memory-retrieved", {
+  it("leaves data-memory-retrieved to the turn appendix", () => {
+    const { container } = renderPart("memory-retrieved", {
       memories: [
         {
           key: "k1",
@@ -123,7 +123,7 @@ describe("dataPartRenderers dispatch", () => {
         },
       ],
     });
-    expect(screen.getByTestId("data-memory-retrieved")).toBeInTheDocument();
+    expect(container.innerHTML).toBe("");
   });
 
   it("renders nothing for a task part the started card owns", () => {
@@ -134,14 +134,13 @@ describe("dataPartRenderers dispatch", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("dispatches data-strategy-link to the correct component", () => {
-    renderPart("strategy-link", {
+  it("leaves data-strategy-link to the turn appendix", () => {
+    const { container } = renderPart("strategy-link", {
       strategyId: "s1",
       url: "https://qa.plasmodb.org/s1",
       title: "Test",
     });
-    expect(screen.getByTestId("data-strategy-link")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Test" })).toBeInTheDocument();
+    expect(container.innerHTML).toBe("");
   });
 
   it("dispatches data-gene-set to the correct component", () => {

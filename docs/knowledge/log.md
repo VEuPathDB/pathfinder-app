@@ -2,6 +2,12 @@
 
 ## 2026-10-16
 
+* **A turn's records sit in an appendix below the reply.** The facts, the evidence card, the
+  control tests, the strategy's state, the sources, the recalled memories and the EDA setup
+  draw in one closed, lettered appendix under the reply; results, cards that ask for a click
+  and turn notices stay in the reply. The facts' refusal and stopped check stay in the reply
+  as a notice. See [the decision](decisions/a-turns-records-sit-in-an-appendix-below-the-reply.md).
+
 * **Only a strategy of genes makes a gene set.** The set a build saves on its own is made
   only when the strategy's records hold genes: transcripts or genes on a genomics site or
   the portal, sequences on OrthoMCL. A dataset strategy saves no set.

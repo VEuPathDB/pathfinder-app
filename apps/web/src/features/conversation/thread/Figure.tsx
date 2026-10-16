@@ -1,9 +1,11 @@
-import type { ReactElement, ReactNode } from "react";
+import { use, type ReactElement, type ReactNode } from "react";
 
 import { ExhibitCitation } from "./ExhibitCitation";
 import { exhibitAnchorId, exhibitLabel, type ExhibitIdentity } from "./exhibits";
+import { FigureSectionContext, type FigureSection } from "./figureSection";
 
 const CAPTION = "mt-2 text-xs text-muted-foreground";
+const SECTION_HEADING = "text-sm font-semibold tracking-tight text-foreground";
 const NUMBERED_CAPTION = `${CAPTION} text-center italic`;
 
 interface FigureProps {
@@ -33,12 +35,21 @@ export function Figure({
   children,
   testId,
 }: FigureProps): ReactElement {
+  const section = use(FigureSectionContext);
   const kind = exhibit?.kind ?? "figure";
   const number = exhibit?.number ?? null;
   const citation =
     number === null ? null : <ExhibitCitation kind={kind} number={number} />;
   const head =
-    title === null && citation === null ? null : citation === null && action == null ? (
+    section !== null ? (
+      <SectionHead
+        section={section}
+        title={title}
+        citation={citation}
+        action={action}
+      />
+    ) : title === null && citation === null ? null : citation === null &&
+      action == null ? (
       <figcaption className="mb-2 text-sm font-medium">{title}</figcaption>
     ) : (
       <figcaption className="mb-2 flex items-center justify-between gap-2 text-sm font-medium">
@@ -75,5 +86,27 @@ export function Figure({
     >
       {testId === undefined ? body : <div data-testid={testId}>{body}</div>}
     </figure>
+  );
+}
+
+function SectionHead({
+  section,
+  title,
+  citation,
+  action,
+}: {
+  section: FigureSection;
+  title: string | null;
+  citation: ReactNode;
+  action: ReactNode;
+}): ReactElement {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <h3 className={SECTION_HEADING}>
+        {section.letter}. {title ?? section.title}
+      </h3>
+      {citation}
+      {action}
+    </div>
   );
 }

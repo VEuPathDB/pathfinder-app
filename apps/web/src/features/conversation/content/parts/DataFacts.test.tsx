@@ -6,6 +6,7 @@ import { render, screen, within } from "@testing-library/react";
 import type { TurnFacts } from "@pathfinder/shared";
 
 import { DataFacts } from "./DataFacts";
+import { DataFactsNotices } from "./DataFactsNotices";
 
 const URL =
   "https://qa.amoebadb.org/amoeba.qa/app/workspace/strategies/440299573/440299574";
@@ -187,12 +188,37 @@ describe("DataFacts", () => {
     );
   });
 
-  it("shows a refusal whole", () => {
-    render(<DataFacts data={FACTS} />);
+  it("shows a refusal whole, as a notice of its own", () => {
+    render(<DataFactsNotices data={FACTS} />);
 
     expect(screen.getByTestId("facts-refusal")).toHaveTextContent(
       "status_code: 400, the provider refused the request whole",
     );
+  });
+
+  it("shows a stopped check as a notice of its own", () => {
+    render(
+      <DataFactsNotices data={{ ...FACTS, stoppedCheck: "The check was stopped." }} />,
+    );
+
+    expect(screen.getByTestId("facts-stopped-check")).toHaveTextContent(
+      "The check was stopped.",
+    );
+  });
+
+  it("draws no notice for facts that hold neither", () => {
+    const { container } = render(
+      <DataFactsNotices data={{ ...FACTS, refusal: "", stoppedCheck: "" }} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("leaves the refusal and the stopped check to the notice", () => {
+    render(<DataFacts data={{ ...FACTS, stoppedCheck: "The check was stopped." }} />);
+
+    expect(screen.queryAllByTestId("facts-refusal")).toHaveLength(0);
+    expect(screen.queryAllByTestId("facts-stopped-check")).toHaveLength(0);
   });
 
   it("shows a leaf's record under the leaf with its fit, not under the result", () => {

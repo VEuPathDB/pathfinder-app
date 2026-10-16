@@ -1,14 +1,9 @@
-import { DataControlTestResults } from "./parts/DataControlTestResults";
-import { DataEvidenceCard } from "./parts/DataEvidenceCard";
-import { DataFacts } from "./parts/DataFacts";
+import { DataFactsNotices } from "./parts/DataFactsNotices";
 import { DataGeneSet } from "./parts/DataGeneSet";
 import { DataGeneSetList } from "./parts/DataGeneSetList";
 import { DataGraphCleared } from "./parts/DataGraphCleared";
-import { DataGraphSnapshot } from "./parts/DataGraphSnapshot";
 import { DataScoredComparison } from "./parts/DataScoredComparison";
 import { DataSeparationResult } from "./parts/DataSeparationResult";
-import { DataStrategyLink } from "./parts/DataStrategyLink";
-import { DataStrategyMeta } from "./parts/DataStrategyMeta";
 import { DataVariantComparison } from "./parts/DataVariantComparison";
 import { noRender } from "./coreDataParts";
 import type { DataPartComponentMap } from "./dataPartComponentMap";
@@ -34,13 +29,13 @@ export type StrategyDataPartKind =
 
 export const strategyDataPartComponents: DataPartComponentMap<StrategyDataPartKind> = {
   "data-ledger-update": noRender,
-  "data-facts": DataFacts,
-  "data-control-test-results": DataControlTestResults,
-  "data-evidence-card": DataEvidenceCard,
+  "data-facts": DataFactsNotices,
+  "data-control-test-results": noRender,
+  "data-evidence-card": noRender,
   "data-separation-result": DataSeparationResult,
-  "data-strategy-link": DataStrategyLink,
-  "data-strategy-meta": DataStrategyMeta,
-  "data-graph-snapshot": DataGraphSnapshot,
+  "data-strategy-link": noRender,
+  "data-strategy-meta": noRender,
+  "data-graph-snapshot": noRender,
   "data-graph-cleared": DataGraphCleared,
   "data-variant-comparison": DataVariantComparison,
   "data-scored-comparison": DataScoredComparison,
