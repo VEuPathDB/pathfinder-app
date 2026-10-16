@@ -19,12 +19,16 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.wdk import step_view_filters
 
-from pathfinder.domain.gene_homes import GeneHome, SiteKind
+from pathfinder.domain.gene_homes import (
+    GENE_RECORD_CLASSES,
+    PROTEIN_RECORD_CLASS,
+    GeneHome,
+    SiteKind,
+    holds_genes,
+)
 from pathfinder.services.gene_sets.step_genes import extract_gene_id
 
 _ORTHOMCL_PROJECT = "OrthoMCL"
-_GENE_CLASSES = frozenset({"transcript", "gene"})
-_PROTEIN_CLASS = "sequence"
 _ALL = {"offset": 0, "numRecords": -1}
 
 
@@ -40,7 +44,7 @@ class IdListSearch:
 ID_LIST_SEARCHES: dict[SiteKind, IdListSearch] = {
     "genomics": IdListSearch("transcript", "GeneByLocusTag", "ds_gene_ids"),
     "portal": IdListSearch("transcript", "GeneByLocusTag", "ds_gene_ids"),
-    "orthomcl": IdListSearch(_PROTEIN_CLASS, "ByIdList", "source_ids"),
+    "orthomcl": IdListSearch(PROTEIN_RECORD_CLASS, "ByIdList", "source_ids"),
 }
 
 _HOME_ATTRIBUTES: dict[SiteKind, list[str]] = {
@@ -75,7 +79,7 @@ async def gene_homes(
     """
     kind = site_kind(site_id)
     if kind == "genomics":
-        if (record_type or "transcript") not in _GENE_CLASSES:
+        if (record_type or "transcript") not in GENE_RECORD_CLASSES:
             return {}
         return {gene: GeneHome(gene_id=gene, site_id=site_id) for gene in gene_ids}
     answer = (
@@ -108,12 +112,6 @@ def sites_that_list(site_id: str, homes: Mapping[str, GeneHome]) -> list[str]:
     return [get_site(s).name for s in [site_id, *listed]]
 
 
-def _holds_genes(kind: SiteKind, record_class: str) -> bool:
-    if kind == "orthomcl":
-        return record_class == _PROTEIN_CLASS
-    return record_class in _GENE_CLASSES
-
-
 async def _step_answer(
     site_id: str, kind: SiteKind, wdk_step_id: int
 ) -> WDKAnswer | None:
@@ -125,7 +123,7 @@ async def _step_answer(
         pagination={"offset": 0, "numRecords": 0},
         view_filters=filters,
     )
-    if not _holds_genes(kind, head.meta.record_class_name):
+    if not holds_genes(kind, head.meta.record_class_name):
         return None
     return await api.get_step_answer(
         wdk_step_id,

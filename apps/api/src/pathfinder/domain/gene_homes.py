@@ -10,6 +10,15 @@ from veupathdb.model import CamelModel
 
 type SiteKind = Literal["genomics", "portal", "orthomcl"]
 
+GENE_RECORD_CLASSES = frozenset({"transcript", "gene"})
+PROTEIN_RECORD_CLASS = "sequence"
+
+
+def holds_genes(kind: SiteKind, record_class: str) -> bool:
+    if kind == "orthomcl":
+        return record_class == PROTEIN_RECORD_CLASS
+    return record_class in GENE_RECORD_CLASSES
+
 
 class GeneHome(CamelModel):
     """The gene a saved id names, by its id on the genomics site that holds it."""

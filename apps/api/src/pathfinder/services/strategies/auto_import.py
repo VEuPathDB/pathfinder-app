@@ -12,6 +12,7 @@ from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
+from pathfinder.domain.gene_homes import holds_genes
 from pathfinder.domain.strategy.revision import answer_revision, parse_strategy_ast
 from pathfinder.persistence.models import ConversationStrategyView
 from pathfinder.persistence.repositories import (
@@ -21,6 +22,7 @@ from pathfinder.persistence.repositories import (
 from pathfinder.persistence.repositories.conversation_strategy import (
     ConversationWithStrategy,
 )
+from pathfinder.services.gene_sets.homes import site_kind
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError, GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
@@ -89,12 +91,17 @@ async def auto_import_gene_set(
 ) -> GeneSet | None:
     """Create the thread's gene set under ``name`` and link it to the thread.
 
-    Returns the created set, or None when the thread is not eligible, an
-    earlier import already made its set, or its strategy returned no genes.
+    Returns the created set, or None when the thread is not eligible, its
+    strategy holds records that are not genes, an earlier import already made
+    its set, or its strategy returned no genes.
     """
     conversation, strategy = thread
     wdk_id = strategy.wdk_strategy_id
     if wdk_id is None or not _is_eligible(strategy):
+        return None
+    if strategy.record_type is not None and not holds_genes(
+        site_kind(site_id), strategy.record_type
+    ):
         return None
     revision = answer_revision(parse_strategy_ast(strategy.strategy_ast))
 

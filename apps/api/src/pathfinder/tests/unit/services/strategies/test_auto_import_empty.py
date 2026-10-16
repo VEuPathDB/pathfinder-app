@@ -1,4 +1,5 @@
-"""Auto-import must not latch a conversation whose strategy returned nothing.
+"""Auto-import makes a set only of genes, and never latches a strategy that
+returned nothing.
 
 ``gene_set_auto_imported`` is a one-way latch. If an empty result set it, the
 conversation would never get a gene set even after the strategy is fixed and
@@ -77,7 +78,9 @@ class _StubGeneSetService:
         self.saved.append(gene_set)
 
 
-def _thread() -> tuple[Conversation, ConversationStrategyView]:
+def _thread(
+    record_type: str | None = None,
+) -> tuple[Conversation, ConversationStrategyView]:
     now = datetime.now(UTC)
     conversation = Conversation(
         id=uuid4(),
@@ -95,6 +98,7 @@ def _thread() -> tuple[Conversation, ConversationStrategyView]:
         step_count=1,
         strategy_ast={},
         imported_saved_strategy_ids=[],
+        record_type=record_type,
     )
     return conversation, strategy
 
@@ -102,6 +106,7 @@ def _thread() -> tuple[Conversation, ConversationStrategyView]:
 async def _run(
     thread: tuple[Conversation, ConversationStrategyView],
     resolved: list[str],
+    site_id: str = "plasmodb",
 ) -> tuple[_StubRepo, list[GeneSet], list[GeneSet]]:
     conversation = thread[0]
     repo = _StubRepo()
@@ -111,7 +116,7 @@ async def _run(
         name="Kinases expressed in gametocytes",
         conv_repo=repo,
         gene_set_service=svc,
-        site_id="plasmodb",
+        site_id=site_id,
         user_id=conversation.user_id,
     )
     return repo, [] if created is None else [created], svc.saved
@@ -146,3 +151,25 @@ async def test_the_set_takes_the_name_the_caller_gives() -> None:
     _repo, created, _saved = await _run(thread, ["PF3D7_0100100"])
 
     assert [gs.name for gs in created] == ["Kinases expressed in gametocytes"]
+
+
+async def test_a_strategy_of_datasets_makes_no_gene_set() -> None:
+    repo, created, saved = await _run(
+        _thread("dataset"), ["DS_2251b21396"], site_id="vectorbase"
+    )
+
+    assert (created, saved, repo.updates) == ([], [], [])
+
+
+async def test_an_orthomcl_strategy_of_groups_makes_no_gene_set() -> None:
+    repo, created, _saved = await _run(
+        _thread("group"), ["OG7_0000001"], site_id="orthomcl"
+    )
+
+    assert (created, repo.updates) == ([], [])
+
+
+async def test_a_strategy_of_transcripts_makes_its_gene_set() -> None:
+    _repo, created, _saved = await _run(_thread("transcript"), ["PF3D7_0100100"])
+
+    assert [gs.gene_ids for gs in created] == [["PF3D7_0100100"]]

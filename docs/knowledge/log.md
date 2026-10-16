@@ -2,6 +2,15 @@
 
 ## 2026-10-16
 
+* **Only a strategy of genes makes a gene set.** The set a build saves on its own is made
+  only when the strategy's records hold genes: transcripts or genes on a genomics site or
+  the portal, sequences on OrthoMCL. A dataset strategy saves no set.
+
+* **veupathdb-py 0.1.0b11 and veupathdb-mcp 0.2.0b21.** A site-search query is six words
+  at most, the service's limit, so a long query no longer falls back to the slower ranking.
+  A search of a record type other than genes checks its organisms against `GenesByTaxon`
+  read where that search lives, so it no longer asks the site for a search it lacks.
+
 * **A custom model setup greys the preset slider.** The thumb stays on the last preset
   the researcher used. Pressing the thumb picks the preset it rests on, and moving it
   picks the preset it stops on.
