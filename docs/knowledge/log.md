@@ -2,6 +2,12 @@
 
 ## 2026-10-16
 
+* **The facts' records are tables, ten rows a page.** The records a turn read, the genes the
+  message names, each listing and each record's orthologs are paginated tables
+  (`ExhibitTable`'s `pageSize`), so a long list never runs the appendix long. A record's
+  orthologs are `SourceFact.orthologs` (`domain/record_facts.py`), no longer folded into its
+  `values`; a row shows a record's first three words and the rest go to a table of their own.
+
 * **A turn's records sit in an appendix below the reply.** The facts, the evidence card, the
   control tests, the strategy's state, the sources, the recalled memories and the EDA setup
   draw in one closed, lettered appendix under the reply; results, cards that ask for a click

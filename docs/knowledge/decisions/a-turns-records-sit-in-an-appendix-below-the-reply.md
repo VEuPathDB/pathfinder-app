@@ -24,10 +24,12 @@ In the reply flow those kinds draw nothing, so the trace does not split a run at
 
 The appendix starts closed. Its closed line names the section count, the last facts' result
 and its caveats and gaps. A link to an exhibit it holds (`#table-<n>`, `#figure-<n>`) opens
-it. From three sections it reads in two columns on a wide screen, with the evidence card and
-the control tests across both; on a phone it is one column. One unlayered rule in
+it. From three sections it reads in two columns on a wide screen, with the facts, the evidence
+card and the control tests across both; on a phone it is one column. One unlayered rule in
 `styles/globals.css` gives every section one body size and one heading size, over the size
-classes each card carries.
+classes each card carries. The facts list the records a turn read, the genes the message
+names, each listing and each record's orthologs as tables of ten rows a page
+(`ExhibitTable`'s `pageSize`), so a long list never runs the appendix long.
 
 # Rejected
 

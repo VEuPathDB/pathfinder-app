@@ -7,8 +7,9 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.reply_references import ProseFault, prose_faults
-from pathfinder.domain.turn_facts import ParameterFact, SourceFact, StepFact, TurnFacts
+from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
 _PLASMO = TurnFacts(
     steps=[

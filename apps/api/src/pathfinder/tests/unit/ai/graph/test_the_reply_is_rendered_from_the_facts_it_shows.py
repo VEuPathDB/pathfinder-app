@@ -35,9 +35,10 @@ from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.lead_agent import build_lead_agent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.turn_facts import SourceFact, StepFact, TurnFacts
+from pathfinder.domain.turn_facts import StepFact, TurnFacts
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.database import no_database

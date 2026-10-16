@@ -37,6 +37,7 @@ from pathfinder.domain.evidence import (
 from pathfinder.domain.exchanges import Exchange, kept_exchanges
 from pathfinder.domain.memory import MemoryKind
 from pathfinder.domain.question_rows import ResearcherAsk
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.requirement_naming import named_in_prose
 from pathfinder.domain.separation import AttachedControls, SeparationOffer
 from pathfinder.domain.statistic_facts import StatisticFact
@@ -53,7 +54,6 @@ from pathfinder.domain.strategy.spec_tree import (
     renumber_criteria,
 )
 from pathfinder.domain.strategy.staleness import StaleBuild
-from pathfinder.domain.turn_facts import SourceFact
 
 PhaseName = Literal[
     "frame",

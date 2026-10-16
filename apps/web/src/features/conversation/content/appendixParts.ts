@@ -59,6 +59,7 @@ export const LATEST_ONLY: ReadonlySet<AppendixKind> = new Set([
 ]);
 
 export const FULL_WIDTH: ReadonlySet<AppendixKind> = new Set([
+  "data-facts",
   "data-evidence-card",
   "data-control-test-results",
 ]);

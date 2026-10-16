@@ -1,4 +1,9 @@
-import type { ReactElement, ReactNode } from "react";
+"use client";
+
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, type ReactElement, type ReactNode } from "react";
+
+import { Button } from "@/components/ui/button";
 
 export interface ExhibitColumn {
   head: string;
@@ -25,6 +30,7 @@ interface ExhibitTableProps {
   /** Read under the table, the way a paper's table notes are. */
   notes?: readonly ExhibitNote[];
   testId?: string;
+  pageSize?: number;
 }
 
 const HEAD = "border-b border-border px-3 py-1.5 font-medium text-foreground";
@@ -41,7 +47,14 @@ export function ExhibitTable({
   rows,
   notes = [],
   testId,
+  pageSize,
 }: ExhibitTableProps): ReactElement {
+  const [page, setPage] = useState(0);
+  const size = pageSize ?? rows.length;
+  const pages = Math.max(1, Math.ceil(rows.length / Math.max(size, 1)));
+  const current = Math.min(page, pages - 1);
+  const shown =
+    pageSize === undefined ? rows : rows.slice(current * size, (current + 1) * size);
   return (
     <div>
       <div
@@ -68,7 +81,7 @@ export function ExhibitTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {rows.map((row) => (
+            {shown.map((row) => (
               <tr key={row.key} data-testid={row.testId}>
                 {columns.map((column, index) => (
                   <td key={column.head} className={`${CELL} ${align(column)}`}>
@@ -80,6 +93,38 @@ export function ExhibitTable({
           </tbody>
         </table>
       </div>
+      {pages > 1 ? (
+        <div
+          data-testid="exhibit-pager"
+          className="mt-1 flex items-center justify-end gap-1 text-xs text-muted-foreground"
+        >
+          <span className="tabular-nums">
+            {(current * size + 1).toLocaleString()}-
+            {Math.min((current + 1) * size, rows.length).toLocaleString()} of{" "}
+            {rows.length.toLocaleString()}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Previous page"
+            disabled={current === 0}
+            onClick={() => setPage(current - 1)}
+          >
+            <ChevronLeft aria-hidden />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Next page"
+            disabled={current === pages - 1}
+            onClick={() => setPage(current + 1)}
+          >
+            <ChevronRight aria-hidden />
+          </Button>
+        </div>
+      ) : null}
       {notes.length > 0 ? (
         <dl className="mt-2 space-y-0.5 text-[11px] leading-relaxed">
           {notes.map((note) => (

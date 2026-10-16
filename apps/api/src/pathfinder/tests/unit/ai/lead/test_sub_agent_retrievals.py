@@ -23,7 +23,7 @@ from pathfinder.ai.lead.deltas import FrameResult
 from pathfinder.ai.lead.frame_dispatch import frame_work_order, run_frame
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
-from pathfinder.domain.turn_facts import SourceFact
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,

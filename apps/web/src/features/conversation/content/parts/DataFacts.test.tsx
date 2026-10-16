@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { TurnFacts } from "@pathfinder/shared";
 
 import { DataFacts } from "./DataFacts";
@@ -221,7 +221,7 @@ describe("DataFacts", () => {
     expect(screen.queryAllByTestId("facts-stopped-check")).toHaveLength(0);
   });
 
-  it("shows a leaf's record under the leaf with its fit, not under the result", () => {
+  it("lists every record the turn read in one table, with the step that listed it", () => {
     const record = "https://qa.toxodb.org/toxo.qa/app/record/gene/TGME49_200010";
     render(
       <DataFacts
@@ -246,14 +246,87 @@ describe("DataFacts", () => {
       />,
     );
 
-    const [leaf, root] = screen.getAllByTestId("facts-step");
-    const source = within(leaf!).getByTestId("facts-source");
-    expect(source).toHaveTextContent(
-      "TGME49_200010, hypothetical protein (the check judged its fit unclear)",
+    const [record0, reference] = screen.getAllByTestId("facts-source");
+    expect(
+      [...record0!.querySelectorAll("td")].map((cell) => cell.textContent),
+    ).toEqual(["TGME49_200010", "hypothetical protein", "", "SignalP", "", "unclear"]);
+    expect(within(record0!).getByRole("link")).toHaveAttribute("href", record);
+    expect(within(reference!).getByRole("link")).toHaveAttribute(
+      "href",
+      "https://doi.org/10.1016/j.cell.2008.01.001",
     );
-    expect(within(source).getByRole("link")).toHaveAttribute("href", record);
-    expect(within(root!).queryByTestId("facts-source")).toBeNull();
-    expect(screen.getAllByTestId("facts-source")).toHaveLength(2);
+    expect(screen.getAllByTestId("facts-step")[0]).not.toContainElement(record0!);
+  });
+
+  it("shows the records a page at a time", () => {
+    const sources = Array.from({ length: 25 }, (_, index) => ({
+      url: `${TOXO_RECORD}/TGME49_${String(index).padStart(6, "0")}`,
+      recordId: `TGME49_${String(index).padStart(6, "0")}`,
+    }));
+    render(<DataFacts data={{ sources }} />);
+
+    expect(screen.getAllByTestId("facts-source")).toHaveLength(10);
+    expect(screen.getByTestId("exhibit-pager")).toHaveTextContent("1-10 of 25");
+  });
+
+  it("keeps a record's first words in its row and the rest in a table of their own", () => {
+    const values = [
+      "RIF",
+      "chromosome 10",
+      ...Array.from({ length: 14 }, (_, i) => `PF3D7_07${String(i).padStart(4, "0")}`),
+    ];
+    render(
+      <DataFacts
+        data={{
+          sources: [
+            {
+              url: "https://qa.plasmodb.org/plasmo.qa/app/record/gene/PF3D7_1000300",
+              recordId: "PF3D7_1000300",
+              values,
+            },
+          ],
+        }}
+      />,
+    );
+
+    const cells = [...screen.getByTestId("facts-source").querySelectorAll("td")];
+    expect(cells[4]?.textContent).toBe("RIF, chromosome 10, PF3D7_070000, 13 more");
+    const more = screen.getByTestId("facts-more-values");
+    expect(more).toHaveTextContent("More of PF3D7_1000300");
+    expect(within(more).getAllByTestId("facts-more-value")).toHaveLength(10);
+    expect(within(more).getByTestId("exhibit-pager")).toHaveTextContent("1-10 of 13");
+  });
+
+  it("lists a record's orthologs in a table of their own, a page at a time", () => {
+    const orthologs = Array.from({ length: 12 }, (_, index) => ({
+      geneId: `AGAP00${String(9200 + index)}`,
+      organism: "Anopheles gambiae PEST",
+    }));
+    render(
+      <DataFacts
+        data={{
+          sources: [
+            {
+              url: "https://qa.vectorbase.org/vectorbase.qa/app/record/gene/AFUN020124",
+              recordId: "AFUN020124",
+              product: "insulin receptor",
+              orthologs,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-source")).toHaveTextContent("12 orthologs");
+    const table = screen.getByTestId("facts-orthologs");
+    expect(table).toHaveTextContent("Orthologs of AFUN020124");
+    expect(within(table).getAllByTestId("facts-ortholog")).toHaveLength(10);
+    fireEvent.click(within(table).getByRole("button", { name: "Next page" }));
+    expect(
+      within(table)
+        .getAllByTestId("facts-ortholog")
+        .map((row) => row.firstChild?.textContent),
+    ).toEqual(["AGAP009210", "AGAP009211"]);
   });
 
   it("shows the count an edit moved beside the count before it", () => {
@@ -334,13 +407,18 @@ describe("DataFacts", () => {
     );
 
     const named = screen.getByTestId("facts-named-gene");
-    expect(named).toHaveTextContent(
-      "PF3D7_1133400, apical membrane antigen 1, P. falciparum 3D7",
-    );
+    expect([...named.querySelectorAll("td")].map((cell) => cell.textContent)).toEqual([
+      "PF3D7_1133400",
+      "apical membrane antigen 1",
+      "P. falciparum 3D7",
+      "",
+      "",
+      "",
+    ]);
     expect(within(named).getByRole("link")).toHaveAttribute("href", record);
   });
 
-  it("lists the ids a listing returned under the step it listed", () => {
+  it("lists the ids a listing returned in a table named for the step it listed", () => {
     render(
       <DataFacts
         data={{
@@ -362,9 +440,8 @@ describe("DataFacts", () => {
       />,
     );
 
-    const [leaf, root] = screen.getAllByTestId("facts-step");
-    const listed = within(leaf!).getByTestId("facts-listed");
-    expect(listed).toHaveTextContent("Listed from Text search: HHA_208730, HHA_208740");
+    const listed = screen.getByTestId("facts-listed");
+    expect(listed).toHaveTextContent("Listed from Text search");
     expect(
       within(listed)
         .getAllByRole("link")
@@ -373,7 +450,6 @@ describe("DataFacts", () => {
       ["HHA_208730", `${TOXO_RECORD}/HHA_208730`],
       ["HHA_208740", `${TOXO_RECORD}/HHA_208740`],
     ]);
-    expect(within(root!).queryByTestId("facts-listed")).toBeNull();
   });
 
   it("shows a record's other words beside its product", () => {
@@ -392,9 +468,11 @@ describe("DataFacts", () => {
       />,
     );
 
-    expect(screen.getByTestId("facts-source")).toHaveTextContent(
-      "Tbg972.6.590, hypothetical protein, chromosome 6",
-    );
+    expect(
+      [...screen.getByTestId("facts-source").querySelectorAll("td")].map(
+        (cell) => cell.textContent,
+      ),
+    ).toEqual(["Tbg972.6.590", "hypothetical protein", "", "", "chromosome 6", ""]);
   });
 
   it("draws nothing for a kind the turn does not hold", () => {

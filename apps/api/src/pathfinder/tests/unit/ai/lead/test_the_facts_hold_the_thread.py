@@ -34,10 +34,10 @@ from pathfinder.domain.comparison_facts import (
     SharedGenes,
 )
 from pathfinder.domain.evidence import SampledGene, VerificationReview
+from pathfinder.domain.record_facts import OrthologFact, SourceFact
 from pathfinder.domain.reply_references import ProseFault, prose_faults, render_reply
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.turn_facts import SourceFact
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead.conftest import lead_deps, pipeline_state
@@ -312,6 +312,34 @@ def test_a_record_a_read_returned_is_rendered_linked_with_its_product() -> None:
             references=("[record:AFUN020124]",),
         )
     ]
+
+
+def test_a_records_orthologs_are_a_list_of_their_own() -> None:
+    deps = _leaf_read()
+    deps.state.turn_markers.record_read(
+        ReadRecord(
+            record_id="AFUN020124",
+            url=_VECTORBASE_RECORD,
+            product="insulin receptor",
+            organism="Anopheles funestus FUMOZ",
+            gene_name="InR",
+            chromosome="2R",
+            asked_orthologs=[
+                "AGAP009262",
+                "Anopheles gambiae PEST",
+                "ACOM035497",
+                "Anopheles coluzzii Mali-NIH",
+            ],
+        )
+    )
+
+    (source,) = [s for s in turn_facts(deps).sources if s.record_id == "AFUN020124"]
+    assert source.values == ["InR", "chromosome 2R"]
+    assert source.orthologs == [
+        OrthologFact(gene_id="AGAP009262", organism="Anopheles gambiae PEST"),
+        OrthologFact(gene_id="ACOM035497", organism="Anopheles coluzzii Mali-NIH"),
+    ]
+    assert "ACOM035497, Anopheles coluzzii Mali-NIH" in source.described()
 
 
 # The genes the attached table of the plasmodb flow shows, as the site names them.

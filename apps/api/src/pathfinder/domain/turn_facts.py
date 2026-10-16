@@ -13,10 +13,10 @@ from pathfinder.domain.caveats import Caveat, Gap, PhraseCaveat, SampleCaveat
 from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.count_words import counted
-from pathfinder.domain.evidence import ColumnFit, GeneFit
+from pathfinder.domain.evidence import ColumnFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
-from pathfinder.domain.record_page import ListedRecord
+from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
 from pathfinder.domain.value_caveats import (
@@ -120,73 +120,6 @@ class StepFact(CamelModel):
                 "error": redact(self.error),
             }
         )
-
-
-class SourceFact(CamelModel):
-    """A record or a reference a read returned, the step whose listing gave the
-    record, and the check's judgement of the record against the request.
-
-    ``values`` are the record's other words: its gene name, its chromosome and
-    the orthologs of the one organism the read asked for.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    url: str
-    record_id: str = ""
-    product: str = ""
-    organism: str = ""
-    values: list[str] = Field(default_factory=list)
-    step_id: str = ""
-    step_name: str = ""
-    fit: GeneFit | None = None
-    why: str = ""
-
-    def _words(self) -> list[str]:
-        return [t for t in (self.product, self.organism, *self.values) if t]
-
-    def _fit(self) -> str:
-        return "" if self.fit is None else f" (the check judged its fit {self.fit})"
-
-    def described(self) -> str:
-        """The record's id and words, its fit, and its link."""
-        named = ", ".join(t for t in (self.record_id, *self._words()) if t)
-        return f"{named}{self._fit()}: {self.url}" if named else self.url
-
-    def where(self) -> str:
-        return f"Read from {self.step_name}" if self.step_name else "Read"
-
-    def line(self) -> str:
-        return f"{self.where()}: {self.described()}"
-
-    def redacted(self, redact: Callable[[str], str]) -> SourceFact:
-        return self.model_copy(
-            update={
-                "url": redact(self.url),
-                "product": redact(self.product),
-                "organism": redact(self.organism),
-                "values": [redact(value) for value in self.values],
-                "step_name": redact(self.step_name),
-                "why": redact(self.why),
-            }
-        )
-
-
-class ListedFact(CamelModel):
-    """The ids a listing or a sample of one step returned, under that step."""
-
-    model_config = ConfigDict(frozen=True)
-
-    step_id: str
-    step_name: str = ""
-    records: list[ListedRecord] = Field(default_factory=list)
-
-    def line(self) -> str:
-        ids = ", ".join(r.record_id for r in self.records)
-        return f"Listed from {self.step_name}: {ids}"
-
-    def redacted(self, redact: Callable[[str], str]) -> ListedFact:
-        return self.model_copy(update={"step_name": redact(self.step_name)})
 
 
 class RetiredFact(CamelModel):

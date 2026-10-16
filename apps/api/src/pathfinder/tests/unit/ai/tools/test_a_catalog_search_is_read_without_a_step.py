@@ -24,10 +24,11 @@ from pathfinder.domain.comparison_facts import (
     SharedGenes,
 )
 from pathfinder.domain.membership_facts import MembershipFact
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.session import StrategySession
-from pathfinder.domain.turn_facts import SourceFact, TurnFacts
+from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.services.experiment import variant_comparison
 from pathfinder.services.experiment.search_reads import SearchCount, SearchMembership
 from pathfinder.services.experiment.variant_comparison import VariantInput, VariantSpec

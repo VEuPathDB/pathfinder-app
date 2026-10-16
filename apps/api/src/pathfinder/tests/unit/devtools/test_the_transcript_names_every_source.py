@@ -12,12 +12,8 @@ from assistant_core.platform.types import JSONObject
 
 from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.devtools.capture import RunCapture
-from pathfinder.domain.turn_facts import (
-    ParameterFact,
-    SourceFact,
-    StepFact,
-    TurnFacts,
-)
+from pathfinder.domain.record_facts import SourceFact
+from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
 _PERCENTILE = "min_expression_percentile"
 _UNSHOWN = (

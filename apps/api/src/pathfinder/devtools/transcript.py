@@ -4,8 +4,9 @@ as the product shows it, and the two assumed counts under their own names."""
 from __future__ import annotations
 
 from pathfinder.devtools.models import LedgerConstraintsProbe
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.turn_facts import ParameterFact, SourceFact, StepFact, TurnFacts
+from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
 # The words the facts part shows beside a value for who set it.
 SOURCE_LABELS: dict[ValueSource, str] = {

@@ -1,16 +1,15 @@
 "use client";
 
 import type { ReactElement } from "react";
-import type {
-  ListedFact,
-  ParameterFact,
-  SourceFact,
-  StepFact,
-  TurnFacts,
-} from "@pathfinder/shared";
+import type { ParameterFact, StepFact, TurnFacts } from "@pathfinder/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
-import { Sources } from "@/features/conversation/content/parts/FactsSources";
+import {
+  ListedTables,
+  MoreValueTables,
+  OrthologTables,
+  RecordsTable,
+} from "@/features/conversation/content/parts/FactsRecords";
 
 const SOURCE_LABELS: Record<ParameterFact["source"], string> = {
   stated: "stated",
@@ -73,15 +72,7 @@ function Parameter({ fact }: { fact: ParameterFact }): ReactElement {
   );
 }
 
-function Step({
-  step,
-  sources,
-  listed,
-}: {
-  step: StepFact;
-  sources: SourceFact[];
-  listed: ListedFact[];
-}): ReactElement {
+function Step({ step }: { step: StepFact }): ReactElement {
   const error = step.error ?? "";
   return (
     <li data-testid="facts-step" data-step-name={step.displayName} className="py-1">
@@ -113,29 +104,6 @@ function Step({
           {error}
         </div>
       )}
-      <Sources sources={sources} testId="facts-source" />
-      {listed.map((listing) => (
-        <div
-          key={listing.stepId}
-          data-testid="facts-listed"
-          className="mt-1 break-all text-xs text-muted-foreground"
-        >
-          Listed from {listing.stepName}:{" "}
-          {(listing.records ?? []).map((record, index) => (
-            <span key={record.recordId}>
-              {index === 0 ? null : ", "}
-              <a
-                href={record.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary underline-offset-2 hover:underline"
-              >
-                {record.recordId}
-              </a>
-            </span>
-          ))}
-        </div>
-      ))}
     </li>
   );
 }
@@ -167,9 +135,7 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
   const steps = data.steps ?? [];
   const url = data.strategyUrl ?? null;
   const sources = data.sources ?? [];
-  const listed = data.listed ?? [];
-  const stepIds = new Set(steps.map((step) => step.stepId));
-  const ungrouped = sources.filter((s) => !stepIds.has(s.stepId ?? ""));
+  const named = data.namedGenes ?? [];
   return (
     <Figure
       testId="data-facts"
@@ -179,12 +145,7 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
       {steps.length === 0 ? null : (
         <ul className="divide-y">
           {steps.map((step) => (
-            <Step
-              key={step.stepId}
-              step={step}
-              sources={sources.filter((s) => s.stepId === step.stepId)}
-              listed={listed.filter((l) => l.stepId === step.stepId)}
-            />
+            <Step key={step.stepId} step={step} />
           ))}
         </ul>
       )}
@@ -269,8 +230,15 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           text: result.sentence,
         }))}
       />
-      <Sources sources={ungrouped} testId="facts-source" />
-      <Sources sources={data.namedGenes ?? []} testId="facts-named-gene" />
+      <RecordsTable title="Records read" sources={sources} testId="facts-source" />
+      <RecordsTable
+        title="Genes the message names"
+        sources={named}
+        testId="facts-named-gene"
+      />
+      <ListedTables listed={data.listed ?? []} />
+      <OrthologTables sources={[...sources, ...named]} />
+      <MoreValueTables sources={[...sources, ...named]} />
     </Figure>
   );
 }

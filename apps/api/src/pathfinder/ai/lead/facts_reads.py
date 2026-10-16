@@ -8,9 +8,10 @@ from collections.abc import Mapping, Sequence
 
 from pathfinder.ai.graph.turn_records import ReadRecord, TurnMarkers
 from pathfinder.domain.evidence import VerificationReview
+from pathfinder.domain.record_facts import ListedFact, OrthologFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.domain.turn_facts import ListedFact, SourceFact, StepFact
+from pathfinder.domain.turn_facts import StepFact
 from pathfinder.services.record_pages import record_page_url
 
 
@@ -32,6 +33,10 @@ def _gene(record: ReadRecord) -> SourceFact:
         product=record.product,
         organism=record.organism,
         values=record.words(),
+        orthologs=[
+            OrthologFact(gene_id=gene_id, organism=organism)
+            for gene_id, organism in record.ortholog_pairs()
+        ],
     )
 
 

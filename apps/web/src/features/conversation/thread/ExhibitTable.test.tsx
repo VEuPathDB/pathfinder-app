@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { ExhibitTable } from "./ExhibitTable";
 
@@ -84,5 +84,48 @@ describe("ExhibitTable", () => {
 
     expect(screen.getByText("Recovered")).toBeInTheDocument();
     expect(screen.getByText("PF3D7_1222600")).toBeInTheDocument();
+  });
+
+  describe("a page at a time", () => {
+    const ROWS = Array.from({ length: 23 }, (_, index) => ({
+      key: `r${String(index)}`,
+      cells: [`set ${String(index + 1)}`, "1", "1"],
+      testId: "row",
+    }));
+
+    function shown(): string[] {
+      return screen
+        .getAllByTestId("row")
+        .map((row) => row.firstChild?.textContent ?? "");
+    }
+
+    it("shows the first page and where it sits among the rows", () => {
+      render(<ExhibitTable columns={COLUMNS} rows={ROWS} pageSize={10} />);
+
+      expect(shown()).toHaveLength(10);
+      expect(shown()[0]).toBe("set 1");
+      expect(screen.getByTestId("exhibit-pager")).toHaveTextContent("1-10 of 23");
+      expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    });
+
+    it("moves a page forward and back", () => {
+      render(<ExhibitTable columns={COLUMNS} rows={ROWS} pageSize={10} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+      expect(shown()).toEqual(["set 21", "set 22", "set 23"]);
+      expect(screen.getByTestId("exhibit-pager")).toHaveTextContent("21-23 of 23");
+      expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Previous page" }));
+      expect(screen.getByTestId("exhibit-pager")).toHaveTextContent("11-20 of 23");
+    });
+
+    it("draws no pager when every row fits on one page", () => {
+      render(<ExhibitTable columns={COLUMNS} rows={ROWS.slice(0, 10)} pageSize={10} />);
+
+      expect(shown()).toHaveLength(10);
+      expect(screen.queryAllByTestId("exhibit-pager")).toHaveLength(0);
+    });
   });
 });

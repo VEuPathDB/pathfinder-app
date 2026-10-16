@@ -75,7 +75,13 @@ class ReadRecord(CamelModel):
     def words(self) -> list[str]:
         """The record's other words, its chromosome named as one."""
         chromosome = f"chromosome {self.chromosome}" if self.chromosome else ""
-        return [t for t in (self.gene_name, chromosome, *self.asked_orthologs) if t]
+        return [t for t in (self.gene_name, chromosome) if t]
+
+    def ortholog_pairs(self) -> list[tuple[str, str]]:
+        """Each asked ortholog's gene id and organism."""
+        return list(
+            zip(self.asked_orthologs[::2], self.asked_orthologs[1::2], strict=True)
+        )
 
 
 class ZeroResultStep(CamelModel):

@@ -4,8 +4,9 @@ that reply are evidence. A reply that links none answers with the ids listed."""
 from __future__ import annotations
 
 from pathfinder.devtools.eval_runner import records_shown
+from pathfinder.domain.record_facts import ListedFact
 from pathfinder.domain.record_page import ListedRecord
-from pathfinder.domain.turn_facts import ListedFact, TurnFacts
+from pathfinder.domain.turn_facts import TurnFacts
 
 # hostdb: a check sampled eight of the nine genes, the reply linked five.
 _SAMPLED = [

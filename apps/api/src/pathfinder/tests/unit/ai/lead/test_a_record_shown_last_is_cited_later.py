@@ -13,8 +13,8 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import hold_the_turn_contract, to_correct
 from pathfinder.ai.lead.turn_facts import turn_facts
 from pathfinder.ai.lead.turn_record import turn_record
+from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.reply_references import render_reply
-from pathfinder.domain.turn_facts import SourceFact
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import reply

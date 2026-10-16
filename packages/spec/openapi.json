@@ -17852,6 +17852,24 @@
         "title": "OrganismChange",
         "type": "object"
       },
+      "OrthologFact": {
+        "properties": {
+          "geneId": {
+            "title": "Geneid",
+            "type": "string"
+          },
+          "organism": {
+            "default": "",
+            "title": "Organism",
+            "type": "string"
+          }
+        },
+        "required": [
+          "geneId"
+        ],
+        "title": "OrthologFact",
+        "type": "object"
+      },
       "PairwiseOverlap": {
         "properties": {
           "a": {
@@ -18941,7 +18959,7 @@
         "type": "object"
       },
       "SourceFact": {
-        "description": "A record or a reference a read returned, the step whose listing gave the\nrecord, and the check's judgement of the record against the request.\n\n``values`` are the record's other words: its gene name, its chromosome and\nthe orthologs of the one organism the read asked for.",
+        "description": "A record or a reference a read returned, the step whose listing gave the\nrecord, and the check's judgement of the record against the request.\n\n``values`` are the record's other words, its gene name and its chromosome;\n``orthologs`` are its orthologs in the one organism the read asked for.",
         "properties": {
           "url": {
             "title": "Url",
@@ -18967,6 +18985,13 @@
               "type": "string"
             },
             "title": "Values",
+            "type": "array"
+          },
+          "orthologs": {
+            "items": {
+              "$ref": "#/components/schemas/OrthologFact"
+            },
+            "title": "Orthologs",
             "type": "array"
           },
           "stepId": {

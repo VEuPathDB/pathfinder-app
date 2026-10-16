@@ -13,6 +13,7 @@ from pathfinder.domain.comparison_facts import (
     ComparisonFact,
     SharedGenes,
 )
+from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
@@ -20,12 +21,7 @@ from pathfinder.domain.reply_references import (
     prose_faults,
     render_reply,
 )
-from pathfinder.domain.turn_facts import (
-    ListedFact,
-    SourceFact,
-    StepFact,
-    TurnFacts,
-)
+from pathfinder.domain.turn_facts import StepFact, TurnFacts
 
 _TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene/"
 _TOXO_STRATEGY = (

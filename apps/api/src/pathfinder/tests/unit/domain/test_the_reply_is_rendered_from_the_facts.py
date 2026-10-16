@@ -11,6 +11,7 @@ from pathfinder.domain.comparison_facts import (
     ComparisonFact,
     SharedGenes,
 )
+from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
@@ -19,13 +20,7 @@ from pathfinder.domain.reply_references import (
     render_reply,
     shape_faults,
 )
-from pathfinder.domain.turn_facts import (
-    ListedFact,
-    ParameterFact,
-    SourceFact,
-    StepFact,
-    TurnFacts,
-)
+from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 
 _RECORD_PAGE = "https://qa.cryptodb.org/cryptodb.qa/app/record/gene/"
 _STRATEGY = "https://qa.microsporidiadb.org/micro.qa/app/workspace/strategies/1/3"

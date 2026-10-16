@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 
+from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
@@ -14,7 +15,7 @@ from pathfinder.domain.reply_references import (
     prose_faults,
     render_reply,
 )
-from pathfinder.domain.turn_facts import ListedFact, SourceFact, TurnFacts
+from pathfinder.domain.turn_facts import TurnFacts
 
 _HOSTDB_PAGE = "https://qa.hostdb.org/hostdb.qa/app/record/gene/"
 _CRYPTO_PAGE = "https://qa.cryptodb.org/cryptodb.qa/app/record/gene/"
