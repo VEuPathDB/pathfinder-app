@@ -39,6 +39,17 @@ describe("YourDataPage", () => {
     expect(logo.compareDocumentPosition(title)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
+  it("gives the logo a line of its own under the back link", () => {
+    render(<YourDataPage />);
+
+    const logo = screen.getByRole("img", { name: "PathFinder" });
+    const back = screen.getByRole("link", { name: "Back to PathFinder" });
+    expect(logo.parentElement?.tagName).toBe("DIV");
+    expect(logo.parentElement?.children).toHaveLength(1);
+    expect(back.compareDocumentPosition(logo)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(logo).toHaveStyle({ width: "192px", height: "192px" });
+  });
+
   it("opens with the same points the sign-in notice shows", () => {
     const { container } = render(<YourDataPage />);
 
