@@ -69,7 +69,10 @@ from pathfinder.ai.lead.turn_contract import (
     hold_the_turn_contract,
 )
 from pathfinder.ai.lead.verify_dispatch import verify_strategy
-from pathfinder.ai.tools.standalone.column_tally import count_by_column
+from pathfinder.ai.tools.standalone.column_tally import (
+    COLUMN_TALLY_REFUSALS,
+    count_by_column,
+)
 from pathfinder.ai.tools.standalone.control_sets import (
     build_control_set,
     list_control_sets,
@@ -141,7 +144,7 @@ def build_lead_toolset() -> AbstractToolset[LeadDeps]:
             Tool(verify_strategy),
             Tool(compare_search_variants),
             Tool(count_search),
-            Tool(count_by_column),
+            Tool(count_by_column, max_retries=COLUMN_TALLY_REFUSALS),
             Tool(genes_in_search),
             Tool(build_control_set),
             Tool(list_control_sets),

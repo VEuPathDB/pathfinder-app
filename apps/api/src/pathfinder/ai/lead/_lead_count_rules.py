@@ -24,7 +24,8 @@ datasets", "how many datasets per organism", "how many of these genes per chromo
 search's whole result counted by each value of one column, after keeping only the rows \
 another column holds a value for (the RNA-Seq datasets: ``record_type`` ``dataset``, \
 ``only_column`` ``newcategory``, ``only_values`` ``RNASeq``). It adds no step. The table shows every count; name the value with \
-the most and its count with ``[tally:<id>.<value>]``, and the total with ``[tally:<id>]``. A \
+the most and its count with ``[tally:<id>.<value>]``, the total with ``[tally:<id>]`` and the \
+number of values with ``[tally:<id>:values]``; never a value's count for another number. A \
 column the site cannot count comes back with the columns it can.
 - **"Which of these genes also ..." is ``genes_in_search``.** It runs the search over the \
   gene ids, by default the records this conversation showed last, and changes nothing. A \

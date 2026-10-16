@@ -10,7 +10,11 @@
   `[tally:<id>]`, in the tally's own noun, and the thread shows them as a numbered table,
   ten rows a page. A value that lists several entries counts as one value. A count per
   value is a `follow_up_question`, never a build, and the tool's `record_type` is where a
-  search name the catalog does not list is looked up.
+  search name the catalog does not list is looked up. A filter value is named as the table
+  shows it and sent as the site stores it (an organism's stored value carries its HTML); a
+  value the column does not hold, and a column no kept record has a value for, are refused
+  with what would work. A blank value is no row. `[tally:<id>:values]` states how many values
+  a tally counted, and the tool keeps one retry for each of its six refusals.
 
 * **The facts' records are tables, ten rows a page.** The records a turn read, the genes the
   message names, each listing and each record's orthologs are paginated tables

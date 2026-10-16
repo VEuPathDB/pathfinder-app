@@ -310,3 +310,15 @@ def test_a_failed_gap_named_only_by_a_value_reference_is_named() -> None:
         [m.kind for m in reconcile(named, record)],
         [m.kind for m in reconcile(unnamed, record)],
     ) == ([], ["failed_check"])
+
+
+def test_the_reply_references_name_the_statistic_and_the_tally() -> None:
+    assert (
+        "[stat:<id>.<row>] one value of a statistic the EDA service computed "
+        "this turn" in REPLY_REFERENCES
+    )
+    assert (
+        "[tally:<id>.<value>] the records a column tally of this turn counted "
+        "for a value, [tally:<id>] the records it counted in all, "
+        "[tally:<id>:values] how many values it counted" in REPLY_REFERENCES
+    )

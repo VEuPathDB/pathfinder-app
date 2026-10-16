@@ -6,10 +6,12 @@ from __future__ import annotations
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.toolsets import FunctionToolset, WrapperToolset
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
 from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import SearchMatch
 
+from pathfinder.ai.lead.lead_agent import build_lead_toolset
 from pathfinder.ai.tools.standalone import column_tally, search_reads
 from pathfinder.ai.tools.standalone.column_tally import count_by_column
 from pathfinder.services.experiment.column_tally import (
@@ -170,3 +172,14 @@ async def test_an_unlisted_search_is_looked_up_under_the_record_type_counted(
         )
 
     assert looked_under == ["dataset"]
+
+
+def test_each_way_the_count_is_refused_keeps_a_retry() -> None:
+    read_once = build_lead_toolset()
+    assert isinstance(read_once, WrapperToolset)
+    refusal_memory = read_once.wrapped
+    assert isinstance(refusal_memory, WrapperToolset)
+    base = refusal_memory.wrapped
+    assert isinstance(base, FunctionToolset)
+
+    assert base.tools["count_by_column"].max_retries == 6

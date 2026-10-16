@@ -20,6 +20,8 @@ from pathfinder.services.experiment.column_tally import (
 )
 from pathfinder.services.experiment.variant_comparison import VariantInput
 
+COLUMN_TALLY_REFUSALS = 6
+
 
 def _line(tally: ColumnTally) -> str:
     top = tally.rows[0] if tally.rows else None
@@ -44,7 +46,8 @@ async def count_by_column(
     for example the RNA-Seq datasets (``newcategory`` is ``RNASeq``) counted by
     organism (``organism_prefix``). A value that lists several entries counts as
     one value of its own. The table shows every count; state the total with
-    ``[tally:<id>]`` and one value's count with ``[tally:<id>.<value>]``. A
+    ``[tally:<id>]``, one value's count with ``[tally:<id>.<value>]`` and the
+    number of values with ``[tally:<id>:values]``. A
     column the site cannot count is refused with the columns it can.
 
     Args:

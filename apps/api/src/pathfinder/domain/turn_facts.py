@@ -19,7 +19,7 @@ from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.statistic_facts import StatisticFact
 from pathfinder.domain.strategy.operational_spec import ValueSource
-from pathfinder.domain.tally_facts import TallyFact
+from pathfinder.domain.tally_facts import VALUE_NOUN, TallyFact
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
     ChoiceCaveat,
@@ -259,13 +259,14 @@ class TurnFacts(CamelModel):
         )
 
     def counted_nouns(self) -> list[str]:
-        """The noun of the result and of each step, once each."""
+        """The noun of the result, of each step and of each tally, once each."""
         return list(
             dict.fromkeys(
                 [
                     self.record_noun,
                     *(s.record_noun for s in self.steps),
                     *(t.record_noun for t in self.tallies),
+                    *([VALUE_NOUN] if self.tallies else []),
                 ]
             )
         )

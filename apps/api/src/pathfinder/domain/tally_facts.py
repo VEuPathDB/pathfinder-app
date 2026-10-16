@@ -14,6 +14,9 @@ from pathfinder.domain.count_words import counted
 
 type TallyFilter = tuple[str, tuple[str, ...]]
 
+VALUE_NOUN = "value"
+_VALUES = ":values"
+
 
 def tally_id(
     site_id: str, search_name: str, column: str, only: TallyFilter | None
@@ -51,10 +54,10 @@ class TallyFact(CamelModel):
         return next((row.count for row in self.rows if row.value == value), None)
 
     def lines(self) -> list[str]:
-        values = counted(self.distinct, "value")
         return [
             self.title,
-            f"[tally:{self.id}] = {counted(self.total, self.record_noun)}, {values}",
+            f"[tally:{self.id}] = {counted(self.total, self.record_noun)}",
+            f"[tally:{self.id}{_VALUES}] = {counted(self.distinct, VALUE_NOUN)}",
             *(f"[tally:{self.id}.{row.value}] = {row.count}" for row in self.rows),
         ]
 
@@ -64,9 +67,12 @@ class TallyFact(CamelModel):
 
 def tally_count(tallies: Sequence[TallyFact], body: str) -> str | None:
     """The count a ``tally`` reference names as ``<id>`` or ``<id>.<value>``,
-    in the tally's noun."""
+    in the tally's noun, or the values ``<id>:values`` names."""
+    by_id = {t.id: t for t in tallies}
+    if body.endswith(_VALUES) and body.removesuffix(_VALUES) in by_id:
+        return counted(by_id[body.removesuffix(_VALUES)].distinct, VALUE_NOUN)
     held_id, _, value = body.partition(".")
-    tally = next((t for t in reversed(tallies) if t.id == held_id), None)
+    tally = by_id.get(held_id)
     if tally is None:
         return None
     count = tally.count(value)
@@ -78,6 +84,8 @@ def tally_references(tallies: Sequence[TallyFact], number: str) -> Iterator[str]
     for tally in tallies:
         if str(tally.total) == number:
             yield f"[tally:{tally.id}]"
+        if str(tally.distinct) == number:
+            yield f"[tally:{tally.id}{_VALUES}]"
         for row in tally.rows:
             if str(row.count) == number:
                 yield f"[tally:{tally.id}.{row.value}]"

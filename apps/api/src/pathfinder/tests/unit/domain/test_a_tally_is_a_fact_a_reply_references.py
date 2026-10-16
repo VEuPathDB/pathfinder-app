@@ -68,7 +68,29 @@ def test_a_tally_id_is_the_same_on_every_read_and_differs_by_filter() -> None:
 def test_a_tally_shows_its_title_its_total_and_each_count() -> None:
     assert _TALLY.lines() == [
         "Datasets by Organism(s), where Category is RNASeq",
-        f"[tally:{_ID}] = 379 datasets, 58 values",
+        f"[tally:{_ID}] = 379 datasets",
+        f"[tally:{_ID}:values] = 58 values",
         f"[tally:{_ID}.Anopheles gambiae PEST] = 40",
         f"[tally:{_ID}.Anopheles coluzzii AcolN3] = 11",
+    ]
+
+
+def test_a_tally_values_reference_renders_how_many_values_it_counted() -> None:
+    facts = TurnFacts(tallies=[_TALLY])
+
+    assert render_reply(
+        f"It has [tally:{_ID}] across [tally:{_ID}:values].", facts
+    ) == ("It has 379 datasets across 58 values.")
+    assert render_reply(f"Across [tally:{_ID}:values] values.", facts) == (
+        "Across 58 values."
+    )
+
+
+def test_a_bare_count_of_values_names_the_values_reference() -> None:
+    facts = TurnFacts(tallies=[_TALLY])
+
+    faults = prose_faults("They span 58 organisms.", facts)
+
+    assert [(f.token, f.references) for f in faults] == [
+        ("58", (f"[tally:{_ID}:values]",))
     ]

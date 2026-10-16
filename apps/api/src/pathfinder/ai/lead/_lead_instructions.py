@@ -140,7 +140,7 @@ result with it in place, ``[compare:<a>,<b>:shared]`` the genes two variants sha
    - ``[stat:<id>.<row>]`` one value of a statistic the EDA service computed this turn: a \
 component's variance, a test's value or p-value, a group's median;
    - ``[tally:<id>.<value>]`` the records a column tally of this turn counted for that value, \
-and ``[tally:<id>]`` the records it counted in all;
+``[tally:<id>]`` the records it counted in all, and ``[tally:<id>:values]`` how many values it counted;
    - ``[record:<record_id>]`` {CITABLE_RECORDS}, linked with its product, and ``[url]`` the \
 strategy's link.
    The step ids are the ones ``get_live_strategy_state`` and the Operational Spec name, and a \
