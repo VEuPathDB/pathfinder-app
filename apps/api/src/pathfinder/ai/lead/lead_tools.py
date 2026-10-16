@@ -133,7 +133,8 @@ async def classify_user_intent(
     is a ``follow_up_question``: that value is for a message that asks you
     to EXPLAIN something the conversation already holds. A question whose answer is
     a count, a list or a membership is a build however it is phrased, unless it
-    compares counts or asks about the strategy the conversation holds: "did my
+    compares counts, counts records per value of a column, or asks about the
+    strategy the conversation holds: "did my
     change go through?", "what is the count now?" is a ``follow_up_question``,
     and a request classification of a message that states nothing outside its
     asks is refused.
@@ -153,6 +154,12 @@ async def classify_user_intent(
     ``follow_up_question`` answered by ``compare_search_variants``: each side
     runs as an anonymous report and no step is added. Its sides go in
     ``differential_sides``, never in ``explicit_constraints``.
+
+    A question that counts records per value of a column - "which genome
+    assembly has the most RNA-Seq datasets", "how many datasets per organism"
+    - is a ``follow_up_question`` answered by ``count_by_column``, also on a
+    conversation with no strategy: one search's whole result is counted by
+    each value and no step is added.
 
     Two classifications ask for no strategy at all:
 

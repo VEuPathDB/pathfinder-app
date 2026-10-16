@@ -7,8 +7,10 @@ from __future__ import annotations
 import pytest
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.ui.vercel_ai.response_types import DataChunk
+from veupathdb_mcp import catalog
+from veupathdb_mcp.catalog import SearchMatch
 
-from pathfinder.ai.tools.standalone import column_tally
+from pathfinder.ai.tools.standalone import column_tally, search_reads
 from pathfinder.ai.tools.standalone.column_tally import count_by_column
 from pathfinder.services.experiment.column_tally import (
     ColumnTally,
@@ -65,7 +67,10 @@ class _Ran:
 
 @pytest.fixture
 def ran(monkeypatch: pytest.MonkeyPatch) -> _Ran:
-    async def resolved(_ctx: object, _search: VariantInput) -> VariantSpec:
+    async def resolved(
+        _ctx: object, _search: VariantInput, *, record_type: str
+    ) -> VariantSpec:
+        assert record_type == "dataset"
         return _SPEC
 
     fake = _Ran()
@@ -80,6 +85,7 @@ async def test_the_counts_are_kept_as_a_fact_and_drawn_as_a_table(ran: _Ran) -> 
     result = await count_by_column(
         ctx,
         _SEARCH,
+        record_type="dataset",
         column="organism_prefix",
         only_column="newcategory",
         only_values=["RNASeq"],
@@ -105,7 +111,9 @@ async def test_a_column_the_site_cannot_count_is_returned_to_the_model(
     ran: _Ran,
 ) -> None:
     with pytest.raises(ModelRetry, match="cannot be counted by overview"):
-        await count_by_column(lead_run_context(), _SEARCH, column="overview")
+        await count_by_column(
+            lead_run_context(), _SEARCH, record_type="dataset", column="overview"
+        )
 
     assert ran.asked == [("overview", None, "dataset")]
 
@@ -115,8 +123,50 @@ async def test_a_filter_names_its_column_and_its_values_together(ran: _Ran) -> N
         await count_by_column(
             lead_run_context(),
             _SEARCH,
+            record_type="dataset",
             column="organism_prefix",
             only_column="newcategory",
         )
 
     assert ran.asked == []
+
+
+async def test_an_unlisted_search_is_looked_up_under_the_record_type_counted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    looked_under: list[str | list[str] | None] = []
+
+    async def unlisted(_site_id: str, _names: list[str]) -> dict[str, str]:
+        return {}
+
+    async def lookup(
+        _site_id: str,
+        record_type: str | list[str] | None,
+        _query: str,
+        **_: object,
+    ) -> list[SearchMatch]:
+        looked_under.append(record_type)
+        return [
+            SearchMatch(
+                name="AllDatasets",
+                display_name="Datasets",
+                description="",
+                record_type="dataset",
+            )
+        ]
+
+    monkeypatch.setattr(search_reads, "search_record_types", unlisted)
+    monkeypatch.setattr(catalog, "search_for_searches", lookup)
+    named = VariantInput(
+        label="datasets", search_name="RNA-Seq datasets", parameters={}
+    )
+
+    with pytest.raises(ModelRetry, match=r"finds: AllDatasets \(Datasets\)"):
+        await count_by_column(
+            lead_run_context(site_id="vectorbase"),
+            named,
+            record_type="dataset",
+            column="organism_prefix",
+        )
+
+    assert looked_under == ["dataset"]

@@ -35,11 +35,12 @@ from pathfinder.services.record_pages import record_page_url
 from pathfinder.services.strategies.record_classes import search_record_types
 
 _LOOKUP_LIMIT = 5
+_GENES = "transcript"
 _WORD_START = re.compile(r"(?<=[a-z])(?=[A-Z])")
 
 
 async def _refuse_an_unlisted_search(
-    ctx: RunContext[LeadDeps], search: VariantInput
+    ctx: RunContext[LeadDeps], search: VariantInput, record_type: str
 ) -> None:
     """Raises ModelRetry for a search the catalog does not list, with the
     searches the catalog lookup finds for its name."""
@@ -50,7 +51,7 @@ async def _refuse_an_unlisted_search(
     query = _WORD_START.sub(" ", name)
     try:
         found = await catalog.search_for_searches(
-            site_id, "transcript", query, keywords=[name], limit=_LOOKUP_LIMIT
+            site_id, record_type, query, keywords=[name], limit=_LOOKUP_LIMIT
         )
     except VagueSearchQueryError:
         found = []
@@ -87,13 +88,14 @@ def _refuse_an_unquoted_phrase(ctx: RunContext[LeadDeps], search: VariantInput) 
 
 
 async def resolved_search(
-    ctx: RunContext[LeadDeps], search: VariantInput
+    ctx: RunContext[LeadDeps], search: VariantInput, *, record_type: str
 ) -> VariantSpec:
     """The search under the record type the catalog lists it under, with each
-    value as the entry its vocabulary names."""
+    value as the entry its vocabulary names. A name the catalog does not list is
+    looked up among the searches of ``record_type``."""
     reject_combine_variants([search])
     _refuse_an_unquoted_phrase(ctx, search)
-    await _refuse_an_unlisted_search(ctx, search)
+    await _refuse_an_unlisted_search(ctx, search, record_type)
     specs = await resolved_variants(ctx.deps.runtime.strategy_session, [search])
     return specs[0]
 
@@ -116,7 +118,7 @@ async def count_search(
     Args:
         search: The search, its parameter values and a short ``label``.
     """
-    spec = await resolved_search(ctx, search)
+    spec = await resolved_search(ctx, search, record_type=_GENES)
     counted = await run_search_count(ctx.deps.site_id, spec)
     ctx.deps.state.turn_markers.record_comparison(counted.fact())
     return with_summary(
@@ -158,7 +160,7 @@ async def genes_in_search(
             "Name the gene ids to check."
         )
         raise ModelRetry(msg)
-    spec = await resolved_search(ctx, search)
+    spec = await resolved_search(ctx, search, record_type=_GENES)
     site_id = ctx.deps.site_id
     membership = await run_search_membership(site_id, spec, asked)
     markers = ctx.deps.state.turn_markers

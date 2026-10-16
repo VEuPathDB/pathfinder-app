@@ -30,6 +30,7 @@ def _line(tally: ColumnTally) -> str:
 async def count_by_column(
     ctx: RunContext[LeadDeps],
     search: VariantInput,
+    record_type: str,
     column: str,
     only_column: str | None = None,
     only_values: list[str] | None = None,
@@ -48,6 +49,9 @@ async def count_by_column(
 
     Args:
         search: The search, its parameter values and a short ``label``.
+        record_type: The record type the search returns: ``transcript`` for
+            genes, ``dataset`` for datasets. A search name the catalog does not
+            list is looked up among this record type's searches.
         column: The column whose values are counted.
         only_column: The column that keeps the rows counted, with ``only_values``.
         only_values: The values of ``only_column`` the rows counted hold.
@@ -60,7 +64,7 @@ async def count_by_column(
         if only_column is None or not only_values
         else TallyOnly(column=only_column, values=only_values)
     )
-    spec = await resolved_search(ctx, search)
+    spec = await resolved_search(ctx, search, record_type=record_type)
     try:
         tally = await run_column_tally(
             ctx.deps.site_id,

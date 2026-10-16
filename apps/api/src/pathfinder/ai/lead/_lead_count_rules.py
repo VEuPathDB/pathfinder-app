@@ -22,8 +22,8 @@ COUNT_RULES = """\
 - **A count per value is ``count_by_column``.** "Which genome has the most RNA-Seq \
 datasets", "how many datasets per organism", "how many of these genes per chromosome": one \
 search's whole result counted by each value of one column, after keeping only the rows \
-another column holds a value for (the RNA-Seq datasets: ``only_column`` ``newcategory``, \
-``only_values`` ``RNASeq``). It adds no step. The table shows every count; name the value with \
+another column holds a value for (the RNA-Seq datasets: ``record_type`` ``dataset``, \
+``only_column`` ``newcategory``, ``only_values`` ``RNASeq``). It adds no step. The table shows every count; name the value with \
 the most and its count with ``[tally:<id>.<value>]``, and the total with ``[tally:<id>]``. A \
 column the site cannot count comes back with the columns it can.
 - **"Which of these genes also ..." is ``genes_in_search``.** It runs the search over the \

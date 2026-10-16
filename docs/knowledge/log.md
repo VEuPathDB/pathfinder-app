@@ -8,7 +8,9 @@
   another column holds a value for, and adds no step. The counts are `TurnFacts.tallies`
   (`domain/tally_facts.py`); a reply states them with `[tally:<id>.<value>]` and
   `[tally:<id>]`, in the tally's own noun, and the thread shows them as a numbered table,
-  ten rows a page. A value that lists several entries counts as one value.
+  ten rows a page. A value that lists several entries counts as one value. A count per
+  value is a `follow_up_question`, never a build, and the tool's `record_type` is where a
+  search name the catalog does not list is looked up.
 
 * **The facts' records are tables, ten rows a page.** The records a turn read, the genes the
   message names, each listing and each record's orthologs are paginated tables

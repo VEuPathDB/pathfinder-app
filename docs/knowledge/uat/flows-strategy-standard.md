@@ -177,5 +177,5 @@ Measured today: not added; six binds failed on `GenesByAntibodyArraypfal3D7_micr
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation | Send `Which genome assembly in the Anopheles gambiae species complex has the most RNA-Seq datasets?` | Trace row `Count by column`; no `Strategy updated` and no step added. A numbered table `Datasets by Organism(s), where Category is RNASeq`, `<n> datasets, <m> values`, ten rows a page, most first. The reply names `Anopheles gambiae PEST` with its count from the table. On QA 2026-10-16: 40 of 379 RNA-Seq datasets |
+| 1 | New conversation | Send `Which genome assembly for the Anopheles gambiae species complex has the most RNA-Seq data?` | Trace row `Count by column` and no FRAME or BUILD row; no `Strategy updated` and no step added. A numbered table `Datasets by Organism(s), where Category is RNASeq`, `<n> datasets, <m> values`, ten rows a page, most first. The reply names `Anopheles gambiae PEST` with its count from the table. On QA 2026-10-16: 40 of 379 RNA-Seq datasets |
 | 2 | Composer | Send `Count them by organism without the RNA-Seq filter.` | A second table titled `Datasets by Organism(s)`, its total larger than the first |
