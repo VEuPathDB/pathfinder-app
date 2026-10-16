@@ -42,6 +42,10 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
   const custom = active === -1;
   const thumb = custom ? Math.max(tiers.indexOf(lastPreset), 0) : active;
   const label = (tier: string) => TIER_LABELS[tier] ?? tier;
+  const pickUnderThumb = () => {
+    const tier = tiers[thumb];
+    if (custom && tier !== undefined) onSelect(tier);
+  };
 
   return (
     <div className="space-y-3">
@@ -59,6 +63,12 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
         onValueChange={([next]) => {
           const tier = next === undefined ? undefined : tiers[next];
           if (tier !== undefined && tier !== activeTier) onSelect(tier);
+        }}
+        onPointerDown={pickUnderThumb}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          pickUnderThumb();
         }}
         thumbLabel="Preset"
         valueText={custom ? "Custom" : label(activeTier)}

@@ -120,6 +120,41 @@ describe("TierPicker", () => {
     expect(onSelect).toHaveBeenCalledWith("fast");
   });
 
+  it("picks the preset under the thumb when it is pressed in Custom", () => {
+    Object.defineProperty(Element.prototype, "setPointerCapture", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    const onSelect = vi.fn();
+    render(
+      <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={onSelect} />,
+    );
+    try {
+      fireEvent.pointerDown(screen.getByRole("slider", { name: "Preset" }));
+      expect(onSelect).toHaveBeenCalledWith("default");
+    } finally {
+      Reflect.deleteProperty(Element.prototype, "setPointerCapture");
+    }
+  });
+
+  it.each(["Enter", " "])("picks the preset under the thumb on %j in Custom", (key) => {
+    const onSelect = vi.fn();
+    render(
+      <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={onSelect} />,
+    );
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Preset" }), { key });
+    expect(onSelect).toHaveBeenCalledWith("default");
+  });
+
+  it("does nothing when the thumb of an active preset is pressed", () => {
+    const onSelect = vi.fn();
+    render(<TierPicker presets={PRESETS} activeTier="default" onSelect={onSelect} />);
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Preset" }), {
+      key: "Enter",
+    });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it("does not mark a preset as custom", () => {
     render(<TierPicker presets={PRESETS} activeTier="default" onSelect={vi.fn()} />);
     expect(

@@ -3,7 +3,8 @@
 ## 2026-10-16
 
 * **A custom model setup greys the preset slider.** The thumb stays on the last preset
-  the researcher used, and moving it picks that preset again.
+  the researcher used. Pressing the thumb picks the preset it rests on, and moving it
+  picks the preset it stops on.
 
 ## 2026-10-15
 
