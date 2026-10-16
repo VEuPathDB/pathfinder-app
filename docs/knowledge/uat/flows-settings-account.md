@@ -9,7 +9,7 @@ status: draft
 
 # Settings and account (A)
 
-Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the PathFinder mark at the bottom of the right rail: `PathFinder v<version>`. Only the OpenAI models are in UAT ([known limits](known-limits.md)).
+Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until another tab is picked. The tabs run down the left side: `Model`, `Provider keys`, `Data`, `Memory`, `Privacy`, `Advanced`. The release the api reports, which a finding quotes, is the tooltip of the PathFinder mark at the bottom of the right rail: `PathFinder v<version>`. The OpenAI and Anthropic models are in UAT: the deployment pays for `Claude Haiku 5.5`, and `Claude Sonnet 5.5` and `Claude Opus 5.5` run only on a tester's own Anthropic key. The Google models are not ([known limits](known-limits.md)).
 
 ## A1 - The model a turn runs on - core, once
 
@@ -19,9 +19,10 @@ Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until an
 | 2 | `Preset` | `Fast`; close Settings; send the S1 prompt in a new conversation | The trace header's usage reads `gpt-6-luna (low) - <tokens>, <cost>` |
 | 3 | `Preset` | `Default`; send the S1 prompt again | `gpt-5.6-luna (medium) - <tokens>, <cost>` |
 | 4 | `Preset` | `Quality`; send the S1 prompt | `gpt-6-sol (high) - ...`; in Settings, `Assistant` and `Planning` run GPT-6 Sol at `High`, `Building` and `Checking` GPT-5.6 Luna at `Medium`; the S1 result is the same 479 genes |
-| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom` and the slider turns grey with its thumb on the last preset; pressing or dragging the thumb picks the preset it rests on and the slider takes its color again; the next turn's usage names `gpt-6-luna (high)` |
-| 6 | Model Catalog | Read | Columns `Model`, `Context`, `Input $/MTok`, `Output $/MTok`, `Cached $/MTok`, `Best For`; GPT-5.6 Luna `$0.20` input, `$1.20` output; tag `reads images and PDFs` on the three OpenAI models |
-| 7 | Settings, `Advanced` | `Reset all local settings`, confirm | The page reloads with the default preset |
+| 5 | `Provider` | `Anthropic`; send the S1 prompt | Every stage moves to `Claude Haiku 5.5` at `High` and the preset stays `Quality`; the slider has the stops `Fast`, `Default`, `Quality`, since `Balanced` runs the same models as `Default` on the deployment's key; the usage reads `claude-haiku-5-5 (high) - ...`. `OpenAI` brings back the models of step 4 |
+| 6 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom` and the slider turns grey with its thumb on the last preset; pressing or dragging the thumb picks the preset it rests on and the slider takes its color again; the next turn's usage names `gpt-6-luna (high)` |
+| 7 | Model Catalog | Read | Columns `Model`, `Context`, `Input $/MTok`, `Output $/MTok`, `Cached $/MTok`, `Best For`; GPT-5.6 Luna `$0.20` input, `$1.20` output; tag `reads images and PDFs` on the OpenAI and Anthropic models |
+| 8 | Settings, `Advanced` | `Reset all local settings`, confirm | The page reloads with the default preset |
 
 Measured with the debugger (every role on `openai:gpt-5.6-luna`, the default tier's `medium`): every turn's lead usage reports `reasoningEffort: medium`.
 

@@ -55,6 +55,26 @@ export function rolesForAssistant(
   return first === undefined ? [] : pickableConfigs(first).map(([role]) => role);
 }
 
+export function distinctPresets(
+  candidates: Record<string, TierPreset>,
+  deploymentTier: string | undefined,
+): Record<string, TierPreset> {
+  const entries = Object.entries(candidates);
+  const ordered = [
+    ...entries.filter(([tier]) => tier === deploymentTier),
+    ...entries.filter(([tier]) => tier !== deploymentTier),
+  ];
+  const seen = new Set<string>();
+  const distinct: Record<string, TierPreset> = {};
+  for (const [tier, preset] of ordered) {
+    const roles = JSON.stringify(preset.roles);
+    if (seen.has(roles)) continue;
+    seen.add(roles);
+    distinct[tier] = preset;
+  }
+  return distinct;
+}
+
 export function presetOnSwitch(
   candidates: Record<string, TierPreset>,
   activeTier: string,

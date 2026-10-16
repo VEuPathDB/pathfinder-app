@@ -213,6 +213,34 @@ describe("ModelSettings providers", () => {
     );
   });
 
+  it("offers one stop for two presets that run the same models", async () => {
+    const presets = {
+      pathfinder: {
+        openai: {
+          default: uniform(DEFAULT_MODEL.id),
+          balanced: uniform(DEFAULT_MODEL.id),
+          quality: uniform(DEFAULT_MODEL.id, "high"),
+        },
+      },
+    };
+    server.use(
+      http.get(`${BASE}/api/v1/tiers`, () =>
+        HttpResponse.json({ presets, ownKeyPresets: presets }),
+      ),
+    );
+    renderSettings();
+
+    expect(await screen.findByRole("button", { name: "Default" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.queryByRole("button", { name: "Balanced" })).toBeNull();
+    expect(screen.getByRole("slider", { name: "Preset" })).toHaveAttribute(
+      "aria-valuemax",
+      "1",
+    );
+  });
+
   it("offers no provider choice when only the deployment pays", async () => {
     payers = { openai: "deployment" };
     renderSettings();

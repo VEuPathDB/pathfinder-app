@@ -3,6 +3,7 @@ import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
 import {
   applyTierPreset,
   deriveActiveTier,
+  distinctPresets,
   presetOnSwitch,
   presetsForProvider,
   rolesForAssistant,
@@ -122,6 +123,40 @@ describe("presetOnSwitch", () => {
 
   it("finds nothing on a provider with no tiers", () => {
     expect(presetOnSwitch({}, "quality", "default")).toBe(undefined);
+  });
+});
+
+describe("distinctPresets", () => {
+  const openai = PRESETS.pathfinder.openai;
+
+  it("keeps the deployment's tier over a later tier that runs the same models", () => {
+    expect(Object.keys(distinctPresets(openai, "default"))).toEqual([
+      "default",
+      "quality",
+      "fast",
+    ]);
+  });
+
+  it("keeps the first of two equal tiers when the deployment names neither", () => {
+    expect(Object.keys(distinctPresets(openai, "fast"))).toEqual([
+      "fast",
+      "default",
+      "quality",
+    ]);
+    expect(Object.keys(distinctPresets(openai, undefined))).toEqual([
+      "default",
+      "quality",
+      "fast",
+    ]);
+  });
+
+  it("keeps every tier when no two are equal", () => {
+    const unequal = { fast: FAST_TIER, quality: QUALITY_TIER, default: DEFAULT_TIER };
+    expect(Object.keys(distinctPresets(unequal, undefined))).toEqual([
+      "fast",
+      "quality",
+      "default",
+    ]);
   });
 });
 

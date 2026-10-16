@@ -11,6 +11,10 @@
   the new provider, or to the deployment's preset when the stages are custom or the
   new provider lacks that preset.
 
+* **Two presets that run the same models are one stop.** The preset slider keeps the
+  deployment's preset, or the first, and leaves out the other. The server still serves
+  every preset by name.
+
 ## 2026-10-15
 
 * **Settings is a side list of tabs with one control per row.** Reasoning effort and

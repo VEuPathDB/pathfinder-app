@@ -23,6 +23,7 @@ import { SettingsRow, SettingsSection } from "./SettingsRow";
 import {
   applyTierPreset,
   deriveActiveTier,
+  distinctPresets,
   presetOnSwitch,
   presetsForPayer,
   presetsForProvider,
@@ -99,7 +100,7 @@ export function ModelSettings() {
       )}
 
       <TierPicker
-        presets={tierPresets}
+        presets={distinctPresets(tierPresets, data?.defaultTier)}
         activeTier={activeTier}
         onSelect={(tier) => {
           const preset = tierPresets[tier];
