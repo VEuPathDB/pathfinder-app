@@ -2,7 +2,10 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MARK_LEFT_INSET } from "@/lib/brand";
 import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+
+const LOGO_SIZE = 168;
 
 export function InfoPage({
   title,
@@ -23,10 +26,10 @@ export function InfoPage({
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to PathFinder
         </Link>
-        <div className="mt-8">
-          <PathFinderLogo size={192} label="PathFinder" />
+        <div className="mt-8" style={{ marginLeft: -LOGO_SIZE * MARK_LEFT_INSET }}>
+          <PathFinderLogo size={LOGO_SIZE} label="PathFinder" />
         </div>
-        <h1 className="mt-6text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="mt-6 text-3xl font-semibold tracking-tight">{title}</h1>
         {lead}
         <div className="mt-8 space-y-8">{children}</div>
       </article>

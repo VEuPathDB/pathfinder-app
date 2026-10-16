@@ -10,6 +10,8 @@ export const BRAND = {
   appleTouchIcon: "/brand/apple-touch-icon.png",
 } as const;
 
+export const MARK_LEFT_INSET = 26 / 240;
+
 export const BRAND_ICONS: Metadata["icons"] = {
   icon: [
     { url: withBasePath(BRAND.favicon), type: "image/svg+xml" },

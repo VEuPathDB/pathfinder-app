@@ -47,7 +47,20 @@ describe("YourDataPage", () => {
     expect(logo.parentElement?.tagName).toBe("DIV");
     expect(logo.parentElement?.children).toHaveLength(1);
     expect(back.compareDocumentPosition(logo)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(logo).toHaveStyle({ width: "192px", height: "192px" });
+    expect(logo).toHaveStyle({ width: "168px", height: "168px" });
+  });
+
+  it("pulls the logo left by its drawn margin so it lines up with the text", () => {
+    render(<YourDataPage />);
+
+    const wrapper = screen.getByRole("img", { name: "PathFinder" }).parentElement;
+    expect(wrapper?.style.marginLeft).toBe("-18.2px");
+  });
+
+  it("sets the title as a large heading", () => {
+    render(<YourDataPage />);
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("mt-6", "text-3xl");
   });
 
   it("opens with the same points the sign-in notice shows", () => {
