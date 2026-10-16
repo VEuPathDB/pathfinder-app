@@ -31,6 +31,14 @@ describe("YourDataPage", () => {
     expect(screen.getByText("Last updated: October 9, 2026")).toBeVisible();
   });
 
+  it("shows the PathFinder logo above its title", () => {
+    render(<YourDataPage />);
+
+    const logo = screen.getByRole("img", { name: "PathFinder" });
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(logo.compareDocumentPosition(title)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it("opens with the same points the sign-in notice shows", () => {
     const { container } = render(<YourDataPage />);
 

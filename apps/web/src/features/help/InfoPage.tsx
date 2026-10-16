@@ -2,6 +2,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
+
 export function InfoPage({
   title,
   lead,
@@ -13,7 +15,7 @@ export function InfoPage({
 }) {
   return (
     <div className="h-full overflow-y-auto bg-background text-foreground">
-      <article className="mx-auto max-w-2xl px-6 py-10">
+      <article className="mx-auto max-w-4xl px-6 py-10">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -21,7 +23,8 @@ export function InfoPage({
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to PathFinder
         </Link>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">{title}</h1>
+        <PathFinderLogo size={48} label="PathFinder" className="mt-8" />
+        <h1 className="mt-4 text-2xl font-semibold tracking-tight">{title}</h1>
         {lead}
         <div className="mt-8 space-y-8">{children}</div>
       </article>
