@@ -40,7 +40,6 @@ Named as in the [backlog](../backlog/index.md) on 2026-10-05; the list moves as 
 |---|---|---|
 | A message that commands a change is an edit when it also asks a question | "Change X to Y. How does the count change?" may get an answer and no edit; "apply it" makes the edit | S9 to S12 |
 | A dependent pick's label is the vocabulary it was bound under | The site-default count of a dependent pick (an InterPro domain under an organism) may read the published default instead of the bound parents | U8, UA-plasmodb |
-| The Claude models are probed for images and documents | The Anthropic and Google models are not part of UAT; only the OpenAI models are tested | A1, C13 |
 
 ## Not in this release
 
@@ -51,6 +50,7 @@ Named as in the [backlog](../backlog/index.md) on 2026-10-05; the list moves as 
 | An export of all of a researcher's data; the `Data` tab only deletes | A4 |
 | Importing a shared strategy by its public link; `Open a VEuPathDB strategy` opens the account's own strategies by link or id | S8 |
 | A liveness route at `/health/live`; `/health` serves liveness and the version | D2 |
+| The Google models; the deployment holds no Google key | A1 |
 | A per-message model picker in the composer; the model is chosen in Settings and shown on the trace | A1 |
 
 The pre-UAT defects found while writing these flows are not known limits; they are in [findings](findings.md) and must be fixed or moved here in writing.

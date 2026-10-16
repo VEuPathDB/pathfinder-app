@@ -62,6 +62,7 @@ Two prefills put code names in front of the researcher (`clear_strategy`, `get_l
 | 1 | Settings, `Model` | Keep the default model (`GPT-5.6 Luna`) | `Attach` reads `Attach a gene-ID list, an image or a PDF` |
 | 2 | New conversation | Attach `table.png`, send `Which genes are in this image?` | A thumbnail in the user message; the reply lists PF3D7_0709000, PF3D7_1133400, PF3D7_0102600; after a reload the thumbnail is still there |
 | 3 | New conversation | The same with `table-transparent.png` | The same three genes |
+| 4 | Settings, `Model` | `Provider` `Anthropic`, then step 2 again | `Attach` still offers images; the reply lists the same three genes on `Claude Haiku 5.5` |
 
 Measured: step 2 listed the three genes in 2 of 2 runs (about 18 s, $0.009). Step 3 failed 3 of 3: twice classified off-topic, once "it appears completely black" (FND-13, minor).
 
