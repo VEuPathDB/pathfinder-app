@@ -6,6 +6,11 @@
   the researcher used. Pressing the thumb picks the preset it rests on, and moving it
   picks the preset it stops on.
 
+* **The model provider follows the stages.** Settings shows the provider of the
+  `Assistant` stage's model. Switching provider moves every stage to the same preset on
+  the new provider, or to the deployment's preset when the stages are custom or the
+  new provider lacks that preset.
+
 ## 2026-10-15
 
 * **Settings is a side list of tabs with one control per row.** Reasoning effort and

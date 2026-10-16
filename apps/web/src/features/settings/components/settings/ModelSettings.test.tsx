@@ -23,8 +23,8 @@ import {
 
 const BASE = "http://localhost:3000/pathfinder";
 
-function uniform(modelId: string) {
-  const config = { modelId, reasoningEffort: "medium" };
+function uniform(modelId: string, reasoningEffort = "medium") {
+  const config = { modelId, reasoningEffort };
   return {
     roles: { lead: config, frame: config, execution: config, verification: config },
   };
@@ -103,6 +103,32 @@ afterEach(() => {
   payers = { openai: "deployment", anthropic: "user" };
 });
 
+const HIGH = { lead: "high", frame: "high", verification: "high" } as const;
+
+function picksOf(modelId: string) {
+  return { lead: modelId, frame: modelId, verification: modelId };
+}
+
+function useTwoProviderTiers() {
+  const presets = {
+    pathfinder: {
+      openai: {
+        default: uniform(DEFAULT_MODEL.id),
+        quality: uniform(DEFAULT_MODEL.id, "high"),
+      },
+      anthropic: {
+        default: uniform(ANTHROPIC_SMALL.id),
+        quality: uniform(ANTHROPIC_FLAGSHIP.id, "high"),
+      },
+    },
+  };
+  server.use(
+    http.get(`${BASE}/api/v1/tiers`, () =>
+      HttpResponse.json({ presets, ownKeyPresets: presets }),
+    ),
+  );
+}
+
 function renderSettings() {
   const { Wrapper } = createTestWrapper();
   return render(<ModelSettings />, { wrapper: Wrapper });
@@ -135,6 +161,56 @@ describe("ModelSettings providers", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Quality" }));
 
     expect(useSettingsStore.getState().phaseModels["lead"]).toBe(ANTHROPIC_SMALL.id);
+  });
+
+  it("moves the stages to the same preset on the new provider", async () => {
+    useTwoProviderTiers();
+    useSettingsStore.getState().applyPhasePreset(picksOf(DEFAULT_MODEL.id), HIGH);
+    renderSettings();
+
+    fireEvent.click(await screen.findByRole("radio", { name: "Anthropic" }));
+
+    expect(useSettingsStore.getState().phaseModels).toEqual(
+      picksOf(ANTHROPIC_FLAGSHIP.id),
+    );
+    expect(useSettingsStore.getState().phaseReasoning).toEqual(HIGH);
+    expect(await screen.findByRole("button", { name: "Quality" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("moves a custom setup to the new provider's default preset", async () => {
+    useTwoProviderTiers();
+    useSettingsStore
+      .getState()
+      .applyPhasePreset(picksOf(DEFAULT_MODEL.id), { ...HIGH, frame: "low" });
+    renderSettings();
+
+    fireEvent.click(await screen.findByRole("radio", { name: "Anthropic" }));
+
+    expect(useSettingsStore.getState().phaseModels).toEqual(
+      picksOf(ANTHROPIC_SMALL.id),
+    );
+    expect(await screen.findByRole("button", { name: "Default" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("opens on the provider the stages run on", async () => {
+    useTwoProviderTiers();
+    useSettingsStore.getState().applyPhasePreset(picksOf(ANTHROPIC_FLAGSHIP.id), HIGH);
+    renderSettings();
+
+    expect(await screen.findByRole("radio", { name: "Anthropic" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(await screen.findByRole("button", { name: "Quality" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("offers no provider choice when only the deployment pays", async () => {

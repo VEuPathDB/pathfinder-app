@@ -32,11 +32,11 @@ Needs a deployment with personal keys on (`PROVIDER_KEY_ENCRYPTION_KEY` set). Th
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Settings, `Provider keys` on a deployment with the feature off | Read | `This deployment does not accept personal keys.` |
-| 2 | Same, feature on | Read | `YOUR OWN PROVIDER KEYS` (CSS), the intro `A key you add pays for every model of its provider, ...`; rows `OpenAI`, `Anthropic`, `Google`, each `No key. The deployment's key is used, if it has one.` |
+| 2 | Same, feature on | Read | `YOUR OWN PROVIDER KEYS` (CSS), the intro `A key pays for its provider's models, outside your monthly allowance. ...`; rows `OpenAI`, `Anthropic`, `Google`, each `Not set. The deployment's key is used, if it has one.` |
 | 3 | `OpenAI key` | Paste `not-a-real-key-uat-0000000000`, `Save` | Button `Checking...`, then the sentence `OpenAI refused the key you added, so nothing ran on it. Replace or remove your OpenAI key in Settings, under Provider keys.`; nothing stored |
 | 4 | `OpenAI key` | Paste a working key, `Save` | `...<last characters>, added <Mon D>.`; the rail's spending meter adds the line `On your keys this month: $<n>, <tokens> tokens` to its tooltip |
 | 5 | New conversation | Send the S1 prompt | 479 genes; the usage is charged to the key (the tooltip's `On your keys this month: $<n>`) |
-| 6 | `Remove OpenAI key` | Click | Back to `No key. The deployment's key is used, if it has one.` |
+| 6 | `Remove OpenAI key` | Click | Back to `Not set. The deployment's key is used, if it has one.` |
 | 7 | A key whose account has no credit | Save it | Not stored: the provider's refusal is classified as no credit. A stored key that runs out later reads `...<hint>: This key has no credit. Add credit to the OpenAI account, or replace the key.` |
 
 ## A3 - The usage figures - core, once

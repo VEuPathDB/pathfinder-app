@@ -3,6 +3,7 @@ import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
 import {
   applyTierPreset,
   deriveActiveTier,
+  presetOnSwitch,
   presetsForProvider,
   rolesForAssistant,
   CUSTOM_TIER,
@@ -98,6 +99,29 @@ describe("rolesForAssistant", () => {
 
   it("names no role while the presets are loading", () => {
     expect(rolesForAssistant(undefined, "pathfinder", "openai")).toEqual([]);
+  });
+});
+
+describe("presetOnSwitch", () => {
+  const openai = PRESETS.pathfinder.openai;
+
+  it("keeps the tier the researcher is on", () => {
+    expect(presetOnSwitch(openai, "quality", "default")).toBe(QUALITY_TIER);
+  });
+
+  it("takes the deployment's tier for a custom setup or a tier the provider lacks", () => {
+    expect(presetOnSwitch(openai, CUSTOM_TIER, "fast")).toBe(FAST_TIER);
+    expect(presetOnSwitch(PRESETS.pathfinder.anthropic, "quality", "default")).toBe(
+      PRESETS.pathfinder.anthropic.default,
+    );
+  });
+
+  it("takes the first tier when the deployment names none the provider has", () => {
+    expect(presetOnSwitch(openai, CUSTOM_TIER, undefined)).toBe(DEFAULT_TIER);
+  });
+
+  it("finds nothing on a provider with no tiers", () => {
+    expect(presetOnSwitch({}, "quality", "default")).toBe(undefined);
   });
 });
 

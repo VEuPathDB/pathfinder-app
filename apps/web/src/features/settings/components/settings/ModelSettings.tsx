@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import type { ModelCatalogEntry, ReasoningEffort } from "@pathfinder/shared";
 import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useListModels";
 import { listTiersQueryOptions } from "@pathfinder/shared/generated/hooks/useListTiers";
@@ -24,6 +23,7 @@ import { SettingsRow, SettingsSection } from "./SettingsRow";
 import {
   applyTierPreset,
   deriveActiveTier,
+  presetOnSwitch,
   presetsForPayer,
   presetsForProvider,
   rolesForAssistant,
@@ -42,7 +42,6 @@ export function ModelSettings() {
 
   const { data: tierData } = useQuery(listTiersQueryOptions());
   const assistantId = useActiveAssistantId();
-  const [chosenProvider, setChosenProvider] = useState<string | null>(null);
   // A provider is offered when someone pays for it and it has presets here.
   const providers = PROVIDER_TABS.filter(
     (tab) =>
@@ -51,8 +50,14 @@ export function ModelSettings() {
       Object.keys(presetsForProvider(tierData?.presets, assistantId, tab.key)).length >
         0,
   );
-  const provider = chosenProvider ?? data?.defaultProvider ?? "";
-  const presets = presetsForPayer(tierData, payers?.[provider] === "user");
+  const leadModelId = phaseModels["lead"] ?? phaseDefaults["lead"];
+  const leadProvider = modelCatalog.find((m) => m.id === leadModelId)?.provider;
+  const provider = providers.some((tab) => tab.key === leadProvider)
+    ? (leadProvider ?? "")
+    : (data?.defaultProvider ?? "");
+  const presetsFor = (key: string) =>
+    presetsForPayer(tierData, payers?.[key] === "user");
+  const presets = presetsFor(provider);
   const tierPresets = presetsForProvider(presets, assistantId, provider);
   const roles = rolesForAssistant(presets, assistantId, provider);
   const activeTier = deriveActiveTier(
@@ -74,7 +79,14 @@ export function ModelSettings() {
             size="sm"
             value={provider}
             onValueChange={(next) => {
-              if (next !== "") setChosenProvider(next);
+              const preset = presetOnSwitch(
+                presetsForProvider(presetsFor(next), assistantId, next),
+                activeTier,
+                data?.defaultTier,
+              );
+              if (preset === undefined) return;
+              const applied = applyTierPreset(preset);
+              applyPhasePreset(applied.models, applied.reasoning);
             }}
           >
             {providers.map((tab) => (

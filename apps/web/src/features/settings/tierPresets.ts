@@ -55,6 +55,18 @@ export function rolesForAssistant(
   return first === undefined ? [] : pickableConfigs(first).map(([role]) => role);
 }
 
+export function presetOnSwitch(
+  candidates: Record<string, TierPreset>,
+  activeTier: string,
+  deploymentTier: string | undefined,
+): TierPreset | undefined {
+  return (
+    candidates[activeTier] ??
+    (deploymentTier === undefined ? undefined : candidates[deploymentTier]) ??
+    Object.values(candidates)[0]
+  );
+}
+
 /** Expand a preset into the per-role picks the settings store holds. */
 export function applyTierPreset(preset: TierPreset): AppliedTier {
   const models: PhaseModelMap = {};
