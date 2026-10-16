@@ -70,18 +70,61 @@ describe("TierPicker", () => {
     expect(onSelect).toHaveBeenCalledWith("quality");
   });
 
-  it("names the Custom state and presses no tier", () => {
+  it("names the Custom state, greys the slider and presses no tier", () => {
     render(
       <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={vi.fn()} />,
     );
     expect(screen.getByText("Custom")).toBeVisible();
-    expect(screen.queryByRole("slider")).toBeNull();
+    const slider = screen.getByRole("slider", { name: "Preset" });
+    expect(slider).toHaveAttribute("aria-valuetext", "Custom");
+    expect(slider.closest('[data-slot="slider"]')).toHaveAttribute("data-custom");
     for (const tier of ["Quality", "Default", "Fast"]) {
       expect(screen.getByRole("button", { name: tier })).toHaveAttribute(
         "aria-pressed",
         "false",
       );
     }
+  });
+
+  it("keeps the thumb on the last preset when the stages go custom", () => {
+    const { rerender } = render(
+      <TierPicker presets={PRESETS} activeTier="fast" onSelect={vi.fn()} />,
+    );
+    rerender(
+      <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={vi.fn()} />,
+    );
+    expect(screen.getByRole("slider", { name: "Preset" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+  });
+
+  it("starts a custom picker on the default preset", () => {
+    render(
+      <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={vi.fn()} />,
+    );
+    expect(screen.getByRole("slider", { name: "Preset" })).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    );
+  });
+
+  it("picks the preset the thumb moves to from Custom", () => {
+    const onSelect = vi.fn();
+    render(
+      <TierPicker presets={PRESETS} activeTier={CUSTOM_TIER} onSelect={onSelect} />,
+    );
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Preset" }), {
+      key: "ArrowLeft",
+    });
+    expect(onSelect).toHaveBeenCalledWith("fast");
+  });
+
+  it("does not mark a preset as custom", () => {
+    render(<TierPicker presets={PRESETS} activeTier="default" onSelect={vi.fn()} />);
+    expect(
+      screen.getByRole("slider", { name: "Preset" }).closest('[data-slot="slider"]'),
+    ).not.toHaveAttribute("data-custom");
   });
 
   it("renders nothing while presets are still loading", () => {

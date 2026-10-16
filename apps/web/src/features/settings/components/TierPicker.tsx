@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import type { TierPreset } from "@pathfinder/shared/generated/types/TierPreset";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils/cn";
@@ -32,9 +34,13 @@ interface TierPickerProps {
 }
 
 export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
+  const [lastPreset, setLastPreset] = useState("default");
   const tiers = Object.keys(presets).sort((a, b) => rank(a) - rank(b));
-  if (tiers.length === 0) return null;
   const active = tiers.indexOf(activeTier);
+  if (active !== -1 && activeTier !== lastPreset) setLastPreset(activeTier);
+  if (tiers.length === 0) return null;
+  const custom = active === -1;
+  const thumb = custom ? Math.max(tiers.indexOf(lastPreset), 0) : active;
   const label = (tier: string) => TIER_LABELS[tier] ?? tier;
 
   return (
@@ -42,20 +48,22 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
       <div className="flex items-baseline justify-between">
         <span className="text-sm font-medium text-foreground">Preset</span>
         <span className="text-xs text-muted-foreground">
-          {active === -1 ? "Custom" : (TIER_HINTS[activeTier] ?? "")}
+          {custom ? "Custom" : (TIER_HINTS[activeTier] ?? "")}
         </span>
       </div>
       <Slider
         min={0}
         max={Math.max(tiers.length - 1, 1)}
         step={1}
-        value={active === -1 ? [] : [active]}
+        value={[thumb]}
         onValueChange={([next]) => {
           const tier = next === undefined ? undefined : tiers[next];
           if (tier !== undefined && tier !== activeTier) onSelect(tier);
         }}
         thumbLabel="Preset"
-        valueText={active === -1 ? "Custom" : label(activeTier)}
+        valueText={custom ? "Custom" : label(activeTier)}
+        data-custom={custom || undefined}
+        className="data-[custom]:[&_[data-slot=slider-range]]:bg-muted-foreground/35 data-[custom]:[&_[data-slot=slider-thumb]]:border-muted-foreground/50"
       />
       <div className="flex justify-between">
         {tiers.map((tier) => {

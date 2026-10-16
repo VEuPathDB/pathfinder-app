@@ -19,7 +19,7 @@ Settings opens from the nav rail (`Settings`, gear), on the `Model` tab until an
 | 2 | `Preset` | `Fast`; close Settings; send the S1 prompt in a new conversation | The trace header's usage reads `gpt-6-luna (low) - <tokens>, <cost>` |
 | 3 | `Preset` | `Default`; send the S1 prompt again | `gpt-5.6-luna (medium) - <tokens>, <cost>` |
 | 4 | `Preset` | `Quality`; send the S1 prompt | `gpt-6-sol (high) - ...`; in Settings, `Assistant` and `Planning` run GPT-6 Sol at `High`, `Building` and `Checking` GPT-5.6 Luna at `Medium`; the S1 result is the same 479 genes |
-| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom` and the slider loses its thumb; the next turn's usage names `gpt-6-luna (high)` |
+| 5 | `Assistant` row | `Select model: ...`, the Model Catalog, pick `GPT-6 Luna`, `Select`; set its effort to `High` | The preset reads `Custom` and the slider turns grey with its thumb on the last preset; dragging the thumb picks a preset and the slider takes its color again; the next turn's usage names `gpt-6-luna (high)` |
 | 6 | Model Catalog | Read | Columns `Model`, `Context`, `Input $/MTok`, `Output $/MTok`, `Cached $/MTok`, `Best For`; GPT-5.6 Luna `$0.20` input, `$1.20` output; tag `reads images and PDFs` on the three OpenAI models |
 | 7 | Settings, `Advanced` | `Reset all local settings`, confirm | The page reloads with the default preset |
 

@@ -1,5 +1,10 @@
 # Log
 
+## 2026-10-16
+
+* **A custom model setup greys the preset slider.** The thumb stays on the last preset
+  the researcher used, and moving it picks that preset again.
+
 ## 2026-10-15
 
 * **Settings is a side list of tabs with one control per row.** Reasoning effort and
