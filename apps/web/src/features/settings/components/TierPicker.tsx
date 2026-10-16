@@ -22,6 +22,15 @@ const TIER_HINTS: Record<string, string> = {
   fast: "Same model at low reasoning effort; quickest turnaround.",
 };
 
+const THUMB_HALF_WIDTH = 8;
+
+function stopCenter(index: number, last: number): string {
+  const fraction = index / last;
+  const shift = THUMB_HALF_WIDTH * (1 - 2 * fraction);
+  const sign = shift < 0 ? "-" : "+";
+  return `calc(${fraction * 100}% ${sign} ${Math.abs(shift)}px)`;
+}
+
 function rank(tier: string): number {
   const at = TIER_ORDER.indexOf(tier);
   return at === -1 ? TIER_ORDER.length : at;
@@ -39,6 +48,7 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
   const active = tiers.indexOf(activeTier);
   if (active !== -1 && activeTier !== lastPreset) setLastPreset(activeTier);
   if (tiers.length === 0) return null;
+  const last = Math.max(tiers.length - 1, 1);
   const custom = active === -1;
   const thumb = custom ? Math.max(tiers.indexOf(lastPreset), 0) : active;
   const label = (tier: string) => TIER_LABELS[tier] ?? tier;
@@ -55,47 +65,50 @@ export function TierPicker({ presets, activeTier, onSelect }: TierPickerProps) {
           {custom ? "Custom" : (TIER_HINTS[activeTier] ?? "")}
         </span>
       </div>
-      <Slider
-        min={0}
-        max={Math.max(tiers.length - 1, 1)}
-        step={1}
-        value={[thumb]}
-        onValueChange={([next]) => {
-          const tier = next === undefined ? undefined : tiers[next];
-          if (tier !== undefined && tier !== activeTier) onSelect(tier);
-        }}
-        onPointerDown={pickUnderThumb}
-        onKeyDown={(event) => {
-          if (event.key !== "Enter" && event.key !== " ") return;
-          event.preventDefault();
-          pickUnderThumb();
-        }}
-        thumbLabel="Preset"
-        valueText={custom ? "Custom" : label(activeTier)}
-        data-custom={custom || undefined}
-        className="data-[custom]:[&_[data-slot=slider-range]]:bg-muted-foreground/35 data-[custom]:[&_[data-slot=slider-thumb]]:border-muted-foreground/50"
-      />
-      <div className="flex justify-between">
-        {tiers.map((tier) => {
-          const selected = tier === activeTier;
-          return (
-            <button
-              key={tier}
-              type="button"
-              aria-pressed={selected}
-              title={TIER_HINTS[tier] ?? ""}
-              onClick={() => onSelect(tier)}
-              className={cn(
-                "rounded px-1 text-xs transition-colors",
-                selected
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label(tier)}
-            </button>
-          );
-        })}
+      <div className="space-y-2 px-4">
+        <Slider
+          min={0}
+          max={last}
+          step={1}
+          value={[thumb]}
+          onValueChange={([next]) => {
+            const tier = next === undefined ? undefined : tiers[next];
+            if (tier !== undefined && tier !== activeTier) onSelect(tier);
+          }}
+          onPointerDown={pickUnderThumb}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            pickUnderThumb();
+          }}
+          thumbLabel="Preset"
+          valueText={custom ? "Custom" : label(activeTier)}
+          data-custom={custom || undefined}
+          className="data-[custom]:[&_[data-slot=slider-range]]:bg-muted-foreground/35 data-[custom]:[&_[data-slot=slider-thumb]]:border-muted-foreground/50"
+        />
+        <div className="relative h-5">
+          {tiers.map((tier, index) => {
+            const selected = tier === activeTier;
+            return (
+              <button
+                key={tier}
+                type="button"
+                aria-pressed={selected}
+                title={TIER_HINTS[tier] ?? ""}
+                onClick={() => onSelect(tier)}
+                style={{ left: stopCenter(index, last) }}
+                className={cn(
+                  "absolute -translate-x-1/2 rounded px-1 text-xs whitespace-nowrap transition-colors",
+                  selected
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label(tier)}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -42,6 +42,15 @@ describe("TierPicker", () => {
     expect(slider).toHaveAttribute("aria-valuetext", "Default");
   });
 
+  it("centers each tier's name where the slider centers its thumb", () => {
+    render(<TierPicker presets={PRESETS} activeTier="default" onSelect={vi.fn()} />);
+    expect(
+      ["Fast", "Default", "Quality"].map(
+        (name) => screen.getByRole("button", { name }).style.left,
+      ),
+    ).toEqual(["calc(0% + 8px)", "calc(50% + 0px)", "calc(100% - 8px)"]);
+  });
+
   it("marks only the active tier as pressed", () => {
     render(<TierPicker presets={PRESETS} activeTier="fast" onSelect={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Fast" })).toHaveAttribute(
