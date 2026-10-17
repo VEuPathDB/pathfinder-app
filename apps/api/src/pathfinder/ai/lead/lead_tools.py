@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry, ToolFailed
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb import JSONObject
 
@@ -195,12 +196,12 @@ async def classify_user_intent(
     if markers.intent_classified and held is not None:
         same = held.classification is intent.classification
         if same and markers.classified_card == markers.answered_card:
-            raise ToolFailed(already_classified_message(held.classification))
+            raise CallRefused(already_classified_message(held.classification))
         if not same and markers.changed_strategy:
-            raise ToolFailed(_written_turn_message(held.classification))
+            raise CallRefused(_written_turn_message(held.classification))
     refused = ctx.deps.refused_classification
     if refused is not None and refused.intent == intent:
-        raise ToolFailed(repeated_refusal_message(refused.sentence))
+        raise CallRefused(repeated_refusal_message(refused.sentence))
     site = await read_the_site(state, intent)
     if (refusal := classification_refusal(state, intent, site)) is not None:
         ctx.deps.refused_classification = RefusedClassification(

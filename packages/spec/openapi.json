@@ -19640,6 +19640,7 @@
               "started",
               "completed",
               "failed",
+              "corrected",
               "denied"
             ],
             "title": "State",
@@ -19961,7 +19962,8 @@
             "enum": [
               "ok",
               "empty",
-              "warn"
+              "warn",
+              "corrected"
             ],
             "title": "Status",
             "type": "string"

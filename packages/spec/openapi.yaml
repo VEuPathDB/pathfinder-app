@@ -13175,6 +13175,7 @@ components:
           - started
           - completed
           - failed
+          - corrected
           - denied
           title: State
           type: string
@@ -13394,6 +13395,7 @@ components:
           - ok
           - empty
           - warn
+          - corrected
           title: Status
           type: string
       required:

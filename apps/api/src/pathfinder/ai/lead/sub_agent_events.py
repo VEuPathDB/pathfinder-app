@@ -101,14 +101,18 @@ def _result_summary(result: ToolReturnPart | RetryPromptPart) -> str:
 
 
 def _step_state(
-    result: ToolReturnPart | RetryPromptPart,
-) -> Literal["completed", "failed", "denied"]:
+    result: ToolReturnPart | RetryPromptPart, *, refused: bool
+) -> Literal["completed", "failed", "corrected", "denied"]:
     """Terminal state of one inner tool call. A denial is the user's decision,
-    not a failure; a call that failed without running is a failure."""
-    if isinstance(result, RetryPromptPart) or result.outcome == "failed":
-        return "failed"
-    if result.outcome == "denied":
-        return "denied"
+    not a failure; a call handed back to the model, or refused as sent, is
+    corrected; a call that failed without running is a failure."""
+    match result:
+        case RetryPromptPart():
+            return "corrected"
+        case ToolReturnPart(outcome="failed"):
+            return "corrected" if refused else "failed"
+        case ToolReturnPart(outcome="denied"):
+            return "denied"
     return "failed" if is_error_directive(result.content) else "completed"
 
 
@@ -118,6 +122,7 @@ class _InnerToolSummary(CamelModel):
     model_config = ConfigDict(extra="ignore")
 
     summary: str = ""
+    status: str = "ok"
 
 
 @dataclass(frozen=True)
@@ -126,6 +131,7 @@ class _InnerMetadata:
 
     summary: str | None
     forwarded: list[StreamableChunk]
+    refused: bool = False
 
 
 def _read_tool_metadata(metadata: object) -> _InnerMetadata:
@@ -139,13 +145,16 @@ def _read_tool_metadata(metadata: object) -> _InnerMetadata:
     if not isinstance(metadata, list):
         return _InnerMetadata(summary=None, forwarded=[])
     summary: str | None = None
+    refused = False
     forwarded: list[StreamableChunk] = []
     for chunk in metadata:
         if isinstance(chunk, DataChunk) and chunk.type == "data-tool-summary":
-            summary = _InnerToolSummary.model_validate(chunk.data).summary or None
+            line = _InnerToolSummary.model_validate(chunk.data)
+            summary = line.summary or None
+            refused = line.status == "corrected"
         elif isinstance(chunk, _STREAMABLE_METADATA):
             forwarded.append(chunk)
-    return _InnerMetadata(summary=summary, forwarded=forwarded)
+    return _InnerMetadata(summary=summary, forwarded=forwarded, refused=refused)
 
 
 def _forward_inner_event(
@@ -186,7 +195,7 @@ def _forward_inner_event(
             SubAgentStepPayload(
                 parent_tool_call_id=parent_tool_call_id,
                 kind="tool",
-                state=_step_state(result),
+                state=_step_state(result, refused=inner.refused),
                 tool_call_id=event.tool_call_id,
                 tool_name=tool_name,
                 result_summary=inner.summary or _result_summary(result),

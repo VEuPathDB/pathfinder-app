@@ -162,14 +162,32 @@ def test_a_call_that_failed_without_running_renders_as_failed() -> None:
     ) == ["failed"]
 
 
-def test_retry_prompt_renders_as_failed() -> None:
+def test_a_call_handed_back_to_the_model_renders_as_corrected() -> None:
     assert _drive_part(
         RetryPromptPart(
             content="search_name is not a known search",
             tool_name="get_search_overview",
             tool_call_id="c1",
         ),
-    ) == ["failed"]
+    ) == ["corrected"]
+
+
+def test_a_call_a_tool_refused_renders_as_corrected() -> None:
+    refused = ToolReturnPart(
+        content="This read already answered.",
+        tool_name="get_search_overview",
+        tool_call_id="c1",
+        outcome="failed",
+        metadata=[
+            tool_summary_event(
+                tool_call_id="c1",
+                summary="This read already answered",
+                status="corrected",
+            )
+        ],
+    )
+
+    assert _drive_part(refused) == ["corrected"]
 
 
 def test_forwards_data_chunks() -> None:

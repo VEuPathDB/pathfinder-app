@@ -6,7 +6,8 @@ import json
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from pydantic_ai import RunContext, ToolFailed
+from assistant_core.capabilities.refused_calls import CallRefused
+from pydantic_ai import RunContext
 from pydantic_ai.toolsets.abstract import AbstractToolset, ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_core import to_jsonable_python
@@ -52,7 +53,7 @@ class ReadOnceToolset[DepsT](WrapperToolset[DepsT]):
                 f"{first} ({arguments}). Read that answer; the same read does not "
                 f"run again."
             )
-            raise ToolFailed(msg)
+            raise CallRefused(msg)
         result = await self.wrapped.call_tool(name, tool_args, ctx, tool)
         self.answered[(name, arguments)] = ctx.tool_call_id or "an earlier call"
         return result

@@ -10,10 +10,11 @@ from __future__ import annotations
 from collections.abc import Collection
 
 import pydantic
+from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.emit import emit_chunk
 from langgraph.config import get_stream_writer
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry, ToolFailed
+from pydantic_ai.exceptions import ModelRetry
 from veupathdb.errors import ParamMessages, ValidationError
 
 from pathfinder.ai.graph.runtime import AgentDeps
@@ -203,9 +204,9 @@ async def _undo(
     stored = None if revision is None else parse_strategy_ast(revision.strategy_ast)
     live = graph.to_strategy_ast()
     if revision is None or stored is None or live is None:
-        raise ToolFailed(no_earlier_revision_message())
+        raise CallRefused(no_earlier_revision_message())
     if revision.revision == base_revision:
-        raise ToolFailed(nothing_to_undo_message())
+        raise CallRefused(nothing_to_undo_message())
     site_id, goal = deps.runtime.site_id, deps.state.user_prompt
     before = await stated_spec_of(live, site_id=site_id, goal=goal)
     after = await stated_spec_of(stored, site_id=site_id, goal=goal)

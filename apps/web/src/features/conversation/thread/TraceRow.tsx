@@ -29,7 +29,12 @@ function detailOf(row: TraceRowView, stoppedLabel: string | undefined): string |
 }
 
 function lineOf(row: TraceRowView): string | undefined {
-  if (row.status === "error" && row.errorText !== null) return row.errorText;
+  if (
+    row.errorText !== null &&
+    (row.status === "error" || row.status === "corrected")
+  ) {
+    return row.errorText;
+  }
   return row.summary ?? undefined;
 }
 

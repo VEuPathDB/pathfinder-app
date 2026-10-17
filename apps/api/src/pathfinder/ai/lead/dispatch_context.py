@@ -9,8 +9,9 @@ from __future__ import annotations
 from collections.abc import Collection
 from typing import NoReturn
 
+from assistant_core.capabilities.refused_calls import CallRefused
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import CallDeferred, ModelRetry, ToolFailed
+from pydantic_ai.exceptions import CallDeferred, ModelRetry
 
 from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps, one_toolset
@@ -220,7 +221,7 @@ def refuse_and_restore(deps: LeadDeps, message: str) -> NoReturn:
 def refuse_without_retry(deps: LeadDeps, message: str) -> NoReturn:
     """Fail the call for good and put back the spec the dispatch found."""
     _restore_the_found_spec(deps)
-    raise ToolFailed(message)
+    raise CallRefused(message)
 
 
 def _restore_the_found_spec(deps: LeadDeps) -> None:

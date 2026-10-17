@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from assistant_core.capabilities.refused_calls import MarkRefusedCalls
 from assistant_core.platform.observability import ReasoningEffortOnSpan
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai.capabilities import AgentCapability
@@ -103,13 +104,15 @@ def agent_capabilities(
 
     A refusal this application names answers the model on every assistant, so
     an agent that declares nothing else still answers one. A durable call is
-    answered the same way where no worker consumes its job.
+    answered the same way where no worker consumes its job. A call a tool
+    refuses as sent reads as corrected, never as a failure.
     """
     return [
         ServiceRefusalRetry[AgentDepsT](),
         DeclinedRequests[AgentDepsT](),
         DurableCallsRefused[AgentDepsT](),
         ReasoningEffortOnSpan(),
+        MarkRefusedCalls[AgentDepsT](),
         *carried,
     ]
 

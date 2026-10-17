@@ -7,7 +7,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from pydantic_ai import ModelRetry, RunContext, ToolFailed
+from assistant_core.capabilities.refused_calls import CallRefused
+from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.toolsets.abstract import ToolsetTool
 from pydantic_ai.toolsets.wrapper import WrapperToolset
 from pydantic_core import to_jsonable_python
@@ -63,7 +64,7 @@ class RefusalMemoryToolset[DepsT: HoldsTurnMarkers](WrapperToolset[DepsT]):
                 f"{held.refusal} This call was refused with these arguments and "
                 f"nothing ran since, so it did not run again."
             )
-            raise ToolFailed(msg)
+            raise CallRefused(msg)
         if held is not None:
             raise ModelRetry(held.refusal)
         try:

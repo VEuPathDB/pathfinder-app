@@ -69,7 +69,11 @@ def _filed(
 class RepeatedControlTest(CamelModel):
     """A test of ids this message already tested on the step, with no new task."""
 
-    note: str
+    note: str = (
+        "These ids were already tested on this step under this message. This is "
+        "that result; no new task started. Test the whole control set once per "
+        "step; a subset adds nothing."
+    )
     outcome: ControlOutcome
 
 

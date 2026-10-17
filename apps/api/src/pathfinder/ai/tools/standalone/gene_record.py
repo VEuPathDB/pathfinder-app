@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.tool_summary import with_summary
-from pydantic_ai import RunContext, ToolFailed
+from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.tools import ToolDefinition
 
@@ -119,9 +120,9 @@ async def read_sampled_gene_record(
             f"{gene_id} is a control. A control's record is not read; the control "
             "test states whether the strategy returned it."
         )
-        raise ToolFailed(msg)
+        raise CallRefused(msg)
     if gene_id not in markers.sampled_gene_ids:
-        raise ToolFailed(_unsampled_message(gene_id, markers.sampled_gene_ids))
+        raise CallRefused(_unsampled_message(gene_id, markers.sampled_gene_ids))
     held = markers.records_read.setdefault(ctx.deps.verification_scope.check_id, [])
     if gene_id in held:
         msg = (
@@ -129,14 +130,14 @@ async def read_sampled_gene_record(
             f"above. The records this check read: {', '.join(held)}. Judge the "
             "sampled genes from those records."
         )
-        raise ToolFailed(msg)
+        raise CallRefused(msg)
     if len(held) >= SAMPLED_GENE_LIMIT:
         msg = (
             f"This check read {len(held)} records, the most one check reads: "
             f"{', '.join(held)}. Judge the sampled genes from those records, and "
             "read a criterion over the whole step with read_step_columns."
         )
-        raise ToolFailed(msg)
+        raise CallRefused(msg)
     # The read is held before it runs so a parallel batch keeps the budget.
     held.append(gene_id)
     try:

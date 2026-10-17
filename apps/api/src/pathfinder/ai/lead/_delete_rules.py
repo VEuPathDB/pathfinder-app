@@ -9,8 +9,9 @@ from __future__ import annotations
 from copy import deepcopy
 from enum import StrEnum
 
+from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.tool_summary import count_noun
-from pydantic_ai.exceptions import ModelRetry, ToolFailed
+from pydantic_ai.exceptions import ModelRetry
 from veupathdb.domain.strategy import StepKind, subtree_ids
 
 from pathfinder.ai.graph.turn_records import TurnMarkers
@@ -186,4 +187,4 @@ def refuse_a_delete_the_card_did_not_list(
             f"{', '.join(listed) or 'nothing'}. Nothing was removed. Call "
             f"delete_step again so its card lists what goes now."
         )
-        raise ToolFailed(msg)
+        raise CallRefused(msg)

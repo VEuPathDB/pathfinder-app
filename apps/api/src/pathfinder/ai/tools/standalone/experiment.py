@@ -5,13 +5,14 @@ from functools import wraps
 from typing import Any, NoReturn
 from uuid import UUID
 
+from assistant_core.capabilities.refused_calls import CallRefused
 from assistant_core.graph.tool_summary import summary_chunks, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
 from pydantic import ConfigDict, Field, JsonValue
 from pydantic_ai import RunContext
-from pydantic_ai.exceptions import ModelRetry, ToolFailed
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
@@ -291,13 +292,6 @@ async def _saved_controls(
     return saved
 
 
-_REPEAT_NOTE = (
-    "These ids were already tested on this step under this message. This is "
-    "that result; no new task started. Test the whole control set once per "
-    "step; a subset adds nothing."
-)
-
-
 def _answered_from_this_message(
     deferred: Callable[..., Awaitable[NoReturn]],
 ) -> Callable[..., Awaitable[ToolReturn[RepeatedControlTest]]]:
@@ -334,10 +328,10 @@ def _answered_from_this_message(
                 f"no test runs again."
             )
             # A repeat past the failure spends the tool's retries, so a loop ends.
-            raise ToolFailed(msg) if asked == 1 else ModelRetry(msg)
+            raise CallRefused(msg) if asked == 1 else ModelRetry(msg)
         counts = _ControlCounts.model_validate(held.model_dump())
         return with_summary(
-            RepeatedControlTest(note=_REPEAT_NOTE, outcome=held),
+            RepeatedControlTest(outcome=held),
             f"Already tested on this step: {_control_scores(counts)}",
             ctx=ctx,
         )

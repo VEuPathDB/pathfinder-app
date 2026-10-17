@@ -1,5 +1,12 @@
 # Log
 
+## 2026-10-17
+
+* **A refused call reads as corrected.** A call handed back to the model, by a model retry
+  or by a guardrail that raises `CallRefused`, draws a grey retried row with its reason; a
+  site or code failure keeps the red X. ai-assistant-platform v0.3.0b7 (both packages),
+  protocol 2.2.0. See [the decision](decisions/a-refused-call-reads-as-corrected.md).
+
 ## 2026-10-16
 
 * **A search's records are counted per value of a column.** `count_by_column` counts one

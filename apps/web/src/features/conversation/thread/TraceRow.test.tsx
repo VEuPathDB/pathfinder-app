@@ -32,6 +32,7 @@ const GLYPHS: readonly (readonly [TraceRowStatus, string])[] = [
   ["empty", "text-warning"],
   ["warn", "text-warning"],
   ["error", "text-destructive"],
+  ["corrected", "text-muted-foreground"],
   ["denied", "text-muted-foreground"],
   ["awaiting-approval", "text-warning"],
   ["stopped", "text-muted-foreground"],
@@ -115,6 +116,24 @@ describe("TraceRow", () => {
     expect(screen.getByTestId("trace-row-summary")).toHaveTextContent(
       "WDK rejected the search",
     );
+  });
+
+  it("reads why a corrected call was handed back, in place of its summary", () => {
+    render(
+      <TraceRow
+        row={row({
+          status: "corrected",
+          summary: null,
+          errorText: "dataset records cannot be counted by genome_assembly",
+        })}
+        showRaw={false}
+        nameFor={label}
+      />,
+    );
+    expect(screen.getByTestId("trace-row-summary")).toHaveTextContent(
+      "dataset records cannot be counted by genome_assembly",
+    );
+    expect(screen.getByTestId("trace-row-status")).not.toHaveClass("text-destructive");
   });
 
   it("clips a long error to a word boundary and ends it in three periods", () => {
