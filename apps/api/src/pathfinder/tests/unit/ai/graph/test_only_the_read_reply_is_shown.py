@@ -131,11 +131,30 @@ def test_the_reply_text_is_the_validated_output() -> None:
         for row in wire
         if row["chunk"]["type"].startswith("text-")
     ]
+    part = texts[0].id
     assert texts == [
-        _Written(type="text-start", id=f"lead-prose-{_MESSAGE_ID}"),
-        _Written(type="text-delta", id=f"lead-prose-{_MESSAGE_ID}", delta=_PROSE),
-        _Written(type="text-end", id=f"lead-prose-{_MESSAGE_ID}"),
+        _Written(type="text-start", id=part),
+        _Written(type="text-delta", id=part, delta=_PROSE),
+        _Written(type="text-end", id=part),
     ]
+
+
+def test_each_pass_of_one_turn_writes_its_reply_as_a_part_of_its_own() -> None:
+    """A second pass under the same message id must not overwrite the first reply."""
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse.model_validate(
+        {"prose": _PROSE, "strategyChanged": False}
+    )
+    wire: list[dict[str, Any]] = []
+
+    _emit_residual_prose(wire.append, capture, message_id=_MESSAGE_ID)
+    _emit_residual_prose(wire.append, capture, message_id=_MESSAGE_ID)
+
+    starts = [
+        row["chunk"]["id"] for row in wire if row["chunk"]["type"] == "text-start"
+    ]
+    assert len(starts) == 2
+    assert starts[0] != starts[1]
 
 
 def test_a_card_turn_writes_only_the_card_reply_before_the_card() -> None:

@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from assistant_core import quota
 from assistant_core.capabilities.repetition_guard import BlockRule
@@ -258,7 +258,7 @@ def _emit_residual_prose(
     response = capture.response
     if response is None or not response.prose:
         return
-    chunk_id = f"lead-prose-{message_id}"
+    chunk_id = f"lead-prose-{message_id}-{uuid4()}"
     emit_chunk(writer, TextStartChunk(id=chunk_id))
     emit_chunk(
         writer,

@@ -2,6 +2,12 @@
 
 ## 2026-10-18
 
+* **A turn that waits on an approval card keeps its message open.** The turn runner
+  closes a turn that wrote `tool-approval-request` with `finishReason: "other"`, as it
+  does a turn parked on a durable task, so the turn that answers the card continues the
+  same message and a resume replays it whole (assistant-core 0.3.0b8, protocol 2.2.1).
+  Each Lead pass writes its reply as a text part of its own id.
+
 * **Every recording is a QA recording.** The api's WDK, organism, EDA, separation and
   controls recordings, the web separation result and the phyletic conformance file, and
   the recordings of veupathdb-py 0.1.0b13 and veupathdb-mcp 0.2.0b24, are recorded on QA,

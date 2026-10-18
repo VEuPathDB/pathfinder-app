@@ -60,7 +60,8 @@ from pathfinder.services.search_waits import researcher_search_turn
 logger = get_logger(__name__)
 
 
-_TASK_STARTED = "data-background-task-started"
+# A turn that writes one of these waits for a later turn to continue its message.
+_SUSPENDING = frozenset({"data-background-task-started", "tool-approval-request"})
 _TURN_WITHDRAWN = "data-turn-withdrawn"
 
 
@@ -426,7 +427,7 @@ async def _handle_custom(
     chunk = _extract_chunk(payload)
     if chunk is None:
         return
-    if chunk.get("type") == _TASK_STARTED:
+    if chunk.get("type") in _SUSPENDING:
         result.suspended = True
     if chunk.get("type") == _TURN_WITHDRAWN:
         result.withdrawn = True
