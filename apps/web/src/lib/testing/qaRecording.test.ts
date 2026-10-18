@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { qaRecording } from "./qaRecording";
 
-const present = qaRecording(new URL("../../../package.json", import.meta.url));
-const absent = qaRecording(new URL("./absent-recording.json", import.meta.url));
+const present = qaRecording(import.meta.url, "../../../package.json");
+const absent = qaRecording(import.meta.url, "./absent-recording.json");
 
 describe("qaRecording", () => {
   it("reads a recording that is present", () => {

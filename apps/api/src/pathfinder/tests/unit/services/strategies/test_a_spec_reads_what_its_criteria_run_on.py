@@ -32,7 +32,7 @@ async def test_each_criterion_is_marked_by_its_upload_its_study_or_its_search(
         assert site_id == "plasmodb"
         return [
             OwnedUpload(
-                vdi_id="lhZ5ptRgo014J",
+                vdi_id="Y518ZRlgBR0Q5",
                 name="pathfinder-uat-deseq",
                 type_name="rnaseqrc",
             )

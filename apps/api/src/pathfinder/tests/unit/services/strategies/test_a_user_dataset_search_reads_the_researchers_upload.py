@@ -31,14 +31,13 @@ def _searches(site: str) -> dict[str, WDKSearch]:
 
 _PLASMO_UPLOADS = [
     OwnedUpload(
-        vdi_id="p0Z51wRgo404A", name="pathfinder-uat-genelist", type_name="genelist"
-    ),
-    OwnedUpload(vdi_id="dMY5sYJRNl11F", name="csv uploaded msps", type_name="genelist"),
-    OwnedUpload(
-        vdi_id="lhZ5ptRgo014J", name="pathfinder-uat-deseq", type_name="rnaseqrc"
+        vdi_id="Ud18NklEhB0wF", name="pathfinder-uat-genelist", type_name="genelist"
     ),
     OwnedUpload(
-        vdi_id="c1Z5oVRJpY04s", name="pathfinder-uat-phenotype", type_name="phenotype"
+        vdi_id="Y518ZRlgBR0Q5", name="pathfinder-uat-deseq", type_name="rnaseqrc"
+    ),
+    OwnedUpload(
+        vdi_id="4d18NklMl80w4", name="pathfinder-uat-phenotype", type_name="phenotype"
     ),
 ]
 
@@ -74,22 +73,15 @@ def test_each_upload_is_offered_on_the_search_of_its_type() -> None:
             search_name="GenesByUserDatasetGeneList",
             search_display_name="Gene List (User Datasets)",
             parameter="geneListUserDataset",
-            value="p0Z51wRgo404A",
+            value="Ud18NklEhB0wF",
             upload_name="pathfinder-uat-genelist",
-        ),
-        UserDatasetOffer(
-            search_name="GenesByUserDatasetGeneList",
-            search_display_name="Gene List (User Datasets)",
-            parameter="geneListUserDataset",
-            value="dMY5sYJRNl11F",
-            upload_name="csv uploaded msps",
         ),
     ]
     assert [o.value for o in offered["GenesByDESeqUserDataset"]] == [
-        "EDAUD_lhZ5ptRgo014J"
+        "EDAUD_Y518ZRlgBR0Q5"
     ]
     assert [o.value for o in offered["GenesByPhenotypeUserDataset"]] == [
-        "EDAUD_c1Z5oVRJpY04s"
+        "EDAUD_4d18NklMl80w4"
     ]
     assert offered["GenesByEdaVizWithCompute"] == []
 
@@ -114,7 +106,7 @@ def test_a_volcano_export_of_an_upload_runs_the_differential_expression_search()
     searches = list(_searches("plasmodb").values())
     assert (
         export_search_for(
-            searches, _PLASMO_UPLOADS, "EDAUD_lhZ5ptRgo014J", reads_a_volcano=True
+            searches, _PLASMO_UPLOADS, "EDAUD_Y518ZRlgBR0Q5", reads_a_volcano=True
         )
         == "GenesByDESeqUserDataset"
     )
@@ -124,7 +116,7 @@ def test_a_subset_export_of_a_phenotype_upload_runs_the_phenotype_search() -> No
     searches = list(_searches("plasmodb").values())
     assert (
         export_search_for(
-            searches, _PLASMO_UPLOADS, "EDAUD_c1Z5oVRJpY04s", reads_a_volcano=False
+            searches, _PLASMO_UPLOADS, "EDAUD_4d18NklMl80w4", reads_a_volcano=False
         )
         == "GenesByPhenotypeUserDataset"
     )
@@ -135,7 +127,7 @@ def test_an_export_no_user_dataset_search_reads_stays_generic() -> None:
     searches = list(_searches("plasmodb").values())
     routed = [
         export_search_for(
-            searches, _PLASMO_UPLOADS, "EDAUD_lhZ5ptRgo014J", reads_a_volcano=False
+            searches, _PLASMO_UPLOADS, "EDAUD_Y518ZRlgBR0Q5", reads_a_volcano=False
         ),
         export_search_for(
             searches, _PLASMO_UPLOADS, "DS_e973eadd57", reads_a_volcano=True

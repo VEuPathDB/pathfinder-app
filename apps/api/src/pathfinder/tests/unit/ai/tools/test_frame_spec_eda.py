@@ -233,7 +233,7 @@ class TestAnEdaBackedSearchWaitsForItsAnalysis:
     async def test_the_named_upload_wins_over_the_sheets_default(self) -> None:
         """The dataset default is the site's first choice, not the researcher's."""
         state = AgentToolState()
-        upload = "EDAUD_lhZ5ptRgo014J"
+        upload = "EDAUD_Y518ZRlgBR0Q5"
 
         with pytest.raises(ModelRetry) as excinfo:
             await bind(

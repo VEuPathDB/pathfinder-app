@@ -241,12 +241,12 @@ async def test_rival_search_columns_that_all_hold_every_record_stand(
         (
             "min_percentile_chosen",
             "transcripts",
-            "1663 of 1663 transcripts fit Min %ile (Within Chosen Samples) (80 to 100)",
+            "1103 of 1103 transcripts fit Min %ile (Within Chosen Samples) (80 to 100)",
         ),
         (
             "max_percentile_chosen",
             "transcripts",
-            "1663 of 1663 transcripts fit Max %ile (Within Chosen Samples) (80 to 100)",
+            "1103 of 1103 transcripts fit Max %ile (Within Chosen Samples) (80 to 100)",
         ),
     ]
 

@@ -14,7 +14,7 @@ _MESSAGE = (
     "against control and keep the up-regulated genes with log2 fold change > 5 "
     "and p-value < 1e-10. [[arc:user-dataset-deseq]]"
 )
-_UPLOAD = {"studies": [{"datasetId": "EDAUD_lhZ5ptRgo014J"}]}
+_UPLOAD = {"studies": [{"datasetId": "EDAUD_Y518ZRlgBR0Q5"}]}
 
 
 @pytest.mark.parametrize("site_id", ["plasmodb", "vectorbase"])
@@ -38,7 +38,7 @@ def test_the_arc_exports_the_upload_at_the_stated_cut(site_id: str) -> None:
         "final_result",
     ]
     (opened,) = args_of(calls, "open_eda_analysis")
-    assert opened["dataset_id"] == "EDAUD_lhZ5ptRgo014J"
+    assert opened["dataset_id"] == "EDAUD_Y518ZRlgBR0Q5"
     (compute,) = args_of(calls, "run_eda_compute")
     compared = EdaComparison(
         group_a=compute["group_a_labels"], group_b=compute["group_b_labels"]

@@ -78,7 +78,7 @@ async def test_the_cache_keeps_the_curated_rows_of_a_listing(
 
     assert [study.dataset_id for study in listed] == curated
     assert len(curated) == 40
-    assert len(recorded) == 52
+    assert len(recorded) == 45
 
 
 async def test_the_index_is_synced_from_curated_rows_only(

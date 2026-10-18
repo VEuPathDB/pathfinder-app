@@ -47,15 +47,13 @@ files, and fails on a production host: the bare site name, `www.`, `beta.`, the 
 sign-in server or a numbered server. A mailbox such as a help address is not a host. It
 also fails on a test site whose entry differs from the QA file, on an e2e service that
 reads another file, and on a workflow that runs a live lane without the QA file at its
-top level. Product data follows the same rule: the seeds' dataset links name QA web
-roots.
+top level. A seed binds a hidden `dataset_url` at the one entry QA's vocabulary holds for it, a dataset record link on the production host, because WDK refuses a step that leaves it out; the host check passes a dataset record link and nothing else on that host.
 
-No production data stays in a test path either. Every response PathFinder recorded from
-a production site (`tests/fixtures/wdk`, `organisms`, `eda`, `separation`, `controls`,
-the web separation result and the phyletic conformance file)
-moved to `fixtures-production-backup-2026-10-09/` at the repository root, which no test,
-build or image reads. A test that needs one skips with one reason, "needs a QA
-recording: re-record once QA access exists", and only while that recording is missing
+No production data stays in a test path either. Every response a test reads
+(`tests/fixtures/wdk`, `organisms`, `eda`, `separation`, `controls`, the web separation
+result and the phyletic conformance file) is recorded on QA. A test whose recording is
+absent skips with one reason, "needs a QA recording: re-record once QA access exists",
+and only while that recording is missing
 (`tests/_support/qa_recording.py`, `apps/web/src/lib/testing/qaRecording.ts`,
 `apps/web/e2e/fixtures/eda.ts`), so a QA recording turns it back on with no code change.
 No replacement is written by hand.

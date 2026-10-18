@@ -22,7 +22,8 @@ vi.mock("@assistant-ui/react", () => ({
 import { SeparationCard } from "./SeparationCard";
 
 const recorded = qaRecording(
-  new URL("../../__fixtures__/separationResult.json", import.meta.url),
+  import.meta.url,
+  "../../__fixtures__/separationResult.json",
 );
 const REPORT = (recorded ?? {}) as SeparationReport;
 const CALL_ID = "call_adopt_separating_strategy";
@@ -73,8 +74,8 @@ describe.skipIf(recorded === null)("the separation card", () => {
     renderCard(PENDING);
 
     expect(screen.getByTestId("separation-question").textContent).toBe(
-      "Build the closest strategy found: 3 searches returning 61 of 80 " +
-        "positives and 2 of 40 negatives in 1,132 genes?",
+      "Build the closest strategy found: 3 searches returning 50 of 80 " +
+        "positives and 0 of 40 negatives in 800 genes?",
     );
     expect(screen.getByRole("button", { name: "Yes" })).toBeEnabled();
   });

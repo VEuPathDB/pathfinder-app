@@ -16,6 +16,8 @@ from fastapi import FastAPI
 from procrastinate.testing import InMemoryConnector
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from veupathdb.errors import WDKError
+from veupathdb.wdk import VEuPathDBClient
 
 from pathfinder.platform.config import get_settings
 from pathfinder.tests._support.recorded_searches import suite_search
@@ -220,7 +222,19 @@ def recorded_taxon(monkeypatch: pytest.MonkeyPatch) -> None:
     validate_against(monkeypatch, [suite_search("search_genes_by_taxon")])
 
 
-@pytest.mark.usefixtures("recorded_taxon")
+@pytest.fixture
+def wdk_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """WDK does not answer, as a site that is down does not; a site failure is
+    no ownership refusal."""
+
+    async def unanswered(_client: VEuPathDBClient, *_: object, **__: object) -> None:
+        msg = "WDK is not reached in this test"
+        raise WDKError(msg, status=503)
+
+    monkeypatch.setattr(VEuPathDBClient, "_send", unanswered)
+
+
+@pytest.mark.usefixtures("recorded_taxon", "wdk_unreachable")
 async def test_the_owner_is_not_refused_by_any_route(
     app: FastAPI,
     patch_app_db_engine: None,

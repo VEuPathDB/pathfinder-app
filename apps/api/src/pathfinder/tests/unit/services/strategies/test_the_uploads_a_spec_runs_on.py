@@ -25,10 +25,10 @@ from pathfinder.tests._support.qa_recording import qa_recording
 _FIXTURES = Path(__file__).parents[3] / "fixtures" / "wdk"
 _UPLOADS = [
     OwnedUpload(
-        vdi_id="p0Z51wRgo404A", name="pathfinder-uat-genelist", type_name="genelist"
+        vdi_id="Ud18NklEhB0wF", name="pathfinder-uat-genelist", type_name="genelist"
     ),
     OwnedUpload(
-        vdi_id="lhZ5ptRgo014J", name="pathfinder-uat-deseq", type_name="rnaseqrc"
+        vdi_id="Y518ZRlgBR0Q5", name="pathfinder-uat-deseq", type_name="rnaseqrc"
     ),
 ]
 
@@ -46,7 +46,7 @@ _DESEQ = Criterion(
     text="Genes differentially expressed in pathfinder-uat-deseq using DESeq2.",
     search_name="GenesByEdaVizWithCompute",
     analysis=AnalysisBinding(
-        dataset_id="EDAUD_lhZ5ptRgo014J",
+        dataset_id="EDAUD_Y518ZRlgBR0Q5",
         method="DESeq",
         words="Genes that differ between Control and Treated",
     ),
@@ -56,7 +56,7 @@ _GENE_LIST = Criterion(
     text="genes in my gene list",
     search_name="GenesByUserDatasetGeneList",
     resolved_params=bound(
-        {"geneListUserDataset": SinglePickValue(value="p0Z51wRgo404A")}
+        {"geneListUserDataset": SinglePickValue(value="Ud18NklEhB0wF")}
     ),
 )
 
@@ -75,7 +75,7 @@ def test_an_upload_id_in_a_parameter_of_another_kind_is_no_upload() -> None:
         id="c_text",
         text="a text search",
         search_name="GenesByEdaVizWithCompute",
-        resolved_params=bound({"eda_dataset_id": StringValue(value="p0Z51wRgo404A")}),
+        resolved_params=bound({"eda_dataset_id": StringValue(value="Ud18NklEhB0wF")}),
     )
     spec = OperationalSpec(goal="text", criteria=[typed])
 

@@ -63,9 +63,9 @@ def test_the_offer_builds_the_tree_the_run_assembled() -> None:
         (
             CombineOp.UNION,
             ("GenesByGoTerm", measured["c4"].parameters),
-            (measured["c18"].search_name, measured["c18"].parameters),
+            ("GenesByGoTerm", measured["c1"].parameters),
         ),
-        ("GenesByGoTerm", measured["c1"].parameters),
+        (measured["c15"].search_name, measured["c15"].parameters),
     )
     assert [c.role for c in offer.spec.criteria] == ["seed", "seed", "seed"]
 
@@ -74,7 +74,7 @@ def test_a_subtracted_candidate_is_an_excluded_criterion() -> None:
     result = recorded_separation(SIGNAL_PEPTIDE)
     assert result.tree is not None
     minus = SeparationNode(
-        kind="combine", operator=CombineOp.MINUS, inputs=[result.tree, _leaf("c21")]
+        kind="combine", operator=CombineOp.MINUS, inputs=[result.tree, _leaf("c18")]
     )
     offer = _offer(result.model_copy(update={"tree": minus}))
 
@@ -88,7 +88,7 @@ def test_a_subtracted_candidate_is_an_excluded_criterion() -> None:
         CombineOp.MINUS,
         "GenesWithStructurePrediction",
     )
-    assert roles == {"c4": "seed", "c18": "seed", "c1": "seed", "c21": "exclude"}
+    assert roles == {"c4": "seed", "c1": "seed", "c15": "seed", "c18": "exclude"}
 
 
 def test_each_criterion_states_the_counts_its_own_step_returned() -> None:
@@ -108,21 +108,6 @@ def test_each_criterion_states_the_counts_its_own_step_returned() -> None:
             negatives=40,
             result_size=637,
         ),
-        "c18": ControlsRationale(
-            task_id=str(TASK_ID),
-            search_name=(
-                "GenesBySubcellularLocalization"
-                "pfal3D7_subcellular_localization_ApicoplastTargeting_RSRC"
-            ),
-            source="catalog",
-            basis="the site's catalog",
-            informs="recovering",
-            recovered=31,
-            positives=80,
-            admitted=2,
-            negatives=40,
-            result_size=495,
-        ),
         "c1": ControlsRationale(
             task_id=str(TASK_ID),
             search_name="GenesByGoTerm",
@@ -134,6 +119,21 @@ def test_each_criterion_states_the_counts_its_own_step_returned() -> None:
             admitted=0,
             negatives=40,
             result_size=417,
+        ),
+        "c15": ControlsRationale(
+            task_id=str(TASK_ID),
+            search_name=(
+                "GenesBySubcellularLocalization"
+                "pfal3D7_subcellular_localization_Cowman_RSRC"
+            ),
+            source="catalog",
+            basis="the site's catalog",
+            informs="recovering",
+            recovered=33,
+            positives=80,
+            admitted=0,
+            negatives=40,
+            result_size=316,
         ),
     }
 
@@ -152,11 +152,11 @@ def test_the_offer_holds_the_sites_read_and_its_enrichment() -> None:
         result.negative.admitted_ids,
         result.negative.excluded_ids,
     )
-    assert (offer.result_size, offer.separates, offer.mode) == (1132, False, "exact")
-    assert offer.enrichment.p_value == math.exp(hypergeometric_log_sf(61, 120, 80, 63))
+    assert (offer.result_size, offer.separates, offer.mode) == (800, False, "exact")
+    assert offer.enrichment.p_value == math.exp(hypergeometric_log_sf(50, 120, 80, 50))
     assert offer.question == (
-        "Build the closest strategy found: 3 searches returning 61 of 80 "
-        "positives and 2 of 40 negatives in 1,132 genes?"
+        "Build the closest strategy found: 3 searches returning 50 of 80 "
+        "positives and 0 of 40 negatives in 800 genes?"
     )
 
 
@@ -164,9 +164,9 @@ def test_each_leaf_is_read_by_what_the_tree_loses_without_it() -> None:
     offer = _offer(recorded_separation(SIGNAL_PEPTIDE))
 
     assert [(c.criterion_id, c.line) for c in offer.contributions] == [
-        ("c4", "without it: -4 positives, 0 negatives"),
-        ("c18", "without it: -13 positives, -2 negatives"),
-        ("c1", "without it: -3 positives, 0 negatives"),
+        ("c4", "without it: -5 positives, 0 negatives"),
+        ("c1", "without it: -6 positives, 0 negatives"),
+        ("c15", "without it: -2 positives, 0 negatives"),
     ]
 
 
@@ -177,20 +177,18 @@ def test_the_report_keeps_the_ranked_measurements_and_the_skipped_counts() -> No
     assert [m.candidate_id for m in report.measured] == [
         m.candidate.id for m in result.measured
     ]
-    assert (report.informative_count, len(report.measured)) == (17, 20)
+    assert (report.informative_count, len(report.measured)) == (14, 23)
     assert report.skipped_by_reason == {
-        "budget": 1,
-        "needs_an_analysis": 1,
-        "transform": 1,
-        "unbound_required": 5,
-        "wdk_refused": 7,
+        "budget": 2,
+        "unbound_required": 4,
+        "wdk_refused": 2,
     }
     assert len(report.skipped_examples) == 8
-    assert (report.charged_requests, report.budget) == (384, 400)
+    assert (report.charged_requests, report.budget) == (379, 400)
     assert report.shortfall == result.shortfall
     assert report.summary == (
-        "no strategy separates the sets; closest: 61 of 80 positives, 2 of 40 "
-        "negatives, 1,132 genes, 3 searches; 384 of 400 requests"
+        "no strategy separates the sets; closest: 50 of 80 positives, 0 of 40 "
+        "negatives, 800 genes, 3 searches; 379 of 400 requests"
     )
 
 

@@ -28,7 +28,7 @@ from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 from pathfinder.tests._support.qa_recording import qa_recording
 
 _OWNER = uuid4()
-_VDI_ID = "soV5JEQEcF00p"
+_VDI_ID = "vdiTestData01"
 _DATASET_URL = f"https://qa.plasmodb.org/plasmo.qa/app/workspace/datasets/{_VDI_ID}"
 
 

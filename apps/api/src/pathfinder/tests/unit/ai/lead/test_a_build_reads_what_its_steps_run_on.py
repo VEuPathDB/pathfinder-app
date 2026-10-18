@@ -81,7 +81,7 @@ async def test_a_built_step_on_an_upload_grounds_by_the_uploads_type(
         del site_id
         return [
             OwnedUpload(
-                vdi_id="lhZ5ptRgo014J",
+                vdi_id="Y518ZRlgBR0Q5",
                 name="pathfinder-uat-deseq",
                 type_name="rnaseqrc",
             )

@@ -50,7 +50,7 @@ from pathfinder.tests._support.eda_wire import (
 )
 
 _RECORDED = fixture("analysis_detail_pass_and_de")
-_ANALYSIS = "uoZgkI9"
+_ANALYSIS = "smQNdXY"
 _DATASET = "DS_e973eadd57"
 _PASS = "k3x9q"
 _DE = "m7p2d"

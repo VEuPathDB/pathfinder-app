@@ -222,10 +222,15 @@ async def test_a_listed_card_another_site_publishes_says_it_is_not_opened_here(
             "This study is on TriTrypDB; its genes are not PlasmoDB genes. "
             "Ask on TriTrypDB."
         ),
+        "DS_2962dcf64d": (
+            "This study is on the VEuPathDB Portal; its genes are not PlasmoDB "
+            "genes. Ask on the VEuPathDB Portal."
+        ),
         "DS_dd73524c7e": None,
-        "EDAUD_Y9I5UEJtdp0JU": None,
-        "EDAUD_J0N5BNAJwN0Np": None,
-        "EDAUD_ZpN54Y0MoV108": None,
+        "EDAUD_5RR5xlQcZJ08x": None,
+        "EDAUD_QU08dlVQR50Zc": None,
+        "EDAUD_VwU5dAhoNc0NA": None,
+        "EDAUD_skR5gtQdwM0M4": None,
     }
 
 

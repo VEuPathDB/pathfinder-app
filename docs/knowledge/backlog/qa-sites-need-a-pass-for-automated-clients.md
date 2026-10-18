@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: QA sites need a pass for automated clients
-description: BLOCKED on the VEuPathDB team. Outside the VEuPathDB network the QA sites redirect every service call to a pre-release login, so the e2e job and both nightlies stay disabled until automated clients have an agreed way through.
+description: BLOCKED on the VEuPathDB team. Outside the VEuPathDB network the QA sites redirect every service call to a pre-release login, so the e2e job and both nightlies stay disabled until automated clients have an agreed way through, and the e2e EDA recording is still to be made.
 tags: [testing, e2e, live-lane, sites, ci, qa]
 generated: { by: claude-code/opus-5.5, at: 2026-10-09T00:00:00Z }
 status: proposed
@@ -22,30 +22,28 @@ team's decision; nothing in this repository guesses a cookie or a mechanism.
 `yarn wdk:record`, the EDA provenance recorder and the e2e stack do not reach QA from
 outside the network.
 
-**The work, once the mechanism is agreed:**
+**What is done.** Every recording a test reads is a QA recording, the production backup
+is deleted, and every value the pytest live lanes of this repository and of
+`veupathdb-mcp` pin is measured on QA (a SOCKS tunnel through a host inside the network
+reaches QA from a laptop: `ssh -D`, then `HTTPS_PROXY=socks5://...` with `socksio`).
 
-- Give the live clients the pass: the e2e stack (api, worker, the Playwright sign-in in
-  `apps/web/e2e/global-setup.ts`), the pytest live lane, the served MCP endpoint in
-  `mcp-nightly.yml`, and the recorders. Where the pass lives (a client header, a cookie
-  jar, a runner inside the network) decides whether this is a change to the client
-  library's release or to this repository.
-- Re-record on QA every response that waits in `fixtures-production-backup-2026-10-09/`
-  (the api's `tests/fixtures/wdk`, `organisms`, `eda`, `separation` and `controls`, the web
-  `__fixtures__/separationResult.json`, and `packages/spec/phyletic_conformance.json`),
-  put each back where its test reads it, and delete the backup directory and its
-  `.dockerignore` line. Every test that skips with "needs a QA recording: re-record once
-  QA access exists" runs again. The production values of
-  `apps/web/e2e/fixtures/eda.ts` wait there too; the five EDA specs now read
-  `apps/web/e2e/fixtures/recordings/eda.json` (the `EdaRecording` shape in `eda.ts`), which
-  a QA recording writes, and run once it exists.
-- Re-measure every value a live test or an e2e spec pins on QA and record the new values
-  with their QA build: the seeds' `measured` blocks under
-  `apps/api/src/pathfinder/data/seeds/` (whose `dataset_url` links now name the QA web
-  roots, mapped from the production `/a/` alias), the constants in `tests/integration/ai/test_a_bind_is_measured_live.py`,
-  `tests/integration/eda/test_compute_polling.py`,
-  `tests/integration/strategies/test_wdk_user_dataset_searches.py` (and the three
-  `pathfinder-uat-*` uploads it needs on the account, on QA),
-  `tests/integration/strategies/test_wdk_workbench.py` and `test_wdk_verification.py`,
-  the client library's `site_search_stream_genes.json` and EDA provenance, and the zero
-  count in `apps/web/e2e/uat/strategy-exceptions.spec.ts`.
-- Re-enable the e2e jobs (set the repository variable `E2E_ENABLED` to `true`; `ci.yml` runs the e2e build and shard jobs only then) and the two nightlies (`gh workflow enable`), and read their first runs.
+**The work that remains:**
+
+- Record `apps/web/e2e/fixtures/recordings/eda.json` (the `EdaRecording` shape in
+  `apps/web/e2e/fixtures/eda.ts`) from PathFinder's own answers on QA for the
+  `DS_e973eadd57` study: the study row, the counts unfiltered and under the febrile
+  filter, the subset preview, a DESeq comparison of normal with febrile, its volcano, and
+  the exported step. The five EDA specs skip until it exists.
+- Run the e2e suite against a stack that reaches QA, and re-measure the values its specs
+  pin, the N4 zero count in `apps/web/e2e/uat/strategy-exceptions.spec.ts` among them.
+- Lift the five api tests that skip on the two states QA does not hold on request, a
+  cached AI expression summary and a crashed VDI import, when the client library records
+  them (`veupathdb-py: docs/knowledge/backlog/two-states-qa-does-not-hold-on-request-are-recorded.md`).
+- Give the live clients the pass, once the mechanism is agreed: the e2e stack (api,
+  worker, the Playwright sign-in in `apps/web/e2e/global-setup.ts`), the pytest live lane,
+  the served MCP endpoint in `mcp-nightly.yml`, and the recorders. Where the pass lives (a
+  client header, a cookie jar, a runner inside the network) decides whether this is a
+  change to the client library's release or to this repository.
+- Re-enable the e2e jobs (set the repository variable `E2E_ENABLED` to `true`; `ci.yml`
+  runs the e2e build and shard jobs only then) and the two nightlies
+  (`gh workflow enable`), and read their first runs.

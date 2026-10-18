@@ -25,7 +25,7 @@ from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import summary_of
 
 # The newer upload first, as the owned listing orders them.
-_OWN = ("ctZ5MhpEs50I5", "4xZ5Q5pV1s4IM")
+_OWN = ("hh18RZlcxx0xw", "Ed18Aclt0E0xA")
 _RANKED = [f"DS_ranked{rank}" for rank in range(5)]
 
 

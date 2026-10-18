@@ -48,10 +48,10 @@ _DEFAULT_CUT = VolcanoThresholds(effect_size_threshold=1.0, significance_thresho
 _STATED_CUT = VolcanoThresholds(
     effect_size_threshold=5.0, significance_threshold=1e-10, effect_direction="upOnly"
 )
-# Measured on build 71: 39 of the 40 raised genes pass 2-fold and p 0.05.
+# 39 of the 40 raised genes pass 2-fold and p 0.05; 15 of them pass the stated cut.
 _AT_THE_DEFAULT_CUT = 39
-_AT_THE_STATED_CUT = 16
-_LOW_FITNESS = {"plasmodb": 32, "vectorbase": 35}
+_AT_THE_STATED_CUT = 15
+_LOW_FITNESS = {"plasmodb": 30, "vectorbase": 30}
 
 Count = Callable[[str, str, dict[str, str]], Awaitable[int]]
 

@@ -65,18 +65,26 @@ The engineering dev account is named in the gitignored `.env.dev` as `WDK_DEV_EM
 
 ## User datasets of the dev account
 
-The UD flows and `tests/integration/strategies/test_wdk_user_dataset_searches.py` read three uploads the dev account holds on each of two sites. They were uploaded on 2026-09-29 through VDI and installed on build 71. Keep them: H1 does not delete them. A VDI id is the dataset's id on the site, not a credential.
+The UD flows and `tests/integration/strategies/test_wdk_user_dataset_searches.py` read three uploads the dev account holds on each of two sites. They were uploaded on 2026-10-18 through VDI to the QA sites (`qa.plasmodb.org`, `qa.vectorbase.org`) and installed there. Keep them: H1 does not delete them. A VDI id is the dataset's id on the site, not a credential.
 
 | Site | Name | VDI type | VDI id | Contents |
 |---|---|---|---|---|
-| plasmodb | `pathfinder-uat-genelist` | `genelist` | `p0Z51wRgo404A` | 20 P. falciparum 3D7 gene ids, `PF3D7_0100100` onwards |
-| plasmodb | `pathfinder-uat-deseq` | `rnaseqrc` | `lhZ5ptRgo014J` | One unstranded counts table, 200 genes, samples `ctrl_1` to `ctrl_3` (`control`) and `treat_1` to `treat_3` (`treated`); 40 genes raised in `treated`, none lowered |
-| plasmodb | `pathfinder-uat-phenotype` | `phenotype` | `c1Z5oVRJpY04s` | `geneID`, `fitness_score` for the same 200 genes; 30 of them from -6 to -3 |
-| vectorbase | `pathfinder-uat-genelist` | `genelist` | `54Z5sURsoM04A` | 20 A. gambiae PEST gene ids, `AGAP000002` onwards |
-| vectorbase | `pathfinder-uat-deseq` | `rnaseqrc` | `9kZ5ohRotJ04g` | As on plasmodb, over 200 A. gambiae PEST genes |
-| vectorbase | `pathfinder-uat-phenotype` | `phenotype` | `wEZ5YwRptR040` | As on plasmodb, over the same 200 genes |
+| plasmodb | `pathfinder-uat-genelist` | `genelist` | `Ud18NklEhB0wF` | 20 P. falciparum 3D7 gene ids, `PF3D7_0100100` onwards |
+| plasmodb | `pathfinder-uat-deseq` | `rnaseqrc` | `Y518ZRlgBR0Q5` | One unstranded counts table, 200 genes, samples `ctrl_1` to `ctrl_3` (`control`) and `treat_1` to `treat_3` (`treated`); 40 genes raised in `treated` (16 of them 64-fold, the rest 8-fold), none lowered |
+| plasmodb | `pathfinder-uat-phenotype` | `phenotype` | `4d18NklMl80w4` | `geneID`, `fitness_score` for the same 200 genes; 30 of them from -6 to -3 |
+| vectorbase | `pathfinder-uat-genelist` | `genelist` | `gw18YBlpp80w9` | 20 A. gambiae PEST gene ids, `AGAP000002` onwards |
+| vectorbase | `pathfinder-uat-deseq` | `rnaseqrc` | `pM18kcl1Fc0QF` | As on plasmodb, over 200 A. gambiae PEST genes |
+| vectorbase | `pathfinder-uat-phenotype` | `phenotype` | `wt188klxtZ0wY` | As on plasmodb, over the same 200 genes |
 
 The EDA study of an installed `rnaseqrc` or `phenotype` upload is `EDAUD_<VDI id>`.
+
+Three more plasmodb uploads of the same account hold what the client library's VDI recordings and PathFinder's own-dataset tests read; keep them too:
+
+| Name | VDI type | VDI id | State |
+|---|---|---|---|
+| `PathFinder live check stranded no label` | `rnaseqrc` | `Ed18Aclt0E0xA` | installed; a sense and an antisense counts table |
+| `PathFinder live check counts` | `rnaseqrc` | `hh18RZlcxx0xw` | installed; one unstranded counts table |
+| `PathFinder check invalid counts` | `rnaseqrc` | `gp184tltg90x4` | import invalid; a count of -5 |
 
 
 ## Data hygiene: each flow deletes what it created

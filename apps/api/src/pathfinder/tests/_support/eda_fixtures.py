@@ -131,7 +131,8 @@ FIXTURES: tuple[EdaFixtureRequest, ...] = (
         path="/permissions",
         trim=(
             "the first 40 perDataset entries, plus every entry that omits "
-            "shortDisplayName or description, plus DS_53f554ec6a"
+            "shortDisplayName or description, plus DS_53f554ec6a; a description's "
+            "link to a record page names the QA host"
         ),
     ),
     EdaFixtureRequest(name="study_detail_de", path=f"/studies/{DE_STUDY}"),

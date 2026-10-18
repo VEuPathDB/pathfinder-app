@@ -14,7 +14,7 @@ from pathfinder.services.strategies.user_dataset_searches import OwnedUpload
 from pathfinder.tests._support.qa_recording import qa_recording
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "wdk"
-UPLOAD_DATASET = "EDAUD_lhZ5ptRgo014J"
+UPLOAD_DATASET = "EDAUD_Y518ZRlgBR0Q5"
 
 
 def wire_plasmodb_uploads(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
@@ -32,7 +32,7 @@ def wire_plasmodb_uploads(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
     uploads = AsyncMock(
         return_value=[
             OwnedUpload(
-                vdi_id="lhZ5ptRgo014J",
+                vdi_id="Y518ZRlgBR0Q5",
                 name="pathfinder-uat-deseq",
                 type_name="rnaseqrc",
             )

@@ -260,9 +260,8 @@ stack reads `e2e-sites.yaml`, the portal and six component sites copied from
 `deploy/sites/qa.yml`; every pytest run reads `deploy/sites/qa.yml` unless
 `VEUPATHDB_SITES_CONFIG` names another file; and
 `node scripts/check-test-sites.mjs` refuses a production or beta host anywhere in
-the repository outside `docs/`. The responses recorded from production wait
-in `fixtures-production-backup-2026-10-09/`, read by nothing, and the tests that
-need them skip until QA re-records them. Outside the VEuPathDB network the QA sites redirect every
+the repository outside `docs/`, and every recorded response a test reads was
+recorded on QA. Outside the VEuPathDB network the QA sites redirect every
 service call to a pre-release login, so these paths do not run from a laptop or
 a GitHub runner until that is solved
 ([backlog](docs/knowledge/backlog/qa-sites-need-a-pass-for-automated-clients.md)).

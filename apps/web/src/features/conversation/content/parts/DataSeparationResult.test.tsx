@@ -12,7 +12,8 @@ import { chatHelpersFor, threadOf, threadPart } from "./threadFixture";
 
 /** The recorded exact run on the seed "PF3D7 Signal Peptide Genes". */
 const recorded = qaRecording(
-  new URL("../../__fixtures__/separationResult.json", import.meta.url),
+  import.meta.url,
+  "../../__fixtures__/separationResult.json",
 );
 const REPORT = (recorded ?? {}) as SeparationReport;
 
@@ -37,10 +38,11 @@ describe.skipIf(recorded === null)("DataSeparationResult", () => {
       ["recovered", "missed", "admitted", "excluded"].map(
         (name) => within(cell(name)).getByTestId("separation-count").textContent,
       ),
-    ).toEqual(["61", "19", "2", "38"]);
-    expect(within(cell("admitted")).getByTestId("separation-ids").textContent).toBe(
-      "PF3D7_0508800, PF3D7_1411400",
-    );
+    ).toEqual(["50", "30", "0", "40"]);
+    expect(within(cell("admitted")).getByTestId("separation-ids").textContent).toBe("");
+    expect(
+      within(cell("excluded")).getByTestId("separation-ids").textContent.split(", "),
+    ).toHaveLength(40);
   });
 
   it("says what each criterion adds and what its own step returned", () => {
@@ -51,9 +53,9 @@ describe.skipIf(recorded === null)("DataSeparationResult", () => {
       .slice(1)
       .map((row) => row.textContent);
     expect(rows).toEqual([
-      "GO Term: GO:0044217 other organism partrecovers 42 of 80 positives, admits 0 of 40 negativeswithout it: -4 positives, 0 negatives",
-      "Gene Lists from PlasmoAP motif for protein export to the apicoplast.recovers 31 of 80 positives, admits 2 of 40 negativeswithout it: -13 positives, -2 negatives",
-      "GO Term: GO:0051701 biological process involved in interaction with hostrecovers 38 of 80 positives, admits 0 of 40 negativeswithout it: -3 positives, 0 negatives",
+      "GO Term: GO:0044217 other organism partrecovers 42 of 80 positives, admits 0 of 40 negativeswithout it: -5 positives, 0 negatives",
+      "GO Term: GO:0051701 biological process involved in interaction with hostrecovers 38 of 80 positives, admits 0 of 40 negativeswithout it: -6 positives, 0 negatives",
+      "Gene Lists from Pexel motif analysis of protein export to the erythrocyte membrane.recovers 33 of 80 positives, admits 0 of 40 negativeswithout it: -2 positives, 0 negatives",
     ]);
   });
 
@@ -61,9 +63,9 @@ describe.skipIf(recorded === null)("DataSeparationResult", () => {
     renderReport(REPORT);
 
     expect(screen.getByTestId("separation-tree").textContent).toBe(
-      "UnionUnionGO Term: GO:0044217 other organism partGene Lists from " +
-        "PlasmoAP motif for protein export to the apicoplast.GO Term: GO:0051701 " +
-        "biological process involved in interaction with host",
+      "UnionUnionGO Term: GO:0044217 other organism partGO Term: GO:0051701 " +
+        "biological process involved in interaction with hostGene Lists from " +
+        "Pexel motif analysis of protein export to the erythrocyte membrane.",
     );
   });
 
@@ -71,20 +73,18 @@ describe.skipIf(recorded === null)("DataSeparationResult", () => {
     renderReport(REPORT);
 
     expect(screen.getByTestId("separation-informative").textContent).toBe(
-      "17 of 20 measured searches tell the positives from the negatives",
+      "14 of 23 measured searches tell the positives from the negatives",
     );
     expect(screen.getByTestId("separation-requests").textContent).toBe(
-      "384 of 400 requests",
+      "379 of 400 requests",
     );
     expect(
       screen.getAllByTestId("separation-skipped").map((row) => row.textContent),
     ).toEqual([
-      "over the request budget: 1",
-      "needs a study analysis: 1",
-      "reads another step's result: 1",
-      "needs a value only you can set: 5",
-      "refused by the site: 7",
-      "informs neither: 3",
+      "over the request budget: 2",
+      "needs a value only you can set: 4",
+      "refused by the site: 2",
+      "informs neither: 9",
     ]);
   });
 
@@ -94,13 +94,12 @@ describe.skipIf(recorded === null)("DataSeparationResult", () => {
     expect(
       screen.getAllByTestId("separation-shortfall").map((line) => line.textContent),
     ).toEqual(REPORT.shortfall);
-    expect(REPORT.shortfall?.[2]).toBe(
-      "No measured criterion excludes PF3D7_0508800 or PF3D7_1411400 without " +
-        "losing a recovered positive.",
+    expect(REPORT.shortfall?.[0]).toMatch(
+      /^No measured criterion recovers PF3D7_0104500, PF3D7_0105400, /,
     );
     expect(screen.getByTestId("figure-caption").textContent).toBe(
-      "no strategy separates the sets; closest: 61 of 80 positives, 2 of 40 " +
-        "negatives, 1,132 genes, 3 searches; 384 of 400 requests",
+      "no strategy separates the sets; closest: 50 of 80 positives, 0 of 40 " +
+        "negatives, 800 genes, 3 searches; 379 of 400 requests",
     );
   });
 
@@ -120,7 +119,7 @@ describe.skipIf(recorded === null)("DataSeparationResult", () => {
       within(screen.getByTestId("separation-measured")).getAllByRole("row"),
     ).toHaveLength(11);
     expect(screen.getByTestId("separation-measured-more").textContent).toBe(
-      "10 more measured searches are not shown.",
+      "13 more measured searches are not shown.",
     );
   });
 

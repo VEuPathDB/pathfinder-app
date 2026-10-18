@@ -28,7 +28,7 @@ from pathfinder.transport.http.routers import eda_datasets
 
 _Handler = Callable[[Request, Exception], Awaitable[Response]]
 _RESEARCHER = "researcher.token"
-_FAILED = "MoZ5BBpM8U0IM"
+_FAILED = "gp184tltg90x4"
 
 
 def _app(monkeypatch: pytest.MonkeyPatch, vdi: RecordedVdi) -> FastAPI:

@@ -207,11 +207,11 @@ def test_the_declared_library_reports_the_defects_the_wire_document_absorbs() ->
         for binding in BINDINGS
     }
     assert {name: len(errors) for name, errors in raw.items() if errors} == {
-        "studies_list": 3,
+        "studies_list": 5,
         "study_detail_de": 9,
         "study_detail_phenotype": 13,
         "volcano_statistics": 203,
-        "permissions": 24,
+        "permissions": 26,
         "analysis_detail_pass_and_de": 1,
         "scatterplot_dimensionalityreduction": 2,
         "conttable_genotype_by_temperature": 4,

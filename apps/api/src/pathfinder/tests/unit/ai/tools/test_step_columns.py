@@ -364,10 +364,10 @@ def test_the_percentile_step_holds_every_transcript_at_80_or_above() -> None:
 
     assert [measured(b, h.bins()) for b, h in zip(bounds, histograms, strict=True)] == [
         Measured(
-            fitting=1663, fitting_at_most=1663, total=1663, bound_value="80 to 100"
+            fitting=1103, fitting_at_most=1103, total=1103, bound_value="80 to 100"
         ),
         Measured(
-            fitting=1663, fitting_at_most=1663, total=1663, bound_value="80 to 100"
+            fitting=1103, fitting_at_most=1103, total=1103, bound_value="80 to 100"
         ),
     ]
 

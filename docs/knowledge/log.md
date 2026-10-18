@@ -1,5 +1,18 @@
 # Log
 
+## 2026-10-18
+
+* **Every recording is a QA recording.** The api's WDK, organism, EDA, separation and
+  controls recordings, the web separation result and the phyletic conformance file, and
+  the recordings of veupathdb-py 0.1.0b13 and veupathdb-mcp 0.2.0b24, are recorded on QA,
+  and the three production backups are deleted. Every value the pytest live lane pins is
+  measured on QA: the DESeq upload counts 39 genes at the default cut and 15 at the
+  stated one, each phenotype subset 30, the signal-peptide intersection 6 on plasmodb and
+  2 on vectorbase. A seed binds `dataset_url` at the one entry QA's vocabulary holds, a
+  record link on the production host, and `check-test-sites` passes a dataset record link.
+  Two states QA does not hold on request have no recording: a cached AI expression
+  summary and a crashed VDI import.
+
 ## 2026-10-17
 
 * **A refused call reads as corrected.** A call handed back to the model, by a model retry

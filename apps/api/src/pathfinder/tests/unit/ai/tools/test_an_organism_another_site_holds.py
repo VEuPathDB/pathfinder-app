@@ -81,7 +81,8 @@ async def test_an_organism_on_another_site_opens_the_portal_and_asks_no_switch(
     assert state.portal_route == (
         "This needs the VEuPathDB Portal, where one strategy holds both organisms. "
         "[Open a new conversation there](/pathfinder/veupathdb/conversation); this "
-        "conversation stays on PlasmoDB."
+        "conversation stays on PlasmoDB. Save the result there as a gene set, and a "
+        "conversation on PlasmoDB can start from its PlasmoDB genes."
     )
 
 

@@ -139,10 +139,13 @@ async def test_no_ends_the_turn_without_a_model_call_and_keeps_the_offer(
     ]
     assert [c.sentence for c in declined.proposed_changes] == [
         "GO Term: GO:0044217 other organism part (seed)",
-        "Gene Lists from PlasmoAP motif for protein export to the apicoplast. (seed)",
         (
             "GO Term: GO:0051701 biological process involved in interaction "
             "with host (seed)"
+        ),
+        (
+            "Gene Lists from Pexel motif analysis of protein export to the "
+            "erythrocyte membrane. (seed)"
         ),
     ]
 

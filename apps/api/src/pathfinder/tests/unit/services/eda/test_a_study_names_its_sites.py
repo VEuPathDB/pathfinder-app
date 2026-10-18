@@ -23,10 +23,12 @@ pytestmark = pytest.mark.asyncio
 _PUBLISHED = {"DS_2184f85560": ["tritrypdb"], "DS_dd73524c7e": ["fungidb"]}
 _BROWSED = [
     "DS_2184f85560",
+    "DS_2962dcf64d",
     "DS_dd73524c7e",
-    "EDAUD_Y9I5UEJtdp0JU",
-    "EDAUD_J0N5BNAJwN0Np",
-    "EDAUD_ZpN54Y0MoV108",
+    "EDAUD_QU08dlVQR50Zc",
+    "EDAUD_skR5gtQdwM0M4",
+    "EDAUD_5RR5xlQcZJ08x",
+    "EDAUD_VwU5dAhoNc0NA",
 ]
 
 
@@ -66,10 +68,12 @@ async def test_a_browsed_card_names_its_sites_and_the_portal_for_the_rest(
     assert sorted((card.dataset_id, card.sites) for card in cards) == sorted(
         [
             ("DS_2184f85560", ["tritrypdb"]),
+            ("DS_2962dcf64d", ["portal"]),
             ("DS_dd73524c7e", ["fungidb"]),
-            ("EDAUD_Y9I5UEJtdp0JU", ["portal"]),
-            ("EDAUD_J0N5BNAJwN0Np", ["portal"]),
-            ("EDAUD_ZpN54Y0MoV108", ["portal"]),
+            ("EDAUD_5RR5xlQcZJ08x", ["portal"]),
+            ("EDAUD_QU08dlVQR50Zc", ["portal"]),
+            ("EDAUD_VwU5dAhoNc0NA", ["portal"]),
+            ("EDAUD_skR5gtQdwM0M4", ["portal"]),
         ]
     )
     publishing.assert_awaited_once_with(_BROWSED)
@@ -99,7 +103,7 @@ async def test_a_store_that_does_not_answer_names_no_site(
 
     cards = await catalog.browse_studies("plasmodb", limit=100)
 
-    assert [card.sites for card in cards] == [[], [], [], [], []]
+    assert [card.sites for card in cards] == [[]] * 7
 
 
 async def test_the_picker_row_carries_the_sites(

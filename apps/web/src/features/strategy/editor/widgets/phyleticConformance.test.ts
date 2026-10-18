@@ -44,10 +44,8 @@ interface Fixture {
 }
 
 const recorded = qaRecording(
-  new URL(
-    "../../../../../../../packages/spec/phyletic_conformance.json",
-    import.meta.url,
-  ),
+  import.meta.url,
+  "../../../../../../../packages/spec/phyletic_conformance.json",
 );
 const data = (recorded ?? {
   term_map: [],

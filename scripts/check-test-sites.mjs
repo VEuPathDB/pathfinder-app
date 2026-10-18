@@ -13,7 +13,6 @@ export const PYPROJECT = "apps/api/pyproject.toml";
 export const WORKFLOW_SITES = "${{ github.workspace }}/deploy/sites/qa.yml";
 export const EXCLUDED = new Set([
   "docs",
-  "fixtures-production-backup-2026-10-09",
   "thesis",
   "node_modules",
   "__pycache__",
@@ -52,6 +51,7 @@ const HOST = new RegExp(
   "gi",
 );
 const PRODUCTION_PREFIX = /^(?:|www\.|beta\.|auth\.|w\d+\.)$/i;
+const DATASET_RECORD_LINK = /^\/a\/app\/record\/dataset\/DS_[0-9a-f]+/;
 
 function isMailbox(line, at) {
   if (line[at - 1] !== "@") return false;
@@ -63,7 +63,8 @@ export function productionHosts(text) {
   const found = [];
   text.split("\n").forEach((line, index) => {
     for (const match of line.matchAll(HOST)) {
-      if (PRODUCTION_PREFIX.test(match[1]) && !isMailbox(line, match.index)) {
+      const linked = DATASET_RECORD_LINK.test(line.slice(match.index + match[0].length));
+      if (PRODUCTION_PREFIX.test(match[1]) && !isMailbox(line, match.index) && !linked) {
         found.push({ line: index + 1, host: match[0].toLowerCase() });
       }
     }
@@ -246,5 +247,5 @@ if (invokedDirectly) {
     for (const offence of offences) console.error(`  ${offence}`);
     process.exit(1);
   }
-  console.log(`check-test-sites: ${files} files outside docs and the backup name only QA sites (0 violations)`);
+  console.log(`check-test-sites: ${files} files outside docs name only QA sites (0 violations)`);
 }

@@ -237,8 +237,8 @@ async def test_the_result_reopens_the_turn_on_the_adoption_card(
     domain = await _domain(conversation_id)
     assert list(domain.separation_offers) == [report["taskId"]]
     assert domain.separation_offers[report["taskId"]].question == (
-        "Build the closest strategy found: 3 searches returning 61 of 80 "
-        "positives and 2 of 40 negatives in 1,132 genes?"
+        "Build the closest strategy found: 3 searches returning 50 of 80 "
+        "positives and 0 of 40 negatives in 800 genes?"
     )
     assert pushed == []
 

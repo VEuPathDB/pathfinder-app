@@ -24,13 +24,13 @@ __all__ = ["api_client", "eda_wired"]
 
 
 # The curated studies of the recorded listing that the permissions map names.
-_PERMITTED_CURATED = {"DS_dd73524c7e", "DS_2184f85560"}
+_PERMITTED_CURATED = {"DS_dd73524c7e", "DS_2184f85560", "DS_2962dcf64d"}
 
 
 async def test_a_study_search_answers_with_cards_in_the_indexs_order(
     api_client: tuple[httpx.AsyncClient, UUID], eda_wired: EdaClient
 ) -> None:
-    """The cache holds curated rows only, so the cards are the two curated
+    """The cache holds curated rows only, so the cards are the three curated
     studies the account may read, ranked as the index ranks them."""
     del eda_wired
     client, _user_id = api_client
@@ -48,7 +48,7 @@ async def test_a_study_search_answers_with_cards_in_the_indexs_order(
     assert [(s["datasetId"], s["relevance"]) for s in studies] == [
         (hit.entry_id, pytest.approx(max(0.0, hit.similarity))) for hit in hits
     ]
-    assert [s["sourceType"] for s in studies] == ["curated", "curated"]
+    assert [s["sourceType"] for s in studies] == ["curated"] * 3
 
 
 async def test_a_study_search_with_no_query_lists_the_catalog_by_name(
@@ -61,6 +61,7 @@ async def test_a_study_search_with_no_query_lists_the_catalog_by_name(
     studies = response.json()["studies"]
     assert [(s["datasetId"], s["relevance"]) for s in studies] == [
         ("DS_2184f85560", 0.0),
+        ("DS_2962dcf64d", 0.0),
         ("DS_dd73524c7e", 0.0),
     ]
     names = [study["displayName"] for study in studies]

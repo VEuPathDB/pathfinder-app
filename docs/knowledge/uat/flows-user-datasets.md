@@ -28,8 +28,8 @@ The cut of `GenesByDESeqUserDataset` is not a parameter of its own: it is the vo
 | `GenesByEdaVizWithCompute` with the same two parameters, each cut | 39, 16 | 39, 16 |
 | `GenesByUserDatasetGeneList` | 20 | 20 |
 | that list INTERSECT `GenesWithSignalPeptide` (`SignalP-6.0`) | 5 | 3 |
-| `GenesByPhenotypeUserDataset`, `fitness_score` from -10 to -2 | 32 | 35 |
-| `GenesByEdaSubset` with the same two parameters | 32 | 35 |
+| `GenesByPhenotypeUserDataset`, `fitness_score` from -10 to -2 | 30 | 30 |
+| `GenesByEdaSubset` with the same two parameters | 30 | 30 |
 
 The generic export and the user-dataset search answer the same genes, so a zero from one and a count from the other is a site fault; none was measured (`tests/integration/strategies/test_wdk_user_dataset_searches.py`).
 
@@ -40,7 +40,7 @@ Cleanup: F7 step 4 for the conversation. Keep the three uploads: the flows and t
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | New conversation, composer | Send `On my uploaded RNA-Seq dataset 'pathfinder-uat-deseq', find the genes differentially expressed between the treated and the control samples with DESeq2, at the default cutoffs.` | The comparison runs (`Run differential expression`); one step `GenesByDESeqUserDataset`, 39 genes; the facts show `Reference group` `control`, `Compared group` `treated`, the two thresholds as `site default` or `chosen` with the note that no other value was measured |
-| 2 | Composer | Send `Set the thresholds for a few tens of up-regulated genes (none down-regulated): log2 fold change > 5 and p-value < 1e-10.` | The same step, 16 genes; the facts show `log2(Fold Change)` `5` and `Significance threshold` `1e-10`, both `stated`, `Effect direction` `upOnly`; the count before this turn's edit (39) beside the new one |
+| 2 | Composer | Send `Set the thresholds for a few tens of up-regulated genes (none down-regulated): log2 fold change > 5 and p-value < 1e-10.` | The same step, 15 genes; the facts show `log2(Fold Change)` `5` and `Significance threshold` `1e-10`, both `stated`, `Effect direction` `upOnly`; the count before this turn's edit (39) beside the new one |
 | 3 | Facts | Read | The step's name says which group is higher (`higher in treated`). A tighter cut that counts more genes than the looser one moved the wrong way: the reply must say so beside both counts, and a reply that does not is a major |
 | 4 | `Open in <Site>` | Read the step | `RNA-Seq Differential Expression (User Datasets)`; its notebook opens on the same groups and cut |
 
@@ -55,7 +55,7 @@ Cleanup: F7 step 4 for the conversation. Keep the three uploads: the flows and t
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation, composer | Send `Take the gene list I uploaded, 'pathfinder-uat-genelist', and keep the genes whose proteins have a predicted signal peptide.` | Layout `(GenesByUserDatasetGeneList INTERSECT GenesWithSignalPeptide)`, 3 steps; `geneListUserDataset` is the upload's id; counts 20 and 479 (plasmodb) or 2,928 (vectorbase), root 5 (plasmodb) or 3 (vectorbase) |
+| 1 | New conversation, composer | Send `Take the gene list I uploaded, 'pathfinder-uat-genelist', and keep the genes whose proteins have a predicted signal peptide.` | Layout `(GenesByUserDatasetGeneList INTERSECT GenesWithSignalPeptide)`, 3 steps; `geneListUserDataset` is the upload's id; counts 20 and 479 (plasmodb) or 2,928 (vectorbase), root 6 (plasmodb) or 2 (vectorbase) |
 | 2 | Facts | Read | The gene-list step is named `Gene List (User Datasets)`; its dataset value carries the label `pathfinder-uat-genelist` |
 | 3 | Account B, which holds no gene-list upload, new conversation | Send step 1 | No step on `GenesByUserDatasetGeneList`; the reply says the account holds no gene-list upload on the site and points at My Data Sets |
 
@@ -63,4 +63,4 @@ Cleanup: F7 step 4 for the conversation. Keep the three uploads: the flows and t
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | New conversation, composer | Send `From my uploaded phenotype dataset 'pathfinder-uat-phenotype', give me the genes with a fitness_score of -2 or lower.` | The subset is set on `fitness_score` and exported: one step `GenesByPhenotypeUserDataset`, 32 genes (plasmodb) or 35 (vectorbase) |
+| 1 | New conversation, composer | Send `From my uploaded phenotype dataset 'pathfinder-uat-phenotype', give me the genes with a fitness_score of -2 or lower.` | The subset is set on `fitness_score` and exported: one step `GenesByPhenotypeUserDataset`, 30 genes on either site |

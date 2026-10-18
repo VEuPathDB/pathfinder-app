@@ -63,4 +63,4 @@ async def test_the_card_still_carries_every_control_of_the_run() -> None:
 
     assert report.offer is not None
     positive = report.offer.positive
-    assert (len(positive.returned), len(positive.not_returned)) == (61, 19)
+    assert (len(positive.returned), len(positive.not_returned)) == (50, 30)

@@ -33,20 +33,20 @@ def test_the_brief_holds_the_counts_the_reply_is_written_from() -> None:
         "taskId": str(TASK_ID),
         "mode": "exact",
         "summary": (
-            "no strategy separates the sets; closest: 61 of 80 positives, "
-            "2 of 40 negatives, 1,132 genes, 3 searches; 384 of 400 requests"
+            "no strategy separates the sets; closest: 50 of 80 positives, "
+            "0 of 40 negatives, 800 genes, 3 searches; 379 of 400 requests"
         ),
         "offer": {
             "question": (
-                "Build the closest strategy found: 3 searches returning 61 of 80 "
-                "positives and 2 of 40 negatives in 1,132 genes?"
+                "Build the closest strategy found: 3 searches returning 50 of 80 "
+                "positives and 0 of 40 negatives in 800 genes?"
             ),
             "separates": False,
-            "positivesReturned": 61,
+            "positivesReturned": 50,
             "positiveControls": 80,
-            "negativesReturned": 2,
+            "negativesReturned": 0,
             "negativeControls": 40,
-            "resultSize": 1132,
+            "resultSize": 800,
             "criteria": [
                 {
                     "displayName": "GO Term",
@@ -54,32 +54,30 @@ def test_the_brief_holds_the_counts_the_reply_is_written_from() -> None:
                     "negativesReturned": 0,
                 },
                 {
-                    "displayName": (
-                        "Gene Lists from PlasmoAP motif for protein export to the "
-                        "apicoplast."
-                    ),
-                    "positivesReturned": 31,
-                    "negativesReturned": 2,
-                },
-                {
                     "displayName": "GO Term",
                     "positivesReturned": 38,
                     "negativesReturned": 0,
                 },
+                {
+                    "displayName": (
+                        "Gene Lists from Pexel motif analysis of protein export to "
+                        "the erythrocyte membrane."
+                    ),
+                    "positivesReturned": 33,
+                    "negativesReturned": 0,
+                },
             ],
         },
-        "measuredCount": 20,
-        "informativeCount": 17,
+        "measuredCount": 23,
+        "informativeCount": 14,
         "skippedByReason": {
-            "budget": 1,
-            "needs_an_analysis": 1,
-            "transform": 1,
-            "unbound_required": 5,
-            "wdk_refused": 7,
+            "budget": 2,
+            "unbound_required": 4,
+            "wdk_refused": 2,
         },
         "unresolvedPositiveCount": 0,
         "unresolvedNegativeCount": 0,
-        "chargedRequests": 384,
+        "chargedRequests": 379,
         "budget": 400,
     }
 

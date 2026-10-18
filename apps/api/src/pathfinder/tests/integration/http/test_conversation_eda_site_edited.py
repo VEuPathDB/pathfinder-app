@@ -33,7 +33,7 @@ async def test_the_tab_reads_an_analysis_with_a_pass_compute(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["analysis"]["analysisId"] == "uoZgkI9"
+    assert body["analysis"]["analysisId"] == "smQNdXY"
     assert body["analysis"]["numComputations"] == 2
     assert body["analysis"]["entityCounts"] == [
         {

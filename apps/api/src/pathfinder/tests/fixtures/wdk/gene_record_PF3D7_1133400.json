@@ -1,0 +1,1350 @@
+{
+  "tables": {
+    "Orthologs": [
+      {
+        "organism": "Plasmodium knowlesi strain H",
+        "gene": {
+          "displayText": "PKNH_0931500.1",
+          "url": "/plasmo.qa/app/record/gene/PKNH_0931500"
+        },
+        "ortho_source_id": "PKNH_0931500.1",
+        "ortho_gene_source_id": "PKNH_0931500",
+        "sort_key": "pf3d7_1133400                                                                   8yes8yespknh_0931500                                                                    ",
+        "protein_length": "563",
+        "comment_link": {
+          "displayText": "yes",
+          "url": "/plasmo.qa/app/record/gene/PKNH_0931500#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "yes",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PKNH_0931500\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium vivax P01",
+        "gene": {
+          "displayText": "PVP01_0934200.1",
+          "url": "/plasmo.qa/app/record/gene/PVP01_0934200"
+        },
+        "ortho_source_id": "PVP01_0934200.1",
+        "ortho_gene_source_id": "PVP01_0934200",
+        "sort_key": "pf3d7_1133400                                                                   8yes8yespvp01_0934200                                                                   ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "yes",
+          "url": "/plasmo.qa/app/record/gene/PVP01_0934200#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "yes",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVP01_0934200\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium vivax Sal-1",
+        "gene": {
+          "displayText": "PVX_092275.1",
+          "url": "/plasmo.qa/app/record/gene/PVX_092275"
+        },
+        "ortho_source_id": "PVX_092275.1",
+        "ortho_gene_source_id": "PVX_092275",
+        "sort_key": "pf3d7_1133400                                                                   8yes8yespvx_092275                                                                      ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "yes",
+          "url": "/plasmo.qa/app/record/gene/PVX_092275#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "yes",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVX_092275\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vinckei vinckei CY",
+        "gene": {
+          "displayText": "PVVCY_0903210_t1",
+          "url": "/plasmo.qa/app/record/gene/PVVCY_0903210"
+        },
+        "ortho_source_id": "PVVCY_0903210_t1",
+        "ortho_gene_source_id": "PVVCY_0903210",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvvcy_0903210                                                                   ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVVCY_0903210#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVVCY_0903210\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium praefalciparum strain G01",
+        "gene": {
+          "displayText": "PPRFG01_1134200_t1",
+          "url": "/plasmo.qa/app/record/gene/PPRFG01_1134200"
+        },
+        "ortho_source_id": "PPRFG01_1134200_t1",
+        "ortho_gene_source_id": "PPRFG01_1134200",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pprfg01_1134200                                                                 ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PPRFG01_1134200#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PPRFG01_1134200\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium yoelii yoelii YM",
+        "gene": {
+          "displayText": "PYYM_0916000_t1",
+          "url": "/plasmo.qa/app/record/gene/PYYM_0916000"
+        },
+        "ortho_source_id": "PYYM_0916000_t1",
+        "ortho_gene_source_id": "PYYM_0916000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pyym_0916000                                                                    ",
+        "protein_length": "557",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PYYM_0916000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PYYM_0916000\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium yoelii yoelii 17X",
+        "gene": {
+          "displayText": "PY17X_0916500.1",
+          "url": "/plasmo.qa/app/record/gene/PY17X_0916500"
+        },
+        "ortho_source_id": "PY17X_0916500.1",
+        "ortho_gene_source_id": "PY17X_0916500",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no py17x_0916500                                                                   ",
+        "protein_length": "557",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PY17X_0916500#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PY17X_0916500\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium falciparum CD01",
+        "gene": {
+          "displayText": "PfCD01_110038900-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfCD01_110038900"
+        },
+        "ortho_source_id": "PfCD01_110038900-t41_1",
+        "ortho_gene_source_id": "PfCD01_110038900",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfcd01_110038900                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfCD01_110038900#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfCD01_110038900\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vinckei lentum DE",
+        "gene": {
+          "displayText": "PVLDE_0903350_t1",
+          "url": "/plasmo.qa/app/record/gene/PVLDE_0903350"
+        },
+        "ortho_source_id": "PVLDE_0903350_t1",
+        "ortho_gene_source_id": "PVLDE_0903350",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvlde_0903350                                                                   ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVLDE_0903350#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVLDE_0903350\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium blacklocki G01",
+        "gene": {
+          "displayText": "PBLACG01_1131400-t36_1",
+          "url": "/plasmo.qa/app/record/gene/PBLACG01_1131400"
+        },
+        "ortho_source_id": "PBLACG01_1131400-t36_1",
+        "ortho_gene_source_id": "PBLACG01_1131400",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pblacg01_1131400                                                                ",
+        "protein_length": "628",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PBLACG01_1131400#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PBLACG01_1131400\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium knowlesi strain A1H1",
+        "gene": {
+          "displayText": "PKA1H_090037200.1",
+          "url": "/plasmo.qa/app/record/gene/PKA1H_090037200"
+        },
+        "ortho_source_id": "PKA1H_090037200.1",
+        "ortho_gene_source_id": "PKA1H_090037200",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pka1h_090037200                                                                 ",
+        "protein_length": "563",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PKA1H_090037200#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PKA1H_090037200\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium gallinaceum 8A",
+        "gene": {
+          "displayText": "PGAL8A_00360900.1",
+          "url": "/plasmo.qa/app/record/gene/PGAL8A_00360900"
+        },
+        "ortho_source_id": "PGAL8A_00360900.1",
+        "ortho_gene_source_id": "PGAL8A_00360900",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pgal8a_00360900                                                                 ",
+        "protein_length": "556",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PGAL8A_00360900#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PGAL8A_00360900\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium chabaudi chabaudi CB",
+        "gene": {
+          "displayText": "PCHCB_000213000-t70_1",
+          "url": "/plasmo.qa/app/record/gene/PCHCB_000213000"
+        },
+        "ortho_source_id": "PCHCB_000213000-t70_1",
+        "ortho_gene_source_id": "PCHCB_000213000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pchcb_000213000                                                                 ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PCHCB_000213000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PCHCB_000213000\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vivax PAM",
+        "gene": {
+          "displayText": "PVPAM_090038300_t1",
+          "url": "/plasmo.qa/app/record/gene/PVPAM_090038300"
+        },
+        "ortho_source_id": "PVPAM_090038300_t1",
+        "ortho_gene_source_id": "PVPAM_090038300",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvpam_090038300                                                                 ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVPAM_090038300#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVPAM_090038300\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum SN01",
+        "gene": {
+          "displayText": "PfSN01_110036600-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfSN01_110036600"
+        },
+        "ortho_source_id": "PfSN01_110036600-t41_1",
+        "ortho_gene_source_id": "PfSN01_110036600",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfsn01_110036600                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfSN01_110036600#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfSN01_110036600\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium ovale wallikeri PowCR01",
+        "gene": {
+          "displayText": "POWCR01_090034700_t1",
+          "url": "/plasmo.qa/app/record/gene/POWCR01_090034700"
+        },
+        "ortho_source_id": "POWCR01_090034700_t1",
+        "ortho_gene_source_id": "POWCR01_090034700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no powcr01_090034700                                                               ",
+        "protein_length": "563",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/POWCR01_090034700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"POWCR01_090034700\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium cynomolgi strain B",
+        "gene": {
+          "displayText": "PCYB_093930-t26_1",
+          "url": "/plasmo.qa/app/record/gene/PCYB_093930"
+        },
+        "ortho_source_id": "PCYB_093930-t26_1",
+        "ortho_gene_source_id": "PCYB_093930",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pcyb_093930                                                                     ",
+        "protein_length": "533",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PCYB_093930#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PCYB_093930\">",
+        "gene_product": "apical merozoite antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium reichenowi CDC",
+        "gene": {
+          "displayText": "PRCDC_1131800.1",
+          "url": "/plasmo.qa/app/record/gene/PRCDC_1131800"
+        },
+        "ortho_source_id": "PRCDC_1131800.1",
+        "ortho_gene_source_id": "PRCDC_1131800",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no prcdc_1131800                                                                   ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PRCDC_1131800#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PRCDC_1131800\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium falciparum Dd2",
+        "gene": {
+          "displayText": "PfDd2_110036700-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfDd2_110036700"
+        },
+        "ortho_source_id": "PfDd2_110036700-t41_1",
+        "ortho_gene_source_id": "PfDd2_110036700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfdd2_110036700                                                                 ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfDd2_110036700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfDd2_110036700\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium knowlesi strain Malayan Strain Pk1 A",
+        "gene": {
+          "displayText": "PKNOH_S120150200-t35_1",
+          "url": "/plasmo.qa/app/record/gene/PKNOH_S120150200"
+        },
+        "ortho_source_id": "PKNOH_S120150200-t35_1",
+        "ortho_gene_source_id": "PKNOH_S120150200",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pknoh_s120150200                                                                ",
+        "protein_length": "563",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PKNOH_S120150200#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PKNOH_S120150200\">",
+        "gene_product": "Apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Hepatocystis sp. ex Piliocolobus tephrosceles 2019",
+        "gene": {
+          "displayText": "HEP_00475900_t1",
+          "url": "/plasmo.qa/app/record/gene/HEP_00475900"
+        },
+        "ortho_source_id": "HEP_00475900_t1",
+        "ortho_gene_source_id": "HEP_00475900",
+        "sort_key": "pf3d7_1133400                                                                   9no 9no hep_00475900                                                                    ",
+        "protein_length": "453",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/HEP_00475900#UserComments"
+        },
+        "is_syntenic": "no",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"HEP_00475900\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium falciparum 7G8 2019",
+        "gene": {
+          "displayText": "Pf7G8-2_000356200.1",
+          "url": "/plasmo.qa/app/record/gene/Pf7G8-2_000356200"
+        },
+        "ortho_source_id": "Pf7G8-2_000356200.1",
+        "ortho_gene_source_id": "Pf7G8-2_000356200",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pf7g8-2_000356200                                                               ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/Pf7G8-2_000356200#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"Pf7G8-2_000356200\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vivax PvW1",
+        "gene": {
+          "displayText": "PVW1_090038700_t1",
+          "url": "/plasmo.qa/app/record/gene/PVW1_090038700"
+        },
+        "ortho_source_id": "PVW1_090038700_t1",
+        "ortho_gene_source_id": "PVW1_090038700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvw1_090038700                                                                  ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVW1_090038700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVW1_090038700\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium reichenowi G01",
+        "gene": {
+          "displayText": "PRG01_1130800-t36_1",
+          "url": "/plasmo.qa/app/record/gene/PRG01_1130800"
+        },
+        "ortho_source_id": "PRG01_1130800-t36_1",
+        "ortho_gene_source_id": "PRG01_1130800",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no prg01_1130800                                                                   ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PRG01_1130800#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PRG01_1130800\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum IT",
+        "gene": {
+          "displayText": "PfIT_110038000-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfIT_110038000"
+        },
+        "ortho_source_id": "PfIT_110038000-t41_1",
+        "ortho_gene_source_id": "PfIT_110038000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfit_110038000                                                                  ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfIT_110038000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfIT_110038000\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum GB4",
+        "gene": {
+          "displayText": "PfGB4_110040000-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfGB4_110040000"
+        },
+        "ortho_source_id": "PfGB4_110040000-t41_1",
+        "ortho_gene_source_id": "PfGB4_110040000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfgb4_110040000                                                                 ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfGB4_110040000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfGB4_110040000\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vinckei petteri CR 2020",
+        "gene": {
+          "displayText": "PVPCR_0903290_t1",
+          "url": "/plasmo.qa/app/record/gene/PVPCR_0903290"
+        },
+        "ortho_source_id": "PVPCR_0903290_t1",
+        "ortho_gene_source_id": "PVPCR_0903290",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvpcr_0903290                                                                   ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVPCR_0903290#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVPCR_0903290\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum GA01",
+        "gene": {
+          "displayText": "PfGA01_110037700-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfGA01_110037700"
+        },
+        "ortho_source_id": "PfGA01_110037700-t41_1",
+        "ortho_gene_source_id": "PfGA01_110037700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfga01_110037700                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfGA01_110037700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfGA01_110037700\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vinckei vinckei strain vinckei",
+        "gene": {
+          "displayText": "YYE_03007-t30_1",
+          "url": "/plasmo.qa/app/record/gene/YYE_03007"
+        },
+        "ortho_source_id": "YYE_03007-t30_1",
+        "ortho_gene_source_id": "YYE_03007",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no yye_03007                                                                       ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/YYE_03007#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"YYE_03007\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium malariae UG01",
+        "gene": {
+          "displayText": "PmUG01_09042600.1",
+          "url": "/plasmo.qa/app/record/gene/PmUG01_09042600"
+        },
+        "ortho_source_id": "PmUG01_09042600.1",
+        "ortho_gene_source_id": "PmUG01_09042600",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pmug01_09042600                                                                 ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PmUG01_09042600#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PmUG01_09042600\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium berghei ANKA",
+        "gene": {
+          "displayText": "PBANKA_0915000.1",
+          "url": "/plasmo.qa/app/record/gene/PBANKA_0915000"
+        },
+        "ortho_source_id": "PBANKA_0915000.1",
+        "ortho_gene_source_id": "PBANKA_0915000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pbanka_0915000                                                                  ",
+        "protein_length": "556",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PBANKA_0915000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PBANKA_0915000\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium falciparum ML01",
+        "gene": {
+          "displayText": "PfML01_110038300-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfML01_110038300"
+        },
+        "ortho_source_id": "PfML01_110038300-t41_1",
+        "ortho_gene_source_id": "PfML01_110038300",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfml01_110038300                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfML01_110038300#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfML01_110038300\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum NF135.C10",
+        "gene": {
+          "displayText": "PfNF135_110036500.1",
+          "url": "/plasmo.qa/app/record/gene/PfNF135_110036500"
+        },
+        "ortho_source_id": "PfNF135_110036500.1",
+        "ortho_gene_source_id": "PfNF135_110036500",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfnf135_110036500                                                               ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfNF135_110036500#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfNF135_110036500\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum NF166",
+        "gene": {
+          "displayText": "PfNF166_110036700.1",
+          "url": "/plasmo.qa/app/record/gene/PfNF166_110036700"
+        },
+        "ortho_source_id": "PfNF166_110036700.1",
+        "ortho_gene_source_id": "PfNF166_110036700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfnf166_110036700                                                               ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfNF166_110036700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfNF166_110036700\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum SD01",
+        "gene": {
+          "displayText": "PfSD01_110036100-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfSD01_110036100"
+        },
+        "ortho_source_id": "PfSD01_110036100-t41_1",
+        "ortho_gene_source_id": "PfSD01_110036100",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfsd01_110036100                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfSD01_110036100#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfSD01_110036100\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum TG01",
+        "gene": {
+          "displayText": "PfTG01_110037900-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfTG01_110037900"
+        },
+        "ortho_source_id": "PfTG01_110037900-t41_1",
+        "ortho_gene_source_id": "PfTG01_110037900",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pftg01_110037900                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfTG01_110037900#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfTG01_110037900\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum NF54",
+        "gene": {
+          "displayText": "PfNF54_110037600.1",
+          "url": "/plasmo.qa/app/record/gene/PfNF54_110037600"
+        },
+        "ortho_source_id": "PfNF54_110037600.1",
+        "ortho_gene_source_id": "PfNF54_110037600",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfnf54_110037600                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfNF54_110037600#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfNF54_110037600\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum KE01",
+        "gene": {
+          "displayText": "PfKE01_110038000-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfKE01_110038000"
+        },
+        "ortho_source_id": "PfKE01_110038000-t41_1",
+        "ortho_gene_source_id": "PfKE01_110038000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfke01_110038000                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfKE01_110038000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfKE01_110038000\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium yoelii yoelii 17XNL",
+        "gene": {
+          "displayText": "PY01581-t26_1",
+          "url": "/plasmo.qa/app/record/gene/PY01581"
+        },
+        "ortho_source_id": "PY01581-t26_1",
+        "ortho_gene_source_id": "PY01581",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no py01581                                                                         ",
+        "protein_length": "557",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PY01581#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PY01581\">",
+        "gene_product": "apical membrane antigen-1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vivax-like Pvl01",
+        "gene": {
+          "displayText": "PVL_090019400-t42_1",
+          "url": "/plasmo.qa/app/record/gene/PVL_090019400"
+        },
+        "ortho_source_id": "PVL_090019400-t42_1",
+        "ortho_gene_source_id": "PVL_090019400",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvl_090019400                                                                   ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVL_090019400#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVL_090019400\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium gaboni strain G01",
+        "gene": {
+          "displayText": "PGABG01_1131400-t36_1",
+          "url": "/plasmo.qa/app/record/gene/PGABG01_1131400"
+        },
+        "ortho_source_id": "PGABG01_1131400-t36_1",
+        "ortho_gene_source_id": "PGABG01_1131400",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pgabg01_1131400                                                                 ",
+        "protein_length": "610",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PGABG01_1131400#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PGABG01_1131400\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium relictum SGS1-like",
+        "gene": {
+          "displayText": "PRELSG_0930900.1",
+          "url": "/plasmo.qa/app/record/gene/PRELSG_0930900"
+        },
+        "ortho_source_id": "PRELSG_0930900.1",
+        "ortho_gene_source_id": "PRELSG_0930900",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no prelsg_0930900                                                                  ",
+        "protein_length": "556",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PRELSG_0930900#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PRELSG_0930900\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium cynomolgi strain M",
+        "gene": {
+          "displayText": "PcyM_0938200-t36_1",
+          "url": "/plasmo.qa/app/record/gene/PcyM_0938200"
+        },
+        "ortho_source_id": "PcyM_0938200-t36_1",
+        "ortho_gene_source_id": "PcyM_0938200",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pcym_0938200                                                                    ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PcyM_0938200#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PcyM_0938200\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium falciparum KH02",
+        "gene": {
+          "displayText": "PfKH02_110038700-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfKH02_110038700"
+        },
+        "ortho_source_id": "PfKH02_110038700-t41_1",
+        "ortho_gene_source_id": "PfKH02_110038700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfkh02_110038700                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfKH02_110038700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfKH02_110038700\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum 7G8",
+        "gene": {
+          "displayText": "Pf7G8_110037300-t41_1",
+          "url": "/plasmo.qa/app/record/gene/Pf7G8_110037300"
+        },
+        "ortho_source_id": "Pf7G8_110037300-t41_1",
+        "ortho_gene_source_id": "Pf7G8_110037300",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pf7g8_110037300                                                                 ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/Pf7G8_110037300#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"Pf7G8_110037300\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium vinckei Cameroon EL",
+        "gene": {
+          "displayText": "PVSEL_0903270_t1",
+          "url": "/plasmo.qa/app/record/gene/PVSEL_0903270"
+        },
+        "ortho_source_id": "PVSEL_0903270_t1",
+        "ortho_gene_source_id": "PVSEL_0903270",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvsel_0903270                                                                   ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVSEL_0903270#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVSEL_0903270\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium inui San Antonio 1",
+        "gene": {
+          "displayText": "C922_02330-t30_1",
+          "url": "/plasmo.qa/app/record/gene/C922_02330"
+        },
+        "ortho_source_id": "C922_02330-t30_1",
+        "ortho_gene_source_id": "C922_02330",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no c922_02330                                                                      ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/C922_02330#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"C922_02330\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium brasilianum strain Bolivian I",
+        "gene": {
+          "displayText": "MKS88_002933_t1",
+          "url": "/plasmo.qa/app/record/gene/MKS88_002933"
+        },
+        "ortho_source_id": "MKS88_002933_t1",
+        "ortho_gene_source_id": "MKS88_002933",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no mks88_002933                                                                    ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/MKS88_002933#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"MKS88_002933\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium chabaudi chabaudi",
+        "gene": {
+          "displayText": "PCHAS_0931000.1",
+          "url": "/plasmo.qa/app/record/gene/PCHAS_0931000"
+        },
+        "ortho_source_id": "PCHAS_0931000.1",
+        "ortho_gene_source_id": "PCHAS_0931000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pchas_0931000                                                                   ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PCHAS_0931000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PCHAS_0931000\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium vinckei petteri strain CR",
+        "gene": {
+          "displayText": "YYG_01961-t30_1",
+          "url": "/plasmo.qa/app/record/gene/YYG_01961"
+        },
+        "ortho_source_id": "YYG_01961-t30_1",
+        "ortho_gene_source_id": "YYG_01961",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no yyg_01961                                                                       ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/YYG_01961#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"YYG_01961\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Hepatocystis sp. ex Piliocolobus tephrosceles 2019",
+        "gene": {
+          "displayText": "HEP_00498100_t1",
+          "url": "/plasmo.qa/app/record/gene/HEP_00498100"
+        },
+        "ortho_source_id": "HEP_00498100_t1",
+        "ortho_gene_source_id": "HEP_00498100",
+        "sort_key": "pf3d7_1133400                                                                   9no 9no hep_00498100                                                                    ",
+        "protein_length": "369",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/HEP_00498100#UserComments"
+        },
+        "is_syntenic": "no",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"HEP_00498100\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium falciparum GN01",
+        "gene": {
+          "displayText": "PfGN01_110038000-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfGN01_110038000"
+        },
+        "ortho_source_id": "PfGN01_110038000-t41_1",
+        "ortho_gene_source_id": "PfGN01_110038000",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfgn01_110038000                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfGN01_110038000#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfGN01_110038000\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum HB3",
+        "gene": {
+          "displayText": "PfHB3_110036900-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfHB3_110036900"
+        },
+        "ortho_source_id": "PfHB3_110036900-t41_1",
+        "ortho_gene_source_id": "PfHB3_110036900",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfhb3_110036900                                                                 ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfHB3_110036900#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfHB3_110036900\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium falciparum KH01",
+        "gene": {
+          "displayText": "PfKH01_110037800-t41_1",
+          "url": "/plasmo.qa/app/record/gene/PfKH01_110037800"
+        },
+        "ortho_source_id": "PfKH01_110037800-t41_1",
+        "ortho_gene_source_id": "PfKH01_110037800",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pfkh01_110037800                                                                ",
+        "protein_length": "622",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PfKH01_110037800#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PfKH01_110037800\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium gaboni strain SY75",
+        "gene": {
+          "displayText": "PGSY75_1133400-t31_1",
+          "url": "/plasmo.qa/app/record/gene/PGSY75_1133400"
+        },
+        "ortho_source_id": "PGSY75_1133400-t31_1",
+        "ortho_gene_source_id": "PGSY75_1133400",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pgsy75_1133400                                                                  ",
+        "protein_length": "610",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PGSY75_1133400#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PGSY75_1133400\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium adleri G01",
+        "gene": {
+          "displayText": "PADL01_1131700-t36_1",
+          "url": "/plasmo.qa/app/record/gene/PADL01_1131700"
+        },
+        "ortho_source_id": "PADL01_1131700-t36_1",
+        "ortho_gene_source_id": "PADL01_1131700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no padl01_1131700                                                                  ",
+        "protein_length": "634",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PADL01_1131700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PADL01_1131700\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium vinckei brucechwatti DA",
+        "gene": {
+          "displayText": "PVBDA_0903240_t1",
+          "url": "/plasmo.qa/app/record/gene/PVBDA_0903240"
+        },
+        "ortho_source_id": "PVBDA_0903240_t1",
+        "ortho_gene_source_id": "PVBDA_0903240",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pvbda_0903240                                                                   ",
+        "protein_length": "558",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PVBDA_0903240#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PVBDA_0903240\">",
+        "gene_product": "Apical membrane antigen 1 | domain-containing protein",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium yoelii yoelii 17XNL 2023",
+        "gene": {
+          "displayText": "Py17XNL_000900189_t1",
+          "url": "/plasmo.qa/app/record/gene/Py17XNL_000900189"
+        },
+        "ortho_source_id": "Py17XNL_000900189_t1",
+        "ortho_gene_source_id": "Py17XNL_000900189",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no py17xnl_000900189                                                               ",
+        "protein_length": "557",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/Py17XNL_000900189#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"Py17XNL_000900189\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "no"
+      },
+      {
+        "organism": "Plasmodium coatneyi Hackeri",
+        "gene": {
+          "displayText": "PCOAH_00026700-t30_1",
+          "url": "/plasmo.qa/app/record/gene/PCOAH_00026700"
+        },
+        "ortho_source_id": "PCOAH_00026700-t30_1",
+        "ortho_gene_source_id": "PCOAH_00026700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pcoah_00026700                                                                  ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PCOAH_00026700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PCOAH_00026700\">",
+        "gene_product": "Apical membrane antigen",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium billcollinsi G01",
+        "gene": {
+          "displayText": "PBILCG01_1128600_t1",
+          "url": "/plasmo.qa/app/record/gene/PBILCG01_1128600"
+        },
+        "ortho_source_id": "PBILCG01_1128600_t1",
+        "ortho_gene_source_id": "PBILCG01_1128600",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pbilcg01_1128600                                                                ",
+        "protein_length": "591",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PBILCG01_1128600#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PBILCG01_1128600\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Haemoproteus tartakovskyi strain SISKIN1",
+        "gene": {
+          "displayText": "Htart_000091700.1",
+          "url": "/plasmo.qa/app/record/gene/Htart_000091700"
+        },
+        "ortho_source_id": "Htart_000091700.1",
+        "ortho_gene_source_id": "Htart_000091700",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no htart_000091700                                                                 ",
+        "protein_length": "611",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/Htart_000091700#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"Htart_000091700\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium fragile strain nilgiri",
+        "gene": {
+          "displayText": "AK88_00071-t30_1",
+          "url": "/plasmo.qa/app/record/gene/AK88_00071"
+        },
+        "ortho_source_id": "AK88_00071-t30_1",
+        "ortho_gene_source_id": "AK88_00071",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no ak88_00071                                                                      ",
+        "protein_length": "562",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/AK88_00071#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"AK88_00071\">",
+        "gene_product": "apical membrane antigen 1",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      },
+      {
+        "organism": "Plasmodium ovale curtisi GH01",
+        "gene": {
+          "displayText": "PocGH01_09039800.1",
+          "url": "/plasmo.qa/app/record/gene/PocGH01_09039800"
+        },
+        "ortho_source_id": "PocGH01_09039800.1",
+        "ortho_gene_source_id": "PocGH01_09039800",
+        "sort_key": "pf3d7_1133400                                                                   8yes9no pocgh01_09039800                                                                ",
+        "protein_length": "563",
+        "comment_link": {
+          "displayText": "no",
+          "url": "/plasmo.qa/app/record/gene/PocGH01_09039800#UserComments"
+        },
+        "is_syntenic": "yes",
+        "has_comment": "no",
+        "clustalInput": "<input type=\"checkbox\" name=\"gene_ids\" value=\"PocGH01_09039800\">",
+        "gene_product": "apical membrane antigen 1, putative",
+        "source_id": "PF3D7_1133400",
+        "is_reference_strain": "yes"
+      }
+    ]
+  },
+  "displayName": "PF3D7_1133400",
+  "recordClassName": "GeneRecordClasses.GeneRecordClass",
+  "attributes": {
+    "product": "apical membrane antigen 1",
+    "exon_count": "1",
+    "organism": "<i>P. falciparum 3D7</i>",
+    "transcript_count": "1",
+    "chromosome": "11",
+    "name": "AMA1"
+  },
+  "id": [
+    {
+      "name": "source_id",
+      "value": "PF3D7_1133400"
+    },
+    {
+      "name": "project_id",
+      "value": "PlasmoDB"
+    }
+  ],
+  "tableErrors": []
+}

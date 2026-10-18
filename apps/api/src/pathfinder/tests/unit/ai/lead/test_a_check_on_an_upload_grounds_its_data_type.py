@@ -106,7 +106,7 @@ async def test_the_check_reads_the_uploads_type_before_it_runs(
         del site_id
         return [
             OwnedUpload(
-                vdi_id="lhZ5ptRgo014J",
+                vdi_id="Y518ZRlgBR0Q5",
                 name="pathfinder-uat-deseq",
                 type_name="rnaseqrc",
             )

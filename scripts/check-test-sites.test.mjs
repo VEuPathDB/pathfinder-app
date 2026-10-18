@@ -149,7 +149,15 @@ test("a mailbox is not a host, and a credential in a URL does not hide one", () 
   );
 });
 
-test("every file outside docs, the backup and local outputs is scanned, and no secret env file is read", () => {
+test("a dataset record link a site's vocabulary names is no host, and its bare host still is", () => {
+  assert.deepEqual(productionHosts(`"dataset_url": "https://HostDB.org/a/app/record/dataset/DS_eeca6a5476"`), []);
+  assert.deepEqual(
+    productionHosts(`https://${host("hostdb")}/a/app/record/gene/X https://${host("hostdb")}/a/app/record/dataset/`).map((found) => found.host),
+    [host("hostdb"), host("hostdb")],
+  );
+});
+
+test("every file outside docs and local outputs is scanned, and no secret env file is read", () => {
   const paths = scannedPaths();
 
   assert.ok(paths.includes("apps/api/src/pathfinder/tests/unit/platform/test_stage_sites.py"));
@@ -160,7 +168,7 @@ test("every file outside docs, the backup and local outputs is scanned, and no s
   assert.ok(paths.includes(".env.example"));
   assert.ok(paths.includes("README.md"));
   assert.deepEqual(
-    paths.filter((path) => /^(docs|thesis|fixtures-production-backup-2026-10-09)\//.test(path) || /(^|\/)\.env(\.(dev|test))?$/.test(path)),
+    paths.filter((path) => /^(docs|thesis)\//.test(path) || /(^|\/)\.env(\.(dev|test))?$/.test(path)),
     [],
   );
 });
@@ -279,5 +287,5 @@ test("the command line passes on the shipped tree", () => {
   const run = spawnSync(process.execPath, ["scripts/check-test-sites.mjs"], { encoding: "utf8" });
 
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^check-test-sites: \d+ files outside docs and the backup name only QA sites \(0 violations\)\n$/);
+  assert.match(run.stdout, /^check-test-sites: \d+ files outside docs name only QA sites \(0 violations\)\n$/);
 });

@@ -19,7 +19,7 @@ from pathfinder.tests._support.recorded_vdi import (
 )
 from pathfinder.tests.integration.http.conftest import client_for, make_user
 
-_INSTALLED = "4xZ5Q5pV1s4IM"
+_INSTALLED = "Ed18Aclt0E0xA"
 _URL = "/api/v1/eda/datasets?siteId=plasmodb"
 
 

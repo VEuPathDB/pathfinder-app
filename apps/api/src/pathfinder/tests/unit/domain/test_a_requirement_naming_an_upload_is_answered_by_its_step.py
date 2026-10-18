@@ -14,7 +14,7 @@ _NAMES_THE_UPLOAD = RequirementCheck(
     how="parameter",
     status="unmet",
     note=(
-        "The strategy uses uploaded study `EDAUD_lhZ5ptRgo014J`, but the RNA-Seq "
+        "The strategy uses uploaded study `EDAUD_Y518ZRlgBR0Q5`, but the RNA-Seq "
         "data-type requirement is ungroundable and is not established by the "
         "strategy."
     ),

@@ -54,7 +54,11 @@ async def test_a_search_returns_cards_ordered_by_relevance(wired: EdaClient) -> 
         await catalog.search_studies("plasmodb", "RNA-Seq expression", limit=5)
     ).cards
     await wired.close()
-    assert sorted(c.dataset_id for c in cards) == ["DS_2184f85560", "DS_dd73524c7e"]
+    assert sorted(c.dataset_id for c in cards) == [
+        "DS_2184f85560",
+        "DS_2962dcf64d",
+        "DS_dd73524c7e",
+    ]
     assert cards == sorted(cards, key=lambda c: -c.relevance)
 
 
@@ -72,6 +76,7 @@ async def test_a_card_reports_the_two_permission_axes(wired: EdaClient) -> None:
     await wired.close()
     assert sorted((c.dataset_id, c.can_subset, c.can_export_rows) for c in cards) == [
         ("DS_2184f85560", True, True),
+        ("DS_2962dcf64d", True, True),
         ("DS_dd73524c7e", True, True),
     ]
 
@@ -187,6 +192,7 @@ async def test_browsing_lists_the_permitted_catalog_by_display_name(
     await wired.close()
     assert [(c.dataset_id, c.study_id, c.relevance) for c in cards] == [
         ("DS_2184f85560", "STUDY_c66bb8d26a", 0.0),
+        ("DS_2962dcf64d", "STUDY_2962dcf64d", 0.0),
         ("DS_dd73524c7e", "STUDY_bf43a6913c", 0.0),
     ]
 
@@ -202,10 +208,14 @@ async def test_browsing_drops_a_study_with_no_permission_entry(
 
 
 async def test_browsing_honours_the_limit(wired: EdaClient) -> None:
-    """Two curated studies carry a permission entry; a limit of one keeps the
+    """Three curated studies carry a permission entry; a limit of one keeps the
     first of them by name."""
     cards = await catalog.browse_studies("plasmodb", limit=1)
     everything = await catalog.browse_studies("plasmodb", limit=100)
     await wired.close()
     assert [c.dataset_id for c in cards] == ["DS_2184f85560"]
-    assert [c.dataset_id for c in everything] == ["DS_2184f85560", "DS_dd73524c7e"]
+    assert [c.dataset_id for c in everything] == [
+        "DS_2184f85560",
+        "DS_2962dcf64d",
+        "DS_dd73524c7e",
+    ]

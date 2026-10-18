@@ -23,8 +23,8 @@ from pathfinder.tests._support.recorded_vdi import (
     vdi_body,
 )
 
-_INSTALLED = "4xZ5Q5pV1s4IM"
-_INVALID = "MoZ5BBpM8U0IM"
+_INSTALLED = "Ed18Aclt0E0xA"
+_INVALID = "gp184tltg90x4"
 _CRASHED = "lIZ5ZVpEVE0FE"
 _GENE_LIST = "dMY5sYJRNl11F"
 
@@ -70,7 +70,7 @@ async def test_an_installed_upload_with_a_permission_entry_is_installed(
         OwnDataset(
             vdi_id=_INSTALLED,
             name="PathFinder live check stranded no label",
-            created=datetime.fromisoformat("2026-09-24T08:02:05.971406-04:00"),
+            created=datetime.fromisoformat("2026-10-17T18:56:15.769024-04:00"),
             state="installed",
             message=None,
             dataset_id=dataset_id,
@@ -174,11 +174,10 @@ async def test_the_datasets_own_import_status_decides_over_the_listings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The owned listing can show a faulted import as invalid; the dataset's read is exact."""
+    crashed = vdi_body("rnaseqrc_import_failed")
     rows = _listing(_CRASHED)
     rows[0]["status"]["import"]["status"] = "invalid"
-    vdi = RecordedVdi(
-        listing=rows, statuses={_CRASHED: [vdi_body("rnaseqrc_import_failed")]}
-    )
+    vdi = RecordedVdi(listing=rows, statuses={_CRASHED: [crashed]})
     _serve(
         monkeypatch, vdi, RecordedPermissions([permissions_body(with_user_study=True)])
     )
