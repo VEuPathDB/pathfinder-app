@@ -8,7 +8,7 @@ from uuid import UUID
 
 from assistant_core.memory.store import MemoryStore
 from assistant_core.tasks.progress import TaskProgressEmitter
-from pydantic import JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from veupathdb_mcp.separation import (
     SeparationPhase,
     SeparationRequest,
@@ -22,15 +22,42 @@ from pathfinder.services.evidence.separation import (
     separate_controls,
 )
 
-# A measured row closes its candidate's own lane, so its lane is complete.
 _PHASE_PERCENT: dict[SeparationPhase, float] = {
     "resolved": 0.05,
     "uploaded": 0.1,
     "collected": 0.2,
-    "measured": 1.0,
     "assembled": 0.9,
     "confirmed": 1.0,
 }
+
+
+class _Collected(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    by_source: dict[str, int] = Field(alias="bySource")
+
+
+@dataclass
+class RunProgress:
+    """The run's share done: measuring fills the span from collect to assemble."""
+
+    candidates: int = 0
+    measured: int = 0
+
+    def percent(self, update: SeparationUpdate) -> float:
+        match update.phase:
+            case "collected":
+                self.candidates = sum(
+                    _Collected.model_validate(update.data).by_source.values()
+                )
+            case "measured":
+                self.measured += 1
+                start, end = _PHASE_PERCENT["collected"], _PHASE_PERCENT["assembled"]
+                share = min(self.measured, self.candidates) / max(self.candidates, 1)
+                return start + (end - start) * share
+            case _:
+                pass
+        return _PHASE_PERCENT[update.phase]
 
 
 @dataclass
@@ -39,6 +66,7 @@ class _Rows:
 
     progress: TaskProgressEmitter
     lanes: dict[str, TaskProgressEmitter] = field(default_factory=dict)
+    run: RunProgress = field(default_factory=RunProgress)
 
     def _lane(self, candidate_id: str) -> TaskProgressEmitter:
         lane = self.lanes.get(candidate_id)
@@ -54,7 +82,7 @@ class _Rows:
             else self._lane(update.candidate_id)
         )
         await emitter.update(
-            percent=_PHASE_PERCENT[update.phase],
+            percent=self.run.percent(update),
             message=update.message,
             data=dict(update.data),
         )
