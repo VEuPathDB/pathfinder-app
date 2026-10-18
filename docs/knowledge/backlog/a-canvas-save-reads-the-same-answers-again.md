@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A canvas save reads the same answers again
-description: A canvas save makes 25 to 35 WDK calls one after another, and reads the search list, the user id and the strategy again on every step, so one save takes 17 to 32 seconds on PlasmoDB QA.
+description: A parameter edit reads the definition of the search it edits three times, which is most of a 23 second save on PlasmoDB QA; the user id and the combine search are now read once.
 tags: [canvas, wdk, latency, strategy]
 generated: { by: claude-code/opus-5.5, at: 2026-10-18T00:00:00Z }
 status: proposed
@@ -35,21 +35,20 @@ marked slow no longer takes the deployment's expensive-search line
 (`services/search_waits.py`). On PlasmoDB QA the lifecycle test sent one count request in
 place of one per edit.
 
-**What remains, measured.** A save alone still took 17.5 to 32 seconds on PlasmoDB QA
-through a SOCKS tunnel, about 1 second for each of 25 to 35 WDK calls made one after
-another. The operator change took 32 seconds:
+**Also fixed.** veupathdb-py 0.1.0b14 keeps the user id and each combine's boolean search
+on the site client, so a save no longer reads them again: on PlasmoDB QA through a SOCKS
+tunnel, the four saves of the lifecycle test made 9 to 13 WDK calls in 9.6 to 23.3 seconds,
+where they made 25 to 35 in 17.5 to 32, and the test passes.
 
-| Call | Per save | Time |
-|---|---|---|
-| `GET /record-types/transcript/searches`, read to name a combine's boolean search | 2 | 9.1 s |
-| `GET /users/current`, read again before most steps | 6 | 5.3 s |
-| `GET /users/{id}/strategies/{id}`, the same strategy read again | 5 | 6.2 s |
-| the combines, their reads, the step tree, the rename and the orphan deletes | about 10 | about 11 s |
+**What remains, measured.** A parameter edit checks the search it edits: three plain reads
+of the search definition (`GET /record-types/transcript/searches/GenesByGoTerm`, 1.3 to
+3.1 seconds each) and four reads under the edited values (two contextual reads and two
+dependent-parameter refreshes, 1.5 to 3.2 seconds each), about 15 of the 23 seconds of the
+slowest save.
 
 **The work:**
 
-- Read the boolean search's name, the user id and the stored strategy once for a save,
-  in veupathdb-py where each read is made, and release it with veupathdb-mcp.
-- A test that counts the WDK calls of one save and holds the count.
-- Run `apps/web/e2e/journey/comprehensive-strategy-lifecycle.spec.ts` on PlasmoDB QA and
-  read every save's time.
+- Keep a search's plain definition on the site client, as the boolean search is kept, and
+  release it with veupathdb-mcp. The reads under the edited values depend on those values
+  and stay.
+- A test that counts the definition reads of one parameter edit and holds the count.

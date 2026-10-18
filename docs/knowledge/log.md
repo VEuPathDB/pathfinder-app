@@ -2,6 +2,13 @@
 
 ## 2026-10-18
 
+* **A canvas save reads the user id and the combine's boolean search once.** veupathdb-py
+  0.1.0b14 keeps them on the site client, which outlives the strategy API a save builds for
+  each step, so a save no longer reads `GET /users/current` before most steps or the whole
+  search list for each combine (veupathdb-mcp 0.2.0b27 takes it, with the separation
+  charges recounted). The strategy re-reads stay: a read after a write is what confirms the
+  counts the site holds.
+
 * **A canvas save no longer waits behind a second count of the same tree.** The canvas asks
   `POST /conversations/step-counts` only for a step the save left without a count and only
   when no save is in flight, because a save answers with the site's count of every step it
