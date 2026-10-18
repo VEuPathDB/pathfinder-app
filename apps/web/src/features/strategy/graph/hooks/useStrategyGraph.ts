@@ -5,6 +5,7 @@ import { useIsMutating } from "@tanstack/react-query";
 import { useStrategyStore } from "@/state/strategy/store";
 import { computeStepCounts } from "@pathfinder/shared/generated/hooks/useComputeStepCounts";
 import { APPLY_OPERATION_MUTATION_KEY } from "@/features/strategy/mutations/useApplyOperation";
+import { countsWanted } from "@/features/strategy/services/countsWanted";
 import { useStepCounts } from "@/features/strategy/services/useStepCounts";
 import { useGraphConnections } from "@/features/strategy/graph/hooks/useGraphConnections";
 import { useGraphSelection } from "@/features/strategy/graph/hooks/useGraphSelection";
@@ -68,6 +69,7 @@ export function useStrategyGraph(options: UseStrategyGraphOptions) {
     requestDelete: handlers.requestDelete,
   });
 
+  const inFlightOps = useIsMutating({ mutationKey: APPLY_OPERATION_MUTATION_KEY });
   useStepCounts({
     siteId,
     plan: graphNodes.graphHasValidationIssues
@@ -75,11 +77,14 @@ export function useStrategyGraph(options: UseStrategyGraphOptions) {
       : (graphNodes.planResult?.plan ?? null),
     planHash: graphNodes.graphHasValidationIssues ? null : graphNodes.planHash,
     stepIds: (strategy?.steps ?? []).map((step) => step.id),
+    wanted: countsWanted({
+      steps: strategy?.steps ?? [],
+      savesInFlight: inFlightOps,
+    }),
     applyStepCounts,
     fetchCounts: (siteId, strategyAst) => computeStepCounts({ siteId, strategyAst }),
   });
 
-  const inFlightOps = useIsMutating({ mutationKey: APPLY_OPERATION_MUTATION_KEY });
   const syncStatus: "idle" | "syncing" | "error" =
     inFlightOps > 0
       ? "syncing"

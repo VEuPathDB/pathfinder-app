@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from veupathdb.wdk import SearchRequest
+from veupathdb.wdk import SearchKind, SearchRequest
 
 from pathfinder.services.search_waits import (
     TurnStatusWaits,
@@ -16,8 +16,10 @@ from pathfinder.services.search_waits import (
 from pathfinder.services.strategies import slow_searches
 
 
-def _request(*names: str, site_id: str = "plasmodb") -> SearchRequest:
-    return SearchRequest(site_id=site_id, kind="report", search_names=frozenset(names))
+def _request(
+    *names: str, site_id: str = "plasmodb", kind: SearchKind = "report"
+) -> SearchRequest:
+    return SearchRequest(site_id=site_id, kind=kind, search_names=frozenset(names))
 
 
 @pytest.fixture
@@ -38,6 +40,35 @@ def test_a_search_marked_slow_runs_on_the_line_of_its_own_site_only() -> None:
         runs_on_the_deployment_line(_request("GenesByPercentile", site_id="toxodb"))
         is False
     )
+
+
+@pytest.mark.parametrize("kind", ["report", "step", "strategy", "analysis"])
+def test_a_high_speed_snp_search_holds_the_line_on_every_request(
+    kind: SearchKind,
+) -> None:
+    assert runs_on_the_deployment_line(_request("GenesByNgsSnps", kind=kind)) is True
+
+
+@pytest.mark.usefixtures("a_slow_percentile_search")
+def test_a_search_marked_slow_holds_the_line_on_its_own_count() -> None:
+    assert runs_on_the_deployment_line(_request("GenesByPercentile")) is True
+
+
+@pytest.mark.usefixtures("a_slow_percentile_search")
+@pytest.mark.parametrize("kind", ["step", "strategy", "analysis"])
+def test_a_request_on_a_tree_that_names_a_search_marked_slow_does_not_wait(
+    kind: SearchKind,
+) -> None:
+    assert (
+        runs_on_the_deployment_line(_request("GenesByPercentile", kind=kind)) is False
+    )
+
+
+@pytest.mark.usefixtures("a_slow_percentile_search")
+def test_a_read_of_a_tree_with_a_snp_search_beside_a_slow_one_waits() -> None:
+    request = _request("GenesByPercentile", "GenesByNgsSnps", kind="strategy")
+
+    assert runs_on_the_deployment_line(request) is True
 
 
 def test_any_other_search_does_not() -> None:

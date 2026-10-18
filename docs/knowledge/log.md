@@ -2,6 +2,13 @@
 
 ## 2026-10-18
 
+* **A canvas save no longer waits behind a second count of the same tree.** The canvas asks
+  `POST /conversations/step-counts` only for a step the save left without a count and only
+  when no save is in flight, because a save answers with the site's count of every step it
+  pushed. A search marked slow holds the deployment's expensive-search line only on its own
+  count (a request of kind `report`); a read of a strategy or a step that names it no longer
+  waits. A High Speed SNP search still holds the line on every request.
+
 * **A separation offer can subtract a branch.** veupathdb-mcp 0.2.0b26 subtracts an excluding
   search less the search that holds its positives, or two excluding searches intersected.
   The offer builds the branch as a nested step, and inside an excluded branch a subtracted

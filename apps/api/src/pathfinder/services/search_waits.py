@@ -16,7 +16,9 @@ from pathfinder.services.strategies.slow_searches import counts_slowly
 
 
 def runs_on_the_deployment_line(request: SearchRequest) -> bool:
-    return runs_an_expensive_search(request) or any(
+    if runs_an_expensive_search(request):
+        return True
+    return request.kind == "report" and any(
         counts_slowly(request.site_id, name) for name in request.search_names
     )
 

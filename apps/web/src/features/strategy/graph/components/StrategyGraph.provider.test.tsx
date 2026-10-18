@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { Strategy } from "@pathfinder/shared";
+import { computeStepCounts } from "@pathfinder/shared/generated/hooks/useComputeStepCounts";
 import { createTestWrapper } from "@/lib/query/testing";
+import { APPLY_OPERATION_MUTATION_KEY } from "@/features/strategy/mutations/useApplyOperation";
 import { StrategyGraph } from "./StrategyGraph";
 
 vi.mock("next/navigation", () => ({
@@ -122,5 +124,94 @@ describe("StrategyGraph React Flow provider boundary", () => {
     );
 
     expect(screen.getByTestId("react-flow")).toBeTruthy();
+  });
+});
+
+const COUNTED: Strategy = {
+  ...STRATEGY,
+  steps: STRATEGY.steps.map((step) => ({ ...step, estimatedSize: 5321 })),
+};
+
+const PAST_THE_DEBOUNCE_MS = 1000;
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function renderGraph(strategy: Strategy) {
+  const { Wrapper, queryClient } = createTestWrapper();
+  render(
+    <Wrapper>
+      <StrategyGraph
+        strategy={strategy}
+        siteId="plasmodb"
+        conversationId={strategy.id}
+      />
+    </Wrapper>,
+  );
+  return queryClient;
+}
+
+describe("the canvas counts only the steps a save left without a count", () => {
+  beforeEach(() => {
+    vi.mocked(computeStepCounts).mockClear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("sends no count request when the save counted every step", async () => {
+    renderGraph(COUNTED);
+    await pause(PAST_THE_DEBOUNCE_MS);
+
+    expect(vi.mocked(computeStepCounts).mock.calls).toHaveLength(0);
+  });
+
+  it("sends one count request for a step the save did not count", async () => {
+    renderGraph(STRATEGY);
+
+    await waitFor(
+      () => expect(vi.mocked(computeStepCounts).mock.calls).toHaveLength(1),
+      { timeout: 3000 },
+    );
+    expect(vi.mocked(computeStepCounts).mock.calls[0]?.[0]).toMatchObject({
+      siteId: "plasmodb",
+    });
+  });
+
+  it("waits for a save in flight, then counts what it left uncounted", async () => {
+    let finish: () => void = () => {};
+    const saving = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const { Wrapper, queryClient } = createTestWrapper();
+    const mutation = queryClient.getMutationCache().build(queryClient, {
+      mutationKey: [...APPLY_OPERATION_MUTATION_KEY, STRATEGY.id],
+      mutationFn: () => saving,
+    });
+    const settled = mutation.execute(undefined);
+    render(
+      <Wrapper>
+        <StrategyGraph
+          strategy={STRATEGY}
+          siteId="plasmodb"
+          conversationId={STRATEGY.id}
+        />
+      </Wrapper>,
+    );
+    await pause(PAST_THE_DEBOUNCE_MS);
+
+    expect(vi.mocked(computeStepCounts).mock.calls).toHaveLength(0);
+
+    await act(async () => {
+      finish();
+      await settled;
+    });
+
+    await waitFor(
+      () => expect(vi.mocked(computeStepCounts).mock.calls).toHaveLength(1),
+      { timeout: 3000 },
+    );
   });
 });

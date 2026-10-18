@@ -10,6 +10,7 @@ export function useStepCounts(args: {
   plan: StrategyAst | null;
   planHash: string | null;
   stepIds: string[];
+  wanted: boolean;
   applyStepCounts: (counts: Record<string, number | null | undefined>) => void;
   fetchCounts: (siteId: string, plan: StrategyAst) => Promise<StepCountsResponse>;
   debounceMs?: number;
@@ -19,6 +20,7 @@ export function useStepCounts(args: {
     plan,
     planHash,
     stepIds,
+    wanted,
     applyStepCounts,
     fetchCounts,
     debounceMs = 650,
@@ -30,7 +32,7 @@ export function useStepCounts(args: {
   const { data } = useQuery({
     queryKey: ["strategies", "step-counts", siteId, debouncedPlanHash] as const,
     queryFn: () => fetchCounts(siteId, plan!),
-    enabled: planValid && stepIds.length > 0 && debouncedPlanHash != null,
+    enabled: wanted && planValid && stepIds.length > 0 && debouncedPlanHash != null,
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

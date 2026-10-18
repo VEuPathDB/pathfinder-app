@@ -21,16 +21,26 @@ const PLAN: StrategyAst = {
   root: { id: "a", searchName: "GenesByTaxon" },
 };
 
-function run(applyStepCounts: (c: Record<string, number | null | undefined>) => void) {
+function run(
+  applyStepCounts: (c: Record<string, number | null | undefined>) => void,
+  wanted = true,
+) {
   return renderHook(() =>
     useStepCounts({
       siteId: "plasmodb",
       plan: PLAN,
       planHash: "h1",
       stepIds: ["s1"],
+      wanted,
       applyStepCounts,
       fetchCounts: vi.fn(),
     }),
+  );
+}
+
+function enabledFlags(): boolean[] {
+  return useQueryMock.mock.calls.map(
+    ([opts]) => (opts as { enabled: boolean }).enabled,
   );
 }
 
@@ -71,5 +81,21 @@ describe("useStepCounts", () => {
     await Promise.resolve();
 
     expect(applyStepCounts).toHaveBeenCalledWith({ s1: null });
+  });
+
+  it("asks the site for nothing when no count is wanted", () => {
+    useQueryMock.mockReturnValue({ data: undefined });
+
+    run(vi.fn(), false);
+
+    expect(enabledFlags()).toEqual([false]);
+  });
+
+  it("asks the site when a count is wanted", () => {
+    useQueryMock.mockReturnValue({ data: undefined });
+
+    run(vi.fn(), true);
+
+    expect(enabledFlags()).toEqual([true]);
   });
 });

@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator, Iterator
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.pool import NullPool
+from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.wdk import SearchGate, SearchRequest
 from veupathdb_mcp.search_line import ExpensiveSearchLine, search_line_gate
 
@@ -17,6 +18,7 @@ _SNP_REPORT = "/record-types/transcript/searches/GenesByNgsSnps/reports/standard
 _PERCENTILE_REPORT = (
     "/record-types/transcript/searches/GenesByPercentile/reports/standard"
 )
+_STRATEGY_READ = "/users/current/strategies/41"
 
 
 @pytest.fixture
@@ -57,6 +59,24 @@ async def _both(gates: list[SearchGate], search_name: str, path: str) -> int:
     return load.most_in_flight
 
 
+async def _both_read(gates: list[SearchGate], *search_names: str) -> int:
+    request = SearchRequest(
+        site_id="plasmodb", kind="strategy", search_names=frozenset(search_names)
+    )
+    with a_counted_site() as (client, load):
+        token = veupathdb_auth_token_ctx.set("a-registered-token")
+        try:
+
+            async def read(gate: SearchGate) -> object:
+                async with gate(request):
+                    return await client.get(_STRATEGY_READ)
+
+            await asyncio.gather(*(read(gate) for gate in gates))
+        finally:
+            veupathdb_auth_token_ctx.reset(token)
+    return load.most_in_flight
+
+
 async def test_two_snp_searches_of_two_processes_reach_the_site_in_turn(
     two_processes: list[SearchGate],
 ) -> None:
@@ -76,3 +96,16 @@ async def test_a_cheap_search_of_two_processes_runs_side_by_side(
     text_report = "/record-types/transcript/searches/GenesByText/reports/standard"
 
     assert await _both(two_processes, "GenesByText", text_report) == 2
+
+
+@pytest.mark.usefixtures("a_slow_percentile_search")
+async def test_two_reads_of_a_strategy_with_a_slow_search_run_side_by_side(
+    two_processes: list[SearchGate],
+) -> None:
+    assert await _both_read(two_processes, "GenesByPercentile") == 2
+
+
+async def test_two_reads_of_a_strategy_with_a_snp_search_reach_the_site_in_turn(
+    two_processes: list[SearchGate],
+) -> None:
+    assert await _both_read(two_processes, "GenesByNgsSnps") == 1

@@ -62,14 +62,22 @@ changed branch unknown.
 - **Refreshing the counts only on the new route.** That makes a correct number
   something the researcher has to ask for.
 
-# The residue
+# The canvas asks only for what the save did not count
 
-The canvas still computes provisional counts for its plan
-(`POST /api/v1/conversations/step-counts`, `features/strategy/services/useStepCounts.ts`).
-They now show only where the wire carries no count. They are measured against a
-throwaway strategy, so they do not always agree with the one the site holds.
+The canvas computes provisional counts for its plan
+(`POST /api/v1/conversations/step-counts`, `features/strategy/services/useStepCounts.ts`)
+only when a step of the strategy carries no count from the server and no save is in flight
+(`features/strategy/services/countsWanted.ts`). A save answers with the site's count of
+every step it pushed, so after a save the canvas sends nothing. A step the site refused, or
+a save that failed, leaves a step uncounted, and the canvas asks for it once. The
+provisional counts are measured against a throwaway strategy, so they do not always agree
+with the one the site holds, and they show only where the wire carries no count.
+
+Rejected: asking after every edit. Each request built the whole tree again on the site and
+ran every search a second time, and its reads took turns with the save's own in the
+deployment's expensive-search line, so a save on PlasmoDB QA took 26 to 33 seconds.
 
 # Anchor
 
 `services/strategies/live_counts.py`, `services/strategies/commit.py`,
-`state/strategy/useStepSnapshot.ts`.
+`state/strategy/useStepSnapshot.ts`, `features/strategy/services/countsWanted.ts`.

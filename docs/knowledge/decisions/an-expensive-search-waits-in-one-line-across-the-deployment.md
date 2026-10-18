@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: An expensive search waits in one line across the deployment
-description: A High Speed SNP search, or a search this process marked slow, holds the tool server's Postgres advisory lock per site for as long as its request runs, so the api, the worker and the served tool server send one of them to a site at a time; a turn, a durable body and a served tool call each send one search per site at a time; a wait says "Waiting for <site>" on the turn or on the task. A per-process line, a refusal at the limit and Redis were rejected.
+description: A High Speed SNP search, or the count of a search this process marked slow, holds the tool server's Postgres advisory lock per site for as long as its request runs, so the api, the worker and the served tool server send one of them to a site at a time; a turn, a durable body and a served tool call each send one search per site at a time; a wait says "Waiting for <site>" on the turn or on the task. A per-process line, a refusal at the limit and Redis were rejected.
 tags: [wdk, load, searches, postgres]
 generated: { by: claude-code/opus-5.5, at: 2026-10-09T00:00:00Z }
 verified: { by: claude-code/opus-5.5, at: 2026-10-09T00:00:00Z }
@@ -24,8 +24,9 @@ each tool call under one. Other researchers' turns are not slowed by it.
 
 **The deployment line.** The api and the worker call
 `veupathdb_mcp.search_line.install_search_line(database_url, runs_on_the_deployment_line)`
-at startup. A request whose searches include one of `HIGH_SPEED_SNP_SEARCHES`, or one
-`slow_searches` marked slow on that site, holds the lock `wdk-expensive-search:<site>` for
+at startup. A request whose searches include one of `HIGH_SPEED_SNP_SEARCHES`, or a count
+of a search `slow_searches` marked slow on that site (a report of kind `report`, the
+request the mark is measured on), holds the lock `wdk-expensive-search:<site>` for
 as long as its request runs, on a connection of its own, so it holds no connection of
 the application's pool. The served tool server installs it on the database its index
 uses. The most line connections a process opens is one per site with an expensive search
@@ -58,6 +59,12 @@ starts. `pathfinder_wdk_search_wait_seconds{site,kind}` counts every wait by lin
   researcher caused. A wait costs time and nothing else.
 - **Redis.** Postgres is the only broker this deployment runs; an advisory lock is what
   the database already offers.
+- **A search marked slow holding the line on every request that names it.** The client
+  counts a read of a strategy or a step as a search, so a canvas save's reads and the
+  canvas count's reads of a tree that names a marked search ran one at a time, and a save
+  on PlasmoDB QA took 26 to 33 seconds. Two concurrent reads of one QA strategy finished
+  together in 1.2 to 1.5 seconds, and in 2.06 to 2.49 seconds once its search was marked.
+  A High Speed SNP search still holds the line on every request.
 - **A PathFinder copy of the line.** The served tool server is a process of the same
   deployment and cannot import PathFinder; one implementation in the tool server keeps
   the lock name and its behaviour the same in every process.

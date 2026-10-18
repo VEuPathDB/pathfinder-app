@@ -36,7 +36,8 @@ def a_counted_site(
     load = SiteLoad()
     site = get_site(site_id)
     service_url = site.service_url
-    with respx.mock(assert_all_mocked=True) as router:
+    with respx.mock(assert_all_mocked=True, assert_all_called=False) as router:
         router.get(f"{site.web_base_url}/app").mock(return_value=httpx.Response(200))
         router.post(url__startswith=service_url).mock(side_effect=load.answer)
+        router.get(url__startswith=service_url).mock(side_effect=load.answer)
         yield VEuPathDBClient(base_url=service_url, site_id=site_id), load
