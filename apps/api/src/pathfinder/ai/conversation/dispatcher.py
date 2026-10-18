@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from assistant_core.conversation.cancellation import cancel_in_flight_turn
+from assistant_core.conversation.cancellation import stop_turns_and_wait
 from assistant_core.conversation.event_stream import latest_turn_boundary
 from assistant_core.conversation.event_writer import (
     ChatEventWriter,
@@ -72,7 +72,7 @@ async def dispatch(
         )
 
     if not body.is_approval_resume:
-        await cancel_in_flight_turn(body.conversation_id)
+        await stop_turns_and_wait([body.conversation_id])
         await scan_user_input(body.last_user_text)
 
         await MessagesRepository(session).insert_message(

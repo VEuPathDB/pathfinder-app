@@ -2,6 +2,11 @@
 
 ## 2026-10-18
 
+* **A message sent while a turn runs waits for that turn to close.** The dispatcher stops
+  the running turn and waits for its closing chunk (`stop_turns_and_wait`) before it logs the
+  new message, so the stopped turn's `done` no longer lands after that message and the new
+  turn's reply reaches the page without a reload.
+
 * **A turn that waits on an approval card keeps its message open.** The turn runner
   closes a turn that wrote `tool-approval-request` with `finishReason: "other"`, as it
   does a turn parked on a durable task, so the turn that answers the card continues the
