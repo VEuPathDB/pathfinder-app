@@ -7,7 +7,7 @@ what left.
 
 ## Ranked
 
-39. [A canvas save waits behind the count refresh](a-canvas-save-waits-behind-the-count-refresh.md) - on a slow site one canvas edit shows "Saving..." for about 30 seconds while the previous edit's count refresh runs; WDK does not serialize the two, so something in the api does.
+39. [A canvas save waits behind the count refresh](a-canvas-save-waits-behind-the-count-refresh.md) - on a slow site one canvas edit shows "Saving..." for about 30 seconds while the previous edit's count refresh runs; once a search is marked slow, every read of its strategy takes the deployment-wide expensive-search lock.
 38. [A drop card asks about a combination as one requirement](a-drop-card-asks-about-a-combination-as-one-requirement.md) - "a GPI anchor and a signal peptide" is held as one requirement, so the card offers to drop the searchable part with the unsearchable one; choose between the intent gate and the numbered list by replay.
 37. [A drop card asks about a requirement the plan answers](a-drop-card-asks-about-a-requirement-the-plan-answers.md) - the card asks about every requirement the ledger lists as ungroundable, and one turn offered to drop a data type a bound transcript search answers; trace the grounding first.
 36. [The corpus holds no plan with an analysis below the root](the-corpus-holds-no-plan-with-an-analysis-below-the-root.md) - BLOCKED on QA admitting automated clients: no case states two study analyses under one OR, and the requirement reports are measured by replay and unit tests only; two cases and one full corpus run close both.

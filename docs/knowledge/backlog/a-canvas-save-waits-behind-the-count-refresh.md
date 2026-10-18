@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A canvas save waits behind the count refresh
-description: On a slow site one canvas edit shows "Saving..." for about 30 seconds while the previous edit's count refresh runs. WDK does not serialize the two requests, so something in the api process does.
+description: Once a search is marked slow, every read of a strategy that names it takes the deployment-wide expensive-search lock, so a canvas save and the count refresh read WDK one at a time.
 tags: [canvas, wdk, latency, strategy]
 generated: { by: claude-code/opus-5.5, at: 2026-10-18T00:00:00Z }
 status: proposed
@@ -29,14 +29,20 @@ connections, and the deployment's expensive-search lock covers only reports and 
 reads of a High Speed SNP search or a search `counts_slowly` marks, never a step create or
 a step update.
 
-**So the turn-taking is inside the api process.** The save's own WDK calls in the log are
-8 to 10 seconds apart, with the count refresh's calls between them: a lock not listed above,
-or synchronous work that holds the event loop.
+**The cause, measured.** `runs_on_the_deployment_line` (`services/search_waits.py`)
+sends every request that names a search `counts_slowly` marks through the one
+deployment-wide expensive-search lock, and one count of 10 seconds or more marks the
+search for an hour. The client treats a GET of a strategy or a step as a search
+(`_ANSWERED_RESOURCE` in veupathdb-py), so every read of a strategy that holds a marked
+search takes the lock: the save's reads and the count refresh's reads run one at a time.
+Two concurrent GETs of one PlasmoDB QA strategy finished together in 1.2 to 1.5 seconds,
+and in 2.06 to 2.49 seconds once its search was marked, the second read waiting for the
+first. Each wait is under the 5 seconds that logs one, so the log shows none.
 
 **The work:**
 
-- Reproduce one save beside one count refresh in the api with each await timed, and name
-  what the save waits on.
-- Fix that, so a save takes about as long as its own WDK calls whatever the count refresh
+- Decide what the deployment line holds once a search is only marked slow: every read of
+  a tree that names it, or only the requests that make WDK run it.
+- Change it, so a save takes about as long as its own WDK calls whatever the count refresh
   is doing.
-- A test that holds the save's time when a count refresh is in flight.
+- A test that holds two reads of a marked search's strategy to run together.
