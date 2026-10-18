@@ -105,18 +105,23 @@ def _criterion(
 
 
 def _roles(node: SeparationNode, role: CriterionRole) -> dict[str, CriterionRole]:
-    """Each leaf's role: the tree's first leaf seeds, a right input takes its operator's."""
+    """Each leaf's role: the tree's first leaf seeds, a right input takes its operator's.
+
+    Inside an excluded branch, an intersected input still excludes and a
+    subtracted input keeps genes back, so it filters.
+    """
     if node.kind == "leaf":
         return {str(node.candidate_id): role}
     left, right = node.inputs
+    excluded = role == "exclude"
     right_role: CriterionRole
     match node.operator:
         case CombineOp.INTERSECT:
-            right_role = "filter"
+            right_role = "exclude" if excluded else "filter"
         case CombineOp.MINUS:
-            right_role = "exclude"
+            right_role = "filter" if excluded else "exclude"
         case _:
-            right_role = "seed"
+            right_role = role if excluded else "seed"
     return _roles(left, role) | _roles(right, right_role)
 
 

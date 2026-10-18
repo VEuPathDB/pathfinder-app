@@ -7,6 +7,7 @@ The run is the tool server's own answer on plasmodb, exact mode on the seed
 from __future__ import annotations
 
 import math
+from typing import Literal
 
 from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb_mcp.catalog import format_param_info_typed
@@ -89,6 +90,64 @@ def test_a_subtracted_candidate_is_an_excluded_criterion() -> None:
         "GenesWithStructurePrediction",
     )
     assert roles == {"c4": "seed", "c1": "seed", "c15": "seed", "c18": "exclude"}
+
+
+def _branch(
+    operator: Literal[CombineOp.INTERSECT, CombineOp.MINUS], left: str, right: str
+) -> SeparationNode:
+    return SeparationNode(
+        kind="combine", operator=operator, inputs=[_leaf(left), _leaf(right)]
+    )
+
+
+def test_a_subtracted_branch_builds_nested_and_keeps_back_its_right_input() -> None:
+    result = recorded_separation(SIGNAL_PEPTIDE)
+    assert result.tree is not None
+    minus = SeparationNode(
+        kind="combine",
+        operator=CombineOp.MINUS,
+        inputs=[result.tree, _branch(CombineOp.MINUS, "c18", "c5")],
+    )
+    offer = _offer(result.model_copy(update={"tree": minus}))
+
+    branch = build_step_tree(offer.spec).root.secondary_input
+    roles = {c.id: c.role for c in offer.spec.criteria}
+
+    assert branch is not None
+    assert (
+        branch.operator,
+        branch.primary_input and branch.primary_input.search_name,
+        branch.secondary_input and branch.secondary_input.search_name,
+    ) == (CombineOp.MINUS, "GenesWithStructurePrediction", "GenesByGoTerm")
+    assert roles == {
+        "c4": "seed",
+        "c1": "seed",
+        "c15": "seed",
+        "c18": "exclude",
+        "c5": "filter",
+    }
+    assert [c.criterion_id for c in offer.contributions] == [
+        "c4",
+        "c1",
+        "c15",
+        "c18",
+        "c5",
+    ]
+
+
+def test_both_inputs_of_a_subtracted_intersection_are_excluded() -> None:
+    result = recorded_separation(SIGNAL_PEPTIDE)
+    assert result.tree is not None
+    minus = SeparationNode(
+        kind="combine",
+        operator=CombineOp.MINUS,
+        inputs=[result.tree, _branch(CombineOp.INTERSECT, "c18", "c5")],
+    )
+    offer = _offer(result.model_copy(update={"tree": minus}))
+
+    roles = {c.id: c.role for c in offer.spec.criteria}
+
+    assert (roles["c18"], roles["c5"]) == ("exclude", "exclude")
 
 
 def test_each_criterion_states_the_counts_its_own_step_returned() -> None:

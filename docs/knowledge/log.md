@@ -2,6 +2,11 @@
 
 ## 2026-10-18
 
+* **A separation offer can subtract a branch.** veupathdb-mcp 0.2.0b26 subtracts an excluding
+  search less the search that holds its positives, or two excluding searches intersected.
+  The offer builds the branch as a nested step, and inside an excluded branch a subtracted
+  input takes the `filter` role and an intersected one keeps `exclude`.
+
 * **A separation run sketches what it builds while it runs.** Under the running "Separate
   the controls" row, `SeparationSketch` lists each search as it is measured (its name, what
   it searched for, and the controls it caught) and draws the combination once the run
