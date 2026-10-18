@@ -29,8 +29,10 @@ reaches QA from a laptop: `ssh -D`, then `HTTPS_PROXY=socks5://...` with `socksi
 
 **The work that remains:**
 
-- Run the e2e suite against a stack that reaches QA, and re-measure the values its specs
-  pin, the N4 zero count in `apps/web/e2e/uat/strategy-exceptions.spec.ts` among them.
+- Run the whole e2e suite against a stack that reaches QA and read every failure. The N4
+  counts in `apps/web/e2e/uat/strategy-exceptions.spec.ts` hold on QA: 99 to 99
+  transmembrane domains return 0 genes on PlasmoDB and VectorBase, and a minimum of 15
+  returns 9 and 34.
 - Lift the five api tests that skip on the two states QA does not hold on request, a
   cached AI expression summary and a crashed VDI import, when the client library records
   them (`veupathdb-py: docs/knowledge/backlog/two-states-qa-does-not-hold-on-request-are-recorded.md`).
