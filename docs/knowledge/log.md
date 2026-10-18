@@ -2,6 +2,12 @@
 
 ## 2026-10-18
 
+* **A separation run sketches what it builds while it runs.** Under the running "Separate
+  the controls" row, `SeparationSketch` lists each search as it is measured (its name, what
+  it searched for, and the controls it caught) and draws the combination once the run
+  assembles one (veupathdb-mcp 0.2.0b25 puts `displayName`, `basis` and `tree` on the rows).
+  The sketch leaves when the run finishes, because the result card draws the final tree.
+
 * **A message sent while a turn runs waits for that turn to close.** The dispatcher stops
   the running turn and waits for its closing chunk (`stop_turns_and_wait`) before it logs the
   new message, so the stopped turn's `done` no longer lands after that message and the new

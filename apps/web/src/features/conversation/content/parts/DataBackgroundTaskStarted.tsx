@@ -15,6 +15,7 @@ import { humanizeToolName } from "@/features/conversation/toolNames";
 
 import { useChatHelpers } from "../../runtime/chatHelpersContext";
 import { taskResult } from "../../thread/taskExhibit";
+import { SeparationSketch } from "./SeparationSketch";
 
 const laneSchema = z.object({ variantId: z.string() });
 
@@ -48,7 +49,12 @@ export function DataBackgroundTaskStarted({ data }: { data: BackgroundTaskStarte
       className={`flex flex-col ${THREAD_BLOCK_GAP}`}
     >
       {completed === null ? (
-        rows
+        <>
+          {rows}
+          {data.toolName === "separate_controls" && (
+            <SeparationSketch taskId={data.taskId} />
+          )}
+        </>
       ) : (
         <div
           data-testid="data-task-completed"

@@ -4,7 +4,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import type { UIMessage } from "ai";
-import type { TaskCompleted, TaskProgressChunk } from "@pathfinder/shared";
+import type {
+  BackgroundTaskStarted,
+  TaskCompleted,
+  TaskProgressChunk,
+} from "@pathfinder/shared";
 
 import {
   ChatHelpersProvider,
@@ -30,6 +34,7 @@ function completedPart(data: TaskCompleted): UIMessage["parts"][number] {
 function makeChat(
   parts: UIMessage["parts"][number][],
   later: UIMessage[] = [],
+  started: BackgroundTaskStarted = STARTED,
 ): ChatHelpers {
   return {
     id: "conv-1",
@@ -38,7 +43,7 @@ function makeChat(
         id: "m1",
         role: "assistant",
         parts: [
-          { type: "data-background-task-started", data: STARTED },
+          { type: "data-background-task-started", data: started },
           ...parts,
         ] as UIMessage["parts"],
       },
@@ -68,12 +73,14 @@ function renderCard(
   parts: UIMessage["parts"][number][],
   options: {
     later?: UIMessage[];
+    started?: BackgroundTaskStarted;
   } = {},
 ) {
-  const chat = makeChat(parts, options.later ?? []);
+  const started = options.started ?? STARTED;
+  const chat = makeChat(parts, options.later ?? [], started);
   const ui = (
     <ChatHelpersProvider value={chat}>
-      <DataBackgroundTaskStarted data={STARTED} />
+      <DataBackgroundTaskStarted data={started} />
     </ChatHelpersProvider>
   );
   return { ...render(ui), ui, chat };
@@ -304,5 +311,53 @@ describe("a completed task points at its exhibit", () => {
       exhibitPart(),
     ]);
     expect(screen.queryAllByRole("link")).toHaveLength(0);
+  });
+});
+
+describe("a separation run sketches what it is building", () => {
+  const SEPARATION = {
+    taskId: "t1",
+    toolName: "separate_controls",
+    estimatedDurationSeconds: 300,
+  } as const;
+  const measured = progressPart({
+    taskId: "t1",
+    percent: 0.4,
+    message: "GenesByGoTerm: 42 of 80 positives, 0 of 40 negatives, 637 genes",
+    toolSpecific: {
+      candidateId: "c4",
+      displayName: "GO Term",
+      basis: "GO:0044217 other organism part",
+      recovered: 42,
+      admitted: 0,
+    },
+  });
+
+  it("draws the searches it has measured under the row while it runs", () => {
+    renderCard([measured], { started: SEPARATION });
+
+    expect(screen.getByTestId("separation-sketch")).toHaveTextContent(
+      "GO Term: GO:0044217 other organism part - 42 positives, 0 negatives",
+    );
+  });
+
+  it("draws no sketch once the run is done, because the result card shows the tree", () => {
+    renderCard([measured, completedPart({ taskId: "t1", status: "success" })], {
+      started: SEPARATION,
+    });
+
+    expect(screen.getByTestId("data-task-completed")).toHaveTextContent(
+      "Separate the controls",
+    );
+    expect(screen.queryAllByTestId("separation-sketch")).toHaveLength(0);
+  });
+
+  it("draws no sketch for any other task", () => {
+    renderCard([measured]);
+
+    expect(screen.getByTestId("data-background-task-started")).toHaveTextContent(
+      "Run control tests",
+    );
+    expect(screen.queryAllByTestId("separation-sketch")).toHaveLength(0);
   });
 });
