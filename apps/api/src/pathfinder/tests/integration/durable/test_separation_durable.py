@@ -7,6 +7,7 @@ run is its recorded answer on plasmodb, replayed with the rows it wrote.
 
 from __future__ import annotations
 
+from collections import Counter
 from uuid import UUID, uuid4
 
 import pytest
@@ -77,6 +78,18 @@ def _phase_rows(result: SeparationResult) -> list[SeparationUpdate]:
                 "10 enrichment terms, 4 product phrases, 11 catalog searches; "
                 "10 skipped"
             ),
+            data={
+                "bySource": {
+                    "thread": 0,
+                    "literature": 0,
+                    "enrichment": 10,
+                    "annotation": 4,
+                    "catalog": 11,
+                },
+                "skippedByReason": dict(
+                    sorted(Counter(s.reason for s in result.skipped).items())
+                ),
+            },
         ),
         SeparationUpdate(
             phase="assembled",
