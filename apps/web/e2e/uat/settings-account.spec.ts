@@ -454,7 +454,7 @@ test.describe("Settings and account", () => {
 
       await openSettingsTab(page, settingsPage, "Advanced");
       await settingsDialog(page)
-        .getByRole("checkbox", { name: "Display token counts under each message" })
+        .getByRole("switch", { name: "Show token usage" })
         .setChecked(false);
       await settingsPage.close();
       await expect(reply.getByTestId("trace-usage")).toHaveCount(0);
@@ -462,9 +462,7 @@ test.describe("Settings and account", () => {
 
       await openSettingsTab(page, settingsPage, "Advanced");
       await settingsDialog(page)
-        .getByRole("checkbox", {
-          name: "Display raw JSON tool calls in the conversation",
-        })
+        .getByRole("switch", { name: "Show raw tool calls" })
         .setChecked(true);
       await settingsPage.close();
       await openTrace(reply);

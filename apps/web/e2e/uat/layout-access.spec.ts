@@ -298,7 +298,7 @@ test.describe("Layout and access", () => {
         "Tab",
       );
       for (const [index, label] of labels.entries()) {
-        if (index > 0) await keyboard.press("ArrowRight");
+        if (index > 0) await keyboard.press("ArrowDown");
         const tab = dialog.getByRole("tab", { name: label, exact: true });
         await expect(tab).toBeFocused();
         expect(await tab.evaluate((el) => el.matches(":focus-visible"))).toBe(true);

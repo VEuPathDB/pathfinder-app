@@ -87,6 +87,7 @@ async function runComparison(
   );
   await expect(chatPage.sendButton).toBeVisible({ timeout: COMPARISON_BUDGET_MS });
   await expect(chatPage.messageInput).toBeEditable();
+  await chatPage.openAppendices();
   return conversationOf(chatPage);
 }
 
@@ -105,7 +106,9 @@ async function expectComparisonInThread(
 
   const card = page.getByTestId("data-eda-analysis-state");
   await expect(card).toHaveCount(1);
-  await expect(card.locator("figcaption")).toContainText(analysis.studyDisplayName);
+  await expect(card.getByTestId("figure-title")).toContainText(
+    analysis.studyDisplayName,
+  );
   await expect(card.getByTestId("figure-caption")).toHaveText(entityCaption(analysis));
   for (const [index, summary] of analysis.filterSummaries.entries()) {
     await expect(card.getByTestId(`data-eda-filter-chip-${String(index)}`)).toHaveText(
@@ -120,7 +123,7 @@ async function expectComparisonInThread(
   ).toBeVisible();
 
   const figure = page.getByTestId("data-eda-viz");
-  await expect(figure.locator("figcaption")).toContainText(viz.effectSizeLabel);
+  await expect(figure.getByTestId("figure-title")).toContainText(viz.effectSizeLabel);
   await expect(figure.getByTestId("figure-caption")).toContainText(
     `${analysis.studyDisplayName} - ${retainedClause(viz)}`,
   );

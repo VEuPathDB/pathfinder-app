@@ -14,6 +14,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { Figure } from "./Figure";
+import { FigureSectionContext } from "./figureSection";
 
 const CARD_CLASSES = ["border", "rounded-lg", "rounded-md", "shadow-card"];
 
@@ -42,6 +43,33 @@ describe("Figure", () => {
     const title = screen.getByText("log2(Fold Change)");
     expect(title.tagName).toBe("FIGCAPTION");
     expect(classesOf(title)).toEqual(["mb-2", "text-sm", "font-medium"]);
+  });
+
+  it("names its title text the same way in every head it draws", () => {
+    const { unmount } = render(
+      <Figure title="Plain" caption={null}>
+        <p>body</p>
+      </Figure>,
+    );
+    expect(screen.getByTestId("figure-title").textContent).toBe("Plain");
+    unmount();
+
+    const acted = render(
+      <Figure title="Acted" caption={null} action={<button type="button">go</button>}>
+        <p>body</p>
+      </Figure>,
+    );
+    expect(screen.getByTestId("figure-title").textContent).toBe("Acted");
+    acted.unmount();
+
+    render(
+      <FigureSectionContext value={{ letter: "A", title: "Section" }}>
+        <Figure title="Sectioned" caption={null}>
+          <p>body</p>
+        </Figure>
+      </FigureSectionContext>,
+    );
+    expect(screen.getByTestId("figure-title").textContent).toBe("Sectioned");
   });
 
   it("draws no figcaption when the title is null", () => {
@@ -175,7 +203,7 @@ describe("Figure", () => {
     const testIds = [...(figure?.children ?? [])].map((child) =>
       child.getAttribute("data-testid"),
     );
-    expect(testIds).toEqual([null, "body", "figure-caption"]);
+    expect(testIds).toEqual(["figure-title", "body", "figure-caption"]);
     expect(figure?.children[0]?.tagName).toBe("FIGCAPTION");
   });
 
@@ -193,7 +221,7 @@ describe("Figure", () => {
     const testIds = [...(figure?.children ?? [])].map((child) =>
       child.getAttribute("data-testid"),
     );
-    expect(testIds).toEqual([null, "body", "figure-caption", "readout"]);
+    expect(testIds).toEqual(["figure-title", "body", "figure-caption", "readout"]);
   });
 
   it("draws no footer node when none is given", () => {

@@ -221,12 +221,15 @@ async function openRowMenu(row: Locator) {
 async function signedInUser(
   browser: Browser,
   userId: string,
-  acknowledgeNotice: boolean,
+  {
+    acknowledgeNotice,
+    websiteLogin,
+  }: { acknowledgeNotice: boolean; websiteLogin: boolean },
 ): Promise<BrowserContext> {
   const context = await browser.newContext({
     storageState: { cookies: [], origins: [] },
   });
-  await addWebsiteLogin(context);
+  if (websiteLogin) await addWebsiteLogin(context);
   const login = await context.request.post(
     `${BASE_URL}/api/v1/dev/login?user_id=${userId}`,
     { headers: CSRF_HEADERS },
@@ -281,7 +284,10 @@ test.describe("First run and navigation", () => {
     await expect(page).toHaveURL(new RegExp(`/pathfinder/${entry}/conversation$`));
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
 
-    const fresh = await signedInUser(browser, `uat-f1-${Date.now()}`, false);
+    const fresh = await signedInUser(browser, `uat-f1-${Date.now()}`, {
+      acknowledgeNotice: false,
+      websiteLogin: true,
+    });
     const freshPage = await fresh.newPage();
     await freshPage.goto(`${BASE_URL}/${siteId}/conversation`);
     const notice = freshPage.getByRole("alertdialog", {
@@ -919,7 +925,10 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       .toBeGreaterThan(0);
     const aMemories = await memoryItems(apiClient);
 
-    const other = await signedInUser(browser, `uat-f12-${Date.now()}`, true);
+    const other = await signedInUser(browser, `uat-f12-${Date.now()}`, {
+      acknowledgeNotice: true,
+      websiteLogin: false,
+    });
     const bPage = await other.newPage();
     const bChat = new ChatPage(bPage);
     const bSidebar = new SidebarPage(bPage);

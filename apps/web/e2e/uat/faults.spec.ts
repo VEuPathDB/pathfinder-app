@@ -72,13 +72,13 @@ async function bodyCells(table: Locator): Promise<string[][]> {
     );
 }
 
-/** The trace rows labelled `label` whose status is `error`. */
-function errorRows(page: Page, label: string): Locator {
+/** The trace rows labelled `label` that a refusal sent back as corrected. */
+function correctedRows(page: Page, label: string): Locator {
   return page
     .getByTestId("trace-row")
     .filter({ hasText: label })
     .filter({
-      has: page.locator('[data-testid="trace-row-status"][data-status="error"]'),
+      has: page.locator('[data-testid="trace-row-status"][data-status="corrected"]'),
     });
 }
 
@@ -102,7 +102,7 @@ interface LoggedChunk {
 }
 
 /**
- * Every refusal the conversation logged, in full: a tool's error and a failed
+ * Every refusal the conversation logged, in full: a tool's error and a corrected or failed
  * sub-agent step. The trace clips a summary, so a guard's own sentence is read here.
  */
 async function loggedRefusals(api: ApiClient, conversationId: string): Promise<string> {
@@ -111,7 +111,7 @@ async function loggedRefusals(api: ApiClient, conversationId: string): Promise<s
   const { chunks } = (await resp.json()) as { chunks: LoggedChunk[] };
   return chunks
     .map((chunk) =>
-      chunk.data?.state === "failed"
+      chunk.data?.state === "failed" || chunk.data?.state === "corrected"
         ? (chunk.data.resultSummary ?? "")
         : (chunk.errorText ?? ""),
     )
@@ -119,10 +119,10 @@ async function loggedRefusals(api: ApiClient, conversationId: string): Promise<s
     .join("\n");
 }
 
-/** The contract's one correction is on the thread, as a "Final result" error row. */
+/** The contract's one correction is on the thread, as a "Final result" corrected row. */
 async function expectCorrection(page: Page): Promise<void> {
   await expect(
-    errorRows(page, "Final result")
+    correctedRows(page, "Final result")
       .getByTestId("trace-row-summary")
       .filter({ hasText: CONTRACT }),
   ).toHaveCount(1);
@@ -169,7 +169,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Choose a search");
+    const refused = correctedRows(page, "Choose a search");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^search_name='GenesByNoSuchSearch' is not a known value for set_criterion\./,
@@ -202,7 +202,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
       "data-status",
       "error",
     );
-    await expect(errorRows(page, "Choose a search")).toHaveCount(0);
+    await expect(correctedRows(page, "Choose a search")).toHaveCount(0);
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.single);
   });
 
@@ -219,7 +219,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Choose a search");
+    const refused = correctedRows(page, "Choose a search");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^organism on GenesWithSignalPeptide has no entry matching \['Organismus fictus'\]\./,
@@ -242,7 +242,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await openTraces(chatPage);
     // Refused, failed without running, refused, refused: four error rows open
     // with the refusal. The fifth identical call exceeds the retries and ends the pass.
-    const refused = errorRows(page, "Choose a search");
+    const refused = correctedRows(page, "Choose a search");
     await expect(refused).toHaveCount(4);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       Array.from(
@@ -380,7 +380,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
     await expect(approval).toHaveCount(1);
     await openTraces(chatPage);
-    const refused = errorRows(page, "Optimize parameters");
+    const refused = correctedRows(page, "Optimize parameters");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^1 validation error:[\s\S]*"missing"[\s\S]*"control_set_id"/,
@@ -414,7 +414,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await expect(carousel).toBeVisible({ timeout: 240_000 });
     await expect(carousel).toHaveCount(1);
     await openTraces(chatPage);
-    const refused = errorRows(page, "Ask you");
+    const refused = correctedRows(page, "Ask you");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^1 validation error/,
@@ -442,7 +442,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Arrange the steps");
+    const refused = correctedRows(page, "Arrange the steps");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^The structure is refused: Cannot INTERSECT steps with different organism scopes/,
@@ -468,7 +468,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    await expect(errorRows(page, "Choose a search")).toHaveCount(1);
+    await expect(correctedRows(page, "Choose a search")).toHaveCount(1);
     await expect(
       chatPage.assistantMessages.locator(
         `a[href="${BASE_PATH}/veupathdb/conversation"]`,
@@ -503,7 +503,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Open study");
+    const refused = correctedRows(page, "Open study");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^This study is on .+; its genes are not .+ genes\./,
@@ -530,7 +530,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    const refused = errorRows(page, "Choose a search");
+    const refused = correctedRows(page, "Choose a search");
     await expect(refused).toHaveCount(1);
     await expect(refused.getByTestId("trace-row-summary")).toHaveText(
       /^orthologs states 'syntenic', and /,
@@ -558,7 +558,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     );
 
     await openTraces(chatPage);
-    await expect(errorRows(page, "Read the request")).toHaveCount(0);
+    await expect(correctedRows(page, "Read the request")).toHaveCount(0);
     const classified = page
       .getByTestId("trace-row")
       .filter({ hasText: "Read the request" });

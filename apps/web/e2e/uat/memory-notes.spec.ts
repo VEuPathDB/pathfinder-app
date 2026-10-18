@@ -343,7 +343,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     );
     const figures = page.getByTestId("data-memory-retrieved");
     await expect(figures).toHaveCount(2);
-    await expect(figures.locator("figcaption")).toHaveText([
+    await expect(figures.getByTestId("figure-title")).toHaveText([
       "Recalled memories",
       "Recalled memories",
     ]);

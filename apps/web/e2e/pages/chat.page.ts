@@ -131,8 +131,15 @@ export class ChatPage {
     const waiting = this.page
       .getByTestId("approval-card")
       .filter({ has: this.page.getByRole("button", { name: "Approve", exact: true }) });
+    const answered = this.page.waitForResponse(
+      (r) => /\/api\/v1\/chat$/.test(r.url()) && r.request().method() === "POST",
+      { timeout: TURN_BUDGET_MS },
+    );
     await waiting.getByRole("button", { name: "Approve", exact: true }).click();
-    await this.expectIdle(TURN_BUDGET_MS);
+    await (await answered).finished();
+    await expect(this.sendButton).toBeVisible({ timeout: TURN_BUDGET_MS });
+    await expect(this.messageInput).toBeEditable({ timeout: TURN_BUDGET_MS });
+    await this.openAppendices();
   }
 
   /** Wait out a turn the app started on its own, such as the edit a revert
@@ -303,6 +310,15 @@ export class ChatPage {
     await expect(this.sendButton).toBeVisible({ timeout });
     await expect(this.messageInput).toBeEditable({ timeout });
     this.repliesBeforeTurn = null;
+    await this.openAppendices();
+  }
+
+  async openAppendices() {
+    const furled = this.page
+      .getByTestId("turn-appendix-toggle")
+      .and(this.page.locator('[aria-expanded="false"]'));
+    for (const toggle of (await furled.all()).reverse()) await toggle.click();
+    await expect(furled).toHaveCount(0);
   }
 
   /**

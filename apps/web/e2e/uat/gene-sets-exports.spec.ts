@@ -85,7 +85,7 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
     const { counts } = await buildIntersect(page, chatPage, apiClient, siteId);
     const figure = await saveGeneSet(page, chatPage, name);
 
-    await expect(figure.locator("figcaption")).toHaveText(name);
+    await expect(figure.getByTestId("figure-title")).toHaveText(name);
     await expect(figure.getByTestId("figure-caption")).toHaveText(
       `${printed(counts.root)} genes on ${siteShortName(siteId)}`,
     );

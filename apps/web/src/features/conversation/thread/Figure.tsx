@@ -50,10 +50,14 @@ export function Figure({
       />
     ) : title === null && citation === null ? null : citation === null &&
       action == null ? (
-      <figcaption className="mb-2 text-sm font-medium">{title}</figcaption>
+      <figcaption data-testid="figure-title" className="mb-2 text-sm font-medium">
+        {title}
+      </figcaption>
     ) : (
       <figcaption className="mb-2 flex items-center justify-between gap-2 text-sm font-medium">
-        <span className="min-w-0">{title}</span>
+        <span data-testid="figure-title" className="min-w-0">
+          {title}
+        </span>
         {citation}
         {action}
       </figcaption>
@@ -103,7 +107,8 @@ function SectionHead({
   return (
     <div className="mb-2 flex items-center justify-between gap-2">
       <h3 className={SECTION_HEADING}>
-        {section.letter}. {title ?? section.title}
+        {section.letter}.{" "}
+        <span data-testid="figure-title">{title ?? section.title}</span>
       </h3>
       {citation}
       {action}

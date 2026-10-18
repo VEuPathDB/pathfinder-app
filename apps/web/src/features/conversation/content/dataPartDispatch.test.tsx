@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import {
   AssistantRuntimeProvider,
   ThreadPrimitive,
@@ -246,9 +246,9 @@ describe("message dispatch", () => {
       />,
     );
     const card = screen.getByTestId("data-eda-analysis-state");
-    expect(
-      screen.getByText("A. Rodent malaria phenotypes", { exact: false }).closest("h3"),
-    ).not.toBeNull();
+    expect(within(card).getByTestId("figure-title").closest("h3")?.textContent).toBe(
+      "A. Rodent malaria phenotypes",
+    );
     expect(card).toHaveTextContent("berghei subset");
     expect(card).toHaveTextContent("2 computations");
     expect(screen.getByTestId("data-eda-filter-chip-0")).toHaveTextContent(

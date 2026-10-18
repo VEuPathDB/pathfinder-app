@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: QA sites need a pass for automated clients
-description: BLOCKED on the VEuPathDB team. Outside the VEuPathDB network the QA sites redirect every service call to a pre-release login, so the e2e job and both nightlies stay disabled until automated clients have an agreed way through, and the e2e EDA recording is still to be made.
+description: BLOCKED on the VEuPathDB team. Outside the VEuPathDB network the QA sites redirect every service call to a pre-release login, so the e2e job and both nightlies stay disabled until automated clients have an agreed way through.
 tags: [testing, e2e, live-lane, sites, ci, qa]
 generated: { by: claude-code/opus-5.5, at: 2026-10-09T00:00:00Z }
 status: proposed
@@ -29,11 +29,6 @@ reaches QA from a laptop: `ssh -D`, then `HTTPS_PROXY=socks5://...` with `socksi
 
 **The work that remains:**
 
-- Record `apps/web/e2e/fixtures/recordings/eda.json` (the `EdaRecording` shape in
-  `apps/web/e2e/fixtures/eda.ts`) from PathFinder's own answers on QA for the
-  `DS_e973eadd57` study: the study row, the counts unfiltered and under the febrile
-  filter, the subset preview, a DESeq comparison of normal with febrile, its volcano, and
-  the exported step. The five EDA specs skip until it exists.
 - Run the e2e suite against a stack that reaches QA, and re-measure the values its specs
   pin, the N4 zero count in `apps/web/e2e/uat/strategy-exceptions.spec.ts` among them.
 - Lift the five api tests that skip on the two states QA does not hold on request, a
