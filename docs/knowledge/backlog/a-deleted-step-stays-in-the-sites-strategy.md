@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A deleted step stays in the site's strategy
-description: After a canvas delete the canvas and the stored strategy hold 3 steps while the WDK strategy still holds 5, the dropped steps cannot be deleted, and a later turn reads and reports the 5-step tree; the step-tree write the save sends is not logged, so the cause is open.
+description: After a canvas delete the canvas holds 3 steps while the WDK strategy holds 5, because a concurrent read of the strategy on WDK saved the old tree back over the save's step-tree write; WDK's strategy GET is a read-modify-write.
 tags: [canvas, wdk, strategy, sync]
 generated: { by: claude-code/opus-5.5, at: 2026-10-19T00:00:00Z }
 status: proposed
@@ -35,16 +35,30 @@ the same WDK calls in the same order and both orphan deletes succeeded.
 **Why that's wrong.** The researcher sees 3 steps and the site runs 5: a count, a result
 download or a later turn reads a strategy the canvas does not show.
 
-**Why it happens.** Not known yet. No write to the strategy follows the delete save's PUT,
-so either the PUT carried the old tree (`_create_or_update_wdk_strategy` in
-`services/strategies/sync.py`) or WDK did not apply it. The request body is not logged.
+**Why it happens.** A read of a strategy on WDK is also a write, and nothing stops it from
+running beside the save's step-tree write. `StrategyService.getStrategy` loads the
+strategy, refreshes its step sizes, and saves it back to record the view time through
+`StepFactory.updateStrategy`, which overwrites `root_step_id` and re-saves every step the
+loaded copy holds, with no version check. The gene-set refresh the flip save deferred
+(`jobs`, `strategy:refresh_gene_set[1192]`) read the strategy in
+`veupathdb_mcp/wdk/gene_set_steps.py::_count_strategy_steps` from 04:41:34.83 to
+04:41:35.93. The delete save's `PUT .../step-tree` ran from 04:41:34.69 to 04:41:35.79.
+The read loaded the 5-step tree before the write committed and saved it after, so WDK
+holds the old root and the dropped steps belong to the strategy again. The save's own
+read-back (`services/strategies/sync.py::_detached`) only checks that every pushed step is
+in the strategy, so a strategy that holds more than the push, under another root, passes.
+The refresh job takes no thread lock, so nothing orders its reads after the save.
 
-**The work:**
+**Fix.**
 
-- Record the step-tree body the save sends, in a test that drives this sequence (edit,
-  flip, delete the last leaf under the root combine) against recorded WDK answers, and
-  compare it with the tree the canvas holds.
-- If PathFinder sends the right tree, reproduce the PUT alone on PlasmoDB QA and read the
-  strategy back.
-- Fill in the cause, fix, and what you'd get. Strategy 214644620 on the test account
-  holds the state above until then.
+- veupathdb-py: `update_strategy` already reads the strategy back after the write. It
+  compares the read tree with the tree it sent and sends it again when WDK holds another,
+  a bounded number of times, then raises. A reader PathFinder does not control (the
+  researcher's own browser on the site) can revert the write the same way. A WDK rule
+  records that a strategy read writes the strategy.
+- PathFinder: the gene-set refresh reads the strategy under the thread's strategy write
+  lock (`services/strategies/write_lock.py`), so its reads never overlap a save.
+
+**What you'd get.** The delete save's read-back finds root 227283440 over 227283340 and
+227283350, the orphan deletes of 227283370 and 227283450 succeed, and the next turn reads
+3 steps.
