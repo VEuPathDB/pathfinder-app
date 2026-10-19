@@ -6,10 +6,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PYPROJECT = "apps/api/pyproject.toml";
 const INIT = "apps/api/src/pathfinder/__init__.py";
-const MCP_CONTEXT_FILES = [
-  "docker-compose.yml",
-  ".github/workflows/publish-images.yml",
-];
+const MCP_CONTEXT_FILES = ["docker-compose.yml"];
 const FILES = [PYPROJECT, INIT, ...MCP_CONTEXT_FILES];
 
 const IDENTIFIER = String.raw`(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)`;

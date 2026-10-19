@@ -31,31 +31,17 @@ const COMPOSE = (wdkTag, researchTag) => `services:
       target: research
 `;
 
-const WORKFLOW = (tag) => `jobs:
-  publish:
-    strategy:
-      matrix:
-        include:
-          - image: pathfinder-wdk-mcp
-            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#${tag}
-          - image: pathfinder-research-mcp
-            context: https://github.com/VEuPathDB/ai-wdk-mcp.git#${tag}
-            target: research
-`;
-
 const files = ({
   version = "0.2.0b5",
   init = version,
   mcpTag = "v0.2.0b3",
   wdk = mcpTag,
   research = mcpTag,
-  workflow = mcpTag,
 } = {}) =>
   new Map([
     ["apps/api/pyproject.toml", PYPROJECT(version, mcpTag)],
     ["apps/api/src/pathfinder/__init__.py", INIT(init)],
     ["docker-compose.yml", COMPOSE(wdk, research)],
-    [".github/workflows/publish-images.yml", WORKFLOW(workflow)],
   ]);
 
 test("a semver tag whose PEP 440 reading is the api version passes", () => {
@@ -87,12 +73,6 @@ test("a compose context that names another MCP release is refused", () => {
       "docker-compose.yml: builds ai-wdk-mcp at v0.2.0b2, and apps/api/pyproject.toml pins v0.2.0b3",
     ],
   );
-});
-
-test("the publish workflow is held to the same MCP release", () => {
-  assert.deepEqual(offencesIn(files({ workflow: "v0.2.0b2" })), [
-    ".github/workflows/publish-images.yml: builds ai-wdk-mcp at v0.2.0b2, and apps/api/pyproject.toml pins v0.2.0b3",
-  ]);
 });
 
 test("a file that names no MCP build context is refused", () => {

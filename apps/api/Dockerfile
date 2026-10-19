@@ -40,8 +40,6 @@ RUN rm -rf apps/api/src/pathfinder/tests
 # buildah fails a COPY whose glob matches nothing.
 COPY ollama_models.yaml* ./
 
-COPY deploy/sites /app/config/sites
-
 # Run from source inside the image. Avoid a second `uv sync` after copying app
 # code: installing the editable project needs the Hatchling build backend, and
 # build isolation may try to fetch it from PyPI during every code-layer rebuild.

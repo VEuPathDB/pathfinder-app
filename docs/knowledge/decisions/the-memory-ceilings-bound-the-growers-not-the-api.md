@@ -11,7 +11,7 @@ status: stable
 # What was decided
 
 `worker` and `wdk-mcp` each declare `mem_limit: 2g` in `docker-compose.yml`
-and `PodmanArgs=--memory=2g` in their quadlets. The api declares no ceiling.
+and `Memory=2g` in their estate units. The api declares no ceiling.
 
 Both capped services load per-site catalogs and semantic indexes on demand, so
 they are the two processes whose memory follows the sites a session touches.

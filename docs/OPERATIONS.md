@@ -60,8 +60,8 @@ Restarting one unit alone:
    tasks and usage). The worker does not migrate. The graph checkpointer and the memory store
    create their own tables when the api opens them.
 5. The api starts serving. It then reaches the embedding backend, loads one catalog per site in
-   the stage's sites file (`deploy/sites/<stage>.yml` in this repository, baked into the image at
-   `/app/config/sites/<stage>.yml`), and writes the embedding index. A site has 30 s
+   the stage's sites file (`pathfinder/config/sites-<stage>.yml` in `webservices-quadlets`, mounted
+   at `/app/config/sites.yml`), and writes the embedding index. A site has 30 s
    (`SITE_PRELOAD_TIMEOUT_SECONDS`) to answer; one that does not is degraded and retried every
    60 s (`SITE_RETRY_INTERVAL_SECONDS`).
 

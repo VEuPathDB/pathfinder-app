@@ -11,8 +11,8 @@ status: stable
 # What was decided
 
 One backend holds the LLM traces, their cost, the product events and the rating
-scores: Langfuse v3, self-hosted as six units beside the application
-(`quadlets/pathfinder-langfuse*.container`, `docker-compose.observability.dev.yml`).
+scores: Langfuse v3, self-hosted as six services beside the application
+(`docker-compose.observability.dev.yml`).
 
 The runtime installs a plain OpenTelemetry `TracerProvider` whose exporter is the
 SDK's own `OTLPSpanExporter`, configured by the standard `OTEL_EXPORTER_OTLP_*`
@@ -26,10 +26,8 @@ What a trace holds is `conventions/observability.md`.
 **The estate stack carries no Langfuse**
 ([the images decision](the-images-come-from-the-registry-and-cedar-pulls.md)).
 A process with `OTEL_EXPORTER_OTLP_ENDPOINT` unset exports no traces, so traces
-exist only where a deployment runs Langfuse beside the application: local
-development (`docker-compose.observability.dev.yml`) and the interim rootless
-deployment (`quadlets/pathfinder-langfuse*.container`), which the cutover to the
-estate stack deletes.
+exist only where a deployment runs Langfuse beside the application, which today
+is local development (`docker-compose.observability.dev.yml`).
 
 # What was rejected
 

@@ -76,6 +76,7 @@ services:
       # Per-site catalog snapshots. Without this every recreate serves the
       # image's snapshots, finds them stale, and refetches and re-encodes.
       - catalogs_cache:/app/data/catalogs
+      - ./deploy/sites:/app/config/sites:ro
 
   worker:
     build:
@@ -154,6 +155,7 @@ services:
     volumes:
       - ./apps/api/.pf-runs:/data/pf-runs
       - catalogs_cache:/app/data/catalogs
+      - ./deploy/sites:/app/config/sites:ro
 
   wdk-mcp:
     # The server is its own repository, built at the release `apps/api` pins,

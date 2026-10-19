@@ -2,6 +2,16 @@
 
 ## 2026-10-19
 
+* **The api image carries no sites file, and the interim deployment is gone.** Each estate
+  stage mounts its sites file from `webservices-quadlets` (`pathfinder/config/sites-<stage>.yml`
+  at `/app/config/sites.yml`), so the public image no longer publishes a stage's hosts and a
+  site URL is a change to the services repository. The development stage reads PlasmoDB and
+  OrthoMCL from their development sites and the other components from q2. This repository
+  keeps only `deploy/sites/qa.yml`, which compose mounts into the api, the worker and wdk-mcp.
+  The development site answers `/pathfinder/` from the estate stack, so the GHCR workflow,
+  `quadlets/`, `deploy/cedar/`, `README-podman-quadlets.md` and `check-quadlets` with its hook
+  and CI job are deleted, and `check-release` holds only compose to the MCP pin. Backlog 33 is
+  done; the running rootless stack on the tester host is stopped separately.
 * **A save, a turn and a job read each search definition once.** veupathdb-py 0.1.0b15
   keeps the definitions read inside `search_definitions_read_once`, keyed by site, login,
   record type, search and the expand flag, and drops them when the scope ends. PathFinder

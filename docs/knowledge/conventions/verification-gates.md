@@ -168,7 +168,7 @@ finding to record in `docs/knowledge/uat/findings.md` before the tag, or a
 recorded expectation to correct. A `re-measure` (a count a new site build moved
 outside its tolerance) is re-measured and the case's `root_count` rewritten
 with the new build. The summary of the run that preceded a release is kept
-beside the run directory; nothing in `publish-images.yml` reads it.
+beside the run directory; no image build reads it.
 
 Every case line carries a refusal column, `refusals=N (tool, tool)`, and the
 summary JSON carries it as `refusedTools` per case and `refusals` for the run.

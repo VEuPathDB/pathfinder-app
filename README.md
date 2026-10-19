@@ -301,8 +301,7 @@ docker compose --env-file .env.dev \
 The first start creates the organization, the project, its keys and the login
 from the `LANGFUSE_INIT_*` values. Open `http://localhost:3100` and sign in with
 `LANGFUSE_INIT_USER_EMAIL` / `LANGFUSE_INIT_USER_PASSWORD` (the dev defaults are
-`dev@pathfinder.local` / `pathfinder-local-dev`). On cedar, Langfuse runs as six
-quadlet units: [`deploy/cedar/README.md`](deploy/cedar/README.md).
+`dev@pathfinder.local` / `pathfinder-local-dev`).
 
 ### Option D: run API + Web directly (no Docker)
 
@@ -343,10 +342,6 @@ release is tagged `v` plus the semver spelling of the api version (`v0.2.0-b7` p
 `:0.2.0-b7`); `node scripts/check-release.mjs <tag>` refuses any other tag. The development stage
 follows `:latest`. QA runs `:qa`, which `VEuPathDB/tagger` moves to a published version. The two
 MCP servers run from the api image, so one tag releases all three.
-
-Until the estate stack serves the development site, testers use the interim rootless stack in
-[`deploy/cedar/`](deploy/cedar/README.md), installed from the images a `v*` tag also publishes
-to `ghcr.io/veupathdb` (`.github/workflows/publish-images.yml`).
 
 ## Testing, linting, and code quality
 
@@ -410,7 +405,6 @@ CI and the pre-commit hooks check the result rather than writing it, so a stale 
 
 PathFinder is a research-driven prototype. These are the biggest gaps you should expect today:
 
-- **The cutover**: the estate stack defines a development and a QA stage. Until it serves the development site, the interim tester stack (`deploy/cedar/`, the GHCR workflow and `quadlets/`) stays; it is deleted at the cutover.
 - **Production**: no production stage runs yet.
 - **Contribution docs**: no `CONTRIBUTING.md`, no governance.
 - **Database migrations**: Alembic is the only path to the schema, and the API migrates to `head` at startup (`platform/migrations.py`). Migrations only go forward: a rollback across one restores the database dump taken before the release ([docs/OPERATIONS.md](docs/OPERATIONS.md)). There is no data-migration convention.

@@ -53,12 +53,6 @@ release. The api image installs exactly that release, so the estate units run
 both servers from it, and a release that moves the pin changes nothing in the
 services repository.
 
-**The interim pipeline stays until the cutover.**
-`.github/workflows/publish-images.yml` still publishes the four images to
-`ghcr.io/veupathdb` on a `v*` tag, and the rootless units in `quadlets/` and
-`deploy/cedar/install.sh` still serve the tester host from them. All three are
-deleted once the estate stack serves the development site.
-
 # What follows from it
 
 **Each image is the last stage of its Dockerfile.** `pipelib` passes a
@@ -74,7 +68,7 @@ example always matches.
 
 **The MCP build contexts in this repository name the pin.** The served tools
 must be the release the api runs in process, so `scripts/check-release.mjs` fails, in pre-commit and in CI, when an
-`ai-wdk-mcp` build context in `docker-compose.yml` or in the interim workflow
+`ai-wdk-mcp` build context in `docker-compose.yml`
 names another release than `apps/api/pyproject.toml`.
 
 **The web image carries the address of the api.** `NEXT_PUBLIC_API_URL` is read
