@@ -12,6 +12,10 @@
   (WDK-VOCAB-008). veupathdb-mcp 0.2.0b28 runs a separation in one scope and charges it what
   it now sends. The catalog keeps sharing one copy across logins; every site release is
   checked for a search vocabulary that takes `user_id` (backlog 40).
+  On PlasmoDB QA the GO term edit read its definition once and took 12.5 seconds, where it
+  read it three times in 23.3 seconds; the text edit read each of its two searches once.
+  Backlog 39 is done. The same run found backlog 41: after the delete, the site's strategy
+  kept the dropped steps.
 
 ## 2026-10-18
 

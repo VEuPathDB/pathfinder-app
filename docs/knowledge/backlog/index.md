@@ -7,8 +7,8 @@ what left.
 
 ## Ranked
 
+41. [A deleted step stays in the site's strategy](a-deleted-step-stays-in-the-sites-strategy.md) - after a canvas delete the canvas holds 3 steps and the WDK strategy 5, the dropped steps cannot be deleted (409), and the next turn reports the 5-step tree; the step-tree body is not logged, so the cause is open.
 40. [Each site release is checked for a per-user search vocabulary](each-site-release-is-checked-for-a-per-user-search-vocabulary.md) - the WDK catalog shares one copy of a search definition across logins, correct only while no gene search's vocabulary takes `user_id`; search ApiCommonModel and EbrcModelCommon at every release.
-39. [A canvas save reads the same answers again](a-canvas-save-reads-the-same-answers-again.md) - a save now reads each search definition once; measure the lifecycle test on PlasmoDB QA with veupathdb-py 0.1.0b15, then delete the card.
 38. [A drop card asks about a combination as one requirement](a-drop-card-asks-about-a-combination-as-one-requirement.md) - "a GPI anchor and a signal peptide" is held as one requirement, so the card offers to drop the searchable part with the unsearchable one; choose between the intent gate and the numbered list by replay.
 37. [A drop card asks about a requirement the plan answers](a-drop-card-asks-about-a-requirement-the-plan-answers.md) - the card asks about every requirement the ledger lists as ungroundable, and one turn offered to drop a data type a bound transcript search answers; trace the grounding first.
 36. [The corpus holds no plan with an analysis below the root](the-corpus-holds-no-plan-with-an-analysis-below-the-root.md) - BLOCKED on QA admitting automated clients: no case states two study analyses under one OR, and the requirement reports are measured by replay and unit tests only; two cases and one full corpus run close both.
