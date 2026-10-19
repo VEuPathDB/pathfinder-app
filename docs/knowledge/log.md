@@ -2,6 +2,12 @@
 
 ## 2026-10-19
 
+* **PathFinder follows the website that frames it.** One deployment is proxied from the
+  portal, PlasmoDB and OrthoMCL development sites, and the server sees one Host for all of
+  them, so the browser picks the site whose `siteOrigin` is the page's origin: its sign-in
+  link, its PathFinder page and, for a site-less entry, its chat. `GET /api/v1/sites` names
+  each site's origin, sign-in page and PathFinder page; `PATHFINDER_SITE` applies only on a
+  host no site names.
 * **The api image carries no sites file, and the interim deployment is gone.** Each estate
   stage mounts its sites file from `webservices-quadlets` (`pathfinder/config/sites-<stage>.yml`
   at `/app/config/sites.yml`), so the public image no longer publishes a stage's hosts and a

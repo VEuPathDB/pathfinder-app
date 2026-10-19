@@ -12,6 +12,7 @@ from pathfinder.transport.http.schemas import (
     SearchResponse,
     SiteResponse,
 )
+from pathfinder.transport.http.site_pages import pathfinder_page_url, sign_in_url
 
 router = APIRouter(prefix="/api/v1/sites", tags=["sites"])
 
@@ -38,6 +39,9 @@ async def list_sites() -> list[SiteResponse]:
                     "baseUrl": s.base_url,
                     "projectId": s.project_id,
                     "isPortal": s.is_portal,
+                    "siteOrigin": s.site_origin,
+                    "signInUrl": sign_in_url(s),
+                    "pageUrl": pathfinder_page_url(s),
                     "available": available,
                     "unavailableReason": reason,
                 }

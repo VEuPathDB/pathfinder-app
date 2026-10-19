@@ -17,6 +17,9 @@ const PORTAL_DOWN: SiteResponse = {
   baseUrl: "https://qa.veupathdb.org/veupathdb.qa",
   projectId: "UniDB",
   isPortal: true,
+  siteOrigin: "https://qa.veupathdb.org",
+  signInUrl: "https://qa.veupathdb.org/veupathdb.qa/app/user/login",
+  pageUrl: "https://qa.veupathdb.org/veupathdb.qa/app/pathfinder",
   available: false,
   unavailableReason: "TimeoutError",
 };

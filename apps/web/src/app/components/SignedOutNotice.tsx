@@ -4,7 +4,7 @@ import type { MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { useSystemConfig } from "@/app/hooks/useSystemConfig";
+import { useSitePages } from "@/app/hooks/useSitePages";
 import { withBasePath } from "@/lib/basePath";
 import { PathFinderLogo } from "@/lib/components/PathFinderLogo";
 import { yourDataUrl } from "@/lib/routes";
@@ -23,7 +23,7 @@ function opensElsewhere(event: MouseEvent<HTMLAnchorElement>): boolean {
 }
 
 export function SignedOutNotice({ reason }: { reason?: string | null }) {
-  const { siteSignInUrl } = useSystemConfig();
+  const { signInUrl } = useSitePages();
   const pathname = usePathname();
   const query = useSearchParams().toString();
   const here = withBasePath(query === "" ? pathname : `${pathname}?${query}`);
@@ -49,12 +49,12 @@ export function SignedOutNotice({ reason }: { reason?: string | null }) {
 
       <div className="border-t border-border px-6 py-5">
         <a
-          href={signInHref(siteSignInUrl, here)}
+          href={signInHref(signInUrl, here)}
           target="_top"
           onClick={(event) => {
             if (opensElsewhere(event)) return;
             event.preventDefault();
-            goToSiteSignIn(window, siteSignInUrl);
+            goToSiteSignIn(window, signInUrl);
           }}
           className="block w-full rounded-md bg-primary px-3 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:-translate-y-px hover:bg-primary/90 active:translate-y-0"
         >

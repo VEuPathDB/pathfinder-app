@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from veupathdb.wdk import get_site
 
 from pathfinder import __version__
-from pathfinder.platform.config import BASE_PATH, get_settings
+from pathfinder.platform.config import get_settings
 from pathfinder.platform.health import check_database, worker_is_alive
 from pathfinder.platform.readiness import get_readiness
 from pathfinder.transport.http.schemas import HealthResponse, SystemConfigResponse
@@ -18,6 +18,7 @@ from pathfinder.transport.http.schemas.health import (
     ReadinessResponse,
     SystemReadyResponse,
 )
+from pathfinder.transport.http.site_pages import pathfinder_page_url, sign_in_url
 
 router = APIRouter(tags=["health"])
 logger = get_logger(__name__)
@@ -33,13 +34,6 @@ async def health_check() -> HealthResponse:
     )
 
 
-def _site_sign_in_url() -> str:
-    settings = get_settings()
-    if settings.offers_dev_site_login:
-        return f"{BASE_PATH}/api/v1/dev/site-login"
-    return f"{get_site(settings.pathfinder_site).web_base_url}/app/user/login"
-
-
 @router.get("/health/config", response_model=SystemConfigResponse)
 async def system_config() -> SystemConfigResponse:
     """Report the model providers, the deployment's site, its sign-in address and
@@ -49,6 +43,7 @@ async def system_config() -> SystemConfigResponse:
     screen before asking users to log in.
     """
     settings = get_settings()
+    site = get_site(settings.pathfinder_site)
     paid = settings.deployment_providers
     return SystemConfigResponse(
         chat_provider=settings.pathfinder_chat_provider,
@@ -60,8 +55,8 @@ async def system_config() -> SystemConfigResponse:
             ollama="ollama" in paid,
         ),
         site_id=settings.pathfinder_site,
-        site_sign_in_url=_site_sign_in_url(),
-        site_page_url=f"{get_site(settings.pathfinder_site).web_base_url}/app/pathfinder",
+        site_sign_in_url=sign_in_url(site),
+        site_page_url=pathfinder_page_url(site),
     )
 
 

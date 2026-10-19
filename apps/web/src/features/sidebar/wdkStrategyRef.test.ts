@@ -11,6 +11,9 @@ function site(id: string, baseUrl: string): SiteResponse {
     baseUrl,
     projectId: id,
     isPortal: id === "veupathdb",
+    siteOrigin: new URL(baseUrl).origin,
+    signInUrl: `${baseUrl.replace(/\/service$/, "")}/app/user/login`,
+    pageUrl: `${baseUrl.replace(/\/service$/, "")}/app/pathfinder`,
     available: true,
     unavailableReason: null,
   };

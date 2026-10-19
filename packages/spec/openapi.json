@@ -10544,6 +10544,18 @@
             "type": "boolean",
             "title": "Isportal"
           },
+          "siteOrigin": {
+            "type": "string",
+            "title": "Siteorigin"
+          },
+          "signInUrl": {
+            "type": "string",
+            "title": "Signinurl"
+          },
+          "pageUrl": {
+            "type": "string",
+            "title": "Pageurl"
+          },
           "available": {
             "type": "boolean",
             "title": "Available"
@@ -10568,6 +10580,9 @@
           "baseUrl",
           "projectId",
           "isPortal",
+          "siteOrigin",
+          "signInUrl",
+          "pageUrl",
           "available"
         ],
         "title": "SiteResponse",

@@ -6890,6 +6890,15 @@ components:
         isPortal:
           type: boolean
           title: Isportal
+        siteOrigin:
+          type: string
+          title: Siteorigin
+        signInUrl:
+          type: string
+          title: Signinurl
+        pageUrl:
+          type: string
+          title: Pageurl
         available:
           type: boolean
           title: Available
@@ -6906,6 +6915,9 @@ components:
       - baseUrl
       - projectId
       - isPortal
+      - siteOrigin
+      - signInUrl
+      - pageUrl
       - available
       title: SiteResponse
       description: VEuPathDB site information, with what this process can reach of it.

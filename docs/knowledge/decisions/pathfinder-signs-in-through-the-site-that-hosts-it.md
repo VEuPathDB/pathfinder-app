@@ -48,11 +48,19 @@ cookie. A bearer token carries its own identity, and the mock stack's
 mock-only `POST /api/v1/dev/login` minted.
 
 **Signing in and out is the website's.** PathFinder has no password form, no
-logout route and no account name of its own to show. `GET /health/config`
-reports the deployment's site, `PATHFINDER_SITE` (default `veupathdb`; startup
-refuses a site the sites file does not list), and `siteSignInUrl`, that site's
-`/app/user/login`, or the development route when that route is mounted. A
-signed-out PathFinder shows one notice
+logout route and no account name of its own to show. One deployment serves
+every website whose host proxies `/pathfinder` to it, so the website that frames
+PathFinder is the one at the page's own origin: `GET /api/v1/sites` names each
+site's `siteOrigin`, its `signInUrl` (its `/app/user/login`, or the development
+route when that route is mounted) and its `pageUrl` (its `/app/pathfinder`), and
+`apps/web/src/app/hooks/useSitePages.ts` takes the pages of the site whose
+`siteOrigin` is the page's origin. A site-less entry opens that site's chat when
+it answers (`apps/web/src/lib/sites/entrySite.ts`), which the browser decides,
+because Apache proxies with `ProxyPreserveHost Off` and the server sees one Host
+for every website. On a host no site names, such as local development, the
+deployment's site applies: `GET /health/config` reports `PATHFINDER_SITE`
+(default `veupathdb`; startup refuses a site the sites file does not list) and
+that site's `siteSignInUrl` and `sitePageUrl`. A signed-out PathFinder shows one notice
 (`apps/web/src/app/components/SignedOutNotice.tsx`) whose link opens that page
 in the whole window, with the page the researcher was on as its `destination`.
 A logout in the website header leaves no registered token in the cookie, so
@@ -67,8 +75,7 @@ route change posts `{ type: "pathfinder:location", path }` to it
 (`apps/web/src/lib/frameBridge.ts`), so the website page keeps its address bar
 on the PathFinder page. A PathFinder page opened in a tab of its own on the
 website's host replaces itself with the website page for the same path
-(`sitePageUrl` in `GET /health/config`, the deployment site's `/app/pathfinder`),
-so a bookmark or a shared link opens under the website's header. A host the
+(the framing site's `pageUrl`), so a bookmark or a shared link opens under the website's header. A host the
 website is not on keeps the page.
 
 **A link PathFinder writes for later is a path under `/pathfinder`.** An export

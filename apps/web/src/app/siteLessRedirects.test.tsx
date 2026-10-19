@@ -6,9 +6,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import type { SiteResponse } from "@pathfinder/shared";
 import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
 
-const redirectMock = vi.fn();
+const replaceMock = vi.fn();
 vi.mock("next/navigation", () => ({
-  redirect: (url: string) => redirectMock(url),
+  useRouter: () => ({ replace: (url: string) => replaceMock(url) }),
 }));
 
 import { chatRoot } from "@/lib/routes";
@@ -22,6 +22,9 @@ function site(over: Partial<SiteResponse>): SiteResponse {
     baseUrl: "https://qa.plasmodb.org/plasmo.qa",
     projectId: "PlasmoDB",
     isPortal: false,
+    siteOrigin: "https://qa.plasmodb.org",
+    signInUrl: "https://qa.plasmodb.org/plasmo.qa/app/user/login",
+    pageUrl: "https://qa.plasmodb.org/plasmo.qa/app/pathfinder",
     available: true,
     unavailableReason: null,
     ...over,
@@ -65,17 +68,32 @@ function answerWith(rows: SiteResponse[], defaultSiteId: string): void {
 
 afterEach(() => {
   cleanup();
-  redirectMock.mockReset();
+  replaceMock.mockReset();
   vi.unstubAllGlobals();
 });
 
 describe("site-less entry points", () => {
+  it("sends a site-less entry to the site whose website frames PathFinder", async () => {
+    answerWith(
+      [
+        PORTAL,
+        site({ id: "plasmodb" }),
+        site({ id: "toxodb", siteOrigin: window.location.origin }),
+      ],
+      "plasmodb",
+    );
+
+    render(await BareConversationPage());
+
+    expect(replaceMock.mock.calls).toEqual([[chatRoot("toxodb")]]);
+  });
+
   it("sends a site-less conversation path to the deployment's site when it answers", async () => {
     answerWith([PORTAL, site({ id: "toxodb" })], "toxodb");
 
-    await BareConversationPage();
+    render(await BareConversationPage());
 
-    expect(redirectMock.mock.calls).toEqual([[chatRoot("toxodb")]]);
+    expect(replaceMock.mock.calls).toEqual([[chatRoot("toxodb")]]);
   });
 
   it("sends a site-less conversation path to the portal's chat when the deployment's site is degraded", async () => {
@@ -87,9 +105,9 @@ describe("site-less entry points", () => {
       "toxodb",
     );
 
-    await BareConversationPage();
+    render(await BareConversationPage());
 
-    expect(redirectMock.mock.calls).toEqual([[chatRoot("veupathdb")]]);
+    expect(replaceMock.mock.calls).toEqual([[chatRoot("veupathdb")]]);
   });
 
   it("sends a site-less conversation path to the first available site instead", async () => {
@@ -98,9 +116,9 @@ describe("site-less entry points", () => {
       "veupathdb",
     );
 
-    await BareConversationPage();
+    render(await BareConversationPage());
 
-    expect(redirectMock.mock.calls).toEqual([["/toxodb/conversation"]]);
+    expect(replaceMock.mock.calls).toEqual([["/toxodb/conversation"]]);
   });
 
   it("shows the not-ready screen instead of redirecting when no site answers", async () => {
@@ -114,7 +132,7 @@ describe("site-less entry points", () => {
 
     render(await BareConversationPage());
 
-    expect(redirectMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
     expect(screen.getByText(/no site is responding/i)).toBeInTheDocument();
     expect(screen.getByText(/veupathdb, toxodb/)).toBeInTheDocument();
   });
@@ -129,7 +147,7 @@ describe("site-less entry points", () => {
 
     render(await BareConversationPage());
 
-    expect(redirectMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
     expect(screen.getByText(/can't reach the server/i)).toBeInTheDocument();
   });
 
@@ -145,7 +163,7 @@ describe("site-less entry points", () => {
 
     render(await BareConversationPage());
 
-    expect(redirectMock).not.toHaveBeenCalled();
+    expect(replaceMock).not.toHaveBeenCalled();
     expect(screen.getByText(/can't reach the server/i)).toBeInTheDocument();
   });
 });

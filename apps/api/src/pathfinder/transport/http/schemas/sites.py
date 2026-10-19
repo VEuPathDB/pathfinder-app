@@ -15,6 +15,9 @@ class SiteResponse(CamelModel):
     base_url: str
     project_id: str
     is_portal: bool
+    site_origin: str
+    sign_in_url: str
+    page_url: str
     available: bool
     unavailable_reason: str | None = None
 

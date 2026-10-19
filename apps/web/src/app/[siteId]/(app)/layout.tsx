@@ -16,6 +16,7 @@ import { useAutoCollapsePanels } from "@/app/hooks/useAutoCollapsePanels";
 import { useModalState } from "@/app/hooks/useModalState";
 import { useSidebarResize } from "@/app/hooks/useSidebarResize";
 import { useSiteAccess } from "@/app/hooks/useSiteAccess";
+import { useSitePages } from "@/app/hooks/useSitePages";
 import { useSystemConfig } from "@/app/hooks/useSystemConfig";
 import { useWebsitePage } from "@/app/hooks/useWebsitePage";
 import { DataNotice } from "@/features/help/DataNotice";
@@ -72,8 +73,8 @@ function AppShellInner({
 
   const access = useSiteAccess(selectedSite);
   useSiteTheme(selectedSite);
-  const { setupRequired, sitePageUrl, retry: retryConfig } = useSystemConfig();
-  useWebsitePage(sitePageUrl);
+  const { setupRequired, retry: retryConfig } = useSystemConfig();
+  useWebsitePage(useSitePages().pageUrl);
 
   const { layoutRef, sidebarWidth, isDragging, startDragging } = useSidebarResize();
   const leftCollapsed = useLeftSidebarStore((s) => s.collapsed);
