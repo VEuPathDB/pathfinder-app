@@ -13,7 +13,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from assistant_core.tasks.job_context import CarriedSecret, DurableJobState
 from pydantic import SecretStr
 from veupathdb.auth_context import veupathdb_auth_token_ctx
-from veupathdb.wdk import search_turn
+from veupathdb.wdk import search_definitions_read_once, search_turn
 
 from pathfinder.jobs.auth_context import attach_wdk_auth
 
@@ -44,7 +44,7 @@ class WdkJobContext:
 @asynccontextmanager
 async def _restored(token: str | None) -> AsyncIterator[None]:
     async with attach_wdk_auth(token):
-        with search_turn():
+        with search_turn(), search_definitions_read_once():
             yield
 
 

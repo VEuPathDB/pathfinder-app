@@ -9,7 +9,13 @@ from assistant_core.conversation.event_writer import ChatWriter
 from assistant_core.graph.stream_events import turn_status_event
 from assistant_core.tasks.declaration import DurableToolImpl
 from assistant_core.tasks.progress import TaskProgressEmitter
-from veupathdb.wdk import SearchRequest, get_site, runs_an_expensive_search, search_turn
+from veupathdb.wdk import (
+    SearchRequest,
+    get_site,
+    runs_an_expensive_search,
+    search_definitions_read_once,
+    search_turn,
+)
 from veupathdb_mcp.search_line import told_while_waiting
 
 from pathfinder.services.strategies.slow_searches import counts_slowly
@@ -48,7 +54,11 @@ class TurnStatusWaits:
 
 @contextmanager
 def researcher_search_turn(writer: ChatWriter) -> Iterator[None]:
-    with search_turn(), told_while_waiting(TurnStatusWaits(writer)):
+    with (
+        search_turn(),
+        search_definitions_read_once(),
+        told_while_waiting(TurnStatusWaits(writer)),
+    ):
         yield
 
 

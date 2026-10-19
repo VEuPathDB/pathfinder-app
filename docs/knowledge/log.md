@@ -1,5 +1,18 @@
 # Log
 
+## 2026-10-19
+
+* **A save, a turn and a job read each search definition once.** veupathdb-py 0.1.0b15
+  keeps the definitions read inside `search_definitions_read_once`, keyed by site, login,
+  record type, search and the expand flag, and drops them when the scope ends. PathFinder
+  opens it for every HTTP request, every agent turn and every background job; a step write
+  inside one reads its search once, where it read it twice, and a parameter edit reads it
+  once, where it read it three times. A definition is not kept across logins, because WDK
+  builds it for the user who asks and a vocabulary may list that user's own data
+  (WDK-VOCAB-008). veupathdb-mcp 0.2.0b28 runs a separation in one scope and charges it what
+  it now sends. The catalog keeps sharing one copy across logins; every site release is
+  checked for a search vocabulary that takes `user_id` (backlog 40).
+
 ## 2026-10-18
 
 * **A canvas save reads the user id and the combine's boolean search once.** veupathdb-py

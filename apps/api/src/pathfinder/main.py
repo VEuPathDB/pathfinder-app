@@ -28,7 +28,11 @@ from veupathdb import set_observer
 from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.eda import close_all_eda_clients
 from veupathdb.errors import VEuPathDBError
-from veupathdb.wdk import close_all_clients, get_site_router
+from veupathdb.wdk import (
+    close_all_clients,
+    get_site_router,
+    search_definitions_read_once,
+)
 from veupathdb_mcp.catalog import get_discovery_service
 from veupathdb_mcp.embeddings import use_embedding_session_factory
 from veupathdb_mcp.search_line import install_search_line
@@ -354,7 +358,8 @@ def create_app(*, include_dev_routes: bool | None = None) -> FastAPI:
             or request.headers.get("X-VEUPATHDB-AUTHORIZATION")
             or request.cookies.get("Authorization")
         )
-        response = await call_next(request)
+        with search_definitions_read_once():
+            response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
 

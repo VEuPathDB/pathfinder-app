@@ -1,7 +1,7 @@
 ---
 type: Backlog
 title: A canvas save reads the same answers again
-description: A parameter edit reads the definition of the search it edits three times, which is most of a 23 second save on PlasmoDB QA; the user id and the combine search are now read once.
+description: A canvas save reads each search definition once and the user id and combine search once per login; what remains is the live measure of the lifecycle test on PlasmoDB QA.
 tags: [canvas, wdk, latency, strategy]
 generated: { by: claude-code/opus-5.5, at: 2026-10-18T00:00:00Z }
 status: proposed
@@ -40,15 +40,20 @@ on the site client, so a save no longer reads them again: on PlasmoDB QA through
 tunnel, the four saves of the lifecycle test made 9 to 13 WDK calls in 9.6 to 23.3 seconds,
 where they made 25 to 35 in 17.5 to 32, and the test passes.
 
-**What remains, measured.** A parameter edit checks the search it edits: three plain reads
-of the search definition (`GET /record-types/transcript/searches/GenesByGoTerm`, 1.3 to
-3.1 seconds each) and four reads under the edited values (two contextual reads and two
-dependent-parameter refreshes, 1.5 to 3.2 seconds each), about 15 of the 23 seconds of the
-slowest save.
+**Also fixed.** veupathdb-py 0.1.0b15 reads each search definition once per request,
+agent turn or background job (`search_definitions_read_once`, opened in the request
+middleware, `researcher_search_turn` and the job context), keyed by login, and keeps
+nothing after it. A step create or update read its search twice; inside the scope the
+save reads it once. veupathdb-mcp 0.2.0b28 runs a separation inside one scope and charges
+it what it now sends. A definition is not kept across logins, because WDK builds it for
+the user who asks (veupathdb-py WDK-VOCAB-008).
+
+**What remains.** The reads under the edited values (two contextual reads and two
+dependent-parameter refreshes, about 7 of the 23 seconds) depend on those values and
+stay.
 
 **The work:**
 
-- Keep a search's plain definition on the site client, as the boolean search is kept, and
-  release it with veupathdb-mcp. The reads under the edited values depend on those values
-  and stay.
-- A test that counts the definition reads of one parameter edit and holds the count.
+- Run `apps/web/e2e/journey/comprehensive-strategy-lifecycle.spec.ts` on PlasmoDB QA with
+  veupathdb-py 0.1.0b15, read every save's WDK calls in the api log, and confirm each
+  search definition is read once per save. Then delete this card.
