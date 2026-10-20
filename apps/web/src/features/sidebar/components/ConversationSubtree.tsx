@@ -84,7 +84,7 @@ export function ConversationSubtree({
               data-conversation-id={item.id}
             >
               <Link
-                href={chatUrl(item.siteId, item.id)}
+                href={chatUrl(item.id)}
                 className={cn(
                   "flex items-center gap-1.5 rounded py-0.5 pr-6 text-[11px] transition-colors",
                   isActive

@@ -41,7 +41,7 @@ const nodes: SubtreeNode[] = [
 describe("ConversationSubtree branch links", () => {
   afterEach(cleanup);
 
-  it("points every visible branch at its own site-scoped conversation route", () => {
+  it("points every visible branch at its own conversation route", () => {
     render(
       <ConversationSubtree
         rootId="root-1"
@@ -52,7 +52,7 @@ describe("ConversationSubtree branch links", () => {
     );
 
     const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual([chatUrl("plasmodb", "b1"), chatUrl("toxodb", "b2")]);
-    expect(hrefs).toEqual(["/plasmodb/conversation/b1", "/toxodb/conversation/b2"]);
+    expect(hrefs).toEqual([chatUrl("b1"), chatUrl("b2")]);
+    expect(hrefs).toEqual(["/conversation/b1", "/conversation/b2"]);
   });
 });

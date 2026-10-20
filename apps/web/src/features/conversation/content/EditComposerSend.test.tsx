@@ -7,7 +7,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 const pushMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/toxodb/conversation/conv-2",
+  usePathname: () => "/conversation/conv-2",
   useRouter: () => ({ push: pushMock }),
 }));
 
@@ -70,7 +70,7 @@ describe("EditComposerBranchOrRevert", () => {
     fireEvent.click(screen.getByTestId("edit-branch-button"));
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith(chatUrl("toxodb", "fork-4"));
+      expect(pushMock).toHaveBeenCalledWith(chatUrl("fork-4"));
     });
     expect(vi.mocked(forkStrategy)).toHaveBeenCalledWith("conv-2", {
       fromMessageId: "msg-4",

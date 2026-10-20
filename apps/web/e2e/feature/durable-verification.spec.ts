@@ -20,7 +20,7 @@
  */
 
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { entrySiteId } from "../fixtures/entry-site";
+import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
@@ -55,7 +55,7 @@ test.describe("Durable verification TaskCard", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     // Background-task progress is rendered from chunks delivered on the chat
@@ -100,7 +100,7 @@ test.describe("Durable verification TaskCard", () => {
       });
     });
 
-    await page.goto(`${siteId}/conversation/${strategyId}`);
+    await page.goto(`conversation/${strategyId}`);
     const composer = page.getByTestId("message-input");
     await expect(composer).toBeVisible({ timeout: 30_000 });
     const submit = page.getByRole("button", { name: /Send/i });

@@ -71,7 +71,7 @@ test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
     const lastLeafId = inputs.find((input) => input !== union.id) ?? "";
     expect(nodeById(built, lastLeafId).searchName).not.toBe(COMBINE_SEARCH_NAME);
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.expectNodeCount(5);
 
     const storedText = paramText(textLeaf, "text_expression");
@@ -135,7 +135,7 @@ test.describe("Comprehensive strategy lifecycle", { tag: "@turn" }, () => {
       })
       .toEqual([goLeaf.id, textLeaf.id, union.id].sort());
 
-    await page.goto(`${siteId}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await graphPage.expectOnChatRoute(id);
     await chatPage.sendAndSettle(
       prompt("variants", "Compare search variants for the text search step."),

@@ -1,7 +1,7 @@
-import { redirectToEntrySite } from "@/app/entrySiteRedirect";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+import { chatRoot } from "@/lib/routes";
 
-export default async function RootPage() {
-  return await redirectToEntrySite();
+export default function RootPage() {
+  redirect(chatRoot());
 }

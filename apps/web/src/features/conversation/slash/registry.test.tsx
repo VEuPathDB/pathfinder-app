@@ -61,7 +61,7 @@ describe("the slash registry", () => {
   it("/new opens a new chat on the current site", async () => {
     expect(await runDeterministic("new", ctx({ siteId: "toxodb" }))).toEqual({
       kind: "navigate",
-      href: chatRoot("toxodb"),
+      href: chatRoot(),
     });
   });
 

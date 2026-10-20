@@ -1,8 +1,7 @@
 /**
- * Central URL builders. Site is now carried in the URL path, so every
- * navigation target needs a site id. Never inline
- * ``/${siteId}/conversation/...`` - always go through a helper here so the
- * path format stays in one place.
+ * Central URL builders. The site is never in the path: the website that frames
+ * PathFinder decides it. Never inline ``/conversation/...``; always go through
+ * a helper here so the path format stays in one place.
  */
 
 /** The search param a draft chat route carries to name its assistant. */
@@ -10,8 +9,8 @@ export const ASSISTANT_PARAM = "assistant";
 
 const CONVERSATION_ID_IN_PATH = /\/conversation\/([^/?#]+)/;
 
-export function chatRoot(siteId: string): string {
-  return `/${siteId}/conversation`;
+export function chatRoot(): string {
+  return "/conversation";
 }
 
 /** The conversation the path names, or null on the draft route. */
@@ -19,24 +18,20 @@ export function conversationIdFromPath(pathname: string): string | null {
   return pathname.match(CONVERSATION_ID_IN_PATH)?.[1] ?? null;
 }
 
-export function chatUrl(siteId: string, conversationId: string): string {
-  return `/${siteId}/conversation/${conversationId}`;
+export function chatUrl(conversationId: string): string {
+  return `/conversation/${conversationId}`;
 }
 
-export function edaTabUrl(siteId: string, conversationId: string): string {
-  return `/${siteId}/conversation/${conversationId}/eda`;
+export function edaTabUrl(conversationId: string): string {
+  return `/conversation/${conversationId}/eda`;
 }
 
-export function strategyCanvasUrl(siteId: string, conversationId: string): string {
-  return `/${siteId}/conversation/${conversationId}/strategy`;
+export function strategyCanvasUrl(conversationId: string): string {
+  return `/conversation/${conversationId}/strategy`;
 }
 
-export function strategyStepUrl(
-  siteId: string,
-  conversationId: string,
-  stepId: string,
-): string {
-  return `${strategyCanvasUrl(siteId, conversationId)}/step/${stepId}`;
+export function strategyStepUrl(conversationId: string, stepId: string): string {
+  return `${strategyCanvasUrl(conversationId)}/step/${stepId}`;
 }
 
 export function helpUrl(): string {

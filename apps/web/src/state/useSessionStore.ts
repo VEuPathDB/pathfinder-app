@@ -1,14 +1,16 @@
 /**
- * Session state store - selected site, the two chat-remount signals and the
- * conversation this tab has created.
+ * Session state store - the site this tab works on, the site picked where the
+ * website offers a picker, the two chat-remount signals and the conversation
+ * this tab has created.
  *
- * Only the site selection persists; the signals are memory-only.
+ * Only the picked site persists; the rest is memory-only.
  */
 
 import { createPersistedStore } from "./middleware";
 
 interface SessionState {
   selectedSite: string;
+  pickedSite: string;
   /** Text that the next-mounted ChatThread should auto-submit. */
   pendingUserSubmission: { conversationId: string; content: string } | null;
   /** Bumped to force a ChatThread remount after revert. */
@@ -17,6 +19,7 @@ interface SessionState {
   createdConversationId: string | null;
 
   setSelectedSite: (siteId: string) => void;
+  setPickedSite: (siteId: string) => void;
   setPendingUserSubmission: (
     payload: { conversationId: string; content: string } | null,
   ) => void;
@@ -28,12 +31,15 @@ export const useSessionStore = createPersistedStore<SessionState>(
   "SessionStore",
   (set) => ({
     selectedSite: "veupathdb",
+    pickedSite: "veupathdb",
     pendingUserSubmission: null,
     chatResetCounter: 0,
     createdConversationId: null,
 
     setSelectedSite: (siteId) =>
       set((s) => (s.selectedSite === siteId ? s : { selectedSite: siteId })),
+    setPickedSite: (siteId) =>
+      set((s) => (s.pickedSite === siteId ? s : { pickedSite: siteId })),
     setPendingUserSubmission: (payload) => set({ pendingUserSubmission: payload }),
     bumpChatResetCounter: () =>
       set((s) => ({ chatResetCounter: s.chatResetCounter + 1 })),
@@ -46,6 +52,6 @@ export const useSessionStore = createPersistedStore<SessionState>(
   }),
   {
     name: "pathfinder-session",
-    partialize: (s) => ({ selectedSite: s.selectedSite }),
+    partialize: (s) => ({ pickedSite: s.pickedSite }),
   },
 );

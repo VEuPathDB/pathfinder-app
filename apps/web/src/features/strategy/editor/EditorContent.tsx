@@ -178,7 +178,7 @@ export function EditorContent({
   const handleCopyUrl = (): void => {
     if (typeof window === "undefined") return;
     const origin = window.location.origin;
-    const url = `${origin}${withBasePath(strategyStepUrl(siteId, conversationId, step.id))}`;
+    const url = `${origin}${withBasePath(strategyStepUrl(conversationId, step.id))}`;
     void navigator.clipboard.writeText(url);
     toast.success("Step URL copied");
   };

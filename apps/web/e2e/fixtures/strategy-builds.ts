@@ -122,10 +122,9 @@ export async function buildOn(
 /** Open the canvas and wait for its topbar to report the strategy saved. */
 export async function openCanvas(
   graphPage: GraphPage,
-  siteId: string,
   conversationId: string,
 ): Promise<void> {
-  await graphPage.goToStrategy(siteId, conversationId);
+  await graphPage.goToStrategy(conversationId);
   await graphPage.expectStrategyTopbar();
   await expectCanvasSaved(graphPage);
 }

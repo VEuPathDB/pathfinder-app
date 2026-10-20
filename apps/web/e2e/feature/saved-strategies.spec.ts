@@ -10,6 +10,7 @@ import { test, expect } from "../fixtures/test";
 import type { ApiClient } from "../fixtures/api-client";
 import { SIGNAL_PEPTIDE } from "../fixtures/arc-layouts";
 import { siteOrganism } from "../fixtures/site-reads";
+import { gotoOnSite } from "../pages/navigation";
 
 /** A saved, site-linked conversation made through the API, returned by id. */
 async function makeSaved(
@@ -63,7 +64,7 @@ test.describe("Saved strategies", () => {
       if (isDeleteOf(id)(request)) deletes.push(request.url());
     });
 
-    await page.goto(`${siteId}/saved`);
+    await gotoOnSite(page, siteId, "saved");
     const row = page.getByTestId(`saved-strategy-${id}`);
     await expect(row).toBeVisible({ timeout: 15_000 });
 

@@ -20,10 +20,9 @@ vi.mock("@xyflow/react", () => ({
   }),
 }));
 
-let pathnameMock = "/plasmodb/conversation/strat-1/strategy";
+let pathnameMock = "/conversation/strat-1/strategy";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
-  useParams: () => ({ siteId: "plasmodb" }),
   usePathname: () => pathnameMock,
 }));
 
@@ -203,14 +202,14 @@ describe("useStrategyKeyboardShortcuts", () => {
     renderShortcuts();
     fireEvent.keyDown(document, { key: "g" });
     fireEvent.keyDown(document, { key: "s" });
-    expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("plasmodb", "strat-1"));
+    expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("strat-1"));
   });
 
   it("g c sequence navigates to chat route", () => {
     renderShortcuts();
     fireEvent.keyDown(document, { key: "g" });
     fireEvent.keyDown(document, { key: "c" });
-    expect(pushMock).toHaveBeenCalledWith(chatUrl("plasmodb", "strat-1"));
+    expect(pushMock).toHaveBeenCalledWith(chatUrl("strat-1"));
   });
 
   it("Cmd+K invokes onOpenQuickSwitcher", () => {
@@ -229,14 +228,14 @@ describe("useStrategyKeyboardShortcuts", () => {
 
   it("Esc closes editor sheet (step route) back to the canvas", () => {
     const setSelectedStep = vi.fn();
-    pathnameMock = "/plasmodb/conversation/strat-1/strategy/step/open";
+    pathnameMock = "/conversation/strat-1/strategy/step/open";
     renderShortcuts({
       overrides: { selectedStep: makeStep("open"), setSelectedStep },
     });
     fireEvent.keyDown(document, { key: "Escape" });
     expect(setSelectedStep).toHaveBeenCalledWith(null);
-    expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("plasmodb", "strat-1"));
-    pathnameMock = "/plasmodb/conversation/strat-1/strategy";
+    expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("strat-1"));
+    pathnameMock = "/conversation/strat-1/strategy";
   });
 
   it("c fires combine selection handler when ≥2 selected", () => {

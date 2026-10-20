@@ -7,13 +7,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import type { QueryClient } from "@tanstack/react-query";
 
-const DRAFT_PATH = "/plasmodb/conversation";
+const DRAFT_PATH = "/conversation";
 
 let pathname = DRAFT_PATH;
 
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
-  useParams: () => ({ siteId: "plasmodb" }),
   usePathname: () => pathname,
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
@@ -137,9 +136,10 @@ describe("a draft thread", () => {
 });
 
 describe("a draft thread's right rail", () => {
-  it("names the route's site before the conversation has a row", async () => {
+  it("names the site the tab works on before the conversation has a row", async () => {
     recordReads();
     railSites.length = 0;
+    useSessionStore.setState({ selectedSite: "plasmodb" });
 
     renderView();
 
@@ -150,7 +150,7 @@ describe("a draft thread's right rail", () => {
 
 describe("a thread the route names", () => {
   it("reads the conversation and its snapshot", async () => {
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     const seen = recordReads();
 
     renderView();
@@ -161,18 +161,18 @@ describe("a thread the route names", () => {
   });
 
   it("goes back to the conversation list when the conversation is gone", async () => {
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     recordReads(404);
 
     renderView();
 
     await waitFor(() => {
-      expect(vi.mocked(redirect)).toHaveBeenCalledWith("/plasmodb/conversation");
+      expect(vi.mocked(redirect)).toHaveBeenCalledWith("/conversation");
     });
   });
 
   it("goes back to the conversation list when the conversation is another user's", async () => {
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     server.use(
       http.get(BASE, () =>
         HttpResponse.json(
@@ -190,14 +190,14 @@ describe("a thread the route names", () => {
     renderView();
 
     await waitFor(() => {
-      expect(vi.mocked(redirect)).toHaveBeenCalledWith("/plasmodb/conversation");
+      expect(vi.mocked(redirect)).toHaveBeenCalledWith("/conversation");
     });
   });
 });
 
 describe("a thread this tab created, reopened on its own id", () => {
   it("reads its transcript instead of rendering an empty thread", async () => {
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     // The shell mints the id, so the id the route carries is the one this tab
     // generated.
     vi.spyOn(crypto, "randomUUID").mockReturnValue(CONVERSATION_ID);
@@ -234,7 +234,7 @@ describe("a revert on the mount that created the thread", () => {
     await waitFor(() => {
       expect(seen).toContain("detail");
     });
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
 
     // What the revert does: drop the transcript, then remount the thread.
     await act(async () => {

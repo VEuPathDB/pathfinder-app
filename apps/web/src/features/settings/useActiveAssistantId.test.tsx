@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-const DRAFT_PATH = "/plasmodb/conversation";
+const DRAFT_PATH = "/conversation";
 
 let pathname = DRAFT_PATH;
 
@@ -63,7 +63,7 @@ describe("useActiveAssistantId", () => {
     const { rerender, result } = renderHook(() => useActiveAssistantId(), {
       wrapper: Wrapper,
     });
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     rerender();
 
     await waitFor(() => {
@@ -73,7 +73,7 @@ describe("useActiveAssistantId", () => {
   });
 
   it("reads nothing after the route leaves the conversation it opened on", async () => {
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     const seen = recordReads();
     const { Wrapper } = createTestWrapper();
 
@@ -93,7 +93,7 @@ describe("useActiveAssistantId", () => {
   });
 
   it("reads the conversation the route opened on", async () => {
-    pathname = `/plasmodb/conversation/${CONVERSATION_ID}`;
+    pathname = `/conversation/${CONVERSATION_ID}`;
     const seen = recordReads();
     const { Wrapper } = createTestWrapper();
 

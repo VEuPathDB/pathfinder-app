@@ -74,7 +74,7 @@ export function ConversationSubtreeDialog({
                 data-conversation-id={item.id}
               >
                 <Link
-                  href={chatUrl(item.siteId, item.id)}
+                  href={chatUrl(item.id)}
                   onClick={onClose}
                   className={cn(
                     "flex min-w-0 items-start gap-2 rounded px-2 py-2 pr-10 text-sm transition-colors",

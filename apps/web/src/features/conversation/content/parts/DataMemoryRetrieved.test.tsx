@@ -76,7 +76,7 @@ describe("DataMemoryRetrieved", () => {
     render(<DataMemoryRetrieved data={MEMORIES} />);
     expect(screen.getByRole("link", { name: "chat-e9f2a030" })).toHaveAttribute(
       "href",
-      `/plasmodb/conversation/${THREAD}`,
+      `/conversation/${THREAD}`,
     );
   });
 

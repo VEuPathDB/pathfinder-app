@@ -233,13 +233,13 @@ test.describe("Studies", () => {
       "Ask the assistant to explore a study, and the subset and its plots appear here.",
     );
 
-    await page.goto(`${siteId}/conversation/${id}/eda`);
+    await page.goto(`conversation/${id}/eda`);
     const tab = page.getByTestId("eda-workbench");
     const header = tab.getByTestId("eda-workbench-header");
     await expect(header).toContainText("No study selected", { timeout: 60_000 });
     await expect(
       header.getByRole("link", { name: "Back to conversation" }),
-    ).toHaveAttribute("href", `${BASE_PATH}/${siteId}/conversation/${id}`);
+    ).toHaveAttribute("href", `${BASE_PATH}/conversation/${id}`);
     const datasets = tab.getByTestId("eda-your-datasets");
     await expect(
       datasets.getByRole("heading", { name: "Your datasets" }),
@@ -351,12 +351,9 @@ test.describe("Studies", () => {
         .getByTestId("data-eda-analysis-state")
         .getByRole("button", { name: "Open study", exact: true })
         .click();
-      await expect(page).toHaveURL(
-        new RegExp(`/pathfinder/${siteId}/conversation/${id}/eda$`),
-        {
-          timeout: 60_000,
-        },
-      );
+      await expect(page).toHaveURL(new RegExp(`/pathfinder/conversation/${id}/eda$`), {
+        timeout: 60_000,
+      });
       const tab = page.getByTestId("eda-workbench");
       await expect(tab.getByTestId("eda-workbench-title")).toHaveText(
         analysis.studyDisplayName,
@@ -413,7 +410,7 @@ test.describe("Studies", () => {
       await expect(page.getByTestId("data-graph-snapshot")).toHaveCount(0);
       expect((await readConversation(apiClient, id)).steps ?? []).toEqual([]);
 
-      await page.goto(`${siteId}/conversation/${id}/eda`);
+      await page.goto(`conversation/${id}/eda`);
       const tab = page.getByTestId("eda-workbench");
       const exportButton = tab.getByRole("button", { name: "Export as step" });
       await expect(exportButton).toBeEnabled({ timeout: 60_000 });
@@ -424,7 +421,7 @@ test.describe("Studies", () => {
       });
       await expect(
         began.getByRole("link", { name: "Open the strategy canvas" }),
-      ).toHaveAttribute("href", `${BASE_PATH}/${siteId}/conversation/${id}/strategy`);
+      ).toHaveAttribute("href", `${BASE_PATH}/conversation/${id}/strategy`);
       await expect(tab.getByTestId("eda-export-step-name")).toHaveText(
         `Exported: ${exportedStepName(viz)}`,
       );

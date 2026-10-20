@@ -6,13 +6,13 @@ from fastapi import APIRouter, Query
 from veupathdb_mcp import catalog
 
 from pathfinder.platform.readiness import get_readiness
+from pathfinder.services.site_pages import pathfinder_page_url, sign_in_url
 from pathfinder.transport.http.deps import AvailableSite
 from pathfinder.transport.http.schemas import (
     RecordTypeResponse,
     SearchResponse,
     SiteResponse,
 )
-from pathfinder.transport.http.site_pages import pathfinder_page_url, sign_in_url
 
 router = APIRouter(prefix="/api/v1/sites", tags=["sites"])
 

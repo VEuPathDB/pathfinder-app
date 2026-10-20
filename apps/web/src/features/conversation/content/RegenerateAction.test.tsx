@@ -7,7 +7,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 const recordProductEvent = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation/conv-7",
+  usePathname: () => "/conversation/conv-7",
 }));
 
 vi.mock("@assistant-ui/react", () => ({

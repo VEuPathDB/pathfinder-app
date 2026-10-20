@@ -86,14 +86,14 @@ export function ConversationListItem({
       ) : (
         <>
           <Link
-            href={chatUrl(item.siteId, item.id)}
+            href={chatUrl(item.id)}
             className="block"
             onClick={(e) => {
               if (isActive) return;
               if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
               if (e.button !== 0) return;
               e.preventDefault();
-              void navigate(chatUrl(item.siteId, item.id));
+              void navigate(chatUrl(item.id));
             }}
           >
             <div className="truncate pr-6 text-sm font-medium" title={item.title}>

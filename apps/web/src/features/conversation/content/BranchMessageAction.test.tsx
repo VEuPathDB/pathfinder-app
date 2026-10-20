@@ -7,7 +7,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 const pushMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation/conv-1",
+  usePathname: () => "/conversation/conv-1",
   useRouter: () => ({ push: pushMock }),
 }));
 
@@ -36,7 +36,7 @@ describe("BranchMessageAction", () => {
     );
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith(chatUrl("plasmodb", "fork-9"));
+      expect(pushMock).toHaveBeenCalledWith(chatUrl("fork-9"));
     });
     expect(vi.mocked(forkStrategy)).toHaveBeenCalledWith("conv-1", {
       fromMessageId: "msg-7",

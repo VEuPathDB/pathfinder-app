@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/veupathdb/conversation",
+  usePathname: () => "/conversation",
   useSearchParams: () => new URLSearchParams("step=4"),
 }));
 
@@ -61,7 +61,7 @@ describe("SignedOutNotice", () => {
     expect(signInLink()).toHaveAttribute(
       "href",
       `${SITE_SIGN_IN_URL}?destination=${encodeURIComponent(
-        "/pathfinder/veupathdb/conversation?step=4",
+        "/pathfinder/conversation?step=4",
       )}`,
     );
     expect(signInLink()).toHaveAttribute("target", "_top");

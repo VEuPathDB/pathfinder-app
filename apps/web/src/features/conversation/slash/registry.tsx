@@ -28,7 +28,7 @@ export const commands: Command[] = [
     description: "Start a new conversation",
     icon: <Plus className="size-3.5" aria-hidden />,
     params: [],
-    run: (_values, ctx) => ({ kind: "navigate", href: chatRoot(ctx.siteId) }),
+    run: () => ({ kind: "navigate", href: chatRoot() }),
   },
   renameCommand,
   exportCommand,

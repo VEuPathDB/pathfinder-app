@@ -41,7 +41,7 @@ test.describe("Execution phase", { tag: "@turn" }, () => {
       leafIds,
     );
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.expectNodeCount(LAYOUTS.union.steps);
     for (const node of nodes) await graphPage.expectNodeVisible(node.id ?? "");
     await expect(graphPage.strategyPageStepCount).toHaveText(

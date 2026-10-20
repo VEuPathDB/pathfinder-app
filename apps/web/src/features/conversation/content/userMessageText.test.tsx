@@ -15,7 +15,7 @@ import { AssistantMessage, UserMessage } from "./MessageRenderer";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/orthomcl/conversation/conv-1",
+  usePathname: () => "/conversation/conv-1",
 }));
 
 const STUB_CHAT = { messages: [], status: "ready" } as unknown as ChatHelpers;

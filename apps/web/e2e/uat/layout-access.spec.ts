@@ -19,7 +19,7 @@ import { expectBuild, expectEvidence } from "../fixtures/build-checks";
 import { siteControlSets, siteOrganism } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
-import { openConversationId } from "../pages/navigation";
+import { gotoOnSite, openConversationId } from "../pages/navigation";
 
 const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
@@ -107,8 +107,8 @@ async function attachName(api: ApiClient): Promise<string> {
 }
 
 /** Open the canvas and wait for its topbar to settle. */
-async function openCanvas(graphPage: GraphPage, siteId: string, id: string) {
-  await graphPage.goToStrategy(siteId, id);
+async function openCanvas(graphPage: GraphPage, id: string) {
+  await graphPage.goToStrategy(id);
   await graphPage.expectStrategyTopbar();
   await expect(graphPage.strategyPageSyncState).toHaveAttribute(
     "data-sync-state",
@@ -152,7 +152,7 @@ test.describe("Layout and access", () => {
         );
       expect(clipped).toEqual([]);
 
-      await openCanvas(graphPage, siteId, id);
+      await openCanvas(graphPage, id);
       expect(await unclipped(graphPage.strategyPageTopbar)).toBe(true);
       const zoomIn = graphPage.canvasControls.getByRole("button", { name: "Zoom in" });
       const fitted = await canvasScale(page);
@@ -168,7 +168,7 @@ test.describe("Layout and access", () => {
 
   test("L2 - Phone width", async ({ chatPage, page, siteId }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`${siteId}/conversation`);
+    await gotoOnSite(page, siteId, "conversation");
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
 
     const openSidebar = page.getByRole("button", { name: "Open conversation sidebar" });
@@ -202,7 +202,7 @@ test.describe("Layout and access", () => {
     async ({ chatPage, graphPage, apiClient, page, siteId }) => {
       test.setTimeout(900_000);
       const keyboard = page.keyboard;
-      await page.goto(`${siteId}/conversation`);
+      await gotoOnSite(page, siteId, "conversation");
       await expect(chatPage.messageInput).toBeFocused({ timeout: 60_000 });
 
       await keyboard.type("first line");
@@ -257,7 +257,7 @@ test.describe("Layout and access", () => {
       );
       await expectBuild(page, apiClient, id, siteId, LAYOUTS.intersect);
 
-      await openCanvas(graphPage, siteId, id);
+      await openCanvas(graphPage, id);
       const nodeCount = await graphPage.nodes.count();
       await page.evaluate(() => {
         if (document.activeElement instanceof HTMLElement)
@@ -271,7 +271,7 @@ test.describe("Layout and access", () => {
       await keyboard.press("f");
       await expect.poll(() => nodesInsidePane(page)).toBe(true);
 
-      await page.goto(`${siteId}/conversation/${id}`);
+      await page.goto(`conversation/${id}`);
       await expect(chatPage.messageInput).toBeFocused({ timeout: 60_000 });
       await keyboard.type("/clear");
       await keyboard.press("Enter");

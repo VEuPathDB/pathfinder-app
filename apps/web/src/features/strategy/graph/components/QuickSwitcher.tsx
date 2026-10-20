@@ -22,11 +22,10 @@ export function QuickSwitcher({ open, onOpenChange, strategy }: QuickSwitcherPro
   const router = useRouter();
   const steps = strategy?.steps ?? [];
   const conversationId = strategy?.id ?? "";
-  const siteId = strategy?.siteId ?? "";
 
   const handleSelect = (step: Step): void => {
     onOpenChange(false);
-    router.push(strategyStepUrl(siteId, conversationId, step.id));
+    router.push(strategyStepUrl(conversationId, step.id));
   };
 
   return (

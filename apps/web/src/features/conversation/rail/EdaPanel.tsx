@@ -11,15 +11,14 @@ import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
 
 interface EdaPanelProps {
   conversationId: string;
-  siteId: string;
 }
 
-export function EdaPanel({ conversationId, siteId }: EdaPanelProps) {
+export function EdaPanel({ conversationId }: EdaPanelProps) {
   const router = useRouter();
   const analysis = useEdaStore((s) => s.analysis);
 
   const openTab = (): void => {
-    router.push(edaTabUrl(siteId, conversationId));
+    router.push(edaTabUrl(conversationId));
   };
 
   return (

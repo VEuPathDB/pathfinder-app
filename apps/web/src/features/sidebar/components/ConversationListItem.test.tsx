@@ -85,11 +85,11 @@ describe("ConversationListItem duplicate action", () => {
 describe("ConversationListItem chat link", () => {
   afterEach(cleanup);
 
-  it("points the row link at the site-scoped conversation route", () => {
+  it("points the row link at the conversation route", () => {
     renderItem();
 
-    expect(chatUrl("plasmodb", "c1")).toBe("/plasmodb/conversation/c1");
-    expect(screen.getByRole("link")).toHaveAttribute("href", chatUrl("plasmodb", "c1"));
+    expect(chatUrl("c1")).toBe("/conversation/c1");
+    expect(screen.getByRole("link")).toHaveAttribute("href", chatUrl("c1"));
   });
 
   it("navigates through the flush guard to the same route on a left click", async () => {
@@ -97,6 +97,6 @@ describe("ConversationListItem chat link", () => {
 
     await userEvent.click(screen.getByRole("link"));
 
-    expect(navigateMock.mock.calls).toEqual([[chatUrl("plasmodb", "c1")]]);
+    expect(navigateMock.mock.calls).toEqual([[chatUrl("c1")]]);
   });
 });

@@ -1,18 +1,21 @@
 "use client";
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 
 import { AppNavRail } from "@/app/components/AppNavRail";
 import { AppShellError } from "@/app/components/AppShellError";
+import { ConversationElsewhereNotice } from "@/app/components/ConversationElsewhereNotice";
 import { FrameLocationReporter } from "@/app/components/FrameLocationReporter";
 import { LoadingScreen } from "@/app/components/LoadingScreen";
 import { QueryErrorToasts } from "@/app/components/QueryErrorToasts";
 import { SetupRequiredScreen } from "@/app/components/SetupRequiredScreen";
 import { SiteAvailabilityGate } from "@/app/components/SiteAvailabilityGate";
+import { SystemReadyGate } from "@/app/components/SystemReadyGate";
 import { VeupathdbSignInGate } from "@/app/components/VeupathdbSignInGate";
 import { useAutoCollapsePanels } from "@/app/hooks/useAutoCollapsePanels";
+import { useCurrentSite } from "@/app/hooks/useCurrentSite";
 import { useModalState } from "@/app/hooks/useModalState";
 import { useSidebarResize } from "@/app/hooks/useSidebarResize";
 import { useSiteAccess } from "@/app/hooks/useSiteAccess";
@@ -25,49 +28,38 @@ import { ConversationSidebar } from "@/features/sidebar/components/ConversationS
 import { useSiteTheme } from "@/features/sites/hooks/useSiteTheme";
 import { QueryBoundary } from "@/lib/components/QueryBoundary";
 import { useEntrance } from "@/lib/motion";
-import { chatRoot } from "@/lib/routes";
+import { chatRoot, conversationIdFromPath } from "@/lib/routes";
 import { useLeftSidebarStore } from "@/state/useRightRailStore";
 import { useSessionStore } from "@/state/useSessionStore";
 
-export default function AppShellLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ siteId: string }>;
-}) {
-  const { siteId } = use(params);
+export default function AppShellLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <SystemReadyGate>
       <FrameLocationReporter />
       <QueryBoundary loadingFallback={<LoadingScreen />} ErrorFallback={AppShellError}>
-        <AppShellInner siteId={siteId}>{children}</AppShellInner>
+        <AppShellInner>{children}</AppShellInner>
       </QueryBoundary>
-    </>
+    </SystemReadyGate>
   );
 }
 
-function AppShellInner({
-  siteId,
-  children,
-}: {
-  siteId: string;
-  children: React.ReactNode;
-}) {
+function AppShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const conversationId = conversationIdFromPath(usePathname());
+  const { siteId: selectedSite, locked, conversationSite } = useCurrentSite();
+  const elsewhereSite =
+    locked !== undefined && conversationSite !== locked.id ? conversationSite : null;
 
-  const selectedSite = siteId;
-
-  // URL is the source of truth; mirror it into the session store so
-  // downstream consumers that still read from the store see the current site.
-  // Defer the cross-store write to a microtask so React's "setState during
-  // render" warning doesn't fire (the store update would re-render any
-  // subscriber if done synchronously here).
+  // Mirror the resolved site into the session store, where readers outside
+  // the route read it, and let a conversation opened on a website with a
+  // picker become the picked site. A microtask keeps the cross-store write
+  // out of render.
   const [syncedSite, setSyncedSite] = useState<string | null>(null);
-  if (syncedSite !== siteId) {
-    setSyncedSite(siteId);
+  if (syncedSite !== selectedSite) {
+    setSyncedSite(selectedSite);
     queueMicrotask(() => {
-      useSessionStore.setState({ selectedSite: siteId });
+      useSessionStore.setState({ selectedSite });
+      if (locked === undefined) useSessionStore.getState().setPickedSite(selectedSite);
     });
   }
 
@@ -89,8 +81,8 @@ function AppShellInner({
       : { type: "spring", stiffness: 380, damping: 36 },
   });
 
-  const handleSiteChange = (nextSite: string) => {
-    router.push(chatRoot(nextSite));
+  const handleSiteChange = () => {
+    router.push(chatRoot());
   };
 
   if (setupRequired) return <SetupRequiredScreen onRetry={retryConfig} />;
@@ -118,6 +110,7 @@ function AppShellInner({
       <div ref={layoutRef} className="flex min-h-0 flex-1 overflow-hidden">
         <AppNavRail
           siteId={selectedSite}
+          siteSwitchable={locked === undefined}
           onSiteChange={handleSiteChange}
           onOpenSettings={() => modals.openSettings()}
           onToggleSidebar={toggleLeft}
@@ -151,7 +144,14 @@ function AppShellInner({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <SiteAvailabilityGate siteId={selectedSite} down={siteDown}>
-            {children}
+            {elsewhereSite !== null && conversationId !== null ? (
+              <ConversationElsewhereNotice
+                siteId={elsewhereSite}
+                conversationId={conversationId}
+              />
+            ) : (
+              children
+            )}
           </SiteAvailabilityGate>
         </div>
       </div>

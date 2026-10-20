@@ -17,7 +17,7 @@ const listed = vi.hoisted(() => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/plasmodb/conversation/conv-1",
+  usePathname: () => "/conversation/conv-1",
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/features/sidebar/hooks/useChatListFetching", () => ({

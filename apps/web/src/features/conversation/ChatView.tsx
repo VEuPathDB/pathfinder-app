@@ -3,7 +3,7 @@
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import type { UIMessage } from "ai";
-import { redirect, useParams } from "next/navigation";
+import { redirect } from "next/navigation";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
@@ -11,6 +11,7 @@ import type { Strategy } from "@pathfinder/shared";
 import { resolveAssistantId } from "@/lib/assistants";
 import { conversationSnapshotOptions } from "@/features/conversation/api/conversationSnapshot";
 import { chatRoot } from "@/lib/routes";
+import { useSessionStore } from "@/state/useSessionStore";
 import { Spinner } from "@/components/ui/spinner";
 import {
   useConversationDetail,
@@ -33,9 +34,8 @@ export function ChatView({
   /** The assistant the URL names, honoured only by a thread that is new. */
   requestedAssistantId?: string | null;
 }) {
-  const params = useParams<{ siteId?: string }>();
-  const siteSegment = params.siteId ?? "";
-  const conversationsHref = chatRoot(siteSegment);
+  const selectedSite = useSessionStore((s) => s.selectedSite);
+  const conversationsHref = chatRoot();
 
   const exists = useConversationExists(conversationId);
   // A thread with no row when this view opened renders from local state; it
@@ -60,7 +60,7 @@ export function ChatView({
   }
 
   const strategy = detailQuery.data ?? null;
-  const siteId = strategy?.siteId ?? siteSegment;
+  const siteId = strategy?.siteId ?? selectedSite;
   const assistantId = resolveAssistantId({
     existing: strategy?.assistantId,
     requested: requestedAssistantId,

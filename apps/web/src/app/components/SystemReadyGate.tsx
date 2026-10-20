@@ -7,18 +7,11 @@ import { listModelsQueryOptions } from "@pathfinder/shared/generated/hooks/useLi
 import { systemReadyQueryOptions } from "@pathfinder/shared/generated/hooks/useSystemReady";
 
 import { sitesOptions } from "@/lib/api/sites";
-import { authStatusOptions } from "@/lib/api/veupathdb-auth";
 import { BusyWorkerBanner } from "./BusyWorkerBanner";
 import { LoadingScreen } from "./LoadingScreen";
 import { STARTUP_GRACE_MS, StartupScreen, startupStatus } from "./StartupScreen";
 
-export function SystemReadyGate({
-  siteId,
-  children,
-}: {
-  siteId: string;
-  children: React.ReactNode;
-}) {
+export function SystemReadyGate({ children }: { children: React.ReactNode }) {
   const [mountedAt] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
   const { data, isError } = useQuery({
@@ -34,7 +27,7 @@ export function SystemReadyGate({
 
   const app = (
     <>
-      <AppShellPrefetch siteId={siteId} />
+      <AppShellPrefetch />
       <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
     </>
   );
@@ -61,9 +54,8 @@ export function SystemReadyGate({
 }
 
 /** Starts the reads every app shell suspends on while the shell code still loads. */
-function AppShellPrefetch({ siteId }: { siteId: string }) {
+function AppShellPrefetch() {
   usePrefetchQuery(sitesOptions());
   usePrefetchQuery(listModelsQueryOptions());
-  usePrefetchQuery(authStatusOptions(siteId));
   return null;
 }

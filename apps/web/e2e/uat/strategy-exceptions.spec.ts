@@ -155,12 +155,8 @@ async function preferences(api: ApiClient): Promise<MemoryItem[]> {
 }
 
 /** Open the canvas and wait for its topbar to settle. */
-async function openCanvas(
-  graphPage: GraphPage,
-  siteId: string,
-  conversationId: string,
-) {
-  await graphPage.goToStrategy(siteId, conversationId);
+async function openCanvas(graphPage: GraphPage, conversationId: string) {
+  await graphPage.goToStrategy(conversationId);
   await graphPage.expectStrategyTopbar();
   await expect(graphPage.strategyPageSyncState).toHaveAttribute(
     "data-sync-state",
@@ -337,7 +333,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       "min_tm",
     );
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     const trigger = page.getByTestId("zero-result-trigger");
     await expect(trigger).toHaveText("0 results");
     await trigger.hover();
@@ -347,7 +343,7 @@ test.describe("Strategy exception flows", { tag: "@turn" }, () => {
       "Relax overly strict parameters/filters (broader thresholds, stages, experiments).",
     );
 
-    await page.goto(`${siteId}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expect(chatPage.assistantMessages).not.toHaveCount(0, { timeout: 60_000 });
     await chatPage.sendAndSettle(

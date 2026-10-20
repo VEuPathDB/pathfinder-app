@@ -12,7 +12,7 @@ import { BuildDetail, FrameDetail } from "./LedgerPanelDetail";
 const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/toxodb/conversation/conv-5",
+  usePathname: () => "/conversation/conv-5",
 }));
 
 function frameWith(

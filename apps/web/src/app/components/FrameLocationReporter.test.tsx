@@ -53,20 +53,17 @@ describe("FrameLocationReporter", () => {
   it("posts each distinct path once to the website page that frames it", async () => {
     const postMessage = frameUnderWebsitePage();
 
-    const { rerender } = render(at("/plasmodb/conversation"));
+    const { rerender } = render(at("/conversation"));
     await settle();
-    rerender(at("/plasmodb/conversation"));
+    rerender(at("/conversation"));
     await settle();
-    rerender(at("/plasmodb/conversation/abc", "step=2"));
+    rerender(at("/conversation/abc", "step=2"));
     await settle();
 
     expect(postMessage.mock.calls).toEqual([
+      [{ type: "pathfinder:location", path: "/conversation" }, window.location.origin],
       [
-        { type: "pathfinder:location", path: "/plasmodb/conversation" },
-        window.location.origin,
-      ],
-      [
-        { type: "pathfinder:location", path: "/plasmodb/conversation/abc?step=2" },
+        { type: "pathfinder:location", path: "/conversation/abc?step=2" },
         window.location.origin,
       ],
     ]);
@@ -75,7 +72,7 @@ describe("FrameLocationReporter", () => {
   it("posts nothing when the page is not framed", async () => {
     const postMessage = vi.spyOn(window, "postMessage");
 
-    render(at("/giardiadb/conversation"));
+    render(at("/conversation"));
     await settle();
 
     expect(window.parent).toBe(window);
@@ -85,11 +82,11 @@ describe("FrameLocationReporter", () => {
   it("posts a path once under Strict Mode", async () => {
     const postMessage = frameUnderWebsitePage();
 
-    render(at("/cryptodb/conversation"), { reactStrictMode: true });
+    render(at("/conversation"), { reactStrictMode: true });
     await settle();
 
     expect(postedMessages(postMessage)).toEqual([
-      { type: "pathfinder:location", path: "/cryptodb/conversation" },
+      { type: "pathfinder:location", path: "/conversation" },
     ]);
   });
 

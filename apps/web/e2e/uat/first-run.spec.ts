@@ -44,7 +44,7 @@ import {
   strategyFigure,
   traceRows,
 } from "../fixtures/build-checks";
-import { entrySiteId } from "../fixtures/entry-site";
+import { availableSiteId } from "../fixtures/available-site";
 import {
   printed,
   readConversation,
@@ -58,7 +58,7 @@ import {
 import { signInAsWdkAccount } from "../fixtures/website-login";
 import { ChatPage } from "../pages/chat.page";
 import type { GraphPage } from "../pages/graph.page";
-import { currentSiteId, openConversationId } from "../pages/navigation";
+import { gotoOnSite, openConversationId } from "../pages/navigation";
 import { SidebarPage } from "../pages/sidebar.page";
 
 const S1_TEXT = (organism: string) =>
@@ -127,12 +127,8 @@ async function buildOn(
 }
 
 /** Open the canvas and wait for its topbar to settle. */
-async function openCanvas(
-  graphPage: GraphPage,
-  siteId: string,
-  conversationId: string,
-) {
-  await graphPage.goToStrategy(siteId, conversationId);
+async function openCanvas(graphPage: GraphPage, conversationId: string) {
+  await graphPage.goToStrategy(conversationId);
   await graphPage.expectStrategyTopbar();
   await expect(graphPage.strategyPageSyncState).toHaveAttribute(
     "data-sync-state",
@@ -256,8 +252,8 @@ test.describe("First run and navigation", () => {
       storageState: { cookies: [], origins: [] },
     });
     const page = await context.newPage();
-    const entry = await entrySiteId(context, BASE_URL);
-    await page.goto(`${BASE_URL}/${entry}/conversation`);
+    const site = await availableSiteId(context, BASE_URL);
+    await gotoOnSite(page, site, `${BASE_URL}/conversation`);
 
     const signedOut = page.getByTestId("signed-out-notice");
     await expect(signedOut).toBeVisible({ timeout: 30_000 });
@@ -270,7 +266,7 @@ test.describe("First run and navigation", () => {
       await context.request.get(`${BASE_URL}/health/config`)
     ).json()) as SystemConfigResponse;
     const loginPage = new URL(config.siteSignInUrl);
-    loginPage.searchParams.set("destination", `/pathfinder/${entry}/conversation`);
+    loginPage.searchParams.set("destination", "/pathfinder/conversation");
     await expect(
       signedOut.getByRole("link", { name: "Sign in to VEuPathDB" }),
     ).toHaveAttribute("href", loginPage.href);
@@ -281,7 +277,7 @@ test.describe("First run and navigation", () => {
     await signInAsWdkAccount(context);
     await page.reload();
     await expect(signedOut).toHaveCount(0, { timeout: 60_000 });
-    await expect(page).toHaveURL(new RegExp(`/pathfinder/${entry}/conversation$`));
+    await expect(page).toHaveURL(`${BASE_URL}/conversation`);
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
 
     const fresh = await signedInUser(browser, `uat-f1-${Date.now()}`, {
@@ -289,7 +285,7 @@ test.describe("First run and navigation", () => {
       websiteLogin: true,
     });
     const freshPage = await fresh.newPage();
-    await freshPage.goto(`${BASE_URL}/${siteId}/conversation`);
+    await gotoOnSite(freshPage, siteId, `${BASE_URL}/conversation`);
     const notice = freshPage.getByRole("alertdialog", {
       name: "Your data in PathFinder",
     });
@@ -305,7 +301,7 @@ test.describe("First run and navigation", () => {
     await expect(notice).toHaveCount(0);
     await fresh.close();
 
-    const before = (await listConversations(context.request, entry)).map(
+    const before = (await listConversations(context.request, site)).map(
       (row) => row.id,
     );
     await context.clearCookies({ name: "Authorization" });
@@ -316,15 +312,13 @@ test.describe("First run and navigation", () => {
     await signInAsWdkAccount(context);
     await page.reload();
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
-    const after = (await listConversations(context.request, entry)).map(
-      (row) => row.id,
-    );
+    const after = (await listConversations(context.request, site)).map((row) => row.id);
     expect(after.sort()).toEqual(before.sort());
 
     await context.close();
   });
 
-  test("F3 - A site that is down", async ({ page, apiClient, siteId }) => {
+  test("F3 - A site that is down", async ({ page, apiClient, sitePicker, siteId }) => {
     const ready = await apiClient.get("health/ready");
     expect(ready.status()).toBe(200);
     const readiness = (await ready.json()) as ReadinessResponse;
@@ -340,11 +334,8 @@ test.describe("First run and navigation", () => {
     for (const degraded of readiness.degraded ?? []) expect(ids).toContain(degraded);
 
     await page.goto("./");
-    await page.waitForURL(/\/pathfinder\/[^/]+\/conversation/, { timeout: 60_000 });
-    const landedOn = currentSiteId(page);
-    expect(rows.filter((row) => row.available).map((row) => row.id)).toContain(
-      landedOn,
-    );
+    await expect(page).toHaveURL(`${BASE_URL}/conversation`, { timeout: 60_000 });
+    await sitePicker.expectCurrentSite("veupathdb");
 
     const down = siteId === "toxodb" ? "plasmodb" : "toxodb";
     const downRow = rows.find((row) => row.id === down);
@@ -365,7 +356,7 @@ test.describe("First run and navigation", () => {
         });
       },
     );
-    await page.goto(`${siteId}/conversation`);
+    await gotoOnSite(page, siteId, "conversation");
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
 
     const switcher = page.getByRole("button", { name: "Switch site" });
@@ -379,9 +370,8 @@ test.describe("First run and navigation", () => {
       "Couldn't reach",
     );
     await item.click();
-    await expect(page).toHaveURL(new RegExp(`/pathfinder/${down}/conversation$`), {
-      timeout: 60_000,
-    });
+    await expect(page).toHaveURL(`${BASE_URL}/conversation`);
+    await sitePicker.expectCurrentSite(down);
 
     const notice = page.getByTestId("site-unavailable-notice");
     await expect(notice).toContainText(`Couldn't reach ${siteShortName(down)}`);
@@ -406,6 +396,11 @@ test.describe("First run and navigation", () => {
     await expect(page.getByRole("tooltip")).toContainText(
       `Couldn't reach ${siteShortName(down)}`,
     );
+
+    await sitePicker.selectSite(siteId);
+    await expect(notice).toHaveCount(0);
+    await expect(page.getByTestId("site-trigger-degraded")).toHaveCount(0);
+    await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
   });
 
   test("F5 - New conversation and the header buttons", async ({
@@ -415,10 +410,10 @@ test.describe("First run and navigation", () => {
     apiClient,
     siteId,
   }) => {
-    await page.goto(`${siteId}/conversation`);
+    await gotoOnSite(page, siteId, "conversation");
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await sidebarPage.createNew();
-    await expect(page).toHaveURL(new RegExp(`/pathfinder/${siteId}/conversation$`));
+    await expect(page).toHaveURL(`${BASE_URL}/conversation`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       /^(Good morning|Good afternoon|Good evening|Still up\?)$/,
     );
@@ -463,7 +458,7 @@ test.describe("Site menu", { tag: "@named-site" }, () => {
     expect(sitesResp.status()).toBe(200);
     const rows = (await sitesResp.json()) as SiteResponse[];
 
-    await page.goto(`${siteId}/conversation`);
+    await gotoOnSite(page, siteId, "conversation");
     await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
     await sidebarPage.refresh();
     await expect(sidebarPage.item(home)).toBeVisible({ timeout: 30_000 });
@@ -484,7 +479,6 @@ test.describe("Site menu", { tag: "@named-site" }, () => {
     await page.keyboard.press("Escape");
 
     await sitePicker.selectSite(other);
-    await expect(page).toHaveURL(new RegExp(`/pathfinder/${other}/conversation$`));
     await expect(sidebarPage.item(away)).toBeVisible({ timeout: 30_000 });
     await expect(sidebarPage.item(home)).toHaveCount(0);
 
@@ -597,7 +591,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       .poll(async () => (await readConversation(apiClient, id)).name)
       .toBe(strategyName);
     await expect(sidebarPage.item(id)).toContainText(strategyName);
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await expect(graphPage.strategyPageNameInput).toHaveValue(strategyName);
   });
 
@@ -714,7 +708,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     );
     await expect(recap.getByTestId("data-sub-agent-call")).toHaveCount(0);
 
-    await page.goto(`${siteId}/conversation/${parentId}`);
+    await page.goto(`conversation/${parentId}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expect(chatPage.userMessages).toHaveCount(2, { timeout: 30_000 });
     await expect(chatPage.userMessage(editText)).toHaveCount(1);
@@ -870,7 +864,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
       .toEqual(["complete"]);
     const reopened = await context.newPage();
     const chat = new ChatPage(reopened);
-    await reopened.goto(`${siteId}/conversation/${id}`);
+    await reopened.goto(`conversation/${id}`);
     await expect(chat.composer).toBeVisible({ timeout: 60_000 });
     const done = reopened.getByTestId("task-row").filter({ hasText: CONTROL_TESTS });
     await expect(done).toHaveCount(1, { timeout: 60_000 });
@@ -932,7 +926,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     const bPage = await other.newPage();
     const bChat = new ChatPage(bPage);
     const bSidebar = new SidebarPage(bPage);
-    await bPage.goto(`${BASE_URL}/${siteId}/conversation`);
+    await gotoOnSite(bPage, siteId, `${BASE_URL}/conversation`);
     await expect(bChat.composer).toBeVisible({ timeout: 60_000 });
     await expect(bPage.getByText("No conversations yet.")).toBeVisible({
       timeout: 30_000,
@@ -941,8 +935,8 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     const bRows = await listConversations(other.request, siteId);
     expect(bRows.map((row) => row.id)).not.toContain(aId);
 
-    await bPage.goto(`${BASE_URL}/${siteId}/conversation/${aId}`);
-    await expect(bPage).toHaveURL(`${BASE_URL}/${siteId}/conversation`, {
+    await bPage.goto(`${BASE_URL}/conversation/${aId}`);
+    await expect(bPage).toHaveURL(`${BASE_URL}/conversation`, {
       timeout: 60_000,
     });
     await expect(bChat.composer).toBeVisible({ timeout: 60_000 });
@@ -987,7 +981,7 @@ test.describe("First run and navigation with the model", { tag: "@turn" }, () =>
     const tm = nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE);
     const valid = paramText(tm, "min_tm");
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.clickNode(tm.id ?? "");
     await graphPage.expectEditorSheetOpen();
     const minimum = graphPage.editorSheet.locator('input[name="min_tm"]');

@@ -5,7 +5,7 @@ import type { Strategy } from "@pathfinder/shared";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  usePathname: () => "/plasmodb/conversation/c1",
+  usePathname: () => "/conversation/c1",
 }));
 
 import { StrategyPanel } from "./StrategyPanel";

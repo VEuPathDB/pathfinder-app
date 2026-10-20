@@ -21,7 +21,7 @@ import { chatUrl } from "@/lib/routes";
 const routerPushMock = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPushMock }),
-  usePathname: () => "/plasmodb/conversation",
+  usePathname: () => "/conversation",
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@pathfinder/shared/generated/hooks/useOpenStrategy", () => ({
@@ -148,7 +148,7 @@ describe("the VEuPathDB strategy import dialog", () => {
         [{ siteId: "plasmodb", wdkStrategyId: 214626001 }],
       ]),
     );
-    expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "conv-9")]]);
+    expect(routerPushMock.mock.calls).toEqual([[chatUrl("conv-9")]]);
   });
 
   it("narrows the list to the strategies whose name the filter matches", async () => {

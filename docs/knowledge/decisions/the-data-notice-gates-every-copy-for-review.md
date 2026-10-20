@@ -35,7 +35,7 @@ the current version is treated as not consenting, including every account that
 existed before this change and every account after the next statement change.
 
 **The notice is the shell's.** `features/help/DataNotice.tsx` mounts in
-`app/[siteId]/(app)/layout.tsx`, opens once the session is refreshed and signed
+`app/(app)/layout.tsx`, opens once the session is refreshed and signed
 in and `noticeDue` is true, and closes only on Continue. It shows the same seven
 points as the page's In brief (`features/help/yourDataBrief.ts`), a link to the
 full statement in a new tab, and the learning checkbox ticked.

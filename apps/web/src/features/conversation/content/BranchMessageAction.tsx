@@ -7,34 +7,31 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { MessageAction } from "@/components/ai-elements/message";
-import { chatUrl } from "@/lib/routes";
+import { chatUrl, conversationIdFromPath } from "@/lib/routes";
+import { useSessionStore } from "@/state/useSessionStore";
 import { forkStrategy } from "@pathfinder/shared/generated/hooks/useForkStrategy";
 import { listStrategiesQueryOptions } from "@pathfinder/shared/generated/hooks/useListStrategies";
-
-const ROUTE_RE = /^\/([^/]+)\/conversation\/([^/?#]+)/;
 
 export function BranchMessageAction() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const pathname = usePathname();
-  const match = pathname.match(ROUTE_RE);
-  const siteId = match?.[1] ?? null;
-  const conversationId = match?.[2] ?? null;
+  const siteId = useSessionStore((s) => s.selectedSite);
+  const conversationId = conversationIdFromPath(pathname);
   const messageId = useAuiState((s) => s.message.id);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (conversationId == null || siteId == null) {
-        throw new Error("Missing conversation or site context");
+      if (conversationId == null) {
+        throw new Error("Missing conversation context");
       }
       return forkStrategy(conversationId, { fromMessageId: messageId });
     },
     onSuccess: (fork) => {
-      if (siteId == null) return;
       void queryClient.invalidateQueries({
         queryKey: listStrategiesQueryOptions({ siteId }).queryKey,
       });
-      router.push(chatUrl(siteId, fork.id));
+      router.push(chatUrl(fork.id));
     },
     onError: (err) => {
       toast.error(

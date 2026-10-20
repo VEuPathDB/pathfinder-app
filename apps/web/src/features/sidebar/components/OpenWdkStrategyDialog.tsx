@@ -98,7 +98,7 @@ export function OpenWdkStrategyDialog({
       toast.success("Strategy opened", {
         description: `${site} strategy ${id}`,
       });
-      router.push(chatUrl(siteId, result.conversationId));
+      router.push(chatUrl(result.conversationId));
     },
     onError: (error) =>
       toast.error("Could not open that strategy", {

@@ -7,7 +7,6 @@ import { Figure } from "@/features/conversation/thread/Figure";
 import { MEMORY_KIND_LABELS } from "@/lib/memoryKinds";
 import { chatUrl } from "@/lib/routes";
 import { useMemoryFocusStore } from "@/state/useMemoryFocusStore";
-import { useSessionStore } from "@/state/useSessionStore";
 
 import { StalePartNotice } from "../StalePartNotice";
 import { isCurrentWire } from "../currentWire";
@@ -28,7 +27,6 @@ function repeatedNames(memories: RecalledMemory[]): Set<string> {
 }
 
 function MemoryName({ memory }: { memory: RecalledMemory }) {
-  const siteId = useSessionStore((s) => s.selectedSite);
   const focusMemory = useMemoryFocusStore((s) => s.focusMemory);
   if (memory.kind === "strategy") {
     const thread = memory.sourceConversationId;
@@ -41,7 +39,7 @@ function MemoryName({ memory }: { memory: RecalledMemory }) {
     }
     return (
       <Link
-        href={chatUrl(siteId, thread)}
+        href={chatUrl(thread)}
         className={`${NAME} hover:underline`}
         title={memory.name}
       >

@@ -55,13 +55,13 @@ function renderDialog() {
 describe("ConversationSubtreeDialog branch links", () => {
   afterEach(cleanup);
 
-  it("points every listed branch at its own site-scoped conversation route", () => {
+  it("points every listed branch at its own conversation route", () => {
     renderDialog();
 
     const hrefs = screen
       .getAllByTestId("subtree-dialog-item")
       .map((li) => li.querySelector("a")?.getAttribute("href"));
-    expect(hrefs).toEqual([chatUrl("plasmodb", "b1"), chatUrl("toxodb", "b2")]);
-    expect(hrefs).toEqual(["/plasmodb/conversation/b1", "/toxodb/conversation/b2"]);
+    expect(hrefs).toEqual([chatUrl("b1"), chatUrl("b2")]);
+    expect(hrefs).toEqual(["/conversation/b1", "/conversation/b2"]);
   });
 });

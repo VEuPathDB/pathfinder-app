@@ -42,6 +42,7 @@ import {
   openCanvas,
   paramText,
 } from "../fixtures/strategy-builds";
+import { gotoOnSite } from "../pages/navigation";
 
 const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
@@ -122,7 +123,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
         counts.root,
       );
     }
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await expect(page.getByTestId("combine-operator-badge")).toHaveText("Union");
   });
 
@@ -136,7 +137,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     const counts = await expectBuild(page, apiClient, id, siteId, LAYOUTS.minus);
     const signal = nodeBySearch(await readNodes(apiClient, id), SIGNAL_PEPTIDE);
     expect(counts.byStep[signal.id ?? ""]).toBeGreaterThanOrEqual(counts.root);
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await expect(page.getByTestId("combine-operator-badge")).toHaveText("Minus");
   });
 
@@ -161,7 +162,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(paramText(transform, "organism")).not.toContain(organism);
     await chatPage.expectRootCount(counts.root);
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.clickNode(transform.id ?? "");
     await graphPage.expectEditorSheetOpen();
     await expect(graphPage.editorSheet).toContainText("Syntenic Orthologs Only?");
@@ -235,7 +236,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     await dialog.getByTestId("save-substrategy-confirm").click();
     await expect(dialog).toHaveCount(0, { timeout: 60_000 });
 
-    await page.goto(`${siteId}/saved`);
+    await gotoOnSite(page, siteId, "saved");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Saved strategies",
     );
@@ -264,7 +265,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       timeout: 60_000,
     });
 
-    await page.goto(`${siteId}/saved`);
+    await gotoOnSite(page, siteId, "saved");
     await expect(savedRow(page, name)).toContainText("Used in 2 conversations", {
       timeout: 30_000,
     });
@@ -297,7 +298,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     const dropped = await apiClient.delete(`api/v1/conversations/${madeIn}`);
     expect(dropped.ok(), `delete ${dropped.status()}`).toBe(true);
 
-    await page.goto(`${siteId}/conversation`);
+    await gotoOnSite(page, siteId, "conversation");
     await page.getByTestId("open-wdk-strategy-button").click();
     const dialog = page.getByTestId("open-wdk-strategy-dialog");
     await expect(dialog.getByRole("heading")).toHaveText("Open a VEuPathDB strategy");
@@ -374,7 +375,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(signalAfter?.wdkStepId).toBe(signalBefore?.wdkStepId);
     await chatPage.expectRootCount(edited.root);
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     const tm = nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE);
     await graphPage.clickNode(tm.id ?? "");
     await graphPage.expectEditorSheetOpen();
@@ -390,7 +391,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       )
       .toBe(paramText(tmBefore, "min_tm"));
 
-    await page.goto(`${siteId}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     const handEdited = await expectCountAnswered(chatPage, apiClient, id, siteId);
     expect(handEdited).not.toBe(edited.root);
@@ -470,7 +471,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       prompt("intersect", S2_TEXT(siteOrganism(siteId))),
     );
     await expectBuild(page, apiClient, canvasId, siteId, LAYOUTS.intersect);
-    await openCanvas(graphPage, siteId, canvasId);
+    await openCanvas(graphPage, canvasId);
     const tm = nodeBySearch(await readNodes(apiClient, canvasId), TRANSMEMBRANE);
     await graphPage.deleteStep(tm.id ?? "");
     await expect
@@ -613,7 +614,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
       await apiClient.get(`api/v1/conversations/${id}/ast`),
     );
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.changeOperator(combine.id ?? "", "UNION");
     await expect(page.getByTestId("combine-operator-badge")).toHaveText("Union");
     await expect(graphPage.strategyPageSyncState).toHaveAttribute(
@@ -625,7 +626,7 @@ test.describe("Standard strategy flows", { tag: "@turn" }, () => {
     expect(union.root).toBeGreaterThanOrEqual(built.root);
     expect(layoutOf(await readNodes(apiClient, id))).toEqual(LAYOUTS.union);
 
-    await page.goto(`${siteId}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     expect(await expectCountAnswered(chatPage, apiClient, id, siteId)).toBe(union.root);
   });

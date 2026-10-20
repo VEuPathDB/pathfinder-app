@@ -24,7 +24,7 @@ test.describe("A deep link opened on the website login alone", () => {
     });
 
     try {
-      await page.goto(`${siteId}/conversation/${conversationId}`);
+      await page.goto(`conversation/${conversationId}`);
 
       await expect(page.getByTestId("message-composer")).toBeVisible({
         timeout: 30_000,
@@ -48,7 +48,7 @@ test.describe("A deep link opened on the website login alone", () => {
     await page.clock.install();
 
     try {
-      await page.goto(`${siteId}/conversation/${conversationId}`);
+      await page.goto(`conversation/${conversationId}`);
       await expect(page.getByTestId("message-composer")).toBeVisible({
         timeout: 30_000,
       });

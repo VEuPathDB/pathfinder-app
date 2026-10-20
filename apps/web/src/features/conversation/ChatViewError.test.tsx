@@ -16,23 +16,21 @@ describe("ChatViewError", () => {
     render(
       <ChatViewError
         error={new Error("A message with the same id already exists")}
-        conversationsHref="/plasmodb/conversation"
+        conversationsHref="/conversation"
       />,
     );
 
     expect(screen.getByText(/A message with the same id already exists/)).toBeTruthy();
     const back = screen.getByRole("link", { name: /back to conversations/i });
-    expect(back.getAttribute("href")).toBe("/plasmodb/conversation");
+    expect(back.getAttribute("href")).toBe("/conversation");
   });
 
   it("names a thrown non-error too", () => {
-    render(
-      <ChatViewError error="plain string" conversationsHref="/toxodb/conversation" />,
-    );
+    render(<ChatViewError error="plain string" conversationsHref="/conversation" />);
 
     expect(screen.getByText("plain string").textContent).toBe("plain string");
     const back = screen.getByRole("link", { name: /back to conversations/i });
-    expect(back.getAttribute("href")).toBe("/toxodb/conversation");
+    expect(back.getAttribute("href")).toBe("/conversation");
   });
 });
 
@@ -93,7 +91,7 @@ describe("ChatView error boundary", () => {
   }
 
   it("renders the recovery panel instead of losing the whole view", async () => {
-    mockChatViewDeps("/plasmodb/conversation/conv-1", "plasmodb");
+    mockChatViewDeps("/conversation/conv-1", "plasmodb");
     vi.doMock("./ChatThread", () => ({
       ChatThread: () => {
         throw new Error(
@@ -114,11 +112,11 @@ describe("ChatView error boundary", () => {
       tl.screen.getByText(/A message with the same id already exists/),
     ).toBeTruthy();
     const back = tl.screen.getByRole("link", { name: /back to conversations/i });
-    expect(back.getAttribute("href")).toBe(chatRoot("plasmodb"));
+    expect(back.getAttribute("href")).toBe(chatRoot());
   });
 
   it("leaves a thread that renders alone", async () => {
-    mockChatViewDeps("/plasmodb/conversation/conv-1", "plasmodb");
+    mockChatViewDeps("/conversation/conv-1", "plasmodb");
     vi.doMock("./ChatThread", () => ({
       ChatThread: () => <div data-testid="thread" />,
     }));

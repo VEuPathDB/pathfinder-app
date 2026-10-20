@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation",
+  usePathname: () => "/conversation",
   useSearchParams: () => new URLSearchParams(""),
 }));
 

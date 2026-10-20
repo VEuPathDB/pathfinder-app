@@ -531,7 +531,7 @@ describe("EdaWorkbench", () => {
     reads(ANALYSIS);
     render(<EdaWorkbench siteId="plasmodb" conversationId="conv-1" />);
     const back = await screen.findByRole("link", { name: "Back to conversation" });
-    expect(back).toHaveAttribute("href", "/plasmodb/conversation/conv-1");
+    expect(back).toHaveAttribute("href", "/conversation/conv-1");
   });
 
   it("links back to the conversation while no study is open", async () => {
@@ -540,7 +540,7 @@ describe("EdaWorkbench", () => {
     await screen.findByTestId("eda-study-picker");
     expect(screen.getByRole("link", { name: "Back to conversation" })).toHaveAttribute(
       "href",
-      "/plasmodb/conversation/conv-1",
+      "/conversation/conv-1",
     );
   });
 

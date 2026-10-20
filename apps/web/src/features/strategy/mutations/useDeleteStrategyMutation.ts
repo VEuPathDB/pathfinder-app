@@ -10,7 +10,6 @@ import { chatRoot } from "@/lib/routes";
 
 export interface DeleteStrategyVars {
   conversationId: string;
-  siteId: string;
 }
 
 export function useDeleteStrategyMutation() {
@@ -20,9 +19,9 @@ export function useDeleteStrategyMutation() {
     mutationFn: async ({ conversationId }) => {
       await deleteStrategy(conversationId);
     },
-    onSuccess: (_data, { siteId, conversationId }) => {
+    onSuccess: (_data, { conversationId }) => {
       queryClient.removeQueries({ queryKey: strategyQueryKey(conversationId) });
-      router.push(chatRoot(siteId));
+      router.push(chatRoot());
       toast.success("Strategy deleted");
     },
     onError: (err) => {

@@ -8,7 +8,7 @@ import { http } from "msw";
 import type { ReactNode } from "react";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/veupathdb/conversation/c1",
+  usePathname: () => "/conversation/c1",
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -113,15 +113,13 @@ describe("ChatThread", () => {
 
     sendFromComposer("list kinases");
 
-    const siteId = useSessionStore.getState().selectedSite;
     await waitFor(() => {
-      expect(window.location.pathname).toBe(`/pathfinder/${siteId}/conversation/c1`);
+      expect(window.location.pathname).toBe("/pathfinder/conversation/c1");
     });
   });
 
   it("keeps a deeper route of the same conversation when a run starts", async () => {
-    const siteId = useSessionStore.getState().selectedSite;
-    const strategyRoute = `/pathfinder/${siteId}/conversation/c1/strategy`;
+    const strategyRoute = "/pathfinder/conversation/c1/strategy";
     window.history.replaceState(null, "", strategyRoute);
     renderSignedInThread("c1");
 

@@ -54,9 +54,7 @@ PathFinder is the one at the page's own origin: `GET /api/v1/sites` names each
 site's `siteOrigin`, its `signInUrl` (its `/app/user/login`, or the development
 route when that route is mounted) and its `pageUrl` (its `/app/pathfinder`), and
 `apps/web/src/app/hooks/useSitePages.ts` takes the pages of the site whose
-`siteOrigin` is the page's origin. A site-less entry opens that site's chat when
-it answers (`apps/web/src/lib/sites/entrySite.ts`), which the browser decides,
-because Apache proxies with `ProxyPreserveHost Off` and the server sees one Host
+`siteOrigin` is the page's origin, which the browser decides, because Apache proxies with `ProxyPreserveHost Off` and the server sees one Host
 for every website. On a host no site names, such as local development, the
 deployment's site applies: `GET /health/config` reports `PATHFINDER_SITE`
 (default `veupathdb`; startup refuses a site the sites file does not list) and

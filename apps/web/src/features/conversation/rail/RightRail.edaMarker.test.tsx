@@ -8,7 +8,7 @@ import userEvent from "@testing-library/user-event";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/plasmodb/conversation/conv-1",
+  usePathname: () => "/conversation/conv-1",
 }));
 
 vi.mock("@/lib/components/charts/echartsRegistry", () => ({

@@ -1,7 +1,5 @@
 import type { Page } from "@playwright/test";
 
-import { BASE_PATH } from "@/lib/basePath";
-
 /**
  * Wall clock one route change needs. The dev server compiles a route the
  * first time a spec reaches it, and two workers can reach it at once, so a
@@ -39,16 +37,35 @@ export async function waitForDraftChatRoute(page: Page) {
   });
 }
 
-/** The site the URL names. Every app route is site scoped, so a spec that
- *  navigates by hand takes the site the app already opened. */
-export function currentSiteId(page: Page): string {
-  const { pathname } = new URL(page.url());
-  if (!pathname.startsWith(`${BASE_PATH}/`)) {
-    throw new Error(`the current URL ${pathname} is outside the app`);
+const SESSION_STORE_KEY = "pathfinder-session-20260625";
+const STORAGE_RESET_MARKER = "pf-local-reset-20260625";
+
+export async function gotoOnSite(page: Page, siteId: string, path: string) {
+  const pick = await page.addInitScript(
+    ({ site, sessionKey, resetMarker }) => {
+      window.localStorage.setItem(resetMarker, "1");
+      window.localStorage.setItem(
+        sessionKey,
+        JSON.stringify({ state: { pickedSite: site }, version: 0 }),
+      );
+    },
+    { site: siteId, sessionKey: SESSION_STORE_KEY, resetMarker: STORAGE_RESET_MARKER },
+  );
+  await page.goto(path);
+  await pick.dispose();
+}
+
+export async function currentSiteId(page: Page): Promise<string> {
+  const stored = await page.evaluate(
+    (key) => window.localStorage.getItem(key),
+    SESSION_STORE_KEY,
+  );
+  if (stored === null) {
+    throw new Error("the app has stored no picked site");
   }
-  const siteId = pathname.slice(BASE_PATH.length).split("/")[1] ?? "";
-  if (siteId === "") {
-    throw new Error("the current URL names no site");
+  const { state } = JSON.parse(stored) as { state: { pickedSite?: string } };
+  if (state.pickedSite === undefined || state.pickedSite === "") {
+    throw new Error("the stored session names no picked site");
   }
-  return siteId;
+  return state.pickedSite;
 }

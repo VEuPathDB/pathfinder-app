@@ -32,7 +32,7 @@ export function StrategyPage({
   const strategy = detailQuery.data ?? null;
 
   if (strategy === null) {
-    redirect(chatRoot(siteId));
+    redirect(chatRoot());
   }
 
   return (

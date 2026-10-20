@@ -293,15 +293,13 @@ describe("a numbered exhibit is anchored and citable", () => {
       value: { writeText: async (text: string) => void written.push(text) },
     });
     toasted.length = 0;
-    window.history.replaceState(null, "", "/plasmodb/conversation/c1");
+    window.history.replaceState(null, "", "/conversation/c1");
     renderTable();
 
     const control = screen.getByRole("button", { name: "Copy link to Table 2" });
     fireEvent.click(control);
 
-    expect(written).toEqual([
-      `${window.location.origin}/plasmodb/conversation/c1#table-2`,
-    ]);
+    expect(written).toEqual([`${window.location.origin}/conversation/c1#table-2`]);
     expect(toasted).toEqual(["Link to Table 2 copied"]);
   });
 

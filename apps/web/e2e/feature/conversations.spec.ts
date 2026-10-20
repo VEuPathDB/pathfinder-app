@@ -39,7 +39,7 @@ test.describe("Conversations", () => {
     await chatPage.send("first conversation");
     await chatPage.expectAssistantMessage(/\[mock\]/);
 
-    const siteId = currentSiteId(page);
+    const siteId = await currentSiteId(page);
     const midCount = (await listConversations(apiClient, siteId)).length;
 
     await chatPage.newChat();

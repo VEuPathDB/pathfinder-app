@@ -62,7 +62,7 @@ export function useDeleteWorkflow({
     const target = deleteTarget;
     try {
       if (activeChatId === target.id) {
-        router.push(chatRoot(siteId));
+        router.push(chatRoot());
       }
 
       if (options.deleteLinkedStrategy === true) {

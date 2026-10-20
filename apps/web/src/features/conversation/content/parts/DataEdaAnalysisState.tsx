@@ -36,7 +36,7 @@ export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
             <OpenInSiteLink href={data.analysisUrl} siteId={data.siteId} />
           ) : null}
           {conversationId !== null ? (
-            <OpenEdaTab siteId={data.siteId} conversationId={conversationId} />
+            <OpenEdaTab conversationId={conversationId} />
           ) : null}
         </span>
       }
@@ -73,13 +73,7 @@ export function DataEdaAnalysisState({ data }: { data: EdaAnalysisState }) {
   );
 }
 
-function OpenEdaTab({
-  siteId,
-  conversationId,
-}: {
-  siteId: string;
-  conversationId: string;
-}) {
+function OpenEdaTab({ conversationId }: { conversationId: string }) {
   const router = useRouter();
   return (
     <Button
@@ -87,7 +81,7 @@ function OpenEdaTab({
       variant="ghost"
       size="sm"
       className="h-7 shrink-0 px-2 text-xs"
-      onClick={() => router.push(edaTabUrl(siteId, conversationId))}
+      onClick={() => router.push(edaTabUrl(conversationId))}
     >
       Open study
     </Button>

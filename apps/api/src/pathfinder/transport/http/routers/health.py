@@ -12,13 +12,13 @@ from pathfinder import __version__
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.health import check_database, worker_is_alive
 from pathfinder.platform.readiness import get_readiness
+from pathfinder.services.site_pages import pathfinder_page_url, sign_in_url
 from pathfinder.transport.http.schemas import HealthResponse, SystemConfigResponse
 from pathfinder.transport.http.schemas.health import (
     ProviderStatus,
     ReadinessResponse,
     SystemReadyResponse,
 )
-from pathfinder.transport.http.site_pages import pathfinder_page_url, sign_in_url
 
 router = APIRouter(tags=["health"])
 logger = get_logger(__name__)

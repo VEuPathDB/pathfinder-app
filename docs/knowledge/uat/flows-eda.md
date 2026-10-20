@@ -18,7 +18,7 @@ Expected numbers, measured on 2026-09-24: the comparison `wildtype` (group A) ag
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | A new conversation with one message sent, right rail `Studies` | Read | `No study is open`, `Ask the assistant to explore a study, and the subset and its plots appear here.` |
-| 2 | Browser | Go to `/<site>/conversation/<id>/eda` | Header `No study selected`; `Back to conversation`; `Your datasets` with `Upload on VEuPathDB`; `Search studies...` |
+| 2 | Browser | Go to `/conversation/<id>/eda` | Header `No study selected`; `Back to conversation`; `Your datasets` with `Upload on VEuPathDB`; `Search studies...` |
 | 3 | `Search studies...` | Type `h` | `Type at least 2 characters to search studies.` |
 | 4 | `Search studies...` | Type `heat shock` | A row `Heat shock response in sensitive mutants (LRR5, DHC)` with `DS_e973eadd57` and its sites |
 | 5 | Row | Click | Header title the study name; `Open in PlasmoDB`, `Change study`, `Export as step` (disabled: no filter, no figure); cell `Subset` (CSS) `No filters: the subset is the whole study.`, `12 of 12 Sample`, `68,640 of 68,640 pfal3D7 htseq counts`; cell `Comparison` `No comparison has run on this analysis. Ask for one in the conversation.` |

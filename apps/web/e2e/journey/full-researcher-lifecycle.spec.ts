@@ -82,7 +82,7 @@ test.describe("Full researcher lifecycle", { tag: "@turn" }, () => {
     await settingsPage.openTab("Data");
     await settingsPage.close();
 
-    await page.goto(`${siteId}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await sidebarPage.expectAtLeastOneConversation();
     await chatPage.sendTurn(

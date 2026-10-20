@@ -82,7 +82,7 @@ describe("QuickSwitcher", () => {
       <QuickSwitcher open={true} onOpenChange={onOpenChange} strategy={strategy} />,
     );
     fireEvent.click(screen.getByText("Genes by ID"));
-    expect(pushMock).toHaveBeenCalledWith(strategyStepUrl("plasmodb", "conv-42", "a"));
+    expect(pushMock).toHaveBeenCalledWith(strategyStepUrl("conv-42", "a"));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

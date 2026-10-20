@@ -28,7 +28,7 @@ async function renderGate(
   const { Wrapper } = createTestWrapper();
   return render(
     <Wrapper>
-      <SystemReadyGate siteId="plasmodb">{children}</SystemReadyGate>
+      <SystemReadyGate>{children}</SystemReadyGate>
     </Wrapper>,
   );
 }
@@ -58,7 +58,7 @@ describe("SystemReadyGate", () => {
     vi.useRealTimers();
   });
 
-  it("requests the sites, the models and the sign-in status before the app renders", async () => {
+  it("requests the sites and the models before the app renders", async () => {
     mockSystemReady.mockResolvedValue(READY);
     const requested: string[] = [];
     vi.stubGlobal("fetch", recordingFetch(requested));
@@ -74,11 +74,7 @@ describe("SystemReadyGate", () => {
       expect(screen.getByTestId("app-content")).toBeInTheDocument();
     });
     expect(seenByApp[0]).toEqual(
-      expect.arrayContaining([
-        "/pathfinder/api/v1/sites",
-        "/pathfinder/api/v1/models",
-        "/pathfinder/api/v1/veupathdb/auth/status?siteId=plasmodb",
-      ]),
+      expect.arrayContaining(["/pathfinder/api/v1/sites", "/pathfinder/api/v1/models"]),
     );
   });
 

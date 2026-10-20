@@ -45,7 +45,7 @@ test.describe("Dependent-parameter strategy", { tag: "@turn" }, () => {
     const storedTerm = paramText(built, "go_term");
     expect(storedTerm).not.toBe(EDITED_GO_TERM);
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.clickNode(built.id ?? "");
     await expect(graphPage.editorSheet).toBeVisible({ timeout: 20_000 });
     await expect(

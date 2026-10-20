@@ -2,7 +2,7 @@ import { type Locator, type Page, expect } from "@playwright/test";
 
 import { BASE_PATH } from "@/lib/basePath";
 
-import { currentSiteId, waitForConversationRoute } from "./navigation";
+import { currentSiteId, gotoOnSite, waitForConversationRoute } from "./navigation";
 
 /**
  * Wall clock one mock turn needs end to end.
@@ -40,9 +40,9 @@ export class ChatPage {
     await expect(this.composer).toBeVisible({ timeout: 60_000 });
   }
 
-  /** Open the site's conversation route and a fresh conversation on it. */
+  /** Pick the site, open the draft chat route and a fresh conversation on it. */
   async startOn(siteId: string) {
-    await this.page.goto(`${siteId}/conversation`);
+    await gotoOnSite(this.page, siteId, "conversation");
     await expect(this.composer).toBeVisible({ timeout: 60_000 });
     await this.newChat(siteId);
   }
@@ -75,9 +75,9 @@ export class ChatPage {
   /** Start a fresh conversation so the test is isolated from prior state. */
   async newChat(siteId?: string) {
     const baseUrl = `${new URL(this.page.url()).origin}${BASE_PATH}`;
-    // Default to the site the test already switched to (from the URL), so the
-    // new conversation lands on it rather than a hardcoded default.
-    const selectedSite = siteId ?? currentSiteId(this.page);
+    // Default to the site the app works on now, so the new conversation lands
+    // on it rather than a hardcoded default.
+    const selectedSite = siteId ?? (await currentSiteId(this.page));
 
     const strategyCreated = await this.page
       .context()

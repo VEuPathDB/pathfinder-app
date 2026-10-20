@@ -8,6 +8,7 @@ import {
   expect,
   test,
 } from "../fixtures/test";
+import { gotoOnSite } from "../pages/navigation";
 
 async function newResearcher(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext({
@@ -29,7 +30,7 @@ test.describe("The data notice at first sign-in", () => {
     test.setTimeout(180_000);
     const context = await newResearcher(browser);
     const page = await context.newPage();
-    await page.goto(`${BASE_URL}/${DEFAULT_SITE}/conversation`);
+    await gotoOnSite(page, DEFAULT_SITE, `${BASE_URL}/conversation`);
 
     const notice = page.getByRole("alertdialog", { name: "Your data in PathFinder" });
     await expect(notice).toBeVisible({ timeout: 60_000 });

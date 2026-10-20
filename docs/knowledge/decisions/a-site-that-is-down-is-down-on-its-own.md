@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: A site that is down is down on its own
-description: Readiness is every process subsystem plus at least one loaded catalog, so one dead VEuPathDB site is degraded and not fatal - named in the health body and in GET /api/v1/sites, refused fast on its own routes with a 503 SITE_UNAVAILABLE, retried in the background on an interval, marked in the site selection, read for a WDK identity only while it answers, kept out of every site-less entry point, and left with its own shell so its local saved work stays reachable. Rejected - readiness requires every catalog, and resolving every WDK identity against the configured default site, both of which let a portal outage take the whole deployment down.
+description: Readiness is every process subsystem plus at least one loaded catalog, so one dead VEuPathDB site is degraded and not fatal - named in the health body and in GET /api/v1/sites, refused fast on its own routes with a 503 SITE_UNAVAILABLE, retried in the background on an interval, marked in the site selection, read for a WDK identity only while it answers, and left with its own shell so its local saved work stays reachable. Rejected - readiness requires every catalog, and resolving every WDK identity against the configured default site, both of which let a portal outage take the whole deployment down.
 tags: [infra, startup, availability, transport, health]
 generated: { by: claude-code/opus-5, at: 2026-09-07T00:00:00Z }
 verified: { by: claude-code/opus-5, at: 2026-09-07T00:00:00Z }
@@ -112,23 +112,16 @@ same loaded site, so the app shell does not block on a dead one. Every parameter
 that carries a site id spells it `siteId`, on the wire as well as in a path
 template, which is what lets one dependency bind it.
 
-**The entry flow never opens a degraded site.** Every site-less route -
-`app/page.tsx` and `app/conversation/page.tsx` - is a `force-dynamic` server
-component calling
-`app/entrySiteRedirect.tsx::redirectToEntrySite`, which reads
-`GET /api/v1/sites` and the deployment's site from `GET /health/config` on the
-server and redirects to the deployment's site when it answers, else the portal
-when it answers, else the first site in the list's order that answers
-(`lib/sites/entrySite.ts::chooseEntrySite`). When either request fails or no site answers it renders
-the startup screen instead of redirecting, so there is no loop and no endless
-spinner. The stored site selection follows the URL the app shell renders, so the
-entry flow's choice replaces a stored degraded site and a deep link to a
-degraded site leaves the selection alone.
+**A degraded site is never swapped for another.** The site a page works on is
+the website that frames PathFinder, or the site picked where the website offers a
+picker ([the site comes from the website](the-site-comes-from-the-website-that-frames-pathfinder.md)),
+so no entry point chooses a site for the researcher. A degraded current site
+shows its notice in the shell, which links every site that answers.
 
 **A degraded site keeps its shell; only its VEuPathDB-backed content is
 refused.** `SiteAvailabilityGate` renders inside the app shell
-(`app/[siteId]/(app)/layout.tsx`), around the routed content and below the nav rail, so a URL that names a
-degraded site still draws the rail with its site switcher and its "Not
+(`app/(app)/layout.tsx`), around the routed content and below the nav rail, so a degraded current site
+still draws the rail with its site switcher and its "Not
 responding" marker, and the conversations list and saved gene sets - this
 deployment's own rows, which the api serves for a degraded site - stay
 reachable. The notice takes the content area: the site's display name, the
@@ -140,8 +133,8 @@ read the site through `app/hooks/useSiteAccess.ts`, which reports the site down
 when the list says so or when `GET /api/v1/veupathdb/auth/status` is refused
 `SITE_UNAVAILABLE`, asks again on the same 60 s interval, and leaves every other
 failure of that read to the shell's error boundary; the gate takes that answer.
-`app/[siteId]/layout.tsx` gates the subtree on the process being ready and
-nothing else.
+`app/(app)/layout.tsx` gates the subtree on the process being ready
+(`SystemReadyGate`) and nothing else.
 
 # What was rejected
 

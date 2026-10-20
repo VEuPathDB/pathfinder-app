@@ -8,7 +8,7 @@ import type { ControlTestEvidence } from "@pathfinder/shared";
 const recordProductEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation/conv-4",
+  usePathname: () => "/conversation/conv-4",
 }));
 
 import { EVIDENCE_CARD } from "../content/parts/evidenceCardFixture";

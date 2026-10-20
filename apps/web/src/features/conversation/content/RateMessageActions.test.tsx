@@ -13,7 +13,7 @@ const MESSAGE_ID = "bbbbbbb1-1111-4111-8111-111111111111";
 let messageId = MESSAGE_ID;
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => `/plasmodb/conversation/${conversationId}`,
+  usePathname: () => `/conversation/${conversationId}`,
 }));
 
 vi.mock("@assistant-ui/react", () => ({

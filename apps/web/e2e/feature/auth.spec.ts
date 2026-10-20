@@ -2,9 +2,9 @@ import type { Page } from "@playwright/test";
 import type { SystemConfigResponse } from "@pathfinder/shared/generated/types/SystemConfigResponse";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { entrySiteId } from "../fixtures/entry-site";
+import { availableSiteId } from "../fixtures/available-site";
 import { listConversations } from "../fixtures/api-client";
-import { currentSiteId } from "../pages/navigation";
+import { currentSiteId, gotoOnSite } from "../pages/navigation";
 
 const SIGNED_OUT_STATUS = { signedIn: false };
 
@@ -28,7 +28,7 @@ test.describe("VEuPathDB login gate", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     // The auth-status route is the gate under test; the rest of the app is real.
     await page.route("**/api/v1/veupathdb/auth/status*", (route) =>
       route.fulfill({ json: SIGNED_OUT_STATUS }),
@@ -36,8 +36,8 @@ test.describe("VEuPathDB login gate", () => {
     const config = (await (
       await context.request.get(`${BASE_URL}/health/config`)
     ).json()) as SystemConfigResponse;
-    const here = `${BASE_URL}/${siteId}/conversation?embedded=true`;
-    await page.goto(here);
+    const here = `${BASE_URL}/conversation?embedded=true`;
+    await gotoOnSite(page, siteId, here);
 
     const notice = page.getByRole("region", { name: "Sign in to VEuPathDB" });
     await expect(notice).toBeVisible({ timeout: 20_000 });
@@ -78,7 +78,6 @@ test.describe("Auth", () => {
   test("authenticated state shows full UI with working API access", async ({
     chatPage,
     page,
-    context,
     sitePicker,
     settingsPage,
     apiClient,
@@ -89,8 +88,7 @@ test.describe("Auth", () => {
     // UI: Signed in - no login modal, composer visible
     await expectSignedIn(page);
 
-    // UI: Site picker shows the site the entry flow chose
-    await sitePicker.expectCurrentSite(await entrySiteId(context, BASE_URL));
+    await sitePicker.expectCurrentSite("veupathdb");
 
     // UI: Settings accessible with all tabs
     await settingsPage.open();
@@ -132,7 +130,7 @@ test.describe("Auth", () => {
     await sidebarPage.expectAtLeastOneConversation();
 
     // API: get strategy count before reload
-    const siteId = currentSiteId(page);
+    const siteId = await currentSiteId(page);
     const beforeCount = (await listConversations(apiClient, siteId)).length;
 
     // Reload

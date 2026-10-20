@@ -18,12 +18,12 @@ beforeEach(() => {
 
 describe("useConversationId", () => {
   it("reads the id from a site-prefixed conversation path", () => {
-    route.pathname = "/plasmodb/conversation/conv-1";
+    route.pathname = "/conversation/conv-1";
     expect(renderHook(() => useConversationId()).result.current).toBe("conv-1");
   });
 
   it("reads the id from a path with a trailing segment", () => {
-    route.pathname = "/plasmodb/conversation/conv-2/eda";
+    route.pathname = "/conversation/conv-2/eda";
     expect(renderHook(() => useConversationId()).result.current).toBe("conv-2");
   });
 
@@ -32,7 +32,7 @@ describe("useConversationId", () => {
   });
 
   it("is null on a path that names no conversation", () => {
-    route.pathname = "/plasmodb/saved";
+    route.pathname = "/saved";
     expect(renderHook(() => useConversationId()).result.current).toBe(null);
   });
 });

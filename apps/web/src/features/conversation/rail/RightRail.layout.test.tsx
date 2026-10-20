@@ -7,7 +7,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/plasmodb/conversation/conv-1",
+  usePathname: () => "/conversation/conv-1",
 }));
 
 import { useLeftSidebarStore, useRightRailStore } from "@/state/useRightRailStore";

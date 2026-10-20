@@ -1,5 +1,5 @@
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { entrySiteId } from "../fixtures/entry-site";
+import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext } from "@playwright/test";
 
@@ -26,7 +26,7 @@ test.describe("Recalled memories", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     const chatStream = [
@@ -76,7 +76,7 @@ test.describe("Recalled memories", () => {
       });
     });
 
-    await page.goto(`${siteId}/conversation/${strategyId}`);
+    await page.goto(`conversation/${strategyId}`);
     const composer = page.getByTestId("message-input");
     await expect(composer).toBeVisible({ timeout: 30_000 });
     await composer.click();

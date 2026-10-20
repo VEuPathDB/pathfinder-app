@@ -67,7 +67,7 @@ test.describe("Candidate drug-targets journey", { tag: "@turn" }, () => {
       .toEqual(["INTERSECT"]);
 
     const combineId = combineWith(await readNodes(apiClient, id), "INTERSECT").id ?? "";
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.expectNodeVisible(combineId);
     await graphPage.changeOperator(combineId, "UNION");
     await expectCanvasSaved(graphPage);

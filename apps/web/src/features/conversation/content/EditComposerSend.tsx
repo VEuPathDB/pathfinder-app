@@ -13,12 +13,10 @@ import { conversationSnapshotOptions } from "@/features/conversation/api/convers
 import { recordProductEvent } from "@/lib/api/productEvents";
 import { refetchStrategy } from "@/lib/api/strategy";
 import { toUserMessage } from "@/lib/api/errors";
-import { chatUrl } from "@/lib/routes";
+import { chatUrl, conversationIdFromPath } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 
 import { BranchOrRevertDialog } from "./BranchOrRevertDialog";
-
-const ROUTE_RE = /^\/([^/]+)\/conversation\/([^/?#]+)/;
 
 function dialogError(branchError: unknown, revertError: unknown): string | null {
   if (branchError != null) return toUserMessage(branchError, "Could not branch");
@@ -38,25 +36,22 @@ export function EditComposerBranchOrRevert() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const match = pathname.match(ROUTE_RE);
-  const siteId = match?.[1] ?? null;
-  const conversationId = match?.[2] ?? null;
+  const conversationId = conversationIdFromPath(pathname);
 
   const branchMutation = useMutation({
     mutationFn: async () => {
-      if (conversationId === null || siteId === null || parentId === null) {
+      if (conversationId === null || parentId === null) {
         throw new Error("Cannot branch from here");
       }
       return forkStrategy(conversationId, { fromMessageId: parentId });
     },
     onSuccess: (fork) => {
-      if (siteId === null) return;
       setPendingSubmission({
         conversationId: fork.id,
         content: composerText.trim(),
       });
       setDialogOpen(false);
-      router.push(chatUrl(siteId, fork.id));
+      router.push(chatUrl(fork.id));
     },
   });
 

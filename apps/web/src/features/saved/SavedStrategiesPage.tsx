@@ -70,7 +70,7 @@ function SavedStrategiesPageInner({ siteId }: SavedStrategiesPageProps) {
       </header>
       <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
         {filtered.length === 0 ? (
-          <EmptyState hasAny={saved.length > 0} siteId={siteId} />
+          <EmptyState hasAny={saved.length > 0} />
         ) : (
           <ul
             className="divide-y divide-border rounded-md border border-border"
@@ -95,7 +95,7 @@ function SavedStrategiesPageInner({ siteId }: SavedStrategiesPageProps) {
   );
 }
 
-function EmptyState({ hasAny, siteId }: { hasAny: boolean; siteId: string }) {
+function EmptyState({ hasAny }: { hasAny: boolean }) {
   if (hasAny) {
     return (
       <div className="rounded border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
@@ -111,7 +111,7 @@ function EmptyState({ hasAny, siteId }: { hasAny: boolean; siteId: string }) {
         <span className="font-medium">Save as reusable</span> to add one here, or{" "}
         <Link
           className="text-primary underline-offset-2 hover:underline"
-          href={chatRoot(siteId)}
+          href={chatRoot()}
         >
           start a new conversation
         </Link>{" "}
@@ -192,7 +192,7 @@ function SavedRow({
       // place the inserted steps are visible on arrival.
       openRailPanel(conversationId, "strategy", {});
       toast.success("Inserted into a new conversation", { description: conv.name });
-      router.push(chatUrl(siteId, conversationId));
+      router.push(chatUrl(conversationId));
     },
     onError: (error) => {
       void queryClient.invalidateQueries({
@@ -205,7 +205,7 @@ function SavedRow({
   });
 
   const open = (): void => {
-    router.push(chatUrl(siteId, conv.id));
+    router.push(chatUrl(conv.id));
   };
 
   const stepCount = conv.stepCount ?? conv.steps?.length ?? 0;

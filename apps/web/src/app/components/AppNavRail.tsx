@@ -44,6 +44,7 @@ import { RailQuotaMeter } from "./RailQuotaMeter";
 
 interface AppNavRailProps {
   siteId: string;
+  siteSwitchable: boolean;
   onSiteChange: (siteId: string) => void;
   onOpenSettings: () => void;
   onToggleSidebar: () => void;
@@ -63,6 +64,7 @@ const NAV: NavSpec[] = [
 
 export function AppNavRail({
   siteId,
+  siteSwitchable,
   onSiteChange,
   onOpenSettings,
   onToggleSidebar,
@@ -98,7 +100,7 @@ export function AppNavRail({
         <div className="my-1 h-px w-6 bg-border" />
 
         {NAV.map((item) => {
-          const href = `/${siteId}/${item.slug}`;
+          const href = `/${item.slug}`;
           const active = pathname.startsWith(href);
           const Icon = item.icon;
           return (
@@ -129,7 +131,9 @@ export function AppNavRail({
         <div className="mt-auto flex flex-col items-center gap-1">
           <RailQuotaMeter siteId={siteId} />
 
-          <SiteSwitcherButton siteId={siteId} onChange={onSiteChange} />
+          {siteSwitchable && (
+            <SiteSwitcherButton siteId={siteId} onChange={onSiteChange} />
+          )}
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -159,7 +163,7 @@ function SiteSwitcherButton({
   onChange: (id: string) => void;
 }) {
   const { data: sites } = useSuspenseQuery(sitesOptions());
-  const setSelectedSite = useSessionStore((s) => s.setSelectedSite);
+  const setPickedSite = useSessionStore((s) => s.setPickedSite);
   const pathname = usePathname();
 
   const components = sites.filter((s) => !s.isPortal);
@@ -176,7 +180,7 @@ function SiteSwitcherButton({
         conversationId: conversationIdFromPath(pathname),
       });
     }
-    setSelectedSite(id);
+    setPickedSite(id);
     onChange(id);
   };
 

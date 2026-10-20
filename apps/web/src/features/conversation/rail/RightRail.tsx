@@ -173,9 +173,7 @@ export function RightRail({ conversationId, strategy, siteId }: RightRailProps) 
                   {openPanel === "ledger" && (
                     <LedgerPanel conversationId={conversationId} />
                   )}
-                  {openPanel === "eda" && (
-                    <EdaPanel conversationId={conversationId} siteId={siteId} />
-                  )}
+                  {openPanel === "eda" && <EdaPanel conversationId={conversationId} />}
                 </motion.div>
               </AnimatePresence>
             </div>

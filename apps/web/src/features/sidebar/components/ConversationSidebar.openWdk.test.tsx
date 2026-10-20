@@ -16,7 +16,7 @@ import { chatUrl } from "@/lib/routes";
 const routerPushMock = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPushMock }),
-  usePathname: () => "/plasmodb/conversation",
+  usePathname: () => "/conversation",
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/features/sidebar/hooks/useChatListFetching", () => ({
@@ -113,7 +113,7 @@ describe("opening a VEuPathDB strategy from the conversations sidebar", () => {
       ]),
     );
     await waitFor(() =>
-      expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "conv-9")]]),
+      expect(routerPushMock.mock.calls).toEqual([[chatUrl("conv-9")]]),
     );
   });
 

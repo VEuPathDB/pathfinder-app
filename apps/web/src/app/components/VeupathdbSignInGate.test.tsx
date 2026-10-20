@@ -12,7 +12,7 @@ import { VeupathdbSignInGate } from "./VeupathdbSignInGate";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation",
+  usePathname: () => "/conversation",
   useSearchParams: () => new URLSearchParams(),
 }));
 

@@ -81,13 +81,12 @@ describe("useDeleteStrategyMutation", () => {
     await act(async () => {
       await result.current.mutateAsync({
         conversationId: initial.id,
-        siteId: "plasmodb",
       });
     });
 
     expect(deleteStrategyMock).toHaveBeenCalledWith(initial.id);
     expect(harness.getStrategy(initial.id)).toBeNull();
-    expect(routerPushMock).toHaveBeenCalledWith(chatRoot("plasmodb"));
+    expect(routerPushMock).toHaveBeenCalledWith(chatRoot());
     expect(toastSuccessMock).toHaveBeenCalled();
   });
 
@@ -104,7 +103,6 @@ describe("useDeleteStrategyMutation", () => {
       await expect(
         result.current.mutateAsync({
           conversationId: initial.id,
-          siteId: "plasmodb",
         }),
       ).rejects.toThrow("Boom");
     });

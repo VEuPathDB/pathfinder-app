@@ -10,7 +10,7 @@ import type { QuotaResponse } from "@pathfinder/shared/generated/types/QuotaResp
 
 import { server } from "../../../vitest.msw-setup";
 
-const route = { pathname: "/plasmodb/conversation/abc-123" };
+const route = { pathname: "/conversation/abc-123" };
 const sites: { list: SiteResponse[] } = { list: [] };
 
 vi.mock("next/navigation", () => ({
@@ -56,10 +56,11 @@ vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent }));
 
 import { AppNavRail } from "./AppNavRail";
 
-function draw() {
+function draw(siteSwitchable = true) {
   return render(
     <AppNavRail
       siteId="plasmodb"
+      siteSwitchable={siteSwitchable}
       onSiteChange={() => undefined}
       onOpenSettings={() => undefined}
       onToggleSidebar={() => undefined}
@@ -72,6 +73,7 @@ function drawFor(siteId: string, onSiteChange: (id: string) => void = () => unde
   return render(
     <AppNavRail
       siteId={siteId}
+      siteSwitchable
       onSiteChange={onSiteChange}
       onOpenSettings={() => undefined}
       onToggleSidebar={() => undefined}
@@ -94,7 +96,7 @@ const QUOTA: QuotaResponse = {
 beforeEach(() => {
   recordProductEvent.mockClear();
   sites.list = [];
-  route.pathname = "/plasmodb/conversation/abc-123";
+  route.pathname = "/conversation/abc-123";
   server.use(
     http.get("http://localhost:3000/pathfinder/api/v1/veupathdb/auth/status", () =>
       HttpResponse.json({ signedIn: true }),
@@ -109,7 +111,7 @@ afterEach(cleanup);
 
 describe("AppNavRail section links", () => {
   it("does nothing on the section the reader is already in", async () => {
-    route.pathname = "/plasmodb/conversation/abc-123";
+    route.pathname = "/conversation/abc-123";
     draw();
     const chat = await screen.findByRole("link", { name: "Conversation" });
     expect(chat).toHaveAttribute("aria-current", "page");
@@ -118,7 +120,7 @@ describe("AppNavRail section links", () => {
   });
 
   it("navigates to a section the reader is not in", async () => {
-    route.pathname = "/plasmodb/conversation/abc-123";
+    route.pathname = "/conversation/abc-123";
     draw();
     const saved = await screen.findByRole("link", { name: "Saved strategies" });
     expect(saved).not.toHaveAttribute("aria-current");
@@ -130,7 +132,14 @@ describe("AppNavRail section links", () => {
     draw();
     await screen.findByRole("link", { name: "Conversation" });
     const hrefs = screen.getAllByRole("link").map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/plasmodb/conversation", "/plasmodb/saved"]);
+    expect(hrefs).toEqual(["/conversation", "/saved"]);
+  });
+
+  it("offers no site switch on a website locked to its own site", async () => {
+    draw(false);
+    await screen.findByRole("button", { name: "Settings" });
+
+    expect(screen.queryByRole("button", { name: "Switch site" })).toBe(null);
   });
 
   it("closes the bottom group with the settings", async () => {

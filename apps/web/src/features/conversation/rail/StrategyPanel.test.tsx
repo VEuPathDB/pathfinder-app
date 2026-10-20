@@ -73,7 +73,7 @@ describe("StrategyPanel (read-only rail)", () => {
       <StrategyPanel strategy={STRATEGY} siteId="plasmodb" conversationId="conv-1" />,
     );
     fireEvent.click(screen.getByRole("button", { name: /open/i }));
-    expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("plasmodb", "conv-1"));
+    expect(pushMock).toHaveBeenCalledWith(strategyCanvasUrl("conv-1"));
   });
 
   it("Clicking a step row navigates to /strategy/step/:id", () => {
@@ -81,9 +81,7 @@ describe("StrategyPanel (read-only rail)", () => {
       <StrategyPanel strategy={STRATEGY} siteId="plasmodb" conversationId="conv-1" />,
     );
     fireEvent.click(screen.getByTestId("compact-step-row-step_1"));
-    expect(pushMock).toHaveBeenCalledWith(
-      strategyStepUrl("plasmodb", "conv-1", "step_1"),
-    );
+    expect(pushMock).toHaveBeenCalledWith(strategyStepUrl("conv-1", "step_1"));
   });
 
   it("offers Insert saved strategy when there is nothing built yet", () => {

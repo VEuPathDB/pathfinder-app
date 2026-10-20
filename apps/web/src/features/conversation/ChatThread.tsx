@@ -21,10 +21,9 @@ import {
 } from "./content/MessageRenderer";
 
 function ChatUrlSync({ conversationId }: { conversationId: string }) {
-  const siteId = useSessionStore((s) => s.selectedSite);
   useAuiEvent("thread.runStart", () => {
     if (typeof window === "undefined") return;
-    const target = withBasePath(chatUrl(siteId, conversationId));
+    const target = withBasePath(chatUrl(conversationId));
     if (!window.location.pathname.startsWith(target)) {
       window.history.replaceState(null, "", target);
     }

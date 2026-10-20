@@ -332,7 +332,7 @@ describe("ExportStepButton", () => {
     );
     expect(
       screen.getByRole("link", { name: "Open the strategy canvas" }),
-    ).toHaveAttribute("href", "/plasmodb/conversation/conv-1/strategy");
+    ).toHaveAttribute("href", "/conversation/conv-1/strategy");
     expect(screen.queryByTestId("eda-export-draft-step")).toBe(null);
   });
 
@@ -362,7 +362,7 @@ describe("ExportStepButton", () => {
     );
     expect(
       screen.getByRole("link", { name: "Attach it in the strategy canvas" }),
-    ).toHaveAttribute("href", "/plasmodb/conversation/conv-1/strategy");
+    ).toHaveAttribute("href", "/conversation/conv-1/strategy");
     expect(screen.queryByTestId("eda-export-began-strategy")).toBe(null);
   });
 

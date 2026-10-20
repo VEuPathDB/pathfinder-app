@@ -19,7 +19,7 @@
 import type { BrowserContext, Route } from "@playwright/test";
 
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { entrySiteId } from "../fixtures/entry-site";
+import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 
 const NOTE_ID = "note-e2e-scratchpad-001";
@@ -113,7 +113,7 @@ test.describe("Notes rail", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
 
@@ -148,7 +148,7 @@ test.describe("Notes rail", () => {
       });
     });
 
-    await page.goto(`${siteId}/conversation/${conversationId}`);
+    await page.goto(`conversation/${conversationId}`);
 
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });
@@ -183,7 +183,7 @@ test.describe("Notes rail", () => {
   });
 
   test("user can pin and delete a note", async ({ page, context }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const conversationId = await openConversation(context, siteId);
     const notesUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes`;
     const noteUrl = `**/api/v1/conversations/${conversationId}/scratchpad/notes/${NOTE_ID}`;
@@ -229,7 +229,7 @@ test.describe("Notes rail", () => {
       await route.continue();
     });
 
-    await page.goto(`${siteId}/conversation/${conversationId}`);
+    await page.goto(`conversation/${conversationId}`);
 
     const composer = page.getByPlaceholder(/Ask about/i);
     await expect(composer).toBeVisible({ timeout: 30_000 });

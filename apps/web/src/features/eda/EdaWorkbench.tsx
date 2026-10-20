@@ -62,7 +62,7 @@ export function EdaWorkbench({ siteId, conversationId }: EdaWorkbenchProps) {
       >
         <div className="flex min-w-0 items-center gap-2">
           <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5">
-            <Link href={chatUrl(siteId, conversationId)}>
+            <Link href={chatUrl(conversationId)}>
               <ArrowLeft className="size-4" aria-hidden />
               <span className="text-xs">Back to conversation</span>
             </Link>

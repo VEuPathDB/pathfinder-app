@@ -40,7 +40,7 @@ _ROUTE = (
     "question about it, and write this in the summary word for word, link "
     "included: This needs the VEuPathDB Portal, where one strategy holds both "
     "organisms. [Open a new conversation "
-    "there](/pathfinder/veupathdb/conversation); this conversation stays on "
+    "there](https://qa.veupathdb.org/veupathdb.qa/app/pathfinder/conversation); this conversation stays on "
     "PlasmoDB. Save the result there as a gene set, and a conversation on PlasmoDB "
     "can start from its PlasmoDB genes."
 )
@@ -80,7 +80,7 @@ async def test_an_organism_on_another_site_opens_the_portal_and_asks_no_switch(
     assert "needs_user" not in refusal
     assert state.portal_route == (
         "This needs the VEuPathDB Portal, where one strategy holds both organisms. "
-        "[Open a new conversation there](/pathfinder/veupathdb/conversation); this "
+        "[Open a new conversation there](https://qa.veupathdb.org/veupathdb.qa/app/pathfinder/conversation); this "
         "conversation stays on PlasmoDB. Save the result there as a gene set, and a "
         "conversation on PlasmoDB can start from its PlasmoDB genes."
     )
@@ -89,7 +89,10 @@ async def test_an_organism_on_another_site_opens_the_portal_and_asks_no_switch(
 def test_the_portal_link_stays_under_the_base_path() -> None:
     sentence = portal_route_sentence("plasmodb")
 
-    assert "(/pathfinder/veupathdb/conversation)" in sentence
+    assert (
+        "(https://qa.veupathdb.org/veupathdb.qa/app/pathfinder/conversation)"
+        in sentence
+    )
 
 
 @pytest.mark.asyncio
@@ -125,7 +128,7 @@ async def test_vectorbase_to_plasmodium_links_the_portal(
         "criterion, ask no question about it, and write this in the summary word "
         "for word, link included: This needs the VEuPathDB Portal, where one "
         "strategy holds both organisms. [Open a new conversation "
-        "there](/pathfinder/veupathdb/conversation); this conversation stays on "
+        "there](https://qa.veupathdb.org/veupathdb.qa/app/pathfinder/conversation); this conversation stays on "
         "VectorBase. Save the result there as a gene set, and a conversation on "
         "VectorBase can start from its VectorBase genes."
     )

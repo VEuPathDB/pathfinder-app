@@ -157,12 +157,12 @@ async function expectOrthologs(
   for (const gene of genes)
     expect(gene.startsWith(siteGeneIdPrefix(siteId))).toBe(false);
 
-  await graphPage.goToStrategy(siteId, id);
+  await graphPage.goToStrategy(id);
   await graphPage.expectStrategyTopbar();
   await graphPage.clickNode(transform.id ?? "");
   await graphPage.expectEditorSheetOpen();
   await expect(graphPage.editorSheet).toContainText("Syntenic Orthologs Only?");
-  await page.goto(`${siteId}/conversation/${id}`);
+  await page.goto(`conversation/${id}`);
   await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
 }
 
@@ -306,7 +306,7 @@ test.describe("Cross-site and orthology", { tag: "@named-site" }, () => {
     ).not.toHaveCount(0);
     await chatPage.expectRootCount(0);
 
-    await page.goto(`${portal}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expectOrthologs(chatPage, graphPage, apiClient, page, portal, id);
   });

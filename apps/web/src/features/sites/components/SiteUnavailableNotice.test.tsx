@@ -61,7 +61,7 @@ describe("SiteUnavailableNotice", () => {
       ),
     ).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "ToxoDB" });
-    expect(link.getAttribute("href")).toBe(chatRoot("toxodb"));
+    expect(link.getAttribute("href")).toBe(chatRoot());
   });
 
   it("does not link the site that is down", () => {

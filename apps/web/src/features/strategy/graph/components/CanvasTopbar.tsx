@@ -81,10 +81,8 @@ export function CanvasTopbar({
     updateMeta.mutate({ name: next });
   };
 
-  const siteId = strategy.siteId;
-
   const handleBack = (): void => {
-    router.push(chatUrl(siteId, conversationId));
+    router.push(chatUrl(conversationId));
   };
 
   const handleDelete = (): void => {
@@ -93,7 +91,7 @@ export function CanvasTopbar({
 
   const handleConfirmDelete = (): void => {
     deleteStrategy.mutate(
-      { conversationId, siteId },
+      { conversationId },
       { onSettled: () => setConfirmDeleteOpen(false) },
     );
   };
@@ -105,7 +103,7 @@ export function CanvasTopbar({
   const handleCopyUrl = (): void => {
     if (typeof window === "undefined") return;
     const origin = window.location.origin;
-    const url = `${origin}${withBasePath(strategyCanvasUrl(siteId, conversationId))}`;
+    const url = `${origin}${withBasePath(strategyCanvasUrl(conversationId))}`;
     void navigator.clipboard.writeText(url);
     toast.success("Strategy URL copied");
   };

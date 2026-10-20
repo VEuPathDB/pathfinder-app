@@ -2,14 +2,16 @@
 
 import { use } from "react";
 
+import { useCurrentSite } from "@/app/hooks/useCurrentSite";
 import { StrategyPage } from "@/features/strategy/page/StrategyPage";
 
 export default function StrategyRoute({
   params,
 }: {
-  params: Promise<{ siteId: string; conversationId: string }>;
+  params: Promise<{ conversationId: string }>;
 }) {
-  const { siteId, conversationId } = use(params);
+  const { conversationId } = use(params);
+  const { siteId } = useCurrentSite();
   return (
     <StrategyPage siteId={siteId} conversationId={conversationId} focusStepId={null} />
   );

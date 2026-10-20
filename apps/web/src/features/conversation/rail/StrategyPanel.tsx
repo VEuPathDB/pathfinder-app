@@ -53,12 +53,12 @@ export function StrategyPanel({
 
   const openFullEditor = (): void => {
     if (strategy == null) return;
-    router.push(strategyCanvasUrl(siteId, strategy.id));
+    router.push(strategyCanvasUrl(strategy.id));
   };
 
   const openStep = (stepId: string): void => {
     if (strategy == null) return;
-    router.push(strategyStepUrl(siteId, strategy.id, stepId));
+    router.push(strategyStepUrl(strategy.id, stepId));
   };
 
   const saveTargetStep =

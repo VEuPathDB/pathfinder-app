@@ -82,7 +82,7 @@ test.describe("EDA export as a strategy step", () => {
       answerExport();
     });
 
-    await page.goto(`${SITE_ID}/conversation/${conversationId}/eda`);
+    await page.goto(`conversation/${conversationId}/eda`);
     await expect(page.getByTestId("eda-viz-volcano")).toBeVisible({ timeout: 60_000 });
 
     const exportButton = page.getByRole("button", { name: "Export as step" });
@@ -95,10 +95,7 @@ test.describe("EDA export as a strategy step", () => {
     );
     await expect(
       page.getByRole("link", { name: "Open the strategy canvas" }),
-    ).toHaveAttribute(
-      "href",
-      `/pathfinder/${SITE_ID}/conversation/${conversationId}/strategy`,
-    );
+    ).toHaveAttribute("href", `/pathfinder/conversation/${conversationId}/strategy`);
     await expect(page.getByTestId("eda-export-step-name")).toHaveText(
       `Exported: ${EXPORTED_STEP.displayName}`,
     );
@@ -110,7 +107,7 @@ test.describe("EDA export as a strategy step", () => {
       .getByRole("link")
       .click();
     await expect(page).toHaveURL(
-      new RegExp(`/pathfinder/${SITE_ID}/conversation/${conversationId}$`),
+      new RegExp(`/pathfinder/conversation/${conversationId}$`),
     );
 
     const panel = page.getByTestId("rail-strategy-panel");

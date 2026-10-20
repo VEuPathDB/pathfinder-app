@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { useReactFlow } from "@xyflow/react";
-import { useParams, usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEventListener } from "usehooks-ts";
 import { useStrategyGraphCtx } from "@/features/strategy/graph/StrategyGraphContext";
 import { useAddStepMutation } from "@/features/strategy/mutations";
@@ -31,10 +31,9 @@ export function useStrategyKeyboardShortcuts({
   const { fitView, zoomIn, zoomOut } = useReactFlow();
   const router = useRouter();
   const pathname = usePathname();
-  const siteId = String(useParams()["siteId"] ?? "");
   const conversationId = ctx.strategy?.id ?? "";
-  const strategyHref = strategyCanvasUrl(siteId, conversationId);
-  const chatHref = chatUrl(siteId, conversationId);
+  const strategyHref = strategyCanvasUrl(conversationId);
+  const chatHref = chatUrl(conversationId);
   useAddStepMutation(conversationId);
 
   const leaderRef = useRef<{ key: "g"; expires: number } | null>(null);

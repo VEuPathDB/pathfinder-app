@@ -2,6 +2,12 @@
 
 ## 2026-10-19
 
+* **PathFinder's addresses carry no site.** Every route drops the site segment
+  (`/conversation/<id>`, `/saved`), and the browser takes the site from the website at the
+  page's origin: a component site's website locks PathFinder to that site with no switcher,
+  and the portal's website keeps the switcher, with the picked site persisted in the session
+  store. The entry redirect to an answering site is gone; a degraded current site shows its
+  notice in the shell.
 * **PathFinder follows the website that frames it.** One deployment is proxied from the
   portal, PlasmoDB and OrthoMCL development sites, and the server sees one Host for all of
   them, so the browser picks the site whose `siteOrigin` is the page's origin: its sign-in

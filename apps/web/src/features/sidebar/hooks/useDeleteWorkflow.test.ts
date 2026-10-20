@@ -112,14 +112,14 @@ describe("useDeleteWorkflow.confirmDelete", () => {
     expect(mockDismiss).not.toHaveBeenCalled();
   });
 
-  it("routes to the site chat root when the open conversation is deleted", async () => {
+  it("routes to the chat root when the open conversation is deleted", async () => {
     const { result } = renderWorkflow("n1");
     act(() => result.current.setDeleteTarget(item({ id: "n1", wdkStrategyId: null })));
     await act(async () => {
       await result.current.confirmDelete({});
     });
-    expect(chatRoot("plasmodb")).toBe("/plasmodb/conversation");
-    expect(pushMock.mock.calls).toEqual([[chatRoot("plasmodb")]]);
+    expect(chatRoot()).toBe("/conversation");
+    expect(pushMock.mock.calls).toEqual([[chatRoot()]]);
   });
 
   it("leaves the route alone when a background conversation is deleted", async () => {

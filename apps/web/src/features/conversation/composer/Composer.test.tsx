@@ -11,7 +11,7 @@ import type { UIMessage } from "ai";
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
   useParams: () => ({ siteId: "plasmodb" }),
-  usePathname: () => "/plasmodb/conversation",
+  usePathname: () => "/conversation",
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));

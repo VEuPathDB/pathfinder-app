@@ -70,40 +70,38 @@ describe("ChatShell.computeChatResolution resumability", () => {
 
 describe("ChatShell.isStrategyRoute", () => {
   it("returns false for the bare conversation route", () => {
-    expect(isStrategyRoute("/plasmodb/conversation/conv-1")).toBe(false);
-    expect(isStrategyRoute("/plasmodb/conversation")).toBe(false);
+    expect(isStrategyRoute("/conversation/conv-1")).toBe(false);
+    expect(isStrategyRoute("/conversation")).toBe(false);
   });
 
   it("returns true for the strategy page route", () => {
-    expect(isStrategyRoute("/plasmodb/conversation/conv-1/strategy")).toBe(true);
+    expect(isStrategyRoute("/conversation/conv-1/strategy")).toBe(true);
   });
 
   it("returns true for the strategy step deep-link route", () => {
-    expect(isStrategyRoute("/plasmodb/conversation/conv-1/strategy/step/step_1")).toBe(
-      true,
-    );
+    expect(isStrategyRoute("/conversation/conv-1/strategy/step/step_1")).toBe(true);
   });
 });
 
 describe("ChatShell.isEdaRoute", () => {
   it("matches the conversation-scoped eda pane", () => {
-    expect(isEdaRoute("/plasmodb/conversation/conv-1/eda")).toBe(true);
+    expect(isEdaRoute("/conversation/conv-1/eda")).toBe(true);
   });
 
   it("matches a nested eda path", () => {
-    expect(isEdaRoute("/plasmodb/conversation/conv-1/eda/anything")).toBe(true);
+    expect(isEdaRoute("/conversation/conv-1/eda/anything")).toBe(true);
   });
 
   it("does not match the chat thread itself", () => {
-    expect(isEdaRoute("/plasmodb/conversation/conv-1")).toBe(false);
+    expect(isEdaRoute("/conversation/conv-1")).toBe(false);
   });
 
   it("does not match a conversation whose id ends in eda", () => {
-    expect(isEdaRoute("/plasmodb/conversation/conv-eda")).toBe(false);
+    expect(isEdaRoute("/conversation/conv-eda")).toBe(false);
   });
 
   it("does not match the strategy pane", () => {
-    expect(isEdaRoute("/plasmodb/conversation/conv-1/strategy")).toBe(false);
+    expect(isEdaRoute("/conversation/conv-1/strategy")).toBe(false);
   });
 });
 
@@ -119,9 +117,6 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     vi.doMock("next/navigation", () => ({
       redirect: vi.fn(),
       usePathname: () => "/conversation/with-steps",
-      useParams: () => ({
-        conversationId: "/conversation/with-steps".split("/").pop(),
-      }),
     }));
     vi.doMock("@tanstack/react-query", async () => {
       const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");
@@ -185,7 +180,6 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     vi.doMock("next/navigation", () => ({
       redirect: vi.fn(),
       usePathname: () => "/conversation/no-steps",
-      useParams: () => ({ conversationId: "/conversation/no-steps".split("/").pop() }),
     }));
     vi.doMock("@tanstack/react-query", async () => {
       const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");
@@ -253,7 +247,6 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
     vi.doMock("next/navigation", () => ({
       redirect: redirectSpy,
       usePathname: () => "/conversation/stranger",
-      useParams: () => ({ conversationId: "/conversation/stranger".split("/").pop() }),
     }));
     vi.doMock("@tanstack/react-query", async () => {
       const actual = await vi.importActual<ReactQueryExports>("@tanstack/react-query");
@@ -284,56 +277,43 @@ describe("ChatShell integration: the rail reads the conversation the view holds"
 
     render(<ChatView conversationId="stranger" />);
 
-    // useParams mock omits siteId, so the redirect interpolates an empty
-    // segment. The production code prefixes the route with `/${siteId}/`.
-    expect(redirectSpy).toHaveBeenCalledWith("//conversation");
+    expect(redirectSpy).toHaveBeenCalledWith("/conversation");
   });
 });
 
 describe("ChatShell.routeKey", () => {
   it("names the path alone when the URL asks for no assistant", () => {
-    expect(routeKey("/plasmodb/conversation", null)).toBe("/plasmodb/conversation");
+    expect(routeKey("/conversation", null)).toBe("/conversation");
   });
 
   it("tells two assistants on one path apart", () => {
-    expect(routeKey("/plasmodb/conversation", "helper")).not.toBe(
-      routeKey("/plasmodb/conversation", null),
+    expect(routeKey("/conversation", "helper")).not.toBe(
+      routeKey("/conversation", null),
     );
   });
 });
 
 describe("ChatShell.needsNewDraftId", () => {
   it("mints when the URL leaves a conversation for the draft route", () => {
-    expect(
-      needsNewDraftId("/plasmodb/conversation", "/plasmodb/conversation/abc"),
-    ).toBe(true);
+    expect(needsNewDraftId("/conversation", "/conversation/abc")).toBe(true);
   });
 
   it("mints when the draft route changes assistant", () => {
-    expect(
-      needsNewDraftId(
-        "/plasmodb/conversation?assistant=helper",
-        "/plasmodb/conversation",
-      ),
-    ).toBe(true);
-  });
-
-  it("keeps the id while the draft route stays put", () => {
-    expect(needsNewDraftId("/plasmodb/conversation", "/plasmodb/conversation")).toBe(
-      false,
+    expect(needsNewDraftId("/conversation?assistant=helper", "/conversation")).toBe(
+      true,
     );
   });
 
+  it("keeps the id while the draft route stays put", () => {
+    expect(needsNewDraftId("/conversation", "/conversation")).toBe(false);
+  });
+
   it("keeps the id when the thread rewrites the URL to the draft id", () => {
-    expect(
-      needsNewDraftId("/plasmodb/conversation/gen-1", "/plasmodb/conversation"),
-    ).toBe(false);
+    expect(needsNewDraftId("/conversation/gen-1", "/conversation")).toBe(false);
   });
 
   it("keeps the id when the route moves between two conversations", () => {
-    expect(
-      needsNewDraftId("/plasmodb/conversation/b", "/plasmodb/conversation/a"),
-    ).toBe(false);
+    expect(needsNewDraftId("/conversation/b", "/conversation/a")).toBe(false);
   });
 });
 
@@ -345,7 +325,7 @@ describe("ChatShell drafts", () => {
   it("opens a new draft thread when the reader picks another assistant", async () => {
     let search = new URLSearchParams();
     vi.doMock("next/navigation", () => ({
-      usePathname: () => "/plasmodb/conversation",
+      usePathname: () => "/conversation",
       useSearchParams: () => search,
     }));
     const seen: { conversationId: string; requestedAssistantId: string | null }[] = [];
@@ -380,7 +360,7 @@ describe("ChatShell drafts", () => {
   });
 
   it("mints a fresh draft every time the URL leaves a conversation", async () => {
-    let pathname = "/plasmodb/conversation/abc";
+    let pathname = "/conversation/abc";
     const search = new URLSearchParams();
     vi.doMock("next/navigation", () => ({
       usePathname: () => pathname,
@@ -409,19 +389,19 @@ describe("ChatShell drafts", () => {
     const view = render(<ChatShell />);
     expect(latest().conversationId).toBe("abc");
 
-    pathname = "/plasmodb/conversation";
+    pathname = "/conversation";
     view.rerender(<ChatShell />);
     const firstDraft = latest();
     expect(firstDraft.conversationId).not.toBe("abc");
     expect(firstDraft.resumable).toBe(false);
 
     // The thread rewrites the URL to the draft id when the first turn starts.
-    pathname = `/plasmodb/conversation/${firstDraft.conversationId}`;
+    pathname = `/conversation/${firstDraft.conversationId}`;
     view.rerender(<ChatShell />);
     expect(latest().conversationId).toBe(firstDraft.conversationId);
     expect(latest().resumable).toBe(true);
 
-    pathname = "/plasmodb/conversation";
+    pathname = "/conversation";
     view.rerender(<ChatShell />);
     const secondDraft = latest();
     expect(secondDraft.conversationId).not.toBe(firstDraft.conversationId);
@@ -432,7 +412,7 @@ describe("ChatShell drafts", () => {
   it("keeps the draft thread while the assistant stays the same", async () => {
     const search = new URLSearchParams("assistant=helper");
     vi.doMock("next/navigation", () => ({
-      usePathname: () => "/plasmodb/conversation",
+      usePathname: () => "/conversation",
       useSearchParams: () => search,
     }));
     const seen: string[] = [];
@@ -460,7 +440,7 @@ describe("ChatShell while another route owns the main pane", () => {
   });
 
   it("keeps the half-typed message while the reader inspects a step", async () => {
-    let pathname = "/plasmodb/conversation/abc";
+    let pathname = "/conversation/abc";
     const search = new URLSearchParams();
     vi.doMock("next/navigation", () => ({
       usePathname: () => pathname,
@@ -498,11 +478,11 @@ describe("ChatShell while another route owns the main pane", () => {
     fireEvent.change(composer(), { target: { value: "does this drop introns" } });
     expect(composer().value).toBe("does this drop introns");
 
-    pathname = "/plasmodb/conversation/abc/strategy/step/s1";
+    pathname = "/conversation/abc/strategy/step/s1";
     view.rerender(<ChatShell />);
     expect(screen.getByTestId("chat-pane")).not.toBeVisible();
 
-    pathname = "/plasmodb/conversation/abc";
+    pathname = "/conversation/abc";
     view.rerender(<ChatShell />);
     expect(screen.getByTestId("chat-pane")).toBeVisible();
     expect(composer().value).toBe("does this drop introns");
@@ -511,7 +491,7 @@ describe("ChatShell while another route owns the main pane", () => {
   });
 
   it("keeps the thread mounted while the eda tab owns the pane", async () => {
-    let pathname = "/plasmodb/conversation/abc";
+    let pathname = "/conversation/abc";
     const search = new URLSearchParams();
     vi.doMock("next/navigation", () => ({
       usePathname: () => pathname,
@@ -535,9 +515,9 @@ describe("ChatShell while another route owns the main pane", () => {
     const view = render(<ChatShell />);
     expect(mounts).toBe(1);
 
-    pathname = "/plasmodb/conversation/abc/eda";
+    pathname = "/conversation/abc/eda";
     view.rerender(<ChatShell />);
-    pathname = "/plasmodb/conversation/abc";
+    pathname = "/conversation/abc";
     view.rerender(<ChatShell />);
 
     expect(mounts).toBe(1);

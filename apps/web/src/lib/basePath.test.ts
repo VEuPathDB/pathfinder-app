@@ -4,9 +4,7 @@ import { BASE_PATH, withBasePath } from "./basePath";
 
 describe("withBasePath", () => {
   it("puts an absolute app path under the base path", () => {
-    expect(withBasePath("/plasmodb/conversation")).toBe(
-      "/pathfinder/plasmodb/conversation",
-    );
+    expect(withBasePath("/conversation")).toBe("/pathfinder/conversation");
   });
 
   it("leaves a path that already carries the base path alone", () => {

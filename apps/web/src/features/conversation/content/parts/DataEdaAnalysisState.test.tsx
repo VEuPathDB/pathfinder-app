@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 
 const { pushMock, route } = vi.hoisted(() => ({
   pushMock: vi.fn(),
-  route: { pathname: "/plasmodb/conversation/conv-1" },
+  route: { pathname: "/conversation/conv-1" },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -39,7 +39,7 @@ function render(ui: ReactElement) {
 beforeEach(() => {
   useEdaStore.getState().reset();
   pushMock.mockClear();
-  route.pathname = "/plasmodb/conversation/conv-1";
+  route.pathname = "/conversation/conv-1";
 });
 
 describe("DataEdaAnalysisState", () => {
@@ -225,17 +225,17 @@ describe("DataEdaAnalysisState chips and navigation", () => {
   it("opens the EDA tab for the conversation in the path", async () => {
     render(<DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />);
     await userEvent.click(screen.getByRole("button", { name: "Open study" }));
-    expect(pushMock).toHaveBeenCalledWith(edaTabUrl("plasmodb", "conv-1"));
+    expect(pushMock).toHaveBeenCalledWith(edaTabUrl("conv-1"));
   });
 });
 
 describe("DataEdaAnalysisState off a conversation route", () => {
   afterEach(() => {
-    route.pathname = "/plasmodb/conversation/conv-1";
+    route.pathname = "/conversation/conv-1";
   });
 
   it("has no open action when the path names no conversation", () => {
-    route.pathname = "/plasmodb/saved";
+    route.pathname = "/saved";
     render(<DataEdaAnalysisState data={EDA_ANALYSIS_STATE_FIXTURE} />);
     expect(screen.queryByRole("button", { name: "Open study" })).toBe(null);
     expect(screen.getByTestId("data-eda-analysis-state")).toHaveTextContent(

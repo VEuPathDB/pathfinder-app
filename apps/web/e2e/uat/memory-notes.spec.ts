@@ -236,7 +236,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expect(recalled).toHaveCount(1);
     await expect(recalled).toContainText("Case");
 
-    await page.goto(`${siteId}/conversation/${first}`);
+    await page.goto(`conversation/${first}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     const liked = chatPage.replyCounting(counts.root);
     await expect(liked.getByRole("button", { name: "Good response" })).toHaveAttribute(
@@ -367,7 +367,7 @@ test.describe("Memory and notes", { tag: "@turn" }, () => {
     await expect(strategyLink).toHaveAttribute("title", outcome.value.name);
     await expect(strategyLink).toHaveAttribute(
       "href",
-      `${BASE_PATH}/${siteId}/conversation/${built}`,
+      `${BASE_PATH}/conversation/${built}`,
     );
 
     await preferenceRow.getByRole("button", { name: preference.value.name }).click();

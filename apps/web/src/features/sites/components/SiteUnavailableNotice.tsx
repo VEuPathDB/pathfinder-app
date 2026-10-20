@@ -40,7 +40,7 @@ export function SiteUnavailableNotice({ siteId }: { siteId: string }) {
           <ul className="mt-2 space-y-1 text-xs">
             {alternatives.map((row) => (
               <li key={row.id}>
-                <Link href={chatRoot(row.id)} className="text-primary hover:underline">
+                <Link href={chatRoot()} className="text-primary hover:underline">
                   {row.displayName}
                 </Link>
               </li>

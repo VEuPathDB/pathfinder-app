@@ -156,7 +156,7 @@ describe("StrategyPage", () => {
       <StrategyPage siteId="plasmodb" conversationId="missing" focusStepId={null} />,
     );
 
-    expect(redirectSpy).toHaveBeenCalledWith(chatRoot("plasmodb"));
+    expect(redirectSpy).toHaveBeenCalledWith(chatRoot());
   });
 
   it("renders a spinner while the conversation query is pending", async () => {

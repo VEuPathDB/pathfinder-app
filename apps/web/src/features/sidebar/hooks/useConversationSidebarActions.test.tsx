@@ -6,7 +6,7 @@ import type { ConversationResponse } from "@pathfinder/shared/generated/types/Co
 const pushMock = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
-  usePathname: () => "/plasmodb/conversation/c1",
+  usePathname: () => "/conversation/c1",
 }));
 vi.mock("@/lib/api/conversations", () => ({
   duplicateConversation: vi.fn(() => Promise.resolve({ id: "copy-1", name: "Copy" })),
@@ -56,15 +56,15 @@ beforeEach(() => {
 });
 
 describe("useConversationSidebarActions navigation targets", () => {
-  it("pushes the site chat root for a new conversation", async () => {
+  it("pushes the chat root for a new conversation", async () => {
     const { result } = renderActions();
 
     await act(async () => {
       await result.current.handleNewConversation();
     });
 
-    expect(chatRoot("plasmodb")).toBe("/plasmodb/conversation");
-    expect(pushMock.mock.calls).toEqual([[chatRoot("plasmodb")]]);
+    expect(chatRoot()).toBe("/conversation");
+    expect(pushMock.mock.calls).toEqual([[chatRoot()]]);
   });
 
   it("pushes the copy's conversation route after a duplicate", async () => {
@@ -75,7 +75,7 @@ describe("useConversationSidebarActions navigation targets", () => {
     });
 
     expect(mockDuplicate.mock.calls).toEqual([["c1"]]);
-    expect(chatUrl("plasmodb", "copy-1")).toBe("/plasmodb/conversation/copy-1");
-    expect(pushMock.mock.calls).toEqual([[chatUrl("plasmodb", "copy-1")]]);
+    expect(chatUrl("copy-1")).toBe("/conversation/copy-1");
+    expect(pushMock.mock.calls).toEqual([[chatUrl("copy-1")]]);
   });
 });

@@ -50,7 +50,7 @@ export function useConversationSidebarActions({
   const listKey = listStrategiesQueryOptions({ siteId }).queryKey;
 
   const handleNewConversation = async (): Promise<void> => {
-    router.push(chatRoot(siteId));
+    router.push(chatRoot());
   };
 
   const handleToggleSaved = async (item: ConversationItem): Promise<void> => {
@@ -76,7 +76,7 @@ export function useConversationSidebarActions({
     try {
       const copy = await duplicateConversation(item.id);
       await queryClient.invalidateQueries({ queryKey: listKey });
-      router.push(chatUrl(siteId, copy.id));
+      router.push(chatUrl(copy.id));
     } catch (err) {
       reportError(toUserMessage(err, "Failed to duplicate conversation."));
     }

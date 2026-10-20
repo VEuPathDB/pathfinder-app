@@ -16,7 +16,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId } = await seedStrategy(apiClient, siteId);
 
-    await page.goto(`${siteId}/conversation/${conversationId}`);
+    await page.goto(`conversation/${conversationId}`);
     await graphPage.openRailStrategyPanel();
     await expect(graphPage.railOpenButton).toBeVisible();
     await expect(graphPage.railFooter).toHaveText("1 step");
@@ -44,7 +44,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await page.goto(`${siteId}/conversation/${conversationId}`);
+    await page.goto(`conversation/${conversationId}`);
     await graphPage.openRailStrategyPanel();
     await graphPage.railStepRow(rootStepId).click();
     await expect(page).toHaveURL(
@@ -68,7 +68,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.goToStrategy(conversationId);
     await graphPage.clickNode(rootStepId);
     await graphPage.expectEditorSheetOpen();
 
@@ -89,7 +89,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.goToStrategy(conversationId);
     await graphPage.expectStrategyTopbar();
     await graphPage.strategyPageBackButton.click();
     await graphPage.expectOnChatRoute(conversationId);
@@ -103,7 +103,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.goToStrategy(conversationId);
     await graphPage.expectStrategyTopbar();
     await graphPage.expectNodeCount(1);
 
@@ -120,7 +120,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.goToStrategy(conversationId);
     await graphPage.expectStrategyTopbar();
     await expect(graphPage.validationAlert).toBeHidden();
   });
@@ -133,7 +133,7 @@ test.describe("Strategy page smoke", () => {
   }) => {
     const { conversationId, rootStepId } = await seedStrategy(apiClient, siteId);
 
-    await graphPage.goToStrategy(siteId, conversationId);
+    await graphPage.goToStrategy(conversationId);
     await graphPage.clickNode(rootStepId);
     await graphPage.expectEditorSheetOpen();
     await graphPage.editorSheet

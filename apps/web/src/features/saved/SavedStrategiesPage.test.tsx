@@ -174,7 +174,7 @@ describe("SavedStrategiesPage", () => {
   it("points the empty-state chat link at the chat root of the site", async () => {
     renderPage([DRAFT]);
     const link = await screen.findByRole("link", { name: "start a new conversation" });
-    expect(link.getAttribute("href")).toBe(chatRoot("plasmodb"));
+    expect(link.getAttribute("href")).toBe(chatRoot());
   });
 
   it("records strategy_opened when the row's site link is followed", async () => {
@@ -203,7 +203,7 @@ describe("SavedStrategiesPage", () => {
 
     await userEvent.click(screen.getByText("Kinase sweep"));
 
-    expect(routerPushMock.mock.calls).toEqual([[chatUrl("plasmodb", "k1")]]);
+    expect(routerPushMock.mock.calls).toEqual([[chatUrl("k1")]]);
   });
 
   it("asks before a delete and says the site loses the strategy too", async () => {
@@ -271,9 +271,7 @@ describe("SavedStrategiesPage", () => {
       ],
     ]);
     await waitFor(() =>
-      expect(routerPushMock.mock.calls).toEqual([
-        [chatUrl("plasmodb", conversationId)],
-      ]),
+      expect(routerPushMock.mock.calls).toEqual([[chatUrl(conversationId)]]),
     );
   });
 
@@ -341,9 +339,7 @@ describe("SavedStrategiesPage", () => {
 
     finish();
     await waitFor(() =>
-      expect(routerPushMock.mock.calls).toEqual([
-        [chatUrl("plasmodb", begunConversationId())],
-      ]),
+      expect(routerPushMock.mock.calls).toEqual([[chatUrl(begunConversationId())]]),
     );
   });
 
@@ -356,8 +352,6 @@ describe("SavedStrategiesPage", () => {
     await waitFor(() =>
       expect(useRightRailStore.getState().openPanel).toBe("strategy"),
     );
-    expect(routerPushMock.mock.calls).toEqual([
-      [chatUrl("plasmodb", begunConversationId())],
-    ]);
+    expect(routerPushMock.mock.calls).toEqual([[chatUrl(begunConversationId())]]);
   });
 });

@@ -120,7 +120,7 @@ describe("EditorContent", () => {
     await userEvent.click(screen.getByLabelText("More actions"));
     await userEvent.click(await screen.findByText("Copy step URL"));
     expect(writeText).toHaveBeenCalledWith(
-      "http://localhost:3000/pathfinder/plasmodb/conversation/conv-1/strategy/step/step_7",
+      "http://localhost:3000/pathfinder/conversation/conv-1/strategy/step/step_7",
     );
     expect(writeText).toHaveBeenCalledTimes(1);
   });

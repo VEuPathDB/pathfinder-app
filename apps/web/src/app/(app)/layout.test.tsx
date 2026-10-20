@@ -4,11 +4,14 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const pushMock = vi.fn();
-const address = vi.hoisted(() => ({ query: "" }));
+const address = vi.hoisted(() => ({ query: "", path: "/conversation" }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(address.query),
-  usePathname: () => "/veupathdb/conversation",
+  usePathname: () => address.path,
+}));
+vi.mock("@/app/components/SystemReadyGate", () => ({
+  SystemReadyGate: ({ children }: { children: React.ReactNode }) => children,
 }));
 vi.mock("@/lib/api/productEvents", () => ({ recordProductEvent: vi.fn() }));
 
@@ -58,15 +61,16 @@ import { getMyQuotaQueryKey } from "@pathfinder/shared/generated/hooks/useGetMyQ
 
 import { sitesOptions } from "@/lib/api/sites";
 import { authStatusOptions } from "@/lib/api/veupathdb-auth";
+import { strategyQueryOptions } from "@/lib/api/strategy";
 import { createTestWrapper } from "@/lib/query/testing";
+import { makeStrategy } from "@/lib/types/fixtures";
 import { chatRoot } from "@/lib/routes";
 import { useSessionStore } from "@/state/useSessionStore";
 import AppShellLayout from "./layout";
 
-/** React reads a thenable that already carries its settled value synchronously. */
-function settled<T>(value: T): Promise<T> {
-  return Object.assign(Promise.resolve(value), { status: "fulfilled", value });
-}
+beforeEach(() => {
+  useSessionStore.setState({ selectedSite: "plasmodb", pickedSite: "plasmodb" });
+});
 
 function siteRow(over: Partial<SiteResponse>): SiteResponse {
   return {
@@ -92,6 +96,9 @@ const AVAILABLE_TOXODB = siteRow({
   displayName: "ToxoDB (Toxoplasma)",
   baseUrl: "https://qa.toxodb.org/toxo.qa",
   projectId: "ToxoDB",
+  siteOrigin: "https://qa.toxodb.org",
+  signInUrl: "https://qa.toxodb.org/toxo.qa/app/user/login",
+  pageUrl: "https://qa.toxodb.org/toxo.qa/app/pathfinder",
 });
 const PORTAL_DOWN = siteRow({
   id: "veupathdb",
@@ -129,7 +136,7 @@ describe("AppShellLayout site switch", () => {
 
     render(
       <Wrapper>
-        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+        <AppShellLayout>
           <div />
         </AppShellLayout>
       </Wrapper>,
@@ -137,11 +144,11 @@ describe("AppShellLayout site switch", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Switch site" }));
     await userEvent.click(await screen.findByTestId("site-menu-item-toxodb"));
-    expect(pushMock.mock.calls).toEqual([[chatRoot("toxodb")]]);
-    expect(pushMock).toHaveBeenCalledWith("/toxodb/conversation");
+    expect(pushMock.mock.calls).toEqual([[chatRoot()]]);
+    expect(useSessionStore.getState().pickedSite).toBe("toxodb");
   });
 
-  it("replaces a stored site that the entry flow redirected away from", async () => {
+  it("mirrors the site it works on into the session store", async () => {
     useSessionStore.setState({ selectedSite: "veupathdb" });
     const { queryClient, Wrapper } = createTestWrapper();
     queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
@@ -151,7 +158,7 @@ describe("AppShellLayout site switch", () => {
 
     render(
       <Wrapper>
-        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+        <AppShellLayout>
           <div />
         </AppShellLayout>
       </Wrapper>,
@@ -179,7 +186,7 @@ function drawSession(signedIn: boolean) {
   });
   return render(
     <Wrapper>
-      <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+      <AppShellLayout>
         <div data-testid="routed-content" />
       </AppShellLayout>
     </Wrapper>,
@@ -201,7 +208,7 @@ describe("AppShellLayout for a session the website has not signed in", () => {
     expect(screen.getByRole("link", { name: "Sign in to VEuPathDB" })).toHaveAttribute(
       "href",
       "https://muharram.veupathdb.org/eupathdb.amuharram/app/user/login?destination=" +
-        encodeURIComponent("/pathfinder/veupathdb/conversation"),
+        encodeURIComponent("/pathfinder/conversation"),
     );
     expect(screen.queryByTestId("routed-content")).not.toBeInTheDocument();
     expect(
@@ -253,7 +260,7 @@ describe("AppShellLayout once the website login is signed in", () => {
     queryClient.setQueryData(sitesOptions().queryKey, [AVAILABLE_PLASMODB]);
     render(
       <Wrapper>
-        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+        <AppShellLayout>
           <div data-testid="routed-content" />
         </AppShellLayout>
       </Wrapper>,
@@ -284,10 +291,7 @@ describe("AppShellLayout framed by the website page", () => {
 
     expect(screen.getByTestId("signed-out-notice")).toBeVisible();
     expect(postMessage.mock.calls).toEqual([
-      [
-        { type: "pathfinder:location", path: "/veupathdb/conversation" },
-        window.location.origin,
-      ],
+      [{ type: "pathfinder:location", path: "/conversation" }, window.location.origin],
     ]);
   });
 });
@@ -299,6 +303,7 @@ describe("AppShellLayout on a site that does not answer", () => {
   });
 
   function draw(siteId: string) {
+    useSessionStore.setState({ pickedSite: siteId });
     const { queryClient, Wrapper } = createTestWrapper();
     queryClient.setQueryData(authStatusOptions(siteId).queryKey, { signedIn: true });
     queryClient.setQueryData(sitesOptions().queryKey, [
@@ -307,7 +312,7 @@ describe("AppShellLayout on a site that does not answer", () => {
     ]);
     return render(
       <Wrapper>
-        <AppShellLayout params={settled({ siteId })}>
+        <AppShellLayout>
           <div data-testid="routed-content" />
         </AppShellLayout>
       </Wrapper>,
@@ -372,7 +377,7 @@ async function drawWithoutStatus() {
   await act(async () => {
     render(
       <Wrapper>
-        <AppShellLayout params={settled({ siteId: "plasmodb" })}>
+        <AppShellLayout>
           <div data-testid="routed-content" />
         </AppShellLayout>
       </Wrapper>,
@@ -423,5 +428,64 @@ describe("AppShellLayout when the sign-in status is refused", () => {
     expect(calls).toHaveLength(2);
     expect(await screen.findByTestId("routed-content")).toBeInTheDocument();
     expect(screen.queryByTestId("site-unavailable-notice")).not.toBeInTheDocument();
+  });
+});
+
+describe("AppShellLayout on a component site's own website", () => {
+  beforeEach(holdUnseededReads);
+  afterEach(() => {
+    cleanup();
+    address.path = "/conversation";
+    vi.unstubAllGlobals();
+  });
+
+  function drawLocked(conversation: { id: string; siteId: string } | null) {
+    useSessionStore.setState({ pickedSite: "toxodb" });
+    const { queryClient, Wrapper } = createTestWrapper();
+    queryClient.setQueryData(authStatusOptions("plasmodb").queryKey, {
+      signedIn: true,
+    });
+    queryClient.setQueryData(sitesOptions().queryKey, [
+      siteRow({ id: "plasmodb", siteOrigin: window.location.origin }),
+      AVAILABLE_TOXODB,
+    ]);
+    if (conversation !== null) {
+      address.path = `/conversation/${conversation.id}`;
+      queryClient.setQueryData(
+        strategyQueryOptions(conversation.id).queryKey,
+        makeStrategy(conversation),
+      );
+    }
+    return render(
+      <Wrapper>
+        <AppShellLayout>
+          <div data-testid="routed-content" />
+        </AppShellLayout>
+      </Wrapper>,
+    );
+  }
+
+  it("works on that site and offers no site switch", async () => {
+    drawLocked(null);
+
+    expect(await screen.findByTestId("routed-content")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Switch site" })).toBe(null);
+    await waitFor(() =>
+      expect(useSessionStore.getState().selectedSite).toBe("plasmodb"),
+    );
+    expect(useSessionStore.getState().pickedSite).toBe("toxodb");
+  });
+
+  it("sends a conversation of another site to that site's website", async () => {
+    drawLocked({ id: "c-toxo", siteId: "toxodb" });
+
+    expect(
+      await screen.findByText("This conversation is on ToxoDB (Toxoplasma)."),
+    ).toBeVisible();
+    expect(screen.getByRole("link", { name: "Open it on ToxoDB" })).toHaveAttribute(
+      "href",
+      "https://qa.toxodb.org/toxo.qa/app/pathfinder/conversation/c-toxo",
+    );
+    expect(screen.queryByTestId("routed-content")).toBe(null);
   });
 });

@@ -85,7 +85,7 @@ describe("CanvasTopbar", () => {
       </Wrapper>,
     );
     fireEvent.click(screen.getByRole("button", { name: /back to conversation/i }));
-    expect(pushMock).toHaveBeenCalledWith(chatUrl("plasmodb", "conv-1"));
+    expect(pushMock).toHaveBeenCalledWith(chatUrl("conv-1"));
   });
 
   it("renders sync status reflecting saving / error / idle", () => {
@@ -147,7 +147,7 @@ describe("CanvasTopbar", () => {
     await userEvent.click(screen.getByLabelText("More strategy actions"));
     await userEvent.click(await screen.findByText("Copy strategy URL"));
     expect(writeText).toHaveBeenCalledWith(
-      "http://localhost:3000/pathfinder/plasmodb/conversation/conv-1/strategy",
+      "http://localhost:3000/pathfinder/conversation/conv-1/strategy",
     );
   });
 });

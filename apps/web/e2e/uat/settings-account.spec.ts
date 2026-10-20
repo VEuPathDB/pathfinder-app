@@ -36,6 +36,7 @@ import { expectBuild, openTrace } from "../fixtures/build-checks";
 import { siteControlSets, siteOrganism } from "../fixtures/site-reads";
 import type { ChatPage } from "../pages/chat.page";
 import type { SettingsPage } from "../pages/settings.page";
+import { gotoOnSite } from "../pages/navigation";
 
 const S1_TEXT = (organism: string) =>
   `Find ${organism} genes whose proteins have a predicted signal peptide.`;
@@ -62,9 +63,9 @@ function normalize(text: string | null): string {
   return (text ?? "").replace(/\s+/g, " ").trim();
 }
 
-/** Open the site's conversation route without creating a conversation. */
+/** Pick the site and open the draft chat route without creating a conversation. */
 async function openSite(page: Page, siteId: string) {
-  await page.goto(`${siteId}/conversation`);
+  await gotoOnSite(page, siteId, "conversation");
   await expect(page.getByTestId("message-composer")).toBeVisible({ timeout: 60_000 });
 }
 

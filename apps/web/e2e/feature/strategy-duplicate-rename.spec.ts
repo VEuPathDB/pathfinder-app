@@ -49,7 +49,7 @@ test.describe("Rename a step and intersect it with a copy", { tag: "@turn" }, ()
     await expectBuild(page, apiClient, id, siteId, LAYOUTS.union);
     const leafId = nodeBySearch(await readNodes(apiClient, id), TRANSMEMBRANE).id ?? "";
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.expectNodeVisible(leafId);
     await graphPage.clickNode(leafId);
     await expect(graphPage.editorSheet).toBeVisible({ timeout: 20_000 });

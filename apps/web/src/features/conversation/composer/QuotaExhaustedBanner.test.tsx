@@ -6,7 +6,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/plasmodb/conversation",
+  usePathname: () => "/conversation",
   useSearchParams: () => new URLSearchParams(),
 }));
 

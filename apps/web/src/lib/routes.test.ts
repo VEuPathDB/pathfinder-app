@@ -11,34 +11,30 @@ import {
 } from "./routes";
 
 describe("route builders", () => {
-  it("prefix every target with the site id", () => {
-    expect(chatRoot("plasmodb")).toBe("/plasmodb/conversation");
-    expect(chatUrl("plasmodb", "c1")).toBe("/plasmodb/conversation/c1");
+  it("name no site, since the website that frames PathFinder decides it", () => {
+    expect(chatRoot()).toBe("/conversation");
+    expect(chatUrl("c1")).toBe("/conversation/c1");
   });
 
   it("reads the conversation id out of a path, past a query or a hash", () => {
-    expect(conversationIdFromPath("/plasmodb/conversation/c1")).toBe("c1");
-    expect(conversationIdFromPath("/plasmodb/conversation/c1/strategy")).toBe("c1");
-    expect(conversationIdFromPath("/plasmodb/conversation/c1?x=1")).toBe("c1");
-    expect(conversationIdFromPath("/plasmodb/conversation")).toBeNull();
-    expect(
-      conversationIdFromPath("/plasmodb/conversation?assistant=helper"),
-    ).toBeNull();
+    expect(conversationIdFromPath("/conversation/c1")).toBe("c1");
+    expect(conversationIdFromPath("/conversation/c1/strategy")).toBe("c1");
+    expect(conversationIdFromPath("/conversation/c1?x=1")).toBe("c1");
+    expect(conversationIdFromPath("/conversation")).toBeNull();
+    expect(conversationIdFromPath("/conversation?assistant=helper")).toBeNull();
   });
 
-  it("builds the site-scoped conversation eda path", () => {
-    expect(edaTabUrl("plasmodb", "conv-1")).toBe("/plasmodb/conversation/conv-1/eda");
+  it("builds the conversation eda path", () => {
+    expect(edaTabUrl("conv-1")).toBe("/conversation/conv-1/eda");
   });
 
   it("builds the strategy canvas path", () => {
-    expect(strategyCanvasUrl("plasmodb", "conv-1")).toBe(
-      "/plasmodb/conversation/conv-1/strategy",
-    );
+    expect(strategyCanvasUrl("conv-1")).toBe("/conversation/conv-1/strategy");
   });
 
   it("builds a step deep link under the canvas path", () => {
-    expect(strategyStepUrl("plasmodb", "conv-1", "step_1")).toBe(
-      "/plasmodb/conversation/conv-1/strategy/step/step_1",
+    expect(strategyStepUrl("conv-1", "step_1")).toBe(
+      "/conversation/conv-1/strategy/step/step_1",
     );
   });
 

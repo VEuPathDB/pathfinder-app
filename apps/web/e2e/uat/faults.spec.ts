@@ -7,8 +7,6 @@
 import type { Locator, Page } from "@playwright/test";
 import type { EdaStudyListResponse } from "@pathfinder/shared/generated/types/EdaStudyListResponse";
 
-import { BASE_PATH } from "@/lib/basePath";
-
 import { test, expect } from "../fixtures/test";
 import { type ArcName, prompt } from "../fixtures/arcs";
 import { type ApiClient, fetchConversationMessages } from "../fixtures/api-client";
@@ -471,7 +469,7 @@ test.describe("Fault arcs", { tag: "@turn" }, () => {
     await expect(correctedRows(page, "Choose a search")).toHaveCount(1);
     await expect(
       chatPage.assistantMessages.locator(
-        `a[href="${BASE_PATH}/veupathdb/conversation"]`,
+        `a[href="https://qa.veupathdb.org/veupathdb.qa/app/pathfinder/conversation"]`,
       ),
     ).toHaveCount(1);
     await expect(page.getByTestId("approval-card")).toHaveCount(0);

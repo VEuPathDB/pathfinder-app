@@ -17,7 +17,7 @@ Run on each site in [sites and accounts](sites-and-accounts.md) unless the flow 
 |---|---|---|---|
 | 1 | Browser, profile of account A, signed out of the website | Open `<pathfinder-url>` | The app is replaced by one panel: `PathFinder`, `VEuPathDB Strategy Builder` (CSS), `Sign in to VEuPathDB to build and manage search strategies.`, link `Sign in to VEuPathDB`. No dialog, no email or password field. |
 | 2 | Signed-out panel | `Sign in to VEuPathDB` | The website's login page opens in the whole window, its `destination` the page you were on: the website page that shows PathFinder, or PathFinder itself when opened alone. |
-| 3 | Website login | Sign in as account A | The website returns to that page; the panel is gone and PathFinder shows `/<site>/conversation`; the entry site is the deployment's site when it answers, else the portal. |
+| 3 | Website login | Sign in as account A | The website returns to that page; the panel is gone and PathFinder shows `/conversation` on the site whose website it is on: that site alone on a component site's website, with no site switcher, or the picked site on the portal's website. |
 | 4 | First signed-in visit | Read the notice | Dialog `Your data in PathFinder` with seven points, link `Read the full statement` (opens a new tab), checkbox `Let PathFinder learn from my strategies` ticked, button `Continue`. Escape does not close it. Click `Continue`. It does not appear again after a reload. |
 | 5 | Website header | Log out of the website, then reload PathFinder | Back to step 1's panel. |
 | 6 | Signed-out panel | Sign in again through the link | After sign-in the conversation list is unchanged. |
@@ -56,7 +56,7 @@ Needs the deployment operator (see `R1` in [resilience flows](flows-resilience.m
 
 | Step | Where | Do | Expect |
 |---|---|---|---|
-| 1 | Sidebar | `New conversation` (pencil) | URL `/<site>/conversation`; greeting (`Good morning` / `Good afternoon` / `Good evening` / `Still up?`), blurb `Build and refine multi-step <Site> search strategies with guided parameter selection and validation.`, four suggestion cards. |
+| 1 | Sidebar | `New conversation` (pencil) | URL `/conversation`; greeting (`Good morning` / `Good afternoon` / `Good evening` / `Still up?`), blurb `Build and refine multi-step <Site> search strategies with guided parameter selection and validation.`, four suggestion cards. |
 | 2 | Sidebar header | Read the buttons | `Refresh conversations`, `Open a VEuPathDB strategy` (folder), `New conversation`; no assistant menu. |
 
 ## F6 - Rename - core

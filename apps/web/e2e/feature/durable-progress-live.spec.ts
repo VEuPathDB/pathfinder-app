@@ -1,5 +1,5 @@
 import { BASE_URL, test, expect } from "../fixtures/test";
-import { entrySiteId } from "../fixtures/entry-site";
+import { availableSiteId } from "../fixtures/available-site";
 import { sseDone, sseFrame, uiMessageStreamHeaders } from "../fixtures/sse";
 import type { BrowserContext, Page } from "@playwright/test";
 
@@ -115,7 +115,7 @@ test.describe("Durable task live progress", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     const tailCalls = await routeSuspendedTurn(
@@ -143,7 +143,7 @@ test.describe("Durable task live progress", () => {
       },
     );
 
-    await page.goto(`${siteId}/conversation/${strategyId}`);
+    await page.goto(`conversation/${strategyId}`);
     await sendPrompt(page, "kick off durable verification");
 
     const started = page.getByTestId("data-background-task-started");
@@ -161,7 +161,7 @@ test.describe("Durable task live progress", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     await routeSuspendedTurn(
@@ -173,7 +173,7 @@ test.describe("Durable task live progress", () => {
       sseDone(),
     );
 
-    await page.goto(`${siteId}/conversation/${strategyId}`);
+    await page.goto(`conversation/${strategyId}`);
     await sendPrompt(page, "kick off durable verification");
 
     const started = page.getByTestId("data-background-task-started");
@@ -186,7 +186,7 @@ test.describe("Durable task live progress", () => {
     page,
     context,
   }) => {
-    const siteId = await entrySiteId(context, BASE_URL);
+    const siteId = await availableSiteId(context, BASE_URL);
     const strategyId = await openStrategy(context, siteId);
 
     await routeSuspendedTurn(
@@ -214,7 +214,7 @@ test.describe("Durable task live progress", () => {
       ].join(""),
     );
 
-    await page.goto(`${siteId}/conversation/${strategyId}`);
+    await page.goto(`conversation/${strategyId}`);
     await sendPrompt(page, "optimize the search parameters");
 
     await expect(page.getByTestId("data-background-task-started")).toBeVisible({

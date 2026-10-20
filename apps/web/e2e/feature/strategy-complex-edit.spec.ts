@@ -46,7 +46,7 @@ test.describe("Complex combine strategy edited on the canvas", { tag: "@turn" },
     const storedMinimum = paramText(leaf, "min_tm");
     const editedMinimum = String(Number(storedMinimum) + 1);
 
-    await openCanvas(graphPage, siteId, id);
+    await openCanvas(graphPage, id);
     await graphPage.changeOperator(combineId, "INTERSECT");
     await expectCanvasSaved(graphPage);
     await expect
@@ -84,7 +84,7 @@ test.describe("Complex combine strategy edited on the canvas", { tag: "@turn" },
     expect(editedLeaf.id).toBe(leaf.id);
     expect(paramNames(editedLeaf)).toEqual(paramNames(leaf));
 
-    await page.goto(`${siteId}/conversation/${id}`);
+    await page.goto(`conversation/${id}`);
     await expect(chatPage.composer).toBeVisible({ timeout: 60_000 });
     await expectCountAnswered(chatPage, apiClient, id, siteId);
   });

@@ -5,7 +5,7 @@ import { cleanup, renderHook } from "@testing-library/react";
 const goToWebsitePage = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/frameBridge", () => ({ goToWebsitePage }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/veupathdb/conversation/c1",
+  usePathname: () => "/conversation/c1",
   useSearchParams: () => new URLSearchParams("step=2"),
 }));
 
@@ -23,7 +23,7 @@ describe("useWebsitePage", () => {
     renderHook(() => useWebsitePage(SITE_PAGE));
 
     expect(goToWebsitePage.mock.calls).toEqual([
-      [window, SITE_PAGE, "/veupathdb/conversation/c1?step=2"],
+      [window, SITE_PAGE, "/conversation/c1?step=2"],
     ]);
   });
 });

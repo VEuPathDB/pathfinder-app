@@ -9,7 +9,7 @@ import { http, HttpResponse } from "msw";
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
   useParams: () => ({ siteId: "plasmodb" }),
-  usePathname: () => `/plasmodb/conversation/${conversationId}`,
+  usePathname: () => `/conversation/${conversationId}`,
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn() }),
 }));

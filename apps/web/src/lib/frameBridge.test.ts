@@ -57,13 +57,10 @@ describe("reportLocation", () => {
     const website = page(ORIGIN);
     const frame = page(ORIGIN, website.win);
 
-    reportLocation(frame.win, "/plasmodb/conversation/1?step=2");
+    reportLocation(frame.win, "/conversation/1?step=2");
 
     expect(website.postMessage.mock.calls).toEqual([
-      [
-        { type: "pathfinder:location", path: "/plasmodb/conversation/1?step=2" },
-        ORIGIN,
-      ],
+      [{ type: "pathfinder:location", path: "/conversation/1?step=2" }, ORIGIN],
     ]);
     expect(frame.postMessage).not.toHaveBeenCalled();
   });
@@ -71,7 +68,7 @@ describe("reportLocation", () => {
   it("posts nothing when the page is not framed", () => {
     const here = page(ORIGIN);
 
-    reportLocation(here.win, "/plasmodb/conversation");
+    reportLocation(here.win, "/conversation");
 
     expect(here.postMessage).not.toHaveBeenCalled();
   });
@@ -80,7 +77,7 @@ describe("reportLocation", () => {
     const other = crossOriginPage();
     const frame = page(ORIGIN, other.win);
 
-    expect(() => reportLocation(frame.win, "/plasmodb/conversation")).not.toThrow();
+    expect(() => reportLocation(frame.win, "/conversation")).not.toThrow();
     expect(other.postMessage).not.toHaveBeenCalled();
   });
 
@@ -88,19 +85,14 @@ describe("reportLocation", () => {
     const website = page(ORIGIN);
     const frame = page(ORIGIN, website.win);
 
-    for (const path of [
-      "/toxodb/saved",
-      "/toxodb/saved",
-      "/toxodb/conversation",
-      "/toxodb/saved",
-    ]) {
+    for (const path of ["/saved", "/saved", "/conversation", "/saved"]) {
       reportLocation(frame.win, path);
     }
 
     expect(website.postMessage.mock.calls.map(([message]) => message)).toEqual([
-      { type: "pathfinder:location", path: "/toxodb/saved" },
-      { type: "pathfinder:location", path: "/toxodb/conversation" },
-      { type: "pathfinder:location", path: "/toxodb/saved" },
+      { type: "pathfinder:location", path: "/saved" },
+      { type: "pathfinder:location", path: "/conversation" },
+      { type: "pathfinder:location", path: "/saved" },
     ]);
   });
 });
@@ -120,18 +112,16 @@ describe("goToWebsitePage", () => {
   it("sends a page opened on its own to the website page for the same path", () => {
     const { win, replace } = tab(ORIGIN);
 
-    goToWebsitePage(win, SITE_PAGE, "/veupathdb/conversation/c1?step=2");
+    goToWebsitePage(win, SITE_PAGE, "/conversation/c1?step=2");
 
-    expect(replace.mock.calls).toEqual([
-      [`${SITE_PAGE}/veupathdb/conversation/c1?step=2`],
-    ]);
+    expect(replace.mock.calls).toEqual([[`${SITE_PAGE}/conversation/c1?step=2`]]);
   });
 
   it("keeps a page the website page frames", () => {
     const { win: website } = tab(ORIGIN);
     const { win, replace } = tab(ORIGIN, website);
 
-    goToWebsitePage(win, SITE_PAGE, "/veupathdb/conversation");
+    goToWebsitePage(win, SITE_PAGE, "/conversation");
 
     expect(replace).not.toHaveBeenCalled();
   });
@@ -139,7 +129,7 @@ describe("goToWebsitePage", () => {
   it("keeps a page on a host the website page is not on", () => {
     const { win, replace } = tab("http://localhost:3010");
 
-    goToWebsitePage(win, SITE_PAGE, "/veupathdb/conversation");
+    goToWebsitePage(win, SITE_PAGE, "/conversation");
 
     expect(replace).not.toHaveBeenCalled();
   });
@@ -147,7 +137,7 @@ describe("goToWebsitePage", () => {
   it("keeps a page when the website address is not a URL", () => {
     const { win, replace } = tab(ORIGIN);
 
-    goToWebsitePage(win, "not a url", "/veupathdb/conversation");
+    goToWebsitePage(win, "not a url", "/conversation");
 
     expect(replace).not.toHaveBeenCalled();
   });

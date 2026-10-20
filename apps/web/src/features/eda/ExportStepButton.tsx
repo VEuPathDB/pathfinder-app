@@ -100,7 +100,7 @@ export function ExportStepButton({ conversationId }: { conversationId: string })
       {exportStep.data !== undefined ? (
         <PlacementNotice
           placement={exportStep.data.placement}
-          href={strategyCanvasUrl(siteId, conversationId)}
+          href={strategyCanvasUrl(conversationId)}
         />
       ) : null}
       {exportStep.error !== null ? (
