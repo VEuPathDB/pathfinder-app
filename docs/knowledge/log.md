@@ -1,5 +1,12 @@
 # Log
 
+## 2026-10-20
+
+* **A subset preview sends the model at most 40 bins.** `preview_eda_subset` returned every
+  histogram bin to the model, and a gene-id distribution has one bin per gene: 8,776 bins
+  added about 97,000 tokens to every later call of the turn. The model now reads the first
+  40 bins, `binTotal` and a note; the figure part still carries every bin.
+
 ## 2026-10-19
 
 * **PathFinder's addresses carry no site.** Every route drops the site segment

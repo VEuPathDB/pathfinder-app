@@ -87,6 +87,8 @@ class EdaSubsetPreviewResult(CamelModel):
     is_multi_valued: bool = False
     labels: list[str] = Field(default_factory=list)
     values: list[float] = Field(default_factory=list)
+    bin_total: int = 0
+    bins_note: str | None = None
     num_var_values: int = 0
     num_missing_cases: int = 0
     distribution_note: str | None = None
