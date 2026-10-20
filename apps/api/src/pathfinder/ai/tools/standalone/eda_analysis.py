@@ -11,10 +11,10 @@ from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import find_gene_entity
 
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.tools.standalone._eda_bins import cut_histogram
 from pathfinder.ai.tools.standalone._eda_guidance import (
     APPLIED_GUIDANCE,
     SHEET_GUIDANCE,
-    bins_note,
     entity_count_clause,
     gene_count_sentence,
     no_gene_subset_sentence,
@@ -57,8 +57,6 @@ from pathfinder.services.eda.description import (
 )
 from pathfinder.services.eda.gene_subset import gene_count, gene_subset
 from pathfinder.services.eda.study_site import StudyOnAnotherSiteError
-
-_BINS_SHOWN = 40
 
 
 async def _study(
@@ -387,8 +385,10 @@ async def preview_eda_subset(
         is_multi_valued=variable is not None and variable.is_multi_valued,
         num_missing_cases=0 if statistics is None else statistics.num_missing_cases,
     )
-    bins = [] if preview.distribution is None else preview.distribution.histogram
-    shown = bins[:_BINS_SHOWN]
+    cut = cut_histogram(
+        preview.distribution,
+        data_shape=None if variable is None else variable.data_shape,
+    )
     result = EdaSubsetPreviewResult(
         entity_id=preview.entity_id,
         entity_display_name=preview.entity_display_name,
@@ -397,10 +397,10 @@ async def preview_eda_subset(
         variable_id=distribution_variable_id,
         variable_display_name="" if variable is None else variable.display_name,
         is_multi_valued=variable is not None and variable.is_multi_valued,
-        labels=[bin_.bin_label for bin_ in shown],
-        values=[bin_.value for bin_ in shown],
-        bin_total=len(bins),
-        bins_note=bins_note(total=len(bins), shown=len(shown)),
+        labels=cut.labels,
+        values=cut.values,
+        bin_total=cut.total,
+        bins_note=cut.note,
         num_var_values=0 if statistics is None else statistics.num_var_values,
         num_missing_cases=0 if statistics is None else statistics.num_missing_cases,
         distribution_note=preview.distribution_note,

@@ -2,6 +2,11 @@
 
 ## 2026-10-20
 
+* **A cut histogram keeps its largest categories and says what it holds.** Past 40 bins, a
+  categorical variable sends its 40 largest bins and a continuous one its first 40 ranges in
+  order, with a note that states the share of counted values they hold and the smallest and
+  largest bin. A flat note ("Every bin holds 12") tells the model the variable names records
+  rather than groups them.
 * **A subset preview sends the model at most 40 bins.** `preview_eda_subset` returned every
   histogram bin to the model, and a gene-id distribution has one bin per gene: 8,776 bins
   added about 97,000 tokens to every later call of the turn. The model now reads the first

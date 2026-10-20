@@ -38,15 +38,6 @@ def opened_guidance(*, gene_problem: str | None, can_export: bool) -> str:
     return " ".join(lines)
 
 
-def bins_note(*, total: int, shown: int) -> str | None:
-    if total <= shown:
-        return None
-    return (
-        f"{total:,} bins in all; the first {shown} are shown here. The figure "
-        f"shows every bin."
-    )
-
-
 def entity_count_clause(preview: SubsetPreview) -> str:
     """One clause per entity a preview carries: kept of total, then the name."""
     return (

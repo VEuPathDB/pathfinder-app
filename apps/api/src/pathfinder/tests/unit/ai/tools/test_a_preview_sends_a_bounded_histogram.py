@@ -106,8 +106,9 @@ async def test_a_preview_with_thousands_of_bins_sends_the_first_and_their_total(
     assert result.values == [12.0] * 40
     assert result.bin_total == _ONE_BIN_PER_GENE
     assert result.bins_note == (
-        f"{_ONE_BIN_PER_GENE:,} bins in all; the first 40 are shown here. The "
-        "figure shows every bin."
+        "8,776 bins in all; the 40 largest are shown here, holding 480 of "
+        "105,312 counted values (0.5%). Every bin holds 12. The figure shows "
+        "every bin."
     )
     assert [len(labels) for labels in figure] == [_ONE_BIN_PER_GENE]
     assert wire_size(answer, "preview_eda_subset") < _PREVIEW_CEILING
