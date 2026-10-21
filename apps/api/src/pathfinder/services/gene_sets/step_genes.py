@@ -3,12 +3,45 @@
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
 from veupathdb.domain.search import SearchContext
+from veupathdb.errors import DataParsingError, ValidationError
 from veupathdb.wdk import StrategyAPI, WDKRecordInstance, get_strategy_api
 from veupathdb_mcp.catalog import get_search_parameters
 from veupathdb_mcp.wdk import step_view_filters
 
+from pathfinder.platform.config import get_settings
+
 # A transcript record names its gene beside its own id. A set holds the gene id.
 _GENE_ID_PARTS = ("gene_source_id", "source_id")
+
+
+class TooManyGenesError(ValidationError):
+    def __init__(self, count: int, cap: int) -> None:
+        super().__init__(
+            title="Too many genes",
+            detail=(
+                f"It holds {count:,} records, more than the {cap:,} "
+                "PathFinder reads into one list, so none were read. Use a "
+                "smaller step or list, or download the result."
+            ),
+        )
+        self.count = count
+        self.cap = cap
+
+
+class IncompleteAnswerError(DataParsingError):
+    def __init__(self, counted: int, returned: int) -> None:
+        super().__init__(
+            f"The step answers {counted:,} records but sent {returned:,}, "
+            "so none were saved."
+        )
+        self.counted = counted
+        self.returned = returned
+
+
+def refuse_above_the_cap(count: int) -> None:
+    cap = get_settings().step_genes_cap
+    if count > cap:
+        raise TooManyGenesError(count, cap)
 
 
 def dedup_ordered(gene_ids: list[str]) -> list[str]:
@@ -54,11 +87,6 @@ async def first_step_gene_ids(
     return StepIds(gene_ids=dedup_ordered(ids), total=total)
 
 
-async def step_gene_ids(site_id: str, step_id: int) -> list[str]:
-    """Every gene id a WDK step holds, on the site that runs it."""
-    return await fetch_all_gene_ids(get_strategy_api(site_id), step_id)
-
-
 async def fetch_all_gene_ids(
     api: StrategyAPI,
     step_id: int,
@@ -80,6 +108,8 @@ async def fetch_all_gene_ids(
         records = answer.records
         if not records:
             break
+        if offset == 0:
+            refuse_above_the_cap(answer.meta.records_returned())
 
         for record in records:
             gene_id = extract_gene_id(record)

@@ -27,7 +27,10 @@ from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.experiment.materialization import (
     _materialize_step_tree,
 )
-from pathfinder.services.gene_sets.step_genes import fetch_all_gene_ids
+from pathfinder.services.gene_sets.step_genes import (
+    TooManyGenesError,
+    fetch_all_gene_ids,
+)
 from pathfinder.services.strategies.wdk_sync import ChatOwner, sync_to_chat
 
 logger = get_logger(__name__)
@@ -136,7 +139,11 @@ async def build_gold_strategy(
         root_step_id=root_step_id,
     )
 
-    gene_ids = await fetch_all_gene_ids(api, root_step_id)
+    try:
+        gene_ids = await fetch_all_gene_ids(api, root_step_id)
+    except TooManyGenesError:
+        await api.delete_strategy(wdk_strategy_id)
+        raise
 
     conversation_id: UUID | None = None
     if user_id is not None:

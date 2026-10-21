@@ -30,6 +30,7 @@ from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.services.export.service import ExportResult
 from pathfinder.services.gene_records import read
 from pathfinder.services.gene_records.read import GeneRecordSummary, OrthologRow
+from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.gene_set_store import keep_saved
@@ -227,7 +228,15 @@ async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_tools
     """The scripted turn runs on the real Lead and its real registrations."""
     saved: list[GeneSet] = []
     monkeypatch.setattr(gene_sets, "store_gene_set", keep_saved(saved))
-    monkeypatch.setattr(gene_sets, "step_gene_ids", AsyncMock(return_value=_ROOT_GENES))
+    monkeypatch.setattr(
+        gene_sets,
+        "read_step_genes",
+        AsyncMock(
+            return_value=StepGenes(
+                gene_ids=_ROOT_GENES, homes={}, record_class="transcript"
+            )
+        ),
+    )
     monkeypatch.setattr(
         gene_sets, "visible_parameter_names", AsyncMock(return_value=set())
     )

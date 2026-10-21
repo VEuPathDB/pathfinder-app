@@ -33,12 +33,15 @@ from pathfinder.services.evidence.gene_sets import (
     store_gene_set,
 )
 from pathfinder.services.gene_sets.homes import (
+    StepGenes,
     gene_homes,
+    read_step_genes,
     site_kind,
     sites_that_list,
 )
 from pathfinder.services.gene_sets.step_genes import (
-    step_gene_ids,
+    IncompleteAnswerError,
+    TooManyGenesError,
     visible_parameter_names,
 )
 from pathfinder.services.gene_sets.types import GeneSet
@@ -125,16 +128,47 @@ async def _with_the_parameters_a_user_sees(
 async def _genes_of_step(
     deps: AgentDeps,
     step_id: str | None,
-    record_type: str,
-) -> tuple[list[str], WdkProvenance]:
+) -> tuple[StepGenes, WdkProvenance]:
     """The genes a step of this conversation's strategy holds, and its ids."""
     src = _wdk_provenance(deps.strategy_session, step_id)
     if src.wdk_step_id is None:
         raise ModelRetry(_NO_STEP_TO_SAVE_FROM)
-    ids = await step_gene_ids(deps.site_id, src.wdk_step_id)
-    if not ids:
+    genes = await read_step_genes(deps.site_id, src.wdk_step_id)
+    if not genes.gene_ids:
         raise ModelRetry(_STEP_HOLDS_NO_GENES)
-    return ids, await _with_the_parameters_a_user_sees(deps.site_id, src, record_type)
+    return genes, await _with_the_parameters_a_user_sees(
+        deps.site_id, src, genes.record_class
+    )
+
+
+async def _genes_of_list(
+    deps: AgentDeps, step_id: str | None, gene_ids: list[str], record_type: str
+) -> StepGenes:
+    if step_id is not None:
+        raise ModelRetry(_A_LIST_AND_A_STEP)
+    if not gene_ids:
+        msg = "VALIDATION_ERROR: gene_ids must contain at least one gene ID."
+        raise ModelRetry(msg)
+    return StepGenes(
+        gene_ids=gene_ids,
+        homes=await gene_homes(deps.site_id, gene_ids, record_type=record_type),
+        record_class=record_type,
+    )
+
+
+async def _genes_to_save(
+    deps: AgentDeps,
+    step_id: str | None,
+    gene_ids: list[str] | None,
+    record_type: str,
+) -> tuple[StepGenes, WdkProvenance]:
+    try:
+        if gene_ids is None:
+            return await _genes_of_step(deps, step_id)
+        genes = await _genes_of_list(deps, step_id, gene_ids, record_type)
+    except (IncompleteAnswerError, TooManyGenesError) as exc:
+        raise ModelRetry(str(exc.detail)) from exc
+    return genes, WdkProvenance()
 
 
 async def save_gene_set(
@@ -168,31 +202,21 @@ async def save_gene_set(
         msg = "VALIDATION_ERROR: Gene set name must be a non-empty string."
         raise ModelRetry(msg)
     deps = ctx.deps
-    if gene_ids is None:
-        ids, src = await _genes_of_step(deps, step_id, record_type)
-    else:
-        if step_id is not None:
-            raise ModelRetry(_A_LIST_AND_A_STEP)
-        if not gene_ids:
-            msg = "VALIDATION_ERROR: gene_ids must contain at least one gene ID."
-            raise ModelRetry(msg)
-        ids, src = gene_ids, WdkProvenance()
+    genes, src = await _genes_to_save(deps, step_id, gene_ids, record_type)
     gs = GeneSet(
         id=str(uuid4()),
         name=name,
         site_id=deps.site_id,
-        gene_ids=ids,
+        gene_ids=genes.gene_ids,
         source=src.source,
         user_id=deps.user_id,
         wdk_strategy_id=src.wdk_strategy_id,
         wdk_step_id=src.wdk_step_id,
         search_name=src.search_name,
-        record_type=record_type,
+        record_type=genes.record_class,
         parameters=src.parameters,
         conversation_id=deps.conversation_id,
-        homes=await gene_homes(
-            deps.site_id, ids, record_type=record_type, wdk_step_id=src.wdk_step_id
-        ),
+        homes=genes.homes,
     )
     await store_gene_set(gs)
     created = CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))

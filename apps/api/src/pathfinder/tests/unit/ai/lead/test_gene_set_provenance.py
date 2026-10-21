@@ -17,7 +17,13 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.dispatch_context import agent_deps_for
 from pathfinder.ai.tools.standalone import gene_sets
 from pathfinder.ai.tools.standalone.gene_set_models import GeneSetCreatedResponse
+from pathfinder.domain.gene_homes import GeneHome
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.services.gene_sets.homes import StepGenes
+from pathfinder.services.gene_sets.step_genes import (
+    IncompleteAnswerError,
+    TooManyGenesError,
+)
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 from pathfinder.tests._support.gene_set_store import keep_saved
@@ -55,11 +61,15 @@ def saved(monkeypatch: pytest.MonkeyPatch) -> list[GeneSet]:
 def reads(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, int]]:
     seen: list[tuple[str, int]] = []
 
-    async def _read(site_id: str, step_id: int) -> list[str]:
+    async def _read(site_id: str, step_id: int) -> StepGenes:
         seen.append((site_id, step_id))
-        return list(STEP_GENES)
+        return StepGenes(
+            gene_ids=list(STEP_GENES),
+            homes={g: GeneHome(gene_id=g, site_id="plasmodb") for g in STEP_GENES},
+            record_class="transcript",
+        )
 
-    monkeypatch.setattr(gene_sets, "step_gene_ids", _read)
+    monkeypatch.setattr(gene_sets, "read_step_genes", _read)
 
     async def _visible(
         site_id: str, *, record_type: str, search_name: str
@@ -279,11 +289,11 @@ async def test_a_step_the_strategy_does_not_hold_is_refused(
 async def test_a_step_that_returns_no_genes_is_refused(
     saved: list[GeneSet], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def _empty(site_id: str, step_id: int) -> list[str]:
+    async def _empty(site_id: str, step_id: int) -> StepGenes:
         del site_id, step_id
-        return []
+        return StepGenes(gene_ids=[], homes={}, record_class="transcript")
 
-    monkeypatch.setattr(gene_sets, "step_gene_ids", _empty)
+    monkeypatch.setattr(gene_sets, "read_step_genes", _empty)
     deps = _deps(_leaf_session())
 
     with pytest.raises(ModelRetry) as raised:
@@ -291,6 +301,76 @@ async def test_a_step_that_returns_no_genes_is_refused(
 
     assert "no genes" in str(raised.value)
     assert saved == []
+
+
+async def test_a_step_above_the_cap_is_refused_with_its_count(
+    saved: list[GeneSet], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _too_many(site_id: str, step_id: int) -> StepGenes:
+        del site_id, step_id
+        raise TooManyGenesError(523_795, 10_000)
+
+    monkeypatch.setattr(gene_sets, "read_step_genes", _too_many)
+
+    with pytest.raises(ModelRetry) as raised:
+        await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
+
+    assert "523,795" in str(raised.value)
+    assert saved == []
+
+
+async def test_a_step_that_sends_fewer_rows_than_it_counts_is_refused(
+    saved: list[GeneSet], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _short(site_id: str, step_id: int) -> StepGenes:
+        del site_id, step_id
+        raise IncompleteAnswerError(4600, 4456)
+
+    monkeypatch.setattr(gene_sets, "read_step_genes", _short)
+
+    with pytest.raises(ModelRetry) as raised:
+        await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
+
+    assert ("4,600" in str(raised.value), "4,456" in str(raised.value)) == (True, True)
+    assert saved == []
+
+
+async def test_a_pasted_list_above_the_cap_is_refused_with_its_count(
+    saved: list[GeneSet], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def _too_many(
+        site_id: str, gene_ids: list[str], *, record_type: str | None
+    ) -> dict[str, GeneHome]:
+        del site_id, record_type
+        raise TooManyGenesError(len(gene_ids), 1)
+
+    monkeypatch.setattr(gene_sets, "gene_homes", _too_many)
+
+    with pytest.raises(ModelRetry) as raised:
+        await _save(_deps(), gene_ids=list(PASTED_GENES))
+
+    assert f"holds {len(PASTED_GENES)} records" in str(raised.value)
+    assert saved == []
+
+
+async def test_a_saved_step_records_the_record_class_the_site_names(
+    saved: list[GeneSet],
+    reads: list[tuple[str, int]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del reads
+
+    async def _groups(site_id: str, step_id: int) -> StepGenes:
+        del site_id, step_id
+        return StepGenes(gene_ids=["OG7_0001234"], homes={}, record_class="group")
+
+    monkeypatch.setattr(gene_sets, "read_step_genes", _groups)
+
+    await _save(_deps(_leaf_session()), step_id=LEAF_STEP_ID)
+
+    assert [(gs.gene_ids, gs.record_type) for gs in saved] == [
+        (["OG7_0001234"], "group")
+    ]
 
 
 async def test_a_save_keeps_the_parameters_a_user_sees_and_drops_the_hidden_ones(

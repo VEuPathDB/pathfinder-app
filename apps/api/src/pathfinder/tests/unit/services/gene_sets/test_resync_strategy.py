@@ -6,7 +6,7 @@ the set's genes and the whole WDK context the set was taken under.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable
 from dataclasses import fields
 
 import pytest
@@ -14,11 +14,13 @@ from veupathdb.domain.parameters import MultiPickValue, ParamValue, StringValue
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
+from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.operations import EmptyResyncError, GeneSetService
+from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
-Resolved = tuple[list[str], GeneSetWdkContext, int]
+Read = Callable[..., Awaitable[StrategyGenes | None]]
 
 
 @pytest.mark.asyncio
@@ -41,23 +43,27 @@ async def test_resync_strategy_replaces_stale_snapshot(
     )
     svc = GeneSetService(store)
 
-    async def _fake_resolve(
-        site_id: str, gene_ids: Sequence[str], ctx: GeneSetWdkContext
-    ) -> tuple[list[str], GeneSetWdkContext, int]:
-        del site_id, gene_ids
-        # The fix: NO stale step id is passed, so the CURRENT root is resolved.
-        assert ctx.wdk_step_id is None
-        return (
-            ["PF3D7_A", "PF3D7_B", "PF3D7_A"],
-            GeneSetWdkContext(
-                wdk_strategy_id=ctx.wdk_strategy_id,
+    async def _fake_read(
+        site_id: str, wdk_strategy_id: int, *, record_type: str | None
+    ) -> StrategyGenes:
+        assert (site_id, wdk_strategy_id, record_type) == (
+            "plasmodb",
+            330427013,
+            "transcript",
+        )
+        return StrategyGenes(
+            genes=StepGenes(
+                gene_ids=["PF3D7_A", "PF3D7_B"], homes={}, record_class="transcript"
+            ),
+            context=GeneSetWdkContext(
+                wdk_strategy_id=wdk_strategy_id,
                 wdk_step_id=439858933,
                 record_type="transcript",
             ),
-            4,
+            step_count=4,
         )
 
-    monkeypatch.setattr(operations, "resolve_wdk_context", _fake_resolve)
+    monkeypatch.setattr(operations, "read_strategy_genes", _fake_read)
 
     out = await svc.resync_strategy(
         "g1",
@@ -68,7 +74,7 @@ async def test_resync_strategy_replaces_stale_snapshot(
 
     assert out is not None
     assert out.answer_revision == "9f1c2b7a4e3d5c60"
-    assert out.gene_ids == ["PF3D7_A", "PF3D7_B"]  # fresh + deduped
+    assert out.gene_ids == ["PF3D7_A", "PF3D7_B"]
     assert out.wdk_step_id == 439858933  # re-resolved to the rebuilt root
     assert out.step_count == 4
 
@@ -111,17 +117,23 @@ def _resolver(
     ctx_out: GeneSetWdkContext,
     step_count: int,
     gene_ids: list[str] | None = None,
-) -> Callable[[str, Sequence[str], GeneSetWdkContext], Awaitable[Resolved]]:
+) -> Read:
     """Stand in for the WDK read, answering one resolved context."""
     resolved = ["PF3D7_NEW"] if gene_ids is None else gene_ids
 
-    async def _resolve(
-        site_id: str, gene_ids_in: Sequence[str], ctx: GeneSetWdkContext
-    ) -> Resolved:
-        del site_id, gene_ids_in, ctx
-        return (list(resolved), ctx_out, step_count)
+    async def _read(
+        site_id: str, wdk_strategy_id: int, *, record_type: str | None
+    ) -> StrategyGenes:
+        del site_id, wdk_strategy_id, record_type
+        return StrategyGenes(
+            genes=StepGenes(
+                gene_ids=list(resolved), homes={}, record_class="transcript"
+            ),
+            context=ctx_out,
+            step_count=step_count,
+        )
 
-    return _resolve
+    return _read
 
 
 @pytest.mark.asyncio
@@ -136,7 +148,7 @@ async def test_a_resync_carries_the_search_name_record_type_and_parameters(
     }
     monkeypatch.setattr(
         operations,
-        "resolve_wdk_context",
+        "read_strategy_genes",
         _resolver(
             GeneSetWdkContext(
                 wdk_strategy_id=214626640,
@@ -164,7 +176,7 @@ async def test_a_resync_onto_another_root_step_replaces_the_previous_search_name
     await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
-        "resolve_wdk_context",
+        "read_strategy_genes",
         _resolver(
             GeneSetWdkContext(
                 wdk_strategy_id=214626640,
@@ -193,7 +205,7 @@ async def test_a_resync_onto_a_multi_step_strategy_records_no_search(
     await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
-        "resolve_wdk_context",
+        "read_strategy_genes",
         _resolver(
             GeneSetWdkContext(
                 wdk_strategy_id=214626640,
@@ -257,7 +269,7 @@ async def test_a_resync_that_reads_no_genes_leaves_the_set_whole(
     await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
-        "resolve_wdk_context",
+        "read_strategy_genes",
         _resolver(_other_root_context(), 1, gene_ids=[]),
     )
 
@@ -287,7 +299,7 @@ async def test_a_resync_that_reads_a_smaller_real_list_replaces_the_set(
     await store.save(_signal_peptide_set())
     monkeypatch.setattr(
         operations,
-        "resolve_wdk_context",
+        "read_strategy_genes",
         _resolver(
             _other_root_context(), 1, gene_ids=["PF3D7_0100100", "PF3D7_0200200"]
         ),

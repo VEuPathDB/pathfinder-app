@@ -14,8 +14,10 @@ from veupathdb_mcp.gene_lookup import GeneResolveResult, GeneResult
 from pathfinder.services.experiment import control_sourcing
 from pathfinder.services.experiment.control_sourcing import (
     control_ids_from_saved_gene_set,
+    control_ids_from_strategy,
     validate_control_ids,
 )
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 
 
 @pytest.mark.asyncio
@@ -62,3 +64,18 @@ async def test_control_ids_from_saved_gene_set(
 
     ids = await control_ids_from_saved_gene_set(uuid4(), "gs_1")
     assert ids == ["g1", "g2", "g3"]
+
+
+async def test_a_strategy_above_the_cap_answers_why_it_gave_no_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        control_sourcing,
+        "get_strategy_gene_ids",
+        AsyncMock(side_effect=TooManyGenesError(523_795, 10_000)),
+    )
+
+    found = await control_ids_from_strategy(MagicMock(), uuid4(), "orthomcl", uuid4())
+
+    assert found.gene_ids == []
+    assert "523,795" in (found.error or "")

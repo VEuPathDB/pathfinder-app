@@ -2,22 +2,25 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+from assistant_core.platform.pydantic_base import CamelModel
+from pydantic import ConfigDict
 from veupathdb.wdk import (
     WDKAnswer,
     WDKDatasetConfigIdList,
     WDKDatasetIdListContent,
     WDKRecordInstance,
     WDKSearchConfig,
+    WDKStep,
     get_site,
     get_site_router,
     get_strategy_api,
     get_wdk_client,
 )
-from veupathdb_mcp.wdk import step_view_filters
+from veupathdb_mcp.wdk import view_filters_for
 
 from pathfinder.domain.gene_homes import (
     GENE_RECORD_CLASSES,
@@ -26,10 +29,15 @@ from pathfinder.domain.gene_homes import (
     SiteKind,
     holds_genes,
 )
-from pathfinder.services.gene_sets.step_genes import extract_gene_id
+from pathfinder.platform.config import get_settings
+from pathfinder.services.gene_sets.step_genes import (
+    IncompleteAnswerError,
+    dedup_ordered,
+    extract_gene_id,
+    refuse_above_the_cap,
+)
 
 _ORTHOMCL_PROJECT = "OrthoMCL"
-_ALL = {"offset": 0, "numRecords": -1}
 
 
 @dataclass(frozen=True)
@@ -64,38 +72,67 @@ def site_kind(site_id: str) -> SiteKind:
     return "genomics"
 
 
+class StepGenes(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    gene_ids: list[str]
+    homes: dict[str, GeneHome]
+    record_class: str
+
+
 async def gene_homes(
     site_id: str,
     gene_ids: list[str],
     *,
     record_type: str | None,
-    wdk_step_id: int | None,
 ) -> dict[str, GeneHome]:
-    """Each saved id that names a gene, with its gene on the site that holds it.
+    """Each id of a list that names a gene, with its gene on the site that holds it.
 
-    A genomics site holds its own genes. Elsewhere a step's records answer for
-    its ids, and a list without a step is answered by the site's id-list search.
-    Records of a class that holds no genes answer nothing.
+    A genomics site holds its own genes. Elsewhere the site's id-list search
+    answers for the ids.
     """
     kind = site_kind(site_id)
     if kind == "genomics":
         if (record_type or "transcript") not in GENE_RECORD_CLASSES:
             return {}
         return {gene: GeneHome(gene_id=gene, site_id=site_id) for gene in gene_ids}
-    answer = (
-        await _list_answer(site_id, kind, gene_ids)
-        if wdk_step_id is None
-        else await _step_answer(site_id, kind, wdk_step_id)
-    )
-    if answer is None:
-        return {}
-    homes = {
-        saved: home
-        for record in answer.records
-        if (saved := extract_gene_id(record))
-        and (home := _home(record, saved, site_id, kind))
-    }
+    refuse_above_the_cap(len(gene_ids))
+    answer = await _list_answer(site_id, kind, gene_ids)
+    homes = _homes(answer.records, site_id, kind)
     return {gene: homes[gene] for gene in gene_ids if gene in homes}
+
+
+async def read_step_genes(site_id: str, step_id: int) -> StepGenes:
+    step = await get_strategy_api(site_id).find_step(step_id)
+    return await read_genes_of(site_id, step)
+
+
+async def read_genes_of(site_id: str, step: WDKStep) -> StepGenes:
+    api = get_strategy_api(site_id)
+    record_class = step.record_class_name or ""
+    count = step.estimated_size
+    if count is None:
+        count = await api.get_step_count(step.id)
+    refuse_above_the_cap(count)
+    if count == 0:
+        return StepGenes(gene_ids=[], homes={}, record_class=record_class)
+    kind = site_kind(site_id)
+    homed = holds_genes(kind, record_class)
+    answer = await api.get_step_answer(
+        step.id,
+        attributes=["primary_key", *(_HOME_ATTRIBUTES[kind] if homed else [])],
+        pagination={"offset": 0, "numRecords": get_settings().step_genes_cap},
+        view_filters=view_filters_for(record_class),
+    )
+    counted = answer.meta.records_returned()
+    refuse_above_the_cap(counted)
+    if counted > len(answer.records):
+        raise IncompleteAnswerError(counted, len(answer.records))
+    gene_ids = dedup_ordered(
+        [gene for record in answer.records if (gene := extract_gene_id(record))]
+    )
+    homes = _homes(answer.records, site_id, kind) if homed else {}
+    return StepGenes(gene_ids=gene_ids, homes=homes, record_class=record_class)
 
 
 def sites_that_list(site_id: str, homes: Mapping[str, GeneHome]) -> list[str]:
@@ -110,27 +147,6 @@ def sites_that_list(site_id: str, homes: Mapping[str, GeneHome]) -> list[str]:
         and (site.id in homed or site_kind(site.id) != "genomics")
     ]
     return [get_site(s).name for s in [site_id, *listed]]
-
-
-async def _step_answer(
-    site_id: str, kind: SiteKind, wdk_step_id: int
-) -> WDKAnswer | None:
-    api = get_strategy_api(site_id)
-    filters = await step_view_filters(api, wdk_step_id)
-    head = await api.get_step_answer(
-        wdk_step_id,
-        attributes=["primary_key"],
-        pagination={"offset": 0, "numRecords": 0},
-        view_filters=filters,
-    )
-    if not holds_genes(kind, head.meta.record_class_name):
-        return None
-    return await api.get_step_answer(
-        wdk_step_id,
-        attributes=["primary_key", *_HOME_ATTRIBUTES[kind]],
-        pagination=_ALL,
-        view_filters=filters,
-    )
 
 
 async def _list_answer(site_id: str, kind: SiteKind, gene_ids: list[str]) -> WDKAnswer:
@@ -152,39 +168,54 @@ async def _list_answer(site_id: str, kind: SiteKind, gene_ids: list[str]) -> WDK
     )
 
 
+@dataclass(frozen=True)
+class _GenomicsSites:
+    by_project: dict[str, str]
+    by_domain: dict[str, str]
+
+
+def _genomics_sites() -> _GenomicsSites:
+    by_project: dict[str, str] = {}
+    by_domain: dict[str, str] = {}
+    for site in get_site_router().list_sites():
+        if site_kind(site.id) == "genomics":
+            by_project.setdefault(site.project_id, site.id)
+            by_domain.setdefault(_domain(site.base_url), site.id)
+    return _GenomicsSites(by_project=by_project, by_domain=by_domain)
+
+
+def _homes(
+    records: Sequence[WDKRecordInstance], site_id: str, kind: SiteKind
+) -> dict[str, GeneHome]:
+    sites = _genomics_sites()
+    return {
+        saved: home
+        for record in records
+        if (saved := extract_gene_id(record))
+        and (home := _home(record, saved, site_id, kind, sites))
+    }
+
+
 def _home(
-    record: WDKRecordInstance, saved: str, site_id: str, kind: SiteKind
+    record: WDKRecordInstance,
+    saved: str,
+    site_id: str,
+    kind: SiteKind,
+    sites: _GenomicsSites,
 ) -> GeneHome | None:
     match kind:
         case "genomics":
             return GeneHome(gene_id=saved, site_id=site_id)
         case "portal":
-            home = _site_of_project(record.attribute_text("project_id"))
+            home = sites.by_project.get(record.attribute_text("project_id") or "")
             return None if home is None else GeneHome(gene_id=saved, site_id=home)
         case "orthomcl":
             gene = record.attribute_text("gene_source_id")
-            home = _site_of_url(record.attribute_text("gene_source_url"))
+            domain = _domain(record.attribute_text("gene_source_url") or "")
+            home = sites.by_domain.get(domain) if domain else None
             if not gene or home is None:
                 return None
             return GeneHome(gene_id=gene, site_id=home)
-
-
-def _genomics_sites() -> list[tuple[str, str, str]]:
-    """Each genomics site's id, project id and web domain."""
-    return [
-        (site.id, site.project_id, _domain(site.base_url))
-        for site in get_site_router().list_sites()
-        if site_kind(site.id) == "genomics"
-    ]
-
-
-def _site_of_project(project_id: str | None) -> str | None:
-    return next((s for s, p, _ in _genomics_sites() if p == project_id), None)
-
-
-def _site_of_url(url: str | None) -> str | None:
-    domain = _domain(url or "")
-    return next((s for s, _, d in _genomics_sites() if domain and d == domain), None)
 
 
 def _domain(url: str) -> str:
@@ -196,7 +227,10 @@ def _domain(url: str) -> str:
 __all__ = [
     "ID_LIST_SEARCHES",
     "IdListSearch",
+    "StepGenes",
     "gene_homes",
+    "read_genes_of",
+    "read_step_genes",
     "site_kind",
     "sites_that_list",
 ]

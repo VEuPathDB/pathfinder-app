@@ -58,7 +58,6 @@ export const TOOL_LABELS: Record<string, string> = {
   delete_step: "Delete step",
   insert_saved_strategy: "Insert saved strategy",
   add_step_filter: "Add filter step",
-  add_step_report: "Add report step",
   update_combine_operator: "Change how steps combine",
   update_leaf_params: "Update parameters",
   update_step_metadata: "Rename step",

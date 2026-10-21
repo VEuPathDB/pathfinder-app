@@ -53,7 +53,6 @@ _TOOL_NAME_TOKENS = frozenset(
         "set_structure",
         # Strategy build and edit
         "add_step_filter",
-        "add_step_report",
         "apply_operations",
         "build_strategy",
         "check_study_step",

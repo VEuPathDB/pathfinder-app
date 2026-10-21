@@ -4,12 +4,12 @@ from uuid import UUID, uuid4
 
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import ValidationError
-from veupathdb_mcp.wdk import GeneSetWdkContext, resolve_wdk_context
 
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.homes import gene_homes
 from pathfinder.services.gene_sets.step_genes import dedup_ordered
 from pathfinder.services.gene_sets.store import GeneSetStore
+from pathfinder.services.gene_sets.strategy_genes import read_strategy_genes
 from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
 
 logger = get_logger(__name__)
@@ -70,18 +70,14 @@ class GeneSetService:
         site_id: str,
         gene_ids: list[str],
         source: GeneSetSource,
-        wdk: GeneSetWdkContext | None = None,
     ) -> GeneSet:
-        """Create a gene set, resolving gene IDs from WDK when none are given.
+        """Create a gene set of the given gene IDs.
 
         :raises EmptyGeneSetError: If the gene set resolves to zero genes.
         """
-        ctx = wdk or GeneSetWdkContext()
-        gene_ids, ctx, step_count = await resolve_wdk_context(site_id, gene_ids, ctx)
         unique_gene_ids = dedup_ordered(gene_ids)
         if not unique_gene_ids:
             raise EmptyGeneSetError(name)
-
         gs = GeneSet(
             id=str(uuid4()),
             name=name,
@@ -89,11 +85,37 @@ class GeneSetService:
             gene_ids=unique_gene_ids,
             source=source,
             user_id=user_id,
+            homes=await gene_homes(site_id, unique_gene_ids, record_type=None),
         )
-        gs.take_wdk_context(ctx, step_count=step_count)
-        gs.homes = await gene_homes(
-            site_id, gs.gene_ids, record_type=gs.record_type, wdk_step_id=gs.wdk_step_id
+        return await self._created(gs)
+
+    async def create_from_strategy(
+        self,
+        *,
+        user_id: UUID,
+        name: str,
+        site_id: str,
+        wdk_strategy_id: int,
+        record_type: str | None,
+    ) -> GeneSet:
+        taken = await read_strategy_genes(
+            site_id, wdk_strategy_id, record_type=record_type
         )
+        if not taken.genes.gene_ids:
+            raise EmptyGeneSetError(name)
+        gs = GeneSet(
+            id=str(uuid4()),
+            name=name,
+            site_id=site_id,
+            gene_ids=taken.genes.gene_ids,
+            source="strategy",
+            user_id=user_id,
+            homes=taken.genes.homes,
+        )
+        gs.take_wdk_context(taken.context, step_count=taken.step_count)
+        return await self._created(gs)
+
+    async def _created(self, gs: GeneSet) -> GeneSet:
         await self._store.save(gs)
         logger.info(
             "Gene set created",
@@ -124,21 +146,14 @@ class GeneSetService:
         gs = await self._store.get(gene_set_id)
         if gs is None:
             return None
-        gene_ids, ctx, step_count = await resolve_wdk_context(
-            site_id,
-            [],
-            GeneSetWdkContext(
-                wdk_strategy_id=wdk_strategy_id, record_type=gs.record_type
-            ),
+        taken = await read_strategy_genes(
+            site_id, wdk_strategy_id, record_type=gs.record_type
         )
-        fresh_gene_ids = dedup_ordered(gene_ids)
-        if not fresh_gene_ids:
+        if not taken.genes.gene_ids:
             raise EmptyResyncError(gs.name)
-        gs.gene_ids = fresh_gene_ids
-        gs.take_wdk_context(ctx, step_count=step_count)
-        gs.homes = await gene_homes(
-            site_id, gs.gene_ids, record_type=gs.record_type, wdk_step_id=gs.wdk_step_id
-        )
+        gs.gene_ids = taken.genes.gene_ids
+        gs.take_wdk_context(taken.context, step_count=taken.step_count)
+        gs.homes = taken.genes.homes
         gs.answer_revision = answer_revision
         await self._store.save(gs)
         logger.info(

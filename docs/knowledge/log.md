@@ -1,5 +1,20 @@
 # Log
 
+## 2026-10-22
+
+* **A build saves a gene set only of a step it can read in one bounded report.** The set a
+  build saves on its own, a requested save and the refresh job read the step's count first and
+  refuse a step above `STEP_GENES_CAP` (10,000) before any answer is read; a control list read
+  from another strategy is refused after its first 1,000-record page. Below the cap, one report
+  with `numRecords` equal to the cap carries the ids and their homes, and an answer whose count
+  is above its rows is refused rather than saved short. A build used to read every record twice
+  with `numRecords: -1` (523,795 OrthoMCL proteins, 463 MB) and to look up all 14 sites once per
+  record.
+* **A push runs no step report, and the agent attaches none.** The push used to run each report a
+  step declared and discard the body, and a `standard` report with no `pagination` streams the
+  whole answer (a non-standard reporter streams it whatever the pagination). With the run gone,
+  `add_step_report` and the step response's `reports` field carried nothing, so both are removed.
+
 ## 2026-10-20
 
 * **A cut histogram keeps its largest categories and says what it holds.** Past 40 bins, a

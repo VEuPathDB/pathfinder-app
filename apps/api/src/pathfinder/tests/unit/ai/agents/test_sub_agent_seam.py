@@ -81,7 +81,6 @@ FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
 
 EXECUTION_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "add_step_filter",
-    "add_step_report",
     "apply_operations",
     "build_strategy",
     "delete_step",

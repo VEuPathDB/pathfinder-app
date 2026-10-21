@@ -17,6 +17,7 @@ from veupathdb_mcp.gene_lookup import resolve_gene_ids
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.eval import get_strategy_gene_ids
 from pathfinder.services.gene_sets.operations import GeneSetService
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import get_gene_set_store
 
 
@@ -82,4 +83,6 @@ async def control_ids_from_strategy(
         result = await get_strategy_gene_ids(session, strategy_id, site_id, user_id)
     except NotFoundError:
         return StrategyControls(error="Strategy not found")
+    except TooManyGenesError as exc:
+        return StrategyControls(error=exc.detail)
     return StrategyControls(gene_ids=list(result.gene_ids), error=result.error)

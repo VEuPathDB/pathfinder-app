@@ -107,7 +107,7 @@ async def _apply_decorations(
     wdk_step_ids: dict[str, int],
     api: StrategyAPI,
 ) -> None:
-    """Apply declared filters and reports to each WDK step."""
+    """Apply declared filters to each WDK step."""
     for step in walk(root_step):
         wdk_step_id = wdk_step_ids.get(step.id)
         if wdk_step_id is None:
@@ -118,12 +118,6 @@ async def _apply_decorations(
                 filter_name=step_filter.name,
                 value=step_filter.value,
                 disabled=step_filter.disabled,
-            )
-        for report in step.reports:
-            await api.run_step_report(
-                step_id=wdk_step_id,
-                report_name=report.report_name,
-                config=report.config,
             )
 
 
@@ -375,9 +369,7 @@ async def _maybe_apply_decorations(
 ) -> None:
     """Apply step decorations when at least one step declares them."""
     all_steps = walk(root_step)
-    has_decorations = any(
-        step.filters or step.analyses or step.reports for step in all_steps
-    )
+    has_decorations = any(step.filters for step in all_steps)
     if not has_decorations:
         return
     try:

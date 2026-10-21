@@ -128,7 +128,6 @@ def build_step_response(
         validation=validation,
         filters=step.filters or None,
         analyses=step.analyses or None,
-        reports=step.reports or None,
     )
 
 

@@ -11213,20 +11213,6 @@
             ],
             "title": "Analyses"
           },
-          "reports": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/StepReport"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reports"
-          },
           "expandedStrategyId": {
             "anyOf": [
               {

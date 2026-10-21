@@ -9,7 +9,6 @@ click to discover it is worthless.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from uuid import uuid4
 
 import pytest
@@ -17,7 +16,9 @@ from veupathdb.errors import ValidationError
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.services.gene_sets import operations
+from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.operations import GeneSetService
+from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
 from pathfinder.tests._support.gene_set_store import InMemoryGeneSetStore
 
 
@@ -26,17 +27,16 @@ def _stub_resolve(
     resolved: list[str],
 ) -> None:
     async def _fake(
-        site_id: str,
-        gene_ids: Sequence[str],
-        ctx: GeneSetWdkContext,
-    ) -> tuple[list[str], GeneSetWdkContext, int]:
-        del site_id
-        # Mirrors the real short-circuit: explicit ids are never re-resolved.
-        if gene_ids:
-            return list(gene_ids), ctx, 1
-        return resolved, ctx, 1
+        site_id: str, wdk_strategy_id: int, *, record_type: str | None
+    ) -> StrategyGenes:
+        del site_id, record_type
+        return StrategyGenes(
+            genes=StepGenes(gene_ids=resolved, homes={}, record_class="transcript"),
+            context=GeneSetWdkContext(wdk_strategy_id=wdk_strategy_id),
+            step_count=1,
+        )
 
-    monkeypatch.setattr(operations, "resolve_wdk_context", _fake)
+    monkeypatch.setattr(operations, "read_strategy_genes", _fake)
 
 
 async def test_creating_an_empty_gene_set_is_rejected(
@@ -46,13 +46,12 @@ async def test_creating_an_empty_gene_set_is_rejected(
     store = InMemoryGeneSetStore()
 
     with pytest.raises(ValidationError) as excinfo:
-        await GeneSetService(store).create(
+        await GeneSetService(store).create_from_strategy(
             user_id=uuid4(),
             name="Gametocyte markers",
             site_id="plasmodb",
-            gene_ids=[],
-            source="strategy",
-            wdk=GeneSetWdkContext(wdk_strategy_id=330517023),
+            wdk_strategy_id=330517023,
+            record_type=None,
         )
 
     # The message must say what to do, not just that something failed.
@@ -66,13 +65,12 @@ async def test_a_resolved_gene_set_is_still_created(
     _stub_resolve(monkeypatch, ["PF3D7_0100100", "PF3D7_0100200"])
     store = InMemoryGeneSetStore()
 
-    gs = await GeneSetService(store).create(
+    gs = await GeneSetService(store).create_from_strategy(
         user_id=uuid4(),
         name="Gametocyte markers",
         site_id="plasmodb",
-        gene_ids=[],
-        source="strategy",
-        wdk=GeneSetWdkContext(wdk_strategy_id=330517023),
+        wdk_strategy_id=330517023,
+        record_type=None,
     )
 
     assert gs.gene_ids == ["PF3D7_0100100", "PF3D7_0100200"]

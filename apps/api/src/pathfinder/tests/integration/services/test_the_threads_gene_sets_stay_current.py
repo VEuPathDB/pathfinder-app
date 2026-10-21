@@ -22,7 +22,9 @@ from pathfinder.persistence.repositories import (
 )
 from pathfinder.services.evidence.gene_sets import list_stored_gene_sets
 from pathfinder.services.gene_sets import operations
+from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.store import GeneSetStore, get_gene_set_store
+from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
@@ -100,13 +102,19 @@ async def thread(db_session: AsyncSession, patch_app_db_engine: None) -> UUID:
 def _serve_roots(monkeypatch: pytest.MonkeyPatch, roots: list[list[str]]) -> None:
     """Each read of the strategy's root answers the next result in ``roots``."""
 
-    async def _resolve(
-        site_id: str, gene_ids: list[str], ctx: GeneSetWdkContext
-    ) -> tuple[list[str], GeneSetWdkContext, int]:
-        del site_id, gene_ids
-        return roots.pop(0), ctx, 3
+    async def _read(
+        site_id: str, wdk_strategy_id: int, *, record_type: str | None
+    ) -> StrategyGenes:
+        del site_id
+        return StrategyGenes(
+            genes=StepGenes(gene_ids=roots.pop(0), homes={}, record_class="transcript"),
+            context=GeneSetWdkContext(
+                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            ),
+            step_count=3,
+        )
 
-    monkeypatch.setattr(operations, "resolve_wdk_context", _resolve)
+    monkeypatch.setattr(operations, "read_strategy_genes", _read)
 
 
 async def test_after_two_commits_the_set_holds_the_current_root(

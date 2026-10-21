@@ -147,6 +147,14 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ge=1,
         description="Seconds between two passes over the degraded sites.",
     )
+    step_genes_cap: int = Field(
+        default=10_000,
+        ge=1,
+        description=(
+            "Most records PathFinder reads out of one step into a list: a saved "
+            "gene set or a control list. A larger step is counted and not read."
+        ),
+    )
     # Application identities, as "app_id:secret[,app_id:secret...]".
     pathfinder_service_tokens: str = Field(default="", repr=False)
 

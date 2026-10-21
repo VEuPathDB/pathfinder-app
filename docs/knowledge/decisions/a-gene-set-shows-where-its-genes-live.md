@@ -27,6 +27,17 @@ A list saved without a step is read through the site's id-list search
 (`GeneByLocusTag` on genomics sites and the portal, `ByIdList` on OrthoMCL). A
 set of records that are not genes, such as ortholog groups, has no homes.
 
+**A step is read once, within the cap.** `homes.py::read_genes_of` reads the
+step's `estimatedSize` (a count report when the step has none). A step above
+`STEP_GENES_CAP` (10,000) is counted and not read: a save answers with the count,
+and a build saves no set and leaves the import latch off. Otherwise one standard
+report with `numRecords` equal to the cap carries the ids and their home columns.
+The stored size can be older than the answer, so the answer's own count decides:
+above the cap the set is refused, and a count larger than the rows sent is an
+`IncompleteAnswerError`, never a short set. A pasted list above the cap is refused
+before its id-list search. The genomics sites a home names are read once per
+report, not once per record.
+
 **One rule lists them** (`domain/gene_homes.py::genes_on`). The site a set was
 saved on reads the ids as saved. The portal and OrthoMCL read every gene. A
 genomics site reads its own genes. A site lists a set when it reads at least one

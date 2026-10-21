@@ -87,7 +87,6 @@ def _step_from_node(node: StrategyStepNode, kind: StepKind) -> StrategyStep:
         colocation_params=node.colocation_params,
         filters=list(node.filters),
         analyses=list(node.analyses),
-        reports=list(node.reports),
         wdk_weight=node.wdk_weight,
         expanded_strategy_id=node.expanded_strategy_id,
         expanded_name=node.expanded_name,

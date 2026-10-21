@@ -16,10 +16,7 @@ from pathfinder.ai.tools.standalone.strategy import (
     apply_operations,
     build_strategy,
 )
-from pathfinder.ai.tools.standalone.strategy_attach import (
-    add_step_filter,
-    add_step_report,
-)
+from pathfinder.ai.tools.standalone.strategy_attach import add_step_filter
 from pathfinder.ai.tools.standalone.strategy_edits import (
     delete_step,
     insert_saved_strategy,
@@ -92,7 +89,6 @@ def _execution_enum_overrides(
             ("replace_subtree", "step_id"),
             ("insert_saved_strategy", "target_step_id"),
             ("add_step_filter", "step_id"),
-            ("add_step_report", "step_id"),
         ):
             overrides[(tool, arg)] = step_ids
     return overrides
@@ -111,7 +107,6 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             Tool(replace_subtree, requires_approval=True, max_retries=3),
             insert_saved_strategy,
             add_step_filter,
-            add_step_report,
             rename_strategy,
             get_strategy,
             request_search_inspection,

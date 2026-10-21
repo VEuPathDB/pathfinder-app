@@ -94,8 +94,7 @@ toolset that mutates the strategy graph.
 - ``delete_step`` -- Delete a step and re-wire the tree. Requires approval.
 - ``replace_subtree`` -- Replace the subtree rooted at a step.
 - ``insert_saved_strategy`` -- Insert a saved WDK strategy as a combine input.
-- ``add_step_filter`` / ``add_step_analysis`` / ``add_step_report`` -- Attach a
-  WDK filter, analysis or report to a step.
+- ``add_step_filter`` -- Attach a WDK filter to a step.
 - ``rename_strategy`` -- Rename the strategy.
 - ``get_strategy`` -- The current strategy graph.
 - ``request_search_inspection`` -- Inspect a search outside the commit set.

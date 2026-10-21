@@ -1,4 +1,4 @@
-"""Standalone strategy attachment tools (filter, report) for pydantic-ai migration.
+"""Standalone strategy attachment tool (filter) for pydantic-ai migration.
 
 Each function takes ``RunContext[AgentDeps]`` and mirrors the original
 :class:`StrategyAttachmentOps` methods exactly.
@@ -7,13 +7,11 @@ Each function takes ``RunContext[AgentDeps]`` and mirrors the original
 from __future__ import annotations
 
 from assistant_core.graph.tool_summary import with_summary
-from assistant_core.platform.types import JSONObject
 from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.strategy import (
     StepFilter,
-    StepReport,
     StrategyStep,
 )
 from veupathdb_mcp import ToolErrorPayload
@@ -93,37 +91,4 @@ async def add_step_filter(
 
     return _step_updated_return(
         ctx, session, graph, step, f"{filter_name} added to {step_id}"
-    )
-
-
-async def add_step_report(
-    ctx: RunContext[AgentDeps],
-    step_id: str,
-    report_name: str = "standard",
-    config: JSONObject | None = None,
-    graph_id: str | None = None,
-) -> ToolReturn[StepOkResponse | ToolErrorPayload]:
-    """Attach a report configuration to a step.
-
-    Reports control how step results are formatted for download or
-    display (e.g. tabular, XML, JSON). The default report is 'standard'.
-
-    Args:
-        step_id: ID of the step.
-        report_name: WDK reporter name (default: 'standard').
-        config: Reporter-specific configuration.
-        graph_id: Target graph. Uses the active graph if omitted.
-    """
-    deps = ctx.deps
-    session = deps.strategy_session
-
-    result = get_graph_and_step(session, graph_id, step_id)
-    if isinstance(result, ToolErrorPayload):
-        return _step_missing(ctx, result, step_id)
-    graph, step = result
-
-    step.reports.append(StepReport(report_name=report_name, config=config or {}))
-
-    return _step_updated_return(
-        ctx, session, graph, step, f"{report_name} report added to {step_id}"
     )

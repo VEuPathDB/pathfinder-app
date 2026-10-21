@@ -44,7 +44,8 @@ from; the import records it too, so the first job after a build reads nothing.
 
 **A WDK failure ends the job.** The refresh logs the failure with its duration
 and returns; the set keeps its genes and its old revision, so the next write
-that moves the root reads again. No task in `jobs/` sets a procrastinate
+that moves the root reads again. A root that holds more records than
+`STEP_GENES_CAP` ends the job the same way, before any answer is read. No task in `jobs/` sets a procrastinate
 `retry`, and neither does this one: a failed refresh is not retried by the queue.
 
 # What was rejected

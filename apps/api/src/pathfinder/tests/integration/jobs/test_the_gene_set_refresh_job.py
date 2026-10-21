@@ -22,7 +22,9 @@ from pathfinder.persistence.repositories import (
     ConversationUpdate,
 )
 from pathfinder.services.gene_sets import operations
+from pathfinder.services.gene_sets.homes import StepGenes
 from pathfinder.services.gene_sets.store import GeneSetStore, get_gene_set_store
+from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.gene_set_refresh import (
@@ -93,17 +95,25 @@ class _Site:
         self.answers = answers
         self.tokens: list[str | None] = []
 
-    async def resolve(
-        self, site_id: str, gene_ids: list[str], ctx: GeneSetWdkContext
-    ) -> tuple[list[str], GeneSetWdkContext, int]:
-        del site_id, gene_ids
+    async def read(
+        self, site_id: str, wdk_strategy_id: int, *, record_type: str | None
+    ) -> StrategyGenes:
+        del site_id
         self.tokens.append(veupathdb_auth_token_ctx.get())
-        return self.answers.pop(0), ctx, 3
+        return StrategyGenes(
+            genes=StepGenes(
+                gene_ids=self.answers.pop(0), homes={}, record_class="transcript"
+            ),
+            context=GeneSetWdkContext(
+                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            ),
+            step_count=3,
+        )
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch, answers: list[list[str]]) -> _Site:
     site = _Site(answers)
-    monkeypatch.setattr(operations, "resolve_wdk_context", site.resolve)
+    monkeypatch.setattr(operations, "read_strategy_genes", site.read)
     return site
 
 
@@ -162,11 +172,11 @@ async def test_a_job_after_a_new_root_takes_the_new_answer(
 async def test_a_failed_read_leaves_the_set_and_ends_the_job(
     thread: UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def _timed_out(*_args: object) -> None:
+    async def _timed_out(*_args: object, **_kwargs: object) -> None:
         msg = "the standard report timed out"
         raise WDKError(msg, status=504)
 
-    monkeypatch.setattr(operations, "resolve_wdk_context", _timed_out)
+    monkeypatch.setattr(operations, "read_strategy_genes", _timed_out)
     await store_root(thread, CombineOp.UNION)
 
     await run_refresh_job(thread)

@@ -16,7 +16,6 @@ const INTERNAL = /\b(EDA|WDK|FRAME|BUILD|VERIFY|Frame|Ledger|Lead|sub-agent)\b/;
  */
 const REGISTERED = [
   "add_step_filter",
-  "add_step_report",
   "apply_operations",
   "browse_search_categories",
   "build_control_set",

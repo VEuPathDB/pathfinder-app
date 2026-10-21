@@ -10,7 +10,6 @@ from uuid import UUID
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
 from veupathdb.errors import VEuPathDBError
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.domain.gene_homes import holds_genes
 from pathfinder.domain.strategy.revision import answer_revision, parse_strategy_ast
@@ -24,8 +23,10 @@ from pathfinder.persistence.repositories.conversation_strategy import (
 )
 from pathfinder.services.gene_sets.homes import site_kind
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError, GeneSetService
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import get_gene_set_store
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
+from pathfinder.services.gene_sets.strategy_genes import RecordsAreNotGenesError
+from pathfinder.services.gene_sets.types import GeneSet
 
 logger = get_logger(__name__)
 
@@ -51,15 +52,14 @@ class GeneSetImporter(Protocol):
         /,
     ) -> GeneSet | None: ...
 
-    async def create(
+    async def create_from_strategy(
         self,
         *,
         user_id: UUID,
         name: str,
         site_id: str,
-        gene_ids: list[str],
-        source: GeneSetSource,
-        wdk: GeneSetWdkContext | None = None,
+        wdk_strategy_id: int,
+        record_type: str | None,
     ) -> GeneSet: ...
 
     async def save(self, gene_set: GeneSet, /) -> None: ...
@@ -93,7 +93,7 @@ async def auto_import_gene_set(
 
     Returns the created set, or None when the thread is not eligible, its
     strategy holds records that are not genes, an earlier import already made
-    its set, or its strategy returned no genes.
+    its set, or its strategy returned no genes or more records than the cap.
     """
     conversation, strategy = thread
     wdk_id = strategy.wdk_strategy_id
@@ -120,16 +120,12 @@ async def auto_import_gene_set(
         return None
 
     try:
-        gs = await gene_set_service.create(
+        gs = await gene_set_service.create_from_strategy(
             user_id=user_id,
             name=name,
             site_id=site_id,
-            gene_ids=[],
-            source="strategy",
-            wdk=GeneSetWdkContext(
-                wdk_strategy_id=wdk_id,
-                record_type=strategy.record_type,
-            ),
+            wdk_strategy_id=wdk_id,
+            record_type=strategy.record_type,
         )
         gs.answer_revision = revision
         await gene_set_service.save(gs)
@@ -141,12 +137,13 @@ async def auto_import_gene_set(
                 gene_set_auto_imported=True,
             ),
         )
-    except EmptyGeneSetError:
+    except (EmptyGeneSetError, RecordsAreNotGenesError, TooManyGenesError) as exc:
         # Expected, not a failure: leave the latch off so a later build
         # that actually returns genes still gets imported.
         logger.info(
-            "Skipped gene set auto-import: strategy returned 0 genes",
+            "Skipped gene set auto-import",
             wdk_strategy_id=wdk_id,
+            reason=exc.detail,
         )
         return None
     except (VEuPathDBError, RuntimeError) as exc:

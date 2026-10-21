@@ -12,7 +12,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.wdk import StrategyAPI, WDKIdentifier, WDKStrategyDetails
+from veupathdb.wdk import StrategyAPI, WDKAnswer, WDKIdentifier, WDKStrategyDetails
 
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories.conversation import ConversationRepository
@@ -47,7 +47,11 @@ def _minting_api(strategy_id: int) -> StrategyAPI:
     api = Mock(spec=StrategyAPI)
     api.create_step = AsyncMock(return_value=WDKIdentifier(id=_STEP))
     api.create_strategy = AsyncMock(return_value=WDKIdentifier(id=strategy_id))
-    api.get_step_answer = AsyncMock(return_value=Mock(records=[]))
+    api.get_step_answer = AsyncMock(
+        return_value=WDKAnswer.model_validate(
+            {"meta": {"totalCount": 0}, "records": []}
+        )
+    )
     api.get_strategy = AsyncMock(
         return_value=WDKStrategyDetails.model_validate(
             {

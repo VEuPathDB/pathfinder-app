@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import pytest
 from veupathdb.wdk import (
     StrategyAPI,
     WDKAnswer,
@@ -13,7 +14,12 @@ from veupathdb.wdk import (
     WDKStep,
 )
 
-from pathfinder.services.gene_sets.step_genes import extract_gene_id, fetch_all_gene_ids
+from pathfinder.platform.config import get_settings
+from pathfinder.services.gene_sets.step_genes import (
+    TooManyGenesError,
+    extract_gene_id,
+    fetch_all_gene_ids,
+)
 
 
 def _transcript(transcript_id: str, gene_id: str) -> WDKRecordInstance:
@@ -127,3 +133,13 @@ async def test_a_gene_step_is_read_with_no_view_filter() -> None:
 
     assert ids == ["PF3D7_0211700"]
     assert api.views == [None]
+
+
+async def test_a_step_above_the_cap_stops_after_its_first_page() -> None:
+    cap = get_settings().step_genes_cap
+    api = _StepAnswers([_gene(f"PF3D7_{n:07d}") for n in range(cap + 1)])
+
+    with pytest.raises(TooManyGenesError) as caught:
+        await fetch_all_gene_ids(api, 227292220, batch_size=1000)
+
+    assert (api.calls, caught.value.count) == (1, cap + 1)

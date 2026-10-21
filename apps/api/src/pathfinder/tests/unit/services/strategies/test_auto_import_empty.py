@@ -13,7 +13,6 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from assistant_core.persistence.models import Conversation
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.domain.strategy.revision import answer_revision, parse_strategy_ast
 from pathfinder.persistence.models import ConversationStrategyView
@@ -21,7 +20,7 @@ from pathfinder.persistence.repositories.conversation_update import (
     ConversationUpdate,
 )
 from pathfinder.services.gene_sets.operations import EmptyGeneSetError
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
+from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.auto_import import auto_import_gene_set
 
 
@@ -50,17 +49,16 @@ class _StubGeneSetService:
     ) -> GeneSet | None:
         return None
 
-    async def create(
+    async def create_from_strategy(
         self,
         *,
         user_id: UUID,
         name: str,
         site_id: str,
-        gene_ids: list[str],
-        source: GeneSetSource,
-        wdk: GeneSetWdkContext | None = None,
+        wdk_strategy_id: int,
+        record_type: str | None,
     ) -> GeneSet:
-        del gene_ids, wdk
+        del wdk_strategy_id, record_type
         if not self.resolved:
             raise EmptyGeneSetError(name)
         gs = GeneSet(
