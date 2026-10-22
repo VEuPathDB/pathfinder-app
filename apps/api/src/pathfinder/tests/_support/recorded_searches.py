@@ -33,9 +33,11 @@ from pathfinder.ai.tools.standalone import (
     _catalog_models,
     _frame_count,
     _frame_qualifiers,
+    _frame_sheet,
     frame_spec,
 )
 from pathfinder.services.strategies import (
+    record_classes,
     sheet_params,
     spec_build,
     stated_sides,
@@ -135,8 +137,8 @@ def serve_recorded_record_types(monkeypatch: pytest.MonkeyPatch) -> None:
         return record_type or await _listed_under(search_name) or "transcript"
 
     monkeypatch.setattr(sync, "make_record_type_resolver", _resolver)
-    for module in (frame_spec, sheet_params):
-        monkeypatch.setattr(module, "resolve_search_record_type", _owner)
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
+    monkeypatch.setattr(sheet_params, "resolve_search_record_type", _owner)
 
 
 def serve_recorded_listing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -243,7 +245,7 @@ def serve_recorded(
     ) -> tuple[WDKSearchResponse, str]:
         return _response(by_name[ctx.search_name]), ctx.record_type
 
-    monkeypatch.setattr(frame_spec, "read_search_definition", _definition)
+    monkeypatch.setattr(_frame_sheet, "read_search_definition", _definition)
     monkeypatch.setattr(_catalog_models, "read_search_definition", _definition)
     monkeypatch.setattr(frame_spec, "fetch_search_details", _catalog)
     serve_qualifier_reads(monkeypatch, by_name.__getitem__)

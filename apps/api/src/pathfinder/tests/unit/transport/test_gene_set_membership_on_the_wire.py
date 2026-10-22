@@ -9,7 +9,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetMembership
+from pathfinder.services.gene_sets.types import (
+    GeneSet,
+    GeneSetMembership,
+    ResultAboveTheCap,
+)
 from pathfinder.transport.http.routers.gene_sets._shared import to_response
 
 _GENES = ["PF3D7_0100100", "PF3D7_0200200", "PF3D7_0304600"]
@@ -47,3 +51,15 @@ def test_a_membership_that_grows_answers_a_new_digest() -> None:
     after = to_response(_set([*_GENES, "PF3D7_0930300"]))
 
     assert before.membership_digest != after.membership_digest
+
+
+def test_a_set_the_strategy_outgrew_carries_the_count_and_the_cap() -> None:
+    gene_set = _set(_GENES)
+    gene_set.out_of_date = ResultAboveTheCap(count=309_068, cap=10_000)
+
+    wire = to_response(gene_set).model_dump(by_alias=True, mode="json")
+
+    assert (wire["outOfDate"], to_response(_set(_GENES)).out_of_date) == (
+        {"kind": "above_the_cap", "count": 309_068, "cap": 10_000},
+        None,
+    )

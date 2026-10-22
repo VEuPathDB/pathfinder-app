@@ -147,7 +147,7 @@ def count_summary(
 
 
 # WDK counts a transcript answer in genes, so its count names genes.
-_COUNTED_AS = {"transcript": "gene"}
+_COUNTED_AS = {"transcript": "gene", "sequence": "protein"}
 
 
 def counted_noun(record_type: str | None) -> str:

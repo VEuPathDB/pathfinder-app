@@ -4,7 +4,7 @@ title: A built turn is asked to verify once
 description: An output validator on the Lead refuses the first answer of a turn that built steps and neither dispatched nor passed verification, and it fires at most once per turn so a second answer stating why a check is impossible still reaches the user. Instruction prose and a hard block that ends the turn were both rejected.
 tags: [agents, lead, verification, ergonomics]
 generated: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
-verified: { by: claude-code/opus-5, at: 2026-09-01T00:00:00Z }
+verified: { by: claude-code/opus-5, at: 2026-10-22T00:00:00Z }
 status: stable
 ---
 
@@ -17,20 +17,46 @@ count" after `create_eda_step` had succeeded. A gate hides a tool; it cannot
 compel a call.
 
 **The refusal is a `ModelRetry` on the Lead's answer.** It reads this turn's
-`TurnMarkers`: when the turn built something and verification neither ran nor
-succeeded (`TurnMarkers.build_unverified`), the first `final_result` is refused
-with the step ids it built and the two moves that answer the refusal - call
-`verify_strategy`, or say in the reply why a check is not possible right now.
+`TurnMarkers`: when the turn built something and no check of this turn returned
+its review (`TurnMarkers.build_unverified`), the first `final_result` is refused
+with the step ids it built and the moves that answer the refusal. A check that
+was dispatched and stopped verified nothing, so it leaves the build unverified;
+its stop is the recorded attempt that lets a reason stand, and the stop's summary
+asks for that reason. A check parked on a call the worker or the user answers has
+neither stopped nor finished, so while the dispatch is parked
+(`LeadDeps.build_unverified` reads the parked dispatch the deferral recorded) the
+status is not shown; the task row shows the check running.
+
+**A reason stands only beside a recorded attempt.** `LeadResponse.unverified_reason`
+holds why the check could not finish. The contract accepts it only when the turn
+record shows that the check itself could not finish: a stop of the verification
+pass recorded this turn (`last_phase_stop`, any reason, a budget stop among them)
+or a refused `verify_strategy` call (`TurnRecord.check_could_not_finish`). A stop
+of the framing or the build pass is no attempt at the check. Such an answer is not refused, even on the
+first answer, and is not marked as unchecked. Without that record the refusal asks
+for `verify_strategy` and says the reason is accepted only after a check stopped or
+was refused, so the Lead cannot decline a check it never tried.
+
+**The status is the system's, never read from prose.** The turn's facts show
+"Nothing verified the change this turn made to the strategy."
+(`TurnFacts.unverified`, from `TurnMarkers.build_unverified`) on every turn whose
+build no check saw, whatever the reply says. A card carries only its reply, so the
+rule neither refuses a card's reply nor marks it. No rule reads the word
+"verified" in a reply: a reply that wrongly claims a check stands beside the
+system's own statement that nothing checked the build, and a true sentence such as
+"the step still needs to be verified" or a product named "Verified ORF" is never
+refused.
 The rule lives in the Lead's turn contract as the unverified-build rule
 (`ai/lead/turn_contract.py`, `decisions/one-turn-contract.md`).
 
 **It fires at most once per turn**, tracked as `contract_refused` on the same
 markers, which every rule of the contract shares. The second answer goes
-through even when it still declines: only the model knows whether a check is
+through even when it carries no accepted reason, marked as unchecked: only the model knows whether a check is
 possible on this turn, so the contract compels the attempt and not the outcome.
-A verification that ran and reported failure is not asked again either, which
-is why `verification_dispatched` is a marker of its own: `verified` follows the
-digest's verdict, and a failed check is still a check.
+A verification that returned a review that failed is not asked again either:
+`verified` follows the digest's verdict, a failed check is still a check, and the
+build counts as checked once `verification_dispatched` holds and
+`verification_stopped` does not.
 
 # What was rejected
 

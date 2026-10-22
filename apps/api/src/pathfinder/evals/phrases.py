@@ -1,4 +1,5 @@
-"""The phrases a case holds a run's replies to, and the text each check reads."""
+"""The phrases a case holds a run's replies and question card to, and the text
+each check reads."""
 
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ class PhraseTexts:
     facts: str
     turn_replies: list[str]
     turn_facts: list[str]
+    consult_options: list[str]
 
     def turn(self, index: int, *, omits: bool) -> str:
         """The text a per-turn check reads; an unreached turn reads empty."""
@@ -68,6 +70,32 @@ def _phrase_check(
     ]
 
 
+def _holds(label: str, mention: str) -> bool:
+    if not mention.isdigit():
+        return _shows(mention, _phrase_form(label))
+    return re.search(rf"(?<!\d)(?<!\d[.,]){mention}(?!\d|[.,]\d)", label) is not None
+
+
+def _consult_differences(
+    expected: ExpectedOutcome, labels: list[str]
+) -> list[CaseDifference]:
+    offered = " | ".join(labels) or "(none)"
+    least = expected.consult_options_min
+    differences: list[CaseDifference] = []
+    if least is not None and len(labels) < least:
+        differences.append(
+            CaseDifference(
+                field="consultOptionsMin", expected=str(least), actual=offered
+            )
+        )
+    differences.extend(
+        CaseDifference(field="consultOptionMentions", expected=mention, actual=offered)
+        for mention in expected.consult_option_mentions
+        if not any(_holds(label, mention) for label in labels)
+    )
+    return differences
+
+
 def phrase_differences(
     expected: ExpectedOutcome, texts: PhraseTexts
 ) -> list[CaseDifference]:
@@ -95,7 +123,7 @@ def phrase_differences(
                     omits=omits,
                 ),
             )
-    return differences
+    return [*differences, *_consult_differences(expected, texts.consult_options)]
 
 
 __all__ = ["PhraseTexts", "phrase_differences", "shown"]

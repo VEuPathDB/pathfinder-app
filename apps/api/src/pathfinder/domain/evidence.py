@@ -7,14 +7,17 @@ import re
 from collections import Counter
 from collections.abc import Callable
 from datetime import datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from pathfinder.domain.citations import Citation
+from pathfinder.domain.clipped import list_clipped_to, number_at_least, text_clipped_to
 from pathfinder.domain.control_enrichment import ControlEnrichment
+from pathfinder.domain.expression_fit import ExpressionFit
+from pathfinder.domain.omitted_from_input import OmittedFromInput
 
 # Whether the site's counts were read: read, asked and not answered, or not
 # asked because the strategy is not on the site.
@@ -167,18 +170,15 @@ class RequirementCheck(CamelModel):
 
     model_config = ConfigDict(frozen=True)
 
-    text: str = Field(
+    text: Annotated[str, text_clipped_to(300)] = Field(
         min_length=1,
-        max_length=300,
         description="The requirement in the researcher's own words.",
     )
-    turn: int = Field(
-        ge=1,
+    turn: Annotated[int, number_at_least(1)] = Field(
         description="The number of the researcher's message that stated it.",
     )
-    answered_by: list[str] = Field(
+    answered_by: Annotated[list[str], list_clipped_to(8)] = Field(
         default_factory=list,
-        max_length=8,
         description="The criterion ids or step ids that answer it.",
     )
     how: RequirementHow = Field(
@@ -195,14 +195,12 @@ class RequirementCheck(CamelModel):
             "site offers can state it."
         )
     )
-    note: str = Field(
+    note: Annotated[str, text_clipped_to(300)] = Field(
         default="",
-        max_length=300,
         description="One line: the parameter value or the combine, or why nothing.",
     )
-    shown_by: list[str] = Field(
+    shown_by: Annotated[list[str], list_clipped_to(SAMPLED_GENE_LIMIT)] = Field(
         default_factory=list,
-        max_length=SAMPLED_GENE_LIMIT,
         description="The sampled gene ids or the columns whose fit show it.",
     )
     # The runtime's marks, hidden from the check: a text query alone answers
@@ -211,24 +209,21 @@ class RequirementCheck(CamelModel):
     no_record_shows_it: SkipJsonSchema[bool] = False
     no_record_judged_it: SkipJsonSchema[bool] = False
 
-    @model_validator(mode="after")
-    def _a_status_agrees_with_its_answer(self) -> Self:
+    @property
+    def status_problem(self) -> str:
         if self.status == "met" and not self.answered_by:
-            msg = "a met requirement names the criterion or the step that answers it"
-            raise ValueError(msg)
+            return "a met requirement names the criterion or the step that answers it"
         if self.status == "unmet" and self.answered_by:
-            msg = (
+            return (
                 "an unmet requirement names no step that answers it: a step "
                 "that states it makes the row met, and a step that states "
                 "another value or joins the steps another way is named in the note"
             )
-            raise ValueError(msg)
         if (self.no_record_shows_it or self.no_record_judged_it) and (
             self.status != "met" or self.no_record_shows_it == self.no_record_judged_it
         ):
-            msg = "a met row the records leave short is either unshown or unjudged"
-            raise ValueError(msg)
-        return self
+            return "a met row the records leave short is either unshown or unjudged"
+        return ""
 
     @property
     def shown_status(self) -> ShownStatus:
@@ -248,9 +243,8 @@ class SampledGene(CamelModel):
     product: str = ""
     organism: str = ""
     fits: GeneFit
-    why: str = Field(
+    why: Annotated[str, text_clipped_to(300)] = Field(
         min_length=1,
-        max_length=300,
         description="The evidence read; when the fit is no, what the record lacks.",
     )
 
@@ -274,17 +268,16 @@ class ThresholdSides(CamelModel):
 
     value: str
     # The records at the threshold or above it; a bin across it raises the most.
-    above: int = Field(ge=0)
-    above_at_most: int = Field(ge=0)
-    below: int = Field(ge=0)
-    below_at_most: int = Field(ge=0)
+    above: Annotated[int, number_at_least(0)]
+    above_at_most: Annotated[int, number_at_least(0)]
+    below: Annotated[int, number_at_least(0)]
+    below_at_most: Annotated[int, number_at_least(0)]
 
-    @model_validator(mode="after")
-    def _the_counts_nest(self) -> Self:
+    @property
+    def nesting_problem(self) -> str:
         if self.above > self.above_at_most or self.below > self.below_at_most:
-            msg = "each side of a threshold holds surely <= at_most"
-            raise ValueError(msg)
-        return self
+            return "each side of a threshold holds surely <= at_most"
+        return ""
 
     def sentence(self, total: int, counted_in: CountedIn, display_name: str) -> str:
         return (
@@ -308,29 +301,26 @@ class ColumnFit(CamelModel):
     # The bounds whose side is known, as one range; empty when none is.
     bound_value: str
     counted_in: CountedIn = "genes"
-    total: int = Field(ge=0)
+    total: Annotated[int, number_at_least(0)]
     # The records inside ``bound_value``; a bin across a bound raises the most.
-    fitting: int = Field(ge=0)
-    fitting_at_most: int = Field(ge=0)
+    fitting: Annotated[int, number_at_least(0)]
+    fitting_at_most: Annotated[int, number_at_least(0)]
     # False when the site reports no value of the column for the step.
     shown: bool = True
     sides: list[ThresholdSides] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def _the_counts_nest(self) -> Self:
+    @property
+    def nesting_problem(self) -> str:
         if not self.fitting <= self.fitting_at_most <= self.total:
-            msg = "a column fit holds fitting <= fitting_at_most <= total"
-            raise ValueError(msg)
+            return "a column fit holds fitting <= fitting_at_most <= total"
         if any(
             max(side.above_at_most, side.below_at_most) > self.total
             for side in self.sides
         ):
-            msg = "a side of a threshold holds at most the step's records"
-            raise ValueError(msg)
+            return "a side of a threshold holds at most the step's records"
         if not self.shown and (self.total or self.sides):
-            msg = "a column the site does not show carries no count"
-            raise ValueError(msg)
-        return self
+            return "a column the site does not show carries no count"
+        return next((p for side in self.sides if (p := side.nesting_problem)), "")
 
     @computed
     def fits(self) -> ColumnFitState:
@@ -372,6 +362,18 @@ class ColumnFit(CamelModel):
         return [self.criterion_text, self.display_name, self.bound_value]
 
 
+WithheldKind = Literal[
+    "sampled_gene", "source", "requirement_row", "answer", "status", "claim"
+]
+
+
+class WithheldEvidence(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: WithheldKind
+    sentence: str
+
+
 class VerificationReview(CamelModel):
     """What the check read against the researcher's words: each stated
     requirement, the columns of each step, a sample of the genes where no
@@ -379,9 +381,8 @@ class VerificationReview(CamelModel):
 
     model_config = ConfigDict(frozen=True)
 
-    requirements: list[RequirementCheck] = Field(
+    requirements: Annotated[list[RequirementCheck], list_clipped_to(20)] = Field(
         default_factory=list,
-        max_length=20,
         description="One row per requirement the researcher stated, in any message.",
     )
     column_fits: list[ColumnFit] = Field(
@@ -391,18 +392,21 @@ class VerificationReview(CamelModel):
             "anything written here is replaced."
         ),
     )
-    sampled_genes: list[SampledGene] = Field(
-        default_factory=list,
-        max_length=SAMPLED_GENE_LIMIT,
-        description=(
-            "The root step's genes whose record this check read, for a "
-            "criterion no column shows."
-        ),
+    sampled_genes: Annotated[list[SampledGene], list_clipped_to(SAMPLED_GENE_LIMIT)] = (
+        Field(
+            default_factory=list,
+            description=(
+                "The root step's genes whose record this check read, for a "
+                "criterion no column shows."
+            ),
+        )
     )
-    sources: list[Citation] = Field(
+    sources: Annotated[list[Citation], list_clipped_to(10)] = Field(
         default_factory=list,
-        max_length=10,
         description="Each paper or page a research read of this turn returned.",
+    )
+    withheld: Annotated[list[WithheldEvidence], OmittedFromInput] = Field(
+        default_factory=list
     )
 
     def to_report(self) -> list[RequirementCheck]:
@@ -447,6 +451,7 @@ class EvidenceCard(CamelModel):
     # The study steps whose analysis the site did not describe, so no check ran.
     pending_checks: list[str] = Field(default_factory=list)
     review: VerificationReview = Field(default_factory=VerificationReview)
+    expression_fits: list[ExpressionFit] = Field(default_factory=list)
 
     def texts(self) -> list[str]:
         """Every text on the card that is not a count, a gene id or a WDK id."""

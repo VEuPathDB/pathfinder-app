@@ -1,33 +1,60 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field
 
-from pathfinder.ai.graph.state import OmittedFromInput, VerificationDigest
+from pathfinder.ai.graph.state import VerificationDigest
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.phase_stop import PhaseStop
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
+from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.strategy.build_outcome import BuildOutcome
-from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
+from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     SlotQuestion,
 )
 from pathfinder.domain.strategy.requirement_reports import (
+    RecordTypeRole,
     ReportedRequirement,
     RequirementReport,
+    numbered_requirements,
+    stated_numbers,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, SpecDiff
 from pathfinder.domain.strategy.step_words import AddedSearch
+from pathfinder.domain.turn_facts import UnsavedSetFact
 
 _ADDED_SEARCHES = (
     "The search each step this turn added runs, by its name on the site, the "
     "words it stands for, and why it was chosen over the searches the catalog "
     "answered. The reply names every one and gives its reason beside the name."
 )
+
+
+PassGapKind = Literal[
+    "reading_left_out",
+    "question_without_readings",
+    "readings_name_no_requirement",
+    "report_dropped",
+    "question_decides_nothing",
+    "questions_bind_nothing",
+    "every_genome_unasked",
+    "missing_after_refusal",
+    "record_role_missing",
+    "record_type_unknown",
+]
+
+
+class PassGap(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: PassGapKind
+    sentence: str
 
 
 class FrameResult(CamelModel):
@@ -43,7 +70,14 @@ class FrameResult(CamelModel):
             "the dimension its answer states, the value you recommend, the "
             "`criterion_id` and `param_name` of the slot, and in `options` up "
             "to 8 values the sheet you read offers for it: its facets or its "
-            "vocabulary. Each option sets that parameter to its value. The "
+            "vocabulary. Each option sets that parameter to its value. A "
+            "free-text or range parameter offers two or three `readings` "
+            "instead, each a label with its numbers, the value it binds and "
+            "its caveat. A value is the expression or value the parameter "
+            "takes, which the site builds as written, never a description in "
+            "words. When requirements the researcher stated are listed, the "
+            "question names in its own `requirements` the keys (R1, R2) of "
+            "those its readings approximate; with no list, it names none. The "
             "Lead asks it on the question card with those options."
         ),
     )
@@ -55,6 +89,15 @@ class FrameResult(CamelModel):
             "stated' in your instructions, that the strategy does not answer as "
             "asked. A requirement a bound search answers as asked is never "
             "listed. Empty when every requirement is answered."
+        ),
+    )
+    record_types: list[RecordTypeRole] = Field(
+        default_factory=list,
+        exclude=True,
+        description=(
+            "One entry for each requirement, from 'Requirements the researcher "
+            "stated' in your instructions, that names a record type: whether "
+            "the result is those records, or the tree passes through them."
         ),
     )
     # The reports with the held words in place of each number. The dispatch
@@ -74,7 +117,25 @@ class FrameResult(CamelModel):
         default_factory=list
     )
 
-    def questions(self, spec: OperationalSpec | None = None) -> list[OpenQuestion]:
+    gaps: Annotated[list[PassGap], OmittedFromInput] = Field(default_factory=list)
+
+    def with_gaps(self, gaps: Sequence[PassGap]) -> FrameResult:
+        return self.model_copy(update={"gaps": [*self.gaps, *gaps]})
+
+    def with_gap(self, kind: PassGapKind, sentence: str) -> FrameResult:
+        return self.with_gaps([PassGap(kind=kind, sentence=sentence)])
+
+    @property
+    def undecided_questions(self) -> list[str]:
+        if self.disposition != "needs_user":
+            return []
+        return [q.question for q in self.open_questions if not q.decides_a_dimension]
+
+    def questions(
+        self,
+        spec: OperationalSpec | None = None,
+        requirements: Sequence[Constraint] = (),
+    ) -> list[OpenQuestion]:
         """The open questions, each option typed by what answering it binds.
 
         ``spec`` holds the criteria the questions set, which name each
@@ -84,34 +145,23 @@ class FrameResult(CamelModel):
         """
         by_id = {c.id: c for c in spec.criteria} if spec is not None else {}
         noun = counted_noun(None if spec is None else spec.record_type)
+        numbered = numbered_requirements(requirements)
         return [
-            q.typed(by_id.get(q.criterion_id), noun=noun)
+            q.typed(
+                by_id.get(q.criterion_id),
+                noun=noun,
+                replaces=[numbered[n].key for n in q.requirements if n in numbered],
+                stated=bool(stated_numbers(requirements)),
+            )
             for q in self.open_questions
             if q.offers_a_choice(by_id.get(q.criterion_id))
         ]
 
-    @model_validator(mode="after")
-    def _every_asked_question_decides_something(self) -> FrameResult:
-        """A pass that stops on the user asks for a value on a named dimension.
 
-        A question that names neither a dimension nor a recommended value
-        leaves the next turn nothing to bind and nothing to read an answer
-        against.
-        """
-        if self.disposition != "needs_user":
-            return self
-        undecided = [
-            q.question for q in self.open_questions if not q.decides_a_dimension
-        ]
-        if undecided:
-            msg = (
-                f"These open questions decide nothing: {undecided}. Give each "
-                f"one the `dimension` its open parameter states, one of "
-                f"{CONSTRAINT_KINDS}, and the `recommended_value` you would "
-                f"use if the user does not answer."
-            )
-            raise ValueError(msg)
-        return self
+_UNSAVED_GENE_SET = (
+    "Set when the result holds more genes than a gene set holds: no gene set "
+    "was saved from it. The reply says so and never says the result is saved."
+)
 
 
 class ExecuteDelta(CamelModel):
@@ -120,6 +170,9 @@ class ExecuteDelta(CamelModel):
     outcome: BuildOutcome
     added_searches: list[AddedSearch] = Field(
         default_factory=list, description=_ADDED_SEARCHES
+    )
+    unsaved_gene_set: UnsavedSetFact | None = Field(
+        default=None, description=_UNSAVED_GENE_SET
     )
 
 
@@ -140,6 +193,7 @@ class EditDelta(CamelModel):
     card_questions: list[CardQuestion] = Field(default_factory=list)
     # What the framing pass reported about a requirement the edit does not answer.
     reported: list[ReportedRequirement] = Field(default_factory=list)
+    gaps: list[PassGap] = Field(default_factory=list)
     description: str = ""
     operations_applied: int = 0
     added_step_ids: list[str] = Field(
@@ -153,6 +207,9 @@ class EditDelta(CamelModel):
     )
     added_searches: list[AddedSearch] = Field(
         default_factory=list, description=_ADDED_SEARCHES
+    )
+    unsaved_gene_set: UnsavedSetFact | None = Field(
+        default=None, description=_UNSAVED_GENE_SET
     )
     preserved_step_ids: list[str] = Field(default_factory=list)
     dropped_step_ids: list[str] = Field(default_factory=list)

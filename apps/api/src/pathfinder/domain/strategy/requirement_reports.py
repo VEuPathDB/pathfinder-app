@@ -3,14 +3,50 @@ as asked. A report names the requirement by its number in the list the pass read
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
+from typing import Literal
 
 from assistant_core.platform.pydantic_base import computed
 from pydantic import Field, model_validator
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.strategy.constraints import Constraint, ConstraintSource
+from pathfinder.domain.strategy.constraints import (
+    Constraint,
+    ConstraintKind,
+    ConstraintSource,
+)
+
+RecordRole = Literal["answer", "through"]
+
+
+class RecordTypeRole(CamelModel):
+    requirement: str = Field(
+        description=(
+            "The number of a record-type requirement, such as R2, from "
+            "'Requirements the researcher stated' in your instructions."
+        )
+    )
+    role: RecordRole = Field(
+        description=(
+            "answer: the researcher wants these records as the result, so the "
+            "root of the tree returns them. through: the tree passes through "
+            "these records on the way to the result, as in groups that contain "
+            "given proteins, so a step of the tree returns them."
+        )
+    )
+
+
+def record_roles(
+    stated: Sequence[RecordTypeRole], requirements: Sequence[Constraint]
+) -> dict[str, RecordRole]:
+    numbered = numbered_requirements(requirements)
+    return {
+        held.key: role.role
+        for role in stated
+        if (held := numbered.get(role.requirement)) is not None
+        and held.kind is ConstraintKind.RECORD_TYPE
+    }
 
 
 class RequirementProblem(StrEnum):
@@ -61,25 +97,13 @@ class RequirementReport(CamelModel):
     )
 
     @model_validator(mode="after")
-    def _a_search_only_for_a_refusal(self) -> RequirementReport:
-        names_a_search = self.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
-        if names_a_search != bool(self.search):
-            msg = (
-                "search names the search the site refused to run, so it is set "
-                "for site_refused_the_search and for no other problem"
-            )
-            raise ValueError(msg)
-        return self
-
-    @model_validator(mode="after")
-    def _a_site_only_for_another_site(self) -> RequirementReport:
-        names_a_site = self.problem is RequirementProblem.ANOTHER_SITE_ANSWERS
-        if names_a_site != bool(self.site):
-            msg = (
-                "site names the site whose search answers the requirement, so it "
-                "is set for another_site_answers and for no other problem"
-            )
-            raise ValueError(msg)
+    def _a_search_and_a_site_only_where_the_problem_takes_them(
+        self,
+    ) -> RequirementReport:
+        if self.problem is not RequirementProblem.SITE_REFUSED_THE_SEARCH:
+            self.search = ""
+        if self.problem is not RequirementProblem.ANOTHER_SITE_ANSWERS:
+            self.site = ""
         return self
 
 
@@ -122,18 +146,57 @@ class ReportedRequirement(CamelModel):
 
 
 def numbered_requirements(requirements: Sequence[Constraint]) -> dict[str, Constraint]:
-    """Each requirement the researcher stated, under the number a pass reads."""
+    """Each requirement the researcher stated, then each record type the thread
+    assumed, under the number a pass reads."""
     stated = [c for c in requirements if c.source is ConstraintSource.USER_EXPLICIT]
-    return {f"R{number}": c for number, c in enumerate(stated, start=1)}
+    assumed = [
+        c
+        for c in requirements
+        if c.source is not ConstraintSource.USER_EXPLICIT
+        and c.kind is ConstraintKind.RECORD_TYPE
+    ]
+    return {f"R{number}": c for number, c in enumerate([*stated, *assumed], start=1)}
+
+
+def stated_numbers(requirements: Sequence[Constraint]) -> list[str]:
+    return [
+        number
+        for number, c in numbered_requirements(requirements).items()
+        if c.source is ConstraintSource.USER_EXPLICIT
+    ]
+
+
+def _kind_of(c: Constraint) -> str:
+    if c.source is ConstraintSource.USER_EXPLICIT:
+        return c.kind.value
+    return f"{c.kind.value}, assumed"
 
 
 def requirements_block(requirements: Sequence[Constraint]) -> str | None:
-    """The numbered list a pass reads, or None when the researcher stated nothing."""
+    """The numbered list a pass reads, or None when it numbers nothing."""
     numbered = numbered_requirements(requirements)
     if not numbered:
         return None
-    lines = [f"- {number}: {c.requested_value}" for number, c in numbered.items()]
+    lines = [
+        f"- {number} ({_kind_of(c)}): {c.requested_value}"
+        for number, c in numbered.items()
+    ]
     return "\n".join(["## Requirements the researcher stated", *lines])
+
+
+def record_types_without_a_role(
+    stated: Sequence[RecordTypeRole],
+    requirements: Sequence[Constraint],
+    held: Mapping[str, RecordRole],
+) -> dict[str, Constraint]:
+    roled = {role.requirement for role in stated}
+    return {
+        number: c
+        for number, c in numbered_requirements(requirements).items()
+        if c.kind is ConstraintKind.RECORD_TYPE
+        and number not in roled
+        and c.key not in held
+    }
 
 
 def reported_requirements(

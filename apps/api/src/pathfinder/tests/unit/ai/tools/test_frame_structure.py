@@ -361,7 +361,9 @@ class TestTheTreeAndTheRolesAgree:
             ),
         )
         spec = spec_from_ast(
-            StrategyAst(record_type="transcript", root=ast_root), goal="kinases"
+            StrategyAst(record_type="transcript", root=ast_root),
+            goal="kinases",
+            listed={},
         )
         st = AgentToolState()
         for criterion in spec.criteria:

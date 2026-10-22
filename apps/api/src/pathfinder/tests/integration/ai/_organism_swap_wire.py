@@ -28,7 +28,13 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.ai.lead import edit_dispatch
 from pathfinder.ai.tools.standalone import frame_spec
-from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
+from pathfinder.services.strategies import (
+    commit,
+    live_counts,
+    record_classes,
+    step_wdk_push,
+    sync,
+)
 from pathfinder.tests._support import wdk_write_stubs
 from pathfinder.tests._support.recorded_searches import (
     no_count,
@@ -219,6 +225,7 @@ def wdk(monkeypatch: pytest.MonkeyPatch) -> RecordingAPI:
         return _transcript
 
     monkeypatch.setattr(sync, "make_record_type_resolver", _resolver)
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _chunk: None)
 
     def _fetch_at(*_args: object) -> ParamFetcher:

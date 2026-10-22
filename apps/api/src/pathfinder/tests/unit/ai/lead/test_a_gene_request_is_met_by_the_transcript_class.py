@@ -13,6 +13,8 @@ from pathfinder.ai.lead.verify_review import ReviewRecord, review_held_to_the_tu
 from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import Constraint, ConstraintKind
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.services.strategies.record_classes import record_names_of
+from pathfinder.tests._support.organism_reads import TRANSCRIPT
 from pathfinder.tests.unit.ai.lead.conftest import requirement
 
 _ASKED = "Aedes aegypti LVP_AGWG odorant-binding protein genes on chromosome 3."
@@ -24,14 +26,19 @@ _SIGNAL = (
 def _spec(record_type: str) -> OperationalSpec:
     return OperationalSpec(
         goal="odorant-binding proteins on chromosome 3",
-        record_type=record_type,
         criteria=[
             Criterion(
                 id="c_obp",
                 text="odorant-binding protein",
                 search_name="GenesByInterproDomain",
+                record_class=record_type,
             ),
-            Criterion(id="c_chr3", text="chromosome 3", search_name="GenesByLocation"),
+            Criterion(
+                id="c_chr3",
+                text="chromosome 3",
+                search_name="GenesByLocation",
+                record_class=record_type,
+            ),
         ],
     )
 
@@ -49,6 +56,8 @@ def _record(
         spec=spec,
         read_as=lambda reference: None,
         record_url=lambda gene_id: gene_id,
+        class_names=record_names_of([TRANSCRIPT]),
+        record_roles={},
     )
 
 
@@ -156,7 +165,6 @@ def test_the_check_leaves_the_record_type_to_the_runtime() -> None:
 def _gene_type_spec() -> OperationalSpec:
     return OperationalSpec(
         goal="protein-coding genes in 3D7",
-        record_type="transcript",
         criteria=[
             Criterion(
                 id="step_75b174d6",
@@ -217,7 +225,7 @@ def test_genes_is_met_by_orthomcls_protein_class() -> None:
     assert (row.status, row.answered_by, row.note) == (
         "met",
         ["c_obp", "c_chr3"],
-        "the strategy returns sequences",
+        "the strategy returns proteins",
     )
 
 

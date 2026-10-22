@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import pytest
+from pydantic_ai import ModelRetry
+
+from pathfinder.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.turn_contract import hold_the_turn_contract, reconcile
+from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.domain.caveats import Gap, RequirementGap
 from pathfinder.domain.strategy.constraints import ConstraintKind
 from pathfinder.domain.strategy.questions import AskedQuestion
 from pathfinder.domain.strategy.revision import strategy_revision
+from pathfinder.tests._support.run_context import run_context_for
 from pathfinder.tests.unit.ai.lead._turn_contract_cases import (
     kinds,
     reading_deps,
@@ -86,3 +93,93 @@ def test_a_gap_is_named_by_its_words_and_never_by_its_number() -> None:
         "failed_check"
         in kinds(deps, reply("It does not yet require the transmembrane domains.")),
     ) == (True, False)
+
+
+def test_the_refusal_names_each_gap_the_reply_must_state() -> None:
+    deps = _failed(gaps=[_OBP_GAP])
+
+    [sentence] = [
+        m.sentence
+        for m in reconcile(reply(_BUILT), turn_record(run_context_for(deps)))
+        if m.kind == "failed_check"
+    ]
+
+    assert sentence == (
+        f"The last check of this strategy failed: {_REASON} Nothing has changed "
+        "since, so the reply states that verdict: name each requirement it found "
+        "unanswered, 'odorant-binding protein'. Or ask the researcher how to go "
+        "on, recorded in ``asked_questions`` or on a card."
+    )
+
+
+def test_the_refusal_of_a_failure_with_no_gap_asks_for_its_reason() -> None:
+    deps = _failed(gaps=[])
+
+    [sentence] = [
+        m.sentence
+        for m in reconcile(reply(_BUILT), turn_record(run_context_for(deps)))
+        if m.kind == "failed_check"
+    ]
+
+    assert "the reply states that verdict: quote its reason." in sentence
+
+
+_UNJUDGED = RequirementGap(text="signal peptide", status="unjudged")
+
+
+def test_an_unjudged_gap_is_not_asked_for() -> None:
+    deps = _failed(gaps=[_UNJUDGED, _OBP_GAP])
+
+    [sentence] = [
+        m.sentence
+        for m in reconcile(reply(_BUILT), turn_record(run_context_for(deps)))
+        if m.kind == "failed_check"
+    ]
+
+    assert "name each requirement it found unanswered, 'odorant-binding protein'." in (
+        sentence
+    )
+    assert "signal peptide" not in sentence
+
+
+def test_with_only_an_unjudged_gap_the_reply_states_the_reason() -> None:
+    deps = _failed(gaps=[_UNJUDGED])
+
+    assert (
+        "failed_check" in kinds(deps, reply(_BUILT)),
+        "failed_check" in kinds(deps, reply(f"{_BUILT} {_REASON}")),
+    ) == (True, False)
+
+
+_PLAIN = "The strategy returns the gene records of the search."
+
+
+def test_past_the_budget_a_hidden_failed_check_marks_the_reply_unchecked() -> None:
+    deps = _failed(gaps=[_OBP_GAP])
+    deps.state.turn_markers.output_refusals = REFUSALS_PER_CHECK
+    answer = reply(_PLAIN)
+
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
+    assert deps.state.turn_markers.unchecked_reply is True
+
+
+def test_a_second_answer_that_still_hides_the_failure_is_marked_unchecked() -> None:
+    deps = _failed(gaps=[_OBP_GAP])
+    ctx = run_context_for(deps)
+    with pytest.raises(ModelRetry):
+        hold_the_turn_contract(ctx, reply(_PLAIN))
+
+    assert hold_the_turn_contract(ctx, reply(_PLAIN)) == reply(_PLAIN)
+    assert deps.state.turn_markers.unchecked_reply is True
+
+
+def test_past_the_budget_a_claimed_change_states_the_change_the_record_holds() -> None:
+    deps = _failed(gaps=[], success=True)
+    deps.state.turn_markers.output_refusals = REFUSALS_PER_CHECK
+
+    let_through = hold_the_turn_contract(
+        run_context_for(deps), reply(_PLAIN, changed=True)
+    )
+
+    assert let_through == reply(_PLAIN, changed=False)
+    assert deps.state.turn_markers.unchecked_reply is False

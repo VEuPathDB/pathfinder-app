@@ -13,7 +13,6 @@ from pathfinder.domain.caveats import (
 )
 from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
-    BoundLifecycle,
     Constraint,
     ConstraintKind,
     ConstraintSource,
@@ -69,18 +68,12 @@ def test_a_retired_requirement_yields_no_gap(lifecycle: Lifecycle) -> None:
     assert gaps == []
 
 
-@pytest.mark.parametrize(
-    "lifecycle",
-    [OpenLifecycle(), BoundLifecycle(criterion_id="c_exp", params=["export"])],
-)
-def test_an_open_or_bound_requirement_gap_carries_the_requirement_words(
-    lifecycle: Lifecycle,
-) -> None:
+def test_an_open_requirement_gap_carries_the_requirement_words() -> None:
     gaps = check_gaps(
         structure=None,
         words=[],
         review=_EXPORTED_ROW,
-        requirements=[_requirement("exported", lifecycle)],
+        requirements=[_requirement("exported", OpenLifecycle())],
     )
 
     assert gaps == [RequirementGap(text="exported", status="unexpressed")]

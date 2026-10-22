@@ -38,6 +38,7 @@ def to_response(gs: GeneSet, *, site_id: str | None = None) -> GeneSetResponse:
         created_at=gs.created_at.isoformat(),
         step_count=gs.step_count,
         vdi_id=gs.vdi_id,
+        out_of_date=gs.out_of_date,
     )
 
 

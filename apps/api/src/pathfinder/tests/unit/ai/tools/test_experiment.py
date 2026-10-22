@@ -18,7 +18,7 @@ from veupathdb_mcp.controls import (
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
 
-from pathfinder.ai.tools.standalone import experiment
+from pathfinder.ai.tools.standalone import control_counts, experiment
 from pathfinder.services.experiment.published_names import PublishedNames
 from pathfinder.tests._support.saved_controls import (
     SAVED_SET,
@@ -26,6 +26,7 @@ from pathfinder.tests._support.saved_controls import (
     saved_set,
     serve_saved_controls,
 )
+from pathfinder.tests._support.search_record_types import serve_transcript_searches
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 
@@ -77,6 +78,7 @@ def _measured_service(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)
     monkeypatch.setattr(experiment, "run_positive_negative_controls", run)
+    serve_transcript_searches(monkeypatch)
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
     serve_saved_controls(
@@ -256,7 +258,7 @@ def test_a_long_parameter_value_is_cut_to_a_readable_length() -> None:
 
     shown = _exhibits(chunks)[0].data["targetParameters"][0]["value"]
     assert shown.endswith(" ...")
-    assert len(shown) <= experiment.VALUE_CHARS + len(" ...")
+    assert len(shown) <= control_counts.VALUE_CHARS + len(" ...")
 
 
 async def test_a_search_level_test_leaves_the_same_exhibit() -> None:

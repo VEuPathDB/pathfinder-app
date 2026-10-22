@@ -303,7 +303,6 @@ class TestASpareWrapperIsTransparent:
 def _protease_spec() -> OperationalSpec:
     return OperationalSpec(
         goal="proteases",
-        record_type="transcript",
         criteria=[
             Criterion(
                 id="c1_protease_text",

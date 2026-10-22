@@ -256,7 +256,9 @@ async def test_a_save_request_reaches_the_gene_set_store_through_the_leads_tools
         (SAVED_GENE_SET_NAME, _ROOT_GENES, 100),
     ]
     assert saved[0].user_id == deps.runtime.user_id
-    assert [gs.id for gs in deps.created_gene_sets] == [saved[0].id]
+    assert [(gs.id, gs.record_type) for gs in deps.created_gene_sets] == [
+        (saved[0].id, "transcript")
+    ]
 
 
 _CONTEXT_STATEMENT = (

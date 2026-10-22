@@ -65,18 +65,27 @@ def blamed_the_site_message(blame: str, stop: PhaseStop | None) -> str:
     )
 
 
-def unverified_build_message(outcome: BuildOutcome | None, root: int | None) -> str:
+def unverified_build_message(
+    outcome: BuildOutcome | None, root: int | None, *, could_not_finish: bool
+) -> str:
     """Why a turn that built something is asked to verify before it answers.
 
     ``root`` is the count the facts show for the strategy. The check is asked
-    for once: only the model knows whether a check is possible right now.
+    for once. A reason stands only after a check of this turn stopped or was
+    refused, so the reply cannot decline a check it never tried.
     """
     pushed = len(outcome.pushed_step_ids) if outcome is not None else 0
     count = "unknown" if root is None else str(root)
+    move = (
+        "Call verify_strategy, or set `unverifiedReason` to why it cannot run "
+        "and state it in your reply."
+        if could_not_finish
+        else "Call verify_strategy. `unverifiedReason` is accepted only after a "
+        "check of this turn stopped or was refused."
+    )
     return (
         f"This turn changed the strategy - {pushed} step(s) on VEuPathDB, root "
-        f"count {count} - and nothing verified the result. Call verify_strategy, "
-        f"or state in your reply why verification is not possible right now."
+        f"count {count} - and nothing verified the result. {move}"
     )
 
 
@@ -259,7 +268,7 @@ def unfinished_work_message(refused: Sequence[str], stop: PhaseStop | None) -> s
         f"question, so nothing carries the work on and the user is given no way "
         f"to unblock it. Rewrite it: {THE_PLAIN_SENTENCE} Then ask the choice "
         f"that unblocks that pass and record it in ``asked_questions`` with the "
-        f"value you recommend, or stop there. Never name a pass as the next "
+        f"value you recommend. Never name a pass as the next "
         f"thing you will do - this reply ends the turn."
     )
 
@@ -344,13 +353,17 @@ def unrendered_prose_message(faults: Sequence[ProseFault]) -> str:
     )
 
 
-def failed_check_message(reason: str) -> str:
+def failed_check_message(reason: str, unanswered: Sequence[str]) -> str:
     """Why a reply over a failed check that states nothing of it is refused."""
+    stated = (
+        f"name each requirement it found unanswered, {_named(unanswered)}"
+        if unanswered
+        else "quote its reason"
+    )
     return (
         f"The last check of this strategy failed: {reason} Nothing has changed "
-        "since, so the reply states that verdict: name each requirement the "
-        "check found unanswered, or quote its reason. Or ask the researcher how "
-        "to go on, recorded in ``asked_questions`` or on a card."
+        f"since, so the reply states that verdict: {stated}. Or ask the "
+        "researcher how to go on, recorded in ``asked_questions`` or on a card."
     )
 
 

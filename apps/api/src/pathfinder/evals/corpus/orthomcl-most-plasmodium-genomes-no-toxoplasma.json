@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-most-plasmodium-genomes-no-toxoplasma",
+  "turns": [
+    "Which ortholog groups are found in at least 90% of the Plasmodium genomes and in no Toxoplasma gondii genome?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "A share of a clade's genomes is a lower bound on its taxon count: the Plasmodium genome list with a taxon count of at least the rounded-up 90 percent of its length, and the Toxoplasma gondii list with a taxon count of 0. The share is stated, so no question is asked.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 1088,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy>=55T AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve=0T"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/an-all-over-many-genomes-is-asked-about.md",
+    "curatorNote": "The share reading stated in the request."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

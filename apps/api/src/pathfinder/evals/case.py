@@ -12,7 +12,9 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from assistant_core.platform.types import ReasoningEffort
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
+from veupathdb.domain.parameters import PhyleticExpression
+from veupathdb.errors import ValidationError
 
 from pathfinder.evals.redaction import assert_redacted
 
@@ -184,6 +186,20 @@ class ExpectedOutcome(CamelModel):
     assumed_stated: int | None = Field(default=None, ge=0)
     root_count: RecordedCount | None = None
     ends_on: GateEnd | None = None
+    expressions: dict[str, list[str]] = Field(default_factory=dict)
+    consult_options_min: int | None = Field(default=None, ge=1)
+    consult_option_mentions: list[str] = Field(default_factory=list)
+
+    @field_validator("expressions")
+    @classmethod
+    def _writings_parse(cls, value: dict[str, list[str]]) -> dict[str, list[str]]:
+        for writings in value.values():
+            for writing in writings:
+                try:
+                    PhyleticExpression.parse(writing).site_reading()
+                except ValidationError as refused:
+                    raise ValueError(str(refused)) from refused
+        return value
 
 
 class EvalCase(CamelModel):
@@ -262,6 +278,8 @@ class EvalCase(CamelModel):
             *(p for phrases in expected.turn_reply_mentions.values() for p in phrases),
             *(p for phrases in expected.turn_reply_omits.values() for p in phrases),
             *(v for values in expected.parameters.values() for v in values.values()),
+            *(w for writings in expected.expressions.values() for w in writings),
+            *expected.consult_option_mentions,
             *(name for names in self.attachments.values() for name in names),
             *(answer.comment for answer in answers if answer.comment is not None),
             *(pick for answer in answers for pick in answer.picks or []),

@@ -61,6 +61,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.operations.apply import ApplyError
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.domain.strategy.spec_edit_guard import spec_stated_values
+from pathfinder.domain.strategy.spec_hydration import criteria_listed_under
 from pathfinder.domain.strategy.step_words import StampedKind, StepWords, step_words
 from pathfinder.services.eda.binding import read_analysis
 from pathfinder.services.eda.direction import selection_sentence
@@ -75,6 +76,7 @@ from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.graph_outcome import outcome_for_graph
 from pathfinder.services.strategies.organism_params import step_dataset_organisms
+from pathfinder.services.strategies.record_classes import search_record_types
 from pathfinder.services.strategies.sync import SyncResult
 from pathfinder.services.strategies.sync_state import ensure_sync_state
 
@@ -175,6 +177,16 @@ def _state_the_export(
         lambda spec: spec_binding_the_export(
             spec, waiting.criterion_id, plan.node, plan.binding
         ),
+    )
+
+
+async def _list_the_classes(ctx: RunContext[LeadDeps]) -> None:
+    domain = ctx.deps.state.domain
+    if domain.operational_spec is None:
+        return
+    named = [c.search_name for c in domain.operational_spec.criteria]
+    domain.operational_spec = criteria_listed_under(
+        domain.operational_spec, await search_record_types(ctx.deps.site_id, named)
     )
 
 
@@ -364,6 +376,7 @@ async def create_eda_step(
             ctx.deps.site_id, node.search_name, node.parameters
         ),
     )
+    await _list_the_classes(ctx)
     the_strategy_now_answers_to(
         ctx.deps.state, ctx.deps.state.domain.operational_spec, graph
     )

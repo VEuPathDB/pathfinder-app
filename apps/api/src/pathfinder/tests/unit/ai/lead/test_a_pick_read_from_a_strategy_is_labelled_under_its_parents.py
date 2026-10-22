@@ -109,7 +109,6 @@ def _graph(root: StrategyStepNode) -> StrategyGraph:
 def _spec(criterion: Criterion) -> OperationalSpec:
     return OperationalSpec(
         goal="genes with a KH domain",
-        record_type="transcript",
         criteria=[criterion],
         structure=SpecStructure(
             root=StructureNode(kind="leaf", criterion_id=criterion.id)
@@ -150,9 +149,7 @@ def reads(monkeypatch: pytest.MonkeyPatch) -> _Reads:
         del site_id, record_type
         return {name: published[name] for name in search_names}
 
-    async def _marks(
-        _site_id: str, _record_type: str | None, _searches: Collection[str]
-    ) -> dict[str, str]:
+    async def _marks(_site_id: str, _searches: Collection[str]) -> dict[str, str]:
         return {}
 
     for module in (answered_strategy, pre_turn):

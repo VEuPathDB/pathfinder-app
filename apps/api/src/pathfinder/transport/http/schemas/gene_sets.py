@@ -4,7 +4,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 from veupathdb.domain.parameters import ParamValue
 
-from pathfinder.services.gene_sets.types import GeneSetSource
+from pathfinder.services.gene_sets.types import GeneSetSource, OutOfDate
 from pathfinder.transport.http.schemas.site_id import SiteId
 
 
@@ -30,6 +30,7 @@ class GeneSetResponse(CamelModel):
     step_count: int = Field(1)
     vdi_id: str | None = None
     """The VEuPathDB user dataset this set was published to, when it was."""
+    out_of_date: OutOfDate | None = None
 
 
 # A model's docstring is published as its schema description, so these two

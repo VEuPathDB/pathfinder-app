@@ -26,6 +26,7 @@ from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ForbiddenError, ScreeningUnavailableError
 from pathfinder.platform.model_keys import deployment_model
+from pathfinder.platform.pinned_model import pinned_model
 
 logger = get_logger(__name__)
 
@@ -65,27 +66,42 @@ def _scripted_judge_model() -> FunctionModel:
     return FunctionModel(respond, model_name="mock:injection-judge")
 
 
-def _judge_model() -> Model:
+def _judge_model(model_id: str) -> Model:
     """The judge always runs on the deployment's key, and its errors carry no body."""
-    settings = get_settings()
-    if settings.pathfinder_chat_provider.strip().lower() == "mock":
+    if get_settings().pathfinder_chat_provider.strip().lower() == "mock":
         return _scripted_judge_model()
-    return deployment_model(settings.input_screening_model)
+    return deployment_model(model_id)
 
 
-@lru_cache(maxsize=1)
+def judge_model_id() -> str:
+    return pinned_model() or get_settings().input_screening_model
+
+
+@lru_cache(maxsize=2)
+def _judge_on(model_id: str) -> ModelInjectionJudge:
+    return ModelInjectionJudge(_judge_model(model_id), context=_SCREENING_CONTEXT)
+
+
 def _judge() -> ModelInjectionJudge:
-    return ModelInjectionJudge(_judge_model(), context=_SCREENING_CONTEXT)
+    return _judge_on(judge_model_id())
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=2)
+def _scanner_on(model_id: str) -> UserInputScanner:
+    return UserInputScanner(judge=_judge_on(model_id))
+
+
 def _scanner() -> UserInputScanner:
-    return UserInputScanner(judge=_judge())
+    return _scanner_on(judge_model_id())
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=2)
+def _screened_output_on(model_id: str) -> OutputScan:
+    return screened_output(_judge_on(model_id))
+
+
 def _screened_tool_output() -> OutputScan:
-    return screened_output(_judge())
+    return _screened_output_on(judge_model_id())
 
 
 def _judged(started: float, chars: int) -> None:
@@ -148,6 +164,7 @@ async def scan_user_input(text: str) -> None:
 __all__ = [
     "INJECTION_TEST_MARKER",
     "UNSCREENED",
+    "judge_model_id",
     "scan_user_input",
     "tool_output_scan",
     "warm_up_screening",

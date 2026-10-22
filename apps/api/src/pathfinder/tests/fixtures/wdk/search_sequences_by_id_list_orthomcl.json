@@ -1,0 +1,122 @@
+{
+  "provenance": {
+    "site": "orthomcl",
+    "method": "GET",
+    "url": "https://qa.orthomcl.org/orthomcl.qa/service/record-types/sequence/searches/ByIdList?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-10-21",
+    "reads": "dataset parameter: ByIdList source_ids"
+  },
+  "body": {
+    "searchData": {
+      "urlSegment": "ByIdList",
+      "dynamicAttributes": [
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {}
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "primary_key",
+          "direction": "ASC"
+        }
+      ],
+      "isAnalyzable": false,
+      "displayName": "Protein ID(s) or VEuPathDB GeneID(s)",
+      "fullName": "SequenceQuestions.ByIdList",
+      "description": "Find Proteins by OrthoMCL Protein ID(s) (from the current or previous releases of OrthoMCL) or by VEuPathDB Gene ID(s).",
+      "defaultAttributes": [
+        "primary_key",
+        "taxon_name",
+        "product",
+        "length",
+        "ec_numbers",
+        "pfam_domains",
+        "core_peripheral",
+        "group_link"
+      ],
+      "groups": [
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "source_ids"
+          ]
+        }
+      ],
+      "filters": [],
+      "shortDisplayName": "Seq ID(s)",
+      "paramNames": [
+        "source_ids"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "sequence",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "ByIdList",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Sequence Ids",
+          "parsers": [
+            {
+              "displayName": "List",
+              "name": "list",
+              "description": "The input is a list of records, one record in each row, and each record can have multiple columns."
+            }
+          ],
+          "isVisible": true,
+          "type": "input-dataset",
+          "help": ">Sequence source ids from current or previous releases.",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "allowEmptyValue": false,
+          "name": "source_ids",
+          "recordClassName": "sequence",
+          "initialDisplayValue": "",
+          "defaultIdList": "acid|C1F2M9",
+          "properties": {},
+          "group": "empty"
+        }
+      ],
+      "properties": {},
+      "summaryViewPlugins": [
+        {
+          "displayName": "Protein Results",
+          "name": "_default",
+          "description": ""
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

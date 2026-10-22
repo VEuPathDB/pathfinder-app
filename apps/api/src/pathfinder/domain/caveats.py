@@ -17,15 +17,15 @@ from pathfinder.domain.evidence import (
     NamedControlSet,
     VerificationReview,
 )
+from pathfinder.domain.expression_fit import ExpressionGap
+from pathfinder.domain.reading_caveats import ReadingCaveat, reading_caveats
 from pathfinder.domain.requirement_naming import (
     names_a_requirement,
     names_a_retired_requirement,
     requirement_naming,
 )
 from pathfinder.domain.strategy.constraints import GroundedConstraint, message_states
-from pathfinder.domain.strategy.operational_spec import (
-    OperationalSpec,
-)
+from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.value_caveats import (
     AssumedValueCaveat,
@@ -264,6 +264,7 @@ Caveat = Annotated[
     | LabelGapCaveat
     | EditDirectionCaveat
     | PhraseCaveat
+    | ReadingCaveat
     | ZeroCombineCaveat,
     Discriminator("kind"),
 ]
@@ -273,7 +274,12 @@ def caveats_for(
     spec: OperationalSpec | None, measured: Sequence[Caveat]
 ) -> list[Caveat]:
     """The caveats a check measured, then the values of the spec that narrow."""
-    return [*measured, *assumed_value_caveats(spec), *phrase_caveats(spec)]
+    return [
+        *measured,
+        *assumed_value_caveats(spec),
+        *phrase_caveats(spec),
+        *reading_caveats(spec),
+    ]
 
 
 def controls_caveat(test: ControlTestEvidence) -> ControlsCaveat | None:
@@ -399,7 +405,8 @@ class StructureGap(CamelModel):
 
 
 Gap = Annotated[
-    RequirementGap | WordGap | StructureGap | CheckGap, Discriminator("kind")
+    RequirementGap | WordGap | StructureGap | CheckGap | ExpressionGap,
+    Discriminator("kind"),
 ]
 
 

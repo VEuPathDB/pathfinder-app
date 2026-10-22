@@ -80,10 +80,6 @@ class ProseFault(CamelModel):
     record_id: str = ""
 
 
-class UnheldReferenceError(ValueError):
-    """A reference names nothing the facts hold."""
-
-
 def _parameter(facts: TurnFacts, body: str) -> ParameterFact | None:
     step_id, _, name = body.partition(".")
     step = facts.step(step_id)
@@ -215,7 +211,7 @@ def _source(facts: TurnFacts, body: str) -> str | None:
 _RENDERERS: dict[str, Callable[[TurnFacts, str], str | None]] = {
     "root": lambda facts, _: _with_noun(facts.root_count, facts),
     "root_before": lambda facts, _: _with_noun(facts.root_count_before, facts),
-    "url": lambda facts, _: facts.strategy_url,
+    "url": lambda facts, _: facts.strategy_url(),
     "count": _step_count,
     "before": _step_count_before,
     "diff": lambda facts, body: _with_noun(_difference(facts, body), facts),
@@ -234,20 +230,28 @@ def _rendered(match: re.Match[str], facts: TurnFacts) -> str | None:
     return _RENDERERS[reference_kind(match)](facts, match.group("body") or "")
 
 
+def _unheld_words(match: re.Match[str]) -> str:
+    match reference_kind(match):
+        case "record":
+            return match.group("body") or ""
+        case "url":
+            return "a link not shown"
+        case "value" | "source" | "stat":
+            return "a value not shown"
+        case _:
+            return "a count not shown"
+
+
 def render_reply(prose: str, facts: TurnFacts) -> str:
     """The reply with each reference replaced by the fact it names. A count
-    reference carries the record noun, so the noun written after it is absorbed."""
+    reference carries the record noun, so the noun written after it is absorbed.
+    A reference that names nothing the facts hold is shown as its plain words."""
 
     def replaced(match: re.Match[str]) -> str:
         rendered = _rendered(match, facts)
-        if rendered is None:
-            reference = match.group().removesuffix(match.group("noun") or "")
-            msg = f"{reference} names nothing the facts hold"
-            raise UnheldReferenceError(msg)
         noun = match.group("noun") or ""
-        return (
-            rendered if reference_kind(match) in COUNTED_REFERENCES else rendered + noun
-        )
+        shown = _unheld_words(match) if rendered is None else rendered
+        return shown if reference_kind(match) in COUNTED_REFERENCES else shown + noun
 
     return reference_and_its_noun(facts.counted_nouns()).sub(replaced, prose)
 
@@ -317,7 +321,7 @@ def _record_references(facts: TurnFacts, token: str) -> tuple[str, ...]:
 
 
 def _link_references(facts: TurnFacts, link: str) -> tuple[str, ...]:
-    if link == facts.strategy_url:
+    if link == facts.strategy_url():
         return ("[url]",)
     return tuple(
         dict.fromkeys(
@@ -447,7 +451,6 @@ def prose_faults(prose: str, facts: TurnFacts) -> list[ProseFault]:
 
 __all__ = [
     "ProseFault",
-    "UnheldReferenceError",
     "linked_records",
     "prose_faults",
     "render_reply",

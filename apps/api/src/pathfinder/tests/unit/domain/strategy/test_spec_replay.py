@@ -20,7 +20,10 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.outside_changes import outside_changes
-from pathfinder.domain.strategy.spec_hydration import Sheets
+from pathfinder.domain.strategy.spec_hydration import (
+    Sheets,
+    StepReading,
+)
 from pathfinder.domain.strategy.spec_replay import spec_replaying
 from pathfinder.tests._support.bound_values import bound
 from pathfinder.tests._support.sheets import visible_sheet
@@ -93,7 +96,10 @@ def _replayed(
     spec: OperationalSpec, answered: StrategyAst, live: StrategyAst | None
 ) -> OperationalSpec:
     return spec_replaying(
-        spec, outside_changes(answered, live), live, sheet_params=_SHEETS, analyses={}
+        spec,
+        outside_changes(answered, live),
+        live,
+        StepReading(sheet_params=_SHEETS, listed={}, analyses={}),
     )
 
 

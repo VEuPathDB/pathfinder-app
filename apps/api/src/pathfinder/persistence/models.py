@@ -22,6 +22,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Double,
     Float,
     ForeignKey,
     Identity,
@@ -39,7 +40,24 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from veupathdb.domain.strategy import StrategyAst
 from veupathdb.model import CamelModel
+from veupathdb_mcp.audit import GenomePriority
 
+from pathfinder.domain.audit.findings import (
+    Certainty,
+    ErrorType,
+    EvidenceKind,
+    EvidencePayload,
+    EvidenceStatus,
+    FindingStatus,
+)
+from pathfinder.domain.audit.rates import Weighing
+from pathfinder.domain.audit.scope import (
+    AuditScope,
+    GeneTarget,
+    GenomeRole,
+    GenomeStatus,
+)
+from pathfinder.domain.audit.stages import RunStages, RunStatus
 from pathfinder.domain.message_rating import Rating, WithheldCase
 
 
@@ -164,6 +182,7 @@ class GeneSetRow(Base):
     conversation_id: Mapped[UUID | None] = saved_in_column("gene_sets")
     answer_revision: Mapped[str | None] = mapped_column(String(16), nullable=True)
     homes: Mapped[JSONObject] = mapped_column(JSON, default=dict, server_default="{}")
+    out_of_date: Mapped[JSONObject | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -622,3 +641,277 @@ class UserProviderKey(Base):
         DateTime(timezone=True), nullable=True
     )
     refusal: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+def _counter() -> Mapped[int]:
+    return mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+
+
+def _stamp() -> Mapped[datetime]:
+    return mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+def _touched() -> Mapped[datetime]:
+    return mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class AuditRun(Base):
+    __tablename__ = "audit_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('planned', 'running', 'finished')", name="ck_audit_runs_status"
+        ),
+        CheckConstraint(
+            "(status = 'finished') = (finished_at IS NOT NULL)",
+            name="ck_audit_runs_finished_at",
+        ),
+        Index("ix_audit_runs_user_app", "user_id", "application_id"),
+        Index("ix_audit_runs_conversation_id", "conversation_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(GUID(), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    application_id: Mapped[str] = application_id_column()
+    conversation_id: Mapped[UUID | None] = saved_in_column("audit_runs")
+    site_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    release: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scope: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    seed: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="planned", server_default="planned"
+    )
+    stages: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    sealed_token: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    deadline_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = _stamp()
+    updated_at: Mapped[datetime] = _touched()
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class AuditGenome(Base):
+    __tablename__ = "audit_genomes"
+    __table_args__ = (
+        UniqueConstraint("run_id", "organism", name="uq_audit_genomes_run_organism"),
+        CheckConstraint(
+            "role IN ('audited', 'comparison')", name="ck_audit_genomes_role"
+        ),
+        CheckConstraint(
+            "status IN "
+            "('pending', 'trying', 'collected', 'failed', 'unreached', 'unread')",
+            name="ck_audit_genomes_status",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
+    )
+    organism: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    gene_count: Mapped[int] = _counter()
+    genes: Mapped[JSONArray] = mapped_column(
+        JSONB, nullable=False, default=list, server_default=text("'[]'::jsonb")
+    )
+    priority: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    reference_strain: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    requests: Mapped[int] = _counter()
+    attempts: Mapped[int] = _counter()
+    stopped: Mapped[int] = _counter()
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = _touched()
+
+
+class AuditFinding(Base):
+    __tablename__ = "audit_findings"
+    __table_args__ = (
+        UniqueConstraint("run_id", "target_key", name="uq_audit_findings_run_target"),
+        CheckConstraint(
+            "status IN "
+            "('screened', 'unsampled', 'trying', 'confirmed', 'failed', 'unreached', "
+            "'unread')",
+            name="ck_audit_findings_status",
+        ),
+        CheckConstraint(
+            "(error_type IS NULL) = (certainty IS NULL)",
+            name="ck_audit_findings_error_has_certainty",
+        ),
+        CheckConstraint(
+            "certainty IS NULL OR certainty IN ('high', 'medium', 'low')",
+            name="ck_audit_findings_certainty",
+        ),
+        CheckConstraint(
+            "error_type IS NULL OR status = 'confirmed'",
+            name="ck_audit_findings_error_when_confirmed",
+        ),
+        CheckConstraint(
+            "sampled = (status <> 'unsampled')",
+            name="ck_audit_findings_sampled_status",
+        ),
+        CheckConstraint(
+            "impact IS NULL OR error_type IS NOT NULL",
+            name="ck_audit_findings_impact_when_named",
+        ),
+        CheckConstraint(
+            "(impact IS NULL) = (weighing IS NULL)",
+            name="ck_audit_findings_impact_weighed",
+        ),
+        CheckConstraint(
+            "judged OR (status = 'confirmed' AND error_type IS NULL)",
+            name="ck_audit_findings_judged",
+        ),
+        Index("ix_audit_findings_run_status", "run_id", "status"),
+        Index("ix_audit_findings_run_genome_check", "run_id", "genome", "check_name"),
+        Index(
+            "ix_audit_findings_run_impact",
+            "run_id",
+            text("impact DESC NULLS LAST"),
+            "id",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(
+        GUID(), ForeignKey("audit_runs.id", ondelete="CASCADE"), nullable=False
+    )
+    check_name: Mapped[str] = mapped_column(String(32), nullable=False)
+    genome: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", server_default=""
+    )
+    screened_genome: Mapped[str] = mapped_column(
+        String(255), nullable=False, default="", server_default=""
+    )
+    paired_genome: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    target: Mapped[JSONObject] = mapped_column(JSONB, nullable=False)
+    target_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    sampled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    error_type: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    certainty: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    judged: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    impact: Mapped[float | None] = mapped_column(Double, nullable=True)
+    weighing: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    requests: Mapped[int] = _counter()
+    attempts: Mapped[int] = _counter()
+    stopped: Mapped[int] = _counter()
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = _stamp()
+    updated_at: Mapped[datetime] = _touched()
+
+
+class AuditEvidence(Base):
+    __tablename__ = "audit_evidence"
+    __table_args__ = (
+        UniqueConstraint("finding_id", "kind", name="uq_audit_evidence_finding_kind"),
+        CheckConstraint(
+            "status IN "
+            "('pending', 'trying', 'stored', 'failed', 'unreached', 'unread')",
+            name="ck_audit_evidence_status",
+        ),
+        CheckConstraint(
+            "(status = 'stored') = (payload IS NOT NULL)",
+            name="ck_audit_evidence_stored_has_payload",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    finding_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("audit_findings.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[JSONObject | None] = mapped_column(
+        JSONB(none_as_null=True), nullable=True
+    )
+    requests: Mapped[int] = _counter()
+    attempts: Mapped[int] = _counter()
+    stopped: Mapped[int] = _counter()
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = _stamp()
+    updated_at: Mapped[datetime] = _touched()
+
+
+class AuditRunRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    conversation_id: UUID | None
+    site_id: str
+    release: str | None
+    scope: AuditScope
+    seed: int
+    status: RunStatus
+    stages: RunStages
+    deadline_at: datetime | None
+    created_at: datetime
+    finished_at: datetime | None
+
+
+class AuditGenomeState(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    organism: str
+    role: GenomeRole
+    status: GenomeStatus
+    gene_count: int
+    requests: int
+    attempts: int
+    stopped: int
+    message: str | None
+    priority: GenomePriority | None
+    reference_strain: bool | None
+
+
+class AuditFindingRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    id: int
+    run_id: UUID
+    genome: str
+    screened_genome: str
+    paired_genome: str | None
+    target: GeneTarget
+    sampled: bool
+    status: FindingStatus
+    error_type: ErrorType | None
+    certainty: Certainty | None
+    judged: bool
+    impact: float | None
+    weighing: Weighing | None
+    requests: int
+    attempts: int
+    stopped: int
+    message: str | None
+
+
+class AuditEvidenceRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, from_attributes=True)
+
+    finding_id: int
+    kind: EvidenceKind
+    status: EvidenceStatus
+    payload: EvidencePayload | None
+    requests: int
+    attempts: int
+    stopped: int
+    message: str | None

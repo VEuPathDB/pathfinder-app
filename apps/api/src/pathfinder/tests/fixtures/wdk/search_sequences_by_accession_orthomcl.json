@@ -1,0 +1,116 @@
+{
+  "provenance": {
+    "site": "orthomcl",
+    "method": "GET",
+    "url": "https://qa.orthomcl.org/orthomcl.qa/service/record-types/sequence/searches/ByAccession?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-10-21",
+    "reads": "a protein or group name search"
+  },
+  "body": {
+    "searchData": {
+      "urlSegment": "ByAccession",
+      "dynamicAttributes": [
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "NUMBER",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {}
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "primary_key",
+          "direction": "ASC"
+        }
+      ],
+      "isAnalyzable": false,
+      "displayName": "Group or Protein Name",
+      "fullName": "SequenceQuestions.ByAccession",
+      "description": "Find Proteins with the specified Protein or Group Name.",
+      "defaultAttributes": [
+        "primary_key",
+        "taxon_name",
+        "product",
+        "length",
+        "ec_numbers",
+        "pfam_domains",
+        "core_peripheral",
+        "group_link"
+      ],
+      "groups": [
+        {
+          "displayType": "empty",
+          "displayName": "",
+          "name": "empty",
+          "description": "",
+          "isVisible": true,
+          "parameters": [
+            "accession"
+          ]
+        }
+      ],
+      "filters": [],
+      "shortDisplayName": "Group or Protein Name",
+      "paramNames": [
+        "accession"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "sequence",
+      "noSummaryOnSingleRecord": true,
+      "queryName": "ByAccession",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "displayName": "Accession",
+          "length": 0,
+          "isVisible": true,
+          "isMultiLine": false,
+          "type": "string",
+          "help": "Sequence source ids from current release. Wild card is supported",
+          "dependentParams": [],
+          "isReadOnly": false,
+          "isNumber": false,
+          "allowEmptyValue": false,
+          "name": "accession",
+          "initialDisplayValue": "acid|C1F2M9",
+          "properties": {},
+          "group": "empty"
+        }
+      ],
+      "properties": {},
+      "summaryViewPlugins": [
+        {
+          "displayName": "Protein Results",
+          "name": "_default",
+          "description": ""
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

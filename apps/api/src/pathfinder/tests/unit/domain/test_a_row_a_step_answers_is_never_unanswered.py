@@ -4,9 +4,6 @@ records are all unclear is met, or unjudged when only a text query answers it.""
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from pathfinder.domain.caveats import Gap, RequirementGap, check_gaps
 from pathfinder.domain.evidence import (
     RequirementCheck,
@@ -79,9 +76,8 @@ def _gaps(queries: list[TextQuery]) -> tuple[str, list[Gap]]:
     )
 
 
-def test_an_unmet_row_that_names_its_step_is_refused() -> None:
-    with pytest.raises(ValidationError, match="an unmet requirement names no step"):
-        _row("unmet")
+def test_an_unmet_row_that_names_its_step_has_a_status_problem() -> None:
+    assert _row("unmet").status_problem.startswith("an unmet requirement names no step")
 
 
 def test_a_list_step_with_every_record_unclear_is_met_and_no_gap() -> None:

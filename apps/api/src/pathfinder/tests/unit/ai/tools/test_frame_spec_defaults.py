@@ -24,6 +24,7 @@ from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone import _frame_proposals, frame_spec
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests._support.recorded_searches import no_count, serve_qualifier_reads
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
@@ -102,6 +103,7 @@ async def _bind(
     monkeypatch.setattr(frame_spec, "wdk_fetch_at", _fetch_at)
     serve_qualifier_reads(monkeypatch, lambda name: WDKSearch(url_segment=name))
     no_count(monkeypatch)
+    list_every_search_under(monkeypatch, "transcript")
     return returned(
         await set_criterion_as_read(
             _ctx(state),

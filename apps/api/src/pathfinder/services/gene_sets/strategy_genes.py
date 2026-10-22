@@ -11,6 +11,7 @@ from veupathdb_mcp.wdk import (
 
 from pathfinder.domain.gene_homes import holds_genes
 from pathfinder.services.gene_sets.homes import StepGenes, read_genes_of, site_kind
+from pathfinder.services.gene_sets.types import ResultNotGenes
 
 
 class RecordsAreNotGenesError(ValidationError):
@@ -22,6 +23,10 @@ class RecordsAreNotGenesError(ValidationError):
                 "are not genes, so no gene set takes them."
             ),
         )
+        self.record_class = record_class
+
+    def reason(self) -> ResultNotGenes:
+        return ResultNotGenes(record_class=self.record_class)
 
 
 @dataclass(frozen=True)

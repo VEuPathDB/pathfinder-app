@@ -40,6 +40,7 @@ from veupathdb_mcp.controls import leftover_strategy_ids, run_step_control_tests
 from pathfinder.ai.models.mock.site_values import MARKS_FILE
 from pathfinder.jobs.auth_context import attach_wdk_auth
 from pathfinder.platform.config import get_settings
+from pathfinder.services.experiment.controls_search import controls_search
 from pathfinder.services.experiment.seed.catalog import (
     SEEDS_DIR,
     get_seeds_for_site,
@@ -108,6 +109,7 @@ async def measure_seed(
             tree.step_id,
             positive_controls=controls.positive_ids,
             negative_controls=controls.negative_ids,
+            controls=controls_search(seed.record_type),
         )
     except VEuPathDBError as exc:
         return SeedMeasurement.model_validate({**stamp, "refusal": str(exc)})

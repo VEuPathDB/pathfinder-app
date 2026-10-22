@@ -13,7 +13,7 @@ from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKAnswer, WDKFilterValue, WDKSortSpec, WDKStepTree
 from veupathdb_mcp.wdk import SampleRecordsResult
 
-from pathfinder.ai.tools.standalone import results
+from pathfinder.ai.tools.standalone import _sample_page, results
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.tool_returns import returned
@@ -73,7 +73,7 @@ def served(monkeypatch: pytest.MonkeyPatch) -> _Step:
         return []
 
     step = _Step()
-    monkeypatch.setattr(results, "get_strategy_api", lambda site_id: step)
+    monkeypatch.setattr(_sample_page, "get_strategy_api", lambda site_id: step)
     monkeypatch.setattr(results, "sample_attributes", _none)
     return step
 
@@ -108,20 +108,20 @@ async def test_an_identical_sample_call_answers_the_same_genes() -> None:
 
 def test_the_offsets_are_drawn_from_the_seed_one_in_each_stride() -> None:
     seed = results.sample_seed(441126163, "")
-    offsets = results.spread_offsets(_STEP_TOTAL, 8, seed=seed)
+    offsets = _sample_page.spread_offsets(_STEP_TOTAL, 8, seed=seed)
 
-    assert offsets == results.spread_offsets(_STEP_TOTAL, 8, seed=seed)
+    assert offsets == _sample_page.spread_offsets(_STEP_TOTAL, 8, seed=seed)
     assert [o * 8 // _STEP_TOTAL for o in offsets] == list(range(8))
 
 
 def test_another_step_or_another_answer_draws_its_own_offsets() -> None:
-    held = results.spread_offsets(
+    held = _sample_page.spread_offsets(
         _STEP_TOTAL, 8, seed=results.sample_seed(441126163, "a1")
     )
-    other_step = results.spread_offsets(
+    other_step = _sample_page.spread_offsets(
         _STEP_TOTAL, 8, seed=results.sample_seed(441126164, "a1")
     )
-    other_answer = results.spread_offsets(
+    other_answer = _sample_page.spread_offsets(
         _STEP_TOTAL, 8, seed=results.sample_seed(441126163, "a2")
     )
 

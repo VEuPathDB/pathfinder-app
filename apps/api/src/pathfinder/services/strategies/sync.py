@@ -280,15 +280,11 @@ async def sync_strategy_for_site(
         pushable_id, graph.steps, fallback=graph.record_type or "transcript"
     )
 
-    sync_state.organism_params = await tree_organism_parameters(
-        site_id, graph.record_type, root_step
-    )
+    sync_state.organism_params = await tree_organism_parameters(site_id, root_step)
     datasets = await tree_dataset_organisms(
         site_id, root_step, sync_state.organism_params
     )
-    taxa = await tree_taxa(
-        site_id, graph.record_type, root_step, sync_state.organism_params, datasets
-    )
+    taxa = await tree_taxa(site_id, root_step, sync_state.organism_params, datasets)
     _validate_graph(
         root_step, graph.record_type, sync_state.organism_params, datasets, taxa
     )

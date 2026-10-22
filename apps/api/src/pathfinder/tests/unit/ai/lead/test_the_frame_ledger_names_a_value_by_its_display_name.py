@@ -24,6 +24,7 @@ def _section() -> FrameSection:
                     id="c_expr",
                     text="expressed in asexual blood stages",
                     search_name="GenesByRNASeqPercentile",
+                    record_class="transcript",
                     resolved_params={
                         "min_expression_percentile": BoundValue(
                             value=StringValue(value="80"), source="default"
@@ -91,7 +92,14 @@ def test_a_measurement_counts_in_the_noun_of_the_record_type() -> None:
     transcript = _section()
     assert transcript.spec is not None
     compound = FrameSection(
-        spec=transcript.spec.model_copy(update={"record_type": "compound"})
+        spec=transcript.spec.model_copy(
+            update={
+                "criteria": [
+                    c.model_copy(update={"record_class": "compound"})
+                    for c in transcript.spec.criteria
+                ]
+            }
+        )
     )
 
     measured = [

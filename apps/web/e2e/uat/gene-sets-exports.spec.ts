@@ -154,9 +154,22 @@ test.describe("Gene sets from a strategy", { tag: "@turn" }, () => {
       card.getByRole("link", { name: `Run GO, pathway or word enrichment in ${site}` }),
     ).toHaveAttribute("href", new RegExp(`^${literal(url)}(/\\d+)?$`));
 
+    const saved = chatPage.assistantMessages.filter({
+      has: page.getByTestId("data-gene-set"),
+    });
+    const factsLink = chatPage.factsIn(saved).getByTestId("facts-strategy-link");
+    await expect(factsLink).toHaveText(`Open on ${site}`);
+    await expect(factsLink).toHaveAttribute(
+      "href",
+      new RegExp(`^${literal(url)}/\\d+$`),
+    );
+
     await graphPage.openRailStrategyPanel();
-    const railLink = page.getByTestId("rail-strategy-wdk-link");
-    await expect(railLink).toHaveText(site);
+    const railLink = page.getByRole("link", {
+      name: `Open strategy on ${site}`,
+      exact: true,
+    });
+    await expect(railLink).toHaveText(`Open strategy on ${site}`);
     await expect(railLink).toHaveAttribute("href", url);
   });
 });

@@ -2,6 +2,7 @@
 
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
+from typing import NamedTuple
 
 from pydantic import ConfigDict, JsonValue
 from veupathdb.domain.parameters import to_decoded_map
@@ -101,30 +102,85 @@ def _returned_classes(
     return set() if own is None else {own.returns}
 
 
+class MixedCombine(NamedTuple):
+    operator: CombineOp
+    left: StrategyStepNode
+    right: StrategyStepNode
+    primary: str
+    secondary: str
+
+
+def first_mixed_combine(
+    root: StrategyStepNode, classes: Mapping[str, SearchRecordClasses]
+) -> MixedCombine | None:
+    for node in _nodes(root):
+        left, right, operator = node.primary_input, node.secondary_input, node.operator
+        if left is None or right is None or operator is None:
+            continue
+        if operator is CombineOp.COLOCATE:
+            continue
+        primary = _returned_classes(left, classes)
+        secondary = _returned_classes(right, classes)
+        if len(primary) == 1 and len(secondary) == 1 and primary != secondary:
+            return MixedCombine(operator, left, right, primary.pop(), secondary.pop())
+    return None
+
+
+def _side(node: StrategyStepNode) -> str:
+    left, right, operator = node.primary_input, node.secondary_input, node.operator
+    if left is None or right is None or operator is None:
+        return node.id
+    return f"({_side(left)} {operator.value} {_side(right)})"
+
+
+def mixed_combine_refusal(
+    mixed: MixedCombine,
+    record_names: Mapping[str, str],
+    transforms: Mapping[str, SearchRecordClasses],
+) -> str:
+    left, right = _side(mixed.left), _side(mixed.right)
+    first = record_names.get(mixed.primary, mixed.primary)
+    second = record_names.get(mixed.secondary, mixed.secondary)
+    named = {mixed.primary: first, mixed.secondary: second}
+    remedies = [
+        f"{t.display_name} ({name}) maps {named[source]} to {named[target]}: "
+        f"put it over {side}."
+        for source, target, side in (
+            (mixed.primary, mixed.secondary, left),
+            (mixed.secondary, mixed.primary, right),
+        )
+        for name, t in sorted(transforms.items())
+        if source in t.takes and t.returns == target
+    ]
+    remedy = " ".join(remedies) or (
+        f"No transform on this site maps {first} to {second} or {second} to "
+        f"{first}. Bind both inputs to searches on one record type, or ask the "
+        f"researcher."
+    )
+    return (
+        f"The {mixed.operator.value} of {left} ({first}) and {right} ({second}) "
+        f"joins two record types. WDK combines only steps of one record type, so "
+        f"the site refuses this combine. {remedy}"
+    )
+
+
 def transform_input_refusal(
     root: StrategyStepNode,
     classes: Mapping[str, SearchRecordClasses],
     record_names: Mapping[str, str],
 ) -> str | None:
     """Why the first transform whose input returns a record class it does not
-    take is refused, or None. A search or an input of unknown class abstains."""
+    take is refused, or None. A search or an input of unknown or mixed class
+    abstains."""
     for node in _nodes(root):
         own = classes.get(node.search_name)
         source = node.primary_input
         if node.infer_kind() != "transform" or source is None or own is None:
             continue
         given = sorted(_returned_classes(source, classes))
-        if not own.takes or not given or set(given) <= set(own.takes):
+        if not own.takes or len(given) != 1 or set(given) <= set(own.takes):
             continue
         takes = " or ".join(record_names.get(c, c) for c in own.takes)
-        if len(given) > 1:
-            joined = " and ".join(record_names.get(c, c) for c in given)
-            return (
-                f"The subtree under {node.id} joins {joined} in one combine. WDK "
-                f"combines only steps of one record class, so this tree cannot "
-                f"run. Bind every input under {node.id} to a search on {takes}, "
-                f"or ask the researcher."
-            )
         returns = record_names.get(own.returns, own.returns)
         subtree = record_names.get(given[0], given[0])
         return (

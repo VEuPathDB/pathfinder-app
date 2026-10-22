@@ -71,9 +71,8 @@ def definitions_read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Serve the taxon search's definition and count each read of it."""
     read: list[str] = []
 
-    async def _listed_under(site_id: str, search_name: str, record_type: str) -> str:
-        del site_id, search_name
-        return record_type
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        return dict.fromkeys(names, "transcript")
 
     async def _definition(site_id: str, record_type: str, name: str) -> WDKSearch:
         del site_id, record_type
@@ -84,7 +83,7 @@ def definitions_read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         del site_id, record_type, name
         return "organism"
 
-    monkeypatch.setattr(organism_params, "resolve_search_record_type", _listed_under)
+    monkeypatch.setattr(organism_params, "search_record_types", _listed)
     monkeypatch.setattr(organism_params, "read_search_definition", _definition)
     monkeypatch.setattr(organism_params, "organism_parameter", _marked)
     return read
@@ -93,9 +92,7 @@ def definitions_read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 async def test_the_tree_gives_the_organisms_under_each_entry(
     definitions_read: list[str],
 ) -> None:
-    taxa = await organism_taxa(
-        "piroplasmadb", "transcript", {_TAXON_SEARCH: "organism"}
-    )
+    taxa = await organism_taxa("piroplasmadb", {_TAXON_SEARCH: "organism"})
 
     assert taxa == {
         "Babesiidae": frozenset({_BOVIS}),
@@ -107,7 +104,7 @@ async def test_the_tree_gives_the_organisms_under_each_entry(
 async def test_a_family_meets_an_organism_under_it(definitions_read: list[str]) -> None:
     root = _intersect(_taxon("family", "Babesiidae"), _taxon("strain", _BOVIS))
 
-    refusal = await tree_cross_organism_refusal("piroplasmadb", "transcript", root)
+    refusal = await tree_cross_organism_refusal("piroplasmadb", root)
 
     assert (refusal, definitions_read) == (None, [_TAXON_SEARCH])
 
@@ -117,7 +114,7 @@ async def test_a_family_does_not_meet_an_organism_outside_it(
 ) -> None:
     root = _intersect(_taxon("family", "Babesiidae"), _taxon("strain", _PARVA))
 
-    refusal = await tree_cross_organism_refusal("piroplasmadb", "transcript", root)
+    refusal = await tree_cross_organism_refusal("piroplasmadb", root)
 
     assert refusal == (
         f"Cannot INTERSECT steps with different organism scopes (Babesiidae vs "
@@ -132,6 +129,19 @@ async def test_scopes_that_share_a_name_read_no_tree(
 ) -> None:
     root = _intersect(_taxon("one", _BOVIS), _taxon("other", _BOVIS))
 
-    refusal = await tree_cross_organism_refusal("piroplasmadb", "transcript", root)
+    refusal = await tree_cross_organism_refusal("piroplasmadb", root)
 
     assert (refusal, definitions_read) == (None, [])
+
+
+async def test_a_search_the_catalog_does_not_list_reads_no_tree(
+    monkeypatch: pytest.MonkeyPatch, definitions_read: list[str]
+) -> None:
+    async def _unlisted(_site: str, _names: Any) -> dict[str, str]:
+        return {}
+
+    monkeypatch.setattr(organism_params, "search_record_types", _unlisted)
+
+    taxa = await organism_taxa("piroplasmadb", {_TAXON_SEARCH: "organism"})
+
+    assert (taxa, definitions_read) == ({}, [])

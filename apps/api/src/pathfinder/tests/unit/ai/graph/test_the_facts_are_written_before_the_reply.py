@@ -87,7 +87,12 @@ async def test_the_facts_part_comes_before_the_reply(
 
     assert types.index("data-facts") < types.index("text-start")
     assert facts["saved"] == [
-        {"kind": "gene_set", "name": "kinases draft", "count": 61}
+        {
+            "kind": "gene_set",
+            "name": "kinases draft",
+            "count": 61,
+            "recordNoun": "gene",
+        }
     ]
 
 

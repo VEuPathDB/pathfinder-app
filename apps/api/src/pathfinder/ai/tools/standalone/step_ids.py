@@ -14,10 +14,10 @@ from pydantic_ai.messages import ToolReturn
 from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.ai.tools.standalone._result_models import MAX_SAMPLE_LIMIT
+from pathfinder.ai.tools.standalone._sample_page import sample_page
 from pathfinder.ai.tools.standalone.results import (
     READ_DEADLINE_SECONDS,
     named_or_root,
-    sample_page,
     step_sample_seed,
 )
 from pathfinder.domain.strategy.session import StrategySession

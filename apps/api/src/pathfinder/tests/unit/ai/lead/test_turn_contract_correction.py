@@ -77,13 +77,16 @@ class TestTheOneCorrection:
             hold_the_turn_contract(run_context_for(deps), report)
 
         assert deps.state.turn_markers.contract_refused is True
-        assert hold_the_turn_contract(run_context_for(deps), report) is report
+        assert hold_the_turn_contract(run_context_for(deps), report) == reply(
+            ASKING_REPLY, changed=False
+        )
+        assert deps.state.turn_markers.unchecked_reply is False
 
     def test_a_matching_reply_is_never_refused(self) -> None:
         deps = framing_deps()
         report = reply(CLEAN_REPLY)
 
-        assert hold_the_turn_contract(run_context_for(deps), report) is report
+        assert hold_the_turn_contract(run_context_for(deps), report) == report
         assert deps.state.turn_markers.contract_refused is False
 
     def test_a_deferred_request_is_not_prose(self) -> None:

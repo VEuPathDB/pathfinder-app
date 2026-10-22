@@ -23,8 +23,8 @@ async def validate_plan_or_raise(plan: JSONObject, *, site_id: str) -> StrategyA
             ],
         ) from exc
 
-    marks = await tree_organism_parameters(site_id, payload.record_type, payload.root)
-    taxa = await tree_taxa(site_id, payload.record_type, payload.root, marks, {})
+    marks = await tree_organism_parameters(site_id, payload.root)
+    taxa = await tree_taxa(site_id, payload.root, marks, {})
     validation = validate_strategy(payload.root, payload.record_type, marks, taxa=taxa)
     if not validation.valid:
         raise ValidationError(

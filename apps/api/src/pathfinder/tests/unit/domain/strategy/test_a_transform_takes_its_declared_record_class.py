@@ -15,6 +15,8 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.orthology import stated_steps
 from pathfinder.domain.strategy.validate import (
     SearchRecordClasses,
+    first_mixed_combine,
+    mixed_combine_refusal,
     transform_input_refusal,
 )
 from pathfinder.tests.unit.domain.strategy._n1_tree import (
@@ -172,8 +174,9 @@ def test_a_combine_answers_with_the_class_of_either_known_input() -> None:
     )
 
 
-def test_a_combine_of_two_known_record_classes_is_refused() -> None:
-    """A compounds input beside a genes input cannot answer for the combine."""
+def test_a_combine_of_two_known_record_classes_is_the_combines_refusal() -> None:
+    """A compounds input beside a genes input is refused at the combine, and
+    the transform over it abstains."""
     spec = _compounds_under_the_transform()
     spec = spec.model_copy(
         update={
@@ -194,9 +197,16 @@ def test_a_combine_of_two_known_record_classes_is_refused() -> None:
         }
     )
 
-    assert _refusal(spec) == (
-        "The subtree under c_drug_target joins Compounds and Genes in one "
-        "combine. WDK combines only steps of one record class, so this tree "
-        "cannot run. Bind every input under c_drug_target to a search on "
-        "Compounds, or ask the researcher."
+    steps = stated_steps(spec)
+    assert steps is not None
+    mixed = first_mixed_combine(steps, CLASSES)
+    assert mixed is not None
+
+    assert _refusal(spec) is None
+    assert mixed_combine_refusal(mixed, NAMES, {}) == (
+        "The INTERSECT of c_compounds (Compounds) and step_9ba9dec1 (Genes) joins "
+        "two record types. WDK combines only steps of one record type, so the "
+        "site refuses this combine. No transform on this site maps Compounds to "
+        "Genes or Genes to Compounds. Bind both inputs to searches on one record "
+        "type, or ask the researcher."
     )

@@ -15,12 +15,16 @@ from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
-    UnheldReferenceError,
     prose_faults,
     render_reply,
     shape_faults,
 )
-from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
+from pathfinder.domain.turn_facts import (
+    ParameterFact,
+    StepFact,
+    StrategyLinkFact,
+    TurnFacts,
+)
 
 _RECORD_PAGE = "https://qa.cryptodb.org/cryptodb.qa/app/record/gene/"
 _STRATEGY = "https://qa.microsporidiadb.org/micro.qa/app/workspace/strategies/1/3"
@@ -66,7 +70,7 @@ _MICRO = TurnFacts(
     ],
     root_count=9,
     root_count_before=1183,
-    strategy_url=_STRATEGY,
+    strategy_link=StrategyLinkFact(site_id="microsporidiadb", url=_STRATEGY),
 )
 
 # cryptodb, build 71: mucin* over C. parvum IOWA-ATCC, product field 2, every
@@ -175,9 +179,10 @@ def test_a_record_renders_its_id_linked_with_its_product() -> None:
     )
 
 
-def test_a_reference_to_a_step_the_facts_do_not_hold_is_not_rendered() -> None:
-    with pytest.raises(UnheldReferenceError, match=r"\[count:step_gone\]"):
-        render_reply("It returns [count:step_gone].", _MICRO)
+def test_a_reference_to_a_step_the_facts_do_not_hold_shows_its_plain_words() -> None:
+    assert render_reply("It returns [count:step_gone].", _MICRO) == (
+        "It returns a count not shown."
+    )
 
 
 def test_a_reference_to_a_step_the_facts_do_not_hold_is_a_fault() -> None:

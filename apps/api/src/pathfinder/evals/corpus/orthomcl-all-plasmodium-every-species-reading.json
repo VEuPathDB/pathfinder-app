@@ -1,0 +1,52 @@
+{
+  "name": "orthomcl-all-plasmodium-every-species-reading",
+  "turns": [
+    "Which ortholog groups are present in all Plasmodium species but absent from Toxoplasma gondii?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "The every-species reading counts a species present when most of its strains are: one taxon-count unit per Plasmodium species joined by AND, and every Toxoplasma gondii genome absent.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 787,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "padl>=1T AND pber>=1T AND pbil>=1T AND pblg>=1T AND pbbi>=1T AND pcha+pccb>=1T AND pcoa>=1T AND pcyn+pcym>=1T AND pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg>=10T AND pfra>=1T AND pgab+pgas>=1T AND pgal>=1T AND pinu>=1T AND pkah+pkno+pknp>=2T AND pmal>=1T AND pova+powp>=1T AND ppra>=1T AND prei+preg>=1T AND prel>=1T AND pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin>=4T AND pvlk>=1T AND pvip+pvpv+pvpw+pviv>=2T AND pyoe+pyxn+pyyx+pyoy>=2T AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve=0T"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/an-all-over-many-genomes-is-asked-about.md",
+    "curatorNote": "The same prompt with the every-species reading picked on the question card."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": [
+      {
+        "card": "consult_user",
+        "turn": 0,
+        "accept": true,
+        "picks": [
+          "species"
+        ]
+      }
+    ]
+  }
+}

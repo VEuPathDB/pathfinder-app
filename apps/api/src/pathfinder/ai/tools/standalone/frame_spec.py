@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
 from veupathdb.domain import SearchContext
@@ -13,8 +12,6 @@ from veupathdb_mcp.catalog import (
     ResolvedParams,
     fetch_search_details,
     make_validation_callbacks,
-    read_search_definition,
-    resolve_search_record_type,
     shortlist_slot,
     validate_parameters,
     wdk_fetch_at,
@@ -23,13 +20,15 @@ from veupathdb_mcp.catalog import (
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_models import (
     ensure_search_registered,
-    register_search,
     search_display_name,
+)
+from pathfinder.ai.tools.standalone._frame_datasets import (
+    saved_id_lists,
+    with_typed_ids,
 )
 from pathfinder.ai.tools.standalone._frame_eda import (
     refuse_a_bound_analysis,
     refuse_a_search_the_criterion_cannot_use,
-    refuse_a_waiting_criterion,
 )
 from pathfinder.ai.tools.standalone._frame_gene_set import set_gene_set_criterion
 from pathfinder.ai.tools.standalone._frame_lookups import refuse_a_pick_no_lookup_read
@@ -49,22 +48,19 @@ from pathfinder.ai.tools.standalone._frame_proposals import (
 )
 from pathfinder.ai.tools.standalone._frame_qualifiers import (
     qualifiers_no_search_states,
-    refuse_a_qualifier_the_search_drops,
 )
 from pathfinder.ai.tools.standalone._frame_rationale import (
     SearchChoice,
     rationale_for,
 )
+from pathfinder.ai.tools.standalone._frame_reading import offered_reading
 from pathfinder.ai.tools.standalone._frame_result import (
     SetCriterionResult,
     criterion_return,
 )
-from pathfinder.ai.tools.standalone._frame_roles import (
-    refuse_a_transform_on_a_saved_input,
-)
-from pathfinder.ai.tools.standalone._frame_saved import bind_saved_criterion
+from pathfinder.ai.tools.standalone._frame_saved import set_saved_criterion
 from pathfinder.ai.tools.standalone._frame_sheet import (
-    open_parameter_sheet,
+    open_the_sheet,
     reconcile_dependents,
 )
 from pathfinder.ai.tools.standalone._frame_sources import (
@@ -72,26 +68,16 @@ from pathfinder.ai.tools.standalone._frame_sources import (
     open_slots,
 )
 from pathfinder.ai.tools.standalone._frame_stated import refuse_what_the_words_decide
+from pathfinder.ai.tools.standalone._frame_unserved import (
+    an_unserved_search_refused,
+    listed_record_type,
+)
 from pathfinder.ai.tools.standalone._frame_values import proposed_call, sourced_values
 from pathfinder.ai.tools.standalone._validation_helpers import validation_model_retry
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
 )
-
-
-async def _record_type(ctx: RunContext[AgentDeps], search_name: str) -> str:
-    """The record type that owns the search, resolved once for the whole call.
-
-    The strategy graph's record type answers whenever the session holds a graph,
-    whatever search is named; the catalog resolves the name only without one.
-    """
-    graph = ctx.deps.strategy_session.get_graph(None)
-    return await resolve_search_record_type(
-        ctx.deps.site_id,
-        search_name,
-        graph.record_type if graph is not None else None,
-    )
 
 
 def _memoized_fetch(site_id: str, record_type: str, search_name: str) -> ParamFetcher:
@@ -142,38 +128,6 @@ async def _canonical_binding(
     return canonical, validated.substituted
 
 
-async def _open_the_sheet(
-    ctx: RunContext[AgentDeps],
-    stated: Criterion,
-    search_name: str,
-    record_type: str,
-) -> ToolReturn[SetCriterionResult]:
-    definition = await read_search_definition(
-        ctx.deps.site_id, record_type, search_name
-    )
-    await refuse_a_search_the_criterion_cannot_use(
-        ctx, record_type, definition, stated, None
-    )
-    unread = await refuse_a_qualifier_the_search_drops(
-        ctx, record_type, definition, stated
-    )
-    register_search(ctx.deps.agent_state, definition, record_type)
-    return criterion_return(
-        ctx,
-        SetCriterionResult(
-            criterion_id=stated.id,
-            search_name=search_name,
-            params_template=open_parameter_sheet(
-                ctx.deps.agent_state, stated.id, search_name, definition
-            ),
-            sheet_pinned=True,
-            unread_searches=unread,
-        ),
-        record_type,
-        definition,
-    )
-
-
 async def set_criterion(
     ctx: RunContext[AgentDeps],
     *,
@@ -185,6 +139,7 @@ async def set_criterion(
     saved_strategy: str = "",
     gene_set: str = "",
     why: SearchChoice | None = None,
+    reading: str = "",
 ) -> ToolReturn[SetCriterionResult]:
     """Bind a criterion to a WDK search, in two calls.
 
@@ -219,7 +174,10 @@ async def set_criterion(
     one (a tree parent term selects its children); a number or free text is the
     literal the request states; a filter parameter takes "<member facet>=<v1>,<v2>",
     or "<range facet><=<n>", "<range facet>>=<n>" or "<range facet>=<lo>..<hi>"
-    for a facet the sheet marks is_range or of type date.
+    for a facet the sheet marks is_range or of type date; an input-dataset
+    parameter takes the ids the request states, separated by commas or spaces,
+    which the tool saves on the site as an ID list, or a saved dataset as
+    {"type": "input-dataset", "datasetId": "<dataset id>"}.
     ``null`` means the request does not determine it: the search default applies
     and is reported in ``defaulted_params``, or the parameter becomes an open
     slot when there is no default. Do not pass null for a numeric parameter when
@@ -248,6 +206,11 @@ async def set_criterion(
     ``why`` goes on the call with ``params``: why this search and not the others
     the catalog answered. Its basis is checked against the read and the values.
 
+    ``reading`` goes on the call with ``params`` when the researcher answered,
+    in their own words, a question that offered readings on this criterion: the
+    label of the offered reading closest to their answer, with that reading's
+    values in ``params``. With no such question it is refused.
+
     ``result_count`` is how many records the binding you just made matches,
     and is null for a search that runs on another step or a count that did
     not arrive in time. A binding the site refuses to count is not recorded
@@ -270,22 +233,7 @@ async def set_criterion(
     if gene_set:
         return await set_gene_set_criterion(ctx, stated, reference=gene_set)
     if saved_strategy:
-        refuse_a_waiting_criterion(state, criterion_id)
-        refuse_a_transform_on_a_saved_input(criterion_id, role, "saved strategy")
-        match = await bind_saved_criterion(
-            ctx,
-            criterion_id=criterion_id,
-            text=text,
-            role=role,
-            reference=saved_strategy,
-        )
-        return with_summary(
-            SetCriterionResult(
-                criterion_id=criterion_id, search_name="", saved_strategy=match
-            ),
-            f"{criterion_id} starts from {match.name}",
-            ctx=ctx,
-        )
+        return await set_saved_criterion(ctx, stated, reference=saved_strategy)
     if not search_name:
         msg = (
             "set_criterion needs a search_name, a saved_strategy when the "
@@ -294,13 +242,31 @@ async def set_criterion(
             "from a gene set the user saved (list_gene_sets names them)."
         )
         raise ModelRetry(msg)
-    record_type = await _record_type(ctx, search_name)
+    record_type = await listed_record_type(ctx, criterion_id, search_name)
     if params is None:
-        return await _open_the_sheet(ctx, stated, search_name, record_type)
+        return await open_the_sheet(ctx, stated, search_name, record_type)
+    return await _bind_the_search(
+        ctx, stated, search_name, record_type, params=params, why=why, reading=reading
+    )
+
+
+async def _bind_the_search(
+    ctx: RunContext[AgentDeps],
+    stated: Criterion,
+    search_name: str,
+    record_type: str,
+    *,
+    params: ParamProposals,
+    why: SearchChoice | None,
+    reading: str,
+) -> ToolReturn[SetCriterionResult]:
+    state = ctx.deps.agent_state
+    criterion_id, text, role = stated.id, stated.text, stated.role
     search = SearchContext(ctx.deps.site_id, record_type, search_name)
-    definition = await _search_definition(search)
     fetch_at = _memoized_fetch(ctx.deps.site_id, record_type, search_name)
-    infos = await fetch_at({})
+    with an_unserved_search_refused(ctx, criterion_id, search_name, record_type):
+        definition = await _search_definition(search)
+        infos = await fetch_at({})
     call, fixed = proposed_call(
         CriterionCall(
             criterion_id=criterion_id, search_name=search_name, text=text, params=params
@@ -336,6 +302,9 @@ async def set_criterion(
         **(phyletic or {}),
         **radio,
     }
+    overrides, typed = await saved_id_lists(
+        ctx.deps.site_id, state, criterion_id, infos, overrides
+    )
     resolved = await resolve_proposals(fetch_at, text, overrides)
     if resolved.unread:
         msg = (
@@ -389,6 +358,8 @@ async def set_criterion(
         site_supplied=site_supplied,
         reason=chosen_reason(why, chosen),
     )
+    bound = with_typed_ids(bound, typed, state.request_messages)
+    accepted = offered_reading(state, criterion_id, reading, bound)
     open_params = open_slots(criterion_id, resolved.open_slots, infos)
     count, alternatives, measured = await record_bound_criterion(
         ctx,
@@ -397,6 +368,7 @@ async def set_criterion(
             text=text,
             search_name=search_name,
             search_display_name=search_display_name(definition),
+            record_class=record_type,
             role=role,
             organism_param=next((i.name for i in infos if i.organism_param), None),
             resolved_params=bound,
@@ -405,6 +377,7 @@ async def set_criterion(
             open_params=open_params,
             rationale=chosen.rationale,
             unexpressed_qualifiers=qualifiers.unexpressed,
+            accepted_reading=accepted,
         ),
         record_type=record_type,
         definition=definition,

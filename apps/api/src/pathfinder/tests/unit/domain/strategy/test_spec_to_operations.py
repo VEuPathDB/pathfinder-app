@@ -277,7 +277,6 @@ def test_a_changed_criterion_that_names_no_step_is_refused() -> None:
     """A FRAME-authored label addresses nothing in the live graph."""
     labelled = OperationalSpec(
         goal="find proteases",
-        record_type="transcript",
         criteria=[
             Criterion(
                 id="c1_protease_text",

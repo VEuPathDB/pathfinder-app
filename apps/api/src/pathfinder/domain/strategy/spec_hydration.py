@@ -28,10 +28,13 @@ from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.domain.strategy.value_binding import bind_values, read_again
 
 __all__ = [
+    "Listed",
     "Sheets",
     "StepRead",
+    "StepReading",
     "StepSheets",
     "analysis_criteria_stated",
+    "criteria_listed_under",
     "criterion_analysing",
     "hidden_params_dropped",
     "read_under_their_parents",
@@ -43,11 +46,18 @@ __all__ = [
 ]
 
 Analyses = Mapping[str, AnalysisBinding]
+Listed = Mapping[str, str]
 # The parameters each search's sheet shows, by search name.
 Sheets = Mapping[str, Sequence[ParameterInfo]]
 # A sheet whose dependent vocabularies the step's own parents answer, by step id.
 StepSheets = Mapping[str, Sequence[ParameterInfo]]
 _NO_ANALYSES: Analyses = {}
+
+
+class StepReading(NamedTuple):
+    sheet_params: Sheets
+    listed: Listed
+    analyses: Analyses = _NO_ANALYSES
 
 
 class StepRead(NamedTuple):
@@ -68,8 +78,25 @@ def steps_stated_by(spec: OperationalSpec, ast: StrategyAst) -> list[StepRead]:
     ]
 
 
+def criteria_listed_under(spec: OperationalSpec, listed: Listed) -> OperationalSpec:
+    return spec.model_copy(
+        update={
+            "criteria": [
+                c.model_copy(update={"record_class": listed[c.search_name]})
+                if c.record_class is None and c.search_name in listed
+                else c
+                for c in spec.criteria
+            ]
+        }
+    )
+
+
 def spec_from_ast(
-    ast: StrategyAst, *, goal: str, analyses: Analyses = _NO_ANALYSES
+    ast: StrategyAst,
+    *,
+    goal: str,
+    listed: Listed,
+    analyses: Analyses = _NO_ANALYSES,
 ) -> OperationalSpec:
     """Reconstruct the spec a strategy would have had.
 
@@ -83,21 +110,20 @@ def spec_from_ast(
     criteria: list[Criterion] = []
     words = StepWords.of(ast)
     structure = _structure_of(ast.root, _Reading(seed_id, criteria, words, analyses))
-    return OperationalSpec(
+    stated = OperationalSpec(
         goal=goal,
         title=ast.name or "",
-        record_type=ast.record_type,
         criteria=criteria,
         structure=SpecStructure(root=structure),
     )
+    return criteria_listed_under(stated, listed)
 
 
 def spec_stating_the_live_tree(
     spec: OperationalSpec,
     ast: StrategyAst,
+    reading: StepReading,
     *,
-    sheet_params: Sheets,
-    analyses: Analyses = _NO_ANALYSES,
     shape_moved: bool = False,
     may_leave_out: Collection[str] = (),
 ) -> OperationalSpec:
@@ -112,7 +138,9 @@ def spec_stating_the_live_tree(
     answers is re-joined at the plan's root combine when that is where the plan
     put it; any other plan is left alone.
     """
-    derived = spec_from_ast(ast, goal=spec.goal, analyses=analyses)
+    derived = spec_from_ast(
+        ast, goal=spec.goal, listed=reading.listed, analyses=reading.analyses
+    )
     if derived.structure is None:
         return spec
     nodes = nodes_of(ast)
@@ -138,7 +166,7 @@ def spec_stating_the_live_tree(
     restated = spec.model_copy(deep=True)
     restated.criteria = [
         *restated.criteria,
-        *(_sheet_stated(criterion, sheet_params) for criterion in missing),
+        *(_sheet_stated(criterion, reading.sheet_params) for criterion in missing),
     ]
     restated.structure = SpecStructure(root=root)
     return spec_without_steps(restated, left_out)
@@ -311,6 +339,9 @@ def criterion_analysing(
     return criterion.model_copy(
         update={
             "search_name": search_name,
+            "record_class": (
+                criterion.record_class if search_name == criterion.search_name else None
+            ),
             "saved_strategy_ref": None,
             "analysis": binding,
             "needs_analysis_on": None,

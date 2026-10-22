@@ -23,6 +23,8 @@ from pathfinder.domain.strategy.operational_spec import (
     SpecStructure,
     StructureNode,
 )
+from pathfinder.services.strategies.record_classes import record_names_of
+from pathfinder.tests._support.organism_reads import TRANSCRIPT
 from pathfinder.tests.unit.ai.lead.conftest import requirement
 
 _COMBINATION = "mass spectrometry evidence OR DeRisi expression"
@@ -78,6 +80,8 @@ def _record(spec: OperationalSpec, *, read: tuple[str, ...] = ()) -> ReviewRecor
         record_url=lambda gene_id: (
             f"https://qa.plasmodb.org/plasmo.qa/app/record/gene/{gene_id}"
         ),
+        class_names=record_names_of([TRANSCRIPT]),
+        record_roles={},
     )
 
 

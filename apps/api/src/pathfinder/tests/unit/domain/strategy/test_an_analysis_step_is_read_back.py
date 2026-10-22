@@ -17,6 +17,7 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.outside_changes import outside_changes
 from pathfinder.domain.strategy.spec_hydration import (
+    StepReading,
     analysis_criteria_stated,
     spec_from_ast,
     spec_stating_the_live_tree,
@@ -46,7 +47,7 @@ def _ast(root: StrategyStepNode) -> StrategyAst:
 
 def test_a_hydrated_export_is_its_binding_and_states_no_parameter() -> None:
     spec = spec_from_ast(
-        _ast(exported_step()), goal="g", analyses={EXPORTED: binding()}
+        _ast(exported_step()), goal="g", analyses={EXPORTED: binding()}, listed={}
     )
 
     criterion = spec.criteria[0]
@@ -66,7 +67,9 @@ def test_an_export_added_outside_is_stated_by_its_binding() -> None:
     live = _ast(combine("step_c1", _TEXT, exported_step()))
 
     stated = spec_stating_the_live_tree(
-        spec, live, sheet_params={}, analyses={EXPORTED: binding()}
+        spec,
+        live,
+        StepReading(sheet_params={}, listed={}, analyses={EXPORTED: binding()}),
     )
 
     added = next(c for c in stated.criteria if c.id == EXPORTED)
@@ -91,8 +94,11 @@ def test_a_cut_moved_on_the_site_takes_a_fresh_binding() -> None:
         spec,
         outside_changes(answered, live),
         live,
-        sheet_params={COMPUTE_SEARCH: visible_sheet(["eda_analysis_spec"])},
-        analyses={EXPORTED: binding(significance=0.01)},
+        StepReading(
+            sheet_params={COMPUTE_SEARCH: visible_sheet(["eda_analysis_spec"])},
+            listed={},
+            analyses={EXPORTED: binding(significance=0.01)},
+        ),
     )
 
     criterion = replayed.criteria[0]

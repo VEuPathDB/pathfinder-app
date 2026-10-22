@@ -92,6 +92,7 @@ def _criterion(
         text=text,
         search_name=candidate.search_name,
         search_display_name=candidate.display_name,
+        record_class=RECORD_TYPE,
         role=role,
         resolved_params=bind_values(
             candidate.parameters,
@@ -161,7 +162,6 @@ def _offer(
                 f"Separate {len(result.positives)} positive genes from "
                 f"{len(result.negatives)} negative genes"
             ),
-            record_type=RECORD_TYPE,
             organism_scope=", ".join(result.organisms) or None,
             criteria=criteria,
             structure=SpecStructure(root=_structure(tree)),

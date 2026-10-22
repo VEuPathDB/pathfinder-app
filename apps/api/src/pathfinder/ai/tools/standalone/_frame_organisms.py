@@ -22,5 +22,5 @@ async def stated_cross_organism_refusal(
     datasets = dataset_organisms_of(stated.criteria)
     if first_cross_organism_refusal(steps, marks, datasets) is None:
         return None
-    taxa = await organism_taxa(site_id, stated.record_type, marks)
+    taxa = await organism_taxa(site_id, marks)
     return first_cross_organism_refusal(steps, marks, datasets, taxa=taxa)

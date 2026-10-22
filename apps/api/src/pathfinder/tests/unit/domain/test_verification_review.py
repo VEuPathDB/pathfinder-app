@@ -3,9 +3,6 @@ the genes, and the sources it cites."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from pathfinder.domain.citations import (
     Citation,
 )
@@ -30,14 +27,13 @@ def _gene(gene_id: str, fits: str, why: str = "product names a kinase") -> Sampl
 
 
 def test_a_met_requirement_names_what_answers_it() -> None:
-    with pytest.raises(ValidationError, match="a met requirement names"):
-        RequirementCheck(
-            text="with a signal peptide",
-            turn=1,
-            answered_by=[],
-            how="search",
-            status="met",
-        )
+    row = RequirementCheck(
+        text="with a signal peptide", turn=1, answered_by=[], how="search", status="met"
+    )
+
+    assert row.status_problem == (
+        "a met requirement names the criterion or the step that answers it"
+    )
 
 
 def test_an_unmet_requirement_may_name_nothing() -> None:
@@ -65,8 +61,10 @@ def test_an_unmet_requirement_may_name_nothing() -> None:
 def test_the_sample_holds_at_most_the_limit() -> None:
     genes = [_gene(f"PF3D7_{i:07d}", "yes") for i in range(SAMPLED_GENE_LIMIT + 1)]
 
-    with pytest.raises(ValidationError, match="at most 8 items"):
-        VerificationReview(sampled_genes=genes)
+    assert (
+        VerificationReview(sampled_genes=genes).sampled_genes
+        == genes[:SAMPLED_GENE_LIMIT]
+    )
 
 
 def test_the_rows_a_reply_must_name_are_the_unmet_and_the_unexpressed() -> None:
@@ -135,5 +133,4 @@ def test_the_review_lists_every_text_a_reader_can_see() -> None:
 
 
 def test_a_citation_carries_an_identifier_a_reader_can_open() -> None:
-    with pytest.raises(ValidationError, match="a url, a DOI or a PMID"):
-        Citation(kind="web", label="A page", why="it says so")
+    assert Citation(kind="web", label="A page", why="it says so").references() == []

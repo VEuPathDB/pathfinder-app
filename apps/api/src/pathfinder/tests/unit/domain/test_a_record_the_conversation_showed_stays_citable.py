@@ -4,13 +4,10 @@ for it, and a record never shown is still refused."""
 
 from __future__ import annotations
 
-import pytest
-
 from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
-    UnheldReferenceError,
     linked_records,
     prose_faults,
     render_reply,
@@ -68,8 +65,7 @@ def test_a_read_record_shown_before_renders_with_its_product() -> None:
 def test_a_record_never_shown_is_still_refused() -> None:
     prose = "It is [record:ENSMUSG00000073409]."
 
-    with pytest.raises(UnheldReferenceError, match=r"\[record:ENSMUSG00000073409\]"):
-        render_reply(prose, _SHOWN)
+    assert render_reply(prose, _SHOWN) == "It is ENSMUSG00000073409."
     assert prose_faults(prose, _SHOWN) == [
         ProseFault(token="[record:ENSMUSG00000073409]", kind="unheld_reference")
     ]

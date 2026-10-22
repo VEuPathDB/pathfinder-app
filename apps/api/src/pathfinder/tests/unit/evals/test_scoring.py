@@ -6,8 +6,14 @@ from veupathdb.domain.parameters import MultiPickValue
 from veupathdb.domain.strategy import CombineOp, StrategyAst, StrategyStepNode
 
 from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
-from pathfinder.evals.distance import tree_from_ast, tree_from_signature
+from pathfinder.evals.difference import CaseDifference
+from pathfinder.evals.distance import (
+    ComparisonNode,
+    tree_from_ast,
+    tree_from_signature,
+)
 from pathfinder.evals.scoring import ObservedOutcome, score_case, structure_signature
+from pathfinder.tests.unit.evals._phyletic import clade_tree
 
 
 def _leaf(search_name: str) -> StrategyStepNode:
@@ -375,3 +381,139 @@ def test_a_reply_that_lacks_the_phrase_still_fails() -> None:
     assert [d.field for d in score_case(case, observed).differences] == [
         "replyMentions"
     ]
+
+
+_PHYLETIC = "GroupsByPhyleticPattern"
+_APIC = clade_tree({"APIC": 139})
+
+
+def _expression_case(*writings: str) -> EvalCase:
+    return _case(
+        ExpectedOutcome(builds_strategy=True, expressions={_PHYLETIC: list(writings)})
+    )
+
+
+def _built(expression: str | None) -> ObservedOutcome:
+    parameters = {} if expression is None else {"phyletic_expression": expression}
+    return ObservedOutcome(
+        built_strategy=True,
+        tree=ComparisonNode(search_name=_PHYLETIC, parameters=parameters),
+    )
+
+
+def test_an_expression_of_the_same_meaning_passes() -> None:
+    case = _expression_case("APIC=139T AND APIC=139")
+
+    assert score_case(case, _built("APIC=139 AND APIC=139T"), _APIC).differences == []
+
+
+def test_an_expression_of_another_meaning_names_the_search() -> None:
+    case = _expression_case("APIC=139T AND APIC=139")
+
+    assert score_case(case, _built("APIC>=1T"), _APIC).differences == [
+        CaseDifference(
+            field="expressions.GroupsByPhyleticPattern",
+            expected="APIC=139T AND APIC=139",
+            actual="APIC>=1T",
+        )
+    ]
+
+
+def test_an_expression_the_grammar_refuses_is_a_difference() -> None:
+    case = _expression_case("APIC=139T AND APIC=139")
+
+    differences = score_case(case, _built("APIC=139T AND"), _APIC).differences
+    unset = score_case(case, _built(None), _APIC).differences
+
+    assert [(d.field, d.actual) for d in [*differences, *unset]] == [
+        ("expressions.GroupsByPhyleticPattern", "APIC=139T AND"),
+        ("expressions.GroupsByPhyleticPattern", "(unset)"),
+    ]
+
+
+def test_any_accepted_writing_passes() -> None:
+    case = _expression_case("APIC=0T", "APIC=139T AND APIC=139")
+
+    assert score_case(case, _built("APIC=139 AND APIC=139T"), _APIC).differences == []
+
+
+def test_a_case_with_expressions_and_no_taxonomy_reports_one_difference() -> None:
+    case = _expression_case("APIC=139T AND APIC=139")
+
+    assert [d.field for d in score_case(case, _built("APIC>=1T")).differences] == [
+        "expressions"
+    ]
+
+
+def test_a_question_card_holds_its_least_options_and_their_numbers() -> None:
+    case = _case(
+        ExpectedOutcome(
+            builds_strategy=False,
+            consult_options_min=3,
+            consult_option_mentions=["61", "23"],
+        )
+    )
+    offered = ObservedOutcome(
+        built_strategy=False,
+        consult_options=["Every genome (61)", "At least 90%", "Every species (23)"],
+    )
+    short = ObservedOutcome(built_strategy=False, consult_options=["Every genome"])
+
+    assert score_case(case, offered).passed
+    assert [(d.field, d.expected) for d in score_case(case, short).differences] == [
+        ("consultOptionsMin", "3"),
+        ("consultOptionMentions", "61"),
+        ("consultOptionMentions", "23"),
+    ]
+
+
+def test_an_expression_below_a_transform_inside_a_combine_is_graded() -> None:
+    case = _expression_case("APIC=139T AND APIC=139")
+
+    def nested(expression: str) -> ObservedOutcome:
+        phyletic = ComparisonNode(
+            search_name=_PHYLETIC, parameters={"phyletic_expression": expression}
+        )
+        return ObservedOutcome(
+            built_strategy=True,
+            tree=ComparisonNode(
+                search_name="COMBINE",
+                operator="INTERSECT",
+                children=(
+                    ComparisonNode(search_name="FromGroups", children=(phyletic,)),
+                    ComparisonNode(search_name="ByTaxonomy"),
+                ),
+            ),
+        )
+
+    assert score_case(case, nested("APIC=139 AND APIC=139T"), _APIC).differences == []
+    assert [
+        d.actual for d in score_case(case, nested("APIC>=1T"), _APIC).differences
+    ] == ["APIC>=1T"]
+
+
+def test_a_number_on_a_card_is_matched_as_a_whole_number() -> None:
+    case = _case(
+        ExpectedOutcome(
+            builds_strategy=False, consult_option_mentions=["61", "55", "23"]
+        )
+    )
+    longer = ObservedOutcome(
+        built_strategy=False,
+        consult_options=[
+            "Every genome (0.61 of the groups)",
+            "Share (1,055 groups)",
+            "Species (1,230 groups)",
+        ],
+    )
+    named = ObservedOutcome(
+        built_strategy=False,
+        consult_options=["All 61 genomes.", "At least 55 of 61", "All 23 species"],
+    )
+
+    assert [d.expected for d in score_case(case, longer).differences] == [
+        "61",
+        "55",
+        "23",
+    ]
+    assert score_case(case, named).differences == []

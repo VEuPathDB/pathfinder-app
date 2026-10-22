@@ -49,7 +49,7 @@ async def test_a_mass_spec_search_marks_no_organism_and_its_intersect_stands(
     tree = _tree()
     handle = veupathdb_auth_token_ctx.set(require_wdk_creds)
     try:
-        marks = await tree_organism_parameters("plasmodb", "transcript", tree)
+        marks = await tree_organism_parameters("plasmodb", tree)
         datasets = await tree_dataset_organisms("plasmodb", tree, marks)
     finally:
         veupathdb_auth_token_ctx.reset(handle)

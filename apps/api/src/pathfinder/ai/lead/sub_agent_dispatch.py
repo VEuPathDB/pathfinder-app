@@ -41,6 +41,7 @@ from pathfinder.ai.lead.sub_agent_stream import (
     stream_sub_agent,
 )
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps, apply_agent_state
+from pathfinder.ai.lead.unsaved_set import result_not_saved
 from pathfinder.ai.tools.standalone.graph_helpers import derive_strategy_name
 from pathfinder.ai.tools.standalone.strategy_refusals import (
     build_departs_from_the_plan_message,
@@ -191,7 +192,15 @@ async def build_the_minted(deps: LeadDeps, minted: MintedSpec) -> ExecuteDelta:
             user_id=agent_deps.user_id,
             name=_gene_set_name(renumbered, graph),
         )
-    return ExecuteDelta(outcome=outcome, added_searches=added)
+    return ExecuteDelta(
+        outcome=outcome,
+        added_searches=added,
+        unsaved_gene_set=result_not_saved(
+            agent_deps.site_id,
+            graph,
+            agent_deps.strategy_session.sync_state,
+        ),
+    )
 
 
 _SET_NAME_LENGTH = 60

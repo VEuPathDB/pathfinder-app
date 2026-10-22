@@ -23,6 +23,7 @@ from pathfinder.ai.tools.standalone.gene_set_models import (
     GeneSetListResponse,
     WdkProvenance,
 )
+from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.ai.tools.standalone.stream_parts import (
     gene_set_chunk,
     gene_set_list_chunk,
@@ -219,7 +220,12 @@ async def save_gene_set(
         homes=genes.homes,
     )
     await store_gene_set(gs)
-    created = CreatedGeneSet(id=gs.id, name=gs.name, gene_count=len(gs.gene_ids))
+    created = CreatedGeneSet(
+        id=gs.id,
+        name=gs.name,
+        gene_count=len(gs.gene_ids),
+        record_type=gs.record_type,
+    )
     # The note the turn writes later reads one record; the turn's reply is
     # held against the other.
     deps.agent_state.created_gene_sets.append(created)
@@ -272,7 +278,8 @@ async def list_gene_sets(
     The sets this conversation saved come first, each marked ``savedHere``.
     Every row names its gene count, source and id, the site it was saved on,
     and how many of its genes this site holds: a set saved on OrthoMCL or the
-    portal lists here with this site's genes alone.
+    portal lists here with this site's genes alone. ``outOfDate`` names why a
+    set no longer holds its strategy's result.
     """
     deps = ctx.deps
     stored = await list_stored_gene_sets(site_id=deps.site_id, user_id=deps.user_id)
@@ -288,6 +295,8 @@ async def list_gene_sets(
             saved_here=saved_here(gs.conversation_id, deps.conversation_id),
             saved_on=gs.site_id,
             genes_on_this_site=len(gs.genes_on(deps.site_id, kind)),
+            record_noun=counted_noun(gs.record_type) if gs.record_type else "gene",
+            out_of_date=gs.out_of_date,
         )
         for gs in stored
     ]
@@ -303,6 +312,8 @@ async def list_gene_sets(
                 genes_here=row.genes_on_this_site,
                 saved_on=row.saved_on,
                 saved_here=row.saved_here,
+                record_noun=row.record_noun,
+                out_of_date=row.out_of_date,
             )
             for row in ordered
         ],

@@ -28,6 +28,8 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
+from pathfinder.tests._support.step_reads import GENES_OF_ONE_GENOME
+
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
 _SITE = "plasmodb"
@@ -150,7 +152,11 @@ async def root_genes(wdk_identity: str) -> AsyncGenerator[Genes]:
         )
         strategies.append(strategy.id)
         steps.clear()
-        return frozenset(await fetch_gene_ids_from_step(api, step_id=tree.step_id))
+        return frozenset(
+            await fetch_gene_ids_from_step(
+                api, step_id=tree.step_id, limit=GENES_OF_ONE_GENOME
+            )
+        )
 
     try:
         yield genes

@@ -19,6 +19,7 @@ from veupathdb_mcp.catalog import (
 
 from pathfinder.domain.strategy.spec_hydration import StepRead, sheet_bound
 from pathfinder.domain.strategy.value_binding import parents_moved
+from pathfinder.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
 
@@ -29,7 +30,8 @@ async def sheet_params_for_searches(
     record_type: str | None,
     search_names: Collection[str],
 ) -> dict[str, list[ParameterInfo]]:
-    """The visible parameters of every search the catalog reads.
+    """The visible parameters of every search the catalog reads, each read under
+    the record type the catalog lists it under.
 
     A search the catalog cannot read is left out, so the caller keeps the
     values it already holds for that search.
@@ -37,8 +39,9 @@ async def sheet_params_for_searches(
     sheets: dict[str, list[ParameterInfo]] = {}
     for search_name in sorted(set(search_names)):
         try:
+            listed = await search_record_types(site_id, [search_name])
             listed_under = await resolve_search_record_type(
-                site_id, search_name, record_type
+                site_id, search_name, listed.get(search_name, record_type)
             )
             definition = await read_search_definition(
                 site_id, listed_under, search_name
@@ -111,8 +114,9 @@ async def sheets_under_their_parents(
         if not parents_moved(values, step.names, sheet):
             continue
         try:
+            listed = await search_record_types(site_id, [search_name])
             listed_under = await resolve_search_record_type(
-                site_id, search_name, record_type
+                site_id, search_name, listed.get(search_name, record_type)
             )
             fetch_at = wdk_fetch_at(site_id, listed_under, search_name)
             under[step.node.id] = await vocabularies_under(

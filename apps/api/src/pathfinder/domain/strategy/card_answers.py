@@ -19,6 +19,7 @@ from pathfinder.domain.strategy.operational_spec import (
     OperationalSpec,
 )
 from pathfinder.domain.strategy.questions import SetValues
+from pathfinder.domain.strategy.readings import AcceptedReading
 from pathfinder.domain.strategy.spec_replay import criterion_restated
 
 _TEXT: ParamKind = "string"
@@ -61,6 +62,11 @@ def _kind_of(
     return kinds.get(name, _TEXT)
 
 
+def option_value(criterion: Criterion, name: str, value: str) -> ParamValue:
+    kind = _kind_of(criterion, name, list(criterion.open_params), [])
+    return _option_value(kind, value)
+
+
 def _card_bound(
     criterion: Criterion,
     binding: SetValues,
@@ -80,6 +86,21 @@ def _card_bound(
             basis=option_id,
         )
     return criterion
+
+
+def spec_with_reading(
+    spec: OperationalSpec, criterion_id: str, accepted: AcceptedReading
+) -> OperationalSpec:
+    return spec.model_copy(
+        update={
+            "criteria": [
+                c.model_copy(update={"accepted_reading": accepted})
+                if c.id == criterion_id
+                else c
+                for c in spec.criteria
+            ]
+        }
+    )
 
 
 def spec_bound_by_card(

@@ -1,0 +1,37 @@
+{
+  "name": "orthomcl-expanded-families-question-offers-readings",
+  "turns": [
+    "Find gene families that are expanded in Toxoplasma relative to Plasmodium."
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "An underspecified comparison ends on one question whose options are readings the site can build, each with what it returns, never a request for raw thresholds, and the turn does not say the comparison is unavailable.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "remains unavailable"
+    ],
+    "endsOn": "consult",
+    "consultOptionsMin": 2
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-clarifying-question-offers-what-the-site-can-build.md",
+    "curatorNote": "The question is left unanswered so the case pins its options."
+  },
+  "gates": {
+    "policy": "decline-offers",
+    "answers": []
+  }
+}

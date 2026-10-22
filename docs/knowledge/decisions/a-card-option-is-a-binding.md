@@ -32,10 +32,11 @@ ungroundable (`constraint_grounding.ground_constraints`).
 A card offers a choice or it is not asked, and the rule is held by the question
 types, so no path can build a card that breaks it: FRAME's first pass or its
 second, an edit's pass, the Lead's own card and the questions a reply records. An
-`OpenQuestion`, an `AskedQuestion` (and so FRAME's `SlotQuestion`) and the Lead's
-`CardQuestion` that offer options offer two at least, and two options that bind the
-same values are refused as one; a question with no option is answered in the
-researcher's words. An option spelled as the site's label of a vocabulary term binds
+`OpenQuestion` and the Lead's `CardQuestion` that offer options offer two at least,
+and two options that bind the same values are refused as one; a question with no
+option is answered in the researcher's words. An `AskedQuestion` (and so FRAME's
+`SlotQuestion`) is a model's answer, so its one option is no refusal: the type reads
+it as a question answered in words, and keeps eight options at most. An option spelled as the site's label of a vocabulary term binds
 that term, so a slot question whose offered values bind one term offers no choice
 and the pass records no question for it. A positive number offered for a parameter
 whose display name names the log2 scale is offered in both readings, the fold and
@@ -52,7 +53,8 @@ A FRAME question with no option that carries the words of such a requirement is 
 drop-or-keep question. It keeps its own prompt, and the card's note takes an answer
 in the researcher's words, such as a substitute the prompt offers, and
 `questions_that_bind_to_nothing` (`ai/lead/frame_questions.py`) counts it as bound.
-A pass whose question binds nothing is told so once inside its own run
+A pass whose question binds nothing is told so inside its own run, within
+[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)
 (`ai/agents/frame_result_checks.py::hold_the_questions_to_the_draft`).
 The FRAME result hands the Lead `cardQuestions`, the card those questions become,
 each a `CardQuestion` that carries the dimension its answer states. The

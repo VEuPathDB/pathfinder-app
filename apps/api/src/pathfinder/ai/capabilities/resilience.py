@@ -16,6 +16,7 @@ from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import RunContext, ToolDefinition
 from veupathdb.errors import WDKError
 
+from pathfinder.ai.agents.unserved import SearchNotServedError
 from pathfinder.ai.capabilities.error_classification import (
     ErrorCategory,
     build_error_directive,
@@ -329,8 +330,9 @@ class ToolResilience(AbstractCapability[AgentDeps]):
         if isinstance(error, GraphInterrupt):
             raise error
         # The refusal seam owns a refusal this application names, on every agent;
-        # a request the model declined ends the run.
-        if isinstance(error, AppError | ModelDeclinedError):
+        # a request the model declined, or a search the site does not serve
+        # named past the pass's limit, ends the run.
+        if isinstance(error, AppError | ModelDeclinedError | SearchNotServedError):
             raise error
         tool_name = tool_def.name
         category = classify_error(error)

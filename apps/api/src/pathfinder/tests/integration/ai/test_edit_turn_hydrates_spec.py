@@ -275,7 +275,14 @@ async def test_an_approval_resume_keeps_the_entry_spec_the_turn_recorded(
     session = await _session_from_postgres(conv_id, session_maker)
     recorded = OperationalSpec(
         goal="the goal the turn started with",
-        criteria=[Criterion(id="c1", text="recorded", search_name="GenesByText")],
+        criteria=[
+            Criterion(
+                id="c1",
+                text="recorded",
+                search_name="GenesByText",
+                record_class="transcript",
+            )
+        ],
     )
     state = _state(None)
     state.domain.spec_before_turn = recorded

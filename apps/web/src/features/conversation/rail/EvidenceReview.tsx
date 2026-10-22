@@ -211,7 +211,10 @@ export function EvidenceReview({
   const fits = review?.columnFits ?? [];
   const genes = review?.sampledGenes ?? [];
   const sources = review?.sources ?? [];
-  if ([rows, fits, genes, sources].every((part) => part.length === 0)) return null;
+  const withheld = review?.withheld ?? [];
+  if ([rows, fits, genes, sources, withheld].every((part) => part.length === 0)) {
+    return null;
+  }
   return (
     <div data-testid="evidence-review" className="space-y-3">
       {rows.length > 0 ? (
@@ -236,6 +239,18 @@ export function EvidenceReview({
         </div>
       ) : null}
       <Sources cited={sources} />
+      {withheld.length > 0 ? (
+        <ul
+          data-testid="evidence-withheld"
+          className="space-y-1 text-[11px] text-muted-foreground"
+        >
+          {withheld.map((item) => (
+            <li key={item.sentence} data-testid="evidence-withheld-item">
+              {item.sentence}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

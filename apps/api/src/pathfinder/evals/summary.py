@@ -11,10 +11,13 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel, computed
 from pydantic import ConfigDict, Field
+from veupathdb.domain.parameters import PhyleticTree
 
+from pathfinder.evals.case import EvalCase
 from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import StrategyDistance
-from pathfinder.evals.drift import DriftVerdict
+from pathfinder.evals.drift import DriftVerdict, classify, count_difference
+from pathfinder.evals.scoring import ObservedOutcome, score_case
 
 # A case whose turn never reached the product, such as a site login that did
 # not answer, is not run: it says nothing of the assistant.
@@ -54,6 +57,25 @@ class CaseResult(CamelModel):
     def errored(self) -> bool:
         """Whether the case ran and broke before it reached a verdict."""
         return self.verdict == "fail" and bool(self.error)
+
+
+def judged(
+    case: EvalCase,
+    observed: ObservedOutcome,
+    build: str,
+    taxonomy: PhyleticTree | None,
+) -> CaseResult:
+    score = score_case(case, observed, taxonomy)
+    return CaseResult(
+        name=case.name,
+        verdict=classify(case, observed, build, taxonomy=taxonomy),
+        differences=score.differences,
+        distance=score.distance,
+        observed_count=observed.root_count,
+        count_drift=count_difference(case, observed, build),
+        refused_tools=observed.refused_tools,
+        assumed=observed.assumed,
+    )
 
 
 class EvalRunSummary(CamelModel):
@@ -118,4 +140,4 @@ def _counted(cases: list[CaseResult], verdict: CaseOutcome) -> int:
     return sum(1 for case in cases if case.verdict == verdict and not case.error)
 
 
-__all__ = ["CaseOutcome", "CaseResult", "EvalRunSummary"]
+__all__ = ["CaseOutcome", "CaseResult", "EvalRunSummary", "judged"]

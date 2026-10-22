@@ -8,6 +8,7 @@ from veupathdb.domain.parameters import ParamValue, VocabOption
 from veupathdb.domain.strategy import CombineOp
 from veupathdb_mcp.catalog import ExperimentCard, SheetEntry, VocabLookup
 
+from pathfinder.ai.agents.unserved import UnservedSearch
 from pathfinder.domain.strategy.constraints import Constraint, message_states
 from pathfinder.domain.strategy.named_combine import NamedCombine
 from pathfinder.domain.strategy.operational_spec import (
@@ -20,6 +21,8 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.orthology_request import OrthologyRequest
+from pathfinder.domain.strategy.readings import ReadValues
+from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.spec_reconciliation import spec_without_steps
 from pathfinder.services.strategies.cut_picks import OptionsRead
 from pathfinder.services.strategies.measurements import TurnCounts
@@ -87,6 +90,7 @@ class CreatedGeneSet(BaseModel):
     id: str
     name: str
     gene_count: int
+    record_type: str | None = None
 
 
 class SearchOverview(BaseModel):
@@ -205,16 +209,16 @@ class AgentToolState:
     # The requirements the thread states. A dropped criterion holds open the one
     # its text restates.
     stated_requirements: list[Constraint] = field(default_factory=list)
-    # Whether this pass was already told a report names a number the list lacks.
-    unknown_requirements_sent_back: bool = False
+    held_record_roles: dict[str, RecordRole] = field(default_factory=dict)
     # The spec the dispatch found, which a pass that changes nothing still holds.
     spec_the_dispatch_found: OperationalSpec | None = None
-    # Whether this pass was already told its questions bind nothing.
-    unbound_questions_sent_back: bool = False
     # The searches the site refused to run this pass, with what it answered.
     refused_searches: dict[str, str] = field(default_factory=dict)
-    # Whether this pass was already told a refused search is no missing one.
-    refusals_sent_back: bool = False
+    unserved_searches: dict[str, UnservedSearch] = field(default_factory=dict)
+    id_list_datasets: dict[tuple[str, str, tuple[str, ...]], str] = field(
+        default_factory=dict
+    )
+    refusals: int = 0
     # Params already handed back for a fresh decision, by criterion and search.
     # Searches share parameter names, so the search is part of the key.
     redecided_params: set[tuple[str, str, str]] = field(default_factory=set)
@@ -234,6 +238,7 @@ class AgentToolState:
     # The counts read for other readings of bound values. Every pass of the
     # turn shares it, so one configuration is read once.
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
+    offered_readings: list[ReadValues] = field(default_factory=list)
 
     def phrasings_the_request_states(self, phrasings: Sequence[str]) -> list[str]:
         """The phrasings a request message carries every word of."""

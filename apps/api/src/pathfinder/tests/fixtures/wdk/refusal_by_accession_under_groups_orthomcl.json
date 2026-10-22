@@ -1,0 +1,12 @@
+{
+  "provenance": {
+    "site": "orthomcl",
+    "method": "GET",
+    "url": "https://qa.orthomcl.org/orthomcl.qa/service/record-types/group/searches/ByAccession?expandParams=true",
+    "status": 404,
+    "content_type": "text/plain",
+    "recorded_at": "2026-10-21",
+    "reads": "a search the record type does not hold"
+  },
+  "text": "There is no search \"ByAccession\" associated with record type \"GroupRecordClass\""
+}

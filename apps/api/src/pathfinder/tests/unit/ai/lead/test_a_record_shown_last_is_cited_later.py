@@ -60,7 +60,7 @@ def test_a_reply_citing_the_sample_shown_last_stands_and_renders_each_link() -> 
     deps = _deps()
     answer = reply(_SAME_SAMPLE)
 
-    assert hold_the_turn_contract(run_context_for(deps), answer) is answer
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
     assert render_reply(answer.prose, turn_facts(deps)) == (
         "Here is the same sample again: "
         + ", ".join(

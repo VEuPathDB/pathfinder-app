@@ -1,0 +1,38 @@
+{
+  "name": "orthomcl-group-id-lookup",
+  "turns": [
+    "Show me ortholog group OG8_0000003."
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "A group id is looked up with the group id search and returns that one group.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByNameList",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 1,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
+    "curatorNote": "The id is a group the site returned for a seed strategy on QA build 8.2."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

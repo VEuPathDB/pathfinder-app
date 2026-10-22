@@ -5,7 +5,6 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.conversation.ui_message_reducer import user_message_chunk
 from assistant_core.persistence.models import Conversation, ConversationEvent, Message
 from assistant_core.persistence.repositories.message import MessagesRepository
@@ -15,7 +14,6 @@ from assistant_core.scratchpad.models import NoteCreate
 from sqlalchemy import func, select, text
 
 from pathfinder.persistence.models import User
-from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.services.conversations.fork import fork_conversation
 from pathfinder.services.conversations.revert import (
@@ -24,17 +22,11 @@ from pathfinder.services.conversations.revert import (
 )
 
 
-@pytest.fixture(scope="module", autouse=True)
-async def _langgraph_checkpoint_tables(
+@pytest.fixture(autouse=True)
+async def _truncate_langgraph_tables(
     patch_app_db_engine: None,
 ) -> AsyncIterator[None]:
     del patch_app_db_engine
-    async with lifespan_checkpointer(get_settings().database_url):
-        yield
-
-
-@pytest.fixture(autouse=True)
-async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     yield
     async with db.async_session_factory() as session:
         await session.execute(

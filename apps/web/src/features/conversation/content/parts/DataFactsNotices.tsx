@@ -8,6 +8,8 @@ export function DataFactsNotices({ data }: { data: TurnFacts }): ReactElement | 
   const lines = [
     { testId: "facts-stopped-check", text: data.stoppedCheck ?? "" },
     { testId: "facts-refusal", text: data.refusal ?? "" },
+    { testId: "facts-unchecked", text: data.unchecked ?? "" },
+    { testId: "facts-unverified", text: data.unverified ?? "" },
   ].filter((line) => line.text !== "");
   if (lines.length === 0) return null;
   return (

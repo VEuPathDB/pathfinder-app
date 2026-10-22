@@ -59,6 +59,7 @@ from pathfinder.services.strategies.organism_universe import universe_counts
 from pathfinder.services.strategies.record_classes import (
     record_class_names,
     search_record_classes,
+    tree_combine_refusal,
 )
 
 
@@ -232,14 +233,15 @@ async def _refuse_a_tree_the_site_cannot_run(
         raise ModelRetry(msg)
 
 
-async def _refuse_a_transform_over_another_record_class(
+async def _refuse_a_tree_of_another_record_class(
     ctx: RunContext[AgentDeps], proposed: SpecStructure
 ) -> None:
-    """A transform runs only on an input of a record class WDK says it takes.
+    """A combine joins inputs of one record class, and a transform runs only on
+    an input of a record class WDK says it takes.
 
-    The site is read only when the tree holds a transform.
+    The site is read only when the tree holds a combine or a transform.
     """
-    if all(kind != "transform" for _, kind in _criterion_nodes(proposed.root)):
+    if proposed.root.kind == "leaf":
         return
     draft = ctx.deps.agent_state.operational_spec_draft
     stated = draft.model_copy(update={"structure": proposed})
@@ -248,7 +250,9 @@ async def _refuse_a_transform_over_another_record_class(
         return
     named = structure_criteria(proposed)
     searches = [c.search_name for c in stated.criteria if c.id in named]
-    refusal = transform_input_refusal(
+    refusal = await tree_combine_refusal(
+        ctx.deps.site_id, steps
+    ) or transform_input_refusal(
         steps,
         await search_record_classes(ctx.deps.site_id, searches),
         await record_class_names(ctx.deps.site_id),
@@ -347,7 +351,7 @@ async def set_structure(
     _refuse_a_tree_that_leaves_out_an_analysis(state, proposed)
     await _refuse_a_tree_the_site_cannot_run(ctx.deps.site_id, state, proposed)
     _refuse_a_tree_of_another_orthology_shape(state, proposed)
-    await _refuse_a_transform_over_another_record_class(ctx, proposed)
+    await _refuse_a_tree_of_another_record_class(ctx, proposed)
     deduped = fold_duplicate_inputs(
         state.operational_spec_draft, proposed, live_step_ids=live
     )

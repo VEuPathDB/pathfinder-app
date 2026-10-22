@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Bookmark, ExternalLink, RefreshCw, Workflow } from "lucide-react";
+import { Bookmark, RefreshCw, Workflow } from "lucide-react";
 
-import { siteShortName, type Strategy } from "@pathfinder/shared";
+import type { Strategy } from "@pathfinder/shared";
 import { Button } from "@/components/ui/button";
 import { CompactStrategyView } from "@/features/strategy/graph/components/CompactStrategyView";
 import { InsertSavedDialog } from "@/features/saved/InsertSavedDialog";
@@ -12,6 +12,7 @@ import { beginConversation } from "@/features/conversation/api/beginConversation
 import { SaveSubstrategyDialog } from "@/features/strategy/editor/SaveSubstrategyDialog";
 import { useRefreshStepCountsMutation } from "@/features/strategy/mutations/useRefreshStepCountsMutation";
 import { useSaveSubstrategyMutation } from "@/features/strategy/mutations/useSaveSubstrategyMutation";
+import { OpenInSiteLink } from "@/lib/components/OpenInSiteLink";
 import { strategyCanvasUrl, strategyStepUrl } from "@/lib/routes";
 
 import { RailEmptyState, RailPanelShell } from "./RailPanelShell";
@@ -88,22 +89,7 @@ export function StrategyPanel({
               />
             </Button>
             {wdkUrl != null && wdkUrl !== "" && (
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1 px-2 text-xs"
-              >
-                <a
-                  href={wdkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-testid="rail-strategy-wdk-link"
-                >
-                  {siteShortName(siteId)}
-                  <ExternalLink className="size-3" aria-hidden />
-                </a>
-              </Button>
+              <OpenInSiteLink href={wdkUrl} siteId={siteId} opens="strategy" />
             )}
             <Button
               variant="ghost"

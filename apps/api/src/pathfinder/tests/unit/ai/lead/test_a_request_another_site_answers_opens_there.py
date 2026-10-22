@@ -3,15 +3,12 @@ that site, with the sentence the portal route already gives, and no question."""
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import cast
-
 import pytest
-from pydantic import ValidationError
-from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai import ModelRetry
 
 from pathfinder.ai.agents.frame import _FRAME_INSTRUCTIONS
 from pathfinder.ai.agents.frame_result_checks import hold_the_route_to_another_site
+from pathfinder.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import frame_dispatch
@@ -29,6 +26,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
     requirement,
 )
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _ORTHOMCL = (
     "This needs OrthoMCL, whose searches answer it. [Open a new conversation "
@@ -46,20 +44,28 @@ def test_the_route_names_the_site_and_links_a_new_conversation_there() -> None:
     assert site_route_sentence("plasmodb", "orthomcl") == _ORTHOMCL
 
 
-def test_another_site_answers_names_its_site() -> None:
-    with pytest.raises(ValidationError):
-        RequirementReport(
-            requirement="R1", problem=RequirementProblem.ANOTHER_SITE_ANSWERS
-        )
+def test_another_site_answers_with_no_site_is_sent_back() -> None:
+    unnamed = FrameResult(
+        disposition="needs_user",
+        requirement_problems=[
+            RequirementReport(
+                requirement="R1", problem=RequirementProblem.ANOTHER_SITE_ANSWERS
+            )
+        ],
+    )
+
+    with pytest.raises(ModelRetry, match="which is no other site"):
+        hold_the_route_to_another_site(agent_run_context(site_id="plasmodb"), unnamed)
 
 
-def test_only_another_site_answers_names_a_site() -> None:
-    with pytest.raises(ValidationError):
-        RequirementReport(
-            requirement="R1",
-            problem=RequirementProblem.SITE_HAS_NO_SEARCH,
-            site="orthomcl",
-        )
+def test_a_site_on_another_problem_is_dropped() -> None:
+    report = RequirementReport(
+        requirement="R1",
+        problem=RequirementProblem.SITE_HAS_NO_SEARCH,
+        site="orthomcl",
+    )
+
+    assert report.site == ""
 
 
 async def test_a_pass_that_reports_another_site_answers_with_its_sentence(
@@ -162,19 +168,32 @@ def _pass_with_a_route_to(site: str) -> FrameResult:
 
 @pytest.mark.parametrize("site", ["plasmodb", "nowhere"])
 def test_a_route_to_this_site_or_to_no_site_is_sent_back(site: str) -> None:
-    ctx = SimpleNamespace(deps=SimpleNamespace(site_id="plasmodb"))
-
     with pytest.raises(ModelRetry, match="which is no other site"):
         hold_the_route_to_another_site(
-            cast("RunContext[AgentDeps]", ctx), _pass_with_a_route_to(site)
+            agent_run_context(site_id="plasmodb"), _pass_with_a_route_to(site)
         )
 
 
+def test_a_route_to_no_site_past_the_bound_is_dropped_with_its_gap() -> None:
+    ctx = agent_run_context(site_id="plasmodb")
+    output = _pass_with_a_route_to("nowhere")
+
+    for _ in range(REFUSALS_PER_CHECK):
+        with pytest.raises(ModelRetry):
+            hold_the_route_to_another_site(ctx, output)
+
+    assert hold_the_route_to_another_site(ctx, output) == FrameResult(
+        disposition="needs_user"
+    ).with_gap(
+        "report_dropped",
+        "The pass named ['nowhere'] as another site that answers, and none is one.",
+    )
+
+
 def test_a_route_to_another_site_passes() -> None:
-    ctx = SimpleNamespace(deps=SimpleNamespace(site_id="plasmodb"))
     output = _pass_with_a_route_to("orthomcl")
 
     assert (
-        hold_the_route_to_another_site(cast("RunContext[AgentDeps]", ctx), output)
+        hold_the_route_to_another_site(agent_run_context(site_id="plasmodb"), output)
         is output
     )

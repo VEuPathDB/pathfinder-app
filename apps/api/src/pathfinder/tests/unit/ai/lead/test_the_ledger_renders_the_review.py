@@ -15,6 +15,7 @@ from pathfinder.domain.evidence import (
     RequirementCheck,
     SampledGene,
     VerificationReview,
+    WithheldEvidence,
 )
 from pathfinder.tests._support.column_fits import tm_fit
 
@@ -143,4 +144,27 @@ def test_a_row_no_record_judged_is_rendered_unjudged() -> None:
         "- [unjudged] a predicted GPI anchor (message 1, parameter; answered by "
         "step_0c6996fa): no sampled record judged it; the query text alone does "
         "not show it"
+    )
+
+
+def test_the_full_section_lists_what_the_check_withheld() -> None:
+    withheld = WithheldEvidence(
+        kind="sampled_gene",
+        sentence=(
+            "The review lists sampled gene `PF3D7_0102200`, and no read_gene_record "
+            "call of this turn read its record."
+        ),
+    )
+    digest = VerificationDigest(
+        disposition=PhaseDisposition.DONE,
+        prose="Checked.",
+        reason="r",
+        success=True,
+        review=VerificationReview(withheld=[withheld]),
+    )
+
+    rendered = render_verification_full(VerificationSection(digest=digest))
+
+    assert rendered.split("\n### Withheld from the evidence card\n")[1] == (
+        f"- {withheld.sentence}"
     )

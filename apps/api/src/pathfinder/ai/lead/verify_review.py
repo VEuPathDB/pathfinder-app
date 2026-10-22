@@ -7,7 +7,7 @@ sampled gene and a source stand only when a read of this turn returned them.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial
 
@@ -34,8 +34,13 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.message_reading import (
     message_states_constraint,
 )
-from pathfinder.domain.strategy.operational_spec import OperationalSpec
+from pathfinder.domain.strategy.operational_spec import (
+    OperationalSpec,
+    structure_criteria,
+)
+from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.step_rationale import names_the_phrase
+from pathfinder.domain.strategy.words import whole_run_of
 
 # The most step ids one requirement row names.
 _ANSWERED_LIMIT = 8
@@ -53,6 +58,8 @@ class ReviewRecord:
     read_as: Callable[[str], str | None]
     # The page a read of one gene's record records.
     record_url: Callable[[str], str]
+    class_names: Mapping[str, Collection[str]]
+    record_roles: Mapping[str, RecordRole]
     # The columns this turn's reads measured on the strategy's live steps.
     column_fits: Sequence[ColumnFit] = ()
 
@@ -72,12 +79,15 @@ class _Breach:
     criteria: frozenset[str]
 
 
-def _breaches(record: ReviewRecord) -> list[_Breach]:
-    spec = record.spec
+def _breaches(
+    messages: Sequence[str],
+    requirements: Sequence[Constraint],
+    spec: OperationalSpec | None,
+) -> list[_Breach]:
     if spec is None or spec.structure is None:
         return []
     found: list[_Breach] = []
-    for constraint in combination_requirements_from(record.requirements):
+    for constraint in combination_requirements_from(requirements):
         breach = first_combination_violation(
             [constraint], spec.criteria, spec.structure
         )
@@ -88,7 +98,7 @@ def _breaches(record: ReviewRecord) -> list[_Breach]:
         row = RequirementCheck(
             text=constraint.requested_value,
             turn=_turn_where(
-                record.messages,
+                messages,
                 partial(message_states_constraint, constraint=constraint),
             ),
             how="structure",
@@ -100,18 +110,22 @@ def _breaches(record: ReviewRecord) -> list[_Breach]:
     return found
 
 
-def breached_rows(record: ReviewRecord) -> list[RequirementCheck]:
+def breached_rows(
+    messages: Sequence[str],
+    requirements: Sequence[Constraint],
+    spec: OperationalSpec | None,
+) -> list[RequirementCheck]:
     """One unmet row per stated combination the structure contradicts. The
     strategy joins the steps another way, so no step answers the row; its
     note names the join."""
-    return [breach.row for breach in _breaches(record)]
+    return [breach.row for breach in _breaches(messages, requirements, spec)]
 
 
 def _with_the_structure(
     rows: list[RequirementCheck], record: ReviewRecord
 ) -> list[RequirementCheck]:
     """The checker's rows, with each breached combination stated unmet."""
-    breaches = _breaches(record)
+    breaches = _breaches(record.messages, record.requirements, record.spec)
     replaced = {cid for breach in breaches for cid in breach.criteria}
     stated = {breach.row.text for breach in breaches}
     kept = [
@@ -160,42 +174,110 @@ def _with_the_unexpressed(
     return held
 
 
+def _class_words(record_class: str, names: Collection[str]) -> set[str]:
+    return {word for name in [record_class, *names] if (word := record_noun(name))}
+
+
+def _classes_named(text: str, record: ReviewRecord) -> set[str]:
+    noun = record_noun(text)
+    named = {
+        record_class
+        for record_class, names in record.class_names.items()
+        if any(whole_run_of(noun, word) for word in _class_words(record_class, names))
+    }
+    if GENE_RECORD_NOUNS.intersection(noun.split()):
+        named |= GENE_ANSWERING_CLASSES
+    return named
+
+
+def _names_the_same_classes(text: str, value: str, record: ReviewRecord) -> bool:
+    if record_noun(text) == record_noun(value):
+        return True
+    named = _classes_named(text, record)
+    return bool(named) and named == _classes_named(value, record)
+
+
+def _stated_by(text: str, record: ReviewRecord) -> Constraint | None:
+    return next(
+        (
+            c
+            for c in record.requirements
+            if c.kind == ConstraintKind.RECORD_TYPE
+            and _names_the_same_classes(text, c.requested_value, record)
+        ),
+        None,
+    )
+
+
+def _a_bare_class(text: str, record: ReviewRecord) -> bool:
+    noun = record_noun(text)
+    return bool(noun) and noun in GENE_RECORD_NOUNS | {
+        word
+        for record_class, names in record.class_names.items()
+        for word in _class_words(record_class, names)
+    }
+
+
+def _judged_against_the_root(
+    row: RequirementCheck, spec: OperationalSpec, named: set[str]
+) -> RequirementCheck:
+    root = spec.record_type
+    if root is None:
+        note = "the strategy's record class is not known"
+    else:
+        note = f"the strategy returns {counted_noun(root)}s"
+    if root is not None and root in named:
+        ids = [c.id for c in spec.criteria][:_ANSWERED_LIMIT]
+        return row.model_copy(
+            update={"status": "met", "answered_by": ids, "note": note}
+        )
+    return row.model_copy(update={"status": "unmet", "answered_by": [], "note": note})
+
+
+def _judged_against_the_steps(
+    row: RequirementCheck, spec: OperationalSpec, named: set[str]
+) -> RequirementCheck:
+    tree = structure_criteria(spec.structure)
+    through = [c for c in spec.criteria if c.id in tree and c.record_class in named]
+    if not through:
+        return row.model_copy(
+            update={
+                "status": "unmet",
+                "answered_by": [],
+                "note": f"no step of the strategy returns {row.text}",
+            }
+        )
+    passed = counted_noun(through[0].record_class)
+    return row.model_copy(
+        update={
+            "status": "met",
+            "answered_by": [c.id for c in through][:_ANSWERED_LIMIT],
+            "note": f"a step of the strategy returns {passed}s",
+        }
+    )
+
+
 def _with_the_record_type(
     rows: list[RequirementCheck], record: ReviewRecord
 ) -> list[RequirementCheck]:
-    """The rows, with each record-class row judged from the strategy's record
-    class: met when the site counts that class in the noun the row names. A
-    row that names no record noun is a value row and stands as written."""
+    """The rows, with each record-class row judged by the record class it names:
+    an answer class against the class the strategy returns, and a class the
+    strategy passes through against the classes its steps return."""
     spec = record.spec
     if spec is None or not spec.criteria:
         return rows
-    noun = counted_noun(spec.record_type)
-    named_class = (spec.record_type or noun).replace("_", " ")
-    returned = {noun, f"{noun}s", named_class, f"{named_class}s"}
-    if spec.record_type in GENE_ANSWERING_CLASSES:
-        returned |= GENE_RECORD_NOUNS
-    record_nouns = (
-        GENE_RECORD_NOUNS
-        | returned
-        | {
-            record_noun(c.requested_value)
-            for c in record.requirements
-            if c.kind == ConstraintKind.RECORD_TYPE
-        }
-    )
-    met = {
-        "status": "met",
-        "answered_by": [c.id for c in spec.criteria][:_ANSWERED_LIMIT],
-        "note": f"the strategy returns {noun}s",
-    }
-    unmet = {"status": "unmet", "answered_by": [], "note": met["note"]}
     held: list[RequirementCheck] = []
     for row in rows:
-        named = record_noun(row.text)
-        if not named or named not in record_nouns:
+        stated = _stated_by(row.text, record)
+        if stated is None and not _a_bare_class(row.text, record):
             held.append(row)
             continue
-        held.append(row.model_copy(update=met if named in returned else unmet))
+        role = "answer" if stated is None else record.record_roles.get(stated.key)
+        named = _classes_named(row.text, record)
+        judge = (
+            _judged_against_the_steps if role == "through" else _judged_against_the_root
+        )
+        held.append(judge(row, spec, named))
     return held
 
 

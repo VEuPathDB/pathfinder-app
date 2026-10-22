@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
 
-from pathfinder.devtools.eval_runner import counts_in_genes
 from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
+from pathfinder.evals.count_unit import counts_in_genes
 from pathfinder.evals.scoring import ObservedOutcome, score_case
 
 # The title of a search the reply turned down, quoted as the site names it.

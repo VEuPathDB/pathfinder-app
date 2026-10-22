@@ -102,10 +102,8 @@ async def db_session(
 ) -> AsyncGenerator[AsyncSession]:
     del patch_app_db_engine, db_cleaner
 
-    async def _marks(
-        site_id: str, record_type: str | None, search_names: object
-    ) -> dict[str, str]:
-        del site_id, record_type, search_names
+    async def _marks(site_id: str, search_names: object) -> dict[str, str]:
+        del site_id, search_names
         return {"GenesByEcNumber": "organism", "GenesWithSignalPeptide": "organism"}
 
     monkeypatch.setattr(turns, "organism_parameters", _marks)

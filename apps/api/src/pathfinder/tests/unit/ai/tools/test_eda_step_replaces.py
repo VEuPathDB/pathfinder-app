@@ -301,7 +301,9 @@ async def test_replacing_a_combine_names_the_export_where_it_stood(
     assert graph is not None
     ast = graph.to_strategy_ast()
     assert ast is not None
-    ctx.deps.state.domain.operational_spec = spec_from_ast(ast, goal="kinases")
+    ctx.deps.state.domain.operational_spec = spec_from_ast(
+        ast, goal="kinases", listed={}
+    )
     _wire(monkeypatch)
 
     answer = await eda_step.create_eda_step(ctx, replace_step_id="step_sub")

@@ -7,6 +7,7 @@ from pydantic import Field
 from pydantic_ai.exceptions import ModelRetry
 
 from pathfinder.domain.evidence import ColumnFit
+from pathfinder.domain.expression_fit import ExpressionFit
 
 
 class EstimatedSizeResult(CamelModel):
@@ -23,6 +24,29 @@ class StepColumns(CamelModel):
     fits: list[ColumnFit] = Field(default_factory=list)
     # What to read instead when no column shows a value the step binds.
     note: str = ""
+    expression_fit: ExpressionFit | None = None
+
+
+def no_column(wdk_step_id: int, why: str) -> tuple[StepColumns, str]:
+    columns = StepColumns(
+        wdk_step_id=wdk_step_id,
+        note=f"{why} Sample the root with get_sample_records for this criterion.",
+    )
+    return columns, f"No column of step {wdk_step_id}"
+
+
+def no_rows(
+    wdk_step_id: int, count: int, unread: list[ColumnFit]
+) -> tuple[StepColumns, str]:
+    columns = ", ".join(f"{fit.display_name} ({fit.column})" for fit in unread)
+    names = ", ".join(fit.column for fit in unread)
+    note = (
+        f"Step {wdk_step_id} counts {count} on the site and its read of "
+        f"{columns} returned no rows. Sample step {wdk_step_id} with "
+        f"get_sample_records and read {names} on its records for this criterion."
+    )
+    read = StepColumns(wdk_step_id=wdk_step_id, note=note)
+    return read, f"No rows in the columns of step {wdk_step_id}"
 
 
 MAX_SAMPLE_LIMIT = 100

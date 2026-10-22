@@ -1,0 +1,51 @@
+{
+  "name": "orthomcl-expanded-in-toxoplasma-over-plasmodium-in-bands",
+  "turns": [
+    "Find orthogroups that have more genes per genome in Toxoplasma than Plasmodium (expanded gene families).",
+    "2-5 copies in Plasmodium, at least 2x greater copies in Toxoplasma"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "A copy-number comparison between clades is built as protein-count bands over each clade's genome list joined by OR, one band per whole number of Plasmodium copies per genome. The first turn offers that reading with its numbers; the answer in the researcher's words is mapped to it and built, and the reply says the comparison is over each clade's protein total, band by band, not over each genome; a reply that states it in other words is graded by hand.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [
+      "remains unavailable"
+    ],
+    "turnReplyMentions": {
+      "1": [
+        "total | average"
+      ]
+    },
+    "rootCount": {
+      "count": 51,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "(padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy>=122 AND padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy<183 AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve>=60) OR (padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy>=183 AND padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy<244 AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve>=90) OR (padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy>=244 AND padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy<305 AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve>=120) OR (padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy>=305 AND padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy<366 AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve>=150)"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-copy-number-comparison-between-clades-is-built-in-bands.md",
+    "curatorNote": "Two turns on one thread: the request, then the thresholds typed as a reply to the first turn's question."
+  },
+  "gates": {
+    "policy": "leave",
+    "answers": []
+  }
+}

@@ -166,6 +166,25 @@ def test_worker_concurrency_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert make_settings().worker_concurrency == 8
 
 
+def test_an_audit_run_waits_six_hours_unless_told_otherwise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AUDIT_RUN_HOURS", raising=False)
+    assert make_settings().audit_run_hours == 6.0
+    monkeypatch.setenv("AUDIT_RUN_HOURS", "1.5")
+    assert make_settings().audit_run_hours == 1.5
+    with pytest.raises(ValueError, match="audit_run_hours"):
+        make_settings(audit_run_hours=0)
+
+
+def test_audits_run_two_at_once_and_never_more_than_four() -> None:
+    assert make_settings().audit_concurrency == 2
+    assert make_settings(audit_concurrency=4).audit_concurrency == 4
+    for refused in (0, 5):
+        with pytest.raises(ValueError, match="audit_concurrency"):
+            make_settings(audit_concurrency=refused)
+
+
 def test_metrics_are_published_on_9100_of_every_interface_by_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

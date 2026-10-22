@@ -8,10 +8,8 @@ import pytest
 from assistant_core.platform.db import async_session_factory
 from procrastinate.testing import InMemoryConnector
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from veupathdb.auth_context import veupathdb_auth_token_ctx
 from veupathdb.domain.strategy import CombineOp
 from veupathdb.errors import WDKError
-from veupathdb_mcp.wdk import GeneSetWdkContext
 
 from pathfinder.domain.strategy.revision import answer_revision
 from pathfinder.domain.strategy.session import StrategySession
@@ -22,17 +20,27 @@ from pathfinder.persistence.repositories import (
     ConversationUpdate,
 )
 from pathfinder.services.gene_sets import operations
-from pathfinder.services.gene_sets.homes import StepGenes
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import GeneSetStore, get_gene_set_store
-from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.strategy_genes import (
+    RecordsAreNotGenesError,
+)
+from pathfinder.services.gene_sets.types import (
+    GeneSet,
+    OutOfDate,
+    ResultAboveTheCap,
+    ResultNotGenes,
+    ResultWithoutGenes,
+)
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.gene_set_refresh import (
     defer_the_gene_set_refresh,
 )
 from pathfinder.tests._support.gene_set_refresh import (
     RESEARCHER_TOKEN,
+    RootAnswer,
     run_refresh_job,
+    serve_roots,
     store_root,
 )
 
@@ -88,35 +96,6 @@ async def thread(
     return created.id
 
 
-class _Site:
-    """The root's genes per read, and the token each read ran under."""
-
-    def __init__(self, answers: list[list[str]]) -> None:
-        self.answers = answers
-        self.tokens: list[str | None] = []
-
-    async def read(
-        self, site_id: str, wdk_strategy_id: int, *, record_type: str | None
-    ) -> StrategyGenes:
-        del site_id
-        self.tokens.append(veupathdb_auth_token_ctx.get())
-        return StrategyGenes(
-            genes=StepGenes(
-                gene_ids=self.answers.pop(0), homes={}, record_class="transcript"
-            ),
-            context=GeneSetWdkContext(
-                wdk_strategy_id=wdk_strategy_id, record_type=record_type
-            ),
-            step_count=3,
-        )
-
-
-def _serve(monkeypatch: pytest.MonkeyPatch, answers: list[list[str]]) -> _Site:
-    site = _Site(answers)
-    monkeypatch.setattr(operations, "read_strategy_genes", site.read)
-    return site
-
-
 async def _stored() -> GeneSet:
     reloaded = await GeneSetStore().get(_SET)
     assert reloaded is not None
@@ -126,7 +105,7 @@ async def _stored() -> GeneSet:
 async def test_the_job_takes_the_stored_root_under_the_researchers_token(
     thread: UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    site = _serve(monkeypatch, [list(_UNION)])
+    site = serve_roots(monkeypatch, [RootAnswer(_UNION)])
     stored = await store_root(thread, CombineOp.UNION)
 
     await run_refresh_job(thread)
@@ -143,7 +122,7 @@ async def test_the_job_takes_the_stored_root_under_the_researchers_token(
 async def test_a_second_job_on_the_same_root_reads_nothing(
     thread: UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    site = _serve(monkeypatch, [list(_UNION)])
+    site = serve_roots(monkeypatch, [RootAnswer(_UNION)])
     await store_root(thread, CombineOp.UNION)
 
     await run_refresh_job(thread)
@@ -155,7 +134,7 @@ async def test_a_second_job_on_the_same_root_reads_nothing(
 async def test_a_job_after_a_new_root_takes_the_new_answer(
     thread: UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _serve(monkeypatch, [list(_UNION), list(_INTERSECT)])
+    serve_roots(monkeypatch, [RootAnswer(_UNION), RootAnswer(_INTERSECT)])
     await store_root(thread, CombineOp.UNION)
     await run_refresh_job(thread)
     stored = await store_root(thread, CombineOp.INTERSECT)
@@ -185,12 +164,97 @@ async def test_a_failed_read_leaves_the_set_and_ends_the_job(
     assert (len(held.gene_ids), held.answer_revision) == (549, None)
 
 
+@pytest.mark.parametrize(
+    ("answer", "reason"),
+    [
+        (
+            RootAnswer(refusal=TooManyGenesError(309_068, 10_000)),
+            ResultAboveTheCap(count=309_068, cap=10_000),
+        ),
+        (
+            RootAnswer(refusal=RecordsAreNotGenesError("group")),
+            ResultNotGenes(record_class="group"),
+        ),
+        (RootAnswer([]), ResultWithoutGenes()),
+    ],
+)
+async def test_a_refused_root_marks_the_set_out_of_date(
+    thread: UUID,
+    monkeypatch: pytest.MonkeyPatch,
+    answer: RootAnswer,
+    reason: OutOfDate,
+) -> None:
+    serve_roots(monkeypatch, [answer])
+    await store_root(thread, CombineOp.UNION)
+
+    await run_refresh_job(thread)
+
+    held = await _stored()
+    assert (len(held.gene_ids), held.answer_revision, held.out_of_date) == (
+        549,
+        None,
+        reason,
+    )
+
+
+async def test_a_later_root_within_the_cap_clears_the_mark(
+    thread: UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    serve_roots(
+        monkeypatch,
+        [
+            RootAnswer(refusal=TooManyGenesError(309_068, 10_000)),
+            RootAnswer(_INTERSECT),
+        ],
+    )
+    await store_root(thread, CombineOp.UNION)
+    await run_refresh_job(thread)
+    stored = await store_root(thread, CombineOp.INTERSECT)
+
+    await run_refresh_job(thread)
+
+    held = await _stored()
+    assert (held.gene_ids, held.answer_revision, held.out_of_date) == (
+        _INTERSECT,
+        answer_revision(stored),
+        None,
+    )
+
+
+async def test_the_root_the_set_holds_put_back_clears_the_mark(
+    thread: UUID, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    site = serve_roots(
+        monkeypatch,
+        [
+            RootAnswer(_UNION),
+            RootAnswer(refusal=TooManyGenesError(309_068, 10_000)),
+            RootAnswer(_UNION),
+        ],
+    )
+    held_root = await store_root(thread, CombineOp.UNION)
+    await run_refresh_job(thread)
+    await store_root(thread, CombineOp.INTERSECT)
+    await run_refresh_job(thread)
+    await store_root(thread, CombineOp.UNION)
+
+    await run_refresh_job(thread)
+
+    held = await _stored()
+    assert (held.gene_ids, held.answer_revision, held.out_of_date) == (
+        _UNION,
+        answer_revision(held_root),
+        None,
+    )
+    assert len(site.tokens) == 3
+
+
 async def test_two_writes_queue_one_job_the_worker_runs(
     thread: UUID,
     in_memory_jobs: InMemoryConnector,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    site = _serve(monkeypatch, [list(_INTERSECT)])
+    site = serve_roots(monkeypatch, [RootAnswer(_INTERSECT)])
     written = StrategyMutationContext(
         site_id="plasmodb",
         strategy_session=StrategySession(site_id="plasmodb"),

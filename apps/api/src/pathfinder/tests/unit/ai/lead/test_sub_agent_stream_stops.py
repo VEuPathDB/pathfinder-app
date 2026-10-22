@@ -150,6 +150,12 @@ def mistyped_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 
 @pytest.fixture
+def misshapen_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    model = final_result_model({"summary": "bound", "disposition": "finished"})
+    yield from _pinned(monkeypatch, model, ping)
+
+
+@pytest.fixture
 def answering_frame(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     model = final_result_model(
         {"summary": "one criterion bound", "disposition": "needs_user"},
@@ -320,6 +326,40 @@ async def test_a_model_failure_of_another_kind_still_ends_the_run() -> None:
 
     assert str(raised.value) == _OTHER_CRASH
     assert deps.last_phase_stop is None
+
+
+@pytest.mark.usefixtures("misshapen_frame")
+async def test_an_answer_out_of_shape_past_its_retries_is_a_typed_stop() -> None:
+    deps = _deps()
+
+    delta = await _dispatch(deps)
+
+    assert delta is None
+    stop = deps.last_phase_stop
+    assert stop is not None
+    assert (stop.role, stop.reason, stop.tool_name, stop.refusal) == (
+        "frame",
+        PhaseStopReason.OUTPUT_RETRIES,
+        "",
+        "",
+    )
+
+
+@pytest.mark.usefixtures("misshapen_frame")
+async def test_a_frame_out_of_shape_hands_the_lead_its_stop() -> None:
+    deps = _deps()
+
+    result = await run_frame(
+        deps=deps,
+        parent_tool_call_id="call_frame_1",
+        work_order=frame_work_order("bind the criteria", deps),
+    )
+
+    assert isinstance(result, FrameResult)
+    assert result.summary == (
+        "FRAME stopped on an answer that had the wrong shape every time with no "
+        "criteria bound. Narrow the goal or state fewer criteria, then try again."
+    )
 
 
 @pytest.mark.usefixtures("mistyped_frame")

@@ -146,6 +146,48 @@ describe("the slash registry", () => {
     });
   });
 
+  it("/export says when the set no longer holds its strategy's result", async () => {
+    const api = "http://localhost:3000/pathfinder/api/v1/gene-sets";
+    server.use(
+      http.get(api, () =>
+        HttpResponse.json([
+          {
+            id: "gs-outgrown",
+            name: "Singletons",
+            siteId: "plasmodb",
+            geneIds: ["PF3D7_1133400"],
+            source: "strategy",
+            geneCount: 1,
+            geneCountHere: 1,
+            membershipDigest: "0000000000000d5c",
+            createdAt: "2026-10-15T00:00:00Z",
+            outOfDate: { kind: "no_genes" },
+          },
+        ]),
+      ),
+      http.post(`${api}/:id/export`, () =>
+        HttpResponse.json({
+          exportId: "ex-2",
+          filename: "singletons.txt",
+          contentType: "text/plain",
+          url: "/exports/singletons.txt",
+        }),
+      ),
+    );
+    const exportCommand = command("export");
+    if (exportCommand.kind !== "deterministic") throw new Error("not deterministic");
+
+    const result = await exportCommand.run({ what: "gene-set-txt" }, ctx());
+
+    expect(result).toEqual({
+      kind: "download",
+      url: "/exports/singletons.txt",
+      filename: "singletons.txt",
+      notice:
+        "Singletons is out of date: it holds the genes of an earlier version of its strategy.",
+    });
+  });
+
   it("/export refuses the strategy of a chat that has none", async () => {
     const exportCommand = command("export");
     if (exportCommand.kind !== "deterministic") throw new Error("not deterministic");

@@ -82,6 +82,13 @@ def _three_leaf_ast(percentile: float = 90) -> StrategyAst:
     return StrategyAst(record_type="transcript", root=root, name="kinase hunt")
 
 
+_LISTED = {
+    "GenesByText": "transcript",
+    "GenesByTaxon": "transcript",
+    "GenesByRNASeqEvidence": "transcript",
+}
+
+
 def _params_by_search(root: StrategyStepNode) -> dict[str, dict[str, object]]:
     return {
         node.search_name: dict(node.parameters)
@@ -92,7 +99,9 @@ def _params_by_search(root: StrategyStepNode) -> dict[str, dict[str, object]]:
 
 class TestTheValuesSurvive:
     def test_reconstructed_criteria_carry_the_hand_edited_value(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(percentile=90), goal="find kinases")
+        spec = spec_from_ast(
+            _three_leaf_ast(percentile=90), goal="find kinases", listed={}
+        )
 
         criterion = next(c for c in spec.criteria if c.id == "step_expr")
         assert criterion.param_values["min_expression_percentile"] == NumberValue(
@@ -102,7 +111,7 @@ class TestTheValuesSurvive:
     def test_the_parameters_are_copied_not_shared(self) -> None:
         ast = _three_leaf_ast()
 
-        spec = spec_from_ast(ast, goal="g")
+        spec = spec_from_ast(ast, goal="g", listed={})
 
         criterion = next(c for c in spec.criteria if c.id == "step_taxon")
         criterion.resolved_params.pop("organism")
@@ -111,7 +120,7 @@ class TestTheValuesSurvive:
     def test_reconstructed_spec_is_buildable(self) -> None:
         ast = _three_leaf_ast()
 
-        spec = spec_from_ast(ast, goal="find kinases")
+        spec = spec_from_ast(ast, goal="find kinases", listed={})
         built = _params_by_search(_step_tree(spec))
 
         assert built == _params_by_search(ast.root)
@@ -119,7 +128,7 @@ class TestTheValuesSurvive:
 
 class TestTheCriteriaAddressTheSteps:
     def test_criterion_ids_are_step_ids(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="g")
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         assert {c.id for c in spec.criteria} == {
             "step_text",
@@ -128,12 +137,12 @@ class TestTheCriteriaAddressTheSteps:
         }
 
     def test_combine_node_produces_no_criterion(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="g")
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         assert len(spec.criteria) == 3
 
     def test_a_combine_node_carries_its_operator_and_no_criterion_id(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="g")
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         assert spec.structure is not None
         root = spec.structure.root
@@ -152,7 +161,7 @@ class TestTheRolesFollowTheTree:
         )
         ast = StrategyAst(record_type="transcript", root=root)
 
-        spec = spec_from_ast(ast, goal="g")
+        spec = spec_from_ast(ast, goal="g", listed={})
 
         criterion = next(c for c in spec.criteria if c.id == "step_ortho")
         assert criterion.role == "transform"
@@ -162,7 +171,7 @@ class TestTheRolesFollowTheTree:
         assert spec.structure.root.inputs[0].criterion_id == "step_text"
 
     def test_the_deepest_primary_leaf_is_the_seed(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="g")
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         by_id = {c.id: c.role for c in spec.criteria}
         assert by_id["step_text"] == "seed"
@@ -172,7 +181,7 @@ class TestTheRolesFollowTheTree:
 
 class TestTheReconstructionClaimsNothingItCannotKnow:
     def test_reconstruction_asserts_no_provenance(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="g")
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         assert all(not c.defaulted() for c in spec.criteria)
         assert all(c.confidence == 0.0 for c in spec.criteria)
@@ -181,7 +190,7 @@ class TestTheReconstructionClaimsNothingItCannotKnow:
         assert spec.dropped == []
 
     def test_the_text_is_the_display_name(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="g")
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         criterion = next(c for c in spec.criteria if c.id == "step_taxon")
         assert criterion.text == "Plasmodium genes"
@@ -190,16 +199,36 @@ class TestTheReconstructionClaimsNothingItCannotKnow:
         root = StrategyStepNode(id="step_a", search_name="GenesByTaxon")
         ast = StrategyAst(record_type="transcript", root=root)
 
-        spec = spec_from_ast(ast, goal="g")
+        spec = spec_from_ast(ast, goal="g", listed={})
 
         assert spec.criteria[0].text == "GenesByTaxon step"
 
     def test_the_record_type_and_goal_come_through(self) -> None:
-        spec = spec_from_ast(_three_leaf_ast(), goal="find kinases")
+        spec = spec_from_ast(_three_leaf_ast(), goal="find kinases", listed=_LISTED)
 
         assert spec.record_type == "transcript"
         assert spec.goal == "find kinases"
         assert spec.title == "kinase hunt"
+
+    def test_each_criterion_takes_the_class_its_search_is_listed_under(self) -> None:
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed=_LISTED)
+
+        assert {c.id: c.record_class for c in spec.criteria} == {
+            "step_text": "transcript",
+            "step_taxon": "transcript",
+            "step_expr": "transcript",
+        }
+
+    def test_a_search_the_catalog_does_not_list_has_no_class(self) -> None:
+        unlisted = {k: v for k, v in _LISTED.items() if k != "GenesByTaxon"}
+
+        spec = spec_from_ast(_three_leaf_ast(), goal="g", listed=unlisted)
+
+        assert {c.id: c.record_class for c in spec.criteria} == {
+            "step_text": "transcript",
+            "step_taxon": None,
+            "step_expr": "transcript",
+        }
 
     def test_a_single_leaf_strategy_reconstructs_as_a_seed(self) -> None:
         ast = StrategyAst(
@@ -207,7 +236,7 @@ class TestTheReconstructionClaimsNothingItCannotKnow:
             root=StrategyStepNode(id="step_only", search_name="GenesByTaxon"),
         )
 
-        spec = spec_from_ast(ast, goal="g")
+        spec = spec_from_ast(ast, goal="g", listed={})
 
         assert [c.role for c in spec.criteria] == ["seed"]
         assert spec.structure is not None
@@ -229,7 +258,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
         ast = StrategyAst(record_type="transcript", root=root)
 
         spec = hidden_params_dropped(
-            spec_from_ast(ast, goal="g"),
+            spec_from_ast(ast, goal="g", listed={}),
             sheet_params={
                 "GenesByRNASeqpfal3D7_Su_seven_stages_rnaSeq_RSRC": visible_sheet(
                     ["profileset_generic"]
@@ -245,7 +274,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
 
     def test_a_search_the_mapping_does_not_name_keeps_its_values(self) -> None:
         spec = hidden_params_dropped(
-            spec_from_ast(_three_leaf_ast(), goal="g"), sheet_params={}
+            spec_from_ast(_three_leaf_ast(), goal="g", listed={}), sheet_params={}
         )
 
         criterion = next(c for c in spec.criteria if c.id == "step_taxon")
@@ -254,7 +283,7 @@ class TestTheSheetDecidesWhichParamsTheSpecStates:
         )
 
     def test_the_hydrated_spec_is_left_alone(self) -> None:
-        hydrated = spec_from_ast(_three_leaf_ast(), goal="g")
+        hydrated = spec_from_ast(_three_leaf_ast(), goal="g", listed={})
 
         hidden_params_dropped(hydrated, sheet_params={"GenesByTaxon": []})
 
@@ -266,7 +295,7 @@ def test_a_value_read_from_the_strategy_is_held_not_stated() -> None:
     """The strategy holds the value; who set it is not on record."""
     ast = StrategyAst(record_type="transcript", root=_text_leaf())
 
-    [criterion] = spec_from_ast(ast, goal="g").criteria
+    [criterion] = spec_from_ast(ast, goal="g", listed={}).criteria
 
     assert criterion.resolved_params == {
         "text_expression": BoundValue(

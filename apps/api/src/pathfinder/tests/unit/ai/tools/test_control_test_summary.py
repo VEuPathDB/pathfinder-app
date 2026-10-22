@@ -13,7 +13,8 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 
 from pathfinder.ai.graph.runtime import AgentDeps, VerificationScope
 from pathfinder.ai.tools.standalone import experiment
-from pathfinder.ai.tools.standalone.experiment import _ControlCounts, controls_summary
+from pathfinder.ai.tools.standalone.control_counts import ControlCounts
+from pathfinder.ai.tools.standalone.experiment import controls_summary
 from pathfinder.services.experiment.published_names import PublishedNames
 from pathfinder.tests._support.saved_controls import (
     SAVED_SET,
@@ -21,10 +22,11 @@ from pathfinder.tests._support.saved_controls import (
     saved_set,
     serve_saved_controls,
 )
+from pathfinder.tests._support.search_record_types import serve_transcript_searches
 
 
 def test_the_summary_carries_recall_precision_mcc_and_the_knobs() -> None:
-    counts = _ControlCounts.model_validate(
+    counts = ControlCounts.model_validate(
         {
             "positiveRecoveredIds": [f"P{index}" for index in range(8)],
             "positiveMissedIds": ["P8", "P9"],
@@ -43,7 +45,7 @@ def test_the_summary_carries_recall_precision_mcc_and_the_knobs() -> None:
 
 def test_a_positive_only_test_reports_recall_alone() -> None:
     """No negative ran, so precision 1.00 and MCC 0.00 are not measurements."""
-    counts = _ControlCounts.model_validate(
+    counts = ControlCounts.model_validate(
         {
             "positiveRecoveredIds": ["P0", "P1", "P2"],
             "positiveMissedIds": ["P3", "P4"],
@@ -59,7 +61,7 @@ def test_a_positive_only_test_reports_recall_alone() -> None:
 
 
 def test_a_negatives_only_test_counts_its_negatives() -> None:
-    counts = _ControlCounts.model_validate(
+    counts = ControlCounts.model_validate(
         {
             "negativeAdmittedIds": ["PF3D7_0508800", "PF3D7_1215900"],
             "negativeExcludedIds": [f"PF3D7_{n:07d}" for n in range(1, 39)],
@@ -73,7 +75,7 @@ def test_a_negatives_only_test_counts_its_negatives() -> None:
 
 
 def test_a_test_that_ran_no_controls_still_reads() -> None:
-    assert controls_summary(_ControlCounts()) == (
+    assert controls_summary(ControlCounts()) == (
         "0 of 0 positive controls recovered; "
         "recall 0.00, no negative controls tested; "
         "no tunable parameters"
@@ -112,6 +114,7 @@ async def test_a_standalone_search_test_names_the_searchs_knobs(
         return ["organism"]
 
     monkeypatch.setattr(experiment, "run_positive_negative_controls", measured)
+    serve_transcript_searches(monkeypatch)
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
     monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)

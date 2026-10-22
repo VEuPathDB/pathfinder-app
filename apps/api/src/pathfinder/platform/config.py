@@ -147,6 +147,24 @@ class Settings(RuntimeSettings, VEuPathDBSettings, McpSettings, EmbeddingSetting
         ge=1,
         description="Seconds between two passes over the degraded sites.",
     )
+    audit_run_hours: float = Field(
+        default=6.0,
+        gt=0,
+        description=(
+            "Hours an audit run waits for a site that does not answer. At the "
+            "deadline a unit it tried keeps its status and a unit it never tried "
+            "is stored unread."
+        ),
+    )
+    audit_concurrency: int = Field(
+        default=2,
+        ge=1,
+        le=4,
+        description=(
+            "Audit jobs the worker runs at once, on a queue of their own, apart "
+            "from chat turns and durable tools."
+        ),
+    )
     step_genes_cap: int = Field(
         default=10_000,
         ge=1,

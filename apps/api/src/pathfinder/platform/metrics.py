@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from wsgiref.simple_server import WSGIServer
 
 from prometheus_client import Counter, Histogram, start_http_server
@@ -21,6 +25,8 @@ __all__ = [
     "WDK_SEARCH_WAIT",
     "HttpMetricsMiddleware",
     "PathfinderObserver",
+    "RequestTally",
+    "counting_wdk_requests",
     "observe_search_wait",
     "serve_metrics",
 ]
@@ -96,7 +102,31 @@ class _SearchWait(BaseModel):
     line: str
 
 
+@dataclass
+class RequestTally:
+    count: int = 0
+
+
+_TALLY: ContextVar[RequestTally | None] = ContextVar("wdk_request_tally", default=None)
+
+
+@contextmanager
+def counting_wdk_requests() -> Iterator[RequestTally]:
+    tally = RequestTally()
+    token = _TALLY.set(tally)
+    try:
+        yield tally
+    finally:
+        _TALLY.reset(token)
+
+
 class PathfinderObserver(OpenTelemetryObserver):
+    def on_wdk_request(self, seconds: float, attrs: MetricAttrs, /) -> None:
+        super().on_wdk_request(seconds, attrs)
+        tally = _TALLY.get()
+        if tally is not None:
+            tally.count += 1
+
     def on_wdk_search_wait(self, seconds: float, attrs: MetricAttrs, /) -> None:
         super().on_wdk_search_wait(seconds, attrs)
         wait = _SearchWait.model_validate(attrs)

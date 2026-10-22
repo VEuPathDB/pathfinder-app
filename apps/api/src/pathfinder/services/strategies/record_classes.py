@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 
-from veupathdb.wdk import WDKSearch
+from veupathdb.domain.strategy import StrategyStepNode, walk
+from veupathdb.wdk import WDKRecordType, WDKSearch
 from veupathdb_mcp.catalog import (
     get_raw_record_types,
     get_raw_searches,
     make_record_type_resolver,
 )
 
-from pathfinder.domain.strategy.validate import SearchRecordClasses
+from pathfinder.domain.strategy.validate import (
+    SearchRecordClasses,
+    first_mixed_combine,
+    mixed_combine_refusal,
+)
 
 
 def record_classes_of(search: WDKSearch, listed_under: str) -> SearchRecordClasses:
@@ -64,4 +69,53 @@ async def record_class_names(site_id: str) -> dict[str, str]:
     return {
         record.url_segment: record.display_name_plural or record.url_segment
         for record in await get_raw_record_types(site_id)
+    }
+
+
+async def _site_transforms(site_id: str) -> dict[str, SearchRecordClasses]:
+    return {
+        search.url_segment: record_classes_of(search, record.url_segment)
+        for record in await get_raw_record_types(site_id)
+        for search in await get_raw_searches(site_id, record.url_segment)
+        if search.allowed_primary_input_record_class_names
+    }
+
+
+async def tree_combine_refusal(site_id: str, root: StrategyStepNode) -> str | None:
+    nodes = walk(root)
+    if all(node.operator is None for node in nodes):
+        return None
+    searches = [node.search_name for node in nodes if node.operator is None]
+    mixed = first_mixed_combine(root, await search_record_classes(site_id, searches))
+    if mixed is None:
+        return None
+    return mixed_combine_refusal(
+        mixed, await record_class_names(site_id), await _site_transforms(site_id)
+    )
+
+
+async def record_type_names(site_id: str, record_type: str) -> list[str]:
+    """The record type's own name, then each other name the site shows it by."""
+    return (await names_of_every_record_type(site_id)).get(record_type, [record_type])
+
+
+async def names_of_every_record_type(site_id: str) -> dict[str, list[str]]:
+    return record_names_of(await get_raw_record_types(site_id))
+
+
+def record_names_of(records: Iterable[WDKRecordType]) -> dict[str, list[str]]:
+    return {
+        record.url_segment: list(
+            dict.fromkeys(
+                name
+                for name in [
+                    record.url_segment,
+                    record.display_name,
+                    record.display_name_plural,
+                    record.short_display_name,
+                ]
+                if name
+            )
+        )
+        for record in records
     }

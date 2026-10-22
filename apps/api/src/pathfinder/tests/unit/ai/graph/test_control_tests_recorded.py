@@ -46,6 +46,7 @@ from pathfinder.tests._support.saved_controls import (
     saved_set,
     serve_saved_controls,
 )
+from pathfinder.tests._support.search_record_types import serve_transcript_searches
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _TASK_ID = UUID("0c6100d2-0000-4000-8000-000000000002")
@@ -276,6 +277,7 @@ async def test_a_search_level_test_is_recorded_on_the_turn(
         return []
 
     monkeypatch.setattr(experiment, "run_positive_negative_controls", measured)
+    serve_transcript_searches(monkeypatch)
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
     monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)

@@ -120,7 +120,7 @@ def _clause(criterion: Criterion, m: Measurement, noun: str) -> str:
     name = criterion.display_name_of(m.param)
     value = shown_value(bound.value)
     match m.kind:
-        case "loosest_bound":
+        case "loosest_bound" | "reading":
             at = f"at {_SET_BY[bound.source]} {value}"
             return _counted(criterion, m, at, f"at {m.reading}", noun)
         case "wildcard_phrase" | "site_default":

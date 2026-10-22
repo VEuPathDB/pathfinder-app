@@ -36,22 +36,12 @@ from pathfinder.services.conversations.fork import (
 )
 
 
-@pytest.fixture(scope="module", autouse=True)
-async def _langgraph_checkpoint_tables(
+@pytest.fixture(autouse=True)
+async def _truncate_langgraph_tables(
     patch_app_db_engine: None,
 ) -> AsyncIterator[None]:
-    """Creates the LangGraph checkpoint tables.
-
-    Only ``AsyncPostgresSaver.setup()`` creates them. The migrations do not.
-    """
-    del patch_app_db_engine
-    async with lifespan_checkpointer(get_settings().database_url):
-        yield
-
-
-@pytest.fixture(autouse=True)
-async def _truncate_langgraph_tables() -> AsyncIterator[None]:
     """Clears the checkpoint tables between tests."""
+    del patch_app_db_engine
     yield
     async with db.async_session_factory() as session:
         await session.execute(

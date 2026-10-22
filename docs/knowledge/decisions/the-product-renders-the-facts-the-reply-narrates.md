@@ -75,7 +75,10 @@ React renders it (`content/parts/DataFacts.tsx`, one test id per fact kind and p
 beside the reply in the default thread.
 
 The reply writes no fact itself. `LeadResponse.prose` and a card's `reply` hold references,
-and `domain/reply_references.py::render_reply` replaces each with the fact it names:
+and `domain/reply_references.py::render_reply` replaces each with the fact it names; a
+reference that names nothing the facts hold, which only a reply let through past
+[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md)
+carries, is shown as its plain words:
 
 | reference | renders |
 |---|---|
@@ -130,7 +133,7 @@ noun. Elsewhere a small count of steps in words is structure. Its correction
 (`contract_messages.unrendered_prose_message`) names each token with the references that
 render it: a count, a difference of two counts, a comparison count, a value, a record or the
 link; a number that a read record's product holds names that record's
-`[record:]`, which renders the product. It is refused on every answer and takes no part in
+`[record:]`, which renders the product. It is refused on every answer up to [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md) and takes no part in
 the one correction the other rules share (`to_correct`). Every card's reply of a response is
 read whole (`to_correct(..., replies)`), so no reply is rendered that the check did not read. The
 facts are this turn's: a count an earlier turn showed is rendered only while a step still holds

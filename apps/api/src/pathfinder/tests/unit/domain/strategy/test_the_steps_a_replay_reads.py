@@ -96,7 +96,7 @@ def test_a_criterion_is_read_again_on_the_sheet_its_parents_answer() -> None:
         organism=MultiPickValue(values=["Plasmodium falciparum 3D7"]),
         domain_typeahead=MultiPickValue(values=["PF00013"]),
     )
-    spec = spec_from_ast(_ast(step), goal="KH domains")
+    spec = spec_from_ast(_ast(step), goal="KH domains", listed={})
 
     read = read_under_their_parents(spec, {"dom": _UNDER_PF3D7})
 

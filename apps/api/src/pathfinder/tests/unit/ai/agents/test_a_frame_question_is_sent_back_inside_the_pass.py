@@ -72,7 +72,7 @@ def _asked(*questions: SlotQuestion) -> FrameResult:
     return FrameResult(disposition="needs_user", open_questions=list(questions))
 
 
-def test_a_question_on_a_criterion_the_draft_lacks_is_sent_back_once() -> None:
+def test_a_question_on_a_criterion_the_draft_lacks_is_sent_back_twice() -> None:
     ctx = _context(_expression())
     result = _asked(_CUTOFF)
 
@@ -84,7 +84,12 @@ def test_a_question_on_a_criterion_the_draft_lacks_is_sent_back_once() -> None:
     assert "The draft holds c_blood_expression: min_expression_percentile" in told
     assert "record the criterion first with set_criterion" in told
     assert "report it in requirement_problems and ask no question about it" in told
-    assert hold_the_questions_to_the_draft(ctx, result) is result
+    with pytest.raises(ModelRetry):
+        hold_the_questions_to_the_draft(ctx, result)
+    assert hold_the_questions_to_the_draft(ctx, result) == result.with_gap(
+        "questions_bind_nothing",
+        "The pass asks questions whose answers bind nothing its draft holds.",
+    )
 
 
 def test_a_question_on_an_open_slot_the_draft_holds_passes() -> None:

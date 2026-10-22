@@ -4,8 +4,8 @@ its criterion binds, and the sample caveat is worded from it alone."""
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
 
+from pathfinder.ai.graph.turn_records import TurnMarkers
 from pathfinder.domain.caveats import SampleCaveat, measured_caveats, sample_caveat
 from pathfinder.domain.evidence import ColumnFit, VerificationReview
 
@@ -59,13 +59,20 @@ def test_a_column_the_site_does_not_report_is_not_shown() -> None:
 
 
 def test_the_counts_cannot_exceed_each_other() -> None:
-    with pytest.raises(ValidationError, match="fitting <= fitting_at_most <= total"):
-        _fit(10, 8)
+    assert _fit(10, 8).nesting_problem == (
+        "a column fit holds fitting <= fitting_at_most <= total"
+    )
 
 
 def test_a_column_not_shown_carries_no_count() -> None:
-    with pytest.raises(ValidationError, match="carries no count"):
-        _fit(3, 8, shown=False)
+    assert _fit(3, 8, shown=False).nesting_problem == (
+        "a column the site does not show carries no count"
+    )
+
+
+def test_a_fit_that_does_not_nest_is_never_recorded() -> None:
+    with pytest.raises(ValueError, match="fitting <= fitting_at_most <= total"):
+        TurnMarkers().record_column_fits([_fit(10, 8)])
 
 
 def test_only_a_fit_short_of_every_gene_is_a_sample_caveat() -> None:

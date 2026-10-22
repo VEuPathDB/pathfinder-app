@@ -336,5 +336,10 @@ async def test_the_facts_are_written_once_before_the_reply_the_card_carries(
     assert wire.index("data-facts:") < wire.index("text-start:")
     (facts,) = writer.chunks_of("data-facts")
     assert facts["data"]["saved"] == [
-        {"kind": "gene_set", "name": "orthologs draft", "count": 4}
+        {
+            "kind": "gene_set",
+            "name": "orthologs draft",
+            "count": 4,
+            "recordNoun": "gene",
+        }
     ]

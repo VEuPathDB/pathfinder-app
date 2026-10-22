@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 interface OpenInSiteLinkProps {
   href: string;
   siteId: string;
+  opens?: "strategy";
   onOpen?: () => void;
 }
 
 /** A link to a page on the site itself. */
-export function OpenInSiteLink({ href, siteId, onOpen }: OpenInSiteLinkProps) {
-  const label = `Open in ${siteShortName(siteId)}`;
+export function OpenInSiteLink({ href, siteId, opens, onOpen }: OpenInSiteLinkProps) {
+  const site = siteShortName(siteId);
+  const label = opens === undefined ? `Open in ${site}` : `Open ${opens} on ${site}`;
   return (
     <Button asChild variant="ghost" size="sm" className="h-7 gap-1.5 px-2">
       <a

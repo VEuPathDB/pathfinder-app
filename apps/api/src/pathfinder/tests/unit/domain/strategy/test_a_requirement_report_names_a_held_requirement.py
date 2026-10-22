@@ -36,6 +36,11 @@ _ASSUMED = Constraint(
     label="combination",
     requested_value="signal peptide AND GPI anchor",
 )
+_ASSUMED_GROUPS = Constraint(
+    kind=ConstraintKind.RECORD_TYPE,
+    label="record type",
+    requested_value="ortholog groups",
+)
 _HELD = [_ORGANISM, _ASSUMED, _GPI]
 
 
@@ -50,8 +55,24 @@ def test_only_what_the_researcher_stated_is_numbered_in_the_order_held() -> None
 def test_the_block_prints_each_number_beside_the_held_words() -> None:
     assert requirements_block(_HELD) == (
         "## Requirements the researcher stated\n"
-        "- R1: P. falciparum 3D7\n"
-        "- R2: predicted GPI anchor"
+        "- R1 (organism): P. falciparum 3D7\n"
+        "- R2 (other): predicted GPI anchor"
+    )
+
+
+def test_an_assumed_record_type_is_numbered_after_what_was_stated() -> None:
+    held = [_ORGANISM, _ASSUMED_GROUPS, _ASSUMED, _GPI]
+
+    assert numbered_requirements(held) == {
+        "R1": _ORGANISM,
+        "R2": _GPI,
+        "R3": _ASSUMED_GROUPS,
+    }
+    assert requirements_block(held) == (
+        "## Requirements the researcher stated\n"
+        "- R1 (organism): P. falciparum 3D7\n"
+        "- R2 (other): predicted GPI anchor\n"
+        "- R3 (record_type, assumed): ortholog groups"
     )
 
 

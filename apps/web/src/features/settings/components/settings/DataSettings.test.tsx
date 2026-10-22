@@ -31,6 +31,7 @@ function counts(over: Partial<PurgeCounts> = {}): PurgeCounts {
     geneSets: 0,
     experiments: 0,
     controlSets: 0,
+    auditRuns: 0,
     stagedEvalCases: 0,
     ...over,
   };
@@ -100,7 +101,7 @@ describe("DataSettings", () => {
 
     expect(
       screen.getByText(
-        "Delete the PlasmoDB gene sets, runs, control sets and copies waiting for review. Conversations move to Recently deleted. Strategies and memories stay.",
+        "Delete the PlasmoDB gene sets, runs, audits, control sets and copies waiting for review. Conversations move to Recently deleted. Strategies and memories stay.",
       ),
     ).toBeVisible();
   });
@@ -110,7 +111,7 @@ describe("DataSettings", () => {
 
     expect(
       screen.getByText(
-        "Delete the gene sets, runs, control sets, memories and copies waiting for review on every site. Conversations move to Recently deleted. Strategies stay but stop syncing.",
+        "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site. Conversations move to Recently deleted. Strategies stay but stop syncing.",
       ),
     ).toBeVisible();
   });

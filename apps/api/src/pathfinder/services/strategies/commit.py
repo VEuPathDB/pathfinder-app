@@ -50,6 +50,7 @@ from pathfinder.services.strategies.persist import (
 from pathfinder.services.strategies.reconcile import (
     reconcile_sync_state_with_wdk,
 )
+from pathfinder.services.strategies.record_classes import tree_combine_refusal
 from pathfinder.services.strategies.stated_sides import canonical_batch
 from pathfinder.services.strategies.step_push_planner import plan_step_pushes
 from pathfinder.services.strategies.step_wdk_push import push_steps_with_plan
@@ -153,21 +154,22 @@ def _the_tree_wdk_is_offered(
     )
 
 
-async def _refuse_an_intersect_of_two_organisms(
+async def _refuse_a_tree_the_site_cannot_run(
     deps: StrategyMutationContext,
     graph: StrategyGraph,
     wdk_ast: StrategyAst | None,
     *,
     rollback: tuple[StrategyAst | None, GraphLabels],
 ) -> None:
-    """Refuse the batch, before any push, when an INTERSECT of the tree it leaves
-    joins two known and disjoint organism scopes. Every commit runs this check,
-    so a tree that keeps its shape is checked like one that moves."""
+    """Refuse the batch, before any push, when a combine of the tree it leaves
+    joins two record types, or an INTERSECT joins two known and disjoint
+    organism scopes. Every commit runs this check, so a tree that keeps its
+    shape is checked like one that moves."""
     if wdk_ast is None:
         return
-    refusal = await tree_cross_organism_refusal(
-        deps.site_id, graph.record_type, wdk_ast.root
-    )
+    refusal = await tree_combine_refusal(
+        deps.site_id, wdk_ast.root
+    ) or await tree_cross_organism_refusal(deps.site_id, wdk_ast.root)
     if refusal is not None:
         restore_graph(graph, *rollback)
         raise ApplyError(refusal)
@@ -247,7 +249,7 @@ async def apply_operations_and_commit(
     )
     new_ast = _the_tree_the_batch_leaves(graph, old_ast, sync_state, entry_labels)
     wdk_ast = _the_tree_wdk_is_offered(graph, new_ast, sync_state)
-    await _refuse_an_intersect_of_two_organisms(
+    await _refuse_a_tree_the_site_cannot_run(
         deps, graph, wdk_ast, rollback=(old_ast, entry_labels)
     )
     if graph.steps:

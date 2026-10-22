@@ -70,7 +70,9 @@ export function useSlashCommands(args: UseSlashCommandsArgs) {
         return;
       case "download":
         triggerDownload(result.url, result.filename);
-        toast.success(`Downloading ${result.filename}`);
+        if (result.notice === undefined)
+          toast.success(`Downloading ${result.filename}`);
+        else toast.warning(`Downloading ${result.filename}. ${result.notice}`);
         return;
       case "prefill":
         aui.composer().setText(result.text);

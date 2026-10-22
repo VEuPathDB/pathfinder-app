@@ -23,12 +23,15 @@ from pathfinder.persistence.repositories import (
 from pathfinder.services.evidence.gene_sets import list_stored_gene_sets
 from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.homes import StepGenes
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import GeneSetStore, get_gene_set_store
 from pathfinder.services.gene_sets.strategy_genes import StrategyGenes
 from pathfinder.services.gene_sets.types import GeneSet
 from pathfinder.services.strategies.auto_import import (
     import_gene_set_for_conversation,
 )
+from pathfinder.services.strategies.naming import name_the_thread
+from pathfinder.services.strategies.write_lock import strategy_write_lock
 from pathfinder.tests._support.gene_set_refresh import run_refresh_job, store_root
 
 _WDK_STRATEGY = 330_642_473
@@ -229,4 +232,100 @@ async def test_a_build_beside_a_saved_set_imports_its_own_and_leaves_the_saved_o
         "vaccine candidates draft",
         _FIRST_COMMIT,
         439_858_733,
+    )
+
+
+async def test_a_build_above_the_cap_saves_and_links_no_set(
+    db_session: AsyncSession,
+    patch_app_db_engine: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del patch_app_db_engine
+    user = User(id=uuid4())
+    db_session.add(user)
+    await db_session.commit()
+    repo = ConversationRepository(db_session)
+    created = await repo.create(
+        user.id, "plasmodb", assistant_id="pathfinder", name="Vaccine antigens"
+    )
+    await repo.update_conversation(
+        created.id,
+        ConversationUpdate(wdk_strategy_id=_WDK_STRATEGY, wdk_strategy_id_set=True),
+    )
+    await db_session.commit()
+
+    async def _above(*_args: object, **_kwargs: object) -> StrategyGenes:
+        raise TooManyGenesError(12_480, 10_000)
+
+    monkeypatch.setattr(operations, "read_strategy_genes", _above)
+
+    imported = await import_gene_set_for_conversation(
+        conversation_id=created.id,
+        site_id="plasmodb",
+        user_id=user.id,
+        name="Strategy result",
+    )
+
+    assert imported is None
+    async with async_session_factory() as session:
+        linked = await ConversationRepository(session).get_strategy(created.id)
+    assert (linked.gene_set_id, linked.gene_set_auto_imported) == (None, False)
+    assert await list_stored_gene_sets(site_id="plasmodb", user_id=user.id) == []
+
+
+async def test_a_rename_during_the_import_names_the_set(
+    db_session: AsyncSession,
+    patch_app_db_engine: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    del patch_app_db_engine
+    user = User(id=uuid4())
+    db_session.add(user)
+    await db_session.commit()
+    repo = ConversationRepository(db_session)
+    created = await repo.create(
+        user.id, "plasmodb", assistant_id="pathfinder", name="Vaccine antigens"
+    )
+    await repo.update_conversation(
+        created.id,
+        ConversationUpdate(wdk_strategy_id=_WDK_STRATEGY, wdk_strategy_id_set=True),
+    )
+    await db_session.commit()
+
+    async def _renamed_while_read(
+        site_id: str, wdk_strategy_id: int, *, record_type: str | None
+    ) -> StrategyGenes:
+        del site_id
+        async with strategy_write_lock(created.id, async_session_factory) as locked:
+            await name_the_thread(
+                ConversationRepository(locked),
+                created.id,
+                "Apicoplast proteases",
+                generated_over=None,
+            )
+        return StrategyGenes(
+            genes=StepGenes(
+                gene_ids=list(_FIRST_COMMIT), homes={}, record_class="transcript"
+            ),
+            context=GeneSetWdkContext(
+                wdk_strategy_id=wdk_strategy_id, record_type=record_type
+            ),
+            step_count=3,
+        )
+
+    monkeypatch.setattr(operations, "read_strategy_genes", _renamed_while_read)
+
+    imported = await import_gene_set_for_conversation(
+        conversation_id=created.id,
+        site_id="plasmodb",
+        user_id=user.id,
+        name="Strategy result",
+    )
+
+    assert imported is not None
+    stored = await GeneSetStore().get(imported.id)
+    assert stored is not None
+    assert (imported.name, stored.name) == (
+        "Apicoplast proteases",
+        "Apicoplast proteases",
     )

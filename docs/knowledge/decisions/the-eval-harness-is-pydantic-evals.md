@@ -106,6 +106,10 @@ and the summary counts beside passed and failed:
 * `re-measure`: the count off on a new build and outside that band, which is a
   re-measurement of the record and not a defect.
 
+`pathfinder.evals.summary.judged` builds every case result from `classify`,
+`score_case` and `count_difference`, for a run read from the database and for a
+chat-debugger run directory alike, so the two grade a count the same way.
+
 A boolean cannot tell a site release from a regression. The verdicts are read
 by the person who runs the pre-release report: a `re-measure` is re-measured, a
 `fail` is re-run once and then recorded as a finding. No workflow blocks on

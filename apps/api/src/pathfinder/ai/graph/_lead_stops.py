@@ -6,18 +6,25 @@ import re
 from typing import Any, Literal
 
 from assistant_core.capabilities.repetition_guard import ToolRepetitionGuard
+from assistant_core.platform.logging import get_logger
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, FunctionToolResultEvent
 from pydantic_ai.run import AgentRunResultEvent
 
 from pathfinder.ai.agents.roles import PhaseRole
 from pathfinder.ai.graph._lead_capture import GuardStop, _LeadRunCapture
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead.sub_agent_tools import UnansweredStage
+from pathfinder.ai.lead.derive import derive_ledger
+from pathfinder.ai.lead.sub_agent_stops import spent_its_output_retries
+from pathfinder.ai.lead.sub_agent_tools import LeadDeps, UnansweredStage
+from pathfinder.ai.lead.turn_budget import budget_stop_report
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.provider_keys import PROVIDER_NAMES
 from pathfinder.platform.errors import DeploymentKeyRefusedError
 from pathfinder.platform.model_catalog import get_model_entry
 from pathfinder.platform.model_keys import turn_deployment_refusals, turn_refusals
+
+logger = get_logger(__name__)
 
 
 def guard_stop_of(
@@ -209,6 +216,47 @@ def _refused_deployment_prose(*, change: StrategyChange) -> str | None:
         "Settings under Provider keys, runs the turn on your account instead."
     )
     return prose if change == "unchanged" else f"{prose} {_NEXT[change]}"
+
+
+def unwritten_reply(state: PipelineState) -> LeadResponse:
+    change = strategy_change(state)
+    return stop_response(
+        f"I could not write the answer to this turn. {_NEXT[change]}",
+        changed=change != "unchanged",
+    )
+
+
+def run_stop_reply(
+    exc: UsageLimitExceeded | UnexpectedModelBehavior, deps: LeadDeps
+) -> LeadResponse:
+    state = deps.state
+    conversation_id = str(state.conversation_id)
+    match exc:
+        case UsageLimitExceeded():
+            logger.warning(
+                "lead reached its turn budget",
+                conversation_id=conversation_id,
+                error=str(exc),
+            )
+            return stop_response(
+                budget_stop_report(
+                    derive_ledger(state, deps.intent),
+                    deps.runtime.strategy_session,
+                    state.turn_markers,
+                    state.domain.open_questions,
+                ),
+                changed=state.turn_markers.changed_strategy,
+            )
+        case UnexpectedModelBehavior() if spent_its_output_retries(exc):
+            logger.warning(
+                "lead exhausted its output retries",
+                conversation_id=conversation_id,
+                error=str(exc),
+                cause=str(exc.__cause__),
+            )
+            return unwritten_reply(state)
+        case _:
+            raise exc
 
 
 def fallback_prose(

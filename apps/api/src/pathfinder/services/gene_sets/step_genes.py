@@ -9,6 +9,7 @@ from veupathdb_mcp.catalog import get_search_parameters
 from veupathdb_mcp.wdk import step_view_filters
 
 from pathfinder.platform.config import get_settings
+from pathfinder.services.gene_sets.types import ResultAboveTheCap
 
 # A transcript record names its gene beside its own id. A set holds the gene id.
 _GENE_ID_PARTS = ("gene_source_id", "source_id")
@@ -26,6 +27,9 @@ class TooManyGenesError(ValidationError):
         )
         self.count = count
         self.cap = cap
+
+    def reason(self) -> ResultAboveTheCap:
+        return ResultAboveTheCap(count=self.count, cap=self.cap)
 
 
 class IncompleteAnswerError(DataParsingError):

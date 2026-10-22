@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 from pathfinder.domain.reply_references import render_reply
-from pathfinder.domain.turn_facts import StepFact, TurnFacts
+from pathfinder.domain.turn_facts import StepFact, StrategyLinkFact, TurnFacts
 
 # toxodb: signal peptide 680, the ortholog step leaves 53, so it removes 627.
 _TOXO = TurnFacts(
@@ -53,7 +53,6 @@ def test_another_word_after_a_count_reference_is_left_alone() -> None:
 
 
 def test_the_noun_after_a_reference_with_no_count_is_left_alone() -> None:
-    facts = TurnFacts(
-        strategy_url="https://qa.toxodb.org/toxo.qa/app/workspace/strategies/1/2"
-    )
-    assert render_reply("[url] genes", facts) == f"{facts.strategy_url} genes"
+    url = "https://qa.toxodb.org/toxo.qa/app/workspace/strategies/1/2"
+    facts = TurnFacts(strategy_link=StrategyLinkFact(site_id="toxodb", url=url))
+    assert render_reply("[url] genes", facts) == f"{url} genes"

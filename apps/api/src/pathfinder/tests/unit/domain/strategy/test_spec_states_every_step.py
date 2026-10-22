@@ -15,7 +15,10 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.operations import DeleteResolution, DeleteStepOp
-from pathfinder.domain.strategy.spec_hydration import spec_stating_the_live_tree
+from pathfinder.domain.strategy.spec_hydration import (
+    StepReading,
+    spec_stating_the_live_tree,
+)
 
 from ._builders import (
     applied,
@@ -47,7 +50,9 @@ def test_a_step_the_spec_leaves_out_is_stated_before_an_edit_plans_one() -> None
         ),
     )
 
-    stated = spec_stating_the_live_tree(partial, ast, sheet_params={})
+    stated = spec_stating_the_live_tree(
+        partial, ast, StepReading(sheet_params={}, listed={})
+    )
 
     assert structure_criteria(stated.structure) == {
         "step_text",
@@ -76,7 +81,9 @@ def test_the_strategy_owns_the_operator_of_the_part_it_holds() -> None:
         ),
     )
 
-    stated = spec_stating_the_live_tree(partial, ast, sheet_params={})
+    stated = spec_stating_the_live_tree(
+        partial, ast, StepReading(sheet_params={}, listed={})
+    )
 
     assert stated.structure is not None
     assert stated.structure.root.operator == CombineOp.INTERSECT
@@ -114,7 +121,9 @@ def test_every_join_of_the_built_part_is_the_one_the_graph_holds() -> None:
         ),
     )
 
-    stated = spec_stating_the_live_tree(partial, ast, sheet_params={})
+    stated = spec_stating_the_live_tree(
+        partial, ast, StepReading(sheet_params={}, listed={})
+    )
 
     assert stated.structure is not None
     outer = stated.structure.root
@@ -152,7 +161,9 @@ def test_an_edit_after_the_graft_writes_no_operator_the_plan_never_named() -> No
             ],
         ),
     )
-    before = spec_stating_the_live_tree(partial, ast, sheet_params={})
+    before = spec_stating_the_live_tree(
+        partial, ast, StepReading(sheet_params={}, listed={})
+    )
     after = before.model_copy(deep=True)
     after.criteria = [c for c in after.criteria if c.id != "step_go"]
     after.structure = SpecStructure(
@@ -204,7 +215,9 @@ def test_dropping_one_criterion_leaves_the_step_the_spec_had_left_out() -> None:
             ],
         ),
     )
-    before = spec_stating_the_live_tree(partial, ast, sheet_params={})
+    before = spec_stating_the_live_tree(
+        partial, ast, StepReading(sheet_params={}, listed={})
+    )
     after = before.model_copy(deep=True)
     after.criteria = [c for c in after.criteria if c.id != "step_go"]
     after.structure = SpecStructure(

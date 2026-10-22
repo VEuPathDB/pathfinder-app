@@ -19,11 +19,17 @@ from pathfinder.ai.tools.standalone._frame_result import (
     SetCriterionResult,
 )
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
+from pathfinder.ai.tools.standalone.frame_structure import set_structure
 from pathfinder.domain.gene_homes import GeneHome
-from pathfinder.domain.strategy.operational_spec import BoundValue
+from pathfinder.domain.strategy.operational_spec import BoundValue, StructureNode
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.strategies import dataset_sources
 from pathfinder.tests._support.database import no_database
 from pathfinder.tests._support.tool_returns import returned
+from pathfinder.tests.unit.ai.tools._orthomcl_site import (
+    group_strategy_ctx,
+    serve_orthomcl,
+)
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _STRAIN_GAPS = GeneSet(
@@ -57,7 +63,7 @@ def _serve(monkeypatch: pytest.MonkeyPatch) -> _Site:
         return [_STRAIN_GAPS]
 
     monkeypatch.setattr(_frame_gene_set, "list_stored_gene_sets", _listed)
-    monkeypatch.setattr(_frame_gene_set, "get_strategy_api", lambda _site_id: site)
+    monkeypatch.setattr(dataset_sources, "get_strategy_api", lambda _site_id: site)
     return site
 
 
@@ -161,3 +167,41 @@ def test_frame_starts_from_a_set_the_listing_names() -> None:
 
     assert 'gene_set="<name from the listing>"' in told
     assert "a set saved on OrthoMCL or the portal starts from those genes alone" in told
+
+
+_PROTEINS = GeneSet(
+    id="gs-proteins",
+    name="3D7 proteins",
+    site_id="orthomcl",
+    gene_ids=["PF3D7_0103400.1-p1", "PF3D7_0110100.1-p1"],
+    source="strategy",
+)
+
+
+async def test_a_protein_set_at_the_root_frames_the_spec_on_the_protein_class(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    serve_orthomcl(monkeypatch)
+
+    async def _listed(*, site_id: str, user_id: UUID | None) -> list[GeneSet]:
+        del site_id, user_id
+        return [_PROTEINS]
+
+    monkeypatch.setattr(_frame_gene_set, "list_stored_gene_sets", _listed)
+    state = AgentToolState()
+    ctx = group_strategy_ctx(state)
+
+    await set_criterion(
+        ctx,
+        criterion_id="c_proteins",
+        text="the proteins in my set 3D7 proteins",
+        role="seed",
+        gene_set="3D7 proteins",
+    )
+    await set_structure(ctx, root=StructureNode(kind="leaf", criterion_id="c_proteins"))
+
+    draft = state.operational_spec_draft
+    assert [(c.search_name, c.record_class) for c in draft.criteria] == [
+        ("ByIdList", "sequence")
+    ]
+    assert draft.record_type == "sequence"

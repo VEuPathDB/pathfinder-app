@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-toxoplasma-me49-expanded-over-falciparum-3d7",
+  "turns": [
+    "Find ortholog groups where Toxoplasma gondii ME49 has at least 5 proteins and Plasmodium falciparum 3D7 has exactly 1."
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "A protein count in one genome is a unit without T: the ME49 code with at least 5 and the 3D7 code with exactly 1, joined by AND.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 6,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "tgon>=5 AND pfal=1"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-copy-number-comparison-between-clades-is-built-in-bands.md",
+    "curatorNote": "Protein counts per genome with no clade and no ratio."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

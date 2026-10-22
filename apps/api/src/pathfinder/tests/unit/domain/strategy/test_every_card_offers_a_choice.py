@@ -61,26 +61,25 @@ def test_a_free_text_question_offers_no_option() -> None:
     assert OpenQuestion(question=_TM_PROMPT).options == []
 
 
-def test_a_question_a_model_writes_with_one_label_is_refused() -> None:
+def test_a_question_a_model_writes_with_one_label_is_asked_in_words() -> None:
     """A card whose one option is the cutoff to apply offers no choice."""
-    with pytest.raises(ValidationError, match=r"offers one option, '1\.5'"):
-        AskedQuestion(
-            question=(
-                "Should the step be recreated with an absolute effect-size cutoff of 1.5?"
-            ),
-            dimension=ConstraintKind.STATISTICAL_THRESHOLD,
-            options=["1.5"],
-        )
+    asked = AskedQuestion(
+        question=(
+            "Should the step be recreated with an absolute effect-size cutoff of 1.5?"
+        ),
+        dimension=ConstraintKind.STATISTICAL_THRESHOLD,
+        options=["1.5"],
+    )
+
+    assert asked.options == []
 
 
-def test_a_slot_question_frame_writes_with_one_value_is_refused() -> None:
-    with pytest.raises(ValidationError, match="offers one option"):
-        SlotQuestion(
-            question=_TM_PROMPT,
-            criterion_id="step_tm",
-            param_name="min_tm",
-            options=["3"],
-        )
+def test_a_slot_question_frame_writes_with_one_value_is_asked_in_words() -> None:
+    question = SlotQuestion(
+        question=_TM_PROMPT, criterion_id="step_tm", param_name="min_tm", options=["3"]
+    )
+
+    assert question.options == []
 
 
 def test_the_labels_of_a_question_that_binds_nothing_are_no_options() -> None:

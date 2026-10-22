@@ -17,8 +17,13 @@ from pathfinder.ai.conversation.gene_list_marker import (
     parse_gene_list_marker,
 )
 from pathfinder.devtools import eval_runner, evals
-from pathfinder.devtools.chat import LoginUnansweredError, RespondArgs, RunArgs
-from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption
+from pathfinder.devtools.chat import (
+    EnvToken,
+    LoginUnansweredError,
+    RespondArgs,
+    RunArgs,
+)
+from pathfinder.devtools.gates import Gate, GateConsultQuestion, GateOption, gate_end
 from pathfinder.domain.turn_facts import ParameterFact, StepFact, TurnFacts
 from pathfinder.evals import store
 from pathfinder.evals.case import (
@@ -30,7 +35,8 @@ from pathfinder.evals.case import (
     GatePlan,
     RecordedCount,
 )
-from pathfinder.evals.scoring import ObservedOutcome, RequirementCounts, score_case
+from pathfinder.evals.requirements import RequirementCounts
+from pathfinder.evals.scoring import ObservedOutcome, score_case
 from pathfinder.evals.store import ATTACHMENTS_DIR
 from pathfinder.platform.stage_sites import qa_sites_file
 
@@ -128,6 +134,7 @@ def _install(
             step_ids_unchanged=step_ids_unchanged,
             ends_on=ends_on,
             refused_tools=refused_tools,
+            consult_options=turns.consult_options,
         )
 
     async def _forget(user_id: UUID) -> None:
@@ -374,7 +381,7 @@ async def test_the_gate_the_last_turn_stopped_on_is_observed(
 def test_a_gate_reads_as_the_card_the_researcher_sees(
     gate: Gate, ends_on: GateEnd | None
 ) -> None:
-    assert eval_runner.gate_end(gate) == ends_on
+    assert gate_end(gate) == ends_on
 
 
 def _counted(name: str, site: str, count: int) -> EvalCase:
@@ -417,8 +424,9 @@ async def test_the_corpus_reads_each_site_build_once_and_judges_the_drift(
         run_root: Path,
         effort: str | None,
         via_worker: bool,
+        wdk_token: EnvToken | None,
     ) -> ObservedOutcome:
-        del run_root, effort, via_worker
+        del run_root, effort, via_worker, wdk_token
         return ObservedOutcome(built_strategy=True, root_count=produced[case.name])
 
     monkeypatch.setattr(eval_runner, "load_corpus", lambda: cases)
@@ -466,8 +474,9 @@ async def test_a_case_whose_site_login_did_not_answer_is_not_run(
         run_root: Path,
         effort: str | None,
         via_worker: bool,
+        wdk_token: EnvToken | None,
     ) -> ObservedOutcome:
-        del run_root, effort, via_worker
+        del run_root, effort, via_worker, wdk_token
         if case.site_id == "cryptodb":
             unanswered = httpx.ConnectTimeout("no answer")
             raise LoginUnansweredError(case.site_id, unanswered)
@@ -720,6 +729,12 @@ async def test_a_card_answer_is_not_given_to_a_question_card(
     )
 
     assert (answered, observed.ends_on) == ([], "consult")
+    assert observed.consult_options == [
+        "On the VEuPathDB portal",
+        "Stay on PlasmoDB",
+        "Loose",
+        "Strict",
+    ]
 
 
 async def test_a_question_answer_is_not_given_to_an_approval_card(
@@ -844,8 +859,9 @@ def test_each_verdict_is_printed_as_it_is_known_before_the_summary(
         run_root: Path,
         effort: str | None,
         via_worker: bool,
+        wdk_token: EnvToken | None,
     ) -> ObservedOutcome:
-        del run_root, effort, via_worker
+        del run_root, effort, via_worker, wdk_token
         printed_before_each_case.append(capsys.readouterr().out)
         return ObservedOutcome(built_strategy=True, root_count=produced[case.name])
 
@@ -897,8 +913,9 @@ def test_a_passing_case_prints_its_refusals_on_every_line(
         run_root: Path,
         effort: str | None,
         via_worker: bool,
+        wdk_token: EnvToken | None,
     ) -> ObservedOutcome:
-        del case, run_root, effort, via_worker
+        del case, run_root, effort, via_worker, wdk_token
         return ObservedOutcome(
             built_strategy=True,
             root_count=479,

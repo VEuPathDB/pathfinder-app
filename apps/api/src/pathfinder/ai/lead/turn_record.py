@@ -82,6 +82,13 @@ class TurnRecord(CamelModel):
     # A catalog lookup of this turn ran, by the Lead or by a sub-agent.
     looked_up_the_catalog: bool = False
 
+    @property
+    def check_could_not_finish(self) -> bool:
+        stop = self.last_phase_stop
+        return (
+            stop is not None and stop.role == "verification"
+        ) or "verify_strategy" in self.refused_dispatches
+
 
 def _pending_eda_criterion(deps: LeadDeps) -> Criterion | None:
     """The criterion waiting for an analysis this turn did not open, or None.
@@ -158,7 +165,7 @@ def turn_record(ctx: RunContext[LeadDeps]) -> TurnRecord:
     graph = deps.runtime.strategy_session.get_graph(None)
     return TurnRecord(
         changed_strategy=markers.changed_strategy,
-        build_unverified=markers.build_unverified,
+        build_unverified=deps.build_unverified,
         build_outcome=deps.state.domain.last_build_outcome,
         eda_criterion_pending=_pending_eda_criterion(deps),
         turn_builds=turn_builds(deps),

@@ -157,7 +157,6 @@ def _spec() -> OperationalSpec:
     return OperationalSpec(
         goal="genes upregulated in gametocytes",
         title="Gametocyte expression",
-        record_type="transcript",
         criteria=[
             Criterion(
                 id="gametocyte_expression",

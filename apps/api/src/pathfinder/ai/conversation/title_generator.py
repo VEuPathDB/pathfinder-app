@@ -1,4 +1,4 @@
-"""Conversation-title generation using the provider's smallest model.
+"""Conversation-title generation using the run's pinned model, else the provider's smallest model.
 
 The title names the thread in the sidebar. It runs beside the turn, and the
 turn runner writes it as `data-conversation-title`, the last chunk before
@@ -24,6 +24,7 @@ from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import ProviderKeyError
 from pathfinder.platform.model_catalog import get_smallest_model
 from pathfinder.platform.model_keys import keyed_model
+from pathfinder.platform.pinned_model import pinned_model
 
 MAX_TITLE_WORDS = 7
 MAX_TITLE_CHARS = 60
@@ -105,6 +106,16 @@ async def charged_conversation_title(
         await charge_spend(async_session_factory, user_id=user_id, spent=meter.spent)
 
 
+def title_model_id(provider: ModelProvider | None = None) -> str | None:
+    pinned = pinned_model()
+    if pinned is not None:
+        return pinned
+    try:
+        return get_smallest_model(provider or get_settings().default_provider).id
+    except LookupError:
+        return None
+
+
 async def generate_conversation_title(
     first_user_message: str,
     mock_model: MockModelFactory,
@@ -126,32 +137,24 @@ async def generate_conversation_title(
     if not cleaned:
         return "New conversation"
 
-    settings = get_settings()
-    is_mock = settings.pathfinder_chat_provider.strip().lower() == "mock"
-    resolved_provider: ModelProvider = provider or settings.default_provider
+    is_mock = get_settings().pathfinder_chat_provider.strip().lower() == "mock"
+    resolved_id = title_model_id(provider)
+    if resolved_id is None and not is_mock:
+        return _fallback_title(first_user_message)
+    model_id = resolved_id or "mock:deterministic"
     try:
-        entry = get_smallest_model(resolved_provider)
-    except LookupError:
-        if not is_mock:
-            return _fallback_title(first_user_message)
-        entry = None
-
-    # ``entry`` is only None on the mock path above, so the fallback must be the
-    # mock model, not a real provider id.
-    title_model_id = entry.id if entry is not None else "mock:deterministic"
-    try:
-        model = mock_model() if is_mock else keyed_model(title_model_id)
+        model = mock_model() if is_mock else keyed_model(model_id)
     except ProviderKeyError:
         return _fallback_title(first_user_message)
     agent: Agent[None, str] = Agent(
         model,
         output_type=str,
         instructions=_TITLE_INSTRUCTIONS,
-        model_settings=build_model_settings(title_model_id),
+        model_settings=build_model_settings(model_id),
         retries=1,
         name="conversation-title",
         defer_model_check=True,
-        capabilities=[meter.on(title_model_id)],
+        capabilities=[meter.on(model_id)],
     )
     try:
         result = await agent.run(

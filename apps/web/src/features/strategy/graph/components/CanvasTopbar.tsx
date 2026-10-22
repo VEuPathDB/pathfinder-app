@@ -157,6 +157,7 @@ export function CanvasTopbar({
           <OpenInSiteLink
             href={strategy.wdkUrl}
             siteId={strategy.siteId}
+            opens="strategy"
             onOpen={() =>
               recordProductEvent({
                 event: "strategy_opened",

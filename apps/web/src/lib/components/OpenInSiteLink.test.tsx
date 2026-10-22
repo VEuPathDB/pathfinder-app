@@ -28,6 +28,18 @@ describe("OpenInSiteLink", () => {
     expect(link).not.toHaveAttribute("type");
   });
 
+  it("names what it opens on the site", () => {
+    render(
+      <OpenInSiteLink
+        href="https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/7"
+        siteId="orthomcl"
+        opens="strategy"
+      />,
+    );
+    const link = screen.getByRole("link", { name: "Open strategy on OrthoMCL" });
+    expect(link).toHaveTextContent("Open strategy on OrthoMCL");
+  });
+
   it("calls onOpen when the reader follows the link", () => {
     const onOpen = vi.fn();
     render(

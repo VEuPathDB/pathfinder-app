@@ -2,6 +2,78 @@
 
 ## 2026-10-22
 
+* **Stranded audit runs resume on a schedule, not at worker start.** The worker start reads no
+  app table, because only the api migrates and the worker can start first. The periodic job
+  `maintenance:resume_stranded_audits` (every 5 minutes) queues a job for every run that is
+  not halted and has no job queued or doing; a run whose job is doing keeps its own
+  continuation. See
+  [Audits run on a queue of their own](decisions/audits-run-on-a-queue-of-their-own.md).
+
+* **A spec returns the record class of its root.** A criterion carries the record class the
+  site lists its search under (`Criterion.record_class`, a saved strategy's own class), set
+  where it binds a search and, for a strategy read back (hydration, an EDA export) and at
+  every turn entry (the replay, with or without a strategy), from the catalog resolver
+  (`search_record_types`): a criterion with no class takes its search's listed class, and a
+  listing never replaces a class a criterion holds. A criterion whose step moves to another
+  search, an analysis search included, drops its class, so the listing classes the new
+  search; a reading check reads the criterion's class, else the listing. The organism reads and the text-query
+  sheets read only a search the catalog lists, under that class. `OperationalSpec.record_type` is derived, never stored: the
+  library's `record_class_of` over the spec's own tree, the criteria joined in order when no
+  tree is set. A criterion with no class is unknown, never its input's class, and a spec
+  whose root class is unknown has none; a reading on it is not counted, and a reading check
+  that cannot resolve it names the gap. FRAME's requirement list names each requirement's
+  kind and numbers an assumed record type after the stated ones. FRAME states each
+  record-type requirement's role (`FrameResult.record_types`: `answer`, the result's class,
+  or `through`, a class the tree passes through); a result that leaves one without a role is
+  sent back within the shared refusal budget, and past it the gap names the missing role. The
+  thread keeps the roles by the requirement's key (`record_roles`), merged across passes and
+  cleared with the request. VERIFY judges a record-type row by the classes named in its words
+  in the site's names, under the requirement that names the same classes: an answer, and a
+  requirement with no role, against the root's class; a through requirement against the
+  classes the tree's steps return.
+
+* **An audit halt, an OAuth outage and a lost start resume where they should.** A sign-in
+  halt reopens the stages from the first that holds a refused unit; a sign-in check the OAuth
+  server does not answer waits with the token kept; a retry reopens and sets its deadline in
+  one transaction, and the worker start also queues a planned run with a deadline. The screen
+  knows a genome by the genome that screened its findings and writes its candidates before it
+  waits for gene targets. A unit a job raised on keeps the error, and the findings route
+  filters by `screenedGenome` and `sampled`.
+* **An audit rates each genome and weighs each finding.** A finding records its screened
+  genome and its model genome. The run view rates each screened genome and check over the
+  random sample with `rate_with_bounds` (judged findings only, with a Wilson interval, a floor
+  and a ceiling, and the unjudged count beside it) and reports gene targets apart, a strain
+  pair counted in both genomes it judged. Collect reads each audited genome's reference-strain
+  mark from one organism report per pass. Every named finding stores its impact and the
+  weighing it came from, with a 0.5 fallback for genes not read; a `truncated_model` the
+  relatives call `REFERENCE_LONG` is classed as the reference's over-extension. See
+  [An audit run is stored unit by unit](decisions/an-audit-run-is-stored-unit-by-unit-and-resumes-where-it-stopped.md).
+* **A refused gene set says so.** A turn that wrote a strategy whose root is above
+  `STEP_GENES_CAP` states in its facts part that the result was not saved as a gene set, with
+  the count, the cap and the root's noun (`sequence` counts as proteins), derived from the
+  turn's final state, and the build and edit deltas tell the Lead the same. Every thread with
+  a WDK strategy and no set (above the cap, canvas-built, imported from WDK, forked) takes
+  the automatic import at its next write that moves the root. A refresh
+  refused above the cap, on records that are not genes or on a root with no genes keeps the
+  set's genes and records why on the set (`gene_sets.out_of_date`, discriminated by `kind`);
+  the API returns it as `outOfDate`, the thread's gene-set listing marks the set out of date
+  with the reason, and the next refresh that returns genes clears it. See
+  [The strategy's gene set refreshes in a job](decisions/the-strategy-gene-set-refreshes-in-a-job.md).
+* **Audits run on a queue of their own.** The worker process serves the `audit` queue with a
+  second procrastinate worker at `AUDIT_CONCURRENCY` (2), one queued and one running job
+  per run under `audit-run:<run_id>`; a wait is a scheduled continuation, a job starts no
+  unit after 30 minutes of work, the worker start queues again every running run that is
+  not halted, and no `background_tasks` row is written. See
+  [Audits run on a queue of their own](decisions/audits-run-on-a-queue-of-their-own.md).
+* **An audit run keeps its owner's sign-in sealed.** The registered token is sealed on
+  `audit_runs` under `PROVIDER_KEY_ENCRYPTION_KEY`, checked by every job and erased when the
+  run finishes, halts or its job fails; with no secret, a start answers `AUDITS_DISABLED`. A
+  401 halts the run, and a 403 halts it only on a token that no longer holds or the third
+  from units read one after another in one job. See
+  [An audit run keeps its owner's sign-in sealed](decisions/an-audit-run-keeps-its-owners-sign-in-sealed.md).
+* **A unit the deadline left untried is `unread`.** It is stored apart from `unreached`, with
+  zero attempts and "not read before the run's deadline", and a retry reopens both. Backlog 48
+  (an audit counts its JBrowse reads) and 49 (a genome screen for selenoproteins) are added.
 * **A build saves a gene set only of a step it can read in one bounded report.** The set a
   build saves on its own, a requested save and the refresh job read the step's count first and
   refuse a step above `STEP_GENES_CAP` (10,000) before any answer is read; a control list read
@@ -14,6 +86,16 @@
   step declared and discard the body, and a `standard` report with no `pagination` streams the
   whole answer (a non-standard reporter streams it whatever the pagination). With the run gone,
   `add_step_report` and the step response's `reports` field carried nothing, so both are removed.
+
+## 2026-10-21
+
+* **An audit run is stored and resumes where it stopped.** Four tables hold a run:
+  `audit_runs` (the scope, a seed, the four stages with their counts and the deadline), and
+  one row per unit in `audit_genomes`, `audit_findings` and `audit_evidence`, each with its
+  status, attempts and stops. A site that does not answer is waited for until the run's
+  deadline (`AUDIT_RUN_HOURS`, 6), and `GET /api/v1/audits`, `/{run_id}` and the two findings
+  routes read a run; a purge deletes it. See
+  [An audit run is stored unit by unit](decisions/an-audit-run-is-stored-unit-by-unit-and-resumes-where-it-stopped.md).
 
 ## 2026-10-20
 

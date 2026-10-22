@@ -4,14 +4,21 @@ this turn's edit moved."""
 
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping
+
 from pathfinder.ai.graph.runtime import VerificationScope
 from pathfinder.ai.lead.derive import derive_ledger
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.verify_review import ReviewRecord, breached_rows
+from pathfinder.domain.reading_caveats import reading_line
 from pathfinder.services.gene_records.read import gene_record_url
 
 
-def review_record(deps: LeadDeps, messages: list[str]) -> ReviewRecord:
+def review_record(
+    deps: LeadDeps,
+    messages: list[str],
+    class_names: Mapping[str, Collection[str]],
+) -> ReviewRecord:
     """What this turn holds that the check's review is held to."""
     live = frozenset(deps.runtime.strategy_session.wdk_step_ids())
     return ReviewRecord(
@@ -25,6 +32,8 @@ def review_record(deps: LeadDeps, messages: list[str]) -> ReviewRecord:
             for fit in deps.state.turn_markers.column_fits
             if fit.wdk_step_id in live
         ],
+        class_names=class_names,
+        record_roles=deps.state.domain.record_roles,
     )
 
 
@@ -62,7 +71,15 @@ def verification_scope(deps: LeadDeps, *, check_id: str) -> VerificationScope:
             f"'{text.word}' in [{text.criterion_id or 'dropped'}] {text.stated_in}"
             for text in (spec.unexpressed() if spec is not None else [])
         ],
-        breaches=[row.note for row in breached_rows(review_record(deps, messages))],
+        breaches=[
+            row.note
+            for row in breached_rows(messages, deps.state.domain.requirements, spec)
+        ],
+        readings=[
+            f"[{c.id}] {reading_line(c, held)}"
+            for c in ([] if spec is None else spec.criteria)
+            if (held := c.held_reading) is not None
+        ],
         before=_counts_before(deps),
         check_id=check_id,
         last_card=deps.state.domain.card_of_the_strategy(),

@@ -13,6 +13,7 @@ class PurgeCounts(CamelModel):
     gene_sets: int
     experiments: int
     control_sets: int
+    audit_runs: int
     staged_eval_cases: int
 
 

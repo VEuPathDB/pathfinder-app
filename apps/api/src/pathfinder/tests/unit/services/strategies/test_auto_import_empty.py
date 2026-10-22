@@ -35,6 +35,16 @@ class _StubRepo:
     ) -> None:
         self.updates.append((conversation_id, upd))
 
+    async def name_and_link(self, conversation_id: UUID, gene_set: GeneSet, /) -> None:
+        await self.update_conversation(
+            conversation_id,
+            ConversationUpdate(
+                gene_set_id=gene_set.id,
+                gene_set_id_set=True,
+                gene_set_auto_imported=True,
+            ),
+        )
+
 
 @dataclass
 class _StubGeneSetService:

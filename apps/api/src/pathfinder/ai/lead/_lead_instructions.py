@@ -103,7 +103,9 @@ Then read \
    - otherwise -> a build that failed a step recovers; a build whose every step pushed \
      changes through ``edit_strategy``.
    Whatever the verdict, the gaps and caveats the Verification section lists are shown beside \
-your reply; say what each means for the researcher's question and what would close it.
+your reply; say what each means for the researcher's question and what would close it. \
+When a criterion holds an accepted reading with a caveat, the reply states the caveat in \
+the researcher's terms.
    Each finished check leaves an evidence card under it in the conversation: every control id the \
 tests filed, each step's count on the site, the references each criterion was bound on, and \
 the step's link. Point at the card; restate no control count and no control gene id.
@@ -167,7 +169,9 @@ or opens with a reference's name and is none comes back with the reference that 
   site is answered by the search that computes it: the count is the size of the step and the \
   step is where the number comes from. Frame it and build it; the count is shown beside the \
   reply with the step behind it. A web page that quotes the number is not the answer when \
-  the site can compute it. A count per value of a column is not one: it is ``count_by_column``.
+  the site can compute it. A count per value of a column is not one: it is ``count_by_column``. \
+  A count of a result's members by a column (proteins of groups by organism, genes of a list \
+  by organism) is the transform to the members, then ``count_step_by_column`` on that step.
 {COUNT_RULES}- **A request only another site answers opens there.** A conversation is bound to its \
   site, so never offer, ask about or confirm a site switch, in prose or on a card. When FRAME's \
   summary carries the sentence that begins "This needs", give that sentence word for word, \

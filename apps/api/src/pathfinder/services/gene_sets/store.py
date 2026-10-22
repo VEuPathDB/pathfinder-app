@@ -16,10 +16,15 @@ from pathfinder.domain.gene_homes import GeneHome
 from pathfinder.persistence.models import GeneSetRow
 from pathfinder.persistence.repositories.gene_set import GeneSetRepository
 from pathfinder.services.gene_sets.homes import site_kind
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
+from pathfinder.services.gene_sets.types import (
+    GeneSet,
+    GeneSetSource,
+    OutOfDate,
+)
 
 _PARAMS_ADAPTER: TypeAdapter[dict[str, ParamValue]] = TypeAdapter(dict[str, ParamValue])
 _HOMES_ADAPTER: TypeAdapter[dict[str, GeneHome]] = TypeAdapter(dict[str, GeneHome])
+_OUT_OF_DATE_ADAPTER: TypeAdapter[OutOfDate | None] = TypeAdapter(OutOfDate | None)
 
 
 def _row_from_gene_set(gs: GeneSet) -> GeneSetRow:
@@ -46,6 +51,9 @@ def _row_from_gene_set(gs: GeneSet) -> GeneSetRow:
         conversation_id=gs.conversation_id,
         answer_revision=gs.answer_revision,
         homes=_HOMES_ADAPTER.dump_python(gs.homes, by_alias=True, mode="json"),
+        out_of_date=_OUT_OF_DATE_ADAPTER.dump_python(
+            gs.out_of_date, by_alias=True, mode="json"
+        ),
         created_at=gs.created_at,
     )
 
@@ -78,6 +86,7 @@ def _gene_set_from_row(row: GeneSetRow) -> GeneSet:
         conversation_id=row.conversation_id,
         answer_revision=row.answer_revision,
         homes=_HOMES_ADAPTER.validate_python(row.homes or {}),
+        out_of_date=_OUT_OF_DATE_ADAPTER.validate_python(row.out_of_date),
     )
 
 
@@ -103,6 +112,18 @@ class GeneSetStore:
     async def set_vdi_id(self, gene_set_id: str, vdi_id: str | None) -> None:
         async with async_session_factory() as session:
             await GeneSetRepository(session).set_vdi_id(gene_set_id, vdi_id)
+            await session.commit()
+
+    async def set_out_of_date(
+        self, gene_set_id: str, out_of_date: OutOfDate | None
+    ) -> None:
+        async with async_session_factory() as session:
+            await GeneSetRepository(session).set_out_of_date(
+                gene_set_id,
+                _OUT_OF_DATE_ADAPTER.dump_python(
+                    out_of_date, by_alias=True, mode="json"
+                ),
+            )
             await session.commit()
 
     async def delete(self, gene_set_id: str) -> bool:

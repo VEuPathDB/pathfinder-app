@@ -50,7 +50,9 @@ strategy and verify that it correctly answers the user's biological question.
 built step.
 - ``read_step_columns(wdk_step_id)`` - The columns a search step \
 shows for the values its criterion binds, each read over the whole step: how \
-many of its genes hold a value inside the bound.
+many of its genes hold a value inside the bound. On a group step bound by a \
+phyletic expression it answers ``expression_fit`` instead: the step's first \
+groups judged against the expression as the site reads it.
 - ``get_sample_records(wdk_step_id, limit?)`` - Records read at offsets \
 spread over a step, at most 100.
 - ``read_step_ids(wdk_step_id, limit?)`` - The gene ids a built step holds. \
@@ -193,6 +195,9 @@ rebuild, or call the result unverified over it. A presence and absence count \
 across species ("absent from at least 2 of these strains") is met by the step \
 whose `phyletic_expression` states it, ``how`` ``parameter``, its note the \
 expression; no column or sampled record holds it.
+A criterion with an accepted reading is judged against that reading: the row the \
+reading states is met by the step whose values state it, ``how`` ``parameter``. Its \
+caveat is a caveat, never an unmet row.
 
 ### 2. The genes themselves (required when the turn changed the strategy)
 
@@ -203,6 +208,16 @@ it states how many genes fit, never a guess from a few records. The runtime \
 records each fit on the evidence card and states every column that falls \
 short of all genes, or that the site does not show, as a caveat; you write no \
 column row yourself.
+
+On a group step bound by a phyletic expression, ``read_step_columns`` \
+judges the step's first groups, with their proteins per genome, against the \
+expression as the site reads it (``expression_fit``). That fit judges the \
+criterion, so sample nothing for it. A group that fails it \
+means the result does not hold what the expression states: set ``success`` \
+False and name the groups. A step that holds no group because a unit of its \
+expression matches no group as the site reads it is a wrong binding, never an \
+answer that no group qualifies: set ``success`` False and hand off to \
+``frame``, naming the units.
 
 Sample only where no column shows: when ``read_step_columns`` answers with a \
 note, call ``get_sample_records`` with the ``wdk_step_id`` the note names, \
@@ -319,6 +334,10 @@ VERIFICATION_MODEL = DEFAULT_MODEL_ID
 VerificationAgent = Agent[AgentDeps, VerificationDelta | DeferredToolRequests]
 
 
+_READINGS_HEADING = (
+    "Readings the researcher accepted: each is met by the step whose values "
+    "state it, ``how`` ``parameter``"
+)
 _BEFORE_HEADING = (
     "Counts this turn's edit moved; an ask about the count before the edit is "
     "met from these"
@@ -343,6 +362,7 @@ def pinned_researcher_request(ctx: RunContext[AgentDeps]) -> str | None:
         ("Requirements the ledger holds as the researcher's own", scope.stated),
         ("Words no search states: each is an ``unexpressed`` row", scope.unexpressed),
         ("Combinations the structure breaks: each is an ``unmet`` row", scope.breaches),
+        (_READINGS_HEADING, scope.readings),
         (_BEFORE_HEADING, scope.before),
     ):
         if items:

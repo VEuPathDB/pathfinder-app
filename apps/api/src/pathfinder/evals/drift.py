@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from veupathdb.domain.parameters import PhyleticTree
+
 from pathfinder.evals.case import EvalCase
 from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.scoring import ObservedOutcome, score_case
@@ -44,9 +46,11 @@ def classify(
     case: EvalCase,
     observed: ObservedOutcome,
     build_now: str,
+    *,
+    taxonomy: PhyleticTree | None,
 ) -> DriftVerdict:
     """Every difference but the count fails; the count alone drifts only on a new build."""
-    if score_case(case, observed).differences:
+    if score_case(case, observed, taxonomy).differences:
         return "fail"
     recorded = case.expected.root_count
     if recorded is None or observed.root_count == recorded.count:

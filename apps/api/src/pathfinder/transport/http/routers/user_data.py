@@ -36,7 +36,7 @@ async def purge_user_data_endpoint(
 
     When ``deleteWdk=false`` (default): every chat is **dismissed** (soft
     delete) so WDK sync won't re-import them; the strategies remain on
-    VEuPathDB but PathFinder ignores them. Nothing is hard-deleted.
+    VEuPathDB but PathFinder ignores them. No chat is hard-deleted.
 
     When ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created
     there are deleted, and everything whose strategy is gone is hard-deleted
@@ -47,10 +47,11 @@ async def purge_user_data_endpoint(
     row in the workbench, so a later purge can finish the job.
     ``wdkStrategiesKept`` counts those strategies.
 
-    Always deletes: gene sets, control sets, the runs whose strategy is gone,
-    and the user's investigations still waiting for curation. A staged
-    investigation names a site, so a purge of one site clears only that
-    site's; ``stagedEvalCases`` counts them.
+    Always deletes: gene sets, control sets, audit runs, the runs whose
+    strategy is gone, and the user's investigations still waiting for
+    curation. An audit run and a staged investigation each name a site, so a
+    purge of one site clears only that site's; ``auditRuns`` and
+    ``stagedEvalCases`` count them.
 
     A memory names no site, so a purge of everything also deletes the user's
     memories and the tombstones that hold them out; a purge of one site
@@ -76,6 +77,7 @@ async def purge_user_data_endpoint(
             gene_sets=result.gene_sets,
             experiments=result.experiments,
             control_sets=result.control_sets,
+            audit_runs=result.audit_runs,
             staged_eval_cases=result.staged_eval_cases,
         ),
     )

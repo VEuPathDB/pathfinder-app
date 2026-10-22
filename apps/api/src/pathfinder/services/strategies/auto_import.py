@@ -4,11 +4,13 @@ Once imported (or once the user deletes the set), the chat is marked so a
 later build does not recreate it. ``gene_set_refresh`` keeps the set current.
 """
 
+from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import get_logger
+from sqlalchemy import text
 from veupathdb.errors import VEuPathDBError
 
 from pathfinder.domain.gene_homes import holds_genes
@@ -27,12 +29,13 @@ from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.strategy_genes import RecordsAreNotGenesError
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.strategies.write_lock import strategy_write_lock
 
 logger = get_logger(__name__)
 
 
 class StrategyLinkWriter(Protocol):
-    """The one write auto-import makes on a thread store."""
+    """The writes auto-import makes on a thread store."""
 
     async def update_conversation(
         self,
@@ -40,6 +43,39 @@ class StrategyLinkWriter(Protocol):
         upd: ConversationUpdate,
         /,
     ) -> None: ...
+
+    async def name_and_link(
+        self, conversation_id: UUID, gene_set: GeneSet, /
+    ) -> None: ...
+
+
+@dataclass(frozen=True)
+class _ThreadLinks:
+    repo: ConversationRepository
+    service: GeneSetService
+
+    async def update_conversation(
+        self, conversation_id: UUID, upd: ConversationUpdate, /
+    ) -> None:
+        await self.repo.update_conversation(conversation_id, upd)
+
+    async def name_and_link(self, conversation_id: UUID, gene_set: GeneSet, /) -> None:
+        async with strategy_write_lock(
+            conversation_id, async_session_factory
+        ) as session:
+            repo = ConversationRepository(session)
+            found = await repo.get_with_strategy(conversation_id)
+            named = "" if found is None else found[0].name
+            if named and named != gene_set.name:
+                await self.service.rename(gene_set, named)
+            await repo.update_conversation(
+                conversation_id,
+                ConversationUpdate(
+                    gene_set_id=gene_set.id,
+                    gene_set_id_set=True,
+                    gene_set_auto_imported=True,
+                ),
+            )
 
 
 class GeneSetImporter(Protocol):
@@ -97,10 +133,13 @@ async def auto_import_gene_set(
     """
     conversation, strategy = thread
     wdk_id = strategy.wdk_strategy_id
-    if wdk_id is None or not _is_eligible(strategy):
-        return None
-    if strategy.record_type is not None and not holds_genes(
-        site_kind(site_id), strategy.record_type
+    if (
+        wdk_id is None
+        or not _is_eligible(strategy)
+        or (
+            strategy.record_type is not None
+            and not holds_genes(site_kind(site_id), strategy.record_type)
+        )
     ):
         return None
     revision = answer_revision(parse_strategy_ast(strategy.strategy_ast))
@@ -129,17 +168,10 @@ async def auto_import_gene_set(
         )
         gs.answer_revision = revision
         await gene_set_service.save(gs)
-        await conv_repo.update_conversation(
-            conversation.id,
-            ConversationUpdate(
-                gene_set_id=gs.id,
-                gene_set_id_set=True,
-                gene_set_auto_imported=True,
-            ),
-        )
+        await conv_repo.name_and_link(conversation.id, gs)
     except (EmptyGeneSetError, RecordsAreNotGenesError, TooManyGenesError) as exc:
-        # Expected, not a failure: leave the latch off so a later build
-        # that actually returns genes still gets imported.
+        # Expected, not a failure: leave the latch off so a later write
+        # whose root returns genes still gets imported.
         logger.info(
             "Skipped gene set auto-import",
             wdk_strategy_id=wdk_id,
@@ -171,14 +203,19 @@ async def import_gene_set_for_conversation(
 ) -> GeneSet | None:
     """Create + link a gene set for a single just-built conversation.
 
-    Called inline after an auto-build commits ``wdk_strategy_id``, so a fresh
-    session sees it. Idempotent (``_is_eligible`` + ``find_strategy_import``).
-    Returns the created gene set, or ``None`` if ineligible/already imported.
-    A thread with a name gives the set that name; ``name`` stands in until the
-    thread has one.
+    Called inline after an auto-build commits ``wdk_strategy_id``, and by the
+    refresh job after a later write, so a fresh session sees it. Idempotent
+    (``_is_eligible`` + ``find_strategy_import``), and the imports of one thread
+    run one at a time. Returns the created gene set, or ``None`` if
+    ineligible/already imported. The set takes the name the thread holds when
+    the link is written; ``name`` stands in until the thread has one.
     """
     async with async_session_factory() as session:
         try:
+            await session.execute(
+                text("SELECT pg_advisory_xact_lock(hashtextextended(:k, 0))"),
+                {"k": f"gene-set-import:{conversation_id}"},
+            )
             repo = ConversationRepository(session)
             found = await repo.get_with_strategy(conversation_id)
             if found is None:
@@ -188,7 +225,7 @@ async def import_gene_set_for_conversation(
             created = await auto_import_gene_set(
                 (conversation, strategy),
                 name=conversation.name or name,
-                conv_repo=repo,
+                conv_repo=_ThreadLinks(repo, gene_set_svc),
                 gene_set_service=gene_set_svc,
                 site_id=site_id,
                 user_id=user_id,

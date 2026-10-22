@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -11,6 +12,7 @@ from pydantic_ai.exceptions import CallDeferred, ModelRetry
 from veupathdb_mcp.controls import (
     ControlTargetData,
     ControlTestResult,
+    IntersectionConfig,
     NegativeControls,
     PositiveControls,
 )
@@ -30,6 +32,7 @@ from pathfinder.services.evidence.control_sets import (
 )
 from pathfinder.services.experiment.published_names import PublishedNames
 from pathfinder.tests._support.durable_dispatch import capture_durable_dispatch
+from pathfinder.tests._support.search_record_types import serve_transcript_searches
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context, summary_of
 
 _SAVED = SavedControls(
@@ -120,6 +123,7 @@ def measured(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
         return []
 
     monkeypatch.setattr(experiment, "run_positive_negative_controls", run)
+    serve_transcript_searches(monkeypatch)
     monkeypatch.setattr(experiment, "attach_control_downloads", no_export)
     monkeypatch.setattr(experiment, "published_names", published)
     monkeypatch.setattr(experiment, "tunable_parameters_of_search", knobs)
@@ -196,6 +200,88 @@ async def test_the_search_test_measures_the_ids_the_saved_set_holds(
     assert len(reads.asked) == 1
 
 
+@pytest.mark.parametrize(
+    ("record_type", "search", "param"),
+    [
+        ("transcript", "GeneByLocusTag", "ds_gene_ids"),
+        ("sequence", "ByIdList", "source_ids"),
+        ("group", "GroupsByNameList", "group_names"),
+    ],
+)
+async def test_the_search_test_reads_the_controls_by_the_id_search_of_its_record_type(
+    reads: _Reads,
+    measured: list[dict[str, Any]],
+    monkeypatch: pytest.MonkeyPatch,
+    record_type: str,
+    search: str,
+    param: str,
+) -> None:
+    configs: list[IntersectionConfig] = []
+
+    async def run(config: IntersectionConfig, **controls: Any) -> ControlTestResult:
+        del controls
+        configs.append(config)
+        return ControlTestResult(
+            target=ControlTargetData(step_id=901, estimated_size=5),
+            positive=PositiveControls(recovered_ids=_SAVED.positive_ids, missed_ids=[]),
+        )
+
+    monkeypatch.setattr(experiment, "run_positive_negative_controls", run)
+    ctx = agent_run_context(control_sets=_ATTACHED)
+
+    await experiment.run_control_tests_on_search(
+        ctx,
+        "GroupsByPhyleticPattern",
+        {},
+        control_set_id=_SAVED.control_set_id,
+        record_type=record_type,
+    )
+
+    assert [(c.controls_search_name, c.controls_param_name) for c in configs] == [
+        (search, param)
+    ]
+
+
+async def test_a_group_search_reads_its_controls_by_group_name_with_no_record_type(
+    reads: _Reads, measured: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    configs: list[IntersectionConfig] = []
+    named: list[str] = []
+
+    async def resolve(site_id: str, search_name: str, record_type: str | None) -> str:
+        del site_id
+        assert record_type is None
+        return "group" if search_name == "GroupsByPhyleticPattern" else "transcript"
+
+    async def run(config: IntersectionConfig, **controls: Any) -> ControlTestResult:
+        del controls
+        configs.append(config)
+        return ControlTestResult(
+            target=ControlTargetData(step_id=901, estimated_size=5)
+        )
+
+    async def published(site_id: str, record_type: str, search: str) -> PublishedNames:
+        del site_id, search
+        named.append(record_type)
+        return PublishedNames(label="Phyletic pattern")
+
+    monkeypatch.setattr(experiment, "resolve_search_record_type", resolve)
+    monkeypatch.setattr(experiment, "run_positive_negative_controls", run)
+    monkeypatch.setattr(experiment, "published_names", published)
+
+    await experiment.run_control_tests_on_search(
+        agent_run_context(site_id="orthomcl", control_sets=_ATTACHED),
+        "GroupsByPhyleticPattern",
+        {},
+        control_set_id=_SAVED.control_set_id,
+    )
+
+    assert [
+        (c.record_type, c.controls_search_name, c.controls_param_name) for c in configs
+    ] == [("group", "GroupsByNameList", "group_names")]
+    assert named == ["group"]
+
+
 async def test_the_search_test_refuses_an_attached_id_of_no_saved_set(
     reads: _Reads, measured: list[dict[str, Any]]
 ) -> None:
@@ -245,3 +331,26 @@ def test_two_sets_tested_on_one_step_stay_two_tests_on_the_card() -> None:
         (first, ControlSetEvidence(returned=["PF3D7_1031000"], not_returned=[])),
         (second, ControlSetEvidence(returned=["PF3D7_0102200"], not_returned=[])),
     ]
+
+
+@pytest.mark.parametrize(
+    ("tool", "writes"),
+    [
+        (
+            experiment.run_control_tests_on_step,
+            "a copy of the step, a controls step and a temporary strategy",
+        ),
+        (
+            experiment.run_control_tests_on_search,
+            "a target step, a controls step, a combined step and a temporary strategy",
+        ),
+    ],
+)
+def test_each_test_names_what_it_writes_and_what_stays(tool: Any, writes: str) -> None:
+    doc = " ".join((inspect.getdoc(tool) or "").split())
+
+    assert f"writes {writes} into the researcher's VEuPathDB account" in doc
+    assert "the dataset stays, because WDK deletes no dataset" in doc
+    assert (
+        "tested with protein ids, and a gene id there is filed as not returned" in doc
+    )

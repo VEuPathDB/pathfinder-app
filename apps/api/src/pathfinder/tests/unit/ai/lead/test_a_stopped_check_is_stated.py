@@ -45,20 +45,32 @@ def _built_and_stopped() -> LeadDeps:
     return deps
 
 
+def _with_its_reason(prose: str) -> LeadResponse:
+    return reply(prose, changed=True).model_copy(
+        update={"unverified_reason": "the verification pass stopped"}
+    )
+
+
 def _mismatches(deps: LeadDeps, report: LeadResponse) -> list[tuple[str, str]]:
     record = turn_record(replace(run_context_for(deps), retries={}))
     return [(m.kind, m.sentence) for m in reconcile(report, record)]
 
 
 def test_a_built_turn_whose_check_stopped_is_refused_until_it_says_so() -> None:
-    found = _mismatches(_built_and_stopped(), reply(OMITS_THE_STOP, changed=True))
+    found = _mismatches(_built_and_stopped(), _with_its_reason(OMITS_THE_STOP))
 
     assert [kind for kind, _ in found] == ["stopped_check"]
     assert A_CAP_STOP.render() in found[0][1]
 
 
-def test_a_reply_that_states_the_stop_in_any_case_or_hyphenation_passes() -> None:
+def test_a_built_turn_whose_check_stopped_is_still_unverified() -> None:
     found = _mismatches(_built_and_stopped(), reply(STATES_THE_STOP, changed=True))
+
+    assert [kind for kind, _ in found] == ["unverified_build"]
+
+
+def test_a_reply_that_states_the_stop_in_any_case_or_hyphenation_passes() -> None:
+    found = _mismatches(_built_and_stopped(), _with_its_reason(STATES_THE_STOP))
 
     assert found == []
 

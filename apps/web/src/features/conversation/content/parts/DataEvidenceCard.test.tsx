@@ -314,6 +314,24 @@ describe("DataEvidenceCard", () => {
     ]);
   });
 
+  it("lists the evidence the check withheld under the review", () => {
+    const sentence =
+      "The review lists sampled gene `PF3D7_0102200`, and no read_gene_record " +
+      "call of this turn read its record.";
+    render(
+      <DataEvidenceCard
+        data={{
+          ...EVIDENCE_CARD,
+          review: { withheld: [{ kind: "sampled_gene", sentence }] },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getAllByTestId("evidence-withheld-item").map((row) => row.textContent),
+    ).toEqual([sentence]);
+  });
+
   it("states a threshold the step holds on neither side with both counts", () => {
     const sentence =
       "840 of 840 genes fit # TM Domains (99 or fewer); 242 to 294 of 840 genes " +

@@ -27,10 +27,11 @@ Measured on plasmodb: `UAT G1`, 116, source `strategy`; 17 s, $0.012. The reply 
 | 1 | Composer | `/export`, `Latest gene set on this site (CSV)` | Toast `Downloading <file>`; the CSV holds 116 rows of `PF3D7_` ids |
 | 2 | Composer | `/export`, `Latest gene set on this site (TXT)` | The same ids, one per line |
 | 3 | Evidence card | `Run GO, pathway or word enrichment in <Site>` | The site's strategy page opens (enrichment runs on the site) |
-| 4 | Right rail `Strategy` | The site link (`PlasmoDB`) | The site shows the strategy: 3 steps, 116 genes |
-| 5 | Canvas | The topbar's `Open in PlasmoDB`, and the step editor's `Open in PlasmoDB` | The same strategy |
+| 4 | Right rail `Strategy` | `Open strategy on PlasmoDB` | The site shows the strategy: 3 steps, 116 genes |
+| 5 | Canvas | The topbar's `Open strategy on PlasmoDB`, and the step editor's `Open in PlasmoDB` | The same strategy |
+| 6 | Figure `Strategy` | `Open on PlasmoDB` | The site opens the strategy at its root step, with that step's record list |
 
-Every link to the site reads `Open in <Site>`, except the Strategy panel's, which reads the site name alone (`PlasmoDB`).
+The Strategy panel and the canvas topbar read `Open strategy on <Site>`, the `Strategy` figure of a reply reads `Open on <Site>`, and every other `Open` link to the site reads `Open in <Site>`.
 
 ## G3 - Publish to the VEuPathDB workspace - once on plasmodb
 

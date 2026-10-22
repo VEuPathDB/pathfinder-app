@@ -48,6 +48,7 @@ interface DownloadResult {
   kind: "download";
   url: string;
   filename: string;
+  notice?: string;
 }
 
 interface PrefillResult {

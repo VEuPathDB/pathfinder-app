@@ -161,7 +161,7 @@ def test_a_hydrated_criterion_states_the_researchers_words() -> None:
     ast = graph.to_strategy_ast()
     assert isinstance(ast, StrategyAst)
 
-    texts = {c.id: c.text for c in spec_from_ast(ast, goal="g").criteria}
+    texts = {c.id: c.text for c in spec_from_ast(ast, goal="g", listed={}).criteria}
 
     assert (texts["step_text"], texts["step_go"]) == (
         "protease genes",

@@ -61,7 +61,6 @@ def _framed() -> OperationalSpec:
     """
     return OperationalSpec(
         goal="genes upregulated in gametocytes",
-        record_type="transcript",
         criteria=[
             Criterion(
                 id=_EXPRESSION,

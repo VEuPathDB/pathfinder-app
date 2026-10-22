@@ -23,13 +23,16 @@ from veupathdb_mcp.embeddings import prune_orphan_vectors
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.auth_context import attach_application
+from pathfinder.jobs.impls.audit_run_impl import run_audit_job
 from pathfinder.jobs.impls.chat_turn_impl import run_chat_turn
 from pathfinder.jobs.impls.gene_set_refresh_impl import refresh_strategy_gene_set
+from pathfinder.services.audit.job import AUDIT_JOB, AUDIT_QUEUE, resume_stranded_runs
 from pathfinder.services.eval_data.extraction import extract_eval_candidates
 from pathfinder.services.strategies.gene_set_refresh import GENE_SET_REFRESH_TASK
 
 # A vector nothing names is kept for a week: a rebuilt index reuses it.
 ORPHAN_VECTOR_GRACE = timedelta(days=7)
+RESUME_STRANDED_AUDITS_CRON = "*/5 * * * *"
 
 
 def ensure_registered() -> None:
@@ -53,6 +56,11 @@ async def run_chat_turn_job(payload: dict[str, Any]) -> None:
     await run_chat_turn(payload)
 
 
+@procrastinate_app.task(queue=AUDIT_QUEUE, name=AUDIT_JOB)
+async def run_audit_job_task(payload: dict[str, JsonValue]) -> None:
+    await run_audit_job(payload)
+
+
 # The deferring write names the thread as the lock, so the job never runs
 # beside one of the thread's turns.
 @procrastinate_app.task(queue=DEFAULT_QUEUE, name=GENE_SET_REFRESH_TASK)
@@ -72,6 +80,15 @@ async def release_stalled_jobs_job(timestamp: int) -> None:
     del timestamp
     async with attach_application():
         await release_stalled_jobs()
+
+
+@procrastinate_app.periodic(cron=RESUME_STRANDED_AUDITS_CRON)
+@procrastinate_app.task(
+    queue=MAINTENANCE_QUEUE, name="maintenance:resume_stranded_audits"
+)
+async def resume_stranded_audits_job(timestamp: int) -> None:
+    del timestamp
+    await resume_stranded_runs()
 
 
 @procrastinate_app.periodic(cron="41 4 * * *")

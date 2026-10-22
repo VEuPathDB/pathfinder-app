@@ -314,7 +314,7 @@ def graph_of(root: StrategyStepNode) -> StrategyGraph:
 
 def spec_of(root: StrategyStepNode) -> OperationalSpec:
     ast = StrategyAst(record_type="transcript", root=root)
-    return spec_from_ast(ast, goal="find proteases")
+    return spec_from_ast(ast, goal="find proteases", listed={})
 
 
 def plan(

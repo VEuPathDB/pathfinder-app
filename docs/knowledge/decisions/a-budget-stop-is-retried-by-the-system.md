@@ -17,7 +17,7 @@ in the turn stated the cause, so the reply invented one and told the
 researcher to wait for VEuPathDB.
 
 **The stop is typed data.** `PhaseStop` names the pass, the reason
-(`budget`, `repeated_call`, `tool_retries` or `provider`), the calls it spent, and the criteria it bound
+(`budget`, `repeated_call`, `tool_retries`, `output_retries` or `provider`), the calls it spent, and the criteria it bound
 against the count it was sized for. `stream_sub_agent` records it on
 `LeadDeps.last_phase_stop` on both stop paths and clears it when the next
 dispatch starts, so a later clean pass never inherits an earlier stop. The

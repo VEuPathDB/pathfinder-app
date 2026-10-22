@@ -13,7 +13,6 @@ from veupathdb_mcp.catalog import (
     ParameterInfo,
     format_param_info_typed,
     read_search_definition,
-    resolve_search_record_type,
 )
 
 from pathfinder.domain.shown_requirements import TextQuery
@@ -40,10 +39,7 @@ async def _definition(
     site_id: str, record_type: str, search_name: str
 ) -> WDKSearch | None:
     try:
-        listed_under = await resolve_search_record_type(
-            site_id, search_name, record_type
-        )
-        return await read_search_definition(site_id, listed_under, search_name)
+        return await read_search_definition(site_id, record_type, search_name)
     except (VEuPathDBError, OSError) as exc:
         logger.warning(
             "search sheet unreadable", search_name=search_name, error=str(exc)
@@ -55,15 +51,15 @@ async def search_definitions(
     site_id: str, spec: OperationalSpec | None
 ) -> dict[str, WDKSearch]:
     """The sheet of each search a bound criterion of the spec runs, read under the
-    record type the catalog lists it under. A search the catalog cannot read has
-    no sheet."""
+    record type the catalog lists it under. A search the catalog does not list,
+    or cannot read, has no sheet."""
     if spec is None:
         return {}
     searches = sorted({c.search_name for c in spec.criteria if c.resolved_params})
     listed = await search_record_types(site_id, searches)
     read = {
-        name: await _definition(site_id, listed.get(name, spec.record_type), name)
-        for name in searches
+        name: await _definition(site_id, record_type, name)
+        for name, record_type in listed.items()
     }
     return {name: sheet for name, sheet in read.items() if sheet is not None}
 

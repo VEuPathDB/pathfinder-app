@@ -16,7 +16,7 @@ from veupathdb.wdk import WDKStepTree
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import edit_dispatch
-from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.deltas import EditDelta, FrameResult, PassGap
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_facts import turn_facts
@@ -97,6 +97,16 @@ def _built() -> tuple[OperationalSpec, StrategySession]:
 async def _edited(monkeypatch: pytest.MonkeyPatch, *, arrived: int = 0) -> LeadDeps:
     """Run one edit whose commit is a capture, on a message that found the
     root at ``arrived`` genes."""
+    deps, _ = await _edit(monkeypatch, arrived=arrived)
+    return deps
+
+
+async def _edit(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    arrived: int = 0,
+    gaps: list[PassGap] | None = None,
+) -> tuple[LeadDeps, object]:
     before, session = _built()
     after = before.model_copy(deep=True)
     after.criteria.append(_option())
@@ -111,7 +121,9 @@ async def _edited(monkeypatch: pytest.MonkeyPatch, *, arrived: int = 0) -> LeadD
 
     async def _fake_frame(**_kwargs: Any) -> FrameResult:
         state.domain.operational_spec = after
-        return FrameResult(disposition="spec_ready", summary="reframed")
+        return FrameResult(
+            disposition="spec_ready", summary="reframed", gaps=list(gaps or [])
+        )
 
     async def _fake_commit(**_kwargs: Any) -> CommitResult:
         return CommitResult(description="edited")
@@ -120,8 +132,8 @@ async def _edited(monkeypatch: pytest.MonkeyPatch, *, arrived: int = 0) -> LeadD
     monkeypatch.setattr(edit_dispatch, "apply_operations_and_commit", _fake_commit)
     monkeypatch.setattr(edit_dispatch, "get_stream_writer", lambda: lambda _p: None)
 
-    await run_edit(deps=deps, parent_tool_call_id="t1", reason="new dataset")
-    return deps
+    delta = await run_edit(deps=deps, parent_tool_call_id="t1", reason="new dataset")
+    return deps, delta
 
 
 async def _edited_counts(monkeypatch: pytest.MonkeyPatch) -> BuiltCounts:
@@ -187,3 +199,14 @@ async def test_an_edit_reads_the_assay_of_each_search_it_leaves(
     deps = await _edited(monkeypatch)
 
     assert deps.state.domain.data_marks.searches == {_SEARCH: "RNASeq"}
+
+
+async def test_an_applied_edit_carries_the_gaps_the_pass_degraded_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gap = PassGap(kind="report_dropped", sentence="The pass reported ['R9'].")
+
+    _, delta = await _edit(monkeypatch, gaps=[gap])
+
+    assert isinstance(delta, EditDelta)
+    assert (delta.disposition, delta.gaps) == ("applied", [gap])

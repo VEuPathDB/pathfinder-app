@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import replace
 
 from pathfinder.services.gene_sets.store import GeneSetStore
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, OutOfDate
 
 
 class InMemoryGeneSetStore(GeneSetStore):
@@ -25,6 +25,12 @@ class InMemoryGeneSetStore(GeneSetStore):
 
     async def set_vdi_id(self, gene_set_id: str, vdi_id: str | None) -> None:
         self.rows[gene_set_id].vdi_id = vdi_id
+
+    async def set_out_of_date(
+        self, gene_set_id: str, out_of_date: OutOfDate | None
+    ) -> None:
+        if gene_set_id in self.rows:
+            self.rows[gene_set_id].out_of_date = out_of_date
 
 
 def keep_saved(kept: list[GeneSet]) -> Callable[[GeneSet], Awaitable[None]]:

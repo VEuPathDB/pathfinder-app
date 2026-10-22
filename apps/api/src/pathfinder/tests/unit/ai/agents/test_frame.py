@@ -221,3 +221,24 @@ def test_frame_instructions_keep_the_organism_a_value() -> None:
         "The organism the request names is a value of each search's organism "
         "parameter, never a criterion of its own."
     ) in _normalized(_FRAME_INSTRUCTIONS)
+
+
+def test_frame_instructions_write_absence_from_some_genomes_as_the_site_reads_it() -> (
+    None
+):
+    text = _normalized(_FRAME_INSTRUCTIONS)
+
+    assert "<=(N-k)T`." not in text
+    assert (
+        "absence from at least k of its N genomes, for k below N, is "
+        "`X AND L<=(N-k)T OR X AND L=0T`, with X the other units of that AND term "
+        "(`L<=(N-k)T OR L=0T` when there are none); absence from all N is "
+        "`X AND L=0T`."
+    ) in text
+    assert "absence from a list L is `L=0T`" in text
+    assert (
+        "The site drops parentheses and reads AND before OR, so write an OR of AND "
+        "terms" in text
+    )
+    assert "A genus with no clade code is the list of its genome codes." in text
+    assert "Single copy over a list is only `L=NT AND L=N`" in text

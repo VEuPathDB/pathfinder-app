@@ -30,7 +30,13 @@ set of records that are not genes, such as ortholog groups, has no homes.
 **A step is read once, within the cap.** `homes.py::read_genes_of` reads the
 step's `estimatedSize` (a count report when the step has none). A step above
 `STEP_GENES_CAP` (10,000) is counted and not read: a save answers with the count,
-and a build saves no set and leaves the import latch off. Otherwise one standard
+and a build saves no set and leaves the import latch off. The facts part of a turn
+that wrote the strategy is derived from the turn's final state: when the root holds
+genes above the cap and no set the turn saved was read from the root step, it states
+that the result was not saved as a gene set, with the count, the cap and the root's
+record noun (`ai/lead/unsaved_set.py::result_not_saved`, `TurnFacts.unsaved`). The
+build's delta tells the Lead the same (`ExecuteDelta.unsaved_gene_set`). Otherwise one
+standard
 report with `numRecords` equal to the cap carries the ids and their home columns.
 The stored size can be older than the answer, so the answer's own count decides:
 above the cap the set is refused, and a count larger than the rows sent is an

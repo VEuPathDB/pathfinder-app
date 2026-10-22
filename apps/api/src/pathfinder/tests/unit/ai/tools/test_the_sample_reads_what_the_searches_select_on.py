@@ -14,9 +14,8 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 from veupathdb.wdk import WDKRecordType, WDKSearch
-from veupathdb_mcp.wdk import SampleRecordsResult
 
-from pathfinder.ai.tools.standalone import _sample_attributes, results
+from pathfinder.ai.tools.standalone import _sample_attributes, _sample_page, results
 from pathfinder.ai.tools.standalone._sample_attributes import selecting_attributes
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 
@@ -148,11 +147,11 @@ async def test_the_root_sample_asks_for_the_leaves_attributes(
         attributes: list[str] | None,
         record_type: str,
         seed: str,
-    ) -> results.SampledRecords:
+    ) -> _sample_page.SampledRecords:
         del site_id, limit, record_type, seed
         asked.append(attributes)
-        return results.SampledRecords(
-            SampleRecordsResult(step_id=step_id, total_count=0), []
+        return _sample_page.SampledRecords(
+            _sample_page.StepSample(step_id=step_id, total_count=0), []
         )
 
     monkeypatch.setattr(_sample_attributes, "get_raw_searches", searches)
@@ -196,11 +195,11 @@ async def test_a_sample_the_site_does_not_answer_in_time_fails_the_call(
         attributes: list[str] | None,
         record_type: str,
         seed: str,
-    ) -> results.SampledRecords:
+    ) -> _sample_page.SampledRecords:
         del site_id, limit, attributes, record_type, seed
         await asyncio.sleep(60)
-        return results.SampledRecords(
-            SampleRecordsResult(step_id=step_id, total_count=0), []
+        return _sample_page.SampledRecords(
+            _sample_page.StepSample(step_id=step_id, total_count=0), []
         )
 
     monkeypatch.setattr(results, "sample_attributes", selected)

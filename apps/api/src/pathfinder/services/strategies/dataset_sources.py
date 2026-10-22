@@ -1,4 +1,5 @@
-"""Turn the dataset source an edit carries into the dataset id the site reads."""
+"""Read a dataset value as a dataset id, a dataset source or typed ids, and save
+a source on the site as the dataset id the site reads."""
 
 import re
 
@@ -6,7 +7,11 @@ import pydantic
 from veupathdb.domain.parameters import InputDatasetValue, ParamValue
 from veupathdb.domain.strategy import StrategyStepNode
 from veupathdb.errors import ValidationError
-from veupathdb.wdk import get_strategy_api
+from veupathdb.wdk import (
+    WDKDatasetConfigIdList,
+    WDKDatasetIdListContent,
+    get_strategy_api,
+)
 from veupathdb.wdk.wdk_models import WDKDatasetConfig
 
 from pathfinder.domain.strategy.operations import (
@@ -20,17 +25,36 @@ from pathfinder.domain.strategy.operations import (
 )
 
 _DATASET_ID = re.compile(r"^[1-9][0-9]*$")
+_ID_SEPARATORS = re.compile(r"[;,\s]+")
 _SOURCE = pydantic.TypeAdapter[WDKDatasetConfig](WDKDatasetConfig)
+
+
+def id_list(ids: list[str]) -> WDKDatasetConfigIdList:
+    return WDKDatasetConfigIdList(
+        source_type="idList", source_content=WDKDatasetIdListContent(ids=ids)
+    )
+
+
+def typed_ids(raw: str) -> list[str]:
+    return [typed for typed in _ID_SEPARATORS.split(raw) if typed]
+
+
+def names_a_dataset(raw: str) -> bool:
+    return bool(_DATASET_ID.match(raw))
 
 
 def dataset_source(name: str, value: ParamValue) -> WDKDatasetConfig | None:
     """The source a dataset value names, or None when it already names a dataset.
 
     A dataset parameter holds a positive integer on the site. Any other value
-    must be the JSON of a dataset source, and a value that is neither fails.
+    is the JSON of a dataset source, or ids typed as the site's ID list box
+    reads them, and a value that is neither fails.
     """
     match value:
-        case InputDatasetValue(dataset_id=raw) if not _DATASET_ID.match(raw):
+        case InputDatasetValue(dataset_id=raw) if not names_a_dataset(raw):
+            typed = typed_ids(raw)
+            if typed and not raw.lstrip().startswith("{"):
+                return id_list(typed)
             try:
                 return _SOURCE.validate_json(raw)
             except pydantic.ValidationError as exc:
@@ -45,6 +69,11 @@ def dataset_source(name: str, value: ParamValue) -> WDKDatasetConfig | None:
             return None
 
 
+async def saved_dataset(site_id: str, source: WDKDatasetConfig) -> InputDatasetValue:
+    dataset_id = await get_strategy_api(site_id).create_dataset(source)
+    return InputDatasetValue(dataset_id=str(dataset_id))
+
+
 async def _saved(site_id: str, params: dict[str, ParamValue]) -> dict[str, ParamValue]:
     saved: dict[str, ParamValue] = {}
     for name, value in params.items():
@@ -52,8 +81,7 @@ async def _saved(site_id: str, params: dict[str, ParamValue]) -> dict[str, Param
         if source is None:
             saved[name] = value
             continue
-        dataset_id = await get_strategy_api(site_id).create_dataset(source)
-        saved[name] = InputDatasetValue(dataset_id=str(dataset_id))
+        saved[name] = await saved_dataset(site_id, source)
     return saved
 
 

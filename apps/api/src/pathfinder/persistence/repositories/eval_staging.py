@@ -9,15 +9,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import cast
 from uuid import UUID, uuid4
 
 from assistant_core.platform.context import calling_application
-from sqlalchemy import CursorResult, delete, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.evals.extract import EvalExtract
 from pathfinder.persistence.models import PROMOTED, STAGED, EvalStagedCase
+from pathfinder.persistence.rows import rows_changed
 
 type SessionFactory = Callable[[], AsyncSession]
 
@@ -125,11 +125,7 @@ class EvalStagingRepository:
                 ),
             )
             await session.commit()
-        return _deleted(result)
-
-
-def _deleted(result: object) -> int:
-    return cast("CursorResult[object]", result).rowcount or 0
+        return rows_changed(result)
 
 
 async def delete_staged_for_user(
@@ -151,7 +147,7 @@ async def delete_staged_for_user(
         stmt = stmt.where(EvalStagedCase.application_id == application_id)
     if site_id is not None:
         stmt = stmt.where(EvalStagedCase.site_id == site_id)
-    return _deleted(await session.execute(stmt))
+    return rows_changed(await session.execute(stmt))
 
 
 __all__ = ["EvalStagingRepository", "delete_staged_for_user"]

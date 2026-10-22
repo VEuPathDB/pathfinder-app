@@ -8,20 +8,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from pathfinder.ai.graph.turn_records import AnsweredQuestions, TurnMarkers
 from pathfinder.ai.lead.intent import UserIntent
+from pathfinder.domain.strategy.card_answers import spec_with_reading
 from pathfinder.domain.strategy.constraints import (
     STRATEGY_SCOPES,
     Constraint,
+    ConstraintKind,
+    ConstraintSource,
     states_the_content,
 )
 from pathfinder.domain.strategy.message_reading import (
     adds_an_alternative,
     message_states_constraint,
 )
-from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.questions import (
     OpenQuestion,
     standing_recommendations,
 )
+from pathfinder.domain.strategy.readings import AcceptedReading
 from pathfinder.domain.strategy.requirement_lifecycle import (
     RetiredRequirement,
     reopened,
@@ -31,6 +35,7 @@ from pathfinder.domain.strategy.requirement_lifecycle import (
     with_recorded_sources,
     withdrawn_by,
 )
+from pathfinder.domain.strategy.requirement_reports import RecordRole
 from pathfinder.domain.strategy.stated_requirements import (
     RecordedRequirements,
     attributed,
@@ -51,6 +56,7 @@ class ThreadRequirements(BaseModel):
     # The requirements a message withdrew or replaced, each with its
     # lifecycle. A check reports none as a gap.
     retired_requirements: list[RetiredRequirement] = Field(default_factory=list)
+    record_roles: dict[str, RecordRole] = Field(default_factory=dict)
     # Every question an answer settled. A question is never a requirement, so
     # a check that restates one reports no gap.
     answered_questions: list[OpenQuestion] = Field(default_factory=list)
@@ -191,6 +197,68 @@ class ThreadRequirements(BaseModel):
             stand_in=stand_in,
         )
 
+    def accept_reading(
+        self, spec: OperationalSpec, criterion_id: str, accepted: AcceptedReading
+    ) -> OperationalSpec:
+        question = self._offering(criterion_id, accepted.reading)
+        if question is None:
+            return spec_with_reading(spec, criterion_id, accepted)
+        dimension = question.dimension
+        stand_in = Constraint(
+            kind=ConstraintKind.OTHER if dimension in STRATEGY_SCOPES else dimension,
+            requested_value=accepted.reading,
+            label=question.question,
+            source=ConstraintSource.USER_EXPLICIT,
+            hard=True,
+        )
+        self.record_requirements([stand_in])
+        self.withdraw(
+            (
+                c
+                for c in self.requirements
+                if c.key in accepted.replaces
+                and c.key != stand_in.key
+                and c.kind not in STRATEGY_SCOPES
+            ),
+            stand_in=stand_in,
+        )
+        held = accepted.model_copy(update={"stand_in": stand_in.key})
+        return spec_with_reading(spec, criterion_id, held)
+
+    def follow_readings(
+        self, before: OperationalSpec | None, after: OperationalSpec | None
+    ) -> OperationalSpec | None:
+        was, now = _held_readings(before), _held_readings(after)
+        ended = {
+            r.stand_in
+            for cid, r in was.items()
+            if r.stand_in and not r.same_reading(now.get(cid))
+        }
+        self.withdraw(c for c in self.requirements if c.key in ended)
+        for cid, held in now.items():
+            if after is not None and not held.same_reading(was.get(cid)):
+                after = self.accept_reading(after, cid, held)
+        return after
+
+    def _offering(self, criterion_id: str, reading: str) -> OpenQuestion | None:
+        answered = self.turn_markers.answered
+        asked = [
+            *self.open_questions,
+            *([] if answered is None else answered.questions),
+            *reversed(self.answered_questions),
+        ]
+        return next(
+            (
+                q
+                for q in asked
+                for o in q.options
+                if (offered := o.offered_reading()) is not None
+                and offered.criterion_id == criterion_id
+                and offered.reading == reading
+            ),
+            None,
+        )
+
     def retire_what_a_delete_leaves_unanswered(
         self, deleted: Sequence[Criterion], remaining: Sequence[Criterion]
     ) -> None:
@@ -198,19 +266,12 @@ class ThreadRequirements(BaseModel):
         no remaining one states, and each combination a side of which names a
         deleted criterion. An organism or a record type scopes the whole
         strategy, so a delete withdraws neither."""
-
-        def stated(requirement: Constraint, criteria: Sequence[Criterion]) -> bool:
-            return any(
-                states_the_content(c.text, requirement.requested_value)
-                for c in criteria
-            )
-
         self.withdraw(
             c
             for c in self.requirements
             if c.kind not in STRATEGY_SCOPES
-            and stated(c, deleted)
-            and not stated(c, remaining)
+            and _stated(c, deleted)
+            and not _stated(c, remaining)
         )
         self.requirements, self.retired_requirements = retire_dropped_sides(
             self.requirements,
@@ -234,6 +295,20 @@ class ThreadRequirements(BaseModel):
 
     def _turn_id(self) -> str:
         return str(self.turn_markers.message_id or "")
+
+
+def _held_readings(spec: OperationalSpec | None) -> dict[str, AcceptedReading]:
+    return {
+        c.id: held
+        for c in ([] if spec is None else spec.criteria)
+        if (held := c.held_reading) is not None
+    }
+
+
+def _stated(requirement: Constraint, criteria: Sequence[Criterion]) -> bool:
+    return any(
+        states_the_content(c.text, requirement.requested_value) for c in criteria
+    )
 
 
 def _only_asked(constraint: Constraint, message: str, asks: Sequence[str]) -> bool:

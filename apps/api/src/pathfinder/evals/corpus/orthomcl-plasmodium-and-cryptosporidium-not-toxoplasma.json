@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-plasmodium-and-cryptosporidium-not-toxoplasma",
+  "turns": [
+    "Which ortholog groups contain sequences from Plasmodium and Cryptosporidium but not from Toxoplasma?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "Contain sequences from a genus is at least one of its genomes, so no question about all genomes is asked: the Plasmodium list and the Cryptosporidium list each with a taxon count of at least 1, and the Toxoplasma list with 0. The answer opens the result on the site in one step.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 105,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "padl+pber+pbil+pblg+pbbi+pcha+pccb+pcoa+pcyn+pcym+pfal+pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg+pfra+pgab+pgas+pgal+pinu+pkah+pkno+pknp+pmal+pova+powp+ppra+prei+preg+prel+pvbd+pvce+pvld+pvcr+pvpc+pvvc+pvin+pvlk+pvip+pvpv+pvpw+pviv+pyoe+pyxn+pyyx+pyoy>=1T AND cand+cbov+choi+chot+chom+chod+cmel+cmtu+cmur+cpia+cpib+cpar+crya+cser+cspi+cscp+ctyz+cubi>=1T AND tgar+tgca+tgco+tgfo+tggd+tggt+tgma+tgon+tgop+tgee+tgru+tgta+tgtg+tgva+tgve=0T"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/an-answer-opens-its-result-on-the-site.md",
+    "curatorNote": "The third suggested OrthoMCL prompt; the site link on the answer is checked as grading.md says."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

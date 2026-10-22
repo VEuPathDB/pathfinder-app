@@ -6,7 +6,7 @@ import pytest
 from pydantic import SecretStr
 from pydantic_ai.models import Model
 
-from pathfinder.ai.capabilities.security import _judge_model
+from pathfinder.ai.capabilities.security import _judge_model, judge_model_id
 from pathfinder.domain.provider_keys import ProviderKeyring
 from pathfinder.platform.config import get_settings
 from pathfinder.platform.errors import DeploymentKeyRefusedError
@@ -33,7 +33,7 @@ async def test_the_judge_sends_the_deployment_key_and_no_provider_body() -> None
     keyring = ProviderKeyring(active={"openai": SecretStr(_USER_KEY)})
 
     with attach_keyring(keyring, build=wire.build):
-        judge = _judge_model()
+        judge = _judge_model(judge_model_id())
     assert isinstance(judge, Model)
     with pytest.raises(DeploymentKeyRefusedError) as caught:
         await one_generation(judge)

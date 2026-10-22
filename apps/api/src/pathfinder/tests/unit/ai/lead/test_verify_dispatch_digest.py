@@ -209,11 +209,13 @@ def _combined_spec(operator: CombineOp) -> OperationalSpec:
                 id="c_ms",
                 text="trophozoite mass spectrometry evidence",
                 search_name="GenesByMassSpec",
+                record_class="transcript",
             ),
             Criterion(
                 id="c_derisi",
                 text="DeRisi timecourse expression",
                 search_name="GenesByRNASeqEvidence",
+                record_class="transcript",
             ),
         ],
         structure=SpecStructure(
@@ -322,12 +324,12 @@ def _signal_peptide_deps() -> LeadDeps:
     )
     state.domain.operational_spec = OperationalSpec(
         goal="signal peptide genes",
-        record_type="transcript",
         criteria=[
             Criterion(
                 id="s1",
                 text="proteins have a predicted signal peptide",
                 search_name="GenesWithSignalPeptide",
+                record_class="transcript",
             )
         ],
     )

@@ -32,10 +32,11 @@ the problem and `what_to_do`, the sentence that says what the Lead does about it
 
 **A correction reaches the pass that made the mistake.** FRAME's agent has two
 output validators (`ai/agents/frame_result_checks.py`). A report whose number the
-list lacks is sent back once with the numbers the list holds; after that the
-dispatch drops it. A pass that stops on the user with a question that binds
-nothing (`ai/lead/frame_questions.py::questions_that_bind_to_nothing`) is sent
-back once with the slots its draft holds. FRAME keeps its history, its draft and
+list lacks is sent back with the numbers the list holds, up to
+[the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md); after that the report is dropped and the summary says so. A pass that
+stops on the user with a question that binds nothing
+(`ai/lead/frame_questions.py::questions_that_bind_to_nothing`) is sent back
+with the slots its draft holds, up to the same bound. FRAME keeps its history, its draft and
 its tools, so the correction costs one request and the pass records the
 criterion or reports the requirement. When a pass still ends on such a question,
 the dispatch returns each criterion it found to the values it was found with, so

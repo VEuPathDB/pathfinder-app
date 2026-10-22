@@ -51,7 +51,7 @@ async def _attach_the_controls(
                     f"{len(negatives)} negative"
                 ),
                 site_id=runtime.site_id,
-                record_type=offer.spec.record_type,
+                record_type=offer.record_type,
                 positive_ids=positives,
                 negative_ids=negatives,
                 source="separation",

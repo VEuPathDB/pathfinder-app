@@ -23,7 +23,10 @@ from pathfinder.domain.strategy.operational_spec import (
     structure_criteria,
 )
 from pathfinder.domain.strategy.session import StrategyGraph
-from pathfinder.domain.strategy.spec_hydration import spec_from_ast
+from pathfinder.domain.strategy.spec_hydration import (
+    criteria_listed_under,
+    spec_from_ast,
+)
 from pathfinder.tests._support.eda_step_doubles import (
     bound,
     read_detail,
@@ -66,7 +69,7 @@ def _reference(graph: StrategyGraph) -> OperationalSpec:
     """The spec the build would state for the strategy the graph now holds."""
     ast = graph.to_strategy_ast()
     assert ast is not None
-    return spec_from_ast(ast, goal=_GOAL)
+    return spec_from_ast(ast, goal=_GOAL, listed={})
 
 
 async def test_an_export_into_a_free_slot_takes_that_slot_in_the_structure(
@@ -150,7 +153,9 @@ async def test_an_export_beside_the_strategy_is_stated_the_way_a_build_states_it
 
     graph = _graph(ctx)
     assert len(graph.roots) == 2
-    assert ctx.deps.state.domain.operational_spec == _reference(graph)
+    assert ctx.deps.state.domain.operational_spec == criteria_listed_under(
+        _reference(graph), {"GenesByTaxon": "transcript"}
+    )
 
 
 async def test_a_structure_the_graph_does_not_hold_yet_is_left_alone(

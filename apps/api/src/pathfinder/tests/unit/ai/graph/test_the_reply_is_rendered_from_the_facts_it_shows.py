@@ -38,7 +38,7 @@ from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.reply_references import render_reply
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
-from pathfinder.domain.turn_facts import StepFact, TurnFacts
+from pathfinder.domain.turn_facts import UNCHECKED_PROSE, StepFact, TurnFacts
 from pathfinder.services.gene_records.read import gene_record_url
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests._support.database import no_database
@@ -225,3 +225,23 @@ def test_a_stop_reply_the_runtime_writes_passes_through_the_renderer_unchanged()
         for p in payloads
         if (c := _extract_chunk(p)) is not None and c["type"] == "text-delta"
     ] == [loop_stop_prose(None)]
+
+
+def test_a_reply_let_through_past_the_bound_shows_plain_words_and_a_note() -> None:
+    payloads: list[object] = []
+    deps = lead_deps(pipeline_state("microsporidiadb"), strategy_session=_session())
+    deps.state.turn_markers.unchecked_reply = True
+    capture = _LeadRunCapture()
+    capture.response = LeadResponse(
+        prose="It returns [count:step_zz] and 1,234 genes.", strategy_changed=False
+    )
+
+    facts = show_the_facts(payloads.append, deps, capture)
+    _emit_residual_prose(payloads.append, capture, message_id=uuid4())
+
+    assert facts.unchecked == UNCHECKED_PROSE
+    assert [
+        c["delta"]
+        for p in payloads
+        if (c := _extract_chunk(p)) is not None and c["type"] == "text-delta"
+    ] == ["It returns a count not shown and 1,234 genes."]

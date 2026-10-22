@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-in-3d7-missing-from-two-falciparum-strains",
+  "turns": [
+    "Which ortholog groups have a protein in Plasmodium falciparum 3D7 but are missing from at least 2 of the other P. falciparum strains?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "Absence from at least k of N strains is a ceiling on the strain list's taxon count, N minus k, beside presence in the 3D7 genome. The strain list is every P. falciparum genome except 3D7.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 304,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "pfal>=1T AND pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg=0T OR pfal>=1T AND pfag+pfsg+pfac+pfad+pfga+pfgb+pfgn+pfhb+pfai+pfke+pfkh+pfkt+pfml+pfnc+pfng+pfnf+pfsd+pfsn+pftg<=17T"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
+    "curatorNote": "A phyletic pattern over the strains of one species."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

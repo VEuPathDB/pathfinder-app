@@ -75,7 +75,7 @@ async def _answered(
 ) -> LeadDeps:
     """The thread once the researcher answered the term question on a card."""
     step = _text_step(expression, organism)
-    spec = OperationalSpec(record_type="transcript", criteria=[step])
+    spec = OperationalSpec(criteria=[step])
     domain = StrategyDomainState(operational_spec=spec, answered_spec=spec)
     deps = lead_deps(pipeline_state("tritrypdb", user_prompt=_MESSAGE, domain=domain))
     ctx = run_context_for(deps, tool_call_id="call_classify")

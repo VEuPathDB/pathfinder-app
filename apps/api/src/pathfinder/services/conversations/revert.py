@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, cast
+from typing import Literal
 from uuid import UUID
 
 from assistant_core.conversation.authz import owned_by_caller
@@ -14,7 +14,6 @@ from assistant_core.persistence.models import (
 from assistant_core.persistence.repositories.scratchpad import ScratchpadRepository
 from assistant_core.platform.logging import get_logger
 from sqlalchemy import (
-    CursorResult,
     DateTime,
     bindparam,
     delete,
@@ -30,6 +29,7 @@ from pathfinder.persistence.repositories.conversation import ConversationReposit
 from pathfinder.persistence.repositories.strategy_revision import (
     StrategyRevisionRepository,
 )
+from pathfinder.persistence.rows import rows_changed
 from pathfinder.services.eda.thread_surgery import (
     logs_a_binding,
     restore_thread_binding,
@@ -48,10 +48,6 @@ logger = get_logger(__name__)
 
 class RevertError(ValueError):
     """Raised when the revert request references missing or unauthorized rows."""
-
-
-def _rows(result: object) -> int:
-    return cast("CursorResult[object]", result).rowcount or 0
 
 
 def _strategy_state(
@@ -149,7 +145,7 @@ async def revert_conversation_to_message(
 
     # Cut on (created_at, id) so timestamp ties delete deterministically
     # instead of over-deleting siblings that share the target's created_at.
-    deleted_messages = _rows(
+    deleted_messages = rows_changed(
         await session.execute(
             delete(Message).where(
                 Message.conversation_id == conversation_id,
@@ -162,7 +158,7 @@ async def revert_conversation_to_message(
         conversation_id=conversation_id,
         cutoff=cutoff_ts,
     )
-    deleted_events = _rows(
+    deleted_events = rows_changed(
         await session.execute(
             delete(ConversationEvent).where(
                 ConversationEvent.conversation_id == conversation_id,
@@ -170,7 +166,7 @@ async def revert_conversation_to_message(
             ),
         )
     )
-    deleted_tasks = _rows(
+    deleted_tasks = rows_changed(
         await session.execute(
             delete(BackgroundTask).where(
                 BackgroundTask.conversation_id == conversation_id,
@@ -190,7 +186,7 @@ async def revert_conversation_to_message(
           AND (c.checkpoint->>'ts')::timestamptz >= :cutoff
         """,
     ).bindparams(bindparam("cutoff", type_=DateTime(timezone=True)))
-    deleted_writes = _rows(
+    deleted_writes = rows_changed(
         await session.execute(
             writes_stmt,
             {"thread_id": thread_id, "cutoff": cutoff_ts},
@@ -204,7 +200,7 @@ async def revert_conversation_to_message(
           AND (checkpoint->>'ts')::timestamptz >= :cutoff
         """,
     ).bindparams(bindparam("cutoff", type_=DateTime(timezone=True)))
-    deleted_checkpoints = _rows(
+    deleted_checkpoints = rows_changed(
         await session.execute(
             checkpoints_stmt,
             {"thread_id": thread_id, "cutoff": cutoff_ts},

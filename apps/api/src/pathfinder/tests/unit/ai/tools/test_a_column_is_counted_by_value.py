@@ -18,8 +18,8 @@ from pathfinder.services.experiment.column_tally import (
     ColumnTally,
     ColumnTallyRefusedError,
     TallyOnly,
-    TallyRow,
 )
+from pathfinder.services.experiment.tally_rows import TallyRow
 from pathfinder.services.experiment.variant_comparison import VariantInput, VariantSpec
 from pathfinder.tests._support.run_context import lead_run_context
 
@@ -43,6 +43,7 @@ _TALLY = ColumnTally(
         TallyRow(value="Anopheles gambiae PEST", count=40),
         TallyRow(value="Anopheles coluzzii AcolN3", count=11),
     ],
+    site_id="vectorbase",
 )
 
 

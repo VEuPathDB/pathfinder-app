@@ -7,13 +7,13 @@ from types import SimpleNamespace
 from typing import cast
 
 import pytest
-from pydantic import ValidationError
 from pydantic_ai import ModelRetry, RunContext
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import ResolvedParams
 
 from pathfinder.ai.agents.frame_result_checks import hold_the_reports_to_the_refusals
+from pathfinder.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from pathfinder.ai.agents.state import AgentToolState, SearchOverview
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.state import StrategyDomainState
@@ -31,6 +31,7 @@ from pathfinder.tests.unit.ai.lead.conftest import (
     pipeline_state,
     requirement,
 )
+from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _DIAMOND = "MapProteinsByDiamond"
 _ANSWER = "HTTP 500: Internal Error"
@@ -53,26 +54,33 @@ def _pass(*reports: RequirementReport) -> FrameResult:
 
 
 def _ctx(state: AgentToolState) -> RunContext[AgentDeps]:
-    return cast(
-        "RunContext[AgentDeps]",
-        SimpleNamespace(deps=SimpleNamespace(agent_state=state)),
-    )
+    return agent_run_context(agent_state=state)
 
 
-def test_a_refusal_names_the_search_the_site_refused() -> None:
-    with pytest.raises(ValidationError):
+def test_a_refusal_naming_no_search_is_told_to_name_one() -> None:
+    unnamed = _pass(
         RequirementReport(
             requirement="R1", problem=RequirementProblem.SITE_REFUSED_THE_SEARCH
         )
+    )
+
+    with pytest.raises(ModelRetry) as refused:
+        hold_the_reports_to_the_refusals(_ctx(AgentToolState()), unnamed)
+
+    assert str(refused.value) == (
+        "site_refused_the_search for ['R1'] names no search: put the search the "
+        "site refused in `search`, or report the requirement as site_has_no_search."
+    )
 
 
-def test_only_a_refusal_names_a_search() -> None:
-    with pytest.raises(ValidationError):
-        RequirementReport(
-            requirement="R1",
-            problem=RequirementProblem.SITE_HAS_NO_SEARCH,
-            search=_DIAMOND,
-        )
+def test_a_search_on_another_problem_is_dropped() -> None:
+    report = RequirementReport(
+        requirement="R1",
+        problem=RequirementProblem.SITE_HAS_NO_SEARCH,
+        search=_DIAMOND,
+    )
+
+    assert report.search == ""
 
 
 async def test_a_count_the_site_refuses_is_recorded_for_the_pass(
@@ -101,7 +109,7 @@ async def test_a_count_the_site_refuses_is_recorded_for_the_pass(
     assert state.refused_searches == {_DIAMOND: _ANSWER}
 
 
-def test_no_search_after_a_refusal_is_sent_back_once() -> None:
+def test_no_search_after_a_refusal_is_sent_back_twice() -> None:
     state = AgentToolState(refused_searches={_DIAMOND: _ANSWER})
     missing = _pass(
         RequirementReport(
@@ -109,10 +117,15 @@ def test_no_search_after_a_refusal_is_sent_back_once() -> None:
         )
     )
 
-    with pytest.raises(ModelRetry, match="site_refused_the_search"):
-        hold_the_reports_to_the_refusals(_ctx(state), missing)
+    for _ in range(REFUSALS_PER_CHECK):
+        with pytest.raises(ModelRetry, match="site_refused_the_search"):
+            hold_the_reports_to_the_refusals(_ctx(state), missing)
 
-    assert hold_the_reports_to_the_refusals(_ctx(state), missing) is missing
+    assert hold_the_reports_to_the_refusals(_ctx(state), missing) == missing.with_gap(
+        "missing_after_refusal",
+        f"The pass reports a requirement no search answers after the site refused "
+        f"{_DIAMOND} this pass.",
+    )
 
 
 def test_a_refusal_of_a_search_the_site_ran_is_sent_back() -> None:
@@ -120,6 +133,41 @@ def test_a_refusal_of_a_search_the_site_ran_is_sent_back() -> None:
 
     with pytest.raises(ModelRetry, match="ByBlast"):
         hold_the_reports_to_the_refusals(_ctx(state), _pass(_refused("ByBlast")))
+
+
+def test_a_refusal_report_with_nothing_refused_this_pass_passes() -> None:
+    output = _pass(_refused("ByBlast"))
+
+    assert hold_the_reports_to_the_refusals(_ctx(AgentToolState()), output) is output
+
+
+def test_a_refusal_of_a_search_the_site_ran_is_told_the_searches_it_refused() -> None:
+    state = AgentToolState(refused_searches={_DIAMOND: _ANSWER})
+
+    with pytest.raises(ModelRetry) as sent_back:
+        hold_the_reports_to_the_refusals(_ctx(state), _pass(_refused("ByBlast")))
+
+    assert str(sent_back.value) == (
+        "site_refused_the_search names ['ByBlast'], and this pass saw the site "
+        f"refuse only {_DIAMOND}. Name one of those, or report the requirement as "
+        "site_has_no_search."
+    )
+
+
+def test_a_refusal_report_past_the_bound_is_dropped_with_its_gap() -> None:
+    state = AgentToolState(refused_searches={_DIAMOND: _ANSWER})
+    output = _pass(_refused("ByBlast"), _refused())
+
+    for _ in range(REFUSALS_PER_CHECK):
+        with pytest.raises(ModelRetry):
+            hold_the_reports_to_the_refusals(_ctx(state), output)
+
+    assert hold_the_reports_to_the_refusals(_ctx(state), output) == _pass(
+        _refused()
+    ).with_gap(
+        "report_dropped",
+        "The pass reported the site refused ['ByBlast'], and it did not this pass.",
+    )
 
 
 def test_a_refusal_the_site_gave_passes() -> None:

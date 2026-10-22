@@ -85,7 +85,16 @@ async function exportLatestGeneSet(
   const latest = sets.find((set) => set.siteId === ctx.siteId);
   if (latest === undefined) return failure("No gene sets to export.");
   const exported = await exportGeneSetEndpoint(latest.id, { format });
-  return { kind: "download", url: exported.url, filename: exported.filename };
+  return {
+    kind: "download",
+    url: exported.url,
+    filename: exported.filename,
+    ...(latest.outOfDate == null
+      ? {}
+      : {
+          notice: `${latest.name} is out of date: it holds the genes of an earlier version of its strategy.`,
+        }),
+  };
 }
 
 const EXPORT_OPTIONS = [

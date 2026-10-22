@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 
 import pytest
 from veupathdb.domain.parameters import MultiPickValue, ParamValue
@@ -85,8 +85,8 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     ``SEARCH_ASSAYS`` and ``STUDY_ASSAYS``. No search sheet is served: a test
     that reads one serves it."""
 
-    async def _record_type(_site: str, _search: str, hint: str | None) -> str:
-        return hint or "transcript"
+    async def _listed(_site: str, names: Collection[str]) -> dict[str, str]:
+        return dict.fromkeys(names, "transcript")
 
     async def _marked(_site: str, _record_type: str, search_name: str) -> str | None:
         return MARKS.get(search_name)
@@ -94,7 +94,7 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _datasets(_site: str, search_name: str) -> list[str]:
         return DATASETS.get(search_name, [])
 
-    monkeypatch.setattr(organism_params, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(organism_params, "search_record_types", _listed)
     monkeypatch.setattr(organism_params, "organism_parameter", _marked)
     monkeypatch.setattr(organism_params, "dataset_organisms", _datasets)
 
@@ -116,7 +116,7 @@ def serve_catalog_marks(monkeypatch: pytest.MonkeyPatch) -> None:
         msg = f"the unit tier serves no sheet for {search_name}"
         raise WDKError(msg)
 
-    monkeypatch.setattr(text_queries, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(text_queries, "search_record_types", _listed)
     monkeypatch.setattr(text_queries, "read_search_definition", _no_sheet)
 
 
@@ -147,9 +147,9 @@ def serve_organism_trees(
     read: list[dict[str, str]] = []
 
     async def _taxa(
-        site_id: str, record_type: str | None, organism_params: Mapping[str, str]
+        site_id: str, organism_params: Mapping[str, str]
     ) -> dict[str, frozenset[str]]:
-        del site_id, record_type
+        del site_id
         read.append(dict(organism_params))
         return dict(taxa)
 

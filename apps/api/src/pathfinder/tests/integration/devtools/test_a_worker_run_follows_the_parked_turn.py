@@ -29,6 +29,7 @@ from pydantic_ai.ui.vercel_ai.response_types import (
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStep
 from veupathdb_mcp.controls import (
+    ControlsSearch,
     ControlTargetData,
     ControlTestResult,
     PositiveControls,
@@ -191,8 +192,9 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
+        controls: ControlsSearch,
     ) -> ControlTestResult:
-        del site_id, negative_controls
+        del site_id, negative_controls, controls
         return ControlTestResult(
             site_id="plasmodb",
             record_type="transcript",

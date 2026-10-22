@@ -10,20 +10,15 @@ from assistant_core.graph.tool_summary import summary_chunks, with_summary
 from assistant_core.platform.logging import get_logger
 from assistant_core.tasks.declaration import declare_durable_tool
 from assistant_core.tasks.decorator import DurableOutcome
-from pydantic import ConfigDict, Field, JsonValue
+from pydantic import JsonValue
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from pydantic_ai.ui.vercel_ai.response_types import BaseChunk
 from veupathdb.domain.parameters import ParamValue
+from veupathdb_mcp.catalog import resolve_search_record_type
 from veupathdb_mcp.controls import (
-    CONTROLS_PARAM,
-    CONTROLS_SEARCH,
-    ControlTargetData,
-    ControlTestResult,
     IntersectionConfig,
-    NegativeControls,
-    PositiveControls,
     run_positive_negative_controls,
 )
 from veupathdb_mcp.tool_payloads import ControlOutcome
@@ -31,11 +26,7 @@ from veupathdb_mcp.tool_payloads import ControlOutcome
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.graph.stream_events import control_test_results_event
 from pathfinder.ai.graph.turn_records import ControlTestRun, ControlTestTarget
-from pathfinder.ai.stream_part_payloads import (
-    ControlSetSummary,
-    ControlTestResults,
-    TestedParameter,
-)
+from pathfinder.ai.tools.standalone.control_counts import ControlCounts
 from pathfinder.ai.tools.standalone.control_repeats import (
     RepeatedControlTest,
     every_step_tested,
@@ -43,8 +34,6 @@ from pathfinder.ai.tools.standalone.control_repeats import (
 )
 from pathfinder.ai.tools.standalone.saved_control_sets import unattached_set
 from pathfinder.domain.evidence import (
-    ControlSetEvidence,
-    ControlTestEvidence,
     NamedControlSet,
 )
 from pathfinder.platform.durable_worker import durable_agent_tool
@@ -55,6 +44,7 @@ from pathfinder.services.evidence.control_sets import (
     saved_control_set,
 )
 from pathfinder.services.evidence.optimization import tunable_parameters_of_search
+from pathfinder.services.experiment.controls_search import controls_search
 from pathfinder.services.experiment.metrics import metrics_from_control_result
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
@@ -62,137 +52,7 @@ from pathfinder.services.export.control_downloads import attach_control_download
 logger = get_logger(__name__)
 
 
-VALUE_CHARS = 120
-
-
-def _shown(value: str) -> str:
-    """A parameter value short enough to read in a table cell."""
-    if len(value) <= VALUE_CHARS:
-        return value
-    return f"{value[:VALUE_CHARS].rstrip()} ..."
-
-
-class _ControlCounts(ControlOutcome):
-    """What a control test filed, flat as the worker reports it, with WDK's names.
-
-    ``target_label`` and ``parameter_labels`` are what WDK calls the tested
-    step and its parameters, and they are empty when WDK did not answer.
-    """
-
-    model_config = ConfigDict(extra="ignore")
-
-    target_label: str = ""
-    parameter_labels: dict[str, str] = Field(default_factory=dict)
-    tunable_parameters: list[str] = Field(default_factory=list)
-    control_set: NamedControlSet | None = None
-
-    def positive_controls(self) -> PositiveControls | None:
-        """The positive set, or None when the test was given no positives."""
-        match (self.positive_recovered_ids, self.positive_missed_ids):
-            case (list() as recovered, list() as missed):
-                return PositiveControls(recovered_ids=recovered, missed_ids=missed)
-            case _:
-                return None
-
-    def negative_controls(self) -> NegativeControls | None:
-        """The negative set, or None when the test was given no negatives."""
-        match (self.negative_admitted_ids, self.negative_excluded_ids):
-            case (list() as admitted, list() as excluded):
-                return NegativeControls(admitted_ids=admitted, excluded_ids=excluded)
-            case _:
-                return None
-
-    def measured(self) -> ControlTestResult:
-        """The typed result the metrics engine scores."""
-        return ControlTestResult(
-            target=ControlTargetData(
-                search_name=self.search_name,
-                step_id=self.step_id,
-                estimated_size=self.estimated_size,
-            ),
-            positive=self.positive_controls(),
-            negative=self.negative_controls(),
-        )
-
-    def positive_set(self) -> ControlSetSummary | None:
-        """The positive set as the exhibit shows it."""
-        positive = self.positive_controls()
-        if positive is None:
-            return None
-        return ControlSetSummary(
-            controls_count=positive.controls_count,
-            intersection_count=positive.intersection_count,
-            recall=positive.recall,
-            hit_ids=positive.recovered_ids,
-            missed_ids=positive.missed_ids,
-        )
-
-    def negative_set(self) -> ControlSetSummary | None:
-        """The negative set as the exhibit shows it."""
-        negative = self.negative_controls()
-        if negative is None:
-            return None
-        return ControlSetSummary(
-            controls_count=negative.controls_count,
-            intersection_count=negative.intersection_count,
-            false_positive_rate=negative.false_positive_rate,
-            hit_ids=negative.admitted_ids,
-            missed_ids=negative.excluded_ids,
-        )
-
-    def evidence(self, wdk_step_id: int | None) -> ControlTestEvidence | None:
-        """The test as the card files it, or None when it was given no control."""
-        positive = self.positive_controls()
-        negative = self.negative_controls()
-        if positive is None and negative is None:
-            return None
-        return ControlTestEvidence(
-            tested_label=self.reader_label(),
-            wdk_step_id=wdk_step_id,
-            control_set=self.control_set,
-            positive=None
-            if positive is None
-            else ControlSetEvidence(
-                returned=positive.recovered_ids, not_returned=positive.missed_ids
-            ),
-            negative=None
-            if negative is None
-            else ControlSetEvidence(
-                returned=negative.admitted_ids, not_returned=negative.excluded_ids
-            ),
-        )
-
-    def reader_label(self) -> str:
-        """What the tested step is called for a reader, never a url segment."""
-        if self.target_label != "":
-            return self.target_label
-        return "the tested step" if self.step_id is None else f"step {self.step_id}"
-
-    def criteria(self) -> list[TestedParameter]:
-        """The tested step's parameters, each under the name WDK shows."""
-        return [
-            TestedParameter(
-                label=self.parameter_labels.get(name, name),
-                value=_shown(value.to_wire()),
-            )
-            for name, value in self.parameters.items()
-        ]
-
-    def exhibit(self, tool_call_id: str, task_id: str = "") -> ControlTestResults:
-        """The numbered exhibit this control test leaves on the thread."""
-        return ControlTestResults(
-            task_id=task_id,
-            tool_call_id=tool_call_id,
-            target_step_id=self.step_id,
-            target_label=self.reader_label(),
-            target_estimated_size=self.estimated_size,
-            target_parameters=self.criteria(),
-            positive=self.positive_set(),
-            negative=self.negative_set(),
-        )
-
-
-def _control_scores(counts: _ControlCounts) -> str:
+def _control_scores(counts: ControlCounts) -> str:
     """What the test recovered and how well it scored.
 
     Precision and MCC need a negative set. A test that ran none reports
@@ -216,7 +76,7 @@ def _control_scores(counts: _ControlCounts) -> str:
     )
 
 
-def controls_summary(counts: _ControlCounts) -> str:
+def controls_summary(counts: ControlCounts) -> str:
     """What the test recovered, how well it scored, and what a sweep could vary."""
     knobs = (
         f"tunable parameters: {', '.join(counts.tunable_parameters)}"
@@ -230,7 +90,7 @@ def control_test_run(
     result: dict[str, JsonValue], *, tool_call_id: str
 ) -> ControlTestRun | None:
     """The run a finished step test records, or None when it was given no control."""
-    counts = _ControlCounts.model_validate(result)
+    counts = ControlCounts.model_validate(result)
     evidence = counts.evidence(counts.step_id)
     if evidence is None:
         return None
@@ -245,7 +105,7 @@ def _control_test_chunks_from_result(
     outcome = DurableOutcome.model_validate(resumed)
     if not outcome.succeeded or tool_call_id is None:
         return []
-    counts = _ControlCounts.model_validate(outcome.result)
+    counts = ControlCounts.model_validate(outcome.result)
     exhibit = control_test_results_event(
         counts.exhibit(tool_call_id, task_id=str(task_id))
     )
@@ -329,7 +189,7 @@ def _answered_from_this_message(
             )
             # A repeat past the failure spends the tool's retries, so a loop ends.
             raise CallRefused(msg) if asked == 1 else ModelRetry(msg)
-        counts = _ControlCounts.model_validate(held.model_dump())
+        counts = ControlCounts.model_validate(held.model_dump())
         return with_summary(
             RepeatedControlTest(outcome=held),
             f"Already tested on this step: {_control_scores(counts)}",
@@ -356,8 +216,13 @@ async def run_control_tests_on_step(
     """Test a built WDK strategy step against a saved control set.
 
     A test runs on a control set attached to this conversation and on no
-    other; ``list_control_sets`` names them. Durable: the worker runs the test
-    and the turn ends while it runs. You are called again with a dict
+    other; ``list_control_sets`` names them. The test uploads the set's ids as
+    a dataset and writes a copy of the step, a controls step and a temporary
+    strategy into the researcher's VEuPathDB account. It deletes the steps and
+    the strategy when it ends; the dataset stays, because WDK deletes no
+    dataset. A protein (sequence) step is tested with protein ids, and a gene
+    id there is filed as not returned. Durable: the worker runs the test and
+    the turn ends while it runs. You are called again with a dict
     matching :class:`ControlOutcome`'s serialised shape. A set this message
     already tested on the step is answered from that test, with no new task.
 
@@ -382,14 +247,18 @@ async def run_control_tests_on_search(
     target_search_name: str,
     target_parameters: dict[str, ParamValue],
     control_set_id: str,
-    record_type: str = "transcript",
+    record_type: str | None = None,
 ) -> ToolReturn[ControlOutcome]:
     """Test a standalone WDK search (not a built strategy) against a saved
     control set.
 
     A test runs on a control set attached to this conversation and on no
-    other; ``list_control_sets`` names them. A temporary WDK strategy intersects
-    the search results with the set's gene ids. Use
+    other; ``list_control_sets`` names them. The test uploads the set's ids as
+    a dataset and writes a target step, a controls step, a combined step and a
+    temporary strategy into the researcher's VEuPathDB account. It deletes the
+    steps and the strategy when it ends; the dataset stays, because WDK
+    deletes no dataset. A protein (sequence) search is tested with protein ids,
+    and a gene id there is filed as not returned. Use
     ``run_control_tests_on_step`` instead for a built strategy step.
 
     Args:
@@ -400,18 +269,23 @@ async def run_control_tests_on_search(
             ``get_search_overview`` for the per-param template.
         control_set_id: An attached control set, by the id
             ``list_control_sets`` gives it.
-        record_type: Record type. Defaults to 'transcript'.
+        record_type: The target search's record type. Omit it: the catalog
+            reads it from the search.
     """
     saved = await _saved_controls(ctx, control_set_id)
+    record_type = await resolve_search_record_type(
+        ctx.deps.site_id, target_search_name, record_type
+    )
+    controls = controls_search(record_type)
     measured = await run_positive_negative_controls(
         IntersectionConfig(
             site_id=ctx.deps.site_id,
             record_type=record_type,
             target_search_name=target_search_name,
             target_parameters=dict(target_parameters),
-            controls_search_name=CONTROLS_SEARCH,
-            controls_param_name=CONTROLS_PARAM,
-            controls_value_format="newline",
+            controls_search_name=controls.search_name,
+            controls_param_name=controls.param_name,
+            controls_value_format=controls.value_format,
             internal_strategy_name=CONTROL_TEST_STRATEGY_NAME,
         ),
         positive_controls=saved.positive_ids or None,
@@ -422,7 +296,7 @@ async def run_control_tests_on_search(
         f"{target_search_name}_control_tests",
     )
     published = await published_names(ctx.deps.site_id, record_type, target_search_name)
-    counts = _ControlCounts.model_validate(
+    counts = ControlCounts.model_validate(
         outcome.model_dump()
         | {
             "target_label": published.label,

@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterable
 from typing import Protocol
 
+import procrastinate
 from assistant_core.mcp.admission import install_admitted_sources
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.logging import setup_logging
@@ -23,6 +25,7 @@ from assistant_core.tasks.completion_turn import install_completion_turn
 from assistant_core.tasks.heartbeat import HeartbeatThread, postgres_beat_writer
 from assistant_core.tasks.job_context import install_durable_job_context
 from assistant_core.tasks.runner import install_worker_context, register_durable_jobs
+from procrastinate import signals
 from procrastinate.worker import Worker
 from veupathdb import set_observer
 from veupathdb_mcp.embeddings import use_embedding_session_factory
@@ -36,14 +39,16 @@ from pathfinder.jobs.impls import register_all_tools
 from pathfinder.jobs.job_context import WdkJobContext
 from pathfinder.jobs.logging_filters import install_procrastinate_redaction
 from pathfinder.jobs.runtime import build_worker_context
-from pathfinder.platform.config import get_settings
+from pathfinder.platform.config import Settings, get_settings
 from pathfinder.platform.langfuse.client import shutdown_langfuse
 from pathfinder.platform.metrics import PathfinderObserver, serve_metrics
 from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.observability import setup_observability
 from pathfinder.platform.tool_sources import admitted_tool_sources
+from pathfinder.services.audit.job import AUDIT_QUEUE
 from pathfinder.services.search_waits import runs_on_the_deployment_line
 
+AUDIT_SHUTDOWN_SECONDS = 5.0
 _CANNOT_SCREEN = "the injection judge did not build; this worker consumes no jobs"
 
 
@@ -71,12 +76,65 @@ def _build_the_injection_judge() -> None:
         raise WorkerCannotScreenError(_CANNOT_SCREEN) from error
 
 
-class _RunningWorker(Protocol):
+class ServingWorker(Protocol):
     """The procrastinate worker surface this entry point drives."""
 
     worker_id: int | None
+    queues: Iterable[str] | None
+    concurrency: int
+    install_signal_handlers: bool
+    shutdown_graceful_timeout: float | None
 
     async def run(self) -> None: ...
+
+    def stop(self) -> None: ...
+
+
+def serving_workers(
+    app: procrastinate.App, settings: Settings
+) -> tuple[ServingWorker, ServingWorker]:
+    turns = Worker(
+        app=app,
+        delete_jobs=FINISHED_JOBS_DELETED,
+        queues=list(worker_queues()),
+        concurrency=settings.worker_concurrency,
+        install_signal_handlers=False,
+        update_heartbeat_interval=settings.worker_heartbeat_interval_seconds,
+    )
+    audits = Worker(
+        app=app,
+        name="audit",
+        delete_jobs=FINISHED_JOBS_DELETED,
+        queues=[AUDIT_QUEUE],
+        concurrency=settings.audit_concurrency,
+        install_signal_handlers=False,
+        shutdown_graceful_timeout=AUDIT_SHUTDOWN_SECONDS,
+        update_heartbeat_interval=settings.worker_heartbeat_interval_seconds,
+    )
+    return turns, audits
+
+
+def _stop(workers: tuple[ServingWorker, ...]) -> None:
+    for worker in workers:
+        worker.stop()
+
+
+async def serve_workers(*workers: ServingWorker) -> None:
+    with signals.on_stop(lambda: _stop(workers)):
+        running = [asyncio.create_task(worker.run()) for worker in workers]
+        done, _ = await asyncio.wait(running, return_when=asyncio.FIRST_COMPLETED)
+        _stop(workers)
+        await asyncio.gather(*running, return_exceptions=True)
+    for task in done:
+        task.result()
+
+
+def _heartbeat(worker: ServingWorker, settings: Settings) -> HeartbeatThread:
+    return HeartbeatThread(
+        worker_id=lambda: worker.worker_id,
+        write=postgres_beat_writer(settings.database_url),
+        interval_seconds=settings.worker_heartbeat_interval_seconds,
+    )
 
 
 async def amain() -> None:
@@ -101,27 +159,18 @@ async def amain() -> None:
     set_observer(PathfinderObserver())
     install_search_line(settings.database_url, runs_on_the_deployment_line)
     procrastinate_app.perform_import_paths()
-    # The worker is built here rather than through run_worker_async so the
+    # The workers are built here rather than through run_worker_async so each
     # heartbeat thread can read the worker id procrastinate registers.
-    worker: _RunningWorker = Worker(
-        app=procrastinate_app,
-        delete_jobs=FINISHED_JOBS_DELETED,
-        queues=list(worker_queues()),
-        concurrency=settings.worker_concurrency,
-        install_signal_handlers=True,
-        update_heartbeat_interval=settings.worker_heartbeat_interval_seconds,
-    )
-    heartbeat = HeartbeatThread(
-        worker_id=lambda: worker.worker_id,
-        write=postgres_beat_writer(settings.database_url),
-        interval_seconds=settings.worker_heartbeat_interval_seconds,
-    )
+    turns, audits = serving_workers(procrastinate_app, settings)
+    heartbeats = [_heartbeat(worker, settings) for worker in (turns, audits)]
     async with procrastinate_app.open_async():
-        heartbeat.start()
+        for heartbeat in heartbeats:
+            heartbeat.start()
         try:
-            await worker.run()
+            await serve_workers(turns, audits)
         finally:
-            heartbeat.stop()
+            for heartbeat in heartbeats:
+                heartbeat.stop()
             shutdown_observability()
             shutdown_langfuse()
 

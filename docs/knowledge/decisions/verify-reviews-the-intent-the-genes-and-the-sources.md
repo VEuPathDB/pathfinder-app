@@ -47,7 +47,10 @@ three typed lists, and the evidence card carries the same review.
   columns disagree, does VERIFY sample the root
   (`get_sample_records`, one record at each of N offsets spread over the
   step, at most 100, so a gene family whose ids sort together fills one
-  offset and not the sample) and read up to 8 sampled genes with
+  offset and not the sample; the records come from one report when the step
+  holds at most ten records per sampled gene, else from at most 4 seeded windows,
+  one in each quarter, with the offsets spread inside each; an attribute the site
+  refuses is dropped once for the whole sample and named in no row) and read up to 8 sampled genes with
   `read_gene_record`, which refuses a gene no sample returned and every
   control. Each read is a `SampledGene`: `gene_id`,
   `product`, `organism`, `fits` (yes, no, unclear) and a one-line `why`.
@@ -56,6 +59,22 @@ three typed lists, and the evidence card carries the same review.
   past `SAMPLED_GENE_LIMIT` (8); the budget is per check
   (`TurnMarkers.records_read`), so the refusal memory and the failed status
   see it.
+- **The groups of an OrthoMCL step.** On a group step whose criterion binds
+  `phyletic_expression`, `read_step_columns` reads the step's first
+  `SAMPLED_GROUP_LIMIT` (5) groups in one report with the `TaxonCounts` table,
+  parses them with the tool server's `group_genome_counts`, and judges each with
+  the client's `PhyleticExpression.holds_for`, which evaluates the site's own
+  reading (parentheses dropped, AND before OR, a unit false on a group with no
+  protein of its codes unless it is `=0`). The answer is an `ExpressionFit`
+  (`domain/expression_fit.py`). On a step that holds no group, the fit names each
+  unit the site matches no group with, but only when every OR term of the site
+  reading holds one, so an empty answer written in a form the site cannot match
+  is told from an empty answer the data gives. The work order names this read
+  for a phyletic step even when the root holds no record. The fit is the
+  step's whole answer and judges its criterion, so the step is not sampled.
+  A fit stands only while its expression equals the step's live binding
+  (`bound_expressions`, `live_fits`): a rebind that patches the same step
+  drops the old fit and its gap.
 
 ## What VERIFY may do
 
@@ -147,6 +166,10 @@ digest before the verdict is recorded:
   the site does not show, is a typed caveat with its counts ("12 of 40 genes
   fit # TM Domains (2 to 99)", `domain/caveats.py`). The column fits are the
   reads' own (`TurnMarkers.column_fits`); a gene judged "unclear" is no caveat.
+  An expression fit with a failing group, or with a unit the site matches no
+  group with, is a typed `ExpressionGap` that refuses a success in code
+  (`verify_dispatch._findings`), and the evidence card draws each fit of a live
+  step as one line (`TurnMarkers.expression_fits`).
 
 Before that, the verification agent's output validator refuses once per check a
 digest that states a sampled-gene count its sample does not hold, lists a gene
@@ -193,6 +216,17 @@ read of the turn returned, or a success over an unmet row.
   rule is not evidence.
 - **Sampling every gene.** A read per gene is a site call per gene; eight
   records show a misbinding (a histone in a signal-peptide set) at a bounded cost.
+- **Reading every group of a phyletic step, or one group by id.** A group's
+  `TaxonCounts` table holds one row per genome present, so a large answer read
+  whole is a large body; no served tool reads one group's genome counts by id,
+  and the step's own records already carry the table.
+- **Calling an empty phyletic step "no group qualifies" when the expression
+  only parses.** A unit such as an upper bound of zero parses and runs, and
+  the site matches no group with it; the check evaluates the site reading of
+  each unit instead.
+- **The expression verdict as a prompt rule or a caveat.** A checker that
+  reads the fit can still call the result met, and a caveat does not refuse a
+  success; the gap is code's, so the verdict does not rest on the prompt.
 - **Choosing a column by the words it shares with a parameter.** Two columns
   of one search often share a word with the bound (`exon_count` and
   `gene_exon_count`), and the one the words pick can be the one the search does

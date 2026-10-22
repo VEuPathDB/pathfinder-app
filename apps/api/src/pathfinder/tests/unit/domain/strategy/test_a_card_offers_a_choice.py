@@ -93,10 +93,9 @@ def test_an_option_spelled_as_the_held_label_binds_the_held_term() -> None:
     assert other.label == "Comparisons amastigoteVsPromastigote (microarray)"
 
 
-def test_a_question_whose_only_option_is_the_held_value_is_refused() -> None:
+def test_a_question_whose_only_option_is_the_held_value_is_asked_in_words() -> None:
     """The tritrypdb card: one option, the comparison the step already runs."""
-    with pytest.raises(ValidationError, match="offers one option"):
-        _asks(_PNA_LABEL)
+    assert SlotQuestion(question=_PROMPT, options=[_PNA_LABEL]).options == []
 
 
 def test_a_question_offering_the_held_value_beside_another_is_asked() -> None:
@@ -105,14 +104,15 @@ def test_a_question_offering_the_held_value_beside_another_is_asked() -> None:
     assert unanswered_questions([asked]) == [asked]
 
 
-def test_a_single_option_for_an_open_slot_is_refused() -> None:
-    with pytest.raises(ValidationError, match="offers one option"):
-        SlotQuestion(
-            question=_PROMPT,
-            criterion_id="step_bb9551dc",
-            param_name=_COMPARISONS,
-            options=[_PNA_TERM],
-        )
+def test_a_single_option_for_an_open_slot_is_asked_in_words() -> None:
+    question = SlotQuestion(
+        question=_PROMPT,
+        criterion_id="step_bb9551dc",
+        param_name=_COMPARISONS,
+        options=[_PNA_TERM],
+    )
+
+    assert question.options == []
 
 
 _FOLD = Constraint(
@@ -152,9 +152,10 @@ def test_a_question_the_researcher_answered_is_not_asked_again() -> None:
     assert unanswered_questions([asked], answered=[_PROMPT]) == []
 
 
-def test_a_question_offering_one_value_twice_is_refused() -> None:
-    with pytest.raises(ValidationError, match="offers one option"):
-        _asks(_PNA_LABEL, _PNA_LABEL)
+def test_a_question_offering_one_value_twice_is_asked_in_words() -> None:
+    assert (
+        SlotQuestion(question=_PROMPT, options=[_PNA_LABEL, _PNA_LABEL]).options == []
+    )
 
 
 def test_a_term_and_its_label_are_one_option_so_the_question_is_not_asked() -> None:

@@ -10,7 +10,8 @@ change the feed.
 
 A run always uses the configured provider and needs a VEuPathDB login exactly
 as the chat debugger does. A case that records a root count is judged against
-the build each site reports at the start of the run.
+the build each site reports at the start of the run, and a case that states
+expressions against the taxonomy its site serves then.
 """
 
 from __future__ import annotations
@@ -27,38 +28,40 @@ from assistant_core.memory.lifespan import lifespan_memory_store
 from assistant_core.memory.store import MemoryStore
 from assistant_core.platform.db import async_session_factory
 from assistant_core.platform.types import ReasoningEffort
-from pydantic import TypeAdapter
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
+from veupathdb.domain.parameters import PhyleticTree
 from veupathdb.domain.strategy import StrategyAst
+from veupathdb_mcp.catalog import ortho_taxonomy
 
 from pathfinder.ai.conversation.gene_list_marker import gene_list_marker
 from pathfinder.ai.graph.state import PipelineState
 from pathfinder.ai.lead.proposal import OFFER_TOOLS
-from pathfinder.ai.lead.reply_claims import counts_in_the_wrong_unit
 from pathfinder.devtools.capture import RunCapture, unshown_assumed_values
 from pathfinder.devtools.chat import (
+    EnvToken,
     LoginUnansweredError,
     RespondArgs,
     RunArgs,
     checkpoint_values,
     drive_respond,
     drive_run,
+    registered_token,
 )
-from pathfinder.devtools.gates import Gate
+from pathfinder.devtools.gates import Gate, consult_labels, gate_end
 from pathfinder.devtools.transcript import facts_lines
 from pathfinder.domain.reply_references import linked_records
 from pathfinder.domain.turn_facts import TurnFacts
 from pathfinder.evals.case import EvalCase, GateAnswer, GateEnd, GatePlan
+from pathfinder.evals.count_unit import counts_in_genes
 from pathfinder.evals.difference import CaseDifference
 from pathfinder.evals.distance import tree_from_ast
 from pathfinder.evals.drift import DriftVerdict, classify, count_difference
 from pathfinder.evals.phrases import shown
+from pathfinder.evals.requirements import RequirementCounts, requirement_counts
 from pathfinder.evals.scoring import (
     ObservedOutcome,
-    RequirementCounts,
     final_count_below_every_input,
-    requirement_counts,
     root_count,
     root_operator,
     score_case,
@@ -67,7 +70,7 @@ from pathfinder.evals.scoring import (
     structure_signature,
 )
 from pathfinder.evals.store import attachment_paths, load_corpus
-from pathfinder.evals.summary import CaseResult, EvalRunSummary
+from pathfinder.evals.summary import CaseResult, EvalRunSummary, judged
 from pathfinder.jobs.auth_context import attach_application
 from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.platform.config import get_settings
@@ -78,7 +81,6 @@ HARNESS = "pydantic-evals"
 # A gene-id list goes to the model as the text the composer writes for it.
 _GENE_LIST_SUFFIXES = frozenset({".csv", ".tsv", ".txt"})
 _GENE_ID_HEADER = re.compile(r"^gene.?id$", re.IGNORECASE)
-_VERDICT: TypeAdapter[DriftVerdict] = TypeAdapter(DriftVerdict)
 # The cards one turn answers before it is left as it stands.
 _MAX_ANSWERS = 8
 
@@ -128,26 +130,6 @@ async def persisted_wdk_step_ids(conversation_id: UUID) -> set[int]:
     return set((ast.wdk_step_ids or {}).values())
 
 
-def gate_end(gate: Gate) -> GateEnd | None:
-    """The card the gate shows the researcher, or None for a task still running."""
-    match gate.kind:
-        case "none":
-            return "none"
-        case "consult":
-            return "consult"
-        case "approval":
-            return "proposal" if gate.tool in OFFER_TOOLS else "approval"
-        case _:
-            return None
-
-
-def counts_in_genes(reply_text: str, ast: StrategyAst) -> bool:
-    """Whether the reply names no count of the strategy's steps in the record
-    type, where the site counts that record type in another noun."""
-    held = (ast.step_counts or {}).values()
-    return not counts_in_the_wrong_unit(reply_text, ast.record_type, held)
-
-
 @dataclass(frozen=True)
 class TurnsShown:
     """What the case's turns showed: each reply, the facts part beside each,
@@ -159,6 +141,7 @@ class TurnsShown:
     last_facts: TurnFacts | None = None
     requirements: RequirementCounts | None = None
     record_ids: list[list[str]] = field(default_factory=list)
+    consult_options: list[str] = field(default_factory=list)
 
 
 async def observe(
@@ -209,6 +192,7 @@ async def observe(
         ends_on=ends_on,
         refused_tools=refused_tools,
         assumed=unshown_assumed_values(checkpointed, turns.last_facts),
+        consult_options=turns.consult_options,
     )
 
 
@@ -288,6 +272,7 @@ async def _answer(
             approve="prompt",
             via_worker=args.via_worker,
             quiet=True,
+            wdk_token=args.wdk_token,
             assistant=args.assistant,
             effort=args.effort,
             user_id=args.user_id,
@@ -315,6 +300,7 @@ async def run_one_case(
     run_root: Path,
     effort: ReasoningEffort | None = None,
     via_worker: bool = False,
+    wdk_token: EnvToken | None = None,
 ) -> ObservedOutcome:
     """Drive one case as a user of its own, whose memories go when it ends, so
     no case reads what another case wrote, in a run directory no earlier run
@@ -323,7 +309,12 @@ async def run_one_case(
     user_id = uuid4()
     try:
         return await _run_turns(
-            case, user_id, run_root=run_root, effort=effort, via_worker=via_worker
+            case,
+            user_id,
+            run_root=run_root,
+            effort=effort,
+            via_worker=via_worker,
+            wdk_token=wdk_token,
         )
     finally:
         await forget_user(user_id)
@@ -336,6 +327,7 @@ async def _run_turns(
     run_root: Path,
     effort: ReasoningEffort | None,
     via_worker: bool,
+    wdk_token: EnvToken | None,
 ) -> ObservedOutcome:
     """Drive every turn of one case on a fresh thread, in order.
 
@@ -371,6 +363,7 @@ async def _run_turns(
             approve="prompt",
             via_worker=via_worker,
             quiet=True,
+            wdk_token=wdk_token,
             assistant=case.assistant_id,
             effort=case.effort if effort is None else effort,
             attachments=inline,
@@ -407,6 +400,7 @@ async def _run_turns(
             last_facts=last_facts,
             requirements=reviewed,
             record_ids=record_ids,
+            consult_options=consult_labels(ended),
         ),
         step_ids_unchanged=(before == after) if before else None,
         ends_on=gate_end(ended),
@@ -423,14 +417,16 @@ class CaseVerdict(Evaluator[EvalCase, ObservedOutcome, None]):
     """
 
     builds: dict[str, str]
+    taxonomies: dict[str, PhyleticTree]
 
     def evaluate(
         self,
         ctx: EvaluatorContext[EvalCase, ObservedOutcome, None],
     ) -> DriftVerdict:
         build = self.builds[ctx.inputs.site_id]
-        verdict = classify(ctx.inputs, ctx.output, build)
-        print(_progress_line(ctx, verdict, build), flush=True)
+        taxonomy = self.taxonomies.get(ctx.inputs.site_id)
+        verdict = classify(ctx.inputs, ctx.output, build, taxonomy=taxonomy)
+        print(_progress_line(ctx, verdict, build, taxonomy), flush=True)
         return verdict
 
 
@@ -458,11 +454,12 @@ def _progress_line(
     ctx: EvaluatorContext[EvalCase, ObservedOutcome, None],
     verdict: DriftVerdict,
     build: str,
+    taxonomy: PhyleticTree | None,
 ) -> str:
     """One case's verdict, time, root count, assumed values, refusals and first difference."""
     drift = count_difference(ctx.inputs, ctx.output, build)
     named = [
-        *score_case(ctx.inputs, ctx.output).differences,
+        *score_case(ctx.inputs, ctx.output, taxonomy).differences,
         *([] if drift is None else [drift]),
     ]
     count = "-" if ctx.output.root_count is None else str(ctx.output.root_count)
@@ -477,13 +474,23 @@ def _progress_line(
 def build_dataset(
     cases: list[EvalCase],
     builds: dict[str, str],
+    taxonomies: dict[str, PhyleticTree],
 ) -> Dataset[EvalCase, ObservedOutcome, None]:
     """The corpus as a harness dataset, one row per case."""
     return Dataset[EvalCase, ObservedOutcome, None](
         name="pathfinder-logic",
         cases=[Case(name=case.name, inputs=case) for case in cases],
-        evaluators=[CaseVerdict(builds=builds)],
+        evaluators=[CaseVerdict(builds=builds, taxonomies=taxonomies)],
     )
+
+
+async def read_taxonomies(cases: list[EvalCase]) -> dict[str, PhyleticTree]:
+    read: dict[str, PhyleticTree] = {}
+    for site in sorted({case.site_id for case in cases if case.expected.expressions}):
+        tree = await ortho_taxonomy(site)
+        if tree is not None:
+            read[site] = tree
+    return read
 
 
 async def run_corpus(
@@ -492,22 +499,31 @@ async def run_corpus(
     only: list[str] | None = None,
     effort: ReasoningEffort | None = None,
     via_worker: bool = False,
+    wdk_token: EnvToken | None = None,
 ) -> EvalRunSummary:
     """Run the corpus and return the summary. Cases run one at a time.
 
     Every case writes the same checkpoint store, so concurrency is one. Each
-    site's build is read once, before the first case.
+    site's build, and the taxonomy of each site whose cases state expressions,
+    is read once, before the first case.
     """
+    if wdk_token is not None:
+        await registered_token(wdk_token)
     cases = [case for case in load_corpus() if not only or case.name in only]
     builds = {site: await site_build(site) for site in {c.site_id for c in cases}}
-    dataset = build_dataset(cases, builds)
+    taxonomies = await read_taxonomies(cases)
+    dataset = build_dataset(cases, builds, taxonomies)
     # Why each case whose site login did not answer was not run.
     not_run: dict[str, str] = {}
 
     async def task(case: EvalCase) -> ObservedOutcome:
         try:
             return await run_one_case(
-                case, run_root=run_root, effort=effort, via_worker=via_worker
+                case,
+                run_root=run_root,
+                effort=effort,
+                via_worker=via_worker,
+                wdk_token=wdk_token,
             )
         except LoginUnansweredError as exc:
             not_run[case.name] = str(exc)
@@ -518,25 +534,17 @@ async def run_corpus(
     by_name = {case.name: case for case in cases}
     results: list[CaseResult] = []
     for reported in report.cases:
-        # The harness's own label decides the verdict; the score gives the
-        # distance and the differences, and a moved count is carried apart.
-        verdict = _VERDICT.validate_python(reported.labels[CaseVerdict.__name__].value)
         case = by_name[reported.name]
-        score = score_case(case, reported.output)
+        result = judged(
+            case,
+            reported.output,
+            builds[case.site_id],
+            taxonomies.get(case.site_id),
+        )
         results.append(
-            CaseResult(
-                name=reported.name,
-                verdict=verdict,
-                differences=score.differences,
-                distance=score.distance,
-                observed_count=reported.output.root_count,
-                count_drift=count_difference(
-                    case, reported.output, builds[case.site_id]
-                ),
-                duration_seconds=round(reported.task_duration, 3),
-                refused_tools=reported.output.refused_tools,
-                assumed=reported.output.assumed,
-            ),
+            result.model_copy(
+                update={"duration_seconds": round(reported.task_duration, 3)}
+            )
         )
     results.extend(
         CaseResult(name=failure.name, verdict="not-run", error=not_run[failure.name])
@@ -558,11 +566,10 @@ __all__ = [
     "TurnsShown",
     "assumed_label",
     "build_dataset",
-    "counts_in_genes",
     "facts_text",
-    "gate_end",
     "observe",
     "persisted_wdk_step_ids",
+    "read_taxonomies",
     "refusals_label",
     "run_corpus",
     "run_one_case",

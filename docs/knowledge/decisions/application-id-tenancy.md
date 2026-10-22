@@ -70,10 +70,10 @@ principal.
 # What this does not do
 
 **A purge destroys only what its caller can see.** `DELETE /api/v1/user/data`
-dismisses or deletes the conversations, gene sets, experiments and control sets
-of the calling application, and leaves the same user's data under every other
-application untouched, because a caller that cannot read a resource must not be
-able to destroy it. It also clears the memories and the tombstones of that user
+dismisses or deletes the conversations, gene sets, experiments, control sets
+and audit runs of the calling application, and leaves the same user's data under
+every other application untouched, because a caller that cannot read a resource
+must not be able to destroy it. It also clears the memories and the tombstones of that user
 and that application when it names no site. `deleteWdk=true` deletes on
 VEuPathDB the strategies PathFinder created there for those conversations and
 for their stored runs: the strategy attachment records who made the strategy it

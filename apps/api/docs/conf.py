@@ -9,6 +9,9 @@ os.environ.setdefault(
     "VEUPATHDB_SITES_CONFIG",
     str(Path(__file__).resolve().parents[3] / "deploy" / "sites" / "qa.yml"),
 )
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/pathfinder"
+)
 
 # -- Project information -----------------------------------------------------
 

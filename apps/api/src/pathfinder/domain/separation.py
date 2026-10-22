@@ -264,6 +264,14 @@ class SeparationOffer(CamelModel):
         return self
 
     @property
+    def record_type(self) -> str:
+        found = self.spec.record_type
+        if found is None:
+            msg = "the offered strategy states no record class"
+            raise ValueError(msg)
+        return found
+
+    @property
     def read(self) -> ControlTestEvidence:
         """The site's read of the offered tree, as one control result."""
         return _offered_read(self.positive, self.negative, self.enrichment)

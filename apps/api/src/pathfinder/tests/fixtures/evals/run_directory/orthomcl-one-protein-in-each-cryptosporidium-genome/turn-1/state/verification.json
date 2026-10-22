@@ -1,0 +1,343 @@
+{
+  "phase": "verification",
+  "ledger": {
+    "userIntent": {
+      "classification": "new_strategy",
+      "inferredGoal": "Find ortholog groups that contain exactly one protein in every Cryptosporidium genome.",
+      "isDifferential": false,
+      "differentialSides": [],
+      "editDirection": "other",
+      "undo": false,
+      "asks": [],
+      "referencedStepIds": [],
+      "explicitConstraints": [
+        {
+          "kind": "organism",
+          "requestedValue": "Cryptosporidium genomes",
+          "label": "Organism scope",
+          "source": "user_explicit",
+          "hard": true
+        },
+        {
+          "kind": "record_type",
+          "requestedValue": "protein",
+          "label": "Protein records",
+          "source": "user_explicit",
+          "hard": true
+        },
+        {
+          "kind": "other",
+          "requestedValue": "ortholog groups with exactly one protein in each genome",
+          "label": "Orthology criterion",
+          "source": "user_explicit",
+          "hard": true
+        }
+      ],
+      "withdrawn": [],
+      "namedControls": null,
+      "namedGeneIds": []
+    },
+    "frame": {
+      "spec": {
+        "goal": "Which ortholog groups have exactly one protein in each Cryptosporidium genome?",
+        "interpretedGoal": "",
+        "recordType": "transcript",
+        "organismScope": null,
+        "title": "",
+        "criteria": [
+          {
+            "id": "step_da148e92",
+            "text": "Find ortholog groups with exactly one protein in each of the 19 listed Cryptosporidium genomes: C. andersoni, C. bovis, C. hominis (three isolates plus TU502), C. meleagridis (two isolates), C. muris, C. parvum (three isolates), C. ryanae, C. serpentis, Cryptosporidium sp. 43IA8, chipmunk genotype I, C. tyzzeri, and C. ubiquitum",
+            "searchName": "GroupsByPhyleticPattern",
+            "searchDisplayName": "Phyletic Pattern",
+            "savedStrategyRef": null,
+            "role": "seed",
+            "organismParam": null,
+            "datasetOrganisms": [],
+            "resolvedParams": {
+              "phyletic_expression": {
+                "value": {
+                  "type": "string",
+                  "value": "cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1"
+                },
+                "source": "chosen",
+                "basis": "The phyletic expression requires exactly one protein in every Cryptosporidium genome returned by the site lookup; Cyclospora is excluded.",
+                "carriedFrom": "",
+                "displayName": "Expression",
+                "label": "",
+                "placeholder": false,
+                "atDefault": false,
+                "visible": true,
+                "number": false,
+                "decimals": null,
+                "taxon": null
+              }
+            },
+            "paramDisplayNames": {
+              "phyletic_expression": "Expression"
+            },
+            "measurements": [
+              {
+                "kind": "vocabulary_label",
+                "param": "phyletic_expression",
+                "count": null,
+                "label": "exactly 1 sequence of Cryptosporidium andersoni isolate 30847 and exactly 1 sequence of Cryptosporidium bovis isolate 45015 and exactly 1 sequence of Cryptosporidium hominis isolate 30976 and exactly 1 sequence of Cryptosporidium hominis isolate TU502_2012 and exactly 1 sequence of Cryptosporidium hominis TU502 and exactly 1 sequence of Cryptosporidium hominis UdeA01 and exactly 1 sequence of Cryptosporidium meleagridis strain UKMEL1 and exactly 1 sequence of Cryptosporidium meleagridis TU1867 and exactly 1 sequence of Cryptosporidium muris RN66 and exactly 1 sequence of Cryptosporidium parvum IOWA-ATCC and exactly 1 sequence of Cryptosporidium parvum IOWA-BGF and exactly 1 sequence of Cryptosporidium parvum Iowa II and exactly 1 sequence of Cryptosporidium ryanae 45019 and exactly 1 sequence of Cryptosporidium serpentis 8845_47 and exactly 1 sequence of Cryptosporidium sp. 43IA8 isolate 43IA8 and exactly 1 sequence of Cryptosporidium sp. chipmunk genotype I strain 37763 and exactly 1 sequence of Cryptosporidium tyzzeri isolate UGA55 and exactly 1 sequence of Cryptosporidium ubiquitum isolate 39726",
+                "reading": "cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1",
+                "unchosen": [],
+                "unchosenCount": 0
+              }
+            ],
+            "openParams": [],
+            "confidence": 0.0,
+            "alternatives": [],
+            "resultCount": 1736,
+            "analysis": null,
+            "needsAnalysisOn": null,
+            "rationale": {
+              "kind": "search",
+              "searchName": "GroupsByPhyleticPattern",
+              "basis": "parameter",
+              "term": "Expression",
+              "reason": "The phyletic expression requires exactly one protein in every Cryptosporidium genome returned by the site lookup; Cyclospora is excluded.",
+              "similarity": 0.49666848133975994,
+              "compared": [
+                {
+                  "name": "GroupsBySingleCopy",
+                  "displayName": "Single Copy Orthogroups",
+                  "similarity": 0.5620917771509338
+                },
+                {
+                  "name": "GroupsByGenomeCount",
+                  "displayName": "Number of Taxa",
+                  "similarity": 0.49085071125464397
+                },
+                {
+                  "name": "GroupsByEcNumber",
+                  "displayName": "EC Number",
+                  "similarity": 0.3956117470712983
+                }
+              ],
+              "answered": 11,
+              "query": "ortholog groups with exactly one protein in every Cryptosporidium genome, phyletic pattern copy number",
+              "toolCallId": "call_BOkSwvFMSwbZxRusG8RPmEGU",
+              "sources": [],
+              "derivedFrom": {
+                "phyletic_expression": "cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1"
+              },
+              "short": "sets Expression",
+              "sentence": "Expression: The phyletic expression requires exactly one protein in every Cryptosporidium genome returned by the site lookup; Cyclospora is excluded."
+            },
+            "unexpressedQualifiers": []
+          }
+        ],
+        "structure": {
+          "root": {
+            "kind": "leaf",
+            "criterionId": "step_da148e92",
+            "operator": null,
+            "inputs": []
+          }
+        },
+        "dropped": [],
+        "openSlots": [],
+        "constraints": []
+      },
+      "present": true,
+      "diff": null,
+      "criteriaCount": 1,
+      "boundCount": 1,
+      "openSlotCount": 0,
+      "droppedCount": 0,
+      "readyToBuild": true,
+      "needsUser": false,
+      "contrasts": [],
+      "structureRender": "GroupsByPhyleticPattern"
+    },
+    "build": {
+      "outcome": {
+        "pushedStepIds": [
+          "step_da148e92"
+        ],
+        "failedSteps": [],
+        "skippedStepIds": [],
+        "wdkStrategyId": 214645000,
+        "zeroStepIds": [],
+        "nodeResults": [
+          {
+            "nodeId": "step_da148e92",
+            "searchName": "GroupsByPhyleticPattern",
+            "wdkStepId": 227284110,
+            "status": "ok",
+            "error": null
+          }
+        ],
+        "organismChange": null
+      },
+      "staleBuild": null,
+      "pushedCount": 1,
+      "failedCount": 0,
+      "skippedCount": 0,
+      "zeroResultSteps": [],
+      "needsRecovery": false,
+      "recoveryKind": "none",
+      "succeeded": true,
+      "nodeResults": [
+        {
+          "nodeId": "step_da148e92",
+          "searchName": "GroupsByPhyleticPattern",
+          "wdkStepId": 227284110,
+          "status": "ok",
+          "error": null
+        }
+      ],
+      "wdkStrategyId": 214645000
+    },
+    "verification": {
+      "digest": {
+        "disposition": "handoff",
+        "prose": "The built search returns **1,736** ortholog-group records and is semantically valid. Its phyletic expression requires copy number `1` for each of the 19 selected Cryptosporidium genomes, with Cyclospora excluded. However, the built strategy uses record type `group`, while the user-explicit constraint requires `protein` records; this substituted record type prevents verification as configured. The sampled group records expose aggregate taxonomic summaries rather than a per-genome copy-number column, so no additional record-level fit judgments were made. No control sets were available.",
+        "reason": "The copy-number expression is present, but the built result uses `group` records instead of the required `protein` record type.",
+        "handoffTo": "frame",
+        "failureCause": null,
+        "noteRefs": [],
+        "success": false,
+        "keyFindings": [
+          "The strategy contains the requested 19-genome expression with `1` copy required for every selected Cryptosporidium genome",
+          "The built result contains **1,736** ortholog-group records",
+          "The required `protein` record type was not honored; the strategy is built as `group` records",
+          "The result has no column showing per-genome copy number, so the eight sampled group records were not treated as independent fit evidence"
+        ],
+        "caveats": [],
+        "gaps": [
+          {
+            "kind": "requirement",
+            "text": "protein",
+            "status": "unmet",
+            "sentence": "'protein': nothing in the strategy answers it"
+          }
+        ],
+        "pendingChecks": [],
+        "constraintReport": [],
+        "review": {
+          "requirements": [
+            {
+              "text": "ortholog groups",
+              "turn": 1,
+              "answeredBy": [
+                "step_da148e92"
+              ],
+              "how": "search",
+              "status": "met",
+              "note": "`GroupsByPhyleticPattern` returns `group` records; estimated size is 1,736",
+              "shownBy": [],
+              "noRecordShowsIt": false,
+              "noRecordJudgedIt": false
+            },
+            {
+              "text": "exactly one protein in each Cryptosporidium genome",
+              "turn": 1,
+              "answeredBy": [
+                "step_da148e92"
+              ],
+              "how": "parameter",
+              "status": "met",
+              "note": "`phyletic_expression=cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1`; this requires one protein in each of the 19 selected Cryptosporidium genomes",
+              "shownBy": [],
+              "noRecordShowsIt": false,
+              "noRecordJudgedIt": false
+            },
+            {
+              "text": "protein records",
+              "turn": 1,
+              "answeredBy": [],
+              "how": "search",
+              "status": "unmet",
+              "note": "the strategy returns genes",
+              "shownBy": [],
+              "noRecordShowsIt": false,
+              "noRecordJudgedIt": false
+            }
+          ],
+          "columnFits": [],
+          "sampledGenes": [],
+          "sources": []
+        },
+        "remember": []
+      },
+      "caveats": [],
+      "complete": true,
+      "successful": false
+    },
+    "constraints": {
+      "grounded": [
+        {
+          "constraint": {
+            "kind": "organism",
+            "requestedValue": "Cryptosporidium genomes",
+            "label": "Organism scope",
+            "source": "assumed",
+            "hard": false
+          },
+          "status": "grounded",
+          "realizedValue": null,
+          "realizedParam": "",
+          "note": "",
+          "lifecycle": {
+            "state": "open"
+          }
+        },
+        {
+          "constraint": {
+            "kind": "record_type",
+            "requestedValue": "protein",
+            "label": "Protein records",
+            "source": "user_explicit",
+            "hard": true
+          },
+          "status": "grounded",
+          "realizedValue": null,
+          "realizedParam": "",
+          "note": "",
+          "lifecycle": {
+            "state": "open"
+          }
+        },
+        {
+          "constraint": {
+            "kind": "other",
+            "requestedValue": "ortholog groups with exactly one protein in each genome",
+            "label": "Orthology criterion",
+            "source": "assumed",
+            "hard": false
+          },
+          "status": "grounded",
+          "realizedValue": null,
+          "realizedParam": "",
+          "note": "",
+          "lifecycle": {
+            "state": "open"
+          }
+        },
+        {
+          "constraint": {
+            "kind": "other",
+            "requestedValue": "cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1",
+            "label": "phyletic_expression",
+            "source": "assumed",
+            "hard": false
+          },
+          "status": "grounded",
+          "realizedValue": "cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1",
+          "realizedParam": "",
+          "note": "The phyletic expression requires exactly one protein in every Cryptosporidium genome returned by the site lookup; Cyclospora is excluded.",
+          "lifecycle": {
+            "state": "open"
+          }
+        }
+      ],
+      "unmetCount": 0,
+      "blocking": false
+    },
+    "declinedProposal": null
+  }
+}

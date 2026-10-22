@@ -190,6 +190,16 @@ class _Repo:
     ) -> None:
         self.updates.append((conversation_id, upd))
 
+    async def name_and_link(self, conversation_id: UUID, gene_set: GeneSet, /) -> None:
+        await self.update_conversation(
+            conversation_id,
+            ConversationUpdate(
+                gene_set_id=gene_set.id,
+                gene_set_id_set=True,
+                gene_set_auto_imported=True,
+            ),
+        )
+
 
 def _thread(
     record_type: str | None = "sequence",
@@ -211,7 +221,7 @@ def _thread(
 
 async def _auto_import(
     store: _Store, record_type: str | None = "sequence"
-) -> tuple[bool, _Repo]:
+) -> tuple[GeneSet | None, _Repo]:
     thread = _thread(record_type)
     repo = _Repo()
     created = await auto_import_gene_set(
@@ -222,7 +232,7 @@ async def _auto_import(
         site_id="orthomcl",
         user_id=thread[0].user_id,
     )
-    return created is not None, repo
+    return created, repo
 
 
 _HOME_READ = ["primary_key", "gene_source_id", "gene_source_url"]
@@ -237,7 +247,7 @@ async def test_a_build_above_the_cap_sends_no_answer_read_and_skips(
     created, repo = await _auto_import(store)
 
     assert (created, site.reads, site.counts, store.rows, repo.updates) == (
-        False,
+        None,
         [],
         [],
         {},
@@ -309,7 +319,7 @@ async def test_a_small_build_is_read_once_from_the_strategy_alone(
 
     created, repo = await _auto_import(store)
 
-    assert created
+    assert created is not None
     assert site.reads == [(_HOME_READ, {"offset": 0, "numRecords": CAP}, None)]
     assert (site.steps_read, site.counts) == ([], [])
     [saved] = store.rows.values()
@@ -410,7 +420,7 @@ async def test_a_strategy_of_groups_is_not_saved_and_not_read(
 
     created, _repo = await _auto_import(store, record_type=None)
 
-    assert (created, site.reads, store.rows) == (False, [], {})
+    assert (created, site.reads, store.rows) == (None, [], {})
 
 
 async def test_a_resync_onto_groups_names_the_record_class(

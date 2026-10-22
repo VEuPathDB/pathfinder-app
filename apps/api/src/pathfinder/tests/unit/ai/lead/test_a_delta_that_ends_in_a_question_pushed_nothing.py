@@ -12,7 +12,7 @@ from veupathdb.domain.strategy import CombineOp, StrategyAst, flatten_tree
 
 from pathfinder.ai.graph.state import StrategyDomainState
 from pathfinder.ai.lead import edit_dispatch, pre_turn
-from pathfinder.ai.lead.deltas import EditDelta, FrameResult
+from pathfinder.ai.lead.deltas import EditDelta, FrameResult, PassGap
 from pathfinder.ai.lead.edit_dispatch import run_edit
 from pathfinder.ai.lead.intent import IntentClassification, UserIntent
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
@@ -65,6 +65,12 @@ _REPORTED = ReportedRequirement(
 )
 
 
+_GAP = PassGap(
+    kind="question_without_readings",
+    sentence="'Which cutoff?' reaches the card with no readings.",
+)
+
+
 async def _edit_that_stops_on_a_question(monkeypatch: pytest.MonkeyPatch) -> EditDelta:
     state = pipeline_state(user_prompt=_SWAP, domain=StrategyDomainState())
     intent = UserIntent(
@@ -82,6 +88,7 @@ async def _edit_that_stops_on_a_question(monkeypatch: pytest.MonkeyPatch) -> Edi
             disposition="needs_user",
             summary="stopped on the TM step",
             reported=[_REPORTED],
+            gaps=[_GAP],
         )
 
     async def _no_sheets(**_kwargs: Any) -> dict[str, Any]:
@@ -118,3 +125,11 @@ async def test_the_delta_carries_what_the_pass_reported(
     delta = await _edit_that_stops_on_a_question(monkeypatch)
 
     assert delta.reported == [_REPORTED]
+
+
+async def test_the_delta_carries_the_gaps_the_pass_degraded_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    delta = await _edit_that_stops_on_a_question(monkeypatch)
+
+    assert delta.gaps == [_GAP]

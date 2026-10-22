@@ -323,6 +323,7 @@ class LeadDeps:
     turn_counts: TurnCounts = field(default_factory=TurnCounts)
     # The last classification the gate refused, cleared when one is accepted.
     refused_classification: RefusedClassification | None = None
+    refused_tally_columns: dict[int, set[str]] = field(default_factory=dict)
 
     @property
     def conversation_id(self) -> UUID | None:
@@ -348,6 +349,15 @@ class LeadDeps:
     def strategy_session(self) -> StrategySession:
         """The strategy this thread holds, as the turn's runtime loaded it."""
         return self.runtime.strategy_session
+
+    @property
+    def build_unverified(self) -> bool:
+        parked = [
+            *self.pending_sub_agent_approvals.values(),
+            *(park.pending for park in self.pending_sub_agent_durables.values()),
+        ]
+        checking = any(pending.role == "verification" for pending in parked)
+        return self.state.turn_markers.build_unverified and not checking
 
     @property
     def step_count(self) -> int:

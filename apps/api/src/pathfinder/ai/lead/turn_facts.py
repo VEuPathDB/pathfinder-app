@@ -19,6 +19,7 @@ from pathfinder.ai.lead.facts_reads import (
 from pathfinder.ai.lead.ledger import InvestigationLedger
 from pathfinder.ai.lead.ledger_sections import unexpressed_words
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.unsaved_set import result_not_saved
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.caveats import (
     EditDirectionCaveat,
@@ -44,20 +45,30 @@ from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     OperationalSpec,
 )
-from pathfinder.domain.strategy.questions import option_label
+from pathfinder.domain.strategy.option_labels import option_label
 from pathfinder.domain.strategy.requirement_lifecycle import RetiredRequirement
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.types import SyncStateProtocol
 from pathfinder.domain.strategy.value_binding import plain_value
 from pathfinder.domain.turn_facts import (
+    UNCHECKED_PROSE,
+    UNVERIFIED_BUILD,
     ParameterFact,
     RetiredFact,
     SavedSetFact,
     StepFact,
+    StrategyLinkFact,
     TurnFacts,
 )
 from pathfinder.domain.zero_combine import zero_combine_caveats
 from pathfinder.services.strategies.commit import live_strategy_url
+
+
+def _strategy_link(
+    site_id: str, sync: SyncStateProtocol | None
+) -> StrategyLinkFact | None:
+    url = live_strategy_url(site_id, sync)
+    return None if url is None else StrategyLinkFact(site_id=site_id, url=url)
 
 
 def _label(criterion: Criterion, param: str, bound: BoundValue) -> str:
@@ -359,7 +370,7 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         root_count_before=markers.root_count_before() if built else None,
         last_change=_last_change(deps, graph),
         removed=[step.title for step in markers.deleted_steps],
-        strategy_url=live_strategy_url(deps.runtime.site_id, session.sync_state)
+        strategy_link=_strategy_link(deps.runtime.site_id, session.sync_state)
         if built
         else None,
         caveats=[
@@ -378,7 +389,14 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         retired=_retired_rows(domain),
         saved=[
             *(
-                SavedSetFact(kind="gene_set", name=s.name, count=s.gene_count)
+                SavedSetFact(
+                    kind="gene_set",
+                    name=s.name,
+                    count=s.gene_count,
+                    record_noun=counted_noun(s.record_type)
+                    if s.record_type
+                    else "gene",
+                )
                 for s in markers.created_gene_sets
             ),
             *(
@@ -386,6 +404,9 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
                 for s in markers.created_control_sets
             ),
         ],
+        unsaved=result_not_saved(deps.runtime.site_id, graph, session.sync_state)
+        if markers.changed_strategy
+        else None,
         control_results=[
             control_result_fact(run.evidence) for run in markers.control_tests
         ],
@@ -408,6 +429,8 @@ def turn_facts(deps: LeadDeps, *, refusal: str = "") -> TurnFacts:
         if stop is None or stop.role != "verification"
         else stop.render(),
         refusal=refusal,
+        unchecked=UNCHECKED_PROSE if markers.unchecked_reply else "",
+        unverified=UNVERIFIED_BUILD if deps.build_unverified else "",
     )
 
 

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from assistant_core.graph.tool_summary import count_noun
 from pydantic_ai import RunContext
+from veupathdb.domain.parameters import PHYLETIC_EXPRESSION_SEARCH
 from veupathdb.domain.strategy import StepKind
 
 from pathfinder.ai.agents.tool_vocabulary import build_tool_repetition_guard
@@ -24,6 +25,7 @@ from pathfinder.ai.lead.dispatch_context import (
 from pathfinder.ai.lead.dispatch_messages import stop_phrase
 from pathfinder.ai.lead.evidence_card import (
     judged_control_tests,
+    judged_expression_fits,
     publish_evidence_card,
 )
 from pathfinder.ai.lead.ledger import (
@@ -54,6 +56,7 @@ from pathfinder.domain.caveats import (
 )
 from pathfinder.domain.constraint_check import ConstraintCheck, shortfalls
 from pathfinder.domain.evidence import SAMPLED_GENE_LIMIT, VerificationReview
+from pathfinder.domain.expression_fit import expression_gaps
 from pathfinder.domain.question_rows import without_questions
 from pathfinder.domain.separation import AttachedControls
 from pathfinder.domain.shown_requirements import (
@@ -64,6 +67,7 @@ from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.services.eda.analysis_kinds import unread_analyses
 from pathfinder.services.strategies.bound_uploads import uploads_the_specs_run_on
 from pathfinder.services.strategies.data_marks import marks_with_uploads
+from pathfinder.services.strategies.record_classes import names_of_every_record_type
 from pathfinder.services.strategies.text_queries import (
     search_definitions,
     text_query_criteria,
@@ -76,6 +80,7 @@ class SearchStep:
 
     step_id: str
     wdk_step_id: int
+    phyletic: bool = False
 
 
 @dataclass(frozen=True)
@@ -103,7 +108,11 @@ def root_sample(deps: LeadDeps) -> RootSample | None:
         []
         if graph is None
         else [
-            SearchStep(step_id=sid, wdk_step_id=sync.wdk_step_ids[sid])
+            SearchStep(
+                step_id=sid,
+                wdk_step_id=sync.wdk_step_ids[sid],
+                phyletic=step.search_name == PHYLETIC_EXPRESSION_SEARCH,
+            )
             for sid, step in graph.steps.items()
             if step.kind is not StepKind.COMBINE
             and step.search_name
@@ -120,12 +129,13 @@ def root_sample(deps: LeadDeps) -> RootSample | None:
 
 def _columns_line(root: RootSample) -> str | None:
     """The search steps whose columns the check reads first, or None when
-    there is none or the root holds no gene."""
-    if not root.search_steps or root.count == 0:
+    there is none. A root that holds no record reads only the steps that bind
+    a phyletic expression."""
+    read = [s for s in root.search_steps if root.count != 0 or s.phyletic]
+    if not read:
         return None
     calls = "; ".join(
-        f"read_step_columns(wdk_step_id={s.wdk_step_id}) for {s.step_id}"
-        for s in root.search_steps
+        f"read_step_columns(wdk_step_id={s.wdk_step_id}) for {s.step_id}" for s in read
     )
     return f"Read the columns of each search step first: {calls}."
 
@@ -189,6 +199,7 @@ async def run_verification(
     domain = deps.state.domain
     site_id = deps.runtime.site_id
     sheets = await search_definitions(site_id, domain.operational_spec)
+    names = await names_of_every_record_type(site_id)
     uploads = await uploads_the_specs_run_on(site_id, [domain.operational_spec], sheets)
     domain.data_marks = await marks_with_uploads(
         site_id, [domain.operational_spec], uploads
@@ -228,7 +239,7 @@ async def run_verification(
                 without_questions(
                     delta.digest.review, scope.messages, domain.researcher_asks
                 ),
-                review_record(deps, scope.messages),
+                review_record(deps, scope.messages, names),
             ),
             {c: u.name for c, u in uploads.items()},
         ),
@@ -279,7 +290,8 @@ def verification_stopped(stop: PhaseStop | None) -> VerificationStopped:
         summary=(
             f"VERIFY {why}, so it recorded no verdict and the strategy is not "
             "verified. Tell the user the check did not finish and why, and ask "
-            "whether to run it again."
+            "whether to run it again. Set `unverifiedReason` to why the check "
+            "did not finish."
         ),
     )
 
@@ -323,6 +335,7 @@ def _findings(
     ledger = derive_ledger(deps.state, deps.intent)
     spec = deps.state.domain.operational_spec
     retired = [r.grounded() for r in deps.state.domain.retired_requirements]
+    live = frozenset(deps.runtime.strategy_session.wdk_step_ids())
     return _Findings(
         gaps=[
             *check_gaps(
@@ -333,11 +346,9 @@ def _findings(
                 asked=[q.question for q in deps.state.domain.answered_questions],
             ),
             *shortfalls(computed),
+            *expression_gaps(judged_expression_fits(deps)),
         ],
-        build=build_contradiction(
-            ledger.build,
-            built_step_count=len(deps.runtime.strategy_session.wdk_step_ids()),
-        ),
+        build=build_contradiction(ledger.build, built_step_count=len(live)),
     )
 
 

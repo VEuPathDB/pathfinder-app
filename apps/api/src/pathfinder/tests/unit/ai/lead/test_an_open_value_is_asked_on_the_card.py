@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-import pytest
-from pydantic import ValidationError
 from pydantic_ai.messages import ToolCallPart
 from pydantic_ai.tools import DeferredToolRequests
 from veupathdb.wdk import WDKSearchResponse
@@ -176,8 +174,9 @@ def test_a_framed_turn_with_nothing_open_asks_nothing_of_the_card() -> None:
 
 def test_an_open_question_holds_at_most_eight_options() -> None:
     assert OpenQuestion(question="Which?").options == []
-    with pytest.raises(ValidationError):
-        SlotQuestion(question="Which?", options=[str(n) for n in range(9)])
+    assert SlotQuestion(
+        question="Which?", options=[str(n) for n in range(9)]
+    ).options == [str(n) for n in range(8)]
 
 
 def test_the_ledger_prints_each_open_slot_s_choices() -> None:

@@ -24,7 +24,9 @@ from pathfinder.domain.strategy.constraints import (
     OpenLifecycle,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
+from pathfinder.services.strategies.record_classes import record_names_of
 from pathfinder.tests._support.bound_values import bound
+from pathfinder.tests._support.organism_reads import TRANSCRIPT
 from pathfinder.tests.unit.ai.lead.conftest import pipeline_state
 
 PF = "Plasmodium falciparum 3D7"
@@ -90,6 +92,8 @@ def _record(spec: OperationalSpec) -> ReviewRecord:
         spec=spec,
         read_as=lambda _reference: None,
         record_url=lambda gene_id: gene_id,
+        class_names=record_names_of([TRANSCRIPT]),
+        record_roles={},
     )
 
 

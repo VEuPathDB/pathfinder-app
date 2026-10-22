@@ -45,6 +45,7 @@ from pathfinder.domain.strategy.operational_spec import (
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.catalog_builders import ParamsAt
 from pathfinder.tests._support.catalog_reads import listing
+from pathfinder.tests._support.record_classes import list_every_search_under
 from pathfinder.tests._support.recorded_counts import no_measurements
 from pathfinder.tests._support.recorded_searches import no_count, serve_qualifier_reads
 from pathfinder.tests._support.tool_returns import returned
@@ -82,6 +83,8 @@ def param_info(
 
 
 def serve_params(monkeypatch: pytest.MonkeyPatch, at: ParamsAt) -> None:
+    list_every_search_under(monkeypatch, "transcript")
+
     def _fetch_at(*_args: object) -> ParamFetcher:
         async def fetch_at(context: dict[str, str]) -> list[ParameterInfo]:
             return at(context)
@@ -96,6 +99,7 @@ def serve_definition(
     parameters: list[WDKParameter] | None = None,
     **fields: object,
 ) -> list[str]:
+    list_every_search_under(monkeypatch, "transcript")
     reads: list[str] = []
 
     async def _details(
@@ -130,6 +134,7 @@ def serve_catalog(
     properties: dict[str, list[str]] | None = None,
     **fields: str,
 ) -> list[SearchContext]:
+    list_every_search_under(monkeypatch, "transcript")
     seen: list[SearchContext] = []
 
     async def _details(

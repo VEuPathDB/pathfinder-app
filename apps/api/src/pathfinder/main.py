@@ -83,6 +83,7 @@ from pathfinder.services.eda.catalog import preload_study_index
 from pathfinder.services.search_waits import runs_on_the_deployment_line
 from pathfinder.transport.http.openapi import install_openapi_post_passes
 from pathfinder.transport.http.routers import (
+    audits,
     chat,
     conversations,
     dev,
@@ -287,6 +288,7 @@ def _register_routers(app: FastAPI) -> None:
         eda_datasets.router,
         veupathdb_auth.router,
         gene_sets.router,
+        audits.router,
         exports.router,
         product_events.router,
         user_data.router,

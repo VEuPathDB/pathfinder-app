@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
 import httpx
 from assistant_core.memory.schemas import MemoryValue
@@ -13,7 +14,10 @@ from assistant_core.platform.db import async_session_factory
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from pathfinder.domain.audit.scope import AuditScope, SingleGeneTarget
 from pathfinder.persistence.models import EvalStagedCase, GeneSetRow, User
+from pathfinder.persistence.repositories.audit import AuditRepository
+from pathfinder.services.audit.runs import RunOwner, create_run
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.tests.integration.http._user_data_purge import (
@@ -65,6 +69,7 @@ async def test_purge_dismisses_all_conversations_and_reports_counts(
             "geneSets": 0,
             "experiments": 0,
             "controlSets": 0,
+            "auditRuns": 0,
             "stagedEvalCases": 0,
         },
     }
@@ -123,6 +128,7 @@ async def test_a_purge_from_another_application_destroys_nothing(
             "geneSets": 0,
             "experiments": 0,
             "controlSets": 0,
+            "auditRuns": 0,
             "stagedEvalCases": 0,
         },
     }
@@ -146,6 +152,7 @@ async def test_a_purge_from_another_application_destroys_nothing(
         "geneSets": 1,
         "experiments": 0,
         "controlSets": 0,
+        "auditRuns": 0,
         "stagedEvalCases": 0,
     }
     async with session_maker() as verify:
@@ -336,3 +343,83 @@ async def test_a_purge_leaves_another_application_s_staged_eval_cases(
     assert resp.status_code == 200, resp.text
     assert resp.json()["deleted"]["stagedEvalCases"] == 0
     assert await _staged_sites(session_maker, seed_user) == [SITE]
+
+
+def _gene_length_scope(site_id: str, gene: str) -> AuditScope:
+    return AuditScope(
+        site_id=site_id,
+        targets=(SingleGeneTarget(check="gene_length", genes=(gene,)),),
+    )
+
+
+async def test_a_site_purge_deletes_that_sites_audit_runs(
+    api_client: httpx.AsyncClient,
+    db_session: AsyncSession,
+    seed_user: User,
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    conversation_id = await add_conv(
+        db_session,
+        seed_user.id,
+        site_id=SITE,
+        wdk_strategy_id=None,
+        created_here=False,
+    )
+    owner = RunOwner(user_id=seed_user.id, conversation_id=conversation_id)
+    kept = await create_run(
+        owner=owner, scope=_gene_length_scope(OTHER_SITE, "TGME49_200250")
+    )
+    await create_run(owner=owner, scope=_gene_length_scope(SITE, "PF3D7_1133400"))
+    stranger = User(id=uuid4())
+    db_session.add(stranger)
+    await db_session.commit()
+    theirs = await create_run(
+        owner=RunOwner(
+            user_id=stranger.id,
+            conversation_id=await add_conv(
+                db_session,
+                stranger.id,
+                site_id=SITE,
+                wdk_strategy_id=None,
+                created_here=False,
+            ),
+        ),
+        scope=_gene_length_scope(SITE, "PF3D7_1133400"),
+    )
+
+    resp = await api_client.request(
+        "DELETE", "/api/v1/user/data", params={"siteId": SITE}
+    )
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["deleted"]["auditRuns"] == 1
+    async with session_maker() as verify:
+        remaining = await AuditRepository(verify).runs(user_id=seed_user.id)
+        untouched = await AuditRepository(verify).runs(user_id=stranger.id)
+    assert [run.id for run in remaining] == [kept]
+    assert [run.id for run in untouched] == [theirs]
+
+
+async def test_clearing_all_data_deletes_every_sites_audit_runs(
+    api_client: httpx.AsyncClient,
+    db_session: AsyncSession,
+    seed_user: User,
+    session_maker: async_sessionmaker[AsyncSession],
+) -> None:
+    conversation_id = await add_conv(
+        db_session,
+        seed_user.id,
+        site_id=SITE,
+        wdk_strategy_id=None,
+        created_here=False,
+    )
+    owner = RunOwner(user_id=seed_user.id, conversation_id=conversation_id)
+    await create_run(owner=owner, scope=_gene_length_scope(OTHER_SITE, "TGME49_200250"))
+    await create_run(owner=owner, scope=_gene_length_scope(SITE, "PF3D7_1133400"))
+
+    resp = await api_client.request("DELETE", "/api/v1/user/data")
+
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["deleted"]["auditRuns"] == 2
+    async with session_maker() as verify:
+        assert await AuditRepository(verify).runs(user_id=seed_user.id) == []

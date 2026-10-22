@@ -47,8 +47,8 @@ _PASSED = (
 
 def _forget_the_judge() -> None:
     get_settings.cache_clear()
-    security._judge.cache_clear()
-    security._scanner.cache_clear()
+    security._judge_on.cache_clear()
+    security._scanner_on.cache_clear()
 
 
 @pytest.fixture

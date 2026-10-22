@@ -8,6 +8,7 @@ from pathfinder.platform.model_catalog import (
     get_model_entry,
     get_smallest_model,
 )
+from pathfinder.platform.pinned_model import pinned_model
 
 
 def resolve_orchestrator_model_entry(
@@ -16,11 +17,11 @@ def resolve_orchestrator_model_entry(
 ) -> ModelEntry:
     """Pick the orchestrator/compactor's model entry.
 
-    Precedence: explicit catalog id -> explicit provider's smallest ->
-    configured default provider's smallest.
+    Precedence: explicit catalog id -> the run's pinned model ->
+    explicit provider's smallest -> configured default provider's smallest.
     """
-    if model_id is not None:
-        entry = get_model_entry(model_id)
+    for candidate in (model_id, pinned_model()):
+        entry = get_model_entry(candidate) if candidate else None
         if entry is not None:
             return entry
     resolved_provider: ModelProvider = provider or get_settings().default_provider

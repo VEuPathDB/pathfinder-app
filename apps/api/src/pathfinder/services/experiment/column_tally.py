@@ -7,8 +7,7 @@ from typing import Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
-from veupathdb import JSONObject, JSONValue, strip_html_tags
-from veupathdb.domain import WDKHistogramBin
+from veupathdb import JSONObject, JSONValue
 from veupathdb.domain.parameters import wire_map
 from veupathdb.wdk import (
     WDKAttributeField,
@@ -19,10 +18,15 @@ from veupathdb.wdk import (
 from veupathdb.wdk.wdk_models import WDKColumnDistribution
 
 from pathfinder.domain.tally_facts import TallyFact, TallyRowFact, tally_id
+from pathfinder.services.experiment.tally_rows import (
+    KEPT_ROWS,
+    TallyRow,
+    distribution_rows,
+    shown_value,
+)
 from pathfinder.services.experiment.variant_comparison import VariantSpec
 
-_BY_VALUE = "byValue"
-_KEPT_ROWS = 200
+BY_VALUE = "byValue"
 
 
 class ColumnTallyRefusedError(ValueError):
@@ -32,11 +36,6 @@ class ColumnTallyRefusedError(ValueError):
 class TallyOnly(CamelModel):
     column: str
     values: list[str]
-
-
-class TallyRow(CamelModel):
-    value: str
-    count: int
 
 
 class ColumnTally(CamelModel):
@@ -53,6 +52,8 @@ class ColumnTally(CamelModel):
     distinct: int
     missing: int = 0
     rows: list[TallyRow] = Field(default_factory=list)
+    site_id: str
+    step_url: str | None = None
 
     def fact(self) -> TallyFact:
         return TallyFact(
@@ -69,7 +70,7 @@ type _Tool = Literal["reports", "filters"]
 
 
 def _offers(field: WDKAttributeField, tool: _Tool) -> bool:
-    return _BY_VALUE in (
+    return BY_VALUE in (
         field.tools.reports if tool == "reports" else field.tools.filters
     )
 
@@ -91,32 +92,17 @@ def _offered(
     raise ColumnTallyRefusedError(msg)
 
 
-def _label(field: WDKAttributeField) -> str:
+def field_label(field: WDKAttributeField) -> str:
     return field.display_name or field.name
 
 
-def _title(
+def tally_title(
     noun: str, column: WDKAttributeField, kept: str, only: TallyOnly | None
 ) -> str:
-    title = f"{noun.capitalize()}s by {_label(column)}"
+    title = f"{noun.capitalize()}s by {field_label(column)}"
     if only is None:
         return title
     return f"{title}, where {kept} is {' or '.join(only.values)}"
-
-
-def _shown(bin_: WDKHistogramBin) -> str:
-    return strip_html_tags(bin_.bin_label or bin_.bin_start).strip()
-
-
-def _rows(distribution: WDKColumnDistribution) -> list[TallyRow]:
-    return sorted(
-        (
-            TallyRow(value=_shown(b), count=b.value)
-            for b in distribution.histogram
-            if _shown(b)
-        ),
-        key=lambda row: (-row.count, row.value),
-    )
 
 
 async def _distribution(
@@ -134,13 +120,13 @@ async def _stored_values(
     site_id: str, spec: VariantSpec, kept: WDKAttributeField, only: TallyOnly, noun: str
 ) -> list[str]:
     held = await _distribution(site_id, spec, kept.name, None)
-    stored = {_shown(b): b.bin_start for b in held.histogram if _shown(b)}
-    stored |= {b.bin_start: b.bin_start for b in held.histogram if _shown(b)}
+    stored = {shown_value(b): b.bin_start for b in held.histogram if shown_value(b)}
+    stored |= {b.bin_start: b.bin_start for b in held.histogram if shown_value(b)}
     unheld = [value for value in only.values if value not in stored]
     if unheld:
-        values = ", ".join(row.value for row in _rows(held)[:_KEPT_ROWS])
+        values = ", ".join(row.value for row in distribution_rows(held)[:KEPT_ROWS])
         msg = (
-            f"No {noun} record has {kept.name} ({_label(kept)}) "
+            f"No {noun} record has {kept.name} ({field_label(kept)}) "
             f"{' or '.join(unheld)}. The values {kept.name} holds: {values}."
         )
         raise ColumnTallyRefusedError(msg)
@@ -170,18 +156,18 @@ async def run_column_tally(
         stored: list[JSONValue] = list(
             await _stored_values(site_id, spec, kept, only, record_noun)
         )
-        filters = {only.column: {_BY_VALUE: {"values": stored}}}
+        filters = {only.column: {BY_VALUE: {"values": stored}}}
     distribution = await _distribution(site_id, spec, column, filters)
     stats = distribution.statistics
-    rows = _rows(distribution)
+    rows = distribution_rows(distribution)
     if not rows and stats.subset_size > 0:
         msg = (
             f"None of the {stats.subset_size:,} {record_noun} records has a value "
-            f"for {column} ({_label(counted)}), so it counts nothing. Count them "
+            f"for {column} ({field_label(counted)}), so it counts nothing. Count them "
             "by another column."
         )
         raise ColumnTallyRefusedError(msg)
-    only_label = "" if kept is None else _label(kept)
+    only_label = "" if kept is None else field_label(kept)
     return ColumnTally(
         id=tally_id(
             site_id,
@@ -189,16 +175,17 @@ async def run_column_tally(
             column,
             None if only is None else (only.column, tuple(only.values)),
         ),
-        title=_title(record_noun, counted, only_label, only),
+        title=tally_title(record_noun, counted, only_label, only),
         search_name=spec.search_name,
         record_type=spec.record_type,
         record_noun=record_noun,
         column=column,
-        column_label=_label(counted),
+        column_label=field_label(counted),
         only=only,
         only_label=only_label,
         total=stats.subset_size,
         distinct=stats.num_distinct_values or len(rows),
         missing=stats.num_missing_cases,
-        rows=rows[:_KEPT_ROWS],
+        rows=rows[:KEPT_ROWS],
+        site_id=site_id,
     )

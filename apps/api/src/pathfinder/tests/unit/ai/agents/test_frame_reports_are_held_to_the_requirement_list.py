@@ -58,8 +58,8 @@ def _result(*numbers: str) -> FrameResult:
 def test_frame_reads_the_requirements_under_their_numbers() -> None:
     assert pinned_requirements(_context()) == (
         "## Requirements the researcher stated\n"
-        "- R1: P. falciparum 3D7\n"
-        "- R2: predicted GPI anchor"
+        "- R1 (organism): P. falciparum 3D7\n"
+        "- R2 (other): predicted GPI anchor"
     )
 
 
@@ -69,7 +69,7 @@ def test_a_report_of_a_listed_number_passes() -> None:
     assert hold_the_reports_to_the_requirement_list(_context(), result) is result
 
 
-def test_a_number_the_list_lacks_is_sent_back_once_with_the_numbers_it_holds() -> None:
+def test_a_number_the_list_lacks_is_sent_back_twice_with_the_numbers_it_holds() -> None:
     ctx = _context()
     result = _result("R2", "R5")
 
@@ -82,4 +82,11 @@ def test_a_number_the_list_lacks_is_sent_back_once_with_the_numbers_it_holds() -
         "stated'. Use one of those numbers, or leave the entry out and say it "
         "in summary."
     )
-    assert hold_the_reports_to_the_requirement_list(ctx, result) is result
+    with pytest.raises(ModelRetry):
+        hold_the_reports_to_the_requirement_list(ctx, result)
+    assert hold_the_reports_to_the_requirement_list(ctx, result) == _result(
+        "R2"
+    ).with_gap(
+        "report_dropped",
+        "The pass reported ['R5'], which the requirement list does not hold.",
+    )

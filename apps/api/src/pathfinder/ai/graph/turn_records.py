@@ -15,6 +15,7 @@ from pathfinder.domain.comparison_facts import ComparisonFact
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_thread import EdaExport
 from pathfinder.domain.evidence import ColumnFit, ControlTestEvidence
+from pathfinder.domain.expression_fit import ExpressionFit
 from pathfinder.domain.last_change import LastChange
 from pathfinder.domain.membership_facts import MembershipFact
 from pathfinder.domain.strategy.constraints import Constraint
@@ -187,6 +188,8 @@ class TurnMarkers(CamelModel):
     verification_stopped: bool = False
     # A reply that did not match the turn's record is corrected once.
     contract_refused: bool = False
+    output_refusals: int = 0
+    unchecked_reply: bool = False
     # The EDA datasets this turn opened an analysis on.
     eda_datasets_opened: list[str] = Field(default_factory=list)
     # The EDA cut this turn exported, which the turn's case records.
@@ -195,6 +198,7 @@ class TurnMarkers(CamelModel):
     control_tests: list[ControlTestRun] = Field(default_factory=list)
     # Every column a check of this turn read, the latest read of each.
     column_fits: list[ColumnFit] = Field(default_factory=list)
+    expression_fits: list[ExpressionFit] = Field(default_factory=list)
     # The study-step checks this turn computed, the latest read of each step.
     study_checks: dict[str, list[ConstraintCheck]] = Field(default_factory=dict)
     # The strategy as the message found it. Every count before an edit of
@@ -263,8 +267,9 @@ class TurnMarkers(CamelModel):
 
     @property
     def build_unverified(self) -> bool:
-        """Whether this turn built and no pass checked the result."""
-        return self.built and not (self.verified or self.verification_dispatched)
+        """Whether this turn built and no check returned its review."""
+        reviewed = self.verification_dispatched and not self.verification_stopped
+        return self.built and not (self.verified or reviewed)
 
     def record_eda_dataset_opened(self, dataset_id: str) -> None:
         """Record the dataset this turn opened an analysis on, once."""
@@ -304,10 +309,20 @@ class TurnMarkers(CamelModel):
         self.added_searches.extend(s for s in searches if s.step_id not in held)
 
     def record_column_fits(self, fits: Iterable[ColumnFit]) -> None:
-        """Keep one fit per step and column, the latest read."""
+        """Keep one fit per step and column, the latest read. A fit whose counts
+        do not nest is a fault of the read that made it."""
+        fresh = list(fits)
+        unnested = [f.nesting_problem for f in fresh if f.nesting_problem]
+        if unnested:
+            raise ValueError("; ".join(unnested))
         read = {fit.column_key: fit for fit in self.column_fits}
-        read.update({fit.column_key: fit for fit in fits})
+        read.update({fit.column_key: fit for fit in fresh})
         self.column_fits = list(read.values())
+
+    def record_expression_fit(self, fit: ExpressionFit) -> None:
+        read = {held.wdk_step_id: held for held in self.expression_fits}
+        read[fit.wdk_step_id] = fit
+        self.expression_fits = list(read.values())
 
     def record_arrival(
         self, root_id: str | None, counts: Mapping[str, int | None]

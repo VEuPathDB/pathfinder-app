@@ -71,6 +71,7 @@ def state_the_exported_step(
         domain.operational_spec = spec_from_ast(
             ast,
             goal=stated_goal or ctx.deps.state.request_the_thread_answers,
+            listed={},
             analyses={node.id: binding},
         )
         return
@@ -118,7 +119,7 @@ def spec_binding_the_export(
 def structure_the_graph_states(graph: StrategyGraph, goal: str) -> SpecStructure | None:
     """The structure a build would state for the strategy the graph holds."""
     ast = graph.to_strategy_ast()
-    return None if ast is None else spec_from_ast(ast, goal=goal).structure
+    return None if ast is None else spec_from_ast(ast, goal=goal, listed={}).structure
 
 
 def structure_states_the_graph(ctx: RunContext[LeadDeps], graph: StrategyGraph) -> bool:

@@ -1,7 +1,8 @@
-"""The database seams the suite runs on: whether a URL answers, a detached session, none."""
+"""The database seams the suite runs on: a URL check, the checkpoint tables, no session."""
 
 from __future__ import annotations
 
+from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from asyncpg.exceptions import PostgresError
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
@@ -33,6 +34,11 @@ async def can_connect(url: str) -> bool:
         return False
     finally:
         await engine.dispose()
+
+
+async def create_checkpoint_tables(url: str) -> None:
+    async with lifespan_checkpointer(url):
+        pass
 
 
 def detached_session() -> AsyncSession:

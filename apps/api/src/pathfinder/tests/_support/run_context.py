@@ -28,6 +28,7 @@ def run_context_for[DepsT](
         usage=RunUsage(),
         messages=[],
         tool_call_id=tool_call_id,
+        max_retries=3,
     )
 
 

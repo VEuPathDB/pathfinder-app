@@ -57,9 +57,27 @@ def test_the_expression_is_read_back_in_words() -> None:
 def _tree() -> PhyleticTree:
     return PhyleticTree.from_taxa(
         [
-            TaxonEntry(id="3", parent_id=None, code="pfal", label="P. falciparum 3D7"),
-            TaxonEntry(id="4", parent_id=None, code="pfag", label="P. falciparum 7G8"),
-            TaxonEntry(id="5", parent_id=None, code="pfhb", label="P. falciparum HB3"),
+            TaxonEntry(
+                id="3",
+                parent_id=None,
+                code="pfal",
+                label="P. falciparum 3D7",
+                clade=False,
+            ),
+            TaxonEntry(
+                id="4",
+                parent_id=None,
+                code="pfag",
+                label="P. falciparum 7G8",
+                clade=False,
+            ),
+            TaxonEntry(
+                id="5",
+                parent_id=None,
+                code="pfhb",
+                label="P. falciparum HB3",
+                clade=False,
+            ),
         ]
     )
 
@@ -68,7 +86,7 @@ def _tree() -> PhyleticTree:
 async def test_the_reading_states_the_list_size_whether_or_not_the_site_counted(
     count: int | None,
 ) -> None:
-    expression = "pfal>=1T AND pfag+pfhb<=1T"
+    expression = "pfal=1 AND pfag+pfhb<=1T"
 
     measured = await measure_binding(
         TurnCounts(),
@@ -94,8 +112,9 @@ async def test_the_reading_states_the_list_size_whether_or_not_the_site_counted(
             param="phyletic_expression",
             reading=expression,
             label=(
-                "at least 1 taxon of P. falciparum 3D7 and at most 1 taxon of "
-                "these 2: P. falciparum 7G8, P. falciparum HB3"
+                "exactly 1 protein of P. falciparum 3D7 and at most 1 genome of "
+                "these 2: P. falciparum 7G8, P. falciparum HB3 (2 genomes of 1 "
+                "species; P. falciparum 2)"
             ),
         )
     ]

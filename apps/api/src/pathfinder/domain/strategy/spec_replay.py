@@ -9,7 +9,6 @@ step's parameters are WDK's own.
 from __future__ import annotations
 
 from collections.abc import Collection, Sequence
-from typing import NamedTuple
 
 from veupathdb.domain.parameters import ParamValue
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode
@@ -23,9 +22,9 @@ from pathfinder.domain.strategy.operational_spec import (
 )
 from pathfinder.domain.strategy.outside_changes import OutsideChanges
 from pathfinder.domain.strategy.spec_hydration import (
-    Analyses,
-    Sheets,
     StepRead,
+    StepReading,
+    criteria_listed_under,
     criterion_analysing,
     sheet_bound,
     sheet_marked,
@@ -85,6 +84,7 @@ def criterion_rebound(
     rebound = criterion.model_copy(
         update={
             "search_name": node.search_name,
+            "record_class": None,
             "saved_strategy_ref": None,
             "analysis": None,
             "resolved_params": bind_values(
@@ -104,33 +104,30 @@ def spec_replaying(
     spec: OperationalSpec,
     changes: OutsideChanges,
     live: StrategyAst | None,
+    reading: StepReading,
     *,
-    sheet_params: Sheets,
-    analyses: Analyses,
     may_leave_out: Collection[str] = (),
 ) -> OperationalSpec:
     """The spec the strategy answers to once the outside change is played onto it.
 
     A criterion whose step the strategy lost leaves; a step it gained is
     stated; a value or a search moved outside is restated on the criterion
-    that answers to that step. ``analyses`` are the live steps that read as
-    an exported analysis. ``may_leave_out`` names the steps this spec is
+    that answers to that step, and a criterion with no class takes the one
+    ``reading`` lists its search under. ``reading`` also holds the live steps
+    that read as an exported analysis. ``may_leave_out`` names the steps this spec is
     entitled to leave out, which is how a plan carries a drop it has not
     pushed.
     """
     replayed = spec_without_steps(spec, changes.removed_ids)
-    if live is None:
-        return replayed
-    reading = _StepReading(sheet_params=sheet_params, analyses=analyses)
-    replayed = _the_values_the_steps_now_hold(replayed, changes, live, reading)
-    return spec_stating_the_live_tree(
-        replayed,
-        live,
-        sheet_params=sheet_params,
-        analyses=analyses,
-        shape_moved=changes.structure_moved,
-        may_leave_out=may_leave_out,
-    )
+    if live is not None:
+        replayed = spec_stating_the_live_tree(
+            _the_values_the_steps_now_hold(replayed, changes, live, reading),
+            live,
+            reading,
+            shape_moved=changes.structure_moved,
+            may_leave_out=may_leave_out,
+        )
+    return criteria_listed_under(replayed, reading.listed)
 
 
 def steps_the_replay_reads(
@@ -163,18 +160,11 @@ def steps_the_replay_reads(
     ]
 
 
-class _StepReading(NamedTuple):
-    """How a replay reads a live step: its sheet, or the analysis it exports."""
-
-    sheet_params: Sheets
-    analyses: Analyses
-
-
 def _the_values_the_steps_now_hold(
     spec: OperationalSpec,
     changes: OutsideChanges,
     live: StrategyAst,
-    reading: _StepReading,
+    reading: StepReading,
 ) -> OperationalSpec:
     """The spec restating every value and search that moved on a live step."""
     moved = {change.step_id: change for change in changes.changed}
@@ -207,7 +197,7 @@ def _criterion_the_step_states(
     criterion: Criterion,
     change: StepChange,
     node: StrategyStepNode,
-    reading: _StepReading,
+    reading: StepReading,
     closed: set[tuple[str, str]],
 ) -> Criterion:
     """The criterion holding what its step now says, and the slots that closes.

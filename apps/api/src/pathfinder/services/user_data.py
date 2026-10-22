@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import cast
 from uuid import UUID
 
 from assistant_core.conversation.cancellation import stop_turns_and_wait
@@ -14,7 +13,7 @@ from assistant_core.platform.context import calling_application
 from assistant_core.platform.logging import get_logger
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict
-from sqlalchemy import CursorResult, Row, Select, delete, select, update
+from sqlalchemy import Row, Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import get_strategy_api
@@ -26,8 +25,10 @@ from pathfinder.persistence.models import (
     ExperimentRow,
     GeneSetRow,
 )
+from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.persistence.repositories.conversation import ConversationRepository
 from pathfinder.persistence.repositories.eval_staging import delete_staged_for_user
+from pathfinder.persistence.rows import rows_changed
 
 logger = get_logger(__name__)
 
@@ -46,6 +47,7 @@ class PurgeResult:
     gene_sets: int
     experiments: int
     control_sets: int
+    audit_runs: int
     staged_eval_cases: int
 
 
@@ -76,15 +78,16 @@ async def purge_user_data(
     the user made on the website stays. A chat whose VEuPathDB strategy is
     still there is dismissed instead of deleted, and a run in the same
     position keeps its row, so a later purge can finish the job. Gene sets,
-    experiments, and control sets are otherwise deleted.
+    experiments, control sets and audit runs are otherwise deleted.
     A caller destroys only what it can read, so the same user's data under
-    another application is untouched. A staged eval candidate names a site, so
-    a purge of one site clears only that site's. A memory names no site, so
-    only a purge of every site clears the memories and the tombstones that
-    hold them out.
+    another application is untouched. An audit run and a staged eval candidate
+    each name a site, so a purge of one site clears only that site's. An empty
+    site is every site. A memory names no site, so only a purge of every site
+    clears the memories and the tombstones that hold them out.
     The memories go after the relational purge commits, so a failure there
     raises with every memory still in place and the call can be repeated.
     """
+    site_id = site_id or None
     application_id = calling_application()
     # The outer join makes the strategy row nullable, which the select type
     # of the three entities does not express.
@@ -137,8 +140,7 @@ async def purge_user_data(
             conv_del = conv_del.where(Conversation.site_id == site_id)
         if kept_conversations:
             conv_del = conv_del.where(Conversation.id.notin_(kept_conversations))
-        sr = cast("CursorResult[object]", await session.execute(conv_del))
-        hard_deleted_count = sr.rowcount or 0
+        hard_deleted_count = rows_changed(await session.execute(conv_del))
         await ConversationRepository(session).delete_checkpoints(
             [str(c) for c in conversation_ids if c not in kept_conversations]
         )
@@ -153,6 +155,9 @@ async def purge_user_data(
 
     pg_gene_sets, pg_experiments, pg_control_sets = await _purge_related_data(
         session, user_id, site_id, kept_runs
+    )
+    audit_runs = await AuditRepository(session).delete_runs(
+        user_id=user_id, site_id=site_id
     )
     # A staged eval candidate is still the user's; a promoted case names
     # nobody and is out of reach here.
@@ -180,6 +185,7 @@ async def purge_user_data(
         gene_sets=pg_gene_sets,
         experiments=pg_experiments,
         control_sets=pg_control_sets,
+        audit_runs=audit_runs,
         staged_eval_cases=staged_eval_cases,
     )
 
@@ -192,6 +198,7 @@ async def purge_user_data(
         gene_sets=pg_gene_sets,
         experiments=pg_experiments,
         control_sets=pg_control_sets,
+        audit_runs=audit_runs,
         staged_eval_cases=staged_eval_cases,
     )
 
@@ -411,8 +418,7 @@ async def _purge_related_data(
     )
     if site_id:
         gs_del = gs_del.where(GeneSetRow.site_id == site_id)
-    gr = cast("CursorResult[object]", await session.execute(gs_del))
-    pg_gene_sets = gr.rowcount or 0
+    pg_gene_sets = rows_changed(await session.execute(gs_del))
 
     exp_del = delete(ExperimentRow).where(
         ExperimentRow.user_id == user_id,
@@ -422,8 +428,7 @@ async def _purge_related_data(
         exp_del = exp_del.where(ExperimentRow.site_id == site_id)
     if kept_runs:
         exp_del = exp_del.where(ExperimentRow.id.notin_(kept_runs))
-    er = cast("CursorResult[object]", await session.execute(exp_del))
-    pg_experiments = er.rowcount or 0
+    pg_experiments = rows_changed(await session.execute(exp_del))
 
     cs_del = delete(ControlSet).where(
         ControlSet.user_id == user_id,
@@ -431,7 +436,6 @@ async def _purge_related_data(
     )
     if site_id:
         cs_del = cs_del.where(ControlSet.site_id == site_id)
-    cr = cast("CursorResult[object]", await session.execute(cs_del))
-    pg_control_sets = cr.rowcount or 0
+    pg_control_sets = rows_changed(await session.execute(cs_del))
 
     return pg_gene_sets, pg_experiments, pg_control_sets

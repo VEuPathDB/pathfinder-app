@@ -37,7 +37,7 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 from pydantic_ai import AgentRunResultEvent
-from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import AgentStreamEvent, UserContent
 from pydantic_ai.tools import DeferredToolRequests
 from pydantic_ai.usage import RunUsage
@@ -72,7 +72,7 @@ from pathfinder.ai.graph._lead_stops import (
     absorb_loop_stop,
     final_reply,
     guard_stop_of,
-    stop_response,
+    run_stop_reply,
     strategy_change,
 )
 from pathfinder.ai.graph._lead_turn import (
@@ -101,10 +101,7 @@ from pathfinder.ai.lead.lead_agent import LeadAgent
 from pathfinder.ai.lead.lead_memory_tools import ask_about_the_preferences
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.ai.lead.turn_budget import (
-    budget_stop_report,
-    lead_usage_limits,
-)
+from pathfinder.ai.lead.turn_budget import lead_usage_limits
 from pathfinder.ai.lead.turn_contract import LeadResponse
 
 logger = get_logger(__name__)
@@ -308,21 +305,8 @@ async def _drive_lead_stream(
                     yield event
                     if _stream_ends_after(event, guard, capture):
                         return
-        except UsageLimitExceeded as exc:
-            logger.warning(
-                "lead reached its turn budget",
-                conversation_id=str(state.conversation_id),
-                error=str(exc),
-            )
-            capture.response = stop_response(
-                budget_stop_report(
-                    derive_ledger(deps.state, deps.intent),
-                    deps.runtime.strategy_session,
-                    deps.state.turn_markers,
-                    deps.state.domain.open_questions,
-                ),
-                changed=deps.state.turn_markers.changed_strategy,
-            )
+        except (UsageLimitExceeded, UnexpectedModelBehavior) as exc:
+            capture.response = run_stop_reply(exc, deps)
         finally:
             capture.record_run_spend(usage_acc)
 

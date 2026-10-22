@@ -49,7 +49,7 @@ const FACTS: TurnFacts = {
     { stepId: "s_and", displayName: "Combine", operator: "INTERSECT", count: 74 },
   ],
   rootCount: 74,
-  strategyUrl: URL,
+  strategyLink: { siteId: "amoebadb", url: URL },
   caveats: [
     {
       kind: "controls",
@@ -166,12 +166,122 @@ describe("DataFacts", () => {
     );
   });
 
+  it("shows the caveat of an accepted reading as its sentence", () => {
+    render(
+      <DataFacts
+        data={{
+          ...FACTS,
+          caveats: [
+            {
+              kind: "reading",
+              criterionId: "c_plas",
+              reading: "At least 55 of the 61 genomes (90%)",
+              caveat: "Keeps groups missing from up to 6 genomes",
+              sentence:
+                "Read as 'At least 55 of the 61 genomes (90%)': Keeps groups missing from up to 6 genomes",
+            },
+          ],
+        }}
+      />,
+    );
+
+    const caveat = screen.getByTestId("facts-caveat");
+    expect(caveat).toHaveAttribute("data-kind", "reading");
+    expect(caveat).toHaveTextContent(
+      "Read as 'At least 55 of the 61 genomes (90%)': Keeps groups missing from up to 6 genomes",
+    );
+  });
+
   it("links the strategy and names the set this turn saved", () => {
     render(<DataFacts data={FACTS} />);
 
-    expect(screen.getByTestId("facts-strategy-link")).toHaveAttribute("href", URL);
+    expect(screen.getByRole("link", { name: "Open on AmoebaDB" })).toHaveAttribute(
+      "href",
+      URL,
+    );
     expect(screen.getByTestId("facts-saved-set")).toHaveTextContent(
       "Saved gene set peptidases draft, 74 genes",
+    );
+  });
+
+  it("names OrthoMCL on the link that opens an OrthoMCL step", () => {
+    const url =
+      "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/330871000/441174000";
+    render(<DataFacts data={{ strategyLink: { siteId: "orthomcl", url } }} />);
+
+    const link = screen.getByRole("link", { name: "Open on OrthoMCL" });
+    expect(link).toHaveAttribute("href", url);
+    expect(link).toHaveTextContent("Open on OrthoMCL");
+  });
+
+  it("names PlasmoDB on the link that opens a PlasmoDB step", () => {
+    const url =
+      "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/330528343/440299573";
+    render(<DataFacts data={{ strategyLink: { siteId: "plasmodb", url } }} />);
+
+    expect(screen.getByRole("link", { name: "Open on PlasmoDB" })).toHaveAttribute(
+      "href",
+      url,
+    );
+  });
+
+  it("names VEuPathDB on the link that opens a portal step", () => {
+    const url =
+      "https://qa.veupathdb.org/veupathdb.qa/app/workspace/strategies/330871000/441174000";
+    render(<DataFacts data={{ strategyLink: { siteId: "veupathdb", url } }} />);
+
+    expect(screen.getByRole("link", { name: "Open on VEuPathDB" })).toHaveAttribute(
+      "href",
+      url,
+    );
+  });
+
+  it("draws no link for a part with the bare url shape", () => {
+    const stored = { strategyUrl: URL, rootCount: 74 } as unknown as TurnFacts;
+    render(<DataFacts data={stored} />);
+
+    expect(screen.getByTestId("facts-root-count")).toHaveTextContent(
+      "Result: 74 genes",
+    );
+    expect(screen.queryByTestId("facts-strategy-link")).toBeNull();
+  });
+
+  it("says no gene set was saved, with the result's count and the cap", () => {
+    const sentence =
+      "The result was not saved as a gene set: it holds 523,795 proteins, more than the 10,000 a gene set holds";
+    render(
+      <DataFacts
+        data={{
+          ...FACTS,
+          saved: [],
+          unsaved: { count: 523795, cap: 10000, recordNoun: "protein", sentence },
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-unsaved-set")).toHaveTextContent(sentence);
+    expect(screen.queryAllByTestId("facts-saved-set")).toHaveLength(0);
+  });
+
+  it("counts a saved set in its own records", () => {
+    render(
+      <DataFacts
+        data={{
+          ...FACTS,
+          saved: [
+            {
+              kind: "gene_set",
+              name: "singletons",
+              count: 4593,
+              recordNoun: "protein",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-saved-set")).toHaveTextContent(
+      "Saved gene set singletons, 4,593 proteins",
     );
   });
 
@@ -203,6 +313,39 @@ describe("DataFacts", () => {
 
     expect(screen.getByTestId("facts-stopped-check")).toHaveTextContent(
       "The check was stopped.",
+    );
+  });
+
+  it("shows a reply the product did not check as a notice of its own", () => {
+    render(
+      <DataFactsNotices
+        data={{
+          ...FACTS,
+          refusal: "",
+          unchecked:
+            "Some statements in this reply were not checked against the result.",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-unchecked")).toHaveTextContent(
+      "Some statements in this reply were not checked against the result.",
+    );
+  });
+
+  it("shows a change no check verified as a notice of its own", () => {
+    render(
+      <DataFactsNotices
+        data={{
+          ...FACTS,
+          refusal: "",
+          unverified: "Nothing verified the change this turn made to the strategy.",
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("facts-unverified")).toHaveTextContent(
+      "Nothing verified the change this turn made to the strategy.",
     );
   });
 

@@ -1,0 +1,67 @@
+{
+  "method": "GET",
+  "url": "https://qa.orthomcl.org/orthomcl.qa/service/users/1216062453/strategies/214645000",
+  "status": 200,
+  "ms": 0.33736787736415863,
+  "request_json": null,
+  "request_text": null,
+  "response_json": {
+    "lastViewed": "2026-10-21T14:50:56.331",
+    "rootStepId": 227284110,
+    "signature": "366431e05e881ed8",
+    "author": "PathFinder Test User",
+    "releaseVersion": "8.2",
+    "isValid": true,
+    "description": "",
+    "leafAndTransformStepCount": 1,
+    "steps": {
+      "227284110": {
+        "displayName": "Phyletic Pattern",
+        "description": "<p>Find Ortholog Groups by phyletic pattern.</p>\n\n<p>Phyletic Pattern Expression is a flexible and powerful way to identify ortholog groups with a certain conservation pattern. The pattern is used to identify groups based on whether proteins from specific taxa are present or absent. Also, the pattern finds groups with a certain copy number (e.g., duplications) within specified taxa.</p>\n\n<p><b>Examples</b></p>\nThese expressions find ortholog groups in which...\n<table>\n    <tr><th><code>hsap>=5</code></th><td>there are five or more human sequences</td></tr>\n    <tr><th><code>hsap+ecol=2T</code></th><td>both human and E. coli are present.</td></tr>\n    <tr><th><code>hsap+ecol=1T</code></th><td>only one species of human or E. coli is present.</td></tr>\n    <tr><th><code>hsap+ecol>=1T</code></th><td>only one or both species of human and E. coli is present.</td></tr>\n    <tr><th><code>hsap+ecol>=10</code></th><td>there are 10 or more human or E. Coli sequences.</td></tr>\n    <tr><th><code>EUKA=5</code></th><td>there are exactly eukaryotic 5 sequences</td></tr>\n    <tr><th><code>EUKA=5T</code></th><td>there are exactly eukaryotic 5 taxa</td></tr>\n    <tr><th><code>hsap+FIRM=2T</code></th><td>there are exactly 2 human or Gram-positive bacteria taxa</td></tr>\n    <tr><th><code>EUKA=35T</code></th><td>there are all 35 eukaryotic species, ie, Eukaryota-universal groups</td></tr>\n    <tr><th><code>EUKA>=5T AND hsap>=10</code></th><td>there are at least five eukaryotic species and containing at least 10 human sequences.</td></tr>\n    <tr><th><code>(EUKA>=5T AND hsap>=10) OR pfal<20</code></th><td>there are at least five eukaryotic species and containing at least 10 human sequences, or there are less than 20 P. falciparum sequences.</td></tr>\n    <tr><th><code>ALL=564T</code></th><td>there are 564 OrthoMCL species. (click on ALL in the graphical display to get up-to-date total number.</td></tr>\n</table>\n\n<p><b>Tips</b></p>\n<ul>\n  <li> Avoid redundancy in your PPE. For example, <code>hsap>=1</code> is equal to <code>hsap=1T</code>, so no need to mention them twice.</li>\n  <li> Merge different PPE units for faster execution.  For example <code>hsap=1T AND mmus=1T</code> can be merged as <code>hsap+mmus=2T</code>.</li>\n</ul>\n\n<p><b>The PPE Grammar in Detail</b></p>\n<p>Individual grammatical units of PPE expressions are composed of two parts:</p>\n<ol>\n  <li> <b>A taxa specification.</b>  This can be any one of:\n    <ul>\n    <li>a species abbreviation (e.g. <code>tgon</code>)</li>\n    <li>a clade abbreviation (e.g., <code>BACT</code> for all Eubacteria taxa)</li>\n    <li>a list of species or clade abbreviations linked by plus sign \"+\" (e.g. <code>tgon+pfal+hsap+FIRM</code>). </li>\n    <li><code>ALL</code> to represent all taxa in OrthoMCL.</li>\n    </ul>\n  </li>\n  <li> <b>A logical comparison operator followed by a count.</b> \n    <ul>\n    <li>operators allowed are: <code>></code>, <code><</code>, <code>=</code>, <code>>=</code>, and <code><=</code></li>\n    <li>the count is either:\n      <ul>\n      <li>a number, such as <code>5</code>.  This is a count of <i>sequences</i> that the operator applies to.</li>\n      <li>a number with a <code>T</code>, such as <code>5T</code>.  This is a count of <i>taxa</i> that the operator applies to.</li>\n      </ul>\n    </ul>\n  </li>\n</ol>\n\n<p>Multiple expression units may be combined using <code>AND</code> or <code>OR</code>, and may use parentheses to provide explicit execution ordering.</p>",
+        "displayPreferences": {},
+        "customName": "Phyletic Pattern",
+        "ownerId": 1216062453,
+        "shortDisplayName": "Phyletic",
+        "baseCustomName": "Phyletic Pattern",
+        "expanded": false,
+        "lastRunTime": "2026-10-21T14:50:08.487",
+        "hasCompleteStepAnalyses": false,
+        "estimatedSize": 1736,
+        "searchName": "GroupsByPhyleticPattern",
+        "recordClassName": "group",
+        "createdTime": "2026-10-21T14:49:52.541",
+        "isFiltered": false,
+        "strategyId": 214645000,
+        "id": 227284110,
+        "validation": {
+          "level": "SEMANTIC",
+          "isValid": true
+        },
+        "searchConfig": {
+          "wdkWeight": 0,
+          "columnFilters": {},
+          "filters": [],
+          "parameters": {
+            "phyletic_expression": "cand=1 AND cbov=1 AND choi=1 AND chot=1 AND chom=1 AND chod=1 AND cmel=1 AND cmtu=1 AND cmur=1 AND cpia=1 AND cpib=1 AND cpar=1 AND crya=1 AND cser=1 AND cspi=1 AND cscp=1 AND ctyz=1 AND cubi=1"
+          }
+        }
+      }
+    },
+    "stepTree": {
+      "stepId": 227284110
+    },
+    "isDeleted": false,
+    "estimatedSize": -1,
+    "isSaved": false,
+    "isExample": false,
+    "organization": "University of Pennsylvania",
+    "name": "Single Copy Ortholog Groups Across Cryptosporidium Genomes",
+    "recordClassName": "group",
+    "createdTime": "2026-10-21T14:49:53.425575",
+    "isPublic": false,
+    "strategyId": 214645000,
+    "lastModified": "2026-10-21T14:50:56.018",
+    "nameOfFirstStep": "Phyletic Pattern"
+  },
+  "response_text": null
+}

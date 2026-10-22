@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pydantic_ai import RunContext
+from pydantic_ai.messages import ToolReturn
 from veupathdb.domain.parameters import match_exact_option, to_wire
 from veupathdb.wdk import WDKSearch
 from veupathdb_mcp.catalog import (
@@ -10,19 +12,34 @@ from veupathdb_mcp.catalog import (
     ResolvedParams,
     build_sheet,
     format_param_info_typed,
+    read_search_definition,
 )
 
 from pathfinder.ai.agents.state import AgentToolState
+from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._catalog_models import (
+    register_search,
     search_display_name,
     what_it_finds,
+)
+from pathfinder.ai.tools.standalone._frame_eda import (
+    refuse_a_search_the_criterion_cannot_use,
 )
 from pathfinder.ai.tools.standalone._frame_proposals import (
     CriterionCall,
     ParamProposals,
     refuse_unmatched_value,
 )
+from pathfinder.ai.tools.standalone._frame_qualifiers import (
+    refuse_a_qualifier_the_search_drops,
+)
+from pathfinder.ai.tools.standalone._frame_result import (
+    SetCriterionResult,
+    criterion_return,
+)
+from pathfinder.ai.tools.standalone._frame_unserved import an_unserved_search_refused
 from pathfinder.ai.tools.standalone._qualifier_words import proposal_values
+from pathfinder.domain.strategy.operational_spec import Criterion
 
 
 def _decided_here(info: ParameterInfo, params: ParamProposals) -> bool:
@@ -93,3 +110,36 @@ def open_parameter_sheet(
     return state.pin_sheet(
         criterion_id, search_name, entries, what_runs=runs
     ).params_template()
+
+
+async def open_the_sheet(
+    ctx: RunContext[AgentDeps],
+    stated: Criterion,
+    search_name: str,
+    record_type: str,
+) -> ToolReturn[SetCriterionResult]:
+    with an_unserved_search_refused(ctx, stated.id, search_name, record_type):
+        definition = await read_search_definition(
+            ctx.deps.site_id, record_type, search_name
+        )
+    await refuse_a_search_the_criterion_cannot_use(
+        ctx, record_type, definition, stated, None
+    )
+    unread = await refuse_a_qualifier_the_search_drops(
+        ctx, record_type, definition, stated
+    )
+    register_search(ctx.deps.agent_state, definition, record_type)
+    return criterion_return(
+        ctx,
+        SetCriterionResult(
+            criterion_id=stated.id,
+            search_name=search_name,
+            params_template=open_parameter_sheet(
+                ctx.deps.agent_state, stated.id, search_name, definition
+            ),
+            sheet_pinned=True,
+            unread_searches=unread,
+        ),
+        record_type,
+        definition,
+    )

@@ -21,6 +21,8 @@ from pydantic_ai.ui.vercel_ai.request_types import (
 )
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
+from pathfinder.ai.lead.proposal import OFFER_TOOLS
+from pathfinder.evals.case import GateEnd
 
 _USER_QUESTION_ANSWERS_TYPE = "data-user-question-answers"
 
@@ -57,6 +59,23 @@ class Gate(CamelModel):
     consult_questions: list[GateConsultQuestion] = Field(default_factory=list)
     tasks: list[GateDurableTask] = Field(default_factory=list)
     message: str = ""
+
+
+def consult_labels(gate: Gate) -> list[str]:
+    return [option.label for q in gate.consult_questions for option in q.options]
+
+
+def gate_end(gate: Gate) -> GateEnd | None:
+    """The card the gate shows the researcher, or None for a task still running."""
+    match gate.kind:
+        case "none":
+            return "none"
+        case "consult":
+            return "consult"
+        case "approval":
+            return "proposal" if gate.tool in OFFER_TOOLS else "approval"
+        case _:
+            return None
 
 
 def detect_gate(

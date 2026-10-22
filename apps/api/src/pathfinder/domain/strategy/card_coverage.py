@@ -41,6 +41,8 @@ def _criterion_words(criterion: Criterion) -> str:
 
 
 def _counts_the_records(spec: OperationalSpec, value: str) -> bool:
+    if spec.record_type is None:
+        return False
     held = set(record_noun(spec.record_type).split())
     asked = set(record_noun(value).split())
     return held == asked or (held | asked) <= GENE_RECORD_NOUNS

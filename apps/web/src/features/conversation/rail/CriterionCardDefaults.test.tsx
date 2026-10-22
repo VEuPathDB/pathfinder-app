@@ -26,7 +26,6 @@ function frameWith(
     spec: {
       goal: "g",
       interpretedGoal: "g",
-      recordType: "transcript",
       organismScope: null,
       title: "t",
       criteria: [

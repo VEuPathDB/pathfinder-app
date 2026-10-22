@@ -6,17 +6,28 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Annotated, Literal
 
-from pydantic import ConfigDict, Discriminator, Field, model_validator
-from veupathdb.domain.parameters import to_wire
+from pydantic import ConfigDict, Discriminator, Field, ValidationError, model_validator
 from veupathdb.model import CamelModel
 
-from pathfinder.domain.log2_scale import fold_label, on_scale, scale_of
+from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
 from pathfinder.domain.strategy.constraints import (
     Constraint,
     ConstraintKind,
     ConstraintSource,
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
+from pathfinder.domain.strategy.option_labels import (
+    count_at,
+    option_label,
+    term_of,
+    value_readings,
+    with_count,
+)
+from pathfinder.domain.strategy.readings import (
+    KeysOnTheReadings,
+    Reading,
+    ReadValues,
+)
 from pathfinder.domain.strategy.words import words_of
 
 _QUESTION_LIMIT = 300
@@ -52,7 +63,9 @@ class Keep(CamelModel):
     constraint_id: str
 
 
-OptionBinding = Annotated[SetValues | Withdraw | Keep, Discriminator("kind")]
+OptionBinding = Annotated[
+    SetValues | ReadValues | Withdraw | Keep, Discriminator("kind")
+]
 
 
 class TypedOption(CamelModel):
@@ -63,6 +76,13 @@ class TypedOption(CamelModel):
     id: str = Field(min_length=1)
     label: str = Field(min_length=1)
     binding: OptionBinding
+
+    def offered_reading(self) -> ReadValues | None:
+        match self.binding:
+            case ReadValues() as read:
+                return read
+            case _:
+                return None
 
 
 def _option_id(label: str) -> str:
@@ -82,7 +102,7 @@ def _by_id(labels: Sequence[str]) -> dict[str, str]:
 class _Question(CamelModel):
     """What a question asks, the dimension it decides and the value it recommends."""
 
-    question: str = Field(min_length=1, max_length=_QUESTION_LIMIT)
+    question: Annotated[str, Field(min_length=1), text_clipped_to(_QUESTION_LIMIT)]
     dimension: ConstraintKind = ConstraintKind.OTHER
     recommended_value: str = ""
 
@@ -141,7 +161,10 @@ class OpenQuestion(_Question):
 def _binding_key(option: TypedOption) -> tuple[str, ...]:
     """What answering the option binds."""
     match option.binding:
-        case SetValues(criterion_id=criterion_id, params=params):
+        case (
+            SetValues(criterion_id=criterion_id, params=params)
+            | ReadValues(criterion_id=criterion_id, params=params)
+        ):
             return (
                 "set_values",
                 criterion_id,
@@ -170,11 +193,14 @@ class AskedQuestion(_Question):
     offers none and is answered in the researcher's words.
     """
 
-    options: list[str] = Field(default_factory=list, max_length=_OPTIONS_LIMIT)
+    options: Annotated[list[str], list_clipped_to(_OPTIONS_LIMIT)] = Field(
+        default_factory=list
+    )
 
     @model_validator(mode="after")
-    def _offers_a_choice(self) -> AskedQuestion:
-        _refuse_a_single_option(self.question, list(_by_id(self.options).values()))
+    def _one_option_is_a_free_text_question(self) -> AskedQuestion:
+        if len(_by_id(self.options)) == 1:
+            self.options = []
         return self
 
     def typed(self) -> OpenQuestion:
@@ -195,6 +221,17 @@ class SlotQuestion(AskedQuestion):
 
     criterion_id: str = ""
     param_name: str = ""
+    readings: list[Reading] = Field(default_factory=list)
+    requirements: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _keys_on_the_readings_are_the_question_s(cls, data: object) -> object:
+        try:
+            keyed = KeysOnTheReadings.model_validate(data)
+        except ValidationError:
+            return data
+        return keyed.on_the_question()
 
     @property
     def names_a_slot(self) -> bool:
@@ -222,9 +259,9 @@ class SlotQuestion(AskedQuestion):
         """Each wire value an offered value binds, under the first option naming it."""
         by_wire: dict[str, str] = {}
         for option_id, value in _by_id(self._offered(criterion)).items():
-            for reading in _readings(criterion, self.param_name, value):
+            for reading in value_readings(criterion, self.param_name, value):
                 by_wire.setdefault(
-                    _term_of(criterion, self.param_name, reading),
+                    term_of(criterion, self.param_name, reading),
                     option_id if reading == value else _option_id(reading),
                 )
         return by_wire
@@ -235,10 +272,19 @@ class SlotQuestion(AskedQuestion):
         A value and the site's label of it bind one term, so two such
         options are one.
         """
-        return not self.names_a_slot or len(self._by_wire(criterion)) != 1
+        return (
+            bool(self.readings)
+            or not self.names_a_slot
+            or len(self._by_wire(criterion)) != 1
+        )
 
     def typed(
-        self, criterion: Criterion | None = None, *, noun: str = "record"
+        self,
+        criterion: Criterion | None = None,
+        *,
+        noun: str = "record",
+        replaces: Sequence[str] = (),
+        stated: bool = False,
     ) -> OpenQuestion:
         """The question with one option per value an offered value binds.
 
@@ -248,6 +294,16 @@ class SlotQuestion(AskedQuestion):
         """
         if not self.names_a_slot:
             return super().typed()
+        if self.readings:
+            return OpenQuestion(
+                question=self.question,
+                dimension=self.dimension,
+                recommended_value=self.recommended_value,
+                options=[
+                    self._read(criterion, r, noun, replaces, stated=stated)
+                    for r in self.readings
+                ],
+            )
         by_wire = self._by_wire(criterion)
         return OpenQuestion(
             question=self.question,
@@ -266,90 +322,28 @@ class SlotQuestion(AskedQuestion):
             ],
         )
 
-
-def _readings(criterion: Criterion | None, param: str, value: str) -> list[str]:
-    """The values an offered value binds. A positive number offered for a
-    parameter on the log2 scale is read as a fold and as a log2 value, since
-    the researcher may mean either."""
-    display = "" if criterion is None else criterion.display_name_of(param)
-    if scale_of(display) != "log2":
-        return [value]
-    try:
-        number = float(value)
-    except ValueError:
-        return [value]
-    if number <= 0:
-        return [value]
-    return list(dict.fromkeys([f"{on_scale(number, 'fold', 'log2'):g}", value]))
-
-
-def _label_of(criterion: Criterion, param: str, term: str) -> str:
-    """The label the site gave for a vocabulary term, else the term."""
-    return next(
-        (
-            m.label
-            for m in criterion.measurements
-            if m.kind == "vocabulary_label" and m.param == param and m.reading == term
-        ),
-        term,
-    )
-
-
-def _term_of(criterion: Criterion | None, param: str, value: str) -> str:
-    """The vocabulary term an offered value names: a label the site gave for a
-    term of the parameter names that term, and any other value is the term."""
-    if criterion is None:
-        return value
-    return next(
-        (
-            m.reading
-            for m in criterion.measurements
-            if m.kind == "vocabulary_label" and m.param == param and m.label == value
-        ),
-        value,
-    )
-
-
-def option_label(
-    criterion: Criterion | None, param: str, value: str, *, noun: str
-) -> str:
-    """The value an option binds, named by its parameter, with its count.
-
-    A parameter the site named for the criterion leads the value, a value on
-    the log2 scale is followed by the fold it stands for, and a count the site
-    returned at that value follows it, in ``noun``.
-    """
-    if criterion is None:
-        return value
-    named = criterion.param_display_names.get(param, "")
-    shown = _label_of(criterion, param, value)
-    fold = fold_label(named, value)
-    if fold:
-        shown = f"{shown} ({fold})"
-    label = f"{named} {shown}" if named else shown
-    count = _count_at(criterion, param, value)
-    if count is None:
-        return label
-    return f"{label}: {count} {noun}" if count == 1 else f"{label}: {count} {noun}s"
-
-
-def _count_at(criterion: Criterion, param: str, value: str) -> int | None:
-    """The count the site returned with the parameter at this wire value.
-
-    The criterion's own count is measured at the value it binds; a measurement
-    is measured at the reading it records.
-    """
-    held = criterion.resolved_params.get(param)
-    if held is not None and to_wire(held.value) == value:
-        return criterion.result_count
-    return next(
-        (
-            m.count
-            for m in criterion.measurements
-            if m.param == param and m.reading == value and m.count is not None
-        ),
-        None,
-    )
+    def _read(
+        self,
+        criterion: Criterion | None,
+        reading: Reading,
+        noun: str,
+        replaces: Sequence[str],
+        *,
+        stated: bool,
+    ) -> TypedOption:
+        count = count_at(criterion, self.param_name, reading.value)
+        return TypedOption(
+            id=_option_id(reading.label),
+            label=with_count(reading.label, count, noun),
+            binding=ReadValues(
+                criterion_id=self.criterion_id,
+                params={self.param_name: reading.value},
+                reading=reading.label,
+                caveat=reading.caveat,
+                replaces=list(replaces),
+                names_no_requirement=stated and not replaces,
+            ),
+        )
 
 
 def _withdrawal(requirement: Constraint) -> TypedOption:

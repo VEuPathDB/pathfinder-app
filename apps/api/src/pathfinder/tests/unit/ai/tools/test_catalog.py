@@ -22,6 +22,7 @@ from pathfinder.ai.tools.standalone.catalog import (
     get_record_types,
     list_searches,
     list_transforms,
+    lookup_phyletic_codes,
     search_for_searches,
 )
 from pathfinder.ai.tools.toolsets.frame import _frame_enum_overrides
@@ -449,3 +450,13 @@ class TestListTransforms:
 
         overrides = _frame_enum_overrides(_ctx(state))
         assert "GenesByOrthologs" in overrides[("set_criterion", "search_name")]
+
+
+def test_the_phyletic_lookup_names_its_use_on_either_kind_of_site() -> None:
+    doc = " ".join((inspect.getdoc(lookup_phyletic_codes) or "").split())
+
+    assert "included_species or excluded_species" in doc
+    assert "phyletic_expression" in doc
+    assert "genomes" in doc
+    assert "species" in doc
+    assert "record_type is read only on the genomics sites" in doc

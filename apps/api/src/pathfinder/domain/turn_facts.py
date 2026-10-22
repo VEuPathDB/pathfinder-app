@@ -155,14 +155,47 @@ class SavedSetFact(CamelModel):
     kind: SavedKind
     name: str
     count: int | None = None
+    record_noun: str = "gene"
 
     def line(self) -> str:
         what = "gene set" if self.kind == "gene_set" else "control set"
-        held = "" if self.count is None else f", {_counted(self.count, 'gene')}"
+        held = (
+            "" if self.count is None else f", {_counted(self.count, self.record_noun)}"
+        )
         return f"Saved {what} {self.name}{held}"
 
     def redacted(self, redact: Callable[[str], str]) -> SavedSetFact:
         return self.model_copy(update={"name": redact(self.name)})
+
+
+class UnsavedSetFact(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    count: int
+    cap: int
+    record_noun: str = "gene"
+
+    @computed
+    def sentence(self) -> str:
+        return (
+            f"The result was not saved as a gene set: it holds "
+            f"{counted(self.count, self.record_noun)}, "
+            f"more than the {self.cap:,} a gene set holds"
+        )
+
+
+class StrategyLinkFact(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    site_id: str = Field(min_length=1)
+    url: str = Field(pattern=r"^https?://")
+
+    def redacted(self, redact: Callable[[str], str]) -> StrategyLinkFact:
+        return self.model_copy(update={"url": redact(self.url)})
+
+
+UNCHECKED_PROSE = "Some statements in this reply were not checked against the result."
+UNVERIFIED_BUILD = "Nothing verified the change this turn made to the strategy."
 
 
 class TurnFacts(CamelModel):
@@ -183,12 +216,13 @@ class TurnFacts(CamelModel):
     last_change: LastChange | None = None
     # The titles of the steps this turn deleted.
     removed: list[str] = Field(default_factory=list)
-    strategy_url: str | None = None
+    strategy_link: StrategyLinkFact | None = None
     caveats: list[Caveat] = Field(default_factory=list)
     gaps: list[Gap] = Field(default_factory=list)
     column_fits: list[ColumnFit] = Field(default_factory=list)
     retired: list[RetiredFact] = Field(default_factory=list)
     saved: list[SavedSetFact] = Field(default_factory=list)
+    unsaved: UnsavedSetFact | None = None
     control_results: list[ControlResultFact] = Field(default_factory=list)
     # What the turn's reads returned, each under the step it was read from.
     sources: list[SourceFact] = Field(default_factory=list)
@@ -209,6 +243,8 @@ class TurnFacts(CamelModel):
     tallies: list[TallyFact] = Field(default_factory=list)
     stopped_check: str = ""
     refusal: str = ""
+    unchecked: str = ""
+    unverified: str = ""
     # The researcher's messages of the thread. A number they write is their word.
     request_messages: list[str] = Field(default_factory=list, exclude=True)
 
@@ -243,20 +279,26 @@ class TurnFacts(CamelModel):
             (
                 self.steps,
                 self.removed,
-                self.strategy_url,
+                self.strategy_link,
                 self.caveats,
                 self.gaps,
                 self.column_fits,
                 self.retired,
                 self.saved,
+                self.unsaved,
                 self.control_results,
                 self.sources,
                 self.listed,
                 self.named_genes,
                 self.stopped_check,
                 self.refusal,
+                self.unchecked,
+                self.unverified,
             )
         )
+
+    def strategy_url(self) -> str | None:
+        return None if self.strategy_link is None else self.strategy_link.url
 
     def counted_nouns(self) -> list[str]:
         """The noun of the result, of each step and of each tally, once each."""
@@ -322,12 +364,13 @@ class TurnFacts(CamelModel):
             *root,
             *([] if self.last_change is None else [self.last_change.line(noun)]),
             *(f"Removed {title}" for title in self.removed),
-            *([] if self.strategy_url is None else [self.strategy_url]),
+            *([] if (url := self.strategy_url()) is None else [url]),
             *(caveat.sentence for caveat in self.caveats),
             *(gap.sentence for gap in self.gaps),
             *(fit.sentence for fit in self.column_fits),
             *(retired.sentence for retired in self.retired),
             *(saved.line() for saved in self.saved),
+            *([] if self.unsaved is None else [self.unsaved.sentence]),
             *(result.sentence for result in self.control_results),
             *(v.row(noun) for c in self.comparisons for v in c.variants),
             *(line for m in self.memberships for line in m.lines()),
@@ -337,6 +380,7 @@ class TurnFacts(CamelModel):
             *(f"Named in the message: {gene.described()}" for gene in self.named_genes),
             *([self.stopped_check] if self.stopped_check else []),
             *([self.refusal] if self.refusal else []),
+            *([self.unverified] if self.unverified else []),
         ]
 
     def _step_rows(self, step: StepFact) -> list[str]:
@@ -370,9 +414,8 @@ class TurnFacts(CamelModel):
                 "steps": [step.redacted(redact) for step in self.steps],
                 "last_change": self.last_change and self.last_change.redacted(redact),
                 "removed": [redact(title) for title in self.removed],
-                "strategy_url": None
-                if self.strategy_url is None
-                else redact(self.strategy_url),
+                "strategy_link": self.strategy_link
+                and self.strategy_link.redacted(redact),
                 "caveats": [caveat.redacted(redact) for caveat in self.caveats],
                 "gaps": [gap.redacted(redact) for gap in self.gaps],
                 "column_fits": [
@@ -426,12 +469,16 @@ def _drawn_by_a_row(caveat: Caveat, noted: set[tuple[str, str]]) -> bool:
 
 
 __all__ = [
+    "UNCHECKED_PROSE",
+    "UNVERIFIED_BUILD",
     "ListedFact",
     "ParameterFact",
     "RetiredFact",
     "SavedSetFact",
     "SourceFact",
     "StepFact",
+    "StrategyLinkFact",
     "TurnFacts",
+    "UnsavedSetFact",
     "counted",
 ]

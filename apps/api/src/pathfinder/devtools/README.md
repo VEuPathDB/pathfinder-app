@@ -66,6 +66,8 @@ No DB and no re-run needed to inspect a past run - the files are the interface.
 | `--conversation-id <uuid>` | resume an existing conversation (durable via checkpointer). Omit to mint a new one (printed unless `--quiet`). |
 | `--run-dir <path>` | where artifacts go. Default `/data/pf-runs/<conv>/<turn>`. Re-using a path is safe - each run **resets** the artifact subdirs (`tools/`, `state/`, `errors/`, `wdk/`, `llm/`) and top-level files first, so two runs never mix. Other files in the directory are left alone. |
 | `--model PHASE=ID` | per-phase model override (repeatable). Phases: `lead frame execution verification`. |
+| `--model-all ID` | one catalog model for every role: the four phases through the request, and the title generator, the note compactor and the injection judge through a pin that holds for this run only (`platform/pinned_model.py`); outside a debugger or eval run nothing is pinned and every role resolves as before. It does not combine with `--model`, and a run with `--via-worker` is refused, because the worker resolves those three roles itself. Before the turn the run checks that every role resolves to ID (see `roles`) and exits with code 2 when one does not. An id the catalog does not hold is refused, and so is one the deployment does not pay for, since the run uses the deployment's key. `respond` takes it too. |
+| `--wdk-token-env NAME` | take the WDK identity from the environment variable NAME: no password sign-in runs, and the token is held as a secret that is never printed. An unset or empty variable, or a token that names no registered VEuPathDB login, is refused before the turn, with exit code 2 and a message that names the variable. `respond` takes it too. |
 | `--effort none\|low\|medium\|high` | reasoning effort for every role, sent as the request body's `phaseReasoning` the way the settings panel sends it. Omit it and each role runs at its tier's effort. `respond` takes it too, so a resumed gate keeps the effort. The run directory records it in `turn_settings.json`. |
 | `--attach PATH` | attach a local file to the message (repeatable), inline as a `file` part, the way the composer attaches one. The chat route's refusal applies: a kind the Lead's model does not read, or a file over 10 MB, is refused before the turn. |
 | `--approve auto\|deny\|prompt` | how to answer mid-turn approval gates (`consult_user`, etc.). `auto` for unattended; `prompt` reads stdin. |
@@ -77,7 +79,8 @@ No DB and no re-run needed to inspect a past run - the files are the interface.
 | `--assistant <id>` | which assistant to run. It applies when the thread is new; naming another assistant than an existing thread's is refused. Default: the registry's default. |
 | `--quiet` | suppress the live trace; still writes artifacts + prints the summary. |
 
-**Login is mandatory for real runs.** A non-mock `run` logs in to VEuPathDB as the
+**Login is mandatory for real runs.** A non-mock `run` uses the token
+`--wdk-token-env` names, else it logs in to VEuPathDB as the
 dev user (creds from `WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD` in `.env.dev`, or
 `--email`/`--password`) and runs all WDK calls as that authenticated user. If the
 creds are missing or rejected it aborts with a clear error. If the site's
@@ -86,6 +89,20 @@ and the failure, such as `cryptodb login did not answer (connect timeout)`, and
 the corpus runner records that case as `not-run`. `--mock` skips login
 (it never touches WDK). This requires running compose with `--env-file .env.dev`
 so the vars reach the container.
+
+## Checking the roles before a run (`roles`)
+
+```bash
+... chat roles --model-all openai:gpt-5.6-luna --wdk-token-env PF_QA_TOKEN
+```
+
+It prints one line per role, `role: model`, as the code resolves it with
+`--model-all` in force (the four phases, `title_generator`, `note_compactor`
+and `injection_judge`, which is left out when input screening is off), then the identity's source (`identity: WDK token from
+$NAME`, or the password sign-in). It exits 0 when every role resolves to the
+id, 1 with the roles on another model named on stderr, and 2 for an id the
+catalog does not hold or an empty variable. Run it before the first turn of a
+run that must hold one model.
 
 ## Driving gates like the UI (`run` + `respond`)
 
@@ -273,7 +290,8 @@ separate processes each get their own.
 **A run is always on the configured provider.** The mock routes by an explicit
 marker, so a corpus prompt reaches no arc there; the e2e suite and the unit tier
 hold what the pipeline checks. A run needs a VEuPathDB login
-(`WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD`), as the chat debugger does.
+(`WDK_DEV_EMAIL`/`WDK_DEV_PASSWORD`) or a token in the variable
+`--wdk-token-env` names, as the chat debugger does.
 
 | flag | effect |
 |------|--------|
@@ -282,6 +300,8 @@ hold what the pipeline checks. A run needs a VEuPathDB login
 | `--effort none\|low\|medium\|high` | every role of every case at one effort; wins over the case's `effort` |
 | `--via-worker` | every turn through the real worker, so durable tools execute (control tests, sweeps, separations, EDA computes) |
 | `--out FILE` | writes `EvalRunSummary` as JSON |
+| `--model ID` | one catalog model for every role of every case, as `chat --model-all` sets it, the title generator, the note compactor and the injection judge included. Before the first case the run checks every role and exits with code 2 when one resolves elsewhere, when the id is not in the catalog, or with `--via-worker`. It prints the `chat roles` lines before the first case and again above the closing line |
+| `--wdk-token-env NAME` | every case's WDK identity is the token in the variable NAME, with no password sign-in. An unset or empty variable, or a token that names no registered VEuPathDB login, exits with code 2 before the first case. The identity line prints before the first case and above the closing line |
 
 A case can name how it runs, each field compared or applied only when set:
 
@@ -335,7 +355,8 @@ with the compose database).
 
 | file | responsibility |
 |------|----------------|
-| `chat.py` | CLI: `run`/`respond`/`inspect`/`diff`, bootstrap, turn loop, approval resume |
+| `chat.py` | CLI: `run`/`respond`/`roles`/`inspect`/`diff`, bootstrap, the WDK token a named variable holds, turn loop, approval resume |
+| `run_models.py` | one model for every role of a run (`pin_every_role`, scoped to the run), and each role's model as the code resolves it (`resolved_roles`) |
 | `evals.py` | CLI: `staged`/`show`/`promote`/`corpus`/`extract`/`run` |
 | `eval_runner.py` | one case per fresh thread, every turn in order, read back from the projection and the checkpoint |
 | `capture.py` | `RunCapture` (chunk -> artifacts writer) + `capture_tracebacks` |

@@ -1,0 +1,40 @@
+{
+  "name": "orthomcl-all-plasmodium-asks-which-all",
+  "turns": [
+    "Which ortholog groups are present in all Plasmodium species but absent from Toxoplasma gondii?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "Presence in every member of a clade with many strains and incomplete assemblies has three readings: every genome, a share of the genomes, or every species. The turn asks once, with the genome and strain counts, before it binds; the absence half needs no question.",
+  "expected": {
+    "buildsStrategy": false,
+    "structure": null,
+    "recordType": null,
+    "stepCount": null,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "endsOn": "consult",
+    "consultOptionsMin": 3,
+    "consultOptionMentions": [
+      "61",
+      "55",
+      "23"
+    ]
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/an-all-over-many-genomes-is-asked-about.md",
+    "curatorNote": "The second suggested OrthoMCL prompt. The question is left unanswered so the case pins that it is asked."
+  },
+  "gates": {
+    "policy": "stop",
+    "answers": []
+  }
+}

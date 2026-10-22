@@ -66,6 +66,14 @@ def test_a_dispatched_verification_settles_the_build() -> None:
     assert markers.build_unverified is False
 
 
+def test_a_verification_that_stopped_leaves_the_build_unverified() -> None:
+    markers = TurnMarkers(
+        built=True, verification_dispatched=True, verification_stopped=True
+    )
+
+    assert markers.build_unverified is True
+
+
 @pytest.fixture
 def no_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
     """The clear runs against the in-memory graph and writes no row."""
@@ -116,7 +124,12 @@ def test_what_a_turn_saved_survives_the_checkpoint_serializer() -> None:
     markers = TurnMarkers(message_id=uuid4())
     markers.record_control_set(CreatedControlSet(id="cs-1", name="rhoptry controls"))
     markers.record_gene_set(
-        CreatedGeneSet(id="gs-2", name="rhoptry positives", gene_count=102),
+        CreatedGeneSet(
+            id="gs-2",
+            name="rhoptry positives",
+            gene_count=102,
+            record_type="transcript",
+        ),
     )
     serde = build_checkpoint_serde(PATHFINDER_CHECKPOINT_TYPES)
     domain = StrategyDomainState(turn_markers=markers)
@@ -126,6 +139,6 @@ def test_what_a_turn_saved_survives_the_checkpoint_serializer() -> None:
     assert [(c.id, c.name) for c in resumed.created_control_sets] == [
         ("cs-1", "rhoptry controls"),
     ]
-    assert [(g.id, g.name, g.gene_count) for g in resumed.created_gene_sets] == [
-        ("gs-2", "rhoptry positives", 102),
-    ]
+    assert [
+        (g.id, g.name, g.gene_count, g.record_type) for g in resumed.created_gene_sets
+    ] == [("gs-2", "rhoptry positives", 102, "transcript")]

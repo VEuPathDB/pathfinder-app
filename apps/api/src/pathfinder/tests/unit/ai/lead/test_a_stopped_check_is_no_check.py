@@ -11,7 +11,7 @@ from pydantic_ai.messages import ToolReturnPart
 
 from pathfinder.ai.graph._lead_events import _summarize_sub_agent_result
 from pathfinder.ai.graph.state import PipelineState
-from pathfinder.ai.lead import verify_dispatch
+from pathfinder.ai.lead import sub_agent_tools, verify_dispatch
 from pathfinder.ai.lead.answered_strategy import live_tree
 from pathfinder.ai.lead.deltas import VerificationDelta, VerificationStopped
 from pathfinder.ai.lead.memory_candidates import collect_memory_candidates
@@ -20,10 +20,12 @@ from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_record import turn_record
 from pathfinder.ai.lead.verify_dispatch import run_verification, verification_stopped
+from pathfinder.ai.tools.toolsets import verification
 from pathfinder.domain.strategy.build_outcome import BuiltCounts
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.tests._support.run_context import run_context_for
+from pathfinder.tests._support.sub_agents import pinned_sub_agent
 from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
     built_outcome,
     built_session,
@@ -31,6 +33,7 @@ from pathfinder.tests.unit.ai.lead._budget_stop_turn import (
 )
 from pathfinder.tests.unit.ai.lead.conftest import (
     ChunkCollector,
+    final_result_model,
     lead_deps,
     pipeline_state,
 )
@@ -144,6 +147,36 @@ def test_the_dispatch_card_of_a_stopped_check_says_it_stopped(serialized: bool) 
     assert _summarize_sub_agent_result("verify_strategy", part) == (
         "Stopped past its call budget for read_gene_record"
     )
+
+
+async def test_a_check_whose_answer_is_out_of_shape_every_time_is_a_typed_stop(
+    monkeypatch: pytest.MonkeyPatch, collector: ChunkCollector
+) -> None:
+    del collector
+    state, session = _checked_earlier()
+    deps = lead_deps(state, strategy_session=session)
+    misshapen = final_result_model({"digest": {"prose": "Checked."}})
+    monkeypatch.setattr(sub_agent_tools, "get_mock_model", lambda: misshapen)
+
+    with pinned_sub_agent(
+        monkeypatch,
+        "verification",
+        toolsets=[verification.build_toolset()],
+        instructions="Follow the script.",
+    ):
+        result = await run_verification(
+            deps=deps, parent_tool_call_id="call_verify", reason="check the strategy"
+        )
+
+    assert isinstance(result, VerificationStopped)
+    assert result.stop == PhaseStop(
+        role="verification", reason=PhaseStopReason.OUTPUT_RETRIES
+    )
+    assert result.summary.startswith(
+        "VERIFY stopped on an answer that had the wrong shape every time, so it "
+        "recorded no verdict"
+    )
+    assert (state.turn_verdict, state.checked_verdict) == (_EARLIER, None)
 
 
 class _CheckRaisedError(Exception):

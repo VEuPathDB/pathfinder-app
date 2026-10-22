@@ -12,8 +12,10 @@ from pathfinder.evals.case import (
     RecordedCount,
 )
 from pathfinder.evals.difference import CaseDifference
+from pathfinder.evals.distance import ComparisonNode
 from pathfinder.evals.drift import classify, count_difference
 from pathfinder.evals.scoring import ObservedOutcome
+from pathfinder.tests.unit.evals._phyletic import clade_tree
 
 _INTERSECT = "(GenesWithSignalPeptide INTERSECT GenesByTransmembraneDomains)"
 _UNION = "(GenesWithSignalPeptide UNION GenesByTransmembraneDomains)"
@@ -53,16 +55,17 @@ def _observed(count: int | None, *, structure: str = _INTERSECT) -> ObservedOutc
 
 
 def test_the_recorded_count_on_the_recorded_build_passes() -> None:
-    assert classify(_case(), _observed(116), build_now="71") == "pass"
+    assert classify(_case(), _observed(116), build_now="71", taxonomy=None) == "pass"
 
 
 def test_a_count_off_on_the_same_build_fails() -> None:
-    assert classify(_case(), _observed(117), build_now="71") == "fail"
+    assert classify(_case(), _observed(117), build_now="71", taxonomy=None) == "fail"
 
 
 def test_a_count_within_the_tolerance_on_a_new_build_passes() -> None:
     verdicts = [
-        classify(_case(), _observed(count), build_now="72") for count in (105, 127)
+        classify(_case(), _observed(count), build_now="72", taxonomy=None)
+        for count in (105, 127)
     ]
 
     assert verdicts == ["pass", "pass"]
@@ -70,7 +73,8 @@ def test_a_count_within_the_tolerance_on_a_new_build_passes() -> None:
 
 def test_a_count_outside_the_tolerance_on_a_new_build_asks_for_a_re_measure() -> None:
     verdicts = [
-        classify(_case(), _observed(count), build_now="72") for count in (104, 128)
+        classify(_case(), _observed(count), build_now="72", taxonomy=None)
+        for count in (104, 128)
     ]
 
     assert verdicts == ["re-measure", "re-measure"]
@@ -78,7 +82,7 @@ def test_a_count_outside_the_tolerance_on_a_new_build_asks_for_a_re_measure() ->
 
 def test_a_small_count_takes_the_five_gene_floor() -> None:
     verdicts = [
-        classify(_case(count=25), _observed(count), build_now="72")
+        classify(_case(count=25), _observed(count), build_now="72", taxonomy=None)
         for count in (20, 30, 31)
     ]
 
@@ -88,21 +92,24 @@ def test_a_small_count_takes_the_five_gene_floor() -> None:
 def test_a_changed_tree_fails_whatever_the_count_does() -> None:
     changed = _observed(1203, structure=_UNION)
 
-    assert classify(_case(), changed, build_now="72") == "fail"
+    assert classify(_case(), changed, build_now="72", taxonomy=None) == "fail"
 
 
 def test_a_changed_tree_with_the_count_off_on_a_new_build_fails() -> None:
     changed = _observed(120, structure=_UNION)
 
-    assert classify(_case(), changed, build_now="72") == "fail"
+    assert classify(_case(), changed, build_now="72", taxonomy=None) == "fail"
 
 
 def test_a_missing_count_fails_on_any_build() -> None:
-    assert classify(_case(), _observed(None), build_now="72") == "fail"
+    assert classify(_case(), _observed(None), build_now="72", taxonomy=None) == "fail"
 
 
 def test_a_case_that_records_no_count_is_judged_on_its_structure() -> None:
-    assert classify(_case(count=None), _observed(9000), build_now="72") == "pass"
+    assert (
+        classify(_case(count=None), _observed(9000), build_now="72", taxonomy=None)
+        == "pass"
+    )
 
 
 def test_a_count_off_is_reported_with_both_builds() -> None:
@@ -122,3 +129,39 @@ def test_an_equal_count_reports_no_difference_on_any_build() -> None:
     ]
 
     assert differences == [None, None]
+
+
+def _phyletic_case() -> EvalCase:
+    case = _case(count=2)
+    return case.model_copy(
+        update={
+            "expected": case.expected.model_copy(
+                update={
+                    "structure": "GroupsByPhyleticPattern",
+                    "expressions": {
+                        "GroupsByPhyleticPattern": ["APIC=139T AND APIC=139"]
+                    },
+                }
+            )
+        }
+    )
+
+
+def test_an_expression_is_judged_against_the_taxonomy_the_run_read() -> None:
+    observed = ObservedOutcome(
+        built_strategy=True,
+        structure="GroupsByPhyleticPattern",
+        root_count=2,
+        tree=ComparisonNode(
+            search_name="GroupsByPhyleticPattern",
+            parameters={"phyletic_expression": "APIC=139 AND APIC=139T"},
+        ),
+    )
+    taxonomy = clade_tree({"APIC": 139})
+
+    verdicts = [
+        classify(_phyletic_case(), observed, build_now="71", taxonomy=read)
+        for read in (taxonomy, None)
+    ]
+
+    assert verdicts == ["pass", "fail"]

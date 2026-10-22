@@ -79,7 +79,9 @@ def test_an_analysis_criterion_gives_its_compute_as_its_reason() -> None:
 
 def test_a_search_the_site_rebound_holds_no_reason() -> None:
     rebound = criterion_rebound(
-        _TEXT, text_leaf().model_copy(update={"search_name": "GenesByGoTerm"}), None
+        _TEXT,
+        text_leaf().model_copy(update={"search_name": "GenesByGoTerm"}),
+        None,
     )
 
     assert (rebound.search_name, rebound.step_rationale) == ("GenesByGoTerm", None)
@@ -102,7 +104,7 @@ def test_the_graph_stores_the_reason_and_hydrates_it_back() -> None:
     ast = graph.to_strategy_ast()
     assert isinstance(ast, StrategyAst)
 
-    held = {c.id: c.rationale for c in spec_from_ast(ast, goal="g").criteria}
+    held = {c.id: c.rationale for c in spec_from_ast(ast, goal="g", listed={}).criteria}
 
     assert (StepWords.of(ast).rationales, held["step_text"], held["step_go"]) == (
         {"step_text": _CHOSEN},
@@ -117,7 +119,7 @@ def test_a_step_that_runs_another_search_now_holds_no_reason() -> None:
     ast = graph.to_strategy_ast()
     assert isinstance(ast, StrategyAst)
 
-    held = {c.id: c.rationale for c in spec_from_ast(ast, goal="g").criteria}
+    held = {c.id: c.rationale for c in spec_from_ast(ast, goal="g", listed={}).criteria}
 
     assert held == {"step_text": None, "step_go": None, "step_expr": None}
 
@@ -156,7 +158,7 @@ def test_words_about_other_steps_keep_a_steps_reason() -> None:
 def test_a_strategy_with_no_metadata_holds_no_reason() -> None:
     ast = StrategyAst(record_type="transcript", root=three_step_root())
 
-    assert [c.rationale for c in spec_from_ast(ast, goal="g").criteria] == [
+    assert [c.rationale for c in spec_from_ast(ast, goal="g", listed={}).criteria] == [
         None,
         None,
         None,

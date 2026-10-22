@@ -28,6 +28,7 @@ from pathfinder.ai.tools.standalone.experiment import control_test_run
 from pathfinder.domain.evidence import VerificationReview
 from pathfinder.domain.strategy.build_outcome import BuiltCounts, NodeResult
 from pathfinder.services.strategies.site_counts import read_step_counts
+from pathfinder.tests._support.step_reads import GENES_OF_ONE_GENOME
 
 pytestmark = [pytest.mark.live_wdk, pytest.mark.asyncio]
 
@@ -55,7 +56,13 @@ async def _heavy_gene_ids() -> list[str]:
         WDKStepTree(step_id=step.id), name="pathfinder-live-lane", is_internal=True
     )
     try:
-        return list(dict.fromkeys(await fetch_gene_ids_from_step(api, step_id=step.id)))
+        return list(
+            dict.fromkeys(
+                await fetch_gene_ids_from_step(
+                    api, step_id=step.id, limit=GENES_OF_ONE_GENOME
+                )
+            )
+        )
     finally:
         with contextlib.suppress(Exception):
             await api.delete_strategy(strategy.id)
@@ -66,7 +73,13 @@ async def test_the_card_holds_what_the_test_and_the_site_returned(
 ) -> None:
     strategy_id, step_id = await owned_strategy(_SITE)
     api = get_strategy_api(_SITE)
-    light = list(dict.fromkeys(await fetch_gene_ids_from_step(api, step_id=step_id)))
+    light = list(
+        dict.fromkeys(
+            await fetch_gene_ids_from_step(
+                api, step_id=step_id, limit=GENES_OF_ONE_GENOME
+            )
+        )
+    )
     heavy = await _heavy_gene_ids()
     positives = [*light[:20], *heavy[:5]]
     negatives = [*light[20:22], *heavy[5:35]]

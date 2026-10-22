@@ -63,7 +63,6 @@ const FRAME_WITH_SPEC: InvestigationLedger["frame"] = {
   spec: {
     goal: "find gametocyte genes",
     interpretedGoal: "find gametocyte genes",
-    recordType: "transcript",
     organismScope: "Plasmodium falciparum",
     title: "Gametocyte genes",
     criteria: [

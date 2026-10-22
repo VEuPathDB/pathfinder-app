@@ -16,8 +16,12 @@ from pathfinder.ai.agents._instructions import (
     pinned_scratchpad,
     pinned_user_memories,
 )
+from pathfinder.ai.agents.frame_reading_checks import hold_the_readings_to_the_site
 from pathfinder.ai.agents.frame_result_checks import (
+    hold_an_every_genome_presence_to_a_question,
+    hold_the_questions_to_a_dimension,
     hold_the_questions_to_the_draft,
+    hold_the_record_types_to_a_role,
     hold_the_reports_to_the_refusals,
     hold_the_reports_to_the_requirement_list,
     hold_the_route_to_another_site,
@@ -148,10 +152,19 @@ Procedure:
         present" and "every one absent". On any other site, report that requirement as
         `another_site_answers` with `site` "orthomcl", bind nothing for it and ask no
         question about it. On OrthoMCL, write it in `phyletic_expression` from the codes
-        `lookup_phyletic_codes` returns, in the grammar its sheet states; a list of N codes
-        absent from at least k of them is `list<=(N-k)T`. `set_criterion` answers the
-        expression in words with the size of each list; when those words do not say what
-        the request asks, correct the expression and bind it again. OrthoMCL's record types are
+        and genome counts `lookup_phyletic_codes` returns, with the recipes the
+        parameter's help states. A genus with no clade code is the list of its genome
+        codes. A T count counts genomes, and strains are genomes. The site drops
+        parentheses and reads AND before OR, so write an OR of AND terms, each term
+        repeating the units it shares. `<`, `<=` and `>=` hold only for a group with a
+        protein in the list, so absence from a list L is `L=0T`, and absence from at
+        least k of its N genomes, for k below N, is `X AND L<=(N-k)T OR X AND L=0T`,
+        with X the other units of that AND term (`L<=(N-k)T OR L=0T` when there are
+        none); absence from all N is `X AND L=0T`. Single copy over a list is only `L=NT AND L=N`: bind it
+        as written and say in `summary` that it requires one protein in every genome,
+        so it may return few groups. `set_criterion` answers the expression in words with
+        the size of each list; when those words do not say what the request asks, correct
+        the expression and bind it again. OrthoMCL's record types are
         `group` (ortholog groups) and `sequence` (proteins, the genes a request asks
         for): `GroupsByPhyleticPattern` returns groups, the `FromGroups` transform of
         record type `sequence` turns them into proteins, and a `ByTaxonomy` step of record
@@ -249,6 +262,23 @@ Procedure:
    <CONSTRAINT_KINDS>, the `recommended_value` you would use if the user does not
    answer, and in `options` up to 8 values the sheet you read offers for it (its facets
    or its vocabulary), the recommended value among them.
+   An open question about a free-text or range parameter (a phyletic expression, a count
+   range) offers `readings`, not `options`: two or three, each a `label` in the
+   researcher's terms with its numbers, the `value` it binds, and a `caveat` stating what
+   it leaves out. A `value` is the expression or value the parameter takes, which the
+   site builds as written, never a description in words. Its `recommended_value` is the
+   label of the reading you recommend. When the requirements the researcher stated are
+   listed, the question's own `requirements` lists the keys (R1, R2) of those its
+   readings approximate; with no list, it lists none. Take
+   them from the recipes the parameter's help states, on a parameter that takes no
+   vocabulary. Never ask for a raw threshold or a raw expression. A comparison of the
+   protein counts of two single genomes is bound as the exact recipe the help states,
+   with no question and no threshold asked; readings are for a request only an
+   approximation states, such as a comparison of lists of many genomes, and each names
+   its approximation in its caveat. When the researcher answers in their own words, bind
+   the closest reading and pass its label as `reading` on `set_criterion`.
+   When no reading approximates a requirement, say so once in `summary` with the
+   reason and the nearest search, and ask nothing about it.
 
 Editing an existing spec: when the workspace below already lists criteria, this pass is an EDIT.
 The runtime reads what the pass did to each criterion from its values: a criterion is kept only
@@ -356,7 +386,11 @@ def build_frame_agent() -> FrameAgent:
     ):
         agent.instructions(stable.section(fn))
     agent.output_validator(hold_the_reports_to_the_requirement_list)
+    agent.output_validator(hold_the_record_types_to_a_role)
+    agent.output_validator(hold_the_questions_to_a_dimension)
     agent.output_validator(hold_the_questions_to_the_draft)
     agent.output_validator(hold_the_route_to_another_site)
     agent.output_validator(hold_the_reports_to_the_refusals)
+    agent.output_validator(hold_the_readings_to_the_site)
+    agent.output_validator(hold_an_every_genome_presence_to_a_question)
     return agent

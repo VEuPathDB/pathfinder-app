@@ -6,7 +6,7 @@ from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import BaseModel, ConfigDict, Field
 from veupathdb.domain.parameters import ParamValue
 
-from pathfinder.services.gene_sets.types import GeneSetSource
+from pathfinder.services.gene_sets.types import GeneSetSource, OutOfDate
 
 
 class WdkProvenance(BaseModel):
@@ -59,6 +59,8 @@ class GeneSetListItem(CamelModel):
     saved_on: str = ""
     """The site the set was saved on."""
     genes_on_this_site: int = 0
+    record_noun: str = "gene"
+    out_of_date: OutOfDate | None = None
 
 
 class GeneSetListResponse(CamelModel):

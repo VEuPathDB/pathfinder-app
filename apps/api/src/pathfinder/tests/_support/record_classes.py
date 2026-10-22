@@ -68,3 +68,16 @@ def list_searches_under(
         return _listed_under
 
     monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)
+
+
+def list_every_search_under(monkeypatch: pytest.MonkeyPatch, record_type: str) -> None:
+    async def _resolver(_site_id: str) -> Callable[[str], Awaitable[str | None]]:
+        async def _listed_under(search_name: str) -> str | None:
+            search = recorded_searches().get(search_name)
+            if search is None or search.output_record_class_name is None:
+                return record_type
+            return search.output_record_class_name
+
+        return _listed_under
+
+    monkeypatch.setattr(record_classes, "make_record_type_resolver", _resolver)

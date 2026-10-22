@@ -4,12 +4,12 @@ import hashlib
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from assistant_core.platform.context import calling_application
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Discriminator
 from veupathdb.domain.parameters import ParamValue
 from veupathdb_mcp.wdk import GeneSetWdkContext
 
@@ -43,6 +43,32 @@ class GeneSetMembership(CamelModel):
         )
 
 
+class ResultAboveTheCap(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["above_the_cap"] = "above_the_cap"
+    count: int
+    cap: int
+
+
+class ResultNotGenes(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["not_genes"] = "not_genes"
+    record_class: str
+
+
+class ResultWithoutGenes(CamelModel):
+    model_config = ConfigDict(frozen=True)
+
+    kind: Literal["no_genes"] = "no_genes"
+
+
+OutOfDate = Annotated[
+    ResultAboveTheCap | ResultNotGenes | ResultWithoutGenes, Discriminator("kind")
+]
+
+
 @dataclass
 class GeneSet:
     """A named collection of gene IDs for analysis."""
@@ -70,6 +96,7 @@ class GeneSet:
     """The answer revision of the strategy root the genes were read from."""
     homes: dict[str, GeneHome] = field(default_factory=dict)
     """Each saved id that names a gene, with the gene and the site that holds it."""
+    out_of_date: OutOfDate | None = None
 
     def genes_on(self, site_id: str, kind: SiteKind) -> list[str]:
         """The ids of this set that ``site_id`` reads."""

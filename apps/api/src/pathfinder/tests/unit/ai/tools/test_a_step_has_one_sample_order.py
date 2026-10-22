@@ -18,7 +18,7 @@ from veupathdb.wdk import (
 )
 from veupathdb_mcp.wdk import SampleRecordsResult
 
-from pathfinder.ai.tools.standalone import results
+from pathfinder.ai.tools.standalone import _sample_page, results
 from pathfinder.ai.tools.standalone.step_ids import StepGeneIds, read_step_ids
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.gene_sets import step_genes
@@ -86,7 +86,7 @@ def _served(monkeypatch: pytest.MonkeyPatch) -> None:
         return []
 
     step = _Step()
-    monkeypatch.setattr(results, "get_strategy_api", lambda _site_id: step)
+    monkeypatch.setattr(_sample_page, "get_strategy_api", lambda _site_id: step)
     monkeypatch.setattr(step_genes, "get_strategy_api", lambda _site_id: step)
     monkeypatch.setattr(results, "sample_attributes", _none)
 

@@ -50,6 +50,7 @@ LEAD_TOOL_NAMES = frozenset(
         "consult_user",
         "count_search",
         "count_by_column",
+        "count_step_by_column",
         "delete_step",
         "edit_strategy",
         "export_gene_set",
@@ -294,8 +295,8 @@ def test_a_card_turn_that_owes_nothing_parks_unasked() -> None:
     assert deps.state.turn_markers.contract_refused is False
 
 
-def test_a_built_card_turn_that_never_verified_is_asked_once() -> None:
-    """The card is denied with the correction once, and the next card parks."""
+def test_a_built_card_turn_that_never_verified_parks_unasked() -> None:
+    """The card's facts state the unverified build, so its reply is not asked."""
     deps = _nudge_deps(built=True)
     script = _parking_script()
 
@@ -305,7 +306,9 @@ def test_a_built_card_turn_that_never_verified_is_asked_once() -> None:
 
     assert isinstance(result.output, DeferredToolRequests)
     assert [call.tool_name for call in result.output.approvals] == ["consult_user"]
-    assert deps.state.turn_markers.contract_refused is True
+    assert script.retries == []
+    markers = deps.state.turn_markers
+    assert (markers.contract_refused, markers.unchecked_reply) == (False, False)
 
 
 _SERVED_PAPER = (

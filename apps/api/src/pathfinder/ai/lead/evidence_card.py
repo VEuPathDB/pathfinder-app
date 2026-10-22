@@ -23,6 +23,11 @@ from pathfinder.domain.evidence import (
     SiteRead,
     VerificationReview,
 )
+from pathfinder.domain.expression_fit import (
+    ExpressionFit,
+    bound_expressions,
+    live_fits,
+)
 from pathfinder.domain.strategy.build_outcome import (
     BuiltCounts,
     NodeResult,
@@ -55,6 +60,7 @@ class CardSources:
     pending_checks: Sequence[str]
     # The checker's review, as the record of the turn lets it stand.
     review: VerificationReview
+    expression_fits: Sequence[ExpressionFit] = ()
 
 
 def _strategy_url(sources: CardSources, site: SiteCounts | None) -> str | None:
@@ -93,6 +99,16 @@ def judged_control_tests(
             or run.evidence.wdk_step_id in live_wdk_step_ids
         )
     )
+
+
+def judged_expression_fits(deps: LeadDeps) -> list[ExpressionFit]:
+    spec = deps.state.domain.operational_spec
+    sync = deps.runtime.strategy_session.sync_state
+    bound = bound_expressions(
+        [] if spec is None else spec.criteria,
+        {} if sync is None else sync.wdk_step_ids,
+    )
+    return live_fits(deps.state.turn_markers.expression_fits, bound)
 
 
 def _controls(sources: CardSources) -> list[ControlTestEvidence]:
@@ -137,6 +153,7 @@ def assemble_evidence_card(
         citations=_citations(sources.spec),
         pending_checks=list(sources.pending_checks),
         review=sources.review,
+        expression_fits=list(sources.expression_fits),
     )
 
 
@@ -167,6 +184,7 @@ def _sources(
         control_tests=deps.state.turn_markers.control_tests,
         pending_checks=pending_checks,
         review=review,
+        expression_fits=judged_expression_fits(deps),
     )
 
 
@@ -201,5 +219,6 @@ __all__ = [
     "CardSources",
     "assemble_evidence_card",
     "judged_control_tests",
+    "judged_expression_fits",
     "publish_evidence_card",
 ]

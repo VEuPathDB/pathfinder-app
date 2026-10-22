@@ -12,6 +12,7 @@ from assistant_core.tasks.progress import TaskProgressEmitter
 from veupathdb.errors import VEuPathDBError, VEuPathDBErrorCode
 from veupathdb.wdk import WDKSearchConfig, WDKStep
 from veupathdb_mcp.controls import (
+    ControlsSearch,
     ControlTargetData,
     ControlTestResult,
     PositiveControls,
@@ -61,10 +62,15 @@ class _Api:
     """A strategy API that answers one step lookup."""
 
     def __init__(
-        self, error: Exception | None = None, *, unnamed: bool = False
+        self,
+        error: Exception | None = None,
+        *,
+        unnamed: bool = False,
+        record_type: str = "transcript",
     ) -> None:
         self.error = error
         self.unnamed = unnamed
+        self.record_type = record_type
 
     async def find_step(self, step_id: int, user_id: str | None = None) -> WDKStep:
         del user_id
@@ -74,21 +80,30 @@ class _Api:
             id=step_id,
             search_name=SEARCH,
             display_name="" if self.unnamed else LABEL,
-            record_class_name="transcript",
+            record_class_name=self.record_type,
             search_config=WDKSearchConfig(),
         )
 
 
+_tested_with: list[ControlsSearch] = []
+_told: list[str] = []
+
+
 @pytest.fixture(autouse=True)
 def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
+    _tested_with.clear()
+    _told.clear()
+
     async def run(
         *,
         site_id: str,
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
+        controls: ControlsSearch,
     ) -> ControlTestResult:
         del site_id, negative_controls
+        _tested_with.append(controls)
         recovered, missed = (positive_controls or [])[:2], (positive_controls or [])[2:]
         return ControlTestResult(
             site_id="plasmodb",
@@ -101,8 +116,11 @@ def _measured(monkeypatch: pytest.MonkeyPatch) -> None:
         del name
         return outcome
 
-    async def no_update(self: TaskProgressEmitter, **kwargs: Any) -> None:
+    async def no_update(
+        self: TaskProgressEmitter, *, message: str, **kwargs: Any
+    ) -> None:
         del self, kwargs
+        _told.append(message)
 
     async def published(
         site_id: str, record_type: str, search_name: str
@@ -202,3 +220,66 @@ async def test_a_step_wdk_does_not_name_falls_back_to_its_search(
     )
 
     assert result["targetLabel"] == "Combine Gene results"
+
+
+@pytest.mark.parametrize(
+    ("record_type", "controls"),
+    [
+        ("transcript", ControlsSearch()),
+        (
+            "sequence",
+            ControlsSearch(
+                search_name="ByIdList", param_name="source_ids", record_type="sequence"
+            ),
+        ),
+        (
+            "group",
+            ControlsSearch(
+                search_name="GroupsByNameList",
+                param_name="group_names",
+                record_type="group",
+            ),
+        ),
+    ],
+)
+async def test_a_step_is_tested_with_the_id_search_of_its_record_type(
+    monkeypatch: pytest.MonkeyPatch, record_type: str, controls: ControlsSearch
+) -> None:
+    monkeypatch.setattr(
+        control_tests_impl,
+        "get_strategy_api",
+        lambda _site: _Api(record_type=record_type),
+    )
+    _serve(monkeypatch, ["OG8_0000003"])
+
+    await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert _tested_with == [controls]
+
+
+async def test_the_task_says_it_writes_temporary_steps_and_deletes_them(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(control_tests_impl, "get_strategy_api", lambda _site: _Api())
+    _serve(monkeypatch, ["PF3D7_1227900"])
+
+    await run_control_tests_on_step_impl(
+        context=_context(),
+        task_id=uuid4(),
+        progress=_emitter(),
+        memory_store=None,
+        wdk_step_id=STEP_ID,
+        control_set_id=SAVED_SET_ID,
+    )
+
+    assert _told[0] == (
+        f"Testing step {STEP_ID} in temporary steps in your VEuPathDB account, "
+        "deleted when the test ends; the uploaded id list stays"
+    )

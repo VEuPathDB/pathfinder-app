@@ -22,6 +22,7 @@ from pathfinder.domain.caveats import EditDirection
 from pathfinder.domain.strategy.build_outcome import BuildOutcome, built_counts
 from pathfinder.domain.strategy.operational_spec import Criterion, OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
+from pathfinder.domain.turn_facts import StrategyLinkFact
 from pathfinder.services.strategies import commit, live_counts, step_wdk_push, sync
 from pathfinder.services.strategies.commit import live_strategy_url
 from pathfinder.services.strategies.sync import SyncResult
@@ -95,8 +96,9 @@ def _deps_after_the_delete() -> LeadDeps:
 def test_after_a_delete_the_link_names_the_root_the_strategy_holds() -> None:
     facts = turn_facts(_deps_after_the_delete())
 
-    assert facts.strategy_url == (
-        f"https://qa.cryptodb.org/cryptodb.qa/app/workspace/strategies/{_STRATEGY}/{_LIVE_ROOT}"
+    assert facts.strategy_link == StrategyLinkFact(
+        site_id="cryptodb",
+        url=f"https://qa.cryptodb.org/cryptodb.qa/app/workspace/strategies/{_STRATEGY}/{_LIVE_ROOT}",
     )
     assert facts.root_count == 483
 
@@ -109,8 +111,37 @@ def test_after_a_value_only_edit_the_link_is_still_shown() -> None:
     )
     deps = lead_deps(state, strategy_session=_session("piroplasmadb", step, 902, 5))
 
-    assert turn_facts(deps).strategy_url == (
-        f"https://qa.piroplasmadb.org/piro.qa/app/workspace/strategies/{_STRATEGY}/902"
+    assert turn_facts(deps).strategy_link == StrategyLinkFact(
+        site_id="piroplasmadb",
+        url=f"https://qa.piroplasmadb.org/piro.qa/app/workspace/strategies/{_STRATEGY}/902",
+    )
+
+
+def test_an_orthomcl_link_names_its_site_and_opens_the_root_step() -> None:
+    step = "step_6b1c2f40"
+    state = pipeline_state("orthomcl", domain=domain_answering(_spec(step)))
+    state.domain.last_build_outcome = BuildOutcome(
+        pushed_step_ids=[step], wdk_strategy_id=_STRATEGY
+    )
+    deps = lead_deps(state, strategy_session=_session("orthomcl", step, 77, 395))
+
+    assert turn_facts(deps).strategy_link == StrategyLinkFact(
+        site_id="orthomcl",
+        url=f"https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/{_STRATEGY}/77",
+    )
+
+
+def test_a_portal_link_names_the_portal_and_opens_the_root_step() -> None:
+    step = "step_0d4e9a21"
+    state = pipeline_state("veupathdb", domain=domain_answering(_spec(step)))
+    state.domain.last_build_outcome = BuildOutcome(
+        pushed_step_ids=[step], wdk_strategy_id=_STRATEGY
+    )
+    deps = lead_deps(state, strategy_session=_session("veupathdb", step, 512, 40))
+
+    assert turn_facts(deps).strategy_link == StrategyLinkFact(
+        site_id="veupathdb",
+        url=f"https://qa.veupathdb.org/veupathdb.qa/app/workspace/strategies/{_STRATEGY}/512",
     )
 
 

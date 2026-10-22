@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import cast
 from uuid import UUID
 
-from sqlalchemy import CursorResult, delete, desc, select, update
+from sqlalchemy import delete, desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathfinder.domain.strategy.revision import (
@@ -19,12 +18,9 @@ from pathfinder.persistence.models import (
     StrategyRevision,
     StrategyRevisionView,
 )
+from pathfinder.persistence.rows import rows_changed
 
 __all__ = ["StrategyRevisionRepository"]
-
-
-def _rows(result: object) -> int:
-    return cast("CursorResult[object]", result).rowcount or 0
 
 
 class StrategyRevisionRepository:
@@ -191,7 +187,7 @@ class StrategyRevisionRepository:
         )
         if revision_row_id is not None:
             stmt = stmt.where(StrategyRevision.id > revision_row_id)
-        return _rows(await self.session.execute(stmt))
+        return rows_changed(await self.session.execute(stmt))
 
     async def delete_at_or_after(
         self,
@@ -199,7 +195,7 @@ class StrategyRevisionRepository:
         *,
         moment: datetime,
     ) -> int:
-        return _rows(
+        return rows_changed(
             await self.session.execute(
                 delete(StrategyRevision).where(
                     StrategyRevision.conversation_id == conversation_id,

@@ -58,7 +58,7 @@ def test_each_step_counts_in_its_own_record_class() -> None:
 
     assert {step.step_id: step.record_noun for step in facts.steps} == {
         "step_pattern": "group",
-        "step_proteins": "sequence",
-        "step_taxon": "sequence",
-        "step_and": "sequence",
+        "step_proteins": "protein",
+        "step_taxon": "protein",
+        "step_and": "protein",
     }

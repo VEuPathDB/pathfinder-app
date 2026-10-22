@@ -3,6 +3,7 @@
 from uuid import UUID
 
 from assistant_core.platform.context import calling_application
+from assistant_core.platform.types import JSONObject
 from sqlalchemy import Select, delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,6 +79,18 @@ class GeneSetRepository:
                 GeneSetRow.application_id == calling_application(),
             )
             .values(vdi_id=vdi_id)
+        )
+
+    async def set_out_of_date(
+        self, gene_set_id: str, out_of_date: JSONObject | None
+    ) -> None:
+        await self.session.execute(
+            update(GeneSetRow)
+            .where(
+                GeneSetRow.id == gene_set_id,
+                GeneSetRow.application_id == calling_application(),
+            )
+            .values(out_of_date=out_of_date)
         )
 
     async def delete_by_id(self, gene_set_id: str) -> bool:

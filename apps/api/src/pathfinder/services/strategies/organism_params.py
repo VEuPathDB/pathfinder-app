@@ -14,7 +14,6 @@ from veupathdb_mcp.catalog import (
     dataset_organisms,
     organism_parameter,
     read_search_definition,
-    resolve_search_record_type,
     study_organisms,
 )
 
@@ -26,21 +25,18 @@ logger = get_logger(__name__)
 
 
 async def organism_parameters(
-    site_id: str, record_type: str | None, search_names: Collection[str]
+    site_id: str, search_names: Collection[str]
 ) -> dict[str, str]:
     """Each search the catalog reads that marks an organism parameter, and its name,
     each read under the record type the catalog lists it under.
 
-    A search the catalog cannot read names none, so a check that reads the map
-    abstains on it.
+    A search the catalog does not list, or cannot read, names none, so a check
+    that reads the map abstains on it.
     """
     marks: dict[str, str] = {}
     listed = await search_record_types(site_id, search_names)
-    for search_name in sorted(set(search_names)):
+    for search_name, listed_under in sorted(listed.items()):
         try:
-            listed_under = await resolve_search_record_type(
-                site_id, search_name, listed.get(search_name, record_type)
-            )
             marked = await organism_parameter(site_id, listed_under, search_name)
         except (VEuPathDBError, OSError) as exc:
             logger.warning(
@@ -96,7 +92,7 @@ async def tree_dataset_organisms(
 
 
 async def tree_organism_parameters(
-    site_id: str, record_type: str | None, root: StrategyStepNode
+    site_id: str, root: StrategyStepNode
 ) -> dict[str, str]:
     """The organism parameter of every search a step tree runs.
 
@@ -108,25 +104,22 @@ async def tree_organism_parameters(
         return {}
     return await organism_parameters(
         site_id,
-        record_type,
         [node.search_name for node in nodes if node.infer_kind() != "combine"],
     )
 
 
 async def organism_taxa(
-    site_id: str, record_type: str | None, organism_params: Mapping[str, str]
+    site_id: str, organism_params: Mapping[str, str]
 ) -> dict[str, frozenset[str]]:
     """The organisms under each entry of the organism tree of every marked search.
 
-    A search the catalog cannot read gives none, so its entries stand for themselves.
+    A search the catalog does not list, or cannot read, gives none, so its entries
+    stand for themselves.
     """
     taxa: dict[str, frozenset[str]] = {}
     listed = await search_record_types(site_id, organism_params)
-    for search_name, param in sorted(organism_params.items()):
+    for search_name, listed_under in sorted(listed.items()):
         try:
-            listed_under = await resolve_search_record_type(
-                site_id, search_name, listed.get(search_name, record_type)
-            )
             definition = await read_search_definition(
                 site_id, listed_under, search_name
             )
@@ -135,27 +128,26 @@ async def organism_taxa(
                 "organism tree unreadable", search_name=search_name, error=str(exc)
             )
             continue
-        tree = organism_trees(definition).get(param)
+        tree = organism_trees(definition).get(organism_params[search_name])
         if tree is not None:
             taxa.update(tree.parents)
     return taxa
 
 
 async def tree_cross_organism_refusal(
-    site_id: str, record_type: str | None, root: StrategyStepNode
+    site_id: str, root: StrategyStepNode
 ) -> str | None:
     """Why the first INTERSECT of the tree can never meet, or None when each one
     can or a scope is unknown. The organism tree is read only when two scopes
     differ by name."""
-    marks = await tree_organism_parameters(site_id, record_type, root)
+    marks = await tree_organism_parameters(site_id, root)
     datasets = await tree_dataset_organisms(site_id, root, marks)
-    taxa = await tree_taxa(site_id, record_type, root, marks, datasets)
+    taxa = await tree_taxa(site_id, root, marks, datasets)
     return first_cross_organism_refusal(root, marks, datasets, taxa=taxa)
 
 
 async def tree_taxa(
     site_id: str,
-    record_type: str | None,
     root: StrategyStepNode,
     organism_params: Mapping[str, str],
     dataset_organisms: Mapping[str, frozenset[str]],
@@ -164,4 +156,4 @@ async def tree_taxa(
     when no INTERSECT of the tree joins two scopes that differ by name."""
     if first_cross_organism_refusal(root, organism_params, dataset_organisms) is None:
         return {}
-    return await organism_taxa(site_id, record_type, organism_params)
+    return await organism_taxa(site_id, organism_params)

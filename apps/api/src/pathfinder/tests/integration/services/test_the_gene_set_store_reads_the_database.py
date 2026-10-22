@@ -12,9 +12,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from pathfinder.domain.gene_homes import GeneHome
 from pathfinder.persistence.models import User
 from pathfinder.persistence.repositories import ConversationRepository
+from pathfinder.services.gene_sets import operations
 from pathfinder.services.gene_sets.operations import GeneSetService
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError
 from pathfinder.services.gene_sets.store import GeneSetStore
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import (
+    GeneSet,
+    ResultAboveTheCap,
+    ResultNotGenes,
+    ResultWithoutGenes,
+)
 
 _SET = "gs-shared-1"
 
@@ -172,3 +179,51 @@ async def test_a_site_lists_the_sets_whose_genes_it_holds(seed_user: User) -> No
     read = await store.get("gs-ortho")
     assert read is not None
     assert read.homes == ortho.homes
+
+
+async def test_a_refused_refresh_marks_the_set_and_leaves_a_later_rename(
+    seed_user: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = GeneSetStore()
+    await api.save(_set(seed_user.id))
+    renamed_in_the_window = GeneSetStore()
+
+    async def _rename_then_refuse(*_args: object, **_kwargs: object) -> None:
+        await renamed_in_the_window.rename(_SET, "Kinases of the root")
+        raise TooManyGenesError(12_480, 10_000)
+
+    monkeypatch.setattr(operations, "read_strategy_genes", _rename_then_refuse)
+
+    with pytest.raises(TooManyGenesError):
+        await GeneSetService(api).resync_strategy(
+            _SET, wdk_strategy_id=330_642_473, site_id="plasmodb", answer_revision="r"
+        )
+
+    read = await api.get(_SET)
+    assert read is not None
+    assert (read.name, read.out_of_date) == (
+        "Kinases of the root",
+        ResultAboveTheCap(count=12_480, cap=10_000),
+    )
+
+
+async def test_a_mark_on_a_deleted_set_writes_no_row(seed_user: User) -> None:
+    api = GeneSetStore()
+    await api.save(_set(seed_user.id))
+    await api.delete(_SET)
+
+    await api.set_out_of_date(_SET, ResultWithoutGenes())
+
+    assert (await api.get(_SET), await api.list_for_user(seed_user.id)) == (None, [])
+
+
+async def test_a_save_writes_the_mark_the_set_holds(seed_user: User) -> None:
+    marked = replace(
+        _set(seed_user.id), out_of_date=ResultNotGenes(record_class="group")
+    )
+
+    await GeneSetStore().save(marked)
+
+    read = await GeneSetStore().get(_SET)
+    assert read is not None
+    assert read.out_of_date == ResultNotGenes(record_class="group")

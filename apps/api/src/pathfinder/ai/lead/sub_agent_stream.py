@@ -41,6 +41,7 @@ from pydantic_ai.tools import DeferredToolRequests, DeferredToolResults
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.roles import PhaseRole
+from pathfinder.ai.agents.unserved import SearchNotServedError
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.scripted_scope import bind_scripted_scope
 from pathfinder.ai.lead.sub_agent_events import (
@@ -334,7 +335,12 @@ async def stream_sub_agent[OutputT: BaseModel](
                             baseline=baseline,
                         ):
                             break
-        except (UsageLimitExceeded, ModelAPIError, UnexpectedModelBehavior) as exc:
+        except (
+            UsageLimitExceeded,
+            ModelAPIError,
+            UnexpectedModelBehavior,
+            SearchNotServedError,
+        ) as exc:
             stop = early_stop(exc, refusal)
             if stop is None:
                 raise

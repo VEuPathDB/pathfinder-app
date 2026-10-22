@@ -9,9 +9,7 @@ from assistant_core.graph.turn_state import TurnState
 from assistant_core.memory.schemas import MemoryEntryDraft
 from assistant_core.memory.store import StoredMemory
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field, GetJsonSchemaHandler
-from pydantic.json_schema import JsonSchemaValue
-from pydantic_core import CoreSchema, PydanticOmit
+from pydantic import BeforeValidator, ConfigDict, Field, ValidationError
 from veupathdb.domain.strategy import StrategyAst
 
 from pathfinder.ai.agents.state import CreatedGeneSet, SearchOverview
@@ -23,6 +21,7 @@ from pathfinder.ai.graph.turn_records import (
 from pathfinder.ai.lead.intent import REQUEST_INTENTS, UserIntent
 from pathfinder.ai.lead.proposal import DeclinedProposal
 from pathfinder.domain.caveats import Caveat, Gap
+from pathfinder.domain.clipped import list_clipped_to, text_clipped_to
 from pathfinder.domain.constraint_check import ConstraintCheck
 from pathfinder.domain.eda_parts import EdaFilterSheetEntry, OpenEdaSheet
 from pathfinder.domain.eda_thread import (
@@ -36,6 +35,7 @@ from pathfinder.domain.evidence import (
 )
 from pathfinder.domain.exchanges import Exchange, kept_exchanges
 from pathfinder.domain.memory import MemoryKind
+from pathfinder.domain.omitted_from_input import OmittedFromInput
 from pathfinder.domain.question_rows import ResearcherAsk
 from pathfinder.domain.record_facts import SourceFact
 from pathfinder.domain.requirement_naming import named_in_prose
@@ -80,16 +80,22 @@ class FailureCause(StrEnum):
     STRUCTURE_VIOLATION = "structure_violation"
 
 
-class OmittedFromInput:
-    """A field the validation schema omits and the serialization schema keeps."""
+class _DraftWords(CamelModel):
+    model_config = ConfigDict(extra="allow")
 
-    @classmethod
-    def __get_pydantic_json_schema__(
-        cls, schema: CoreSchema, handler: GetJsonSchemaHandler
-    ) -> JsonSchemaValue:
-        if handler.mode == "validation":
-            raise PydanticOmit
-        return handler(schema)
+    name: Annotated[str, text_clipped_to(200)]
+    summary: Annotated[str, text_clipped_to(400)]
+    tags: Annotated[list[str], list_clipped_to(8)] = Field(default_factory=list)
+
+
+def clipped_draft(raw: object) -> object:
+    try:
+        return _DraftWords.model_validate(raw).model_dump(by_alias=True)
+    except ValidationError:
+        return raw
+
+
+type ClippedDraft = Annotated[MemoryEntryDraft, BeforeValidator(clipped_draft)]
 
 
 class VerificationDigest(CamelModel):
@@ -100,26 +106,26 @@ class VerificationDigest(CamelModel):
             "the next sub-agent."
         ),
     )
-    prose: str = Field(
+    prose: Annotated[str, text_clipped_to(4000)] = Field(
         min_length=1,
-        max_length=4000,
         description="User-facing assistant message shown in the conversation.",
     )
-    reason: str = Field(
+    reason: Annotated[str, text_clipped_to(280)] = Field(
         min_length=1,
-        max_length=280,
         description="Short routing explanation shown on the orchestrator card.",
     )
     handoff_to: PhaseName | None = None
     failure_cause: FailureCause | None = Field(default=None)
-    note_refs: list[str] = Field(default_factory=list, max_length=10)
+    note_refs: Annotated[list[str], list_clipped_to(10)] = Field(default_factory=list)
     success: bool = Field(
         description=(
             "True if the strategy answered the user's question: sample "
             "records and result sizes look right, control tests passed."
         ),
     )
-    key_findings: list[str] = Field(default_factory=list, max_length=10)
+    key_findings: Annotated[list[str], list_clipped_to(10)] = Field(
+        default_factory=list
+    )
     # What the check measured short of the request, and what the strategy does
     # not answer. The runtime sets both, so the checker's schema omits them.
     caveats: Annotated[list[Caveat], OmittedFromInput] = Field(default_factory=list)
@@ -137,9 +143,8 @@ class VerificationDigest(CamelModel):
         default_factory=list
     )
     review: VerificationReview = Field(default_factory=VerificationReview)
-    remember: list[MemoryEntryDraft] = Field(
+    remember: Annotated[list[ClippedDraft], list_clipped_to(5)] = Field(
         default_factory=list,
-        max_length=5,
         description=(
             "Durable findings worth a later turn, each with a recall-friendly "
             'name such as "P. falciparum kinome size", counts or identifiers '
@@ -166,11 +171,14 @@ class VerificationDigest(CamelModel):
             not self.success and self.failure_cause is FailureCause.STRUCTURE_VIOLATION
         )
 
+    @property
+    def unanswered(self) -> list[str]:
+        return [t for g in self.gaps if g.fails_the_check for t in g.texts()]
+
     def failure_stated_in(self, prose: str) -> bool:
         """Whether the prose names each gap that fails the check, or the reason
         when no gap does."""
-        texts = [t for g in self.gaps if g.fails_the_check for t in g.texts()]
-        return all(named_in_prose(prose, t) for t in texts or [self.reason])
+        return all(named_in_prose(prose, t) for t in self.unanswered or [self.reason])
 
 
 class StrategyDomainState(ThreadRequirements):
@@ -267,6 +275,7 @@ class StrategyDomainState(ThreadRequirements):
         self.operational_spec = None
         self.requirements = []
         self.retired_requirements = []
+        self.record_roles = {}
         self.answered_questions = []
         self.recommendations = []
         self.open_questions = []

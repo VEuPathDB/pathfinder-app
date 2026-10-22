@@ -19,6 +19,7 @@ from pathfinder.ai.graph.runtime import Context
 from pathfinder.domain.evidence import NamedControlSet
 from pathfinder.services.evidence.control_sets import saved_control_set
 from pathfinder.services.evidence.optimization import tunable_parameters_of_search
+from pathfinder.services.experiment.controls_search import controls_search
 from pathfinder.services.experiment.published_names import published_names
 from pathfinder.services.export.control_downloads import attach_control_downloads
 
@@ -89,18 +90,21 @@ async def run_control_tests_on_step_impl(
 
     await progress.update(
         percent=0.0,
-        message=f"Querying WDK step {wdk_step_id}",
+        message=(
+            f"Testing step {wdk_step_id} in temporary steps in your VEuPathDB "
+            "account, deleted when the test ends; the uploaded id list stays"
+        ),
         data={"wdk_step_id": wdk_step_id, "total_sets": total_sets},
     )
 
+    tested = await _tested_step(context.site_id, wdk_step_id)
     result = await run_step_control_tests(
         site_id=context.site_id,
         wdk_step_id=wdk_step_id,
         positive_controls=saved.positive_ids or None,
         negative_controls=saved.negative_ids or None,
+        controls=controls_search(tested.record_type),
     )
-
-    tested = await _tested_step(context.site_id, wdk_step_id)
     result.target.search_name = tested.search_name
 
     emitted = 0

@@ -1,0 +1,38 @@
+{
+  "name": "orthomcl-kinase-groups-through-falciparum-proteins",
+  "turns": [
+    "Take the ortholog groups that contain a protein with the protein kinase domain PF00069, keep only their Plasmodium falciparum 3D7 proteins, then give me the ortholog groups those proteins belong to."
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "Groups to proteins, an intersection with one organism's proteins, and proteins back to groups: the round trip returns the kinase groups that hold a 3D7 protein, the same groups as the kinase search intersected with a phyletic pattern that requires the 3D7 genome.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsFromSequences((FromGroups(GroupsByPFamIdOrKeyword) INTERSECT ByTaxonomy))",
+    "recordType": "group",
+    "stepCount": 5,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 234,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
+    "curatorNote": "Both transforms and a protein-level intersection in one strategy."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

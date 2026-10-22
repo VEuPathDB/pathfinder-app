@@ -98,16 +98,6 @@ class OpenLifecycle(CamelModel):
     state: Literal["open"] = "open"
 
 
-class BoundLifecycle(CamelModel):
-    """A requirement a criterion's values state."""
-
-    model_config = ConfigDict(frozen=True)
-
-    state: Literal["bound"] = "bound"
-    criterion_id: str
-    params: list[str] = Field(default_factory=list)
-
-
 class WithdrawnLifecycle(CamelModel):
     """A requirement a later message of the researcher took back."""
 
@@ -130,7 +120,7 @@ class ReplacedLifecycle(CamelModel):
 
 
 Lifecycle = Annotated[
-    OpenLifecycle | BoundLifecycle | WithdrawnLifecycle | ReplacedLifecycle,
+    OpenLifecycle | WithdrawnLifecycle | ReplacedLifecycle,
     Discriminator("state"),
 ]
 

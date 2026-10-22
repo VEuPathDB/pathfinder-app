@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from veupathdb_mcp.wdk import SampleRecordsResult
 
-from pathfinder.ai.tools.standalone import results
+from pathfinder.ai.tools.standalone import _sample_page, results
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests._support.tool_returns import returned
 
@@ -38,10 +38,10 @@ def _record_attributes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         attributes: list[str],
         record_type: str,
         seed: str,
-    ) -> results.SampledRecords:
+    ) -> _sample_page.SampledRecords:
         del site_id, limit, attributes, record_type, seed
-        return results.SampledRecords(
-            SampleRecordsResult(step_id=step_id, total_count=0), []
+        return _sample_page.SampledRecords(
+            _sample_page.StepSample(step_id=step_id, total_count=0), []
         )
 
     async def selected(

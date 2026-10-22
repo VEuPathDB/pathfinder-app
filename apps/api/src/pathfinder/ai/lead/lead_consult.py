@@ -11,11 +11,16 @@ from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
 from veupathdb_mcp.catalog import ParameterInfo
 
-from pathfinder.ai.graph.state import PipelineState
+from pathfinder.ai.graph.state import PipelineState, StrategyDomainState
 from pathfinder.ai.lead.card_question import CardQuestion
 from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, CardReply
+from pathfinder.ai.lead.readings import refused_picks
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
-from pathfinder.domain.strategy.card_answers import params_held, spec_bound_by_card
+from pathfinder.domain.strategy.card_answers import (
+    params_held,
+    spec_bound_by_card,
+    spec_with_reading,
+)
 from pathfinder.domain.strategy.constraint_grounding import dimension_of_parameter
 from pathfinder.domain.strategy.constraints import (
     CombinationRequest,
@@ -33,6 +38,7 @@ from pathfinder.domain.strategy.questions import (
     Withdraw,
     requirement_choices,
 )
+from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.requirement_lifecycle import (
     MANY_VALUED_KINDS,
     stood_in_for,
@@ -45,6 +51,8 @@ _QUESTION_LIMIT = 300
 
 def _recommends(question: OpenQuestion, option: TypedOption) -> bool:
     match option.binding:
+        case ReadValues(params=params, reading=reading):
+            return question.recommended_value in (reading, *params.values())
         case SetValues(params=params):
             return question.recommended_value in params.values()
         case _:
@@ -197,6 +205,29 @@ def _answer_requirement(
     )
 
 
+def _apply(
+    domain: StrategyDomainState,
+    option: TypedOption,
+    sheets: Mapping[str, Sequence[ParameterInfo]],
+) -> None:
+    spec = domain.operational_spec
+    match option.binding:
+        case SetValues() as values if spec is not None:
+            domain.operational_spec = spec_bound_by_card(
+                spec, values, option_id=option.id, sheets=sheets
+            )
+        case ReadValues() as read if spec is not None:
+            values = SetValues(criterion_id=read.criterion_id, params=read.params)
+            bound = spec_bound_by_card(spec, values, option_id=option.id, sheets=sheets)
+            domain.operational_spec = spec_with_reading(
+                bound, read.criterion_id, read.accepted()
+            )
+        case Withdraw(constraint_id=key):
+            domain.withdraw(c for c in domain.requirements if c.key == key)
+        case SetValues() | ReadValues() | Keep():
+            pass
+
+
 def apply_option_bindings(
     state: PipelineState,
     answers: list[UserQuestionAnswer],
@@ -211,6 +242,7 @@ def apply_option_bindings(
     requirement replaces each one a question that asks for a stand-in names.
     """
     domain = state.domain
+    entry = domain.operational_spec
     recorded = {q.question: q for q in domain.open_questions}
     dimensions = {q.prompt: q.dimension for q in asked}
     labels = {q.prompt: {o.label for o in q.options} for q in asked}
@@ -227,19 +259,7 @@ def apply_option_bindings(
                     domain.record_request_text(label)
                     words.append(label)
                 continue
-            match option.binding:
-                case SetValues() as values:
-                    if domain.operational_spec is not None:
-                        domain.operational_spec = spec_bound_by_card(
-                            domain.operational_spec,
-                            values,
-                            option_id=option.id,
-                            sheets=sheets,
-                        )
-                case Withdraw(constraint_id=key):
-                    domain.withdraw(c for c in domain.requirements if c.key == key)
-                case Keep():
-                    continue
+            _apply(domain, option, sheets)
         dimension = (
             question.dimension
             if question is not None
@@ -254,11 +274,14 @@ def apply_option_bindings(
                 ),
                 stand_in=stated,
             )
+    domain.operational_spec = domain.follow_readings(entry, domain.operational_spec)
 
 
 def _bound_criterion(option: TypedOption) -> str | None:
     match option.binding:
-        case SetValues(criterion_id=criterion_id):
+        case (
+            SetValues(criterion_id=criterion_id) | ReadValues(criterion_id=criterion_id)
+        ):
             return criterion_id
         case _:
             return None
@@ -294,7 +317,7 @@ def _chosen(label: str, question: OpenQuestion | None) -> str:
     options = question.options if question is not None else []
     option = next((o for o in options if o.label == label), None)
     match option:
-        case TypedOption(binding=SetValues(params=params)):
+        case TypedOption(binding=SetValues(params=params) | ReadValues(params=params)):
             sets = ", ".join(f'{name} to "{value}"' for name, value in params.items())
             return f"{label} (sets {sets})"
         case _:
@@ -372,7 +395,22 @@ async def consult_user(
         f"{len(questions)} questions asked",
         ctx=ctx,
     )
-    answered = _format_answers(answers, state.domain.open_questions)
+    refused = await refused_picks(state, answers)
+    answered = "; ".join(
+        [
+            _format_answers(answers, state.domain.open_questions),
+            *(
+                f"the site refused {label!r}, so it binds nothing: {why}"
+                for label, why in refused.items()
+            ),
+        ]
+    )
+    answers = [
+        a.model_copy(
+            update={"chosen_labels": [x for x in a.chosen_labels if x not in refused]}
+        )
+        for a in answers
+    ]
     if answers:
         # Their answers are new requirements, so one more frame is licensed.
         state.turn_markers.framed = False

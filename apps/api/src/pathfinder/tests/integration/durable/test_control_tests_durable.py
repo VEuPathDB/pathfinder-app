@@ -24,6 +24,7 @@ from assistant_core.tasks.runner import run_durable_task
 from pydantic_ai.exceptions import ModelRetry
 from sqlalchemy import select
 from veupathdb_mcp.controls import (
+    ControlsSearch,
     ControlTargetData,
     ControlTestResult,
     NegativeControls,
@@ -108,8 +109,9 @@ async def _fake_run_step(
     wdk_step_id: int,
     positive_controls: list[str] | None = None,
     negative_controls: list[str] | None = None,
+    controls: ControlsSearch,
 ) -> ControlTestResult:
-    del site_id
+    del site_id, controls
     _MEASURED.append((positive_controls, negative_controls))
     pos = positive_controls or []
     neg = negative_controls or []

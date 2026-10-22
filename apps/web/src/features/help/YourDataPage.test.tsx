@@ -121,6 +121,25 @@ describe("YourDataPage", () => {
     expect(container.textContent.split(/\s+/).length).toBeLessThan(1150);
   });
 
+  it("names audits among what PathFinder keeps", () => {
+    const { container } = render(<YourDataPage />);
+
+    expect(container.querySelector("section#kept")).toHaveTextContent(
+      "your gene sets, control sets, scored runs, audits, memories and ratings",
+    );
+  });
+
+  it("says deleting a conversation keeps its audits and where they are deleted", () => {
+    const { container } = render(<YourDataPage />);
+
+    expect(container.querySelector("section#deleting")).toHaveTextContent(
+      "Delete permanently removes it with any copy waiting for review, but not its audits.",
+    );
+    expect(container.querySelector("section#deleting")).toHaveTextContent(
+      "Settings deletes memories, provider keys and everything at once, audits included, on its Memory, Provider keys and Data tabs.",
+    );
+  });
+
   it("gives the help address as a mail link", () => {
     render(<YourDataPage />);
 

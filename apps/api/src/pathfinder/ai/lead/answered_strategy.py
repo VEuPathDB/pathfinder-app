@@ -22,6 +22,7 @@ from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.spec_hydration import (
     Analyses,
     Sheets,
+    StepReading,
     StepSheets,
     read_under_their_parents,
 )
@@ -35,6 +36,7 @@ from pathfinder.domain.strategy.spec_replay import (
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.services.eda.export import exported_analysis
 from pathfinder.services.strategies.organism_params import organism_parameters
+from pathfinder.services.strategies.record_classes import search_record_types
 from pathfinder.services.strategies.sheet_params import (
     sheet_params_for_searches,
     sheets_under_their_parents,
@@ -116,8 +118,11 @@ async def the_changes_written_outside(
     # outside it and nothing else: a step this turn added is never absorbed
     # into the record the turn is measured against.
     a_moment = dropped | _every_step_but_the_ones_added_outside(changes, live)
-    domain.operational_spec = _replayed(
-        domain.operational_spec, changes, live, reading, may_leave_out=dropped
+    domain.operational_spec = domain.follow_readings(
+        domain.operational_spec,
+        _replayed(
+            domain.operational_spec, changes, live, reading, may_leave_out=dropped
+        ),
     )
     domain.spec_before_turn = _replayed(
         domain.spec_before_turn, changes, live, reading, may_leave_out=a_moment
@@ -167,8 +172,11 @@ async def the_thread_wrote_the_strategy(
     changes = outside_changes(before, live)
     reading = await _the_replay_reading(site_id, domain, changes, live)
     dropped = _the_plan_leaves_out(domain)
-    domain.operational_spec = _replayed(
-        domain.operational_spec, changes, live, reading, may_leave_out=dropped
+    domain.operational_spec = domain.follow_readings(
+        domain.operational_spec,
+        _replayed(
+            domain.operational_spec, changes, live, reading, may_leave_out=dropped
+        ),
     )
     domain.answered_spec = _replayed(domain.answered_spec, changes, live, reading)
     domain.answered_graph = live
@@ -184,6 +192,7 @@ class _Reading(NamedTuple):
     analyses: Analyses
     searches: frozenset[str]
     marks: Mapping[str, str]
+    classes: Mapping[str, str]
 
 
 async def _the_replay_reading(
@@ -196,8 +205,11 @@ async def _the_replay_reading(
     steps = steps_the_replay_reads(changes, live, stated)
     searches = frozenset(step.node.search_name for step in steps)
     record_type = None if live is None else live.record_type
+    named = {c.search_name for spec in _every_spec(domain) for c in spec.criteria}
+    held = {node.search_name for node in nodes_of(live).values()} if live else set()
+    classes = await search_record_types(site_id, (named | held) - {""})
     if not searches:
-        return _Reading({}, {}, analyses_of(live), searches, {})
+        return _Reading({}, {}, analyses_of(live), searches, {}, classes)
     sheets = await sheet_params_for_searches(
         site_id=site_id, record_type=record_type, search_names=sorted(searches)
     )
@@ -208,7 +220,8 @@ async def _the_replay_reading(
         ),
         analyses=analyses_of(live),
         searches=searches,
-        marks=await organism_parameters(site_id, record_type, searches),
+        marks=await organism_parameters(site_id, searches),
+        classes=classes,
     )
 
 
@@ -226,8 +239,7 @@ def _replayed(
         spec,
         changes,
         live,
-        sheet_params=reading.sheets,
-        analyses=reading.analyses,
+        StepReading(reading.sheets, reading.classes, reading.analyses),
         may_leave_out=may_leave_out,
     )
     replayed = read_under_their_parents(replayed, reading.under_parents)

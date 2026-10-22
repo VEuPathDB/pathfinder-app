@@ -156,13 +156,13 @@ def _location_sheet() -> list[ParameterInfo]:
 
 @pytest.fixture
 def location_catalog(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _record_type(*_args: Any, **_kwargs: Any) -> str:
-        return "transcript"
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        return dict.fromkeys(names, "transcript")
 
     async def _definition(*_args: Any, **_kwargs: Any) -> WDKSearch:
         return _location_search()
 
-    monkeypatch.setattr(text_queries, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(text_queries, "search_record_types", _listed)
     monkeypatch.setattr(text_queries, "read_search_definition", _definition)
 
 
@@ -207,14 +207,14 @@ async def test_a_sequence_the_researcher_typed_is_a_text_query() -> None:
 async def test_a_search_the_catalog_cannot_read_binds_no_text_query(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    async def _record_type(*_args: Any, **_kwargs: Any) -> str:
-        return "transcript"
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        return dict.fromkeys(names, "transcript")
 
     async def _unreadable(*_args: Any, **_kwargs: Any) -> WDKSearch:
         detail = "the sheet did not load"
         raise WDKError(detail)
 
-    monkeypatch.setattr(text_queries, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(text_queries, "search_record_types", _listed)
     monkeypatch.setattr(text_queries, "read_search_definition", _unreadable)
     typed = _criterion(
         "GenesByText", {"text_expression": StringValue(value="kinase")}, []
@@ -343,3 +343,25 @@ async def test_a_sheet_is_read_under_the_record_type_that_lists_its_search(
     )
 
     assert read_under == ["sequence"]
+
+
+async def test_a_search_the_catalog_does_not_list_reads_no_sheet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    read: list[tuple[str, str]] = []
+
+    async def _listed(_site: str, _names: Any) -> dict[str, str]:
+        return {}
+
+    async def _definition(_site: str, record_type: str, name: str) -> WDKSearch:
+        read.append((record_type, name))
+        return WDKSearch(url_segment=name)
+
+    monkeypatch.setattr(text_queries, "search_record_types", _listed)
+    monkeypatch.setattr(text_queries, "read_search_definition", _definition)
+    typed = _criterion(
+        "GenesByText", {"text_expression": StringValue(value="kinase")}, []
+    )
+    spec = OperationalSpec(goal="kinases", criteria=[typed])
+
+    assert (await search_definitions("plasmodb", spec), read) == ({}, [])

@@ -3978,6 +3978,409 @@
         }
       }
     },
+    "/api/v1/audits": {
+      "get": {
+        "tags": [
+          "audits"
+        ],
+        "summary": "The current user's audit runs, newest first.",
+        "operationId": "list_audit_runs_api_v1_audits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AuditRunSummary"
+                  },
+                  "type": "array",
+                  "title": "Response List Audit Runs Api V1 Audits Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audits/{run_id}": {
+      "get": {
+        "tags": [
+          "audits"
+        ],
+        "summary": "One audit run: its scope, stages, genomes and finding counts.",
+        "operationId": "get_audit_run_api_v1_audits__run_id__get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRunView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audits/{run_id}/findings": {
+      "get": {
+        "tags": [
+          "audits"
+        ],
+        "summary": "One audit run's findings, filtered and paged.",
+        "operationId": "list_audit_findings_api_v1_audits__run_id__findings_get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "check",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pseudogene_call",
+                    "selenoprotein_end",
+                    "gene_length",
+                    "gene_split",
+                    "gene_fusion",
+                    "strain_model",
+                    "missing_gene",
+                    "organelle_join"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Check"
+            }
+          },
+          {
+            "name": "genome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Genome"
+            }
+          },
+          {
+            "name": "screenedGenome",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Screenedgenome"
+            }
+          },
+          {
+            "name": "sampled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sampled"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "screened",
+                    "unsampled",
+                    "trying",
+                    "confirmed",
+                    "failed",
+                    "unreached",
+                    "unread"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "errorType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "intact_gene_called_pseudogene",
+                    "sec_read_as_stop",
+                    "truncated_model",
+                    "split_model",
+                    "over_extended_model",
+                    "fused_model",
+                    "missing_gene",
+                    "organelle_split_at_join"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Errortype"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audits/{run_id}/findings/{finding_id}": {
+      "get": {
+        "tags": [
+          "audits"
+        ],
+        "summary": "One audit finding and the evidence stored for it.",
+        "operationId": "get_audit_finding_api_v1_audits__run_id__findings__finding_id__get",
+        "security": [
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 1,
+              "title": "Finding Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exports/{export_id}": {
       "get": {
         "tags": [
@@ -4125,7 +4528,7 @@
           "user"
         ],
         "summary": "Purge User Data Endpoint",
-        "description": "Purge user data from all local stores.\n\nWhen ``deleteWdk=false`` (default): every chat is **dismissed** (soft\ndelete) so WDK sync won't re-import them; the strategies remain on\nVEuPathDB but PathFinder ignores them. Nothing is hard-deleted.\n\nWhen ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created\nthere are deleted, and everything whose strategy is gone is hard-deleted\nlocally. A strategy the user made on the website stays. A chat whose\nstrategy PathFinder could not delete - the site did not answer, the\nrequest names no registered VEuPathDB user, or the delete was refused -\nis dismissed instead of deleted, and a run in the same position keeps its\nrow in the workbench, so a later purge can finish the job.\n``wdkStrategiesKept`` counts those strategies.\n\nAlways deletes: gene sets, control sets, the runs whose strategy is gone,\nand the user's investigations still waiting for curation. A staged\ninvestigation names a site, so a purge of one site clears only that\nsite's; ``stagedEvalCases`` counts them.\n\nA memory names no site, so a purge of everything also deletes the user's\nmemories and the tombstones that hold them out; a purge of one site\nleaves them.\n\nPass ``?siteId=X`` to limit to one site, or omit for everything.",
+        "description": "Purge user data from all local stores.\n\nWhen ``deleteWdk=false`` (default): every chat is **dismissed** (soft\ndelete) so WDK sync won't re-import them; the strategies remain on\nVEuPathDB but PathFinder ignores them. No chat is hard-deleted.\n\nWhen ``deleteWdk=true``: on VEuPathDB the strategies PathFinder created\nthere are deleted, and everything whose strategy is gone is hard-deleted\nlocally. A strategy the user made on the website stays. A chat whose\nstrategy PathFinder could not delete - the site did not answer, the\nrequest names no registered VEuPathDB user, or the delete was refused -\nis dismissed instead of deleted, and a run in the same position keeps its\nrow in the workbench, so a later purge can finish the job.\n``wdkStrategiesKept`` counts those strategies.\n\nAlways deletes: gene sets, control sets, audit runs, the runs whose\nstrategy is gone, and the user's investigations still waiting for\ncuration. An audit run and a staged investigation each name a site, so a\npurge of one site clears only that site's; ``auditRuns`` and\n``stagedEvalCases`` count them.\n\nA memory names no site, so a purge of everything also deletes the user's\nmemories and the tombstones that hold them out; a purge of one site\nleaves them.\n\nPass ``?siteId=X`` to limit to one site, or omit for everything.",
         "operationId": "purge_user_data_endpoint_api_v1_user_data_delete",
         "security": [
           {
@@ -5259,6 +5662,39 @@
         ],
         "title": "AddTransformOp"
       },
+      "AlphaFoldModel": {
+        "properties": {
+          "uniprotId": {
+            "type": "string",
+            "title": "Uniprotid"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "first": {
+            "type": "integer",
+            "title": "First"
+          },
+          "last": {
+            "type": "integer",
+            "title": "Last"
+          },
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uniprotId",
+          "source",
+          "first",
+          "last",
+          "length"
+        ],
+        "title": "AlphaFoldModel"
+      },
       "AnalysisRationale": {
         "properties": {
           "kind": {
@@ -5304,6 +5740,103 @@
         ],
         "title": "AnalysisRationale",
         "description": "Why an analysis step selects its genes: the compute its document holds."
+      },
+      "Anchor": {
+        "properties": {
+          "neighbour": {
+            "type": "string",
+            "title": "Neighbour"
+          },
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "sequenceId": {
+            "type": "string",
+            "title": "Sequenceid"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          },
+          "strand": {
+            "type": "string",
+            "enum": [
+              "+",
+              "-"
+            ],
+            "title": "Strand"
+          }
+        },
+        "type": "object",
+        "required": [
+          "neighbour",
+          "gene",
+          "sequenceId",
+          "start",
+          "end",
+          "strand"
+        ],
+        "title": "Anchor"
+      },
+      "Anchors": {
+        "properties": {
+          "left": {
+            "$ref": "#/components/schemas/Anchor"
+          },
+          "right": {
+            "$ref": "#/components/schemas/Anchor"
+          },
+          "between": {
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Between",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "left",
+          "right",
+          "between"
+        ],
+        "title": "Anchors"
+      },
+      "AnnotatedMember": {
+        "properties": {
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "sequenceId": {
+            "type": "string",
+            "title": "Sequenceid"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gene",
+          "sequenceId",
+          "start"
+        ],
+        "title": "AnnotatedMember"
       },
       "ApplyOperationRequest": {
         "properties": {
@@ -5447,6 +5980,281 @@
         },
         "type": "object",
         "title": "AttachNewRoot"
+      },
+      "AuditRunSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "siteId": {
+            "type": "string",
+            "title": "Siteid"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "running",
+              "finished"
+            ],
+            "title": "Status"
+          },
+          "deadlineAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadlineat"
+          },
+          "genomes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genomes"
+          },
+          "checks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "pseudogene_call",
+                "selenoprotein_end",
+                "gene_length",
+                "gene_split",
+                "gene_fusion",
+                "strain_model",
+                "missing_gene",
+                "organelle_join"
+              ]
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "targets": {
+            "type": "integer",
+            "title": "Targets"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "finishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finishedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "siteId",
+          "release",
+          "status",
+          "deadlineAt",
+          "genomes",
+          "checks",
+          "targets",
+          "createdAt",
+          "finishedAt"
+        ],
+        "title": "AuditRunSummary"
+      },
+      "AuditRunView": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/AuditRunSummary"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/AuditScope"
+          },
+          "stages": {
+            "$ref": "#/components/schemas/RunStages"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "unfinished": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "collect",
+                "screen",
+                "confirm",
+                "tie_break"
+              ]
+            },
+            "type": "array",
+            "title": "Unfinished"
+          },
+          "genomes": {
+            "items": {
+              "$ref": "#/components/schemas/GenomeView"
+            },
+            "type": "array",
+            "title": "Genomes"
+          },
+          "counts": {
+            "items": {
+              "$ref": "#/components/schemas/FindingTally"
+            },
+            "type": "array",
+            "title": "Counts"
+          },
+          "rates": {
+            "items": {
+              "$ref": "#/components/schemas/GenomeRate"
+            },
+            "type": "array",
+            "title": "Rates"
+          },
+          "targets": {
+            "$ref": "#/components/schemas/TargetReport"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run",
+          "scope",
+          "stages",
+          "requests",
+          "unfinished",
+          "genomes",
+          "counts",
+          "rates",
+          "targets"
+        ],
+        "title": "AuditRunView"
+      },
+      "AuditScope": {
+        "properties": {
+          "siteId": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Siteid"
+          },
+          "genomes": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Genomes",
+            "default": []
+          },
+          "comparison": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 40,
+            "title": "Comparison",
+            "default": []
+          },
+          "checks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "gene_length",
+                "gene_split",
+                "pseudogene_call"
+              ]
+            },
+            "type": "array",
+            "title": "Checks",
+            "default": []
+          },
+          "targets": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SingleGeneTarget"
+                },
+                {
+                  "$ref": "#/components/schemas/GenePairTarget"
+                },
+                {
+                  "$ref": "#/components/schemas/MissingGeneTarget"
+                },
+                {
+                  "$ref": "#/components/schemas/OrganelleTarget"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "check",
+                "mapping": {
+                  "gene_fusion": "#/components/schemas/SingleGeneTarget",
+                  "gene_length": "#/components/schemas/SingleGeneTarget",
+                  "gene_split": "#/components/schemas/GenePairTarget",
+                  "missing_gene": "#/components/schemas/MissingGeneTarget",
+                  "organelle_join": "#/components/schemas/OrganelleTarget",
+                  "pseudogene_call": "#/components/schemas/GenePairTarget",
+                  "selenoprotein_end": "#/components/schemas/GenePairTarget",
+                  "strain_model": "#/components/schemas/GenePairTarget"
+                }
+              }
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Targets",
+            "default": []
+          },
+          "referenceGenome": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencegenome"
+          },
+          "confirmLimit": {
+            "type": "integer",
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Confirmlimit",
+            "default": 150
+          }
+        },
+        "type": "object",
+        "required": [
+          "siteId"
+        ],
+        "title": "AuditScope"
       },
       "AuthStatusResponse": {
         "properties": {
@@ -5620,6 +6428,41 @@
           "geneIds"
         ],
         "title": "BuildGoldResponse"
+      },
+      "BuscoScore": {
+        "properties": {
+          "complete": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Complete"
+          },
+          "fragmented": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Fragmented"
+          },
+          "missing": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Missing"
+          },
+          "total": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "complete",
+          "fragmented",
+          "missing",
+          "total"
+        ],
+        "title": "BuscoScore"
       },
       "CardAnswered": {
         "properties": {
@@ -5950,6 +6793,60 @@
         ],
         "title": "ComparedSearch",
         "description": "A search the catalog answered beside the bound one, as that answer scored it."
+      },
+      "ConfirmationEvidence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "confirmation",
+            "title": "Kind",
+            "default": "confirmation"
+          },
+          "confirmation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PseudogeneConfirmation"
+              },
+              {
+                "$ref": "#/components/schemas/SelenoproteinConfirmation"
+              },
+              {
+                "$ref": "#/components/schemas/LengthConfirmation"
+              },
+              {
+                "$ref": "#/components/schemas/FusionConfirmation"
+              },
+              {
+                "$ref": "#/components/schemas/StrainConfirmation"
+              },
+              {
+                "$ref": "#/components/schemas/MissingGeneConfirmation"
+              },
+              {
+                "$ref": "#/components/schemas/OrganelleConfirmation"
+              }
+            ],
+            "title": "Confirmation",
+            "discriminator": {
+              "propertyName": "check",
+              "mapping": {
+                "gene_fusion": "#/components/schemas/FusionConfirmation",
+                "gene_length": "#/components/schemas/LengthConfirmation",
+                "gene_split": "#/components/schemas/LengthConfirmation",
+                "missing_gene": "#/components/schemas/MissingGeneConfirmation",
+                "organelle_join": "#/components/schemas/OrganelleConfirmation",
+                "pseudogene_call": "#/components/schemas/PseudogeneConfirmation",
+                "selenoprotein_end": "#/components/schemas/SelenoproteinConfirmation",
+                "strain_model": "#/components/schemas/StrainConfirmation"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "confirmation"
+        ],
+        "title": "ConfirmationEvidence"
       },
       "ControlsRationale": {
         "properties": {
@@ -7937,6 +8834,94 @@
         "title": "EventsSnapshot",
         "description": "The completed history a thread serves, and where a tail continues it."
       },
+      "EvidenceView": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "confirmation",
+              "relatives",
+              "gene_evidence"
+            ],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "trying",
+              "stored",
+              "failed",
+              "unreached",
+              "unread"
+            ],
+            "title": "Status"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ConfirmationEvidence"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RelativesEvidence"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GeneEvidencePayload"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "confirmation": "#/components/schemas/ConfirmationEvidence",
+                    "gene_evidence": "#/components/schemas/GeneEvidencePayload",
+                    "relatives": "#/components/schemas/RelativesEvidence"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "stopped": {
+            "type": "integer",
+            "title": "Stopped"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "status",
+          "payload",
+          "requests",
+          "attempts",
+          "stopped",
+          "message"
+        ],
+        "title": "EvidenceView"
+      },
       "ExportRequested": {
         "properties": {
           "conversationId": {
@@ -8094,6 +9079,327 @@
         "type": "object",
         "title": "FilterValue"
       },
+      "FindingDetail": {
+        "properties": {
+          "finding": {
+            "$ref": "#/components/schemas/FindingView"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceView"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "finding",
+          "evidence"
+        ],
+        "title": "FindingDetail"
+      },
+      "FindingPage": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingView"
+            },
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "offset",
+          "findings"
+        ],
+        "title": "FindingPage"
+      },
+      "FindingTally": {
+        "properties": {
+          "genome": {
+            "type": "string",
+            "title": "Genome"
+          },
+          "check": {
+            "type": "string",
+            "enum": [
+              "pseudogene_call",
+              "selenoprotein_end",
+              "gene_length",
+              "gene_split",
+              "gene_fusion",
+              "strain_model",
+              "missing_gene",
+              "organelle_join"
+            ],
+            "title": "Check"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "screened",
+              "unsampled",
+              "trying",
+              "confirmed",
+              "failed",
+              "unreached",
+              "unread"
+            ],
+            "title": "Status"
+          },
+          "errorType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "intact_gene_called_pseudogene",
+                  "sec_read_as_stop",
+                  "truncated_model",
+                  "split_model",
+                  "over_extended_model",
+                  "fused_model",
+                  "missing_gene",
+                  "organelle_split_at_join"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortype"
+          },
+          "judged": {
+            "type": "boolean",
+            "title": "Judged"
+          },
+          "modelGenome": {
+            "type": "string",
+            "title": "Modelgenome"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "genome",
+          "check",
+          "status",
+          "errorType",
+          "judged",
+          "modelGenome",
+          "count"
+        ],
+        "title": "FindingTally"
+      },
+      "FindingView": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "genome": {
+            "type": "string",
+            "title": "Genome"
+          },
+          "screenedGenome": {
+            "type": "string",
+            "title": "Screenedgenome"
+          },
+          "pairedGenome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pairedgenome"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SingleGeneTarget"
+              },
+              {
+                "$ref": "#/components/schemas/GenePairTarget"
+              },
+              {
+                "$ref": "#/components/schemas/MissingGeneTarget"
+              },
+              {
+                "$ref": "#/components/schemas/OrganelleTarget"
+              }
+            ],
+            "title": "Target",
+            "discriminator": {
+              "propertyName": "check",
+              "mapping": {
+                "gene_fusion": "#/components/schemas/SingleGeneTarget",
+                "gene_length": "#/components/schemas/SingleGeneTarget",
+                "gene_split": "#/components/schemas/GenePairTarget",
+                "missing_gene": "#/components/schemas/MissingGeneTarget",
+                "organelle_join": "#/components/schemas/OrganelleTarget",
+                "pseudogene_call": "#/components/schemas/GenePairTarget",
+                "selenoprotein_end": "#/components/schemas/GenePairTarget",
+                "strain_model": "#/components/schemas/GenePairTarget"
+              }
+            }
+          },
+          "sampled": {
+            "type": "boolean",
+            "title": "Sampled"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "screened",
+              "unsampled",
+              "trying",
+              "confirmed",
+              "failed",
+              "unreached",
+              "unread"
+            ],
+            "title": "Status"
+          },
+          "errorType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "intact_gene_called_pseudogene",
+                  "sec_read_as_stop",
+                  "truncated_model",
+                  "split_model",
+                  "over_extended_model",
+                  "fused_model",
+                  "missing_gene",
+                  "organelle_split_at_join"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errortype"
+          },
+          "certainty": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certainty"
+          },
+          "judged": {
+            "type": "boolean",
+            "title": "Judged"
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact"
+          },
+          "weighing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weighing"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "stopped": {
+            "type": "integer",
+            "title": "Stopped"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "check": {
+            "type": "string",
+            "enum": [
+              "pseudogene_call",
+              "selenoprotein_end",
+              "gene_length",
+              "gene_split",
+              "gene_fusion",
+              "strain_model",
+              "missing_gene",
+              "organelle_join"
+            ],
+            "title": "Check",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "genome",
+          "screenedGenome",
+          "pairedGenome",
+          "target",
+          "sampled",
+          "status",
+          "errorType",
+          "certainty",
+          "judged",
+          "impact",
+          "weighing",
+          "requests",
+          "attempts",
+          "stopped",
+          "message",
+          "check"
+        ],
+        "title": "FindingView"
+      },
       "ForkConversationRequest": {
         "properties": {
           "fromMessageId": {
@@ -8107,6 +9413,556 @@
           "fromMessageId"
         ],
         "title": "ForkConversationRequest"
+      },
+      "FusionAudit": {
+        "properties": {
+          "extra": {
+            "items": {
+              "$ref": "#/components/schemas/Run"
+            },
+            "type": "array",
+            "title": "Extra"
+          },
+          "partner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner"
+          },
+          "closestNeighbour": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Closestneighbour"
+          },
+          "neighbourWindows": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Neighbourwindows"
+          },
+          "neighbours": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Neighbours"
+          },
+          "product": {
+            "type": "string",
+            "title": "Product"
+          },
+          "partnerGroup": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnergroup"
+          },
+          "partnerProduct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnerproduct"
+          },
+          "partnerCopies": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnercopies"
+          },
+          "extraWindows": {
+            "type": "integer",
+            "title": "Extrawindows",
+            "readOnly": true
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/FusionVerdict",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "extra",
+          "partner",
+          "closestNeighbour",
+          "neighbourWindows",
+          "neighbours",
+          "product",
+          "partnerGroup",
+          "partnerProduct",
+          "partnerCopies",
+          "extraWindows",
+          "verdict"
+        ],
+        "title": "FusionAudit"
+      },
+      "FusionConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "gene_fusion",
+            "title": "Check",
+            "default": "gene_fusion"
+          },
+          "result": {
+            "$ref": "#/components/schemas/GeneFusionAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "FusionConfirmation"
+      },
+      "FusionVerdict": {
+        "type": "string",
+        "enum": [
+          "EXTRA_MATCHES_NEIGHBOUR",
+          "EXTRA_UNEXPLAINED",
+          "NO_EXTRA"
+        ]
+      },
+      "GeneEvidence": {
+        "properties": {
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "pdbHits": {
+            "items": {
+              "$ref": "#/components/schemas/PdbHit"
+            },
+            "type": "array",
+            "title": "Pdbhits"
+          },
+          "peptides": {
+            "items": {
+              "$ref": "#/components/schemas/Peptide"
+            },
+            "type": "array",
+            "title": "Peptides"
+          },
+          "alphafold": {
+            "items": {
+              "$ref": "#/components/schemas/AlphaFoldModel"
+            },
+            "type": "array",
+            "title": "Alphafold"
+          },
+          "linkouts": {
+            "items": {
+              "$ref": "#/components/schemas/Linkout"
+            },
+            "type": "array",
+            "title": "Linkouts"
+          },
+          "seqedits": {
+            "items": {
+              "$ref": "#/components/schemas/SeqEdit"
+            },
+            "type": "array",
+            "title": "Seqedits"
+          },
+          "transcripts": {
+            "items": {
+              "$ref": "#/components/schemas/GeneTranscript"
+            },
+            "type": "array",
+            "title": "Transcripts"
+          },
+          "comments": {
+            "type": "integer",
+            "title": "Comments"
+          },
+          "pubmed": {
+            "type": "integer",
+            "title": "Pubmed"
+          },
+          "notes": {
+            "type": "integer",
+            "title": "Notes"
+          },
+          "phenotypes": {
+            "items": {
+              "$ref": "#/components/schemas/PhenotypeScreen"
+            },
+            "type": "array",
+            "title": "Phenotypes"
+          },
+          "unprefixedTables": {
+            "items": {
+              "$ref": "#/components/schemas/PhenotypeScreen"
+            },
+            "type": "array",
+            "title": "Unprefixedtables"
+          },
+          "unserved": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unserved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geneIds",
+          "gene",
+          "pdbHits",
+          "peptides",
+          "alphafold",
+          "linkouts",
+          "seqedits",
+          "transcripts",
+          "comments",
+          "pubmed",
+          "notes",
+          "phenotypes",
+          "unprefixedTables",
+          "unserved"
+        ],
+        "title": "GeneEvidence"
+      },
+      "GeneEvidencePayload": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "gene_evidence",
+            "title": "Kind",
+            "default": "gene_evidence"
+          },
+          "genes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Genes"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/GeneEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "genes",
+          "evidence"
+        ],
+        "title": "GeneEvidencePayload"
+      },
+      "GeneFusionAudit": {
+        "properties": {
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "genes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genes"
+          },
+          "lengthClass": {
+            "$ref": "#/components/schemas/LengthClass"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "groupMedian": {
+            "type": "number",
+            "title": "Groupmedian"
+          },
+          "groupCopies": {
+            "type": "number",
+            "title": "Groupcopies"
+          },
+          "groupSpread": {
+            "type": "number",
+            "title": "Groupspread"
+          },
+          "organisms": {
+            "type": "integer",
+            "title": "Organisms"
+          },
+          "referenceGene": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencegene"
+          },
+          "fusion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FusionAudit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "geneIds",
+          "genes",
+          "lengthClass",
+          "ratio",
+          "groupMedian",
+          "groupCopies",
+          "groupSpread",
+          "organisms",
+          "referenceGene",
+          "fusion"
+        ],
+        "title": "GeneFusionAudit"
+      },
+      "GeneId": {
+        "properties": {
+          "given": {
+            "type": "string",
+            "title": "Given"
+          },
+          "resolved": {
+            "type": "string",
+            "title": "Resolved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "given",
+          "resolved"
+        ],
+        "title": "GeneId"
+      },
+      "GeneLengthAudit": {
+        "properties": {
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "genes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genes"
+          },
+          "lengthClass": {
+            "$ref": "#/components/schemas/LengthClass"
+          },
+          "ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ratio"
+          },
+          "groupMedian": {
+            "type": "number",
+            "title": "Groupmedian"
+          },
+          "groupCopies": {
+            "type": "number",
+            "title": "Groupcopies"
+          },
+          "groupSpread": {
+            "type": "number",
+            "title": "Groupspread"
+          },
+          "organisms": {
+            "type": "integer",
+            "title": "Organisms"
+          },
+          "referenceGene": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencegene"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/LengthVerdict"
+          },
+          "windows": {
+            "type": "integer",
+            "title": "Windows"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/WindowLabel"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "nsInWindow": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nsinwindow"
+          },
+          "atContigEdge": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atcontigedge"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneticCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "codeInferred": {
+            "type": "boolean",
+            "title": "Codeinferred"
+          }
+        },
+        "type": "object",
+        "required": [
+          "geneIds",
+          "genes",
+          "lengthClass",
+          "ratio",
+          "groupMedian",
+          "groupCopies",
+          "groupSpread",
+          "organisms",
+          "referenceGene",
+          "verdict",
+          "windows",
+          "counts",
+          "track",
+          "nsInWindow",
+          "atContigEdge",
+          "code",
+          "codeInferred"
+        ],
+        "title": "GeneLengthAudit"
+      },
+      "GenePairTarget": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "enum": [
+              "pseudogene_call",
+              "selenoprotein_end",
+              "gene_split",
+              "strain_model"
+            ],
+            "title": "Check"
+          },
+          "genes": {
+            "prefixItems": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Genes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "check",
+          "genes"
+        ],
+        "title": "GenePairTarget"
       },
       "GeneSetExportResponse": {
         "properties": {
@@ -8334,6 +10190,35 @@
               }
             ],
             "title": "Vdiid"
+          },
+          "outOfDate": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultAboveTheCap"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ResultNotGenes"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ResultWithoutGenes"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "above_the_cap": "#/components/schemas/ResultAboveTheCap",
+                    "no_genes": "#/components/schemas/ResultWithoutGenes",
+                    "not_genes": "#/components/schemas/ResultNotGenes"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outofdate"
           }
         },
         "type": "object",
@@ -8350,6 +10235,254 @@
         ],
         "title": "GeneSetResponse",
         "description": "A gene set, as returned to the client."
+      },
+      "GeneTranscript": {
+        "properties": {
+          "transcriptId": {
+            "type": "string",
+            "title": "Transcriptid"
+          },
+          "transcriptType": {
+            "type": "string",
+            "title": "Transcripttype"
+          },
+          "proteinLength": {
+            "$ref": "#/components/schemas/ServedInt"
+          },
+          "exonCount": {
+            "type": "integer",
+            "title": "Exoncount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcriptId",
+          "transcriptType",
+          "proteinLength",
+          "exonCount"
+        ],
+        "title": "GeneTranscript"
+      },
+      "GeneticCode": {
+        "type": "string",
+        "enum": [
+          "standard",
+          "ctg_serine",
+          "uga_tryptophan",
+          "yeast_mitochondrial",
+          "invertebrate_mitochondrial"
+        ],
+        "title": "GeneticCode"
+      },
+      "GenomePriority": {
+        "properties": {
+          "organism": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Organism"
+          },
+          "protein": {
+            "$ref": "#/components/schemas/BuscoScore"
+          },
+          "genome": {
+            "$ref": "#/components/schemas/BuscoScore"
+          },
+          "lineage": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Lineage"
+          },
+          "gap": {
+            "type": "number",
+            "title": "Gap",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "organism",
+          "protein",
+          "genome",
+          "lineage",
+          "gap"
+        ],
+        "title": "GenomePriority"
+      },
+      "GenomeRate": {
+        "properties": {
+          "genome": {
+            "type": "string",
+            "title": "Genome"
+          },
+          "check": {
+            "type": "string",
+            "enum": [
+              "pseudogene_call",
+              "selenoprotein_end",
+              "gene_length",
+              "gene_split",
+              "gene_fusion",
+              "strain_model",
+              "missing_gene",
+              "organelle_join"
+            ],
+            "title": "Check"
+          },
+          "bounds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RateBounds"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unjudged": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unjudged"
+          },
+          "unresolved": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unresolved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "genome",
+          "check",
+          "bounds",
+          "unjudged",
+          "unresolved"
+        ],
+        "title": "GenomeRate"
+      },
+      "GenomeUse": {
+        "properties": {
+          "genome": {
+            "type": "string",
+            "title": "Genome"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "reference_strain",
+              "other_strain",
+              "unknown",
+              "model_role"
+            ],
+            "title": "Source"
+          },
+          "reference": {
+            "type": "boolean",
+            "title": "Reference"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "genome",
+          "source",
+          "reference",
+          "value"
+        ],
+        "title": "GenomeUse"
+      },
+      "GenomeView": {
+        "properties": {
+          "organism": {
+            "type": "string",
+            "title": "Organism"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "audited",
+              "comparison"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "trying",
+              "collected",
+              "failed",
+              "unreached",
+              "unread"
+            ],
+            "title": "Status"
+          },
+          "geneCount": {
+            "type": "integer",
+            "title": "Genecount"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "stopped": {
+            "type": "integer",
+            "title": "Stopped"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenomePriority"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "referenceStrain": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencestrain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organism",
+          "role",
+          "status",
+          "geneCount",
+          "requests",
+          "attempts",
+          "stopped",
+          "message",
+          "priority",
+          "referenceStrain"
+        ],
+        "title": "GenomeView"
       },
       "HTTPValidationError": {
         "properties": {
@@ -8388,6 +10521,38 @@
         ],
         "title": "HealthResponse",
         "description": "Health check response."
+      },
+      "Importance": {
+        "properties": {
+          "genes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Genes"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "cited",
+              "uncited",
+              "not_read"
+            ],
+            "title": "Source"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "genes",
+          "source",
+          "value"
+        ],
+        "title": "Importance"
       },
       "InputDatasetValue": {
         "properties": {
@@ -8514,6 +10679,177 @@
           "anthropic",
           "google"
         ]
+      },
+      "LengthCheck": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/LengthVerdict"
+          },
+          "windows": {
+            "type": "integer",
+            "title": "Windows"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/WindowLabel"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "nsInWindow": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nsinwindow"
+          },
+          "atContigEdge": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atcontigedge"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "windows",
+          "counts",
+          "track",
+          "nsInWindow",
+          "atContigEdge"
+        ],
+        "title": "LengthCheck"
+      },
+      "LengthClass": {
+        "type": "string",
+        "enum": [
+          "SHORT",
+          "LONG",
+          "TYPICAL",
+          "SPLIT",
+          "UNQUALIFIED"
+        ]
+      },
+      "LengthConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "enum": [
+              "gene_length",
+              "gene_split"
+            ],
+            "title": "Check"
+          },
+          "result": {
+            "$ref": "#/components/schemas/GeneLengthAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "check",
+          "result"
+        ],
+        "title": "LengthConfirmation"
+      },
+      "LengthVerdict": {
+        "type": "string",
+        "enum": [
+          "GENOME_ENCODES",
+          "ASSEMBLY",
+          "ABSENT",
+          "NOT_SHORT",
+          "SPLIT_CONFIRMED",
+          "SPLIT_UNCLEAR",
+          "NOT_CHECKED"
+        ]
+      },
+      "Linkout": {
+        "properties": {
+          "database": {
+            "type": "string",
+            "title": "Database"
+          },
+          "externalId": {
+            "type": "string",
+            "title": "Externalid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "database",
+          "externalId"
+        ],
+        "title": "Linkout"
+      },
+      "Located": {
+        "properties": {
+          "windows": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Windows"
+          },
+          "found": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Found"
+          },
+          "span": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "integer"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span"
+          },
+          "ns": {
+            "type": "integer",
+            "title": "Ns"
+          },
+          "share": {
+            "type": "number",
+            "title": "Share",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "windows",
+          "found",
+          "span",
+          "ns",
+          "share"
+        ],
+        "title": "Located"
       },
       "LongPromptPrices": {
         "properties": {
@@ -8815,6 +11151,212 @@
         "title": "MessageRatingRequest",
         "description": "A like or a dislike of one assistant message."
       },
+      "MissingGeneAudit": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/MissingVerdict"
+          },
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "exampleGene": {
+            "type": "string",
+            "title": "Examplegene"
+          },
+          "absentOrganism": {
+            "type": "string",
+            "title": "Absentorganism"
+          },
+          "exampleLength": {
+            "type": "integer",
+            "title": "Examplelength"
+          },
+          "annotatedMembers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AnnotatedMember"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annotatedmembers"
+          },
+          "anchors": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Anchors"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "located": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Located"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overlapping": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OverlappingGene"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overlapping"
+          },
+          "openFrame": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OpenFrame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stops": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stops"
+          },
+          "intactFrame": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intactframe"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneticCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "codeInferred": {
+            "type": "boolean",
+            "title": "Codeinferred"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "geneIds",
+          "exampleGene",
+          "absentOrganism",
+          "exampleLength",
+          "annotatedMembers",
+          "anchors",
+          "located",
+          "overlapping",
+          "openFrame",
+          "stops",
+          "intactFrame",
+          "code",
+          "codeInferred"
+        ],
+        "title": "MissingGeneAudit"
+      },
+      "MissingGeneConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "missing_gene",
+            "title": "Check",
+            "default": "missing_gene"
+          },
+          "result": {
+            "$ref": "#/components/schemas/MissingGeneAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "MissingGeneConfirmation"
+      },
+      "MissingGeneTarget": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "missing_gene",
+            "title": "Check"
+          },
+          "genes": {
+            "prefixItems": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              }
+            ],
+            "type": "array",
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Genes"
+          },
+          "absentOrganism": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Absentorganism"
+          }
+        },
+        "type": "object",
+        "required": [
+          "check",
+          "genes",
+          "absentOrganism"
+        ],
+        "title": "MissingGeneTarget"
+      },
+      "MissingVerdict": {
+        "type": "string",
+        "enum": [
+          "IN_DNA_UNANNOTATED",
+          "IN_DNA_OTHER_MODEL",
+          "PARTIAL",
+          "GAP",
+          "NOT_IN_DNA",
+          "NO_SYNTENY",
+          "ANNOTATED_IN_GENOME"
+        ]
+      },
       "ModelCatalogEntryResponse": {
         "properties": {
           "id": {
@@ -8989,6 +11531,22 @@
         },
         "type": "object",
         "title": "MultiPickValue"
+      },
+      "NoRelatives": {
+        "type": "string",
+        "enum": [
+          "RESIDUAL_GROUP",
+          "PARALOGS",
+          "FEWER_THAN_TWO"
+        ]
+      },
+      "NotRead": {
+        "type": "string",
+        "enum": [
+          "NO_LOST_RUN",
+          "UNQUALIFIED",
+          "PARALOG_IN_WINDOW"
+        ]
       },
       "Note": {
         "properties": {
@@ -9182,6 +11740,24 @@
         ],
         "title": "OpenConversationResponse"
       },
+      "OpenFrame": {
+        "properties": {
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          },
+          "identical": {
+            "type": "integer",
+            "title": "Identical"
+          }
+        },
+        "type": "object",
+        "required": [
+          "length",
+          "identical"
+        ],
+        "title": "OpenFrame"
+      },
       "OpenMessageRef": {
         "properties": {
           "messageId": {
@@ -9200,6 +11776,219 @@
         ],
         "title": "OpenMessageRef",
         "description": "The message a log left open, and the exclusive cursor a tail replays it from."
+      },
+      "OrganelleConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "organelle_join",
+            "title": "Check",
+            "default": "organelle_join"
+          },
+          "result": {
+            "$ref": "#/components/schemas/OrganelleGeneAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "OrganelleConfirmation"
+      },
+      "OrganelleGeneAudit": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/OrganelleVerdict"
+          },
+          "bestLinear": {
+            "type": "integer",
+            "title": "Bestlinear"
+          },
+          "bestCircular": {
+            "type": "integer",
+            "title": "Bestcircular"
+          },
+          "referenceLength": {
+            "type": "integer",
+            "title": "Referencelength"
+          },
+          "overlapBases": {
+            "type": "integer",
+            "title": "Overlapbases"
+          },
+          "overlapMismatches": {
+            "type": "integer",
+            "title": "Overlapmismatches"
+          },
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "organism": {
+            "type": "string",
+            "title": "Organism"
+          },
+          "sequenceId": {
+            "type": "string",
+            "title": "Sequenceid"
+          },
+          "referenceGene": {
+            "type": "string",
+            "title": "Referencegene"
+          },
+          "contigLength": {
+            "type": "integer",
+            "title": "Contiglength"
+          },
+          "code": {
+            "$ref": "#/components/schemas/GeneticCode"
+          },
+          "codeInferred": {
+            "type": "boolean",
+            "title": "Codeinferred"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "bestLinear",
+          "bestCircular",
+          "referenceLength",
+          "overlapBases",
+          "overlapMismatches",
+          "geneIds",
+          "organism",
+          "sequenceId",
+          "referenceGene",
+          "contigLength",
+          "code",
+          "codeInferred"
+        ],
+        "title": "OrganelleGeneAudit"
+      },
+      "OrganelleTarget": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "organelle_join",
+            "title": "Check"
+          },
+          "genes": {
+            "prefixItems": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              }
+            ],
+            "type": "array",
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Genes"
+          },
+          "organism": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Organism"
+          },
+          "sequenceId": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Sequenceid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "check",
+          "genes",
+          "organism",
+          "sequenceId"
+        ],
+        "title": "OrganelleTarget"
+      },
+      "OrganelleVerdict": {
+        "type": "string",
+        "enum": [
+          "SPLIT_AT_JOIN",
+          "INTACT_ON_THE_LINE",
+          "NOT_FOUND"
+        ]
+      },
+      "OverlappingGene": {
+        "properties": {
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "product": {
+            "type": "string",
+            "title": "Product"
+          },
+          "orthologGroup": {
+            "type": "string",
+            "title": "Orthologgroup"
+          },
+          "proteinLength": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proteinlength"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          },
+          "strand": {
+            "type": "string",
+            "enum": [
+              "+",
+              "-"
+            ],
+            "title": "Strand"
+          },
+          "pseudo": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pseudo"
+          },
+          "geneType": {
+            "type": "string",
+            "title": "Genetype"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gene",
+          "product",
+          "orthologGroup",
+          "proteinLength",
+          "start",
+          "end",
+          "strand",
+          "pseudo",
+          "geneType"
+        ],
+        "title": "OverlappingGene"
       },
       "PaidBy": {
         "type": "string",
@@ -9530,6 +12319,112 @@
         "title": "ParamSpecsRequest",
         "description": "Parameter specs request (optionally contextual)."
       },
+      "PdbHit": {
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "pdbId": {
+            "type": "string",
+            "title": "Pdbid"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "taxon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxon"
+          },
+          "identity": {
+            "type": "integer",
+            "title": "Identity"
+          },
+          "proteinCoveredPercent": {
+            "type": "integer",
+            "title": "Proteincoveredpercent"
+          },
+          "evalue": {
+            "type": "number",
+            "title": "Evalue"
+          },
+          "chains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Chains"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcript",
+          "pdbId",
+          "title",
+          "taxon",
+          "identity",
+          "proteinCoveredPercent",
+          "evalue",
+          "chains"
+        ],
+        "title": "PdbHit"
+      },
+      "Peptide": {
+        "properties": {
+          "transcript": {
+            "type": "string",
+            "title": "Transcript"
+          },
+          "sequence": {
+            "type": "string",
+            "title": "Sequence"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          },
+          "experiments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Experiments"
+          },
+          "spectra": {
+            "type": "integer",
+            "title": "Spectra"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcript",
+          "sequence",
+          "start",
+          "end",
+          "experiments",
+          "spectra"
+        ],
+        "title": "Peptide"
+      },
       "PhaseTierConfig": {
         "properties": {
           "modelId": {
@@ -9547,6 +12442,30 @@
         ],
         "title": "PhaseTierConfig",
         "description": "Model + reasoning effort for a single role."
+      },
+      "PhenotypeScreen": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "title": "Table"
+          },
+          "rows": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/ServedText"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "table",
+          "rows"
+        ],
+        "title": "PhenotypeScreen"
       },
       "PrivacySettings": {
         "properties": {
@@ -9760,6 +12679,92 @@
         "title": "ProviderStatus",
         "description": "Per-provider API-key availability."
       },
+      "PseudogeneCallAudit": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/PseudogeneVerdict"
+          },
+          "referenceCdsLength": {
+            "type": "integer",
+            "title": "Referencecdslength"
+          },
+          "strainCdsLength": {
+            "type": "integer",
+            "title": "Straincdslength"
+          },
+          "covered": {
+            "type": "integer",
+            "title": "Covered"
+          },
+          "prematureStops": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Prematurestops"
+          },
+          "residueDifferences": {
+            "type": "integer",
+            "title": "Residuedifferences"
+          },
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "strainGene": {
+            "type": "string",
+            "title": "Straingene"
+          },
+          "referenceGene": {
+            "type": "string",
+            "title": "Referencegene"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "referenceCdsLength",
+          "strainCdsLength",
+          "covered",
+          "prematureStops",
+          "residueDifferences",
+          "geneIds",
+          "strainGene",
+          "referenceGene"
+        ],
+        "title": "PseudogeneCallAudit"
+      },
+      "PseudogeneConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "pseudogene_call",
+            "title": "Check",
+            "default": "pseudogene_call"
+          },
+          "result": {
+            "$ref": "#/components/schemas/PseudogeneCallAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "PseudogeneConfirmation"
+      },
+      "PseudogeneVerdict": {
+        "type": "string",
+        "enum": [
+          "INTACT",
+          "FRAMESHIFT",
+          "PREMATURE_STOP",
+          "START_OR_STOP_LOST",
+          "NOT_ALIGNED"
+        ]
+      },
       "PurgeCounts": {
         "properties": {
           "strategies": {
@@ -9790,6 +12795,10 @@
             "type": "integer",
             "title": "Controlsets"
           },
+          "auditRuns": {
+            "type": "integer",
+            "title": "Auditruns"
+          },
           "stagedEvalCases": {
             "type": "integer",
             "title": "Stagedevalcases"
@@ -9804,6 +12813,7 @@
           "geneSets",
           "experiments",
           "controlSets",
+          "auditRuns",
           "stagedEvalCases"
         ],
         "title": "PurgeCounts",
@@ -9882,6 +12892,63 @@
         ],
         "title": "QuotaResponse",
         "description": "The allowance the deployment pays for, and the spend on the user's keys.\n\n``used_usd``, ``total_tokens`` and ``percent`` count deployment-paid spend\nonly, so the limit caps what it says it caps."
+      },
+      "RateBounds": {
+        "properties": {
+          "confirmed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Confirmed"
+          },
+          "checked": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Checked"
+          },
+          "unresolved": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unresolved"
+          },
+          "rate": {
+            "type": "number",
+            "title": "Rate",
+            "readOnly": true
+          },
+          "low": {
+            "type": "number",
+            "title": "Low",
+            "readOnly": true
+          },
+          "high": {
+            "type": "number",
+            "title": "High",
+            "readOnly": true
+          },
+          "floor": {
+            "type": "number",
+            "title": "Floor",
+            "readOnly": true
+          },
+          "ceiling": {
+            "type": "number",
+            "title": "Ceiling",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmed",
+          "checked",
+          "unresolved",
+          "rate",
+          "low",
+          "high",
+          "floor",
+          "ceiling"
+        ],
+        "title": "RateBounds"
       },
       "RatedMessage": {
         "properties": {
@@ -10111,6 +13178,107 @@
         "title": "RecordTypeResponse",
         "description": "Record type information."
       },
+      "Relative": {
+        "properties": {
+          "organism": {
+            "type": "string",
+            "title": "Organism"
+          },
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          }
+        },
+        "type": "object",
+        "required": [
+          "organism",
+          "length"
+        ],
+        "title": "Relative"
+      },
+      "RelativeTier": {
+        "type": "string",
+        "enum": [
+          "SAME_GENUS",
+          "OTHER_GENERA"
+        ]
+      },
+      "RelativesEvidence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "relatives",
+            "title": "Kind",
+            "default": "relatives"
+          },
+          "referenceGene": {
+            "type": "string",
+            "title": "Referencegene"
+          },
+          "referenceLength": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referencelength"
+          },
+          "modelLength": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modellength"
+          },
+          "relativesMedian": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relativesmedian"
+          },
+          "side": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SideVerdict"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "referenceOrganism": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referenceorganism"
+          }
+        },
+        "type": "object",
+        "required": [
+          "referenceGene",
+          "referenceLength",
+          "modelLength",
+          "relativesMedian"
+        ],
+        "title": "RelativesEvidence"
+      },
       "ReplaceStrategyOp": {
         "properties": {
           "kind": {
@@ -10175,6 +13343,61 @@
         ],
         "title": "ReplaceSubtreeOp"
       },
+      "ResultAboveTheCap": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "above_the_cap",
+            "title": "Kind",
+            "default": "above_the_cap"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "cap": {
+            "type": "integer",
+            "title": "Cap"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "cap"
+        ],
+        "title": "ResultAboveTheCap"
+      },
+      "ResultNotGenes": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "not_genes",
+            "title": "Kind",
+            "default": "not_genes"
+          },
+          "recordClass": {
+            "type": "string",
+            "title": "Recordclass"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recordClass"
+        ],
+        "title": "ResultNotGenes"
+      },
+      "ResultWithoutGenes": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "no_genes",
+            "title": "Kind",
+            "default": "no_genes"
+          }
+        },
+        "type": "object",
+        "title": "ResultWithoutGenes"
+      },
       "RevertRequest": {
         "properties": {
           "messageId": {
@@ -10188,6 +13411,54 @@
           "messageId"
         ],
         "title": "RevertRequest"
+      },
+      "Run": {
+        "prefixItems": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "integer"
+          }
+        ],
+        "type": "array",
+        "maxItems": 2,
+        "minItems": 2
+      },
+      "RunStages": {
+        "properties": {
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageRecord"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "halted": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Halted"
+          },
+          "targetFailure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetfailure"
+          }
+        },
+        "type": "object",
+        "title": "RunStages"
       },
       "SaveSubstrategyRequest": {
         "properties": {
@@ -10498,6 +13769,182 @@
         "title": "SearchValidationRequest",
         "description": "Search parameter validation request."
       },
+      "SecVerdict": {
+        "type": "string",
+        "enum": [
+          "CONTAINS_SEC",
+          "STOPS_AT_SEC",
+          "NOT_AT_SEC",
+          "MODEL_NOT_FOUND"
+        ]
+      },
+      "SelenoproteinConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "selenoprotein_end",
+            "title": "Check",
+            "default": "selenoprotein_end"
+          },
+          "result": {
+            "$ref": "#/components/schemas/SelenoproteinEndAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "SelenoproteinConfirmation"
+      },
+      "SelenoproteinEndAudit": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/SecVerdict"
+          },
+          "afterModelEnd": {
+            "type": "string",
+            "title": "Aftermodelend"
+          },
+          "referenceTail": {
+            "type": "string",
+            "title": "Referencetail"
+          },
+          "tailIdentity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tailidentity"
+          },
+          "secAligned": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secaligned"
+          },
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "gene": {
+            "type": "string",
+            "title": "Gene"
+          },
+          "referenceGene": {
+            "type": "string",
+            "title": "Referencegene"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "afterModelEnd",
+          "referenceTail",
+          "tailIdentity",
+          "secAligned",
+          "geneIds",
+          "gene",
+          "referenceGene"
+        ],
+        "title": "SelenoproteinEndAudit"
+      },
+      "SeqEdit": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ServedText"
+          },
+          "lengthDiff": {
+            "$ref": "#/components/schemas/ServedText"
+          },
+          "location": {
+            "$ref": "#/components/schemas/ServedText"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/ServedText"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "lengthDiff",
+          "location",
+          "diff"
+        ],
+        "title": "SeqEdit"
+      },
+      "ServedInt": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "ServedText": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "SideVerdict": {
+        "type": "string",
+        "enum": [
+          "STRAIN_SHORT",
+          "REFERENCE_LONG",
+          "UNCLEAR",
+          "NO_RELATIVES",
+          "NOT_JUDGED"
+        ]
+      },
+      "SingleGeneTarget": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "enum": [
+              "gene_length",
+              "gene_fusion"
+            ],
+            "title": "Check"
+          },
+          "genes": {
+            "prefixItems": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              }
+            ],
+            "type": "array",
+            "maxItems": 1,
+            "minItems": 1,
+            "title": "Genes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "check",
+          "genes"
+        ],
+        "title": "SingleGeneTarget"
+      },
       "SinglePickValue": {
         "properties": {
           "type": {
@@ -10733,6 +14180,53 @@
         ],
         "title": "SourceUrlUIPart",
         "description": "A source part of a message."
+      },
+      "StageRecord": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "collect",
+              "screen",
+              "confirm",
+              "tie_break"
+            ],
+            "title": "Name"
+          },
+          "finished": {
+            "type": "boolean",
+            "title": "Finished",
+            "default": false
+          },
+          "requests": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Requests",
+            "default": 0
+          },
+          "done": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Done",
+            "default": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "StageRecord"
       },
       "StepAnalysis": {
         "properties": {
@@ -11321,6 +14815,206 @@
         "title": "StepValidationErrors",
         "description": "Validation error details for a step."
       },
+      "StrainConfirmation": {
+        "properties": {
+          "check": {
+            "type": "string",
+            "const": "strain_model",
+            "title": "Check",
+            "default": "strain_model"
+          },
+          "result": {
+            "$ref": "#/components/schemas/StrainModelAudit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "StrainConfirmation"
+      },
+      "StrainModelAudit": {
+        "properties": {
+          "lost": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Lost"
+          },
+          "extra": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Extra"
+          },
+          "dna": {
+            "$ref": "#/components/schemas/LengthCheck"
+          },
+          "notRead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NotRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nearbyParalogs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Nearbyparalogs"
+          },
+          "side": {
+            "$ref": "#/components/schemas/SideVerdict"
+          },
+          "relatives": {
+            "$ref": "#/components/schemas/StrainRelatives"
+          },
+          "geneIds": {
+            "items": {
+              "$ref": "#/components/schemas/GeneId"
+            },
+            "type": "array",
+            "title": "Geneids"
+          },
+          "strainGene": {
+            "type": "string",
+            "title": "Straingene"
+          },
+          "referenceGene": {
+            "type": "string",
+            "title": "Referencegene"
+          },
+          "strainLength": {
+            "type": "integer",
+            "title": "Strainlength"
+          },
+          "referenceLength": {
+            "type": "integer",
+            "title": "Referencelength"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneticCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "codeInferred": {
+            "type": "boolean",
+            "title": "Codeinferred"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lost",
+          "extra",
+          "dna",
+          "notRead",
+          "nearbyParalogs",
+          "side",
+          "relatives",
+          "geneIds",
+          "strainGene",
+          "referenceGene",
+          "strainLength",
+          "referenceLength",
+          "code",
+          "codeInferred"
+        ],
+        "title": "StrainModelAudit"
+      },
+      "StrainRelatives": {
+        "properties": {
+          "tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RelativeTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/Relative"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "missing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoRelatives"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "copiesPerOrganism": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copiesperorganism"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "tier",
+          "members",
+          "missing",
+          "copiesPerOrganism",
+          "median"
+        ],
+        "title": "StrainRelatives"
+      },
       "StrategyAst": {
         "properties": {
           "recordType": {
@@ -11774,6 +15468,80 @@
         ],
         "title": "SystemReadyResponse",
         "description": "Aggregate readiness for the UI startup gate: API subsystems + worker."
+      },
+      "TargetReport": {
+        "properties": {
+          "genomes": {
+            "items": {
+              "$ref": "#/components/schemas/TargetTally"
+            },
+            "type": "array",
+            "title": "Genomes"
+          },
+          "unplaced": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unplaced"
+          }
+        },
+        "type": "object",
+        "required": [
+          "genomes",
+          "unplaced"
+        ],
+        "title": "TargetReport"
+      },
+      "TargetTally": {
+        "properties": {
+          "genome": {
+            "type": "string",
+            "title": "Genome"
+          },
+          "check": {
+            "type": "string",
+            "enum": [
+              "pseudogene_call",
+              "selenoprotein_end",
+              "gene_length",
+              "gene_split",
+              "gene_fusion",
+              "strain_model",
+              "missing_gene",
+              "organelle_join"
+            ],
+            "title": "Check"
+          },
+          "checked": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Checked"
+          },
+          "errors": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Errors"
+          },
+          "unjudged": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unjudged"
+          },
+          "unresolved": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Unresolved"
+          }
+        },
+        "type": "object",
+        "required": [
+          "genome",
+          "check",
+          "checked",
+          "errors",
+          "unjudged",
+          "unresolved"
+        ],
+        "title": "TargetTally"
       },
       "TaskListItem": {
         "properties": {
@@ -13525,6 +17293,62 @@
         "title": "WdkStrategyListItem",
         "description": "One strategy a researcher can open, as a picker draws it."
       },
+      "Weighing": {
+        "properties": {
+          "certainty": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Certainty"
+          },
+          "importance": {
+            "$ref": "#/components/schemas/Importance"
+          },
+          "use": {
+            "$ref": "#/components/schemas/GenomeUse"
+          },
+          "impact": {
+            "type": "number",
+            "title": "Impact",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "certainty",
+          "importance",
+          "use",
+          "impact"
+        ],
+        "title": "Weighing"
+      },
+      "WindowLabel": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WindowState"
+          },
+          {
+            "type": "string",
+            "enum": [
+              "part1",
+              "part2"
+            ]
+          }
+        ]
+      },
+      "WindowState": {
+        "type": "string",
+        "enum": [
+          "model",
+          "genome_same_strand",
+          "genome_other_strand",
+          "absent",
+          "weak"
+        ]
+      },
       "WireInputOp": {
         "properties": {
           "kind": {
@@ -13658,6 +17482,7 @@
           "OWN_KEY_REQUIRED",
           "PROVIDER_UNREACHABLE",
           "PROVIDER_KEYS_DISABLED",
+          "AUDITS_DISABLED",
           "ATTACHMENT_TOO_LARGE",
           "ATTACHMENT_NOT_READABLE"
         ],
@@ -13669,6 +17494,53 @@
           "$ref": "#/components/schemas/JsonValue"
         },
         "type": "array"
+      },
+      "AcceptedReading": {
+        "properties": {
+          "reading": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Reading",
+            "type": "string"
+          },
+          "caveat": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Caveat",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "minProperties": 1,
+            "title": "Params",
+            "type": "object"
+          },
+          "replaces": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Replaces",
+            "type": "array"
+          },
+          "namesNoRequirement": {
+            "default": false,
+            "title": "Namesnorequirement",
+            "type": "boolean"
+          },
+          "standIn": {
+            "default": "",
+            "title": "Standin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reading",
+          "params"
+        ],
+        "title": "AcceptedReading",
+        "type": "object"
       },
       "AddCriterionChange": {
         "description": "A change that adds a criterion running one search of the site.",
@@ -13950,7 +17822,8 @@
               "any_strain",
               "all_strains",
               "site_default",
-              "bound_count"
+              "bound_count",
+              "reading"
             ],
             "title": "Readingkind",
             "type": "string"
@@ -14005,33 +17878,6 @@
           "estimatedDurationSeconds"
         ],
         "title": "BackgroundTaskStarted",
-        "type": "object"
-      },
-      "BoundLifecycle": {
-        "description": "A requirement a criterion's values state.",
-        "properties": {
-          "state": {
-            "const": "bound",
-            "default": "bound",
-            "title": "State",
-            "type": "string"
-          },
-          "criterionId": {
-            "title": "Criterionid",
-            "type": "string"
-          },
-          "params": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Params",
-            "type": "array"
-          }
-        },
-        "required": [
-          "criterionId"
-        ],
-        "title": "BoundLifecycle",
         "type": "object"
       },
       "BoundValue": {
@@ -14517,7 +18363,6 @@
           },
           "label": {
             "description": "What the reader sees: the gene id and the site for a record, the title for a paper or a page.",
-            "maxLength": 200,
             "minLength": 1,
             "title": "Label",
             "type": "string"
@@ -14556,7 +18401,6 @@
             "title": "Pmid"
           },
           "why": {
-            "maxLength": 300,
             "minLength": 1,
             "title": "Why",
             "type": "string"
@@ -14577,6 +18421,9 @@
           "web"
         ],
         "type": "string"
+      },
+      "ClippedDraft": {
+        "$ref": "#/components/schemas/MemoryEntryDraft"
       },
       "ColumnFit": {
         "description": "One column of a step's search, read over the whole step against the\nvalues its criterion binds.",
@@ -14610,17 +18457,14 @@
             "default": "genes"
           },
           "total": {
-            "minimum": 0,
             "title": "Total",
             "type": "integer"
           },
           "fitting": {
-            "minimum": 0,
             "title": "Fitting",
             "type": "integer"
           },
           "fittingAtMost": {
-            "minimum": 0,
             "title": "Fittingatmost",
             "type": "integer"
           },
@@ -14737,6 +18581,21 @@
             },
             "title": "Rows",
             "type": "array"
+          },
+          "siteId": {
+            "title": "Siteid",
+            "type": "string"
+          },
+          "stepUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stepurl"
           }
         },
         "required": [
@@ -14748,7 +18607,8 @@
           "column",
           "columnLabel",
           "total",
-          "distinct"
+          "distinct",
+          "siteId"
         ],
         "title": "ColumnTally",
         "type": "object"
@@ -15520,6 +19380,17 @@
               }
             ]
           },
+          "recordClass": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recordclass"
+          },
           "role": {
             "default": "filter",
             "enum": [
@@ -15652,6 +19523,16 @@
             },
             "title": "Unexpressedqualifiers",
             "type": "array"
+          },
+          "acceptedReading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AcceptedReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -16712,6 +20593,13 @@
           },
           "review": {
             "$ref": "#/components/schemas/VerificationReview"
+          },
+          "expressionFits": {
+            "items": {
+              "$ref": "#/components/schemas/ExpressionFit"
+            },
+            "title": "Expressionfits",
+            "type": "array"
           }
         },
         "required": [
@@ -16725,6 +20613,81 @@
           "citations"
         ],
         "title": "EvidenceCard",
+        "type": "object"
+      },
+      "ExpressionFit": {
+        "properties": {
+          "wdkStepId": {
+            "title": "Wdkstepid",
+            "type": "integer"
+          },
+          "expression": {
+            "title": "Expression",
+            "type": "string"
+          },
+          "sampled": {
+            "maximum": 5,
+            "minimum": 0,
+            "title": "Sampled",
+            "type": "integer"
+          },
+          "held": {
+            "minimum": 0,
+            "title": "Held",
+            "type": "integer"
+          },
+          "failing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failing",
+            "type": "array"
+          },
+          "unmatched": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmatched",
+            "type": "array"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wdkStepId",
+          "expression",
+          "sampled",
+          "held",
+          "sentence"
+        ],
+        "title": "ExpressionFit",
+        "type": "object"
+      },
+      "ExpressionGap": {
+        "properties": {
+          "kind": {
+            "const": "expression",
+            "default": "expression",
+            "title": "Kind",
+            "type": "string"
+          },
+          "fit": {
+            "$ref": "#/components/schemas/ExpressionFit"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fit",
+          "sentence"
+        ],
+        "title": "ExpressionGap",
         "type": "object"
       },
       "FailureCause": {
@@ -17042,7 +21005,6 @@
           "lifecycle": {
             "discriminator": {
               "mapping": {
-                "bound": "#/components/schemas/BoundLifecycle",
                 "open": "#/components/schemas/OpenLifecycle",
                 "replaced": "#/components/schemas/ReplacedLifecycle",
                 "withdrawn": "#/components/schemas/WithdrawnLifecycle"
@@ -17052,9 +21014,6 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/OpenLifecycle"
-              },
-              {
-                "$ref": "#/components/schemas/BoundLifecycle"
               },
               {
                 "$ref": "#/components/schemas/WithdrawnLifecycle"
@@ -17389,6 +21348,40 @@
           "savedHere": {
             "title": "Savedhere",
             "type": "boolean"
+          },
+          "recordNoun": {
+            "default": "gene",
+            "title": "Recordnoun",
+            "type": "string"
+          },
+          "outOfDate": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "above_the_cap": "#/components/schemas/ResultAboveTheCap",
+                    "no_genes": "#/components/schemas/ResultWithoutGenes",
+                    "not_genes": "#/components/schemas/ResultNotGenes"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ResultAboveTheCap"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ResultNotGenes"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ResultWithoutGenes"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outofdate"
           }
         },
         "required": [
@@ -17543,6 +21536,7 @@
               "all_strains",
               "site_default",
               "bound_count",
+              "reading",
               "vocabulary_label",
               "options_not_taken",
               "not_measurable",
@@ -17843,11 +21837,6 @@
           "interpretedGoal": {
             "default": "",
             "title": "Interpretedgoal",
-            "type": "string"
-          },
-          "recordType": {
-            "default": "transcript",
-            "title": "Recordtype",
             "type": "string"
           },
           "organismScope": {
@@ -18167,6 +22156,46 @@
         "title": "Proposal",
         "type": "object"
       },
+      "ReadingCaveat": {
+        "properties": {
+          "kind": {
+            "const": "reading",
+            "default": "reading",
+            "title": "Kind",
+            "type": "string"
+          },
+          "criterionId": {
+            "title": "Criterionid",
+            "type": "string"
+          },
+          "reading": {
+            "title": "Reading",
+            "type": "string"
+          },
+          "caveat": {
+            "title": "Caveat",
+            "type": "string"
+          },
+          "namesNoRequirement": {
+            "default": false,
+            "title": "Namesnorequirement",
+            "type": "boolean"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterionId",
+          "reading",
+          "caveat",
+          "sentence"
+        ],
+        "title": "ReadingCaveat",
+        "type": "object"
+      },
       "RecalledMemoriesPayload": {
         "properties": {
           "memories": {
@@ -18262,14 +22291,12 @@
         "properties": {
           "text": {
             "description": "The requirement in the researcher's own words.",
-            "maxLength": 300,
             "minLength": 1,
             "title": "Text",
             "type": "string"
           },
           "turn": {
             "description": "The number of the researcher's message that stated it.",
-            "minimum": 1,
             "title": "Turn",
             "type": "integer"
           },
@@ -18278,7 +22305,6 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 8,
             "title": "Answeredby",
             "type": "array"
           },
@@ -18293,7 +22319,6 @@
           "note": {
             "default": "",
             "description": "One line: the parameter value or the combine, or why nothing.",
-            "maxLength": 300,
             "title": "Note",
             "type": "string"
           },
@@ -18302,7 +22327,6 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 8,
             "title": "Shownby",
             "type": "array"
           }
@@ -18459,7 +22483,6 @@
           },
           "why": {
             "description": "The evidence read; when the fit is no, what the record lacks.",
-            "maxLength": 300,
             "minLength": 1,
             "title": "Why",
             "type": "string"
@@ -18500,6 +22523,11 @@
               }
             ],
             "title": "Count"
+          },
+          "recordNoun": {
+            "default": "gene",
+            "title": "Recordnoun",
+            "type": "string"
           }
         },
         "required": [
@@ -19409,6 +23437,26 @@
         "title": "StrategyLink",
         "type": "object"
       },
+      "StrategyLinkFact": {
+        "properties": {
+          "siteId": {
+            "minLength": 1,
+            "title": "Siteid",
+            "type": "string"
+          },
+          "url": {
+            "pattern": "^https?://",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "siteId",
+          "url"
+        ],
+        "title": "StrategyLinkFact",
+        "type": "object"
+      },
       "StrategyMeta": {
         "description": "Top-level strategy metadata (one per strategy creation/load).",
         "properties": {
@@ -19795,6 +23843,11 @@
           "count": {
             "title": "Count",
             "type": "integer"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
           }
         },
         "required": [
@@ -19917,22 +23970,18 @@
             "type": "string"
           },
           "above": {
-            "minimum": 0,
             "title": "Above",
             "type": "integer"
           },
           "aboveAtMost": {
-            "minimum": 0,
             "title": "Aboveatmost",
             "type": "integer"
           },
           "below": {
-            "minimum": 0,
             "title": "Below",
             "type": "integer"
           },
           "belowAtMost": {
-            "minimum": 0,
             "title": "Belowatmost",
             "type": "integer"
           }
@@ -20036,16 +24085,15 @@
             "title": "Removed",
             "type": "array"
           },
-          "strategyUrl": {
+          "strategyLink": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/StrategyLinkFact"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Strategyurl"
+            ]
           },
           "caveats": {
             "items": {
@@ -20058,6 +24106,7 @@
                   "edit_direction": "#/components/schemas/EditDirectionCaveat",
                   "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
                   "phrase": "#/components/schemas/PhraseCaveat",
+                  "reading": "#/components/schemas/ReadingCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
@@ -20093,6 +24142,9 @@
                   "$ref": "#/components/schemas/PhraseCaveat"
                 },
                 {
+                  "$ref": "#/components/schemas/ReadingCaveat"
+                },
+                {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
                 }
               ]
@@ -20105,6 +24157,7 @@
               "discriminator": {
                 "mapping": {
                   "check": "#/components/schemas/CheckGap",
+                  "expression": "#/components/schemas/ExpressionGap",
                   "requirement": "#/components/schemas/RequirementGap",
                   "structure": "#/components/schemas/StructureGap",
                   "word": "#/components/schemas/WordGap"
@@ -20123,6 +24176,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/CheckGap"
+                },
+                {
+                  "$ref": "#/components/schemas/ExpressionGap"
                 }
               ]
             },
@@ -20149,6 +24205,16 @@
             },
             "title": "Saved",
             "type": "array"
+          },
+          "unsaved": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnsavedSetFact"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "controlResults": {
             "items": {
@@ -20207,6 +24273,16 @@
           "refusal": {
             "default": "",
             "title": "Refusal",
+            "type": "string"
+          },
+          "unchecked": {
+            "default": "",
+            "title": "Unchecked",
+            "type": "string"
+          },
+          "unverified": {
+            "default": "",
+            "title": "Unverified",
             "type": "string"
           }
         },
@@ -20371,7 +24447,8 @@
               "any_strain",
               "all_strains",
               "site_default",
-              "bound_count"
+              "bound_count",
+              "reading"
             ],
             "title": "Readingkind",
             "type": "string"
@@ -20397,6 +24474,35 @@
           "sentence"
         ],
         "title": "UnmeasuredValueCaveat",
+        "type": "object"
+      },
+      "UnsavedSetFact": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "cap": {
+            "title": "Cap",
+            "type": "integer"
+          },
+          "recordNoun": {
+            "default": "gene",
+            "title": "Recordnoun",
+            "type": "string"
+          },
+          "sentence": {
+            "readOnly": true,
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "cap",
+          "sentence"
+        ],
+        "title": "UnsavedSetFact",
         "type": "object"
       },
       "UserIntent": {
@@ -20638,14 +24744,12 @@
           },
           "prose": {
             "description": "User-facing assistant message shown in the conversation.",
-            "maxLength": 4000,
             "minLength": 1,
             "title": "Prose",
             "type": "string"
           },
           "reason": {
             "description": "Short routing explanation shown on the orchestrator card.",
-            "maxLength": 280,
             "minLength": 1,
             "title": "Reason",
             "type": "string"
@@ -20680,7 +24784,6 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 10,
             "title": "Noterefs",
             "type": "array"
           },
@@ -20693,7 +24796,6 @@
             "items": {
               "type": "string"
             },
-            "maxItems": 10,
             "title": "Keyfindings",
             "type": "array"
           },
@@ -20708,6 +24810,7 @@
                   "edit_direction": "#/components/schemas/EditDirectionCaveat",
                   "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
                   "phrase": "#/components/schemas/PhraseCaveat",
+                  "reading": "#/components/schemas/ReadingCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
@@ -20743,6 +24846,9 @@
                   "$ref": "#/components/schemas/PhraseCaveat"
                 },
                 {
+                  "$ref": "#/components/schemas/ReadingCaveat"
+                },
+                {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
                 }
               ]
@@ -20755,6 +24861,7 @@
               "discriminator": {
                 "mapping": {
                   "check": "#/components/schemas/CheckGap",
+                  "expression": "#/components/schemas/ExpressionGap",
                   "requirement": "#/components/schemas/RequirementGap",
                   "structure": "#/components/schemas/StructureGap",
                   "word": "#/components/schemas/WordGap"
@@ -20773,6 +24880,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/CheckGap"
+                },
+                {
+                  "$ref": "#/components/schemas/ExpressionGap"
                 }
               ]
             },
@@ -20800,9 +24910,8 @@
           "remember": {
             "description": "Durable findings worth a later turn, each with a recall-friendly name such as \"P. falciparum kinome size\", counts or identifiers in its content, and tags naming an organism, a technique or a dataset. The site id is added automatically.",
             "items": {
-              "$ref": "#/components/schemas/MemoryEntryDraft"
+              "$ref": "#/components/schemas/ClippedDraft"
             },
-            "maxItems": 5,
             "title": "Remember",
             "type": "array"
           }
@@ -20824,7 +24933,6 @@
             "items": {
               "$ref": "#/components/schemas/RequirementCheck"
             },
-            "maxItems": 20,
             "title": "Requirements",
             "type": "array"
           },
@@ -20841,7 +24949,6 @@
             "items": {
               "$ref": "#/components/schemas/SampledGene"
             },
-            "maxItems": 8,
             "title": "Sampledgenes",
             "type": "array"
           },
@@ -20850,8 +24957,14 @@
             "items": {
               "$ref": "#/components/schemas/Citation"
             },
-            "maxItems": 10,
             "title": "Sources",
+            "type": "array"
+          },
+          "withheld": {
+            "items": {
+              "$ref": "#/components/schemas/WithheldEvidence"
+            },
+            "title": "Withheld",
             "type": "array"
           }
         },
@@ -20881,6 +24994,7 @@
                   "edit_direction": "#/components/schemas/EditDirectionCaveat",
                   "label_without_the_concept": "#/components/schemas/LabelGapCaveat",
                   "phrase": "#/components/schemas/PhraseCaveat",
+                  "reading": "#/components/schemas/ReadingCaveat",
                   "sample": "#/components/schemas/SampleCaveat",
                   "unmeasured_value": "#/components/schemas/UnmeasuredValueCaveat",
                   "zero_combine": "#/components/schemas/ZeroCombineCaveat"
@@ -20914,6 +25028,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/PhraseCaveat"
+                },
+                {
+                  "$ref": "#/components/schemas/ReadingCaveat"
                 },
                 {
                   "$ref": "#/components/schemas/ZeroCombineCaveat"
@@ -20959,6 +25076,32 @@
           "turnId"
         ],
         "title": "WithdrawnLifecycle",
+        "type": "object"
+      },
+      "WithheldEvidence": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "sampled_gene",
+              "source",
+              "requirement_row",
+              "answer",
+              "status",
+              "claim"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "sentence": {
+            "title": "Sentence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "sentence"
+        ],
+        "title": "WithheldEvidence",
         "type": "object"
       },
       "WordGap": {

@@ -6,9 +6,8 @@ from __future__ import annotations
 import pytest
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 from veupathdb.wdk import WDKAttributeField, WDKRecordType, WDKSearch, WDKStepTree
-from veupathdb_mcp.wdk import SampleRecordsResult
 
-from pathfinder.ai.tools.standalone import _sample_attributes, results
+from pathfinder.ai.tools.standalone import _sample_attributes, _sample_page, results
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.strategies.sync_state import WDKSyncState
 
@@ -95,11 +94,11 @@ def asked(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, list[str] | None]]
         attributes: list[str] | None,
         record_type: str,
         seed: str,
-    ) -> results.SampledRecords:
+    ) -> _sample_page.SampledRecords:
         del site_id, limit, seed
         seen.append((record_type, attributes))
-        return results.SampledRecords(
-            SampleRecordsResult(step_id=step_id, total_count=0), []
+        return _sample_page.SampledRecords(
+            _sample_page.StepSample(step_id=step_id, total_count=0), []
         )
 
     monkeypatch.setattr(_sample_attributes, "get_raw_searches", searches)

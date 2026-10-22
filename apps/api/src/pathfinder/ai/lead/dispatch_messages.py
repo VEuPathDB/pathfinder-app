@@ -67,7 +67,9 @@ def stop_phrase(stop: PhaseStop) -> str:
         case (
             PhaseStopReason.REPEATED_CALL
             | PhaseStopReason.CALL_CAP
+            | PhaseStopReason.OUTPUT_RETRIES
             | PhaseStopReason.PROVIDER
+            | PhaseStopReason.SEARCH_NOT_SERVED
         ):
             return stop.phrase()
 

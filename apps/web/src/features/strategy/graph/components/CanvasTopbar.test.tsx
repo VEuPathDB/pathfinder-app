@@ -181,14 +181,14 @@ describe("the link to the host site", () => {
     renderTopbar(withWdk);
 
     expect(screen.getByTestId("canvas-topbar")).toContainElement(
-      screen.getByRole("link", { name: "Open in PlasmoDB" }),
+      screen.getByRole("link", { name: "Open strategy on PlasmoDB" }),
     );
   });
 
   it("records strategy_opened with the site and WDK strategy id on click", () => {
     renderTopbar(withWdk);
 
-    fireEvent.click(screen.getByRole("link", { name: "Open in PlasmoDB" }));
+    fireEvent.click(screen.getByRole("link", { name: "Open strategy on PlasmoDB" }));
 
     expect(recordProductEvent).toHaveBeenCalledWith({
       event: "strategy_opened",
@@ -202,21 +202,23 @@ describe("the link to the host site", () => {
     renderTopbar(withWdk);
 
     expect(
-      screen.getByRole("link", { name: "Open in PlasmoDB" }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: "Open strategy on PlasmoDB" })
+        .getAttribute("href"),
     ).toBe(withWdk.wdkUrl);
   });
 
   it("says it opens the strategy on the site it belongs to", () => {
     renderTopbar(withWdk);
 
-    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
-    expect(link).toHaveAttribute("aria-label", "Open in PlasmoDB");
-    expect(link.textContent).toBe("Open in PlasmoDB");
+    const link = screen.getByRole("link", { name: "Open strategy on PlasmoDB" });
+    expect(link).toHaveAttribute("aria-label", "Open strategy on PlasmoDB");
+    expect(link.textContent).toBe("Open strategy on PlasmoDB");
   });
 
   it("opens in a new tab without leaking the referrer", () => {
     renderTopbar(withWdk);
-    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
+    const link = screen.getByRole("link", { name: "Open strategy on PlasmoDB" });
 
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toContain("noreferrer");
@@ -224,7 +226,7 @@ describe("the link to the host site", () => {
 
   it("sits next to the actions menu", () => {
     renderTopbar(withWdk);
-    const link = screen.getByRole("link", { name: "Open in PlasmoDB" });
+    const link = screen.getByRole("link", { name: "Open strategy on PlasmoDB" });
     const menu = screen.getByLabelText("More strategy actions");
 
     expect(link.parentElement).toBe(menu.parentElement);
@@ -233,7 +235,9 @@ describe("the link to the host site", () => {
   it("offers no link before the strategy reaches WDK", () => {
     renderTopbar(STRATEGY);
 
-    expect(screen.queryAllByRole("link", { name: /^Open in / })).toHaveLength(0);
+    expect(screen.queryAllByRole("link", { name: /^Open strategy on / })).toHaveLength(
+      0,
+    );
   });
 });
 

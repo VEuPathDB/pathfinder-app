@@ -30,7 +30,7 @@ async def universe_counts(
     wanted = sorted(set(organism_value_sets))
     if not wanted:
         return {}
-    marked = await organism_parameters(site_id, record_type, [ORGANISM_SEARCH])
+    marked = await organism_parameters(site_id, [ORGANISM_SEARCH])
     param = marked.get(ORGANISM_SEARCH)
     if param is None:
         return {}

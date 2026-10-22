@@ -1,0 +1,30 @@
+{
+  "provenance": {
+    "site": "orthomcl",
+    "method": "POST",
+    "url": "https://qa.orthomcl.org/orthomcl.qa/service/record-types/sequence/searches/ByAccession/reports/standard",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-10-21",
+    "reads": "count: ByAccession accession=PF3D7_1133400"
+  },
+  "body": {
+    "records": [],
+    "meta": {
+      "displayViewTotalCount": 0,
+      "tables": [],
+      "pagination": {
+        "offset": 0,
+        "numRecords": 0
+      },
+      "cachePreviouslyExisted": true,
+      "viewTotalCount": 0,
+      "sorting": [],
+      "recordClassName": "sequence",
+      "responseCount": 0,
+      "attributes": [],
+      "totalCount": 0,
+      "displayTotalCount": 0
+    }
+  }
+}

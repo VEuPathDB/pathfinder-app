@@ -89,6 +89,7 @@ class VerificationScope(CamelModel):
     unexpressed: list[str] = Field(default_factory=list)
     # One line per stated combination the structure contradicts.
     breaches: list[str] = Field(default_factory=list)
+    readings: list[str] = Field(default_factory=list)
     # One line per step whose count this turn's write moved: the count the
     # message found and the count now. An ask about a count before the edit
     # is read from these.

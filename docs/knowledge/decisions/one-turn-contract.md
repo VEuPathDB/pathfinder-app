@@ -49,7 +49,7 @@ The prose writes each count, value, record and link as a reference the emitter r
 the turn's `TurnFacts` (`domain/reply_references.py`). The rule refuses a reply that writes a
 digit, an identifier shape or a link outside a reference, or a reference that names nothing the
 facts hold, and its correction names each token with the
-reference that renders it. It is refused on every answer, a card's reply included; it takes no
+reference that renders it. It is refused on every answer up to [the refusal bound](an-output-check-refuses-at-most-twice-and-never-on-the-last-answer.md), a card's reply included; it takes no
 part in the one latch below. See
 [the product renders the facts](the-product-renders-the-facts-the-reply-narrates.md).
 

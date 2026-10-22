@@ -3,31 +3,68 @@
 from __future__ import annotations
 
 from pydantic_ai import DeferredToolRequests, ModelRetry, RunContext
+from veupathdb.domain.parameters import (
+    PHYLETIC_EXPRESSION_PARAM,
+    PhyleticExpression,
+)
+from veupathdb.errors import ValidationError
 from veupathdb.wdk import get_site_router
+from veupathdb_mcp.catalog import ortho_taxonomy
 
+from pathfinder.ai.agents.refusal_bound import may_refuse
+from pathfinder.ai.agents.state import AgentToolState
 from pathfinder.ai.graph.runtime import AgentDeps
-from pathfinder.ai.lead.deltas import FrameResult
+from pathfinder.ai.lead.deltas import FrameResult, PassGap
 from pathfinder.ai.lead.frame_questions import questions_that_bind_to_nothing
+from pathfinder.domain.strategy.constraints import CONSTRAINT_KINDS
+from pathfinder.domain.strategy.every_genome import (
+    SHARE_PERCENT,
+    PresenceReadings,
+    UnitReadings,
+    every_genome_units,
+    names_genomes,
+    presence_readings,
+)
+from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
+    RequirementReport,
     numbered_requirements,
+    record_types_without_a_role,
     reported_requirements,
+    stated_numbers,
     unknown_requirement_ids,
 )
+
+
+def _without(output: FrameResult, dropped: list[RequirementReport]) -> FrameResult:
+    return output.model_copy(
+        update={
+            "requirement_problems": [
+                r for r in output.requirement_problems if r not in dropped
+            ]
+        }
+    )
 
 
 def hold_the_reports_to_the_requirement_list(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
-    """Send back, once per pass, a report that names a number the list lacks."""
+    """Send back a report that names a number the list lacks."""
     if not isinstance(output, FrameResult):
         return output
     state = ctx.deps.agent_state
     held = state.stated_requirements
     unknown = unknown_requirement_ids(output.requirement_problems, held)
-    if not unknown or state.unknown_requirements_sent_back:
+    if not unknown:
         return output
-    state.unknown_requirements_sent_back = True
+    if not may_refuse(ctx, state.refusals):
+        dropped = [r for r in output.requirement_problems if r.requirement in unknown]
+        return _without(output, dropped).with_gap(
+            "report_dropped",
+            f"The pass reported {unknown}, which the requirement list does not hold.",
+        )
+    state.refusals += 1
     msg = (
         f"requirement_problems names {unknown}, and the list holds "
         f"{', '.join(numbered_requirements(held)) or 'none'}. A report names a "
@@ -37,15 +74,48 @@ def hold_the_reports_to_the_requirement_list(
     raise ModelRetry(msg)
 
 
+def hold_the_record_types_to_a_role(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    if not isinstance(output, FrameResult):
+        return output
+    state = ctx.deps.agent_state
+    unroled = record_types_without_a_role(
+        output.record_types, state.stated_requirements, state.held_record_roles
+    )
+    if not unroled:
+        return output
+    if not may_refuse(ctx, state.refusals):
+        return output.with_gaps(
+            [
+                PassGap(
+                    kind="record_role_missing",
+                    sentence=(
+                        f"The pass stated no role for the record type "
+                        f"{c.requested_value!r}, so it is judged as the class the "
+                        f"result must be."
+                    ),
+                )
+                for c in unroled.values()
+            ]
+        )
+    state.refusals += 1
+    msg = (
+        f"record_types states no role for {', '.join(unroled)}. Give each "
+        "record-type requirement in 'Requirements the researcher stated' a role: "
+        "answer when the result is those records, through when the tree passes "
+        "through them."
+    )
+    raise ModelRetry(msg)
+
+
 def hold_the_questions_to_the_draft(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
-    """Send back, once per pass, a pass that asks about nothing its draft holds."""
+    """Send back a pass that asks about nothing its draft holds."""
     if not isinstance(output, FrameResult) or output.disposition != "needs_user":
         return output
     state = ctx.deps.agent_state
-    if state.unbound_questions_sent_back:
-        return output
     unbound = questions_that_bind_to_nothing(
         output,
         state.operational_spec_draft,
@@ -58,8 +128,38 @@ def hold_the_questions_to_the_draft(
     )
     if not unbound:
         return output
-    state.unbound_questions_sent_back = True
+    if not may_refuse(ctx, state.refusals):
+        return output.with_gap(
+            "questions_bind_nothing",
+            "The pass asks questions whose answers bind nothing its draft holds.",
+        )
+    state.refusals += 1
     raise ModelRetry(unbound)
+
+
+def hold_the_questions_to_a_dimension(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    """Send back a pass that stops on the user with a question that decides nothing."""
+    if not isinstance(output, FrameResult):
+        return output
+    undecided = output.undecided_questions
+    if not undecided:
+        return output
+    state = ctx.deps.agent_state
+    if not may_refuse(ctx, state.refusals):
+        return output.with_gap(
+            "question_decides_nothing",
+            f"These questions name no dimension and recommend no value: {undecided}.",
+        )
+    state.refusals += 1
+    msg = (
+        f"These open questions decide nothing: {undecided}. Give each "
+        f"one the `dimension` its open parameter states, one of "
+        f"{CONSTRAINT_KINDS}, and the `recommended_value` you would "
+        f"use if the user does not answer."
+    )
+    raise ModelRetry(msg)
 
 
 def hold_the_route_to_another_site(
@@ -73,48 +173,92 @@ def hold_the_route_to_another_site(
         for site in get_site_router().list_sites()
         if site.id != ctx.deps.site_id
     )
-    named = [
-        report.site
+    unrouted = [
+        report
         for report in output.requirement_problems
         if report.problem is RequirementProblem.ANOTHER_SITE_ANSWERS
         and report.site not in others
     ]
-    if named:
-        msg = (
-            f"another_site_answers names {named}, which is no other site. Name one "
-            f"of {', '.join(others)}, or bind the search this site holds."
+    if not unrouted:
+        return output
+    named = [report.site for report in unrouted]
+    state = ctx.deps.agent_state
+    if not may_refuse(ctx, state.refusals):
+        return _without(output, unrouted).with_gap(
+            "report_dropped",
+            f"The pass named {named} as another site that answers, and none is one.",
         )
-        raise ModelRetry(msg)
-    return output
+    state.refusals += 1
+    msg = (
+        f"another_site_answers names {named}, which is no other site. Name one "
+        f"of {', '.join(others)}, or bind the search this site holds."
+    )
+    raise ModelRetry(msg)
+
+
+def _misreported_refusals(
+    reports: list[RequirementReport], state: AgentToolState
+) -> tuple[list[RequirementReport], str]:
+    refused = state.refused_searches
+    unrefused = [
+        r
+        for r in reports
+        if r.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
+        and r.search not in refused
+    ]
+    unnamed = [r for r in unrefused if not r.search]
+    if unnamed:
+        return unnamed, (
+            f"site_refused_the_search for {[r.requirement for r in unnamed]} names "
+            "no search: put the search the site refused in `search`, or report the "
+            "requirement as site_has_no_search."
+        )
+    unlisted = [r for r in unrefused if r.search in state.unserved_searches]
+    if unlisted:
+        return unlisted, (
+            f"site_refused_the_search names {[r.search for r in unlisted]}, which "
+            "the site's catalog lists under no record type. A requirement no "
+            "search on this site answers is site_has_no_search."
+        )
+    if refused and unrefused:
+        return unrefused, (
+            f"site_refused_the_search names {[r.search for r in unrefused]}, and "
+            f"this pass saw the site refuse only {', '.join(refused)}. Name one of "
+            "those, or report the requirement as site_has_no_search."
+        )
+    return [], ""
 
 
 def hold_the_reports_to_the_refusals(
     ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
 ) -> FrameResult | DeferredToolRequests:
-    """Send back a refusal of a search the site ran, and, once per pass, a
-    missing search reported after the site refused one."""
+    """Send back a refusal of a search the site ran, and a missing search
+    reported after the site refused one."""
     if not isinstance(output, FrameResult):
         return output
     state = ctx.deps.agent_state
     refused = state.refused_searches
     reports = output.requirement_problems
-    unrefused = [
-        r.search
-        for r in reports
-        if r.problem is RequirementProblem.SITE_REFUSED_THE_SEARCH
-        and r.search not in refused
-    ]
-    if unrefused:
-        named = ", ".join(refused) or "none"
-        msg = (
-            f"site_refused_the_search names {unrefused}, and this pass saw the "
-            f"site refuse only {named}. Name a search the site refused."
-        )
-        raise ModelRetry(msg)
+    misreported, change = _misreported_refusals(reports, state)
+    if misreported:
+        if not may_refuse(ctx, state.refusals):
+            return _without(output, misreported).with_gap(
+                "report_dropped",
+                f"The pass reported the site refused "
+                f"{[r.search for r in misreported]}, and it did not this pass.",
+            )
+        state.refusals += 1
+        raise ModelRetry(change)
     missing = any(r.problem is RequirementProblem.SITE_HAS_NO_SEARCH for r in reports)
-    if not refused or not missing or state.refusals_sent_back:
+    if not refused or not missing:
         return output
-    state.refusals_sent_back = True
+    if not may_refuse(ctx, state.refusals):
+        return output.with_gap(
+            "missing_after_refusal",
+            f"The pass reports a requirement no search answers after the site "
+            f"refused {', '.join(refused)} this pass.",
+        )
+    state.refusals += 1
     answers = "; ".join(f"{name} ({answer})" for name, answer in refused.items())
     msg = (
         f"The site refused to run {answers} this pass. A requirement that search "
@@ -125,8 +269,111 @@ def hold_the_reports_to_the_refusals(
     raise ModelRetry(msg)
 
 
+def _expressions(criteria: list[Criterion]) -> list[tuple[str, PhyleticExpression]]:
+    read: list[tuple[str, PhyleticExpression]] = []
+    for criterion in criteria:
+        bound = criterion.param_values.get(PHYLETIC_EXPRESSION_PARAM)
+        if bound is None or criterion.held_reading is not None:
+            continue
+        try:
+            read.append((criterion.id, PhyleticExpression.parse(bound.to_wire())))
+        except ValidationError:
+            continue
+    return read
+
+
+_READING_COUNTS = {2: "two", 3: "three"}
+
+
+def _span(unit: UnitReadings) -> str:
+    shared = sorted(
+        (g for g in unit.species if len(g.genomes) > 1),
+        key=lambda g: (-len(g.genomes), g.species),
+    )
+    named = "".join(f"; {g.species} {len(g.genomes)}" for g in shared)
+    return f"{unit.genomes} genomes of {len(unit.species)} species{named}"
+
+
+def _offered(readings: PresenceReadings) -> list[str]:
+    units = readings.units
+    offered = [
+        " and ".join(f"every one of the {u.genomes} genomes" for u in units)
+        + " (recommended)"
+    ]
+    if readings.share_differs:
+        offered.append(
+            " and ".join(
+                f"at least {u.share} of the {u.genomes} genomes" for u in units
+            )
+            + f" ({SHARE_PERCENT} percent)"
+        )
+    if readings.species_differ:
+        offered.append(
+            " and ".join(f"every one of the {len(u.species)} species" for u in units)
+            + ", a species present when at least half its genomes are"
+        )
+    return offered
+
+
+def _every_genome_question(criterion_id: str, readings: PresenceReadings) -> str:
+    offered = _offered(readings)
+    count = _READING_COUNTS[len(offered)]
+    return (
+        f"{criterion_id} binds {PHYLETIC_EXPRESSION_PARAM} to presence in every "
+        f"genome of {' and of '.join(_span(u) for u in readings.units)}, and the "
+        f"request names no genome, strain, isolate or proteome. Ask one question on "
+        f"{criterion_id}.{PHYLETIC_EXPRESSION_PARAM} with {count} readings from the "
+        f"parameter's help, each applied to every list and each label with its "
+        f"numbers: {'; '.join(offered)}."
+    )
+
+
+async def hold_an_every_genome_presence_to_a_question(
+    ctx: RunContext[AgentDeps], output: FrameResult | DeferredToolRequests
+) -> FrameResult | DeferredToolRequests:
+    if not isinstance(output, FrameResult) or output.disposition != "spec_ready":
+        return output
+    state = ctx.deps.agent_state
+    read = _expressions(state.operational_spec_draft.criteria)
+    if not read:
+        return output
+    tree = await ortho_taxonomy(ctx.deps.site_id)
+    if tree is None or names_genomes(state.request_messages):
+        return output
+    asked = [
+        _every_genome_question(criterion_id, presence_readings(units, tree))
+        for criterion_id, expression in read
+        if (units := every_genome_units(expression, tree))
+    ]
+    if not asked:
+        return output
+    if not may_refuse(ctx, state.refusals):
+        named = [criterion_id for criterion_id, _ in read]
+        return output.with_gap(
+            "every_genome_unasked",
+            f"{', '.join(named)} binds presence in every genome of a list, and the "
+            f"researcher was not asked which presence the request means.",
+        )
+    state.refusals += 1
+    held = ", ".join(stated_numbers(state.stated_requirements))
+    keyed = (
+        [
+            (
+                f"Name in the question's `requirements` the keys of the "
+                f"requirements its readings approximate, from {held}."
+            )
+        ]
+        if held
+        else []
+    )
+    raise ModelRetry(" ".join([*asked, *keyed, "Absence binds without a question."]))
+
+
 __all__ = [
+    "hold_an_every_genome_presence_to_a_question",
+    "hold_the_questions_to_a_dimension",
     "hold_the_questions_to_the_draft",
+    "hold_the_record_types_to_a_role",
     "hold_the_reports_to_the_refusals",
     "hold_the_reports_to_the_requirement_list",
     "hold_the_route_to_another_site",

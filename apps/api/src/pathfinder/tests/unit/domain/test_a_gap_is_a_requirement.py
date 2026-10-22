@@ -3,9 +3,6 @@ requirement, such as an edit instruction, is no gap."""
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from pathfinder.domain.caveats import RequirementGap, check_gaps
 from pathfinder.domain.evidence import RequirementCheck, VerificationReview
 from pathfinder.domain.strategy.constraints import (
@@ -84,8 +81,9 @@ _ANSWERED_ROW = {
 
 def test_a_row_a_step_answers_is_never_unmet() -> None:
     """The plasmodb apicoplast row: the PlasmoAP step answers it."""
-    with pytest.raises(ValidationError, match="names no step that answers it"):
-        RequirementCheck.model_validate({**_ANSWERED_ROW, "status": "unmet"})
+    row = RequirementCheck.model_validate({**_ANSWERED_ROW, "status": "unmet"})
+
+    assert row.status_problem.startswith("an unmet requirement names no step")
 
 
 def test_a_row_a_step_answers_and_no_record_shows_is_no_gap() -> None:
@@ -103,27 +101,31 @@ def test_a_row_a_step_answers_and_no_record_shows_is_no_gap() -> None:
 
 
 def test_a_combine_that_joins_its_steps_another_way_names_no_answer() -> None:
-    with pytest.raises(ValidationError, match="names no step that answers it"):
-        RequirementCheck(
-            text="A or B",
-            turn=1,
-            answered_by=["c_a", "c_b"],
-            how="structure",
-            status="unmet",
-        )
+    row = RequirementCheck(
+        text="A or B",
+        turn=1,
+        answered_by=["c_a", "c_b"],
+        how="structure",
+        status="unmet",
+    )
+
+    assert row.status_problem.startswith("an unmet requirement names no step")
 
 
 def test_a_row_the_records_leave_short_is_either_unshown_or_unjudged() -> None:
-    with pytest.raises(ValidationError, match="either unshown or unjudged"):
-        RequirementCheck(
-            text="RNA-binding domain",
-            turn=1,
-            answered_by=["c_rbd"],
-            how="parameter",
-            status="met",
-            no_record_shows_it=True,
-            no_record_judged_it=True,
-        )
+    row = RequirementCheck(
+        text="RNA-binding domain",
+        turn=1,
+        answered_by=["c_rbd"],
+        how="parameter",
+        status="met",
+        no_record_shows_it=True,
+        no_record_judged_it=True,
+    )
+
+    assert row.status_problem == (
+        "a met row the records leave short is either unshown or unjudged"
+    )
 
 
 def test_a_row_no_record_judged_is_a_gap_of_its_own() -> None:

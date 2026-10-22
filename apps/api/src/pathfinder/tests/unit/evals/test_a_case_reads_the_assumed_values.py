@@ -8,11 +8,8 @@ from pydantic import ValidationError
 
 from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.difference import CaseDifference
-from pathfinder.evals.scoring import (
-    ObservedOutcome,
-    RequirementCounts,
-    score_case,
-)
+from pathfinder.evals.requirements import RequirementCounts
+from pathfinder.evals.scoring import ObservedOutcome, score_case
 from pathfinder.evals.summary import CaseResult, EvalRunSummary
 
 

@@ -3,6 +3,7 @@ its review reaches the verdict and the card as the record lets it stand."""
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from typing import Any
 
 import pytest
@@ -344,13 +345,13 @@ def _met(text: str, criterion: str, turn: int = 1) -> dict[str, Any]:
 async def test_only_a_text_query_is_held_to_the_records_and_an_ask_files_no_row(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def record_type(_site: str, _search: str, given: str | None) -> str:
-        return given or "transcript"
+    async def listed(_site: str, names: Collection[str]) -> dict[str, str]:
+        return dict.fromkeys(names, "transcript")
 
     async def definition(_site: str, _record_type: str, search: str) -> WDKSearch:
         return _SHEETS[search]
 
-    monkeypatch.setattr(text_queries, "resolve_search_record_type", record_type)
+    monkeypatch.setattr(text_queries, "search_record_types", listed)
     monkeypatch.setattr(text_queries, "read_search_definition", definition)
     deps = _deps()
     deps.state.user_prompt = _COMPARE

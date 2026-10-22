@@ -23,7 +23,7 @@ from pathfinder.services.experiment.variant_comparison import VariantInput
 COLUMN_TALLY_REFUSALS = 6
 
 
-def _line(tally: ColumnTally) -> str:
+def tally_line(tally: ColumnTally) -> str:
     top = tally.rows[0] if tally.rows else None
     most = "" if top is None else f", most {top.value} ({top.count:,})"
     return f"{tally.title}: {tally.distinct:,} values{most}"
@@ -82,4 +82,4 @@ async def count_by_column(
     chunk = DataChunk(
         type="data-column-tally", data=tally.model_dump(by_alias=True, mode="json")
     )
-    return with_summary(tally, _line(tally), ctx=ctx, extra=[chunk])
+    return with_summary(tally, tally_line(tally), ctx=ctx, extra=[chunk])

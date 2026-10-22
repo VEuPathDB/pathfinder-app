@@ -8,6 +8,8 @@ from typing import Literal
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import Field
 
+from pathfinder.services.gene_sets.types import OutOfDate
+
 # Matches WDK BooleanOperator (canonical 7) and the frontend `CombineOperator`
 # union in `packages/shared-ts/src/types.ts`. Narrowing to a subset would silently
 # drop valid WDK operators in graph snapshots.
@@ -78,6 +80,8 @@ class ListedGeneSet(CamelModel):
     genes_here: int = Field(ge=0)
     saved_on: str
     saved_here: bool
+    record_noun: str = "gene"
+    out_of_date: OutOfDate | None = None
 
 
 class ListedGeneSets(CamelModel):

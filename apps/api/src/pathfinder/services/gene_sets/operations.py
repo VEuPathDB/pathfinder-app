@@ -7,10 +7,18 @@ from veupathdb.errors import ValidationError
 
 from pathfinder.platform.errors import NotFoundError
 from pathfinder.services.gene_sets.homes import gene_homes
-from pathfinder.services.gene_sets.step_genes import dedup_ordered
+from pathfinder.services.gene_sets.step_genes import TooManyGenesError, dedup_ordered
 from pathfinder.services.gene_sets.store import GeneSetStore
-from pathfinder.services.gene_sets.strategy_genes import read_strategy_genes
-from pathfinder.services.gene_sets.types import GeneSet, GeneSetSource
+from pathfinder.services.gene_sets.strategy_genes import (
+    RecordsAreNotGenesError,
+    read_strategy_genes,
+)
+from pathfinder.services.gene_sets.types import (
+    GeneSet,
+    GeneSetSource,
+    OutOfDate,
+    ResultWithoutGenes,
+)
 
 logger = get_logger(__name__)
 
@@ -140,21 +148,31 @@ class GeneSetService:
         whole resolved context and not only its genes. A resolution that reads
         no genes has learnt nothing about the strategy, so it writes nothing.
         ``answer_revision`` names the stored root the caller read before WDK.
+        A refused root keeps the genes and records why the set is out of date;
+        a later take clears the record.
 
         :raises EmptyResyncError: If the strategy resolves to zero genes.
+        :raises TooManyGenesError: If the root holds more records than the cap.
+        :raises RecordsAreNotGenesError: If the root holds records that are not genes.
         """
         gs = await self._store.get(gene_set_id)
         if gs is None:
             return None
-        taken = await read_strategy_genes(
-            site_id, wdk_strategy_id, record_type=gs.record_type
-        )
+        try:
+            taken = await read_strategy_genes(
+                site_id, wdk_strategy_id, record_type=gs.record_type
+            )
+        except (TooManyGenesError, RecordsAreNotGenesError) as exc:
+            await self._mark_out_of_date(gs, exc.reason())
+            raise
         if not taken.genes.gene_ids:
+            await self._mark_out_of_date(gs, ResultWithoutGenes())
             raise EmptyResyncError(gs.name)
         gs.gene_ids = taken.genes.gene_ids
         gs.take_wdk_context(taken.context, step_count=taken.step_count)
         gs.homes = taken.genes.homes
         gs.answer_revision = answer_revision
+        gs.out_of_date = None
         await self._store.save(gs)
         logger.info(
             "Re-synced strategy gene set",
@@ -162,6 +180,10 @@ class GeneSetService:
             gene_count=len(gs.gene_ids),
         )
         return gs
+
+    async def _mark_out_of_date(self, gs: GeneSet, reason: OutOfDate) -> None:
+        await self._store.set_out_of_date(gs.id, reason)
+        gs.out_of_date = reason
 
     async def rename(self, gene_set: GeneSet, name: str) -> None:
         """Write a new name on the set, durable before the call returns."""

@@ -10,7 +10,7 @@ site. WDK owns it, so only WDK can say what it holds now.
 
 from __future__ import annotations
 
-from veupathdb.domain.strategy import StrategyAst
+from veupathdb.domain.strategy import StrategyAst, walk
 
 from pathfinder.ai.graph.runtime import Context
 from pathfinder.ai.graph.state import PipelineState
@@ -52,6 +52,7 @@ from pathfinder.services.eda.binding import open_analysis_in
 from pathfinder.services.strategies.data_marks import read_data_marks
 from pathfinder.services.strategies.live_counts import counts_the_site_holds
 from pathfinder.services.strategies.organism_params import organism_parameters
+from pathfinder.services.strategies.record_classes import search_record_types
 from pathfinder.services.strategies.revision_ops import last_change
 from pathfinder.services.strategies.sheet_params import (
     sheet_params_for_searches,
@@ -189,7 +190,7 @@ async def refresh_live_strategy_state(
     working_state.domain.data_marks = await read_data_marks(
         context.site_id,
         [
-            None if answered is None else spec_from_ast(answered, goal=""),
+            None if answered is None else spec_from_ast(answered, goal="", listed={}),
             working_state.domain.operational_spec,
         ],
     )
@@ -227,9 +228,7 @@ async def _answer_what_was_written_outside(
     would plan against a strategy the researcher no longer has.
     """
     graph = context.strategy_session.get_graph(None)
-    if graph is None:
-        return
-    if state.domain.answered_spec is None and graph.steps:
+    if graph is not None and state.domain.answered_spec is None and graph.steps:
         _initialise_the_answered_facts(state, graph)
     await the_changes_written_outside(state, site_id=context.site_id, graph=graph)
 
@@ -338,8 +337,15 @@ async def stated_spec_of(
 ) -> OperationalSpec:
     """The spec a strategy tree states, with each criterion holding only the
     parameters its step's sheet shows and the organism parameter it marks."""
-    hydrated = spec_from_ast(ast, goal=goal, analyses=analyses_of(ast))
-    search_names = [c.search_name for c in hydrated.criteria if c.search_name]
+    search_names = [
+        node.search_name for node in walk(ast.root) if node.infer_kind() != "combine"
+    ]
+    hydrated = spec_from_ast(
+        ast,
+        goal=goal,
+        listed=await search_record_types(site_id, search_names),
+        analyses=analyses_of(ast),
+    )
     sheets = await sheet_params_for_searches(
         site_id=site_id,
         record_type=ast.record_type,
@@ -351,7 +357,7 @@ async def stated_spec_of(
         steps=steps_stated_by(hydrated, ast),
         sheets=sheets,
     )
-    marks = await organism_parameters(site_id, ast.record_type, search_names)
+    marks = await organism_parameters(site_id, search_names)
     hydrated.criteria = [
         c.model_copy(update={"organism_param": marks.get(c.search_name)})
         for c in hydrated.criteria

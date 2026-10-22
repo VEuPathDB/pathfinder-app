@@ -1,28 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
-from veupathdb.domain.parameters import (
-    ParamKind,
-    ParamValue,
-    UnboundParameter,
-)
-from veupathdb.domain.strategy import (
-    CombineOp,
-    StrategyStepNode,
-)
+from pydantic import ConfigDict, Field, ValidationError, model_validator
+from veupathdb.domain.parameters import ParamKind, ParamValue, UnboundParameter
+from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.model import CamelModel
 
 from pathfinder.domain.strategy.analysis_binding import AnalysisBinding
 from pathfinder.domain.strategy.constraints import Constraint
 from pathfinder.domain.strategy.named_taxa import NamedTaxon
 from pathfinder.domain.strategy.number_precision import rounded_number
+from pathfinder.domain.strategy.readings import AcceptedReading
 from pathfinder.domain.strategy.step_rationale import (
     AnalysisRationale,
     ChosenRationale,
     StepRationale,
+)
+from pathfinder.domain.strategy.structure_reading import (
+    NODE_SHAPES,
+    SpareWrapper,
+    record_class_at,
 )
 from pathfinder.domain.strategy.words import names_a_run_of
 
@@ -112,6 +111,7 @@ CountedKind = Literal[
     "all_strains",
     "site_default",
     "bound_count",
+    "reading",
 ]
 MeasurementKind = Literal[
     CountedKind,
@@ -186,38 +186,6 @@ class UnexpressedText(CamelModel):
     requirement: Constraint | None = None
 
 
-_NODE_SHAPES = {
-    "leaf": (
-        'a leaf is {"kind": "leaf", "criterionId": "<id>"}: one bound criterion, '
-        "with no inputs and no operator."
-    ),
-    "combine": (
-        'a combine is {"kind": "combine", "operator": "INTERSECT" | "UNION" | '
-        '"MINUS", "inputs": [<left>, <right>]}: an operator over two or more '
-        "subtrees, with no criterionId. A tree of one criterion is that "
-        "criterion's leaf; with no criterion left, there is no tree to set."
-    ),
-    "transform": (
-        'a transform is {"kind": "transform", "criterionId": "<id>", "inputs": '
-        "[<subtree>]}: one criterion that maps exactly one input subtree, with no "
-        "operator."
-    ),
-    "copy": (
-        'a copy is {"kind": "copy", "inputs": [<subtree>]}: exactly one subtree '
-        "the tree already states, with no criterionId and no operator."
-    ),
-}
-
-
-class _SpareWrapper(BaseModel):
-    """A raw combine node of exactly one input."""
-
-    model_config = ConfigDict(extra="ignore", from_attributes=True)
-
-    kind: Literal["combine"]
-    inputs: Annotated[list[object], Field(min_length=1, max_length=1)]
-
-
 class StructureNode(CamelModel):
     """One node of the stated tree.
 
@@ -235,7 +203,7 @@ class StructureNode(CamelModel):
     def _a_spare_wrapper_is_its_input(cls, data: object) -> object:
         """A combine of one input combines nothing, so it is that input."""
         try:
-            wrapper = _SpareWrapper.model_validate(data)
+            wrapper = SpareWrapper.model_validate(data)
         except ValidationError:
             return data
         return cls.model_validate(wrapper.inputs[0]).model_dump(by_alias=True)
@@ -252,21 +220,21 @@ class StructureNode(CamelModel):
             "copy": not named and not joined and count == 1,
         }[self.kind]
         if not fits:
-            raise ValueError(_NODE_SHAPES[self.kind])
+            raise ValueError(NODE_SHAPES[self.kind])
         return self
 
     @property
     def combine_operator(self) -> CombineOp:
         """The operator of a combine. Only a copy that skips validation has none."""
         if self.operator is None:
-            raise ValueError(_NODE_SHAPES[self.kind])
+            raise ValueError(NODE_SHAPES[self.kind])
         return self.operator
 
     @property
     def named_criterion(self) -> str:
         """The criterion a leaf or a transform runs."""
         if self.criterion_id is None:
-            raise ValueError(_NODE_SHAPES[self.kind])
+            raise ValueError(NODE_SHAPES[self.kind])
         return self.criterion_id
 
 
@@ -315,6 +283,8 @@ class Criterion(CamelModel):
     search_display_name: str | None = None
     # Set instead of ``search_name`` when the criterion reuses a saved strategy.
     saved_strategy_ref: SavedStrategyRef | None = None
+    # The record type the site lists the search under, or the saved strategy's.
+    record_class: str | None = None
     role: CriterionRole = "filter"
     # The parameter WDK marks as the search's organism, None when it marks none.
     organism_param: str | None = None
@@ -343,10 +313,16 @@ class Criterion(CamelModel):
     # Words of the text that narrow it and that no search the binding pass read
     # can state. Each is reported unmet until a search states it.
     unexpressed_qualifiers: list[str] = Field(default_factory=list)
+    accepted_reading: AcceptedReading | None = None
 
     @property
     def bound(self) -> bool:
         return bool(self.search_name) or self.saved_strategy_ref is not None
+
+    @property
+    def held_reading(self) -> AcceptedReading | None:
+        held = self.accepted_reading
+        return None if held is None or held.unbound(self.param_values) else held
 
     @property
     def pending_analysis(self) -> bool:
@@ -424,7 +400,6 @@ class Criterion(CamelModel):
 class OperationalSpec(CamelModel):
     goal: str = ""
     interpreted_goal: str = ""
-    record_type: str = "transcript"
     organism_scope: str | None = None
     title: str = ""
     criteria: list[Criterion] = Field(default_factory=list)
@@ -485,6 +460,15 @@ class OperationalSpec(CamelModel):
         )
 
     @property
+    def record_type(self) -> str | None:
+        roots = (
+            [self.structure.root]
+            if self.structure is not None
+            else [StructureNode(kind="leaf", criterion_id=c.id) for c in self.criteria]
+        )
+        return record_class_at(roots, {c.id: c.record_class for c in self.criteria})
+
+    @property
     def ready_to_build(self) -> bool:
         """Whether a build has criteria to mint; one awaiting its analysis waits."""
         built = [c for c in self.criteria if not c.pending_analysis]
@@ -504,11 +488,4 @@ def structure_criteria(structure: SpecStructure | None) -> frozenset[str]:
     """The criterion ids a structure states a step for."""
     if structure is None:
         return frozenset()
-    return frozenset(_named_by(structure.root))
-
-
-def _named_by(node: StructureNode) -> set[str]:
-    own = {node.criterion_id} if node.criterion_id else set()
-    for child in node.inputs:
-        own |= _named_by(child)
-    return own
+    return criteria_under(structure.root)

@@ -1,16 +1,8 @@
-"""Standalone result tools for pydantic-ai agents.
-
-Provides:
-- ``read_step_columns`` -- read a search step's columns against its bound values
-- ``get_sample_records`` -- get a sample of records spread over a step
-"""
+"""The tools that read a built step's columns and a sample of its records."""
 
 import asyncio
-import hashlib
-from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import partial
-from itertools import pairwise
 from typing import Annotated
 
 from assistant_core.graph.tool_summary import with_summary
@@ -18,15 +10,9 @@ from pydantic import Field
 from pydantic_ai import RunContext
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import ToolReturn
-from veupathdb import JSONObject, strip_html_tags
 from veupathdb.domain import SearchContext
 from veupathdb.domain.strategy import walk
-from veupathdb.errors import VEuPathDBError
 from veupathdb.wdk import (
-    StrategyAPI,
-    WDKAnswer,
-    WDKFilterValue,
-    WDKRecordInstance,
     get_strategy_api,
 )
 from veupathdb_mcp.catalog import (
@@ -35,19 +21,23 @@ from veupathdb_mcp.catalog import (
     get_raw_searches,
 )
 from veupathdb_mcp.tool_payloads import gene_sample_attributes
-from veupathdb_mcp.wdk import (
-    SampleRecordsResult,
-    view_filters_for,
-)
 
 from pathfinder.ai.capabilities.site_reads import read_in_time
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._expression_check import read_expression_fit
 from pathfinder.ai.tools.standalone._result_models import (
     MAX_SAMPLE_LIMIT,
     StepColumns,
     _validate_sample_inputs,
+    no_column,
+    no_rows,
 )
 from pathfinder.ai.tools.standalone._sample_attributes import sample_attributes
+from pathfinder.ai.tools.standalone._sample_page import (
+    SampledRecords,
+    StepSample,
+    sample_page,
+)
 from pathfinder.ai.tools.standalone._step_columns import (
     AttributeHistogram,
     ColumnBound,
@@ -63,29 +53,10 @@ from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.revision import strategy_revision
 from pathfinder.domain.strategy.session import StrategySession
 from pathfinder.domain.strategy.types import SyncStateProtocol
-from pathfinder.services.gene_sets.step_genes import extract_gene_id
 
 # A read of a few rows or of one column answers in about a second; a site that
 # takes longer holds the whole check, which goes on without the read instead.
 READ_DEADLINE_SECONDS = 20.0
-
-
-@dataclass(frozen=True)
-class SampledRecords:
-    """One page of a step's records, and the gene each row names."""
-
-    result: SampleRecordsResult
-    gene_ids: list[str]
-
-
-def _row(record: WDKRecordInstance, attributes: list[str]) -> JSONObject:
-    texts: JSONObject = {
-        name: None
-        if (text := record.attribute_text(name)) is None
-        else strip_html_tags(text)
-        for name in attributes
-    }
-    return {"id": record.display_name, **texts}
 
 
 def sample_seed(wdk_step_id: int, answer: str) -> str:
@@ -132,77 +103,6 @@ def step_sample_seed(session: StrategySession, wdk_step_id: int) -> str:
     return sample_seed(wdk_step_id, _step_answer(session, wdk_step_id))
 
 
-def spread_offsets(total: int, limit: int, *, seed: str) -> list[int]:
-    """One offset in each of ``limit`` equal strides of the step, placed within
-    its stride by the seed, so one seed always reads the same records."""
-    count = min(limit, total)
-    if count == 0:
-        return []
-    starts = [i * total // count for i in range(count + 1)]
-    return [
-        start + _drawn(f"{seed}:{index}") % (end - start)
-        for index, (start, end) in enumerate(pairwise(starts))
-    ]
-
-
-def _drawn(key: str) -> int:
-    return int.from_bytes(hashlib.blake2b(key.encode(), digest_size=8).digest())
-
-
-async def _record_at(
-    api: StrategyAPI,
-    step_id: int,
-    offset: int,
-    *,
-    attributes: list[str] | None,
-    view: Sequence[WDKFilterValue] | None,
-) -> WDKAnswer:
-    page = {"offset": offset, "numRecords": 1}
-    try:
-        return await api.get_step_records(
-            step_id, attributes=attributes, pagination=page, view_filters=view
-        )
-    except VEuPathDBError:
-        # A record class that lacks the attributes still answers its ids.
-        return await api.get_step_records(step_id, pagination=page, view_filters=view)
-
-
-async def sample_page(
-    site_id: str,
-    step_id: int,
-    *,
-    limit: int,
-    attributes: list[str] | None,
-    record_type: str,
-    seed: str,
-) -> SampledRecords:
-    """The step's records at offsets spread over the whole step, one row per
-    gene, placed by the seed."""
-    api = get_strategy_api(site_id)
-    view = view_filters_for(record_type)
-    counted = await api.get_step_records(
-        step_id, pagination={"offset": 0, "numRecords": 0}, view_filters=view
-    )
-    total = counted.meta.records_returned()
-    answers = await asyncio.gather(
-        *(
-            _record_at(api, step_id, offset, attributes=attributes, view=view)
-            for offset in spread_offsets(total, limit, seed=seed)
-        )
-    )
-    records = [record for answer in answers for record in answer.records]
-    shown = [] if not answers else list(answers[0].meta.attributes)
-    return SampledRecords(
-        result=SampleRecordsResult(
-            step_id=step_id,
-            total_count=total,
-            records=[_row(record, shown) for record in records],
-            attributes=shown,
-        ),
-        gene_ids=[gene_id for r in records if (gene_id := extract_gene_id(r))],
-    )
-
-
 async def _sample(
     session: StrategySession, wdk_step_id: int, limit: int
 ) -> SampledRecords:
@@ -232,19 +132,21 @@ async def get_sample_records(
     ctx: RunContext[AgentDeps],
     wdk_step_id: int | None = None,
     limit: Annotated[int, Field(ge=1, le=MAX_SAMPLE_LIMIT)] = 5,
-) -> ToolReturn[SampleRecordsResult]:
-    """Get a sample of records from an executed step, spread over the whole step.
+) -> ToolReturn[StepSample]:
+    """Get a sample of records from an executed step, spread over the step.
 
     The step must already be built in WDK. Returns N records, one per gene,
-    each read at its own offset and the offsets spread over the step. The same
-    call answers the same records while the step's answer is unchanged, in this
-    message or a later one. Each
-    carries its id plus, for gene/transcript steps, the product description,
-    gene symbol, and organism, the attributes the strategy's searches select on,
-    and the columns the step's own search shows, such as a BLAST hit's
-    ``evalue`` and ``score``, as the site states
-    them. Read a step's columns with ``read_step_columns`` first; sample only
-    for a criterion no column shows.
+    spread over the step: one report when the step holds at most ten records
+    per sampled gene, else at most 4 reports, one window in each quarter. The
+    same call answers the same records while the step's answer is unchanged,
+    in this message or a later one. Each carries its id plus, for
+    gene/transcript steps, the product description, gene symbol, and
+    organism, the attributes the strategy's searches select on, and the
+    columns the step's own search shows, such as a BLAST hit's ``evalue`` and
+    ``score``, as the site states them. An attribute the site refuses is left
+    out of every row and of ``attributes`` and named in ``droppedAttributes``.
+    Read a step's columns with ``read_step_columns`` first; sample only for a
+    criterion no column shows.
 
     Args:
         wdk_step_id: WDK step ID of a built step. Leave it out for the root,
@@ -275,6 +177,7 @@ async def get_sample_records(
 class _SearchStep:
     criterion: Criterion
     search_name: str
+    record_type: str | None
     # The records the site counts in the step, None before it counts them.
     count: int | None = None
 
@@ -283,7 +186,7 @@ def _search_step(ctx: RunContext[AgentDeps], wdk_step_id: int) -> _SearchStep | 
     """The criterion whose search the step runs, or None for any other step."""
     session = ctx.deps.strategy_session
     sync, graph = session.sync_state, session.get_graph(None)
-    if sync is None or graph is None or graph.record_type != "transcript":
+    if sync is None or graph is None:
         return None
     step_id = next((s for s, w in sync.wdk_step_ids.items() if w == wdk_step_id), None)
     step = None if step_id is None else graph.steps.get(step_id)
@@ -294,6 +197,7 @@ def _search_step(ctx: RunContext[AgentDeps], wdk_step_id: int) -> _SearchStep | 
     return _SearchStep(
         criterion=criterion,
         search_name=step.search_name,
+        record_type=graph.record_type,
         count=sync.step_counts.get(criterion.id),
     )
 
@@ -358,68 +262,18 @@ async def read_column_fit(
     )
 
 
-def _no_column(
-    ctx: RunContext[AgentDeps], wdk_step_id: int, why: str
-) -> ToolReturn[StepColumns]:
-    return with_summary(
-        StepColumns(
-            wdk_step_id=wdk_step_id,
-            note=f"{why} Sample the root with get_sample_records for this criterion.",
-        ),
-        f"No column of step {wdk_step_id}",
-        ctx=ctx,
-    )
-
-
-def _no_rows(
-    ctx: RunContext[AgentDeps], wdk_step_id: int, count: int, unread: list[ColumnFit]
-) -> ToolReturn[StepColumns]:
-    """A column the search publishes whose read returned no rows for a counted step."""
-    columns = ", ".join(f"{fit.display_name} ({fit.column})" for fit in unread)
-    names = ", ".join(fit.column for fit in unread)
-    return with_summary(
-        StepColumns(
-            wdk_step_id=wdk_step_id,
-            note=(
-                f"Step {wdk_step_id} counts {count} on the site and its read of "
-                f"{columns} returned no rows. Sample step {wdk_step_id} with "
-                f"get_sample_records and read {names} on its records for this "
-                "criterion."
-            ),
-        ),
-        f"No rows in the columns of step {wdk_step_id}",
-        ctx=ctx,
-    )
-
-
-async def read_step_columns(
-    ctx: RunContext[AgentDeps],
-    wdk_step_id: int,
-) -> ToolReturn[StepColumns]:
-    """Read the columns a search step shows for the numeric values its criterion binds.
-
-    Each column is one report over the whole step: how many of its genes hold
-    a value inside the bounds, such as ``tm_count`` 2 to 99, and for a threshold
-    whose direction the site does not state, how many lie on each side. A step
-    whose search shows no such column, or several that do not all hold every
-    gene, says so, and only then is the root sampled. A column whose read
-    returns no rows for a step the site counts names the step to sample.
-
-    Args:
-        wdk_step_id: The WDK step id of a search step, not a combine.
-    """
+async def _read_columns(
+    ctx: RunContext[AgentDeps], wdk_step_id: int, target: _SearchStep | None
+) -> tuple[StepColumns, str]:
     site_id = ctx.deps.strategy_session.site_id
-    target = _search_step(ctx, wdk_step_id)
-    if target is None:
-        return _no_column(
-            ctx,
+    if target is None or target.record_type != "transcript":
+        return no_column(
             wdk_step_id,
             f"Step {wdk_step_id} is not a gene search step a criterion binds.",
         )
     bounds = await _column_bounds(site_id, target)
     if not bounds:
-        return _no_column(
-            ctx,
+        return no_column(
             wdk_step_id,
             f"No column of {target.search_name} shows a numeric value its "
             "criterion binds.",
@@ -437,18 +291,58 @@ async def read_step_columns(
     )
     unread = [fit for fit in read if not fit.shown]
     if unread and target.count:
-        return _no_rows(ctx, wdk_step_id, target.count, unread)
+        return no_rows(wdk_step_id, target.count, unread)
     fits = settled(list(zip(bounds, read, strict=True)))
     if not fits:
-        return _no_column(
-            ctx,
+        return no_column(
             wdk_step_id,
             f"{len(bounds)} columns of {target.search_name} may show the bound "
             "values and they do not all hold every gene inside them.",
         )
     ctx.deps.turn_markers.record_column_fits(fits)
-    return with_summary(
-        StepColumns(wdk_step_id=wdk_step_id, fits=fits),
-        "; ".join(fit.sentence for fit in fits),
-        ctx=ctx,
+    return StepColumns(wdk_step_id=wdk_step_id, fits=fits), "; ".join(
+        fit.sentence for fit in fits
     )
+
+
+async def read_step_columns(
+    ctx: RunContext[AgentDeps],
+    wdk_step_id: int,
+) -> ToolReturn[StepColumns]:
+    """Read the columns a search step shows for the numeric values its criterion binds.
+
+    Each column is one report over the whole step: how many of its genes hold
+    a value inside the bounds, such as ``tm_count`` 2 to 99, and for a threshold
+    whose direction the site does not state, how many lie on each side. A step
+    whose search shows no such column, or several that do not all hold every
+    gene, says so, and only then is the root sampled. A column whose read
+    returns no rows for a step the site counts names the step to sample.
+
+    On an OrthoMCL group step whose criterion binds ``phyletic_expression``,
+    the answer is ``expression_fit`` alone: the step's first groups, with their
+    proteins per genome, judged against the expression as the site reads it,
+    or, on a step that holds no group, each unit the site matches no group
+    with. That fit judges the criterion, so the step needs no sample.
+
+    Args:
+        wdk_step_id: The WDK step id of a search step, not a combine.
+    """
+    target = _search_step(ctx, wdk_step_id)
+    fit = (
+        None
+        if target is None
+        else await read_in_time(
+            "read_step_columns",
+            f"step {wdk_step_id}",
+            read_expression_fit(
+                ctx.deps.strategy_session.site_id, wdk_step_id, target.criterion
+            ),
+            deadline=READ_DEADLINE_SECONDS,
+        )
+    )
+    if fit is not None:
+        ctx.deps.turn_markers.record_expression_fit(fit)
+        judged = StepColumns(wdk_step_id=wdk_step_id, expression_fit=fit)
+        return with_summary(judged, fit.sentence, ctx=ctx)
+    columns, summary = await _read_columns(ctx, wdk_step_id, target)
+    return with_summary(columns, summary, ctx=ctx)

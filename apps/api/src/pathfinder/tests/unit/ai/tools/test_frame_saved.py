@@ -135,6 +135,46 @@ class TestACriterionStartsFromASavedStrategy:
         assert criterion.saved_strategy_ref.subtree.operator == CombineOp.UNION
 
     @pytest.mark.asyncio
+    async def test_a_saved_group_strategy_frames_the_spec_on_the_group_class(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        groups = _listing()[0].model_copy(update={"record_type": "group"})
+        _serve_library(monkeypatch, [groups])
+        state = AgentToolState()
+
+        await set_criterion(
+            _ctx(state),
+            criterion_id="c_saved",
+            text=f"start from my saved strategy {_SAVED_NAME!r}",
+            role="seed",
+            saved_strategy=_SAVED_NAME,
+        )
+
+        draft = state.operational_spec_draft
+        assert [c.record_class for c in draft.criteria] == ["group"]
+        assert draft.record_type == "group"
+
+    @pytest.mark.asyncio
+    async def test_a_saved_strategy_listed_with_no_class_states_none(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        unknown = _listing()[0].model_copy(update={"record_type": ""})
+        _serve_library(monkeypatch, [unknown])
+        state = AgentToolState()
+
+        await set_criterion(
+            _ctx(state),
+            criterion_id="c_saved",
+            text=f"start from my saved strategy {_SAVED_NAME!r}",
+            role="seed",
+            saved_strategy=_SAVED_NAME,
+        )
+
+        draft = state.operational_spec_draft
+        assert [c.record_class for c in draft.criteria] == [None]
+        assert draft.record_type is None
+
+    @pytest.mark.asyncio
     async def test_the_wdk_id_resolves_the_same_saved_strategy(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

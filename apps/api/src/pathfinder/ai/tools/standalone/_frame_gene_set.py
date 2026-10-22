@@ -5,13 +5,7 @@ from __future__ import annotations
 from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import ModelRetry, RunContext
 from pydantic_ai.messages import ToolReturn
-from veupathdb.domain.parameters import InputDatasetValue
-from veupathdb.wdk import (
-    WDKDatasetConfigIdList,
-    WDKDatasetIdListContent,
-    get_site,
-    get_strategy_api,
-)
+from veupathdb.wdk import get_site
 
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.tools.standalone._frame_eda import refuse_a_waiting_criterion
@@ -26,6 +20,8 @@ from pathfinder.domain.strategy.operational_spec import BoundValue, Criterion
 from pathfinder.services.evidence.gene_sets import list_stored_gene_sets
 from pathfinder.services.gene_sets.homes import ID_LIST_SEARCHES, site_kind
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.strategies.dataset_sources import id_list, saved_dataset
+from pathfinder.services.strategies.record_classes import search_record_types
 
 
 async def set_gene_set_criterion(
@@ -59,21 +55,18 @@ async def _bind(
     kind = site_kind(deps.site_id)
     genes = match.genes_on(deps.site_id, kind)
     search = ID_LIST_SEARCHES[kind]
-    dataset_id = await get_strategy_api(deps.site_id).create_dataset(
-        WDKDatasetConfigIdList(
-            source_type="idList",
-            source_content=WDKDatasetIdListContent(ids=genes),
-        )
-    )
+    dataset = await saved_dataset(deps.site_id, id_list(genes))
+    classes = await search_record_types(deps.site_id, [search.search_name])
     deps.agent_state.frame_set_criterion(
         stated.model_copy(
             update={
                 "search_name": search.search_name,
+                "record_class": classes.get(search.search_name),
                 "search_display_name": f"Gene set: {match.name}",
                 "param_display_names": {search.param_name: "Genes"},
                 "resolved_params": {
                     search.param_name: BoundValue(
-                        value=InputDatasetValue(dataset_id=str(dataset_id)),
+                        value=dataset,
                         source="chosen",
                         basis=f"the saved gene set {match.name}",
                         label=_label(match, len(genes), deps.site_id),

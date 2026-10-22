@@ -343,16 +343,16 @@ test.describe("Settings and account", () => {
       ).toBeVisible();
     }
     await expect(dialog).toContainText(
-      `Remove every conversation for ${siteName} from PathFinder.`,
+      `Remove the ${siteName} conversations. One linked to a VEuPathDB strategy moves to Recently deleted, and the strategy stays.`,
     );
     await expect(dialog).toContainText(
-      `Delete the gene sets, runs and control sets for ${siteName}, and move every conversation on it to Recently deleted.`,
+      `Delete the ${siteName} gene sets, runs, audits, control sets and copies waiting for review. Conversations move to Recently deleted. Strategies and memories stay.`,
     );
     await expect(dialog).toContainText(
-      "Delete the gene sets, runs and control sets on every site, and your memories with them.",
+      "Delete the gene sets, runs, audits, control sets, memories and copies waiting for review on every site. Conversations move to Recently deleted. Strategies stay but stop syncing.",
     );
     await expect(dialog.getByTestId("wdk-purge-description")).toContainText(
-      "and the strategies PathFinder created in VEuPathDB",
+      "Everything above, plus the strategies PathFinder created in VEuPathDB.",
     );
 
     await dialog.getByRole("button", { name: "Clear site data", exact: true }).click();

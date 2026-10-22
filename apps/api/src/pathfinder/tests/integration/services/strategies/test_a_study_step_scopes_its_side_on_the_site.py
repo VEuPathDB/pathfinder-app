@@ -44,7 +44,7 @@ def _tree(organism: str) -> StrategyStepNode:
 
 async def _refusal(organism: str) -> tuple[frozenset[str], str | None]:
     tree = _tree(organism)
-    marks = await tree_organism_parameters("toxodb", "transcript", tree)
+    marks = await tree_organism_parameters("toxodb", tree)
     datasets = await tree_dataset_organisms("toxodb", tree, marks)
     return datasets["study"], first_cross_organism_refusal(tree, marks, datasets)
 

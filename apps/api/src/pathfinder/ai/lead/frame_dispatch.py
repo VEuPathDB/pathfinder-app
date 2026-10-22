@@ -35,6 +35,7 @@ from pathfinder.ai.lead.frame_requirements import (
 from pathfinder.ai.lead.intent import IntentClassification
 from pathfinder.ai.lead.lead_consult import card_questions
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
+from pathfinder.ai.lead.readings import count_readings
 from pathfinder.ai.lead.site_routes import site_route_sentence
 from pathfinder.ai.lead.sub_agent_stream import (
     PhaseRun,
@@ -55,6 +56,7 @@ from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.requirement_reports import (
     RequirementProblem,
     numbered_requirements,
+    record_roles,
     resolved_reports,
 )
 from pathfinder.domain.strategy.spec_diff import CriterionChange, diff_specs
@@ -124,7 +126,12 @@ def _continues_the_draft(deps: LeadDeps, spec: OperationalSpec) -> bool:
 
 # A repeated call is a loop the guard ended, so it is never continued.
 _CONTINUED_STOPS = frozenset(
-    {PhaseStopReason.BUDGET, PhaseStopReason.TOOL_RETRIES, PhaseStopReason.PROVIDER}
+    {
+        PhaseStopReason.BUDGET,
+        PhaseStopReason.TOOL_RETRIES,
+        PhaseStopReason.PROVIDER,
+        PhaseStopReason.SEARCH_NOT_SERVED,
+    }
 )
 
 
@@ -133,9 +140,9 @@ def _stop_to_continue(
 ) -> PhaseStop | None:
     """The stop of a pass that is dispatched again rather than reported.
 
-    A budget stop, or a tool that refused every attempt, after the pass bound
-    a criterion it did not start with has work left to continue, and the
-    continuation is the system's to run. A pass that bound nothing repeats
+    A budget stop, a tool that refused every attempt, or a search the site does
+    not serve, after the pass bound a criterion it did not start with has work
+    left to continue, and the continuation is the system's to run. A pass that bound nothing repeats
     itself, so the Lead hears about it instead. A request the provider did not
     complete is no fault of the pass, so it is continued whatever it bound.
     """
@@ -200,19 +207,20 @@ async def run_frame(
     )
     if isinstance(result, FrameResult):
         domain = deps.state.domain
+        await count_readings(deps, result)
         lacking = requirements_the_site_lacks(deps, result)
         asked = questions_for_the_card(deps, result, lacking)
         deps.state.domain.record_questions(asked)
         deps.state.turn_markers.unstated_requirements = [
             c.requested_value for c in lacking
         ]
+        reported = resolved_reports(result.requirement_problems, domain.requirements)
+        domain.record_roles |= record_roles(result.record_types, domain.requirements)
+        domain.operational_spec = domain.follow_readings(
+            domain.spec_before_dispatch, domain.operational_spec
+        )
         return result.model_copy(
-            update={
-                "card_questions": card_questions(asked),
-                "reported": resolved_reports(
-                    result.requirement_problems, domain.requirements
-                ),
-            }
+            update={"card_questions": card_questions(asked), "reported": reported}
         )
     return result
 

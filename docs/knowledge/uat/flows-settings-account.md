@@ -56,7 +56,7 @@ Measured turn costs on `openai:gpt-5.6-luna`: a one-search build $0.074, a two-s
 | Step | Where | Do | Expect |
 |---|---|---|---|
 | 1 | Settings, `Data` | Read | `Clear data`, then four rows: `Clear strategies`, `Clear site data`, `Clear ALL data`, `Clear ALL data + VEuPathDB`, each with a one-line description and a `Clear` button. There is no export of all data (known limit) |
-| 2 | `Clear site data` | Click, `Confirm` | The page reloads; gene sets, runs and control sets of this site are gone; conversations move to `Dismissed (<n>)`; memories stay |
+| 2 | `Clear site data` | Click, `Confirm` | The page reloads; gene sets, runs, audits and control sets of this site are gone; conversations move to `Dismissed (<n>)`; memories stay |
 | 3 | `Clear ALL data + VEuPathDB` | Click; type `delete my data`; `Confirm` | Toast `Data cleared` with `VEuPathDB strategies deleted: <n>. Memories deleted: <m>.`; reload after 4 s |
 
 This is the sweep of `H1` in the [runner checklist](runner-checklist.md).

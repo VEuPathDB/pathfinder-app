@@ -139,7 +139,6 @@ def test_a_spec_that_states_none_of_the_live_steps_is_refused() -> None:
     root = three_step_root()
     labelled = OperationalSpec(
         goal="find proteases",
-        record_type="transcript",
         criteria=[
             Criterion(id="c1_text", text="protease text", search_name="GenesByText")
         ],

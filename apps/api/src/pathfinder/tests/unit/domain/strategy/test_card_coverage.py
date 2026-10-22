@@ -44,13 +44,14 @@ def _spec(expression: str, *, record_type: str = "transcript") -> OperationalSpe
         id="step_text",
         text="surface proteins",
         search_name="GenesByText",
+        record_class=record_type,
         resolved_params={
             "text_expression": BoundValue(
                 value=StringValue(value=expression), source="stated"
             )
         },
     )
-    return OperationalSpec(record_type=record_type, criteria=[step])
+    return OperationalSpec(criteria=[step])
 
 
 def test_a_combination_is_covered_when_each_term_is() -> None:
@@ -91,7 +92,7 @@ def test_a_data_type_the_spec_grounds_is_held_whatever_the_words() -> None:
         text="expressed in schizonts",
         search_name="GenesByRNASeqpfal3D7_Otto_Time_Series_RSRC",
     )
-    spec = OperationalSpec(record_type="transcript", criteria=[step])
+    spec = OperationalSpec(criteria=[step])
 
     marks = DataMarks(searches={"GenesByRNASeqpfal3D7_Otto_Time_Series_RSRC": "RNASeq"})
 

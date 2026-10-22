@@ -94,10 +94,10 @@ export function YourDataPage() {
 
       <Section id="kept" title="What PathFinder keeps, and who can see it">
         <p>
-          The database of this deployment keeps your conversations with their files and
+          This deployment&apos;s database keeps your conversations with their files and
           notes, the strategies PathFinder built and their history, your gene sets,
-          control sets, scored runs, memories and ratings, your sealed provider keys,
-          your monthly spend and the email address of your VEuPathDB account.
+          control sets, scored runs, audits, memories and ratings, your sealed provider
+          keys, your monthly spend and the email address of your VEuPathDB account.
         </p>
         <p>
           Each message you send, and each background task, waits in a queue with its
@@ -106,12 +106,11 @@ export function YourDataPage() {
         </p>
         <p>
           Server logs record your account ID with each event. If the deployment turns on
-          detailed traces, they hold your messages and the replies.
+          detailed traces, they hold your messages and replies.
         </p>
         <p>
           Other researchers cannot open your conversations, gene sets, memories or
-          exports. The people who operate this deployment can read its database and
-          logs.
+          exports. This deployment&apos;s operators can read its database and logs.
         </p>
         <p>
           Whatever you choose for learning, people on the PathFinder team may read a
@@ -124,12 +123,12 @@ export function YourDataPage() {
 
       <Section id="deleting" title="Deleting your data">
         <p>
-          Delete a conversation from the list of conversations. One that holds a
-          strategy goes to Recently deleted first, and Delete permanently removes it
-          with any copy waiting for review. Its strategy stays in your VEuPathDB account
-          unless you tick Also delete strategy from the site. Memories, provider keys
-          and everything at once are deleted in Settings, on the Memory, Provider keys
-          and Data tabs.
+          Delete a conversation from the conversation list. One that holds a strategy
+          goes to Recently deleted first, and Delete permanently removes it with any
+          copy waiting for review, but not its audits. Its strategy stays in your
+          VEuPathDB account unless you tick Also delete strategy from the site. Settings
+          deletes memories, provider keys and everything at once, audits included, on
+          its Memory, Provider keys and Data tabs.
         </p>
         <p>
           Deleting does not remove your monthly spend, the email address of your

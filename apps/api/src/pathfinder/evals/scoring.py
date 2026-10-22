@@ -8,13 +8,11 @@ graded distance beside the verdict.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 from assistant_core.platform.pydantic_base import CamelModel
 from pydantic import ConfigDict, Field
+from veupathdb.domain.parameters import PhyleticTree
 from veupathdb.domain.strategy import StrategyAst, StrategyStepNode, fold, walk
 
-from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.domain.strategy.step_rationale import said_beside
 from pathfinder.domain.strategy.step_words import StepWords
 from pathfinder.evals.case import EvalCase, GateEnd
@@ -25,7 +23,9 @@ from pathfinder.evals.distance import (
     strategy_distance,
     tree_from_signature,
 )
+from pathfinder.evals.expressions import expression_differences
 from pathfinder.evals.phrases import PhraseTexts, phrase_differences, shown
+from pathfinder.evals.requirements import RequirementCounts, requirement_differences
 
 NO_STRATEGY = "(none)"
 
@@ -116,30 +116,6 @@ def final_count_below_every_input(ast: StrategyAst) -> bool | None:
     return all(final < counts[step_id] for step_id in inputs)
 
 
-class RequirementCounts(CamelModel):
-    """How many of a check's requirement rows carry each status."""
-
-    model_config = ConfigDict(frozen=True)
-
-    met: int = 0
-    unmet: int = 0
-    unexpressed: int = 0
-    unshown: int = 0
-    unjudged: int = 0
-
-
-def requirement_counts(rows: Sequence[RequirementCheck]) -> RequirementCounts:
-    """The check's requirement rows, counted by the status a reader is shown."""
-    statuses = [row.shown_status for row in rows]
-    return RequirementCounts(
-        met=statuses.count("met"),
-        unmet=statuses.count("unmet"),
-        unexpressed=statuses.count("unexpressed"),
-        unshown=statuses.count("unshown"),
-        unjudged=statuses.count("unjudged"),
-    )
-
-
 class ObservedOutcome(CamelModel):
     """What one run of a case produced."""
 
@@ -179,6 +155,7 @@ class ObservedOutcome(CamelModel):
     refused_tools: list[str] = Field(default_factory=list)
     # Applied values the request did not state, or None when nothing counted them.
     assumed: int | None = None
+    consult_options: list[str] = Field(default_factory=list)
 
 
 class CaseScore(CamelModel):
@@ -263,6 +240,7 @@ def _phrase_differences(
             facts=observed.facts_text,
             turn_replies=observed.turn_replies,
             turn_facts=observed.turn_facts,
+            consult_options=observed.consult_options,
         ),
     )
 
@@ -314,36 +292,6 @@ def _title_differences(
             ),
         )
     return differences
-
-
-def _requirement_differences(
-    case: EvalCase,
-    observed: ObservedOutcome,
-) -> list[CaseDifference]:
-    """The met and unmet rows the check reported, against the counts the case states."""
-    counted = observed.requirements
-    compared = (
-        (
-            "metRequirements",
-            case.expected.met_requirements,
-            None if counted is None else counted.met,
-        ),
-        (
-            "unmetRequirements",
-            case.expected.unmet_requirements,
-            None if counted is None else counted.unmet,
-        ),
-        (
-            "unexpressedRequirements",
-            case.expected.unexpressed_requirements,
-            None if counted is None else counted.unexpressed,
-        ),
-    )
-    return [
-        CaseDifference(field=field, expected=str(want), actual=str(got))
-        for field, want, got in compared
-        if want is not None and want != got
-    ]
 
 
 def _expected_tree(case: EvalCase) -> ComparisonNode | None:
@@ -439,7 +387,9 @@ def _distance(case: EvalCase, observed: ObservedOutcome) -> StrategyDistance | N
     return strategy_distance(wanted, observed.tree)
 
 
-def score_case(case: EvalCase, observed: ObservedOutcome) -> CaseScore:
+def score_case(
+    case: EvalCase, observed: ObservedOutcome, taxonomy: PhyleticTree | None = None
+) -> CaseScore:
     """Compare one run against its case. Every difference is reported."""
     distance = _distance(case, observed)
     build = _build_difference(case, observed)
@@ -453,9 +403,10 @@ def score_case(case: EvalCase, observed: ObservedOutcome) -> CaseScore:
     differences = (
         _value_differences(case, observed)
         + _parameter_differences(case, observed)
+        + expression_differences(case.expected.expressions, observed.tree, taxonomy)
         + _phrase_differences(case, observed)
         + _title_differences(case, observed)
-        + _requirement_differences(case, observed)
+        + requirement_differences(case.expected, observed.requirements)
         + _record_differences(case, observed)
     )
     return CaseScore(
@@ -470,10 +421,8 @@ __all__ = [
     "NO_STRATEGY",
     "CaseScore",
     "ObservedOutcome",
-    "RequirementCounts",
     "canonical_structure",
     "final_count_below_every_input",
-    "requirement_counts",
     "root_count",
     "root_operator",
     "score_case",

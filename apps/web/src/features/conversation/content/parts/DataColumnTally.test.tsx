@@ -37,14 +37,39 @@ const TALLY: ColumnTally = {
   total: 379,
   distinct: 58,
   missing: 0,
-  rows: ORGANISMS.map((value, index) => ({ value, count: 67 - index * 5 })),
+  rows: ORGANISMS.map((value, index) => ({ value, count: 67 - index * 5, label: "" })),
+  siteId: "vectorbase",
+  stepUrl: null,
 };
 
-function inThread() {
-  const messages = threadOf([threadPart("data-column-tally", TALLY)]);
+const STEP_URL =
+  "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/1188/227284080";
+
+const PROTEINS: ColumnTally = {
+  id: "tally_5e6f7a8b",
+  title: "Proteins by Taxon Code",
+  searchName: "FromGroups",
+  recordType: "sequence",
+  recordNoun: "protein",
+  column: "abbreviation",
+  columnLabel: "Taxon Code",
+  onlyLabel: "",
+  total: 523795,
+  distinct: 840,
+  missing: 0,
+  rows: [
+    { value: "bpli", count: 18260, label: "Brachionus plicatilis" },
+    { value: "osat", count: 9365, label: "Oryza sativa Japonica Group" },
+  ],
+  siteId: "orthomcl",
+  stepUrl: STEP_URL,
+};
+
+function inThread(data: ColumnTally = TALLY) {
+  const messages = threadOf([threadPart("data-column-tally", data)]);
   return render(
     <ChatHelpersProvider value={chatHelpersFor(messages)}>
-      <DataColumnTally data={TALLY} />
+      <DataColumnTally data={data} />
     </ChatHelpersProvider>,
   );
 }
@@ -79,5 +104,44 @@ describe("DataColumnTally", () => {
         .map((c) => c.textContent),
     ).toEqual(["Aedes aegypti LVP_AGWG", "67"]);
     expect(screen.getByTestId("exhibit-pager")).toHaveTextContent("1-10 of 12");
+  });
+
+  it("names each counted code beside its value", () => {
+    inThread(PROTEINS);
+
+    const first = screen.getAllByTestId("tally-row")[0]!;
+    expect(within(first).getByTestId("tally-value")).toHaveTextContent("bpli");
+    expect(within(first).getByTestId("tally-label")).toHaveTextContent(
+      "Brachionus plicatilis",
+    );
+    expect(within(first).getAllByRole("cell")[1]).toHaveTextContent("18,260");
+  });
+
+  it("heads a counted step's proteins with their noun", () => {
+    inThread(PROTEINS);
+
+    expect(screen.getAllByRole("columnheader").map((head) => head.textContent)).toEqual(
+      ["Taxon Code", "Proteins"],
+    );
+  });
+
+  it("links the counted step on its site", () => {
+    inThread(PROTEINS);
+
+    const link = screen.getByRole("link", { name: "Open this step on OrthoMCL" });
+    expect(link).toHaveAttribute("href", STEP_URL);
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  it("draws no link and no label for a search counted without a step", () => {
+    inThread();
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByTestId("tally-label")).toBeNull();
+    expect(
+      within(screen.getAllByTestId("tally-row")[0]!)
+        .getAllByRole("cell")
+        .map((c) => c.textContent),
+    ).toEqual(["Aedes aegypti LVP_AGWG", "67"]);
   });
 });

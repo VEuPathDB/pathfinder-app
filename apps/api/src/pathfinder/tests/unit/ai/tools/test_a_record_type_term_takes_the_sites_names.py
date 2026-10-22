@@ -10,12 +10,12 @@ from pydantic_ai import ModelRetry
 from veupathdb.wdk import WDKRecordType
 
 from pathfinder.ai.agents.state import CatalogHit, CatalogRead
-from pathfinder.ai.tools.standalone import _frame_rationale
 from pathfinder.ai.tools.standalone._frame_rationale_terms import (
     Binding,
     ChosenTerm,
     checked_term,
 )
+from pathfinder.services.strategies import record_classes
 
 _GROUPS = CatalogHit(
     name="GroupsFromSequences",
@@ -74,10 +74,10 @@ async def test_the_names_are_read_from_the_sites_record_types(
         short_display_name="Ortholog Group",
     )
     monkeypatch.setattr(
-        _frame_rationale, "get_raw_record_types", AsyncMock(return_value=[group])
+        record_classes, "get_raw_record_types", AsyncMock(return_value=[group])
     )
 
-    assert await _frame_rationale._record_names("orthomcl", "group") == [
+    assert await record_classes.record_type_names("orthomcl", "group") == [
         "group",
         "Ortholog Group",
         "Ortholog Groups",

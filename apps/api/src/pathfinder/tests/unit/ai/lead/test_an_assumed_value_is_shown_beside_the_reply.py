@@ -45,6 +45,7 @@ def _spec() -> OperationalSpec:
                 id="c_expr",
                 text="expressed in blood stages",
                 search_name="GenesByRNASeqPercentile",
+                record_class="transcript",
                 role="seed",
                 resolved_params={
                     _PERCENTILE: BoundValue(

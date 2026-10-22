@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-one-protein-in-each-cryptosporidium-genome",
+  "turns": [
+    "Which ortholog groups have exactly one protein in each Cryptosporidium genome?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "A genus that is no clade code in the taxonomy is the list of its genome codes; single copy over that list is the list's taxon count equal to its length and its protein count equal to the same number.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 1736,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "cand+cbov+choi+chot+chom+chod+cmel+cmtu+cmur+cpia+cpib+cpar+crya+cser+cspi+cscp+ctyz+cubi=18T AND cand+cbov+choi+chot+chom+chod+cmel+cmtu+cmur+cpia+cpib+cpar+crya+cser+cspi+cscp+ctyz+cubi=18"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
+    "curatorNote": "Single copy within a genus written as a list of genome codes."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

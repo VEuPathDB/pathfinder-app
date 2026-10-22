@@ -167,6 +167,7 @@ def _value_caveat(
                 | "not_measurable"
                 | "picked_from_a_cut_list"
                 | "picked_from_a_lookup"
+                | "reading"
             ),
             _,
             _,

@@ -5,6 +5,7 @@ the same way, after the message's other correction too."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from uuid import uuid4
 
 import pytest
@@ -19,13 +20,18 @@ from veupathdb.domain.strategy import (
     flatten_tree,
 )
 
+from pathfinder.ai.agents.refusal_bound import REFUSALS_PER_CHECK
 from pathfinder.ai.graph.state import (
     PhaseDisposition,
     StrategyDomainState,
     VerificationDigest,
 )
 from pathfinder.ai.lead.card_contract import hold_the_contract_on_a_card
-from pathfinder.ai.lead.card_reply import CARD_NOT_SHOWN, REPLY_REFERENCES
+from pathfinder.ai.lead.card_reply import (
+    CARD_NOT_SHOWN,
+    PROSE_MAX_CHARS,
+    REPLY_REFERENCES,
+)
 from pathfinder.ai.lead.contract_messages import unrendered_prose_message
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import (
@@ -88,7 +94,7 @@ def test_a_reply_that_writes_every_count_by_reference_stands() -> None:
     deps = _micro()
     answer = reply(_REFERENCED)
 
-    assert hold_the_turn_contract(run_context_for(deps), answer) is answer
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
 
 
 def test_a_written_count_is_refused_with_the_reference_that_renders_it() -> None:
@@ -154,15 +160,40 @@ def test_the_correction_lists_every_reference_the_product_renders() -> None:
     )
 
 
-def test_prose_is_refused_on_every_answer_after_the_messages_one_correction() -> None:
+def test_prose_is_refused_up_to_the_bound_after_the_messages_one_correction() -> None:
     deps = _micro()
     deps.state.turn_markers.contract_refused = True
     ctx = run_context_for(deps)
+    answer = reply(_WRITTEN)
 
-    with pytest.raises(ModelRetry, match="57"):
-        hold_the_turn_contract(ctx, reply(_WRITTEN))
-    with pytest.raises(ModelRetry, match="57"):
-        hold_the_turn_contract(ctx, reply(_WRITTEN))
+    for _ in range(REFUSALS_PER_CHECK):
+        with pytest.raises(ModelRetry, match="57"):
+            hold_the_turn_contract(ctx, answer)
+
+    assert hold_the_turn_contract(ctx, answer) == answer
+    assert deps.state.turn_markers.unchecked_reply is True
+
+
+def test_prose_is_let_through_on_the_last_answer_the_run_allows() -> None:
+    deps = _micro()
+    ctx = run_context_for(deps)
+    answer = reply(_WRITTEN)
+
+    assert hold_the_turn_contract(replace(ctx, retry=ctx.max_retries), answer) == answer
+    assert deps.state.turn_markers.unchecked_reply is True
+
+
+def test_a_rendered_reply_let_through_is_not_marked_unchecked() -> None:
+    deps = _micro()
+    deps.state.turn_markers.output_refusals = REFUSALS_PER_CHECK
+    answer = reply(_REFERENCED)
+
+    assert hold_the_turn_contract(run_context_for(deps), answer) == answer
+    assert deps.state.turn_markers.unchecked_reply is False
+
+
+def test_a_reply_over_the_length_cap_is_clipped_to_it() -> None:
+    assert len(reply("x" * (PROSE_MAX_CHARS + 5)).prose) == PROSE_MAX_CHARS
 
 
 def test_a_reference_to_a_step_the_strategy_lacks_is_refused() -> None:

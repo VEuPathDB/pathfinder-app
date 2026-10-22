@@ -21,6 +21,9 @@ from pathfinder.persistence.repositories import ConversationRepository
 from pathfinder.services.gene_sets.operations import GeneSetService
 from pathfinder.services.gene_sets.store import get_gene_set_store
 from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.strategies.auto_import import (
+    import_gene_set_for_conversation,
+)
 from pathfinder.services.strategies.context import StrategyMutationContext
 from pathfinder.services.strategies.write_lock import (
     strategy_write_lock,
@@ -73,12 +76,26 @@ async def refresh_the_strategy_gene_set(
 ) -> GeneSet | None:
     """The set auto-import made takes the answer of the stored root.
 
-    A set the thread links but did not import is the user's, so it is left as
-    it stands. A set that already holds this root's answer is not read again.
-    Returns the set as it stands after the job, or None when there is none.
+    A thread that links no set and was never imported, such as one whose build
+    was above the cap, takes the automatic import of the stored root. A set the
+    thread links but did not import is the user's, so it is left as it stands.
+    A set that already holds this root's answer, and is not out of
+    date, is not read again. Returns the set as the job found it or wrote it,
+    or None when there is none.
     """
     async with strategy_write_lock(conversation_id, async_session_factory) as session:
-        strategy = await ConversationRepository(session).get_strategy(conversation_id)
+        found = await ConversationRepository(session).get_with_strategy(conversation_id)
+    if found is None:
+        return None
+    conversation, strategy = found
+    if not strategy.gene_set_auto_imported and strategy.gene_set_id is None:
+        stored = parse_strategy_ast(strategy.strategy_ast)
+        return await import_gene_set_for_conversation(
+            conversation_id=conversation_id,
+            site_id=site_id,
+            user_id=conversation.user_id,
+            name=(stored.name if stored else None) or "Strategy result",
+        )
     if (
         not strategy.gene_set_auto_imported
         or strategy.gene_set_id is None
@@ -87,7 +104,7 @@ async def refresh_the_strategy_gene_set(
         return None
     revision = answer_revision(parse_strategy_ast(strategy.strategy_ast))
     held = await get_gene_set_store().get(strategy.gene_set_id)
-    if held is None or held.answer_revision == revision:
+    if held is None or (held.answer_revision == revision and held.out_of_date is None):
         return held
     started = monotonic()
     service = GeneSetService(get_gene_set_store())

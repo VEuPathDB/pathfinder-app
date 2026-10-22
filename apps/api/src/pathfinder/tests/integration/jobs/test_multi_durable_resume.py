@@ -23,6 +23,7 @@ from sqlalchemy import select
 from veupathdb.errors import WDKError
 from veupathdb.wdk import WDKStep
 from veupathdb_mcp.controls import (
+    ControlsSearch,
     ControlTargetData,
     ControlTestResult,
     NegativeControls,
@@ -89,8 +90,9 @@ def failing_second_step(
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
+        controls: ControlsSearch,
     ) -> ControlTestResult:
-        del site_id, negative_controls
+        del site_id, negative_controls, controls
         if wdk_step_id == STEP_B:
             msg = "WDK rejected step 440230653"
             raise RuntimeError(msg)
@@ -124,8 +126,9 @@ def controls_wire(monkeypatch: pytest.MonkeyPatch) -> None:
         wdk_step_id: int,
         positive_controls: list[str] | None = None,
         negative_controls: list[str] | None = None,
+        controls: ControlsSearch,
     ) -> ControlTestResult:
-        del site_id
+        del site_id, controls
         found = positive_controls or []
         neg = negative_controls or []
         return ControlTestResult(

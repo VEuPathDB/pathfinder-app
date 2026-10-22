@@ -87,7 +87,10 @@ def questions_for_the_card(
     ]
     return unanswered_questions(
         with_refusals(
-            with_withdrawals(result.questions(domain.operational_spec), unstated),
+            with_withdrawals(
+                result.questions(domain.operational_spec, domain.requirements),
+                unstated,
+            ),
             refused,
         ),
         answered=[q.question for q in domain.answered_questions],

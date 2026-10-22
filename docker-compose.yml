@@ -138,6 +138,10 @@ services:
       WORKER_DEAD_HEARTBEAT_SECONDS: ${WORKER_DEAD_HEARTBEAT_SECONDS:-60}
       # Seconds between the worker heartbeats.
       WORKER_HEARTBEAT_INTERVAL_SECONDS: ${WORKER_HEARTBEAT_INTERVAL_SECONDS:-5}
+      # Hours an audit run waits for a site that does not answer.
+      AUDIT_RUN_HOURS: ${AUDIT_RUN_HOURS:-6}
+      # Audit jobs this process runs at once, on their own queue.
+      AUDIT_CONCURRENCY: ${AUDIT_CONCURRENCY:-2}
       # The port and address of this process's Prometheus series, served at
       # /metrics apart from the app. The port is not published; 0 serves none.
       METRICS_PORT: ${METRICS_PORT:-9100}
@@ -161,7 +165,7 @@ services:
     # The server is its own repository, built at the release `apps/api` pins,
     # so the served tools and the imported ones are the same code.
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b28
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b34
     restart: unless-stopped
     # The catalog budget bounds the on-demand per-site loads; the ceiling is
     # the backstop, so exhaustion kills this server and not its neighbours.
@@ -237,7 +241,7 @@ services:
       searxng:
         condition: service_started
     build:
-      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b28
+      context: https://github.com/VEuPathDB/ai-wdk-mcp.git#v0.2.0-b34
       dockerfile: Dockerfile.research
     restart: unless-stopped
     mem_limit: 512m

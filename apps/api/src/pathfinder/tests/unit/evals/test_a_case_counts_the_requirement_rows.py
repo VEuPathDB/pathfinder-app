@@ -9,12 +9,8 @@ from pydantic import ValidationError
 from pathfinder.domain.evidence import RequirementCheck
 from pathfinder.evals.case import CaseProvenance, EvalCase, ExpectedOutcome, GatePlan
 from pathfinder.evals.extract import EvalExtract, ExtractedVerification
-from pathfinder.evals.scoring import (
-    ObservedOutcome,
-    RequirementCounts,
-    requirement_counts,
-    score_case,
-)
+from pathfinder.evals.requirements import RequirementCounts, requirement_counts
+from pathfinder.evals.scoring import ObservedOutcome, score_case
 
 _MET = RequirementCheck(
     text="with a signal peptide",

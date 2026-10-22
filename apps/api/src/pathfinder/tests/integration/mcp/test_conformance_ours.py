@@ -28,6 +28,7 @@ from veupathdb.wdk import get_strategy_api
 from veupathdb_mcp.server import SERVER_NAME, TOOLS
 from veupathdb_mcp.wdk import fetch_gene_ids_from_step
 
+from pathfinder.tests._support.step_reads import GENES_OF_ONE_GENOME
 from pathfinder.tests.integration.mcp._served import (
     RECORD_TYPE,
     SITE,
@@ -233,7 +234,7 @@ async def control_genes(step: OwnedStep, bearer: str) -> list[str]:
     reset = veupathdb_auth_token_ctx.set(bearer)
     try:
         genes = await fetch_gene_ids_from_step(
-            get_strategy_api(SITE), step_id=step.step_id
+            get_strategy_api(SITE), step_id=step.step_id, limit=GENES_OF_ONE_GENOME
         )
     finally:
         veupathdb_auth_token_ctx.reset(reset)

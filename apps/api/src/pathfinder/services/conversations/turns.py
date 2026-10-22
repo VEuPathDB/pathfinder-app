@@ -81,7 +81,7 @@ async def _organisms(site_id: str, now: StrategyAst | None) -> set[str]:
     searches = [
         node.search_name for node in walk(now.root) if node.infer_kind() != "combine"
     ]
-    marks = await organism_parameters(site_id, now.record_type, searches)
+    marks = await organism_parameters(site_id, searches)
     return extract_output_organisms(now.root, marks) or set()
 
 

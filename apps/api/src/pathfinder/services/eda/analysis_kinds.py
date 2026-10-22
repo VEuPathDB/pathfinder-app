@@ -23,6 +23,7 @@ from pathfinder.domain.strategy.ast_diff import nodes_of
 from pathfinder.domain.strategy.session import StrategyGraph
 from pathfinder.domain.strategy.step_words import StampedKind
 from pathfinder.services.eda.export import study_step_request
+from pathfinder.services.strategies.record_classes import search_record_types
 
 logger = get_logger(__name__)
 
@@ -107,8 +108,9 @@ async def _kind_on_the_site(
     site_id: str, record_type: str | None, search_name: str
 ) -> AnalysisKind | None:
     try:
+        listed = await search_record_types(site_id, [search_name])
         listed_under = await resolve_search_record_type(
-            site_id, search_name, record_type
+            site_id, search_name, listed.get(search_name, record_type)
         )
         definition = await read_search_definition(site_id, listed_under, search_name)
     # The catalog's own loader names these three as the ways a load fails.

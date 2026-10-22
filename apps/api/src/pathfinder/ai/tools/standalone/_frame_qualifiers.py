@@ -31,6 +31,7 @@ from pathfinder.ai.tools.standalone._qualifier_words import (
 )
 from pathfinder.domain.strategy.operational_spec import Criterion
 from pathfinder.domain.strategy.words import names_a_run_of
+from pathfinder.services.strategies.record_classes import search_record_types
 
 _ROUND_TRIP = (
     " as a transform; to keep the source genes, state the round trip: the "
@@ -173,7 +174,7 @@ async def _read(
     }
     others = _Neighbours(read=[], unread=[])
     if stated.role == "transform":
-        others = await _definitions(ctx, record_type, drafted)
+        others = await _definitions(ctx, drafted)
     claimed = frozenset().union(*(spoken_stems(other) for other in others.read))
     read = {
         definition.url_segment,
@@ -271,19 +272,22 @@ async def _siblings(
     ctx: RunContext[AgentDeps], record_type: str, bound: str
 ) -> _Neighbours:
     """The definitions of the searches the pass ranked or opened a sheet for."""
-    return await _definitions(ctx, record_type, _sibling_names(ctx, record_type, bound))
+    return await _definitions(ctx, _sibling_names(ctx, record_type, bound))
 
 
-async def _definitions(
-    ctx: RunContext[AgentDeps], record_type: str, names: set[str]
-) -> _Neighbours:
-    """The definitions of these searches of the record type, from the catalog."""
+async def _definitions(ctx: RunContext[AgentDeps], names: set[str]) -> _Neighbours:
+    """The definitions of these searches, each read under the record type the
+    catalog lists it under; a search the catalog does not list is only named."""
+    site_id = ctx.deps.site_id
+    listed = await search_record_types(site_id, names)
     each = await asyncio.gather(
-        *(_definition(ctx.deps.site_id, record_type, name) for name in sorted(names))
+        *(_definition(site_id, listed[name], name) for name in sorted(listed))
     )
     return _Neighbours(
         read=[search for one in each for search in one.read],
-        unread=[name for one in each for name in one.unread],
+        unread=sorted(
+            [name for one in each for name in one.unread] + list(names - set(listed))
+        ),
     )
 
 

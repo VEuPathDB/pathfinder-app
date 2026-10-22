@@ -211,7 +211,7 @@ def _statuses(
     for detached in ast.detached_roots:
         nodes.extend(walk(detached))
     values = _param_values(nodes)
-    spec = spec_from_ast(ast, goal="")
+    spec = spec_from_ast(ast, goal="", listed={})
     return [
         grounded.status
         for grounded in ground_constraints(

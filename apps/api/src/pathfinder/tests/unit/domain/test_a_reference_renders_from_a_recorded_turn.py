@@ -17,11 +17,10 @@ from pathfinder.domain.record_facts import ListedFact, SourceFact
 from pathfinder.domain.record_page import ListedRecord
 from pathfinder.domain.reply_references import (
     ProseFault,
-    UnheldReferenceError,
     prose_faults,
     render_reply,
 )
-from pathfinder.domain.turn_facts import StepFact, TurnFacts
+from pathfinder.domain.turn_facts import StepFact, StrategyLinkFact, TurnFacts
 
 _TOXO_RECORD = "https://qa.toxodb.org/toxo.qa/app/record/gene/"
 _TOXO_STRATEGY = (
@@ -42,7 +41,7 @@ def _param(
     }
 
 
-# The facts part a toxodb turn wrote: GT1 signal peptides 680, no ortholog in
+# The facts of a recorded toxodb turn, in the current wire shape: GT1 signal peptides 680, no ortholog in
 # N. caninum Liverpool 1,240, both 53. The record and the listing are the ones
 # the turn before it read from the same intersect.
 _TOXO = TurnFacts.model_validate(
@@ -98,7 +97,7 @@ _TOXO = TurnFacts.model_validate(
             },
         ],
         "rootCount": 53,
-        "strategyUrl": _TOXO_STRATEGY,
+        "strategyLink": {"siteId": "toxodb", "url": _TOXO_STRATEGY},
     }
 ).model_copy(
     update={
@@ -123,7 +122,7 @@ _TOXO = TurnFacts.model_validate(
     }
 )
 
-# The facts part a microsporidiadb turn wrote: E. intestinalis signal peptides
+# The facts of a recorded microsporidiadb turn, in the current wire shape: E. intestinalis signal peptides
 # 66, no ortholog in E. cuniculi GB-M1 129, both 9.
 _MICRO = TurnFacts(
     steps=[
@@ -137,7 +136,7 @@ _MICRO = TurnFacts(
         ),
     ],
     root_count=9,
-    strategy_url=_MICRO_STRATEGY,
+    strategy_link=StrategyLinkFact(site_id="microsporidiadb", url=_MICRO_STRATEGY),
 )
 
 # cryptodb, build 71: mucin* over C. parvum IOWA-ATCC, product field 2, every
@@ -222,28 +221,27 @@ def test_a_difference_of_anything_but_two_held_counts_is_refused(
 
 
 @pytest.mark.parametrize(
-    ("facts", "reference"),
+    ("facts", "reference", "shown"),
     [
-        (_TOXO, "[count:step_gone]"),
-        (_TOXO, "[before:step_abeb2e8d]"),
-        (_TOXO, "[value:step_abeb2e8d.threshold]"),
-        (_TOXO, "[source:step_gone.organism]"),
-        (_TOXO, "[record:TGGT1_999999]"),
-        (_MUCIN, "[compare:Name field]"),
-        (_MUCIN, "[compare:Product field:result]"),
-        (_MUCIN, "[compare:Product field,Name field:shared]"),
-        (_MUCIN, "[root]"),
-        (_MUCIN, "[url]"),
+        (_TOXO, "[count:step_gone]", "a count not shown"),
+        (_TOXO, "[before:step_abeb2e8d]", "a count not shown"),
+        (_TOXO, "[value:step_abeb2e8d.threshold]", "a value not shown"),
+        (_TOXO, "[source:step_gone.organism]", "a value not shown"),
+        (_TOXO, "[record:TGGT1_999999]", "TGGT1_999999"),
+        (_MUCIN, "[compare:Name field]", "a count not shown"),
+        (_MUCIN, "[compare:Product field:result]", "a count not shown"),
+        (_MUCIN, "[compare:Product field,Name field:shared]", "a count not shown"),
+        (_MUCIN, "[root]", "a count not shown"),
+        (_MUCIN, "[url]", "a link not shown"),
     ],
 )
 def test_a_reference_to_what_the_facts_do_not_hold_is_refused_by_name(
-    facts: TurnFacts, reference: str
+    facts: TurnFacts, reference: str, shown: str
 ) -> None:
     assert prose_faults(f"It is {reference}.", facts) == [
         ProseFault(token=reference, kind="unheld_reference")
     ]
-    with pytest.raises(UnheldReferenceError, match=reference.replace("[", r"\[")):
-        render_reply(f"It is {reference}.", facts)
+    assert render_reply(f"It is {reference}.", facts) == f"It is {shown}."
 
 
 @pytest.mark.parametrize(

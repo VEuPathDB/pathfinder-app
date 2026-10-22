@@ -52,15 +52,21 @@ def test_a_helper_strategy_this_application_writes_carries_its_own_prefix() -> N
     assert is_internal_wdk_strategy_name(tagged)
 
 
-async def test_the_cleanup_deletes_the_strategy_this_application_tagged() -> None:
+async def test_the_cleanup_deletes_a_stale_strategy_this_application_tagged() -> None:
     api = _RecordingStrategyAPI()
     tagged = tag_internal_wdk_strategy_name(f"{CONTROL_TEST_STRATEGY_NAME} 12345")
     items = [
-        WDKStrategySummary(strategy_id=771, name=tagged, root_step_id=8801),
+        WDKStrategySummary(
+            strategy_id=771,
+            name=tagged,
+            root_step_id=8801,
+            created_time="2026-09-01T00:00:00",
+        ),
         WDKStrategySummary(
             strategy_id=772,
             name="Kinases the researcher saved",
             root_step_id=8802,
+            created_time="2026-09-01T00:00:00",
         ),
     ]
 

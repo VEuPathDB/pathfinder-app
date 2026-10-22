@@ -16,11 +16,11 @@ from veupathdb_mcp import catalog
 from veupathdb_mcp.catalog import ParameterInfo, SearchMatch
 
 from pathfinder.ai.agents.state import AgentToolState
-from pathfinder.ai.tools.standalone import _frame_rationale
 from pathfinder.ai.tools.standalone._frame_rationale import SearchChoice
 from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
 from pathfinder.ai.tools.standalone.catalog import search_for_searches
 from pathfinder.ai.tools.standalone.frame_spec import set_criterion
+from pathfinder.services.strategies import record_classes
 from pathfinder.tests._support.tool_returns import returned
 from pathfinder.tests.unit.ai.tools.conftest import (
     agent_run_context,
@@ -130,7 +130,7 @@ def serve_site(monkeypatch: pytest.MonkeyPatch) -> None:
     serve_search(monkeypatch, export_pred_sheet)
     serve_site_listing(monkeypatch, SITE)
     monkeypatch.setattr(
-        _frame_rationale, "get_raw_record_types", AsyncMock(return_value=[_TRANSCRIPT])
+        record_classes, "get_raw_record_types", AsyncMock(return_value=[_TRANSCRIPT])
     )
 
 

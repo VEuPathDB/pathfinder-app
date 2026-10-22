@@ -52,6 +52,7 @@ from pathfinder.ai.lead.intent_gate import tools_the_turn_offers
 from pathfinder.ai.lead.pre_turn import hydrate_spec_from_the_strategy, stated_spec_of
 from pathfinder.ai.lead.sub_agent_stream import SubAgentApprovalWait, SubAgentResume
 from pathfinder.ai.lead.sub_agent_tools import LeadDeps
+from pathfinder.ai.lead.unsaved_set import result_not_saved
 from pathfinder.ai.tools.standalone.strategy_refusals import wdk_refused_the_edit
 from pathfinder.ai.tools.standalone.stream_parts import graph_snapshot_chunk
 from pathfinder.domain.strategy.edit_plan import UnsupportedEditError
@@ -164,6 +165,7 @@ async def run_edit(
             ],
             card_questions=frame.card_questions,
             reported=frame.reported,
+            gaps=frame.gaps,
             pending_step_ids=[
                 c.criterion_id
                 for c in diff.changes
@@ -186,7 +188,7 @@ async def run_edit(
         base_revision=base_revision,
         undo=False,
     )
-    return pushed.model_copy(update={"reported": frame.reported})
+    return pushed.model_copy(update={"reported": frame.reported, "gaps": frame.gaps})
 
 
 async def _undo(
@@ -306,6 +308,11 @@ async def _push_the_edit(
         operations_applied=len(ops),
         added_step_ids=added,
         added_searches=searches,
+        unsaved_gene_set=result_not_saved(
+            agent_deps.site_id,
+            agent_deps.strategy_session.get_graph(None),
+            agent_deps.strategy_session.sync_state,
+        ),
         preserved_step_ids=preserved,
         dropped_step_ids=list(commit.dropped_step_ids),
         failed_step_ids=list(commit.failed_step_ids),

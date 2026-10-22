@@ -1,0 +1,132 @@
+{
+  "provenance": {
+    "site": "orthomcl",
+    "method": "GET",
+    "url": "https://qa.orthomcl.org/orthomcl.qa/service/record-types/group/searches/GroupsFromSequences?expandParams=true",
+    "status": 200,
+    "content_type": "application/json",
+    "recorded_at": "2026-10-21",
+    "reads": "a transform from proteins to groups"
+  },
+  "body": {
+    "searchData": {
+      "urlSegment": "GroupsFromSequences",
+      "dynamicAttributes": [
+        {
+          "help": "The *search result weight*. This is the sum of the weights you specified for individual searches that found this record.   The more searches that found this record the higher will be its weight.  To give a search a weight, click \"Use Weights\" on the search page, and provide the desired weight.",
+          "isInReport": true,
+          "formats": [
+            {
+              "isInReport": true,
+              "displayName": "Histogram",
+              "name": "wdk_weight-histogram",
+              "description": "Display a histogram of weight distribution",
+              "scopes": [],
+              "type": "histogram"
+            }
+          ],
+          "truncateTo": 100,
+          "displayName": "Search Weight",
+          "name": "wdk_weight",
+          "isSortable": true,
+          "isDisplayable": true,
+          "isRemovable": true,
+          "columnDataType": "STRING",
+          "tools": {
+            "reports": [],
+            "filters": []
+          },
+          "properties": {}
+        }
+      ],
+      "defaultSorting": [
+        {
+          "attributeName": "number_of_members",
+          "direction": "DESC"
+        }
+      ],
+      "isAnalyzable": false,
+      "displayName": "Transform Proteins to Groups",
+      "allowedPrimaryInputRecordClassNames": [
+        "sequence"
+      ],
+      "fullName": "GroupQuestions.GroupsFromSequences",
+      "description": "Transform Protein results into Groups.",
+      "defaultAttributes": [
+        "primary_key",
+        "number_of_members",
+        "keywords",
+        "descriptions",
+        "ec_numbers",
+        "archaea",
+        "bacteria",
+        "alveolata",
+        "amoeba",
+        "euglenozoa",
+        "fungi",
+        "metazoa",
+        "viridiplantae",
+        "other_eukaryotes",
+        "core_min_evalue",
+        "core_25_evalue",
+        "core_median_evalue",
+        "core_75_evalue",
+        "core_max_evalue",
+        "all_min_evalue",
+        "all_25_evalue",
+        "all_median_evalue",
+        "all_75_evalue",
+        "all_max_evalue"
+      ],
+      "groups": [
+        {
+          "displayType": "hidden",
+          "displayName": "",
+          "name": "_hidden",
+          "description": "",
+          "isVisible": false,
+          "parameters": [
+            "sequence_answer"
+          ]
+        }
+      ],
+      "filters": [],
+      "shortDisplayName": "To Groups",
+      "paramNames": [
+        "sequence_answer"
+      ],
+      "isCacheable": true,
+      "outputRecordClassName": "group",
+      "noSummaryOnSingleRecord": false,
+      "queryName": "FromSequences",
+      "defaultSummaryView": "_default",
+      "parameters": [
+        {
+          "help": "sequence_answer",
+          "dependentParams": [],
+          "isReadOnly": true,
+          "displayName": "sequence_answer",
+          "allowEmptyValue": true,
+          "name": "sequence_answer",
+          "isVisible": false,
+          "type": "input-step",
+          "initialDisplayValue": "",
+          "properties": {},
+          "group": "_hidden"
+        }
+      ],
+      "properties": {},
+      "summaryViewPlugins": [
+        {
+          "displayName": "Ortholog Group Results",
+          "name": "_default",
+          "description": ""
+        }
+      ]
+    },
+    "validation": {
+      "level": "DISPLAYABLE",
+      "isValid": true
+    }
+  }
+}

@@ -17,6 +17,7 @@ from pathfinder.ai.lead.ledger_sections import (
 from pathfinder.ai.tools.standalone.graph_helpers import counted_noun
 from pathfinder.domain.caveats import Caveat, ControlsCaveat
 from pathfinder.domain.evidence import NamedControlSet, VerificationReview
+from pathfinder.domain.reading_caveats import reading_line
 from pathfinder.domain.strategy.measurement_clauses import measurement_clauses
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
@@ -27,6 +28,7 @@ from pathfinder.domain.strategy.questions import (
     OptionBinding,
     SetValues,
 )
+from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.value_binding import plain_value
 
 # The most values one question card offers.
@@ -105,7 +107,10 @@ def _asked(slot: OpenSlot, questions: Sequence[OpenQuestion]) -> str:
 
 def _sets(binding: OptionBinding, slot: OpenSlot) -> bool:
     match binding:
-        case SetValues(criterion_id=criterion_id, params=params):
+        case (
+            SetValues(criterion_id=criterion_id, params=params)
+            | ReadValues(criterion_id=criterion_id, params=params)
+        ):
             return criterion_id == slot.criterion_id and slot.param_name in params
         case _:
             return False
@@ -141,6 +146,8 @@ def _render_criterion(
     out.extend(
         f"    MEASURED {clause}" for clause in measurement_clauses(crit, noun=noun)
     )
+    if (held := crit.held_reading) is not None:
+        out.append(f"    READING the researcher accepted: {reading_line(crit, held)}")
     out.extend(
         f"    OPEN {s.param_name}: {_asked(s, questions)}" for s in crit.open_params
     )
@@ -247,4 +254,7 @@ def _review_lines(review: VerificationReview) -> list[str]:
             f"- {cited.label} ({', '.join(cited.references())}): {cited.why}"
             for cited in review.sources
         )
+    if review.withheld:
+        lines.append("\n### Withheld from the evidence card")
+        lines.extend(f"- {w.sentence}" for w in review.withheld)
     return lines

@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+from assistant_core.graph.tool_summary import with_summary
 from pydantic_ai import ModelRetry, RunContext
+from pydantic_ai.messages import ToolReturn
 
 from pathfinder.ai.graph.runtime import AgentDeps
+from pathfinder.ai.tools.standalone._frame_eda import refuse_a_waiting_criterion
+from pathfinder.ai.tools.standalone._frame_result import SetCriterionResult
+from pathfinder.ai.tools.standalone._frame_roles import (
+    refuse_a_transform_on_a_saved_input,
+)
 from pathfinder.domain.strategy.operational_spec import (
     Criterion,
     CriterionRole,
@@ -76,6 +83,7 @@ async def bind_saved_criterion(
             id=criterion_id,
             text=text,
             role=role,
+            record_class=match.record_type or None,
             saved_strategy_ref=SavedStrategyRef(
                 conversation_id=match.conversation_id,
                 name=match.name,
@@ -87,6 +95,27 @@ async def bind_saved_criterion(
         )
     )
     return match
+
+
+async def set_saved_criterion(
+    ctx: RunContext[AgentDeps], stated: Criterion, *, reference: str
+) -> ToolReturn[SetCriterionResult]:
+    refuse_a_waiting_criterion(ctx.deps.agent_state, stated.id)
+    refuse_a_transform_on_a_saved_input(stated.id, stated.role, "saved strategy")
+    match = await bind_saved_criterion(
+        ctx,
+        criterion_id=stated.id,
+        text=stated.text,
+        role=stated.role,
+        reference=reference,
+    )
+    return with_summary(
+        SetCriterionResult(
+            criterion_id=stated.id, search_name="", saved_strategy=match
+        ),
+        f"{stated.id} starts from {match.name}",
+        ctx=ctx,
+    )
 
 
 def holds_open_saved_slot(criterion: Criterion) -> bool:

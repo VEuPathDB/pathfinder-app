@@ -39,14 +39,15 @@ from assistant_core.tasks.chat_turn import defer_chat_turn
 from assistant_core.tasks.job_context import install_durable_job_context
 from assistant_core.tasks.scope import attach_user_id
 from langchain_core.runnables import RunnableConfig
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from veupathdb.devtools import capture_wdk
+from veupathdb.errors import WDKLoginRequiredError
 from veupathdb.wdk import password_login
 
 from pathfinder.ai.conversation.request_body import ChatRequestBody
 from pathfinder.ai.conversation.turn_runner import TurnRequest, run_turn
 from pathfinder.assistants.registry import get_assistant_registry
-from pathfinder.devtools import inspector
+from pathfinder.devtools import inspector, run_models
 from pathfinder.devtools.capture import (
     RunCapture,
     capture_tracebacks,
@@ -83,6 +84,7 @@ from pathfinder.platform.stage_sites import (
 from pathfinder.platform.tiers import KNOWN_ROLES
 from pathfinder.platform.tool_sources import admitted_tool_sources
 from pathfinder.services.conversations.begin import begin_conversation
+from pathfinder.services.wdk_identity import require_registered_wdk_login
 from pathfinder.transport.http.routers.chat import refuse_unreadable_attachments
 
 DEV_USER_ID = UUID("00000000-0000-0000-0000-0000000000c1")
@@ -90,6 +92,42 @@ RUN_ROOT = Path(os.environ.get("PF_RUN_ROOT", "/data/pf-runs"))
 _MAX_RESUMES = 8
 EFFORTS = get_args(ReasoningEffort.__value__)
 TURN_SETTINGS_FILE = "turn_settings.json"
+
+
+class MissingCredentialsError(RuntimeError):
+    pass
+
+
+class EnvToken(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    variable: str
+    token: SecretStr
+
+    @classmethod
+    def read(cls, variable: str) -> EnvToken:
+        value = os.environ.get(variable, "").strip()
+        if not value:
+            msg = f"${variable} is empty; it must hold the WDK token for the run"
+            raise MissingCredentialsError(msg)
+        return cls(variable=variable, token=SecretStr(value))
+
+
+async def registered_token(token: EnvToken) -> str:
+    value = token.token.get_secret_value()
+    async with attach_wdk_auth(value):
+        try:
+            await require_registered_wdk_login()
+        except WDKLoginRequiredError as refused:
+            msg = f"${token.variable} holds no registered VEuPathDB login"
+            raise MissingCredentialsError(msg) from refused
+    return value
+
+
+def identity_line(token: EnvToken | None) -> str:
+    if token is not None:
+        return f"identity: WDK token from ${token.variable}"
+    return "identity: password sign-in (--email, else $WDK_DEV_EMAIL)"
 
 
 class RunArgs(BaseModel):
@@ -105,6 +143,7 @@ class RunArgs(BaseModel):
     quiet: bool = False
     email: str | None = None
     password: str | None = None
+    wdk_token: EnvToken | None = None
     assistant: str | None = None
     phase_models: dict[str, str] = {}
     effort: ReasoningEffort | None = None
@@ -122,10 +161,6 @@ class RespondArgs(RunArgs):
     deny: bool = False
     reason: str | None = None
     answers: list[str] = Field(default_factory=list)
-
-
-class MissingCredentialsError(RuntimeError):
-    pass
 
 
 class LoginUnansweredError(RuntimeError):
@@ -198,9 +233,11 @@ async def _wdk_token(args: RunArgs) -> str:
 
 
 async def _optional_wdk_token(args: RunArgs) -> str | None:
-    """The WDK token for the run. Only the LLM is mocked, so a mocked run still
-    logs in when credentials are there; without them it runs unauthenticated and
-    pushes nothing to WDK."""
+    """The WDK token for the run: the one its named variable holds, else a login.
+    Only the LLM is mocked, so a mocked run still logs in when credentials are
+    there; without them it runs unauthenticated and pushes nothing to WDK."""
+    if args.wdk_token is not None:
+        return await registered_token(args.wdk_token)
     if not args.mock:
         return await _wdk_token(args)
     if not (args.email or os.environ.get("WDK_DEV_EMAIL")):
@@ -247,7 +284,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="assistant id for a NEW conversation (else the registry default)",
     )
-    run.add_argument("--model", action="append", default=[], metavar="PHASE=ID")
+    _add_run_identity(run)
     run.add_argument(
         "--effort",
         choices=EFFORTS,
@@ -284,7 +321,7 @@ def _build_parser() -> argparse.ArgumentParser:
     resp.add_argument("--email", default=None)
     resp.add_argument("--password", default=None)
     resp.add_argument("--assistant", default=None)
-    resp.add_argument("--model", action="append", default=[], metavar="PHASE=ID")
+    _add_run_identity(resp)
     resp.add_argument("--effort", choices=EFFORTS, default=None)
     resp.add_argument("--accept", action="store_true", help="approve the pending gate")
     resp.add_argument("--deny", action="store_true", help="deny the pending gate")
@@ -296,6 +333,13 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="QID=VALUE",
         help="consult answer (comma-separate VALUE for multi-choice)",
     )
+
+    roles = sub.add_parser(
+        "roles",
+        help="print the model each role resolves to and the run's WDK identity",
+    )
+    roles.add_argument("--model-all", required=True, metavar="ID")
+    roles.add_argument("--wdk-token-env", default=None, metavar="NAME")
 
     ins = sub.add_parser("inspect", help="read a captured run directory")
     ins.add_argument("run_dir")
@@ -311,6 +355,28 @@ def _build_parser() -> argparse.ArgumentParser:
     diff.add_argument("run_dir_a")
     diff.add_argument("run_dir_b")
     return p
+
+
+def _add_run_identity(parser: argparse.ArgumentParser) -> None:
+    models = parser.add_mutually_exclusive_group()
+    models.add_argument("--model", action="append", default=[], metavar="PHASE=ID")
+    models.add_argument(
+        "--model-all",
+        default=None,
+        metavar="ID",
+        help="one catalog model for every role, the title generator, the note "
+        "compactor and the injection judge included",
+    )
+    parser.add_argument(
+        "--wdk-token-env",
+        default=None,
+        metavar="NAME",
+        help="read the WDK token from this environment variable, with no sign-in",
+    )
+
+
+def _env_token(variable: str | None) -> EnvToken | None:
+    return None if variable is None else EnvToken.read(variable)
 
 
 def _phase_reasoning(effort: ReasoningEffort | None) -> dict[str, ReasoningEffort]:
@@ -338,6 +404,7 @@ def parse_run_args(argv: list[str]) -> RunArgs:
             "quiet": ns.quiet,
             "email": ns.email,
             "password": ns.password,
+            "wdk_token": _env_token(ns.wdk_token_env),
             "assistant": ns.assistant,
             "phase_models": phase_models,
             "effort": ns.effort,
@@ -362,6 +429,7 @@ def parse_respond_args(argv: list[str]) -> RespondArgs:
             "quiet": ns.quiet,
             "email": ns.email,
             "password": ns.password,
+            "wdk_token": _env_token(ns.wdk_token_env),
             "assistant": ns.assistant,
             "phase_models": phase_models,
             "effort": ns.effort,
@@ -403,7 +471,7 @@ def _body_ctx(args: RunArgs) -> BodyCtx:
         conversation_id=args.conversation_id,
         site_id=args.site,
         mode=args.mode,
-        phase_models=args.phase_models,
+        phase_models={**args.phase_models, **run_models.pinned_phase_models()},
         phase_reasoning=_phase_reasoning(args.effort),
     )
 
@@ -720,7 +788,9 @@ async def drive_run(args: RunArgs) -> tuple[RunCapture, Gate]:
         settings = get_settings()
 
         wdk_token = await _optional_wdk_token(args)
-        if not args.quiet and wdk_token is not None:
+        if not args.quiet and args.wdk_token is not None:
+            print(identity_line(args.wdk_token))
+        elif not args.quiet and wdk_token is not None:
             print(f"logged in as {args.email or os.environ.get('WDK_DEV_EMAIL')}")
 
         spec = await resolve_run_assistant(args.conversation_id, args.assistant)
@@ -927,6 +997,39 @@ def _run_inspect(ns: argparse.Namespace) -> int:
     return 0
 
 
+def _run_roles(ns: argparse.Namespace) -> int:
+    try:
+        token = _env_token(ns.wdk_token_env)
+        with run_models.pin_every_role(ns.model_all):
+            roles = run_models.resolved_roles()
+    except (MissingCredentialsError, run_models.RunModelError) as exc:
+        print(exc, file=sys.stderr)
+        return 2
+    for line in [*run_models.role_lines(roles), identity_line(token)]:
+        print(line)
+    off = run_models.roles_off(ns.model_all, roles)
+    if off:
+        print(off, file=sys.stderr)
+        return 1
+    return 0
+
+
+def _drive_command(command: str, ns: argparse.Namespace, argv: list[str]) -> int:
+    try:
+        with run_models.pinned_run(ns.model_all, via_worker=ns.via_worker):
+            if command == "run":
+                return asyncio.run(run_once(parse_run_args(argv)))
+            return asyncio.run(run_respond(parse_respond_args(argv)))
+    except (
+        MissingCredentialsError,
+        LoginUnansweredError,
+        GateResponseError,
+        run_models.RunModelError,
+    ) as exc:
+        print(f"✖ {exc}", file=sys.stderr)
+        return 2
+
+
 def main() -> None:
     route_framework_logs_to_stderr()
     argv = sys.argv[1:]
@@ -938,23 +1041,10 @@ def main() -> None:
         except SitesChoiceError as exc:
             print(f"✖ {exc}", file=sys.stderr)
             sys.exit(2)
-    if command == "run":
-        try:
-            sys.exit(asyncio.run(run_once(parse_run_args(argv[1:]))))
-        except (MissingCredentialsError, LoginUnansweredError) as exc:
-            print(f"✖ {exc}", file=sys.stderr)
-            sys.exit(2)
-    if command == "respond":
-        try:
-            sys.exit(asyncio.run(run_respond(parse_respond_args(argv[1:]))))
-        except (
-            MissingCredentialsError,
-            LoginUnansweredError,
-            GateResponseError,
-        ) as exc:
-            print(f"✖ {exc}", file=sys.stderr)
-            sys.exit(2)
+        sys.exit(_drive_command(command, ns, argv[1:]))
     ns = _build_parser().parse_args(argv)
+    if ns.command == "roles":
+        sys.exit(_run_roles(ns))
     if ns.command == "inspect":
         sys.exit(_run_inspect(ns))
     if ns.command == "diff":

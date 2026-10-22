@@ -43,7 +43,7 @@ class OutsideChanges(BaseModel):
 
 
 def _structure_of(ast: StrategyAst) -> SpecStructure | None:
-    return spec_from_ast(ast, goal="").structure
+    return spec_from_ast(ast, goal="", listed={}).structure
 
 
 def outside_changes(

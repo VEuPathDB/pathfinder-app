@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-one-protein-in-every-apicomplexan-genome",
+  "turns": [
+    "List the ortholog groups that have exactly one protein in every apicomplexan genome."
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "The reworded suggestion has one reading: the apicomplexan clade code with a taxon count equal to its genome count and a protein count equal to the same number. The clade's genome count comes from the taxonomy, never from the model's memory.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 2,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "APIC=139T AND APIC=139"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
+    "curatorNote": "The single-reading form of the suggested prompt; no question is needed."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

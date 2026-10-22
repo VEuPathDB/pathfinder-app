@@ -16,6 +16,7 @@ from procrastinate.testing import InMemoryConnector
 
 from pathfinder.jobs.app import procrastinate_app
 from pathfinder.jobs.worker import WorkerCannotScreenError, amain
+from pathfinder.persistence.repositories.audit import AuditRepository
 from pathfinder.platform.config import Settings
 from pathfinder.platform.metrics import PathfinderObserver
 from pathfinder.services.search_waits import runs_on_the_deployment_line
@@ -91,6 +92,7 @@ class _AmainRun:
     """What ``amain`` built, and the order it did the startup work in."""
 
     worker_kwargs: dict[str, Any]
+    audit_kwargs: dict[str, Any]
     heartbeat_kwargs: dict[str, Any]
     marks: list[str]
     ran: bool
@@ -122,7 +124,7 @@ async def _run_amain(
     app = MagicMock()
     app.open_async = MagicMock(side_effect=_noop_open)
     app.perform_import_paths = MagicMock()
-    built: dict[str, Any] = {}
+    built: dict[str, dict[str, Any]] = {}
     heartbeat_built: dict[str, Any] = {}
     marks = [] if marks is None else marks
     observability: list[str] = []
@@ -131,11 +133,17 @@ async def _run_amain(
     search_lines: list[tuple[str, object]] = []
 
     def make_worker(**kwargs: Any) -> MagicMock:
-        built.update(kwargs)
+        name = "audit-run" if "name" in kwargs else "run"
+        built[name] = kwargs
         worker = MagicMock()
         worker.worker_id = 11
-        worker.run = AsyncMock(side_effect=lambda: marks.append("run"))
+        worker.run = AsyncMock(side_effect=lambda: marks.append(name))
         return worker
+
+    async def read_runs(*args: object) -> list[object]:
+        del args
+        marks.append("resume")
+        return []
 
     def make_heartbeat(**kwargs: Any) -> MagicMock:
         heartbeat_built.update(kwargs)
@@ -170,6 +178,7 @@ async def _run_amain(
             side_effect=lambda url, expensive: search_lines.append((url, expensive)),
         ),
         patch("pathfinder.jobs.worker.register_all_tools"),
+        patch.object(AuditRepository, "resumable_runs", read_runs),
         patch("pathfinder.jobs.worker.install_admitted_sources"),
         patch("pathfinder.jobs.worker.admitted_tool_sources", return_value=[]),
         patch("pathfinder.jobs.worker.postgres_beat_writer", return_value="writer"),
@@ -183,6 +192,7 @@ async def _run_amain(
             "pathfinder.jobs.worker.get_settings",
             return_value=MagicMock(
                 worker_concurrency=worker_concurrency,
+                audit_concurrency=2,
                 worker_heartbeat_interval_seconds=heartbeat_interval,
                 database_url="postgresql+asyncpg://user@host/db",
                 input_screening_enabled=screening,
@@ -193,7 +203,8 @@ async def _run_amain(
     ):
         await amain()
     return _AmainRun(
-        worker_kwargs=built,
+        worker_kwargs=built["run"],
+        audit_kwargs=built["audit-run"],
         heartbeat_kwargs=heartbeat_built,
         marks=marks,
         ran=True,
@@ -248,7 +259,26 @@ async def test_amain_beats_around_the_worker_run() -> None:
     """The heartbeat starts before the jobs and stops after them."""
     run = await _run_amain()
 
-    assert run.marks == ["start", "run", "stop"]
+    assert run.marks == ["start", "start", "run", "audit-run", "stop", "stop"]
+
+
+async def test_amain_reads_no_audit_run_before_the_workers_serve() -> None:
+    """The api migrates the app tables, so the worker start reads none of them."""
+    run = await _run_amain()
+
+    assert run.marks.count("resume") == 0
+
+
+async def test_amain_runs_the_audits_on_their_own_queue_and_concurrency() -> None:
+    run = await _run_amain(worker_concurrency=6)
+
+    assert (
+        run.audit_kwargs["queues"],
+        run.audit_kwargs["concurrency"],
+        run.audit_kwargs["install_signal_handlers"],
+        run.worker_kwargs["install_signal_handlers"],
+        run.worker_kwargs["concurrency"],
+    ) == (["audit"], 2, False, False, 6)
 
 
 async def test_amain_gives_the_heartbeat_the_worker_id_and_interval() -> None:
@@ -266,7 +296,15 @@ class TestTheWorkerBuildsTheJudgeBeforeItConsumesAJob:
     async def test_the_judge_is_built_before_the_worker_runs(self) -> None:
         run = await _run_amain(screening=True)
 
-        assert run.marks == ["build", "start", "run", "stop"]
+        assert run.marks == [
+            "build",
+            "start",
+            "start",
+            "run",
+            "audit-run",
+            "stop",
+            "stop",
+        ]
 
     async def test_a_judge_that_cannot_be_built_stops_the_worker(self) -> None:
         """A worker that cannot screen must not pull a job."""
@@ -289,7 +327,14 @@ class TestTheWorkerBuildsTheJudgeBeforeItConsumesAJob:
 
         run = await _run_amain(screening=False, build_judge=fail_build)
 
-        assert run.marks == ["start", "run", "stop"]
+        assert run.marks == [
+            "start",
+            "start",
+            "run",
+            "audit-run",
+            "stop",
+            "stop",
+        ]
 
 
 async def test_amain_traces_the_turns_it_runs_and_flushes_on_exit() -> None:

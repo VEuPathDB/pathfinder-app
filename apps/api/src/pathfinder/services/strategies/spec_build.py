@@ -43,6 +43,7 @@ from pathfinder.services.strategies.persist import (
     persist_strategy_ast_to_conversation,
 )
 from pathfinder.services.strategies.reconcile import reconcile_sync_state_with_wdk
+from pathfinder.services.strategies.record_classes import tree_combine_refusal
 from pathfinder.services.strategies.stated_sides import (
     CanonicalSides,
     canonical_sides,
@@ -185,6 +186,8 @@ async def build_strategy_from_spec(
     built = await _canonical_build(deps, graph, root)
     root = built.root
     refusal = _a_build_the_spec_refuses(deps, graph, root, built.sides)
+    if refusal is None:
+        refusal = await tree_combine_refusal(deps.site_id, root)
     if refusal is not None:
         raise ApplyError(refusal)
 
@@ -216,7 +219,7 @@ async def build_strategy_from_spec(
         sync_result=None,
     )
 
-    marks = await tree_organism_parameters(deps.site_id, graph.record_type, root)
+    marks = await tree_organism_parameters(deps.site_id, root)
     outcome = BuildOutcome(organism_change=organism_change(root, marks))
     await _push_tree_to_wdk(
         nodes=nodes,

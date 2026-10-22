@@ -16,6 +16,7 @@ from pydantic_ai.messages import FunctionToolResultEvent, RetryPromptPart
 from pydantic_ai.usage import RunUsage
 
 from pathfinder.ai.agents.roles import PhaseRole
+from pathfinder.ai.agents.unserved import SearchNotServedError
 from pathfinder.ai.graph.runtime import AgentDeps
 from pathfinder.ai.lead.phase_stop import PhaseStop, PhaseStopReason
 from pathfinder.ai.lead.sub_agent_progress import record_stopped_usage
@@ -58,15 +59,22 @@ def refusal_of(event: FunctionToolResultEvent) -> ToolRefusal | None:
     )
 
 
+_OUTPUT_RETRIES_SPENT = "Exceeded maximum output retries ("
+
+
+def spent_its_output_retries(exc: UnexpectedModelBehavior) -> bool:
+    return exc.message.startswith(_OUTPUT_RETRIES_SPENT)
+
+
 def exhausted_its_retries(
     exc: UnexpectedModelBehavior,
     refusal: ToolRefusal | None,
 ) -> ToolRefusal | None:
     """The refusal the library says ran out of retries, or nothing.
 
-    The exception class also carries token limits, output-retry ceilings and
-    streaming faults, so the raised message is the discriminator: it names the
-    tool and the count the tool passed.
+    The library raises this class itself for a spent tool or output budget, a
+    token limit or a provider fault, with no field that names which, so the
+    raised message is the discriminator: it names the tool the budget held.
     """
     if refusal is None:
         return None
@@ -92,7 +100,8 @@ def early_stop(exc: Exception, refusal: ToolRefusal | None) -> EarlyStop | None:
     stop keeps the partial draft for the Lead to read. A usage ceiling is a
     budget, not a correctness failure. A request the provider did not complete
     is the request's failure, not the pass's. One tool that refused every
-    attempt it was given is the pass's own account of its stop.
+    attempt it was given, or an answer that failed every attempt, is the pass's
+    own account of its stop.
     """
     match exc:
         case UsageLimitExceeded():
@@ -109,18 +118,38 @@ def early_stop(exc: Exception, refusal: ToolRefusal | None) -> EarlyStop | None:
                 "sub-agent stopped on a provider error; keeping partial progress",
                 {"error_type": type(exc).__name__},
             )
-        case UnexpectedModelBehavior():
-            exhausted = exhausted_its_retries(exc, refusal)
-            if exhausted is None:
-                return None
+        case SearchNotServedError(message=message):
             return EarlyStop(
-                PhaseStopReason.TOOL_RETRIES,
-                exhausted,
-                "sub-agent exhausted a tool's retries; keeping partial progress",
-                {"tool": exhausted.tool_name, "error": str(exc)},
+                PhaseStopReason.SEARCH_NOT_SERVED,
+                ToolRefusal(tool_name="set_criterion", text=message),
+                "sub-agent stopped on a search the site does not serve",
+                {"error": message},
             )
+        case UnexpectedModelBehavior():
+            return _spent_retries(exc, refusal)
         case _:
             return None
+
+
+def _spent_retries(
+    exc: UnexpectedModelBehavior, refusal: ToolRefusal | None
+) -> EarlyStop | None:
+    if spent_its_output_retries(exc):
+        return EarlyStop(
+            PhaseStopReason.OUTPUT_RETRIES,
+            None,
+            "sub-agent exhausted its output retries; keeping partial progress",
+            {"error": str(exc), "cause": str(exc.__cause__)},
+        )
+    exhausted = exhausted_its_retries(exc, refusal)
+    if exhausted is None:
+        return None
+    return EarlyStop(
+        PhaseStopReason.TOOL_RETRIES,
+        exhausted,
+        "sub-agent exhausted a tool's retries; keeping partial progress",
+        {"tool": exhausted.tool_name, "error": str(exc)},
+    )
 
 
 @dataclass(frozen=True)

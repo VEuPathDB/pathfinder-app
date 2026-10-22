@@ -3,8 +3,16 @@ organism marks the mock arcs read are recorded from the seeds' own searches."""
 
 from __future__ import annotations
 
+import datetime
+from typing import Any
+
 import pytest
 from pydantic import SecretStr
+from veupathdb_mcp.controls import (
+    ControlsSearch,
+    ControlTargetData,
+    ControlTestResult,
+)
 
 from pathfinder.ai.models.mock import site_values
 from pathfinder.devtools import seeds
@@ -69,3 +77,64 @@ async def test_the_dev_login_signs_in_as_the_settings_dev_account(
 
     assert await seeds.dev_login("plasmodb") == "tok"
     assert calls == [("plasmodb", "dev@example.org", "dev-password")]
+
+
+class _Made:
+    def __init__(self, made_id: int) -> None:
+        self.id = made_id
+
+
+class _SeedApi:
+    def __init__(self) -> None:
+        self.ids = iter(range(1, 100))
+
+    async def create_step(self, *args: Any, **kwargs: Any) -> _Made:
+        del args, kwargs
+        return _Made(next(self.ids))
+
+    async def create_combined_step(self, *args: Any, **kwargs: Any) -> _Made:
+        del args, kwargs
+        return _Made(next(self.ids))
+
+    async def create_strategy(self, *args: Any, **kwargs: Any) -> _Made:
+        del args, kwargs
+        return _Made(900)
+
+    async def delete_strategy(self, strategy_id: int) -> None:
+        del strategy_id
+
+
+async def test_a_group_seed_reads_its_controls_by_group_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tested: list[ControlsSearch] = []
+
+    async def run(
+        site_id: str,
+        wdk_step_id: int,
+        positive_controls: list[str] | None = None,
+        negative_controls: list[str] | None = None,
+        *,
+        controls: ControlsSearch,
+    ) -> ControlTestResult:
+        del positive_controls, negative_controls
+        tested.append(controls)
+        return ControlTestResult(
+            site_id=site_id,
+            target=ControlTargetData(step_id=wdk_step_id, estimated_size=5),
+        )
+
+    monkeypatch.setattr(seeds, "get_strategy_api", lambda _site: _SeedApi())
+    monkeypatch.setattr(seeds, "run_step_control_tests", run)
+    (seed, *_) = get_seeds_for_site("orthomcl")
+
+    await seeds.measure_seed(seed, "8.2", datetime.date(2026, 10, 22))
+
+    assert seed.record_type == "group"
+    assert tested == [
+        ControlsSearch(
+            search_name="GroupsByNameList",
+            param_name="group_names",
+            record_type="group",
+        )
+    ]

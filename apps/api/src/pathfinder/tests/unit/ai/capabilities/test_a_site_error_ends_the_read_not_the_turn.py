@@ -27,7 +27,7 @@ from pathfinder.ai.lead.sub_agent_tools import LeadDeps
 from pathfinder.ai.lead.turn_contract import LeadResponse
 from pathfinder.ai.models.mock import get_mock_model
 from pathfinder.ai.tools.standalone import step_ids
-from pathfinder.ai.tools.standalone.results import SampledRecords
+from pathfinder.ai.tools.standalone._sample_page import SampledRecords
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.services.experiment import variant_comparison

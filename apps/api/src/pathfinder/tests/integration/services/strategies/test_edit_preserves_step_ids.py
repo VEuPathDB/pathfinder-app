@@ -279,6 +279,7 @@ def _before() -> OperationalSpec:
     return spec_from_ast(
         StrategyAst(record_type="transcript", root=_root()),
         goal="proteases in Plasmodium",
+        listed={},
     )
 
 

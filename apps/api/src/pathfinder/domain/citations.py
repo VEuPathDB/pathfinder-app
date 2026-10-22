@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Literal, Self
+from typing import Annotated, Literal
 
 from assistant_core.platform.pydantic_base import CamelModel
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field
+
+from pathfinder.domain.clipped import text_clipped_to
 
 type CitationKind = Literal["record", "literature", "web"]
 
@@ -16,9 +18,8 @@ class SourceReference(CamelModel):
     model_config = ConfigDict(frozen=True)
 
     kind: CitationKind
-    label: str = Field(
+    label: Annotated[str, text_clipped_to(200)] = Field(
         min_length=1,
-        max_length=200,
         description=(
             "What the reader sees: the gene id and the site for a record, the "
             "title for a paper or a page."
@@ -28,13 +29,6 @@ class SourceReference(CamelModel):
     doi: str | None = None
     pmid: str | None = None
 
-    @model_validator(mode="after")
-    def _a_source_can_be_opened(self) -> Self:
-        if not self.references():
-            msg = "a source carries a url, a DOI or a PMID"
-            raise ValueError(msg)
-        return self
-
     def references(self) -> list[str]:
         """Every identifier this source is checked by."""
         return [value for value in (self.url, self.doi, self.pmid) if value]
@@ -43,7 +37,7 @@ class SourceReference(CamelModel):
 class Citation(SourceReference):
     """One source the check retrieved, and what it settles."""
 
-    why: str = Field(min_length=1, max_length=300)
+    why: Annotated[str, text_clipped_to(300)] = Field(min_length=1)
 
 
 __all__ = ["Citation", "CitationKind", "SourceReference"]

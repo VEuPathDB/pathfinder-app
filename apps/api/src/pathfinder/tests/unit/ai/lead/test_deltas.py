@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
-
 from pathfinder.ai.graph.state import PhaseDisposition, VerificationDigest
 from pathfinder.ai.lead.deltas import (
     ExecuteDelta,
@@ -64,16 +61,15 @@ def test_verification_delta_carries_digest() -> None:
     assert delta.digest.success is True
 
 
-def test_a_pass_that_stops_on_the_user_refuses_a_dimensionless_question() -> None:
+def test_a_pass_that_stops_on_the_user_names_its_dimensionless_questions() -> None:
     """A question that decides nothing leaves the next turn nothing to bind."""
-    with pytest.raises(ValidationError) as refused:
-        FrameResult(
-            summary="one open slot",
-            disposition="needs_user",
-            open_questions=[SlotQuestion(question="Which RNA-seq dataset?")],
-        )
+    result = FrameResult(
+        summary="one open slot",
+        disposition="needs_user",
+        open_questions=[SlotQuestion(question="Which RNA-seq dataset?")],
+    )
 
-    assert "dimension" in str(refused.value)
+    assert result.undecided_questions == ["Which RNA-seq dataset?"]
 
 
 def test_a_pass_that_asks_nothing_takes_any_question_list() -> None:

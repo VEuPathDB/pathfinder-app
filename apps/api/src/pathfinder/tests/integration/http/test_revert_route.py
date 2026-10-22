@@ -6,26 +6,15 @@ from uuid import UUID, uuid4
 
 import httpx
 import pytest
-from assistant_core.conversation.checkpointer import lifespan_checkpointer
 from assistant_core.persistence.models import Conversation, Message
 from fastapi import FastAPI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from pathfinder.persistence.models import User
-from pathfinder.platform.config import get_settings
 from pathfinder.platform.identity import PATHFINDER_ASSISTANT_ID
 from pathfinder.platform.security import create_user_token
 from pathfinder.tests.integration.http.conftest import bearer_client_for
-
-
-@pytest.fixture(scope="module", autouse=True)
-async def _langgraph_checkpoint_tables(
-    patch_app_db_engine: None,
-) -> AsyncGenerator[None]:
-    del patch_app_db_engine
-    async with lifespan_checkpointer(get_settings().database_url):
-        yield
 
 
 @pytest.fixture

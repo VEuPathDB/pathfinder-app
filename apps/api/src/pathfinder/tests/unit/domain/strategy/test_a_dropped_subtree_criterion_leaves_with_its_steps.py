@@ -33,7 +33,6 @@ def _spec_over_a_saved_subtree() -> OperationalSpec:
     """``step_c1`` stands for the two steps it joins; ``step_expr`` is its own."""
     return OperationalSpec(
         goal="find proteases",
-        record_type="transcript",
         criteria=[
             Criterion(id=_SAVED, text="my saved protease strategy", role="seed"),
             Criterion(

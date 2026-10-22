@@ -132,7 +132,7 @@ def test_hydrating_the_result_states_one_criterion_per_step() -> None:
     ast = graph.to_strategy_ast()
     assert ast is not None
 
-    hydrated = spec_from_ast(ast, goal="keep the syntenic orthologs")
+    hydrated = spec_from_ast(ast, goal="keep the syntenic orthologs", listed={})
 
     searches = [c.search_name for c in hydrated.criteria]
     assert sorted(searches) == sorted(

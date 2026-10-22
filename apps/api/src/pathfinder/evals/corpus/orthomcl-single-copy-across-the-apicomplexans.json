@@ -1,0 +1,43 @@
+{
+  "name": "orthomcl-single-copy-across-the-apicomplexans",
+  "turns": [
+    "List single-copy ortholog groups across the apicomplexans."
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "A single-copy request within a named clade is a phyletic pattern over that clade, and single copy binds every genome exactly once: every apicomplexan genome present and as many proteins as genomes. On build 8.2 Single Copy Orthogroups (GroupsBySingleCopy) returns the same groups as Number of Taxa, so it restricts no copy number and cannot name a clade. The reply says that the strict reading returns few groups.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "GroupsByPhyleticPattern",
+    "recordType": "group",
+    "stepCount": 1,
+    "verified": true,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 2,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    },
+    "expressions": {
+      "GroupsByPhyleticPattern": [
+        "APIC=139T AND APIC=139"
+      ]
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-suggested-prompt-is-measured-before-it-ships.md",
+    "curatorNote": "The suggested OrthoMCL prompt as it ships today. The turn may first ask whether every genome or every species is meant; the recommended reading is taken."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

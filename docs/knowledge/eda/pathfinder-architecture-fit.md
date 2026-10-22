@@ -244,7 +244,7 @@ already owns the machinery. The mapping, naming the real mechanisms:
 | 5. The turn ends cleanly | `data-background-task-started` inside the turn, `finishReason: "other"` (CLAUDE.md, Durable Background Tasks) |
 | 6. The worker runs the real body | `jobs/impls/eda_compute_impl.py`, bound by `register_durable_impl(EDA_COMPUTE, ...)` in `jobs/impls/__init__.py::register_all_tools`; dispatched by `assistant_core.tasks.runner` |
 | 7. The impl holds the user's credential | `jobs/job_context.py::WdkJobContext` captures the token at the call and restores it around the body. The token rides the job payload because the procrastinate hop drops `ContextVar` state. EDA takes the same token, so this needs no change |
-| 8. The impl polls and reports | it calls `services/eda/compute.py` and emits `await progress.update(percent=..., message=..., data=...)`, the shape `jobs/impls/control_tests_impl.py:47-86` uses. `TaskProgressEmitter` writes `task_progress` rows and fires `pg_notify("task_progress:<conversation_id>", ...)` |
+| 8. The impl polls and reports | it calls `services/eda/compute.py` and emits `await progress.update(percent=..., message=..., data=...)`, the shape `jobs/impls/control_tests_impl.py` uses. `TaskProgressEmitter` writes `task_progress` rows and fires `pg_notify("task_progress:<conversation_id>", ...)` |
 | 9. The result lands | the runner writes the result on the `background_tasks` row at `result_ready`; `mark_resuming` follows once the completion turn opens (`assistant_core.tasks.completion_turn`) |
 | 10. The thread records the outcome | the runner appends `task_completed_event(...)` to `conversation_events` before the completion turn opens |
 | 11. The turn continues | `assistant_core.tasks.completion_turn` gathers every parked task's `DurableTaskResult` and hands `jobs/completion.py::open_completion_turn` a NEW turn; its chunks are written by `ChatEventWriter` under the parked turn's message id, into the same `conversation_events` rows the dispatcher replays |
@@ -255,7 +255,7 @@ both structural rather than stylistic. First, a `jobs/impls/` module has a
 worker-side `Context` and no `StrategySession`, so it cannot mutate the turn's
 strategy graph - `run_control_tests_on_step_impl` is the model here, taking a
 `wdk_step_id` and returning a result dict
-(`jobs/impls/control_tests_impl.py:25-87`). Second, the resume exists precisely
+(`jobs/impls/control_tests_impl.py`). Second, the resume exists precisely
 so the suspended tool call returns a value the model acts on: after step 11 the
 agent is running again, with the compute's result in hand, and it then calls the
 ordinary non-durable step-creation tool. Because the EDA job is keyed by its

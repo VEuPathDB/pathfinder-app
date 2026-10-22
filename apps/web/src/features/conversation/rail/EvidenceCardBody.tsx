@@ -21,6 +21,7 @@ import { recordProductEvent } from "@/lib/api/productEvents";
 import { useConversationId } from "../useConversationId";
 import { referenceHref } from "./evidenceCards";
 import { EvidenceReview } from "./EvidenceReview";
+import { ExpressionFits } from "./ExpressionFits";
 
 type ControlKind = "positive" | "negative";
 
@@ -282,6 +283,7 @@ export function EvidenceCardBody({
           )}
         </div>
       ) : null}
+      <ExpressionFits card={card} />
       <EvidenceReview review={card.review} />
       <Citations cited={card.citations} />
       {card.strategyUrl == null ? null : (

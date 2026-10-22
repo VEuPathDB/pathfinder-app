@@ -10,7 +10,10 @@ from veupathdb.domain.strategy import CombineOp, StrategyStepNode
 from veupathdb.errors import WDKError
 
 from pathfinder.services.strategies import organism_params, sync
-from pathfinder.services.strategies.organism_params import tree_organism_parameters
+from pathfinder.services.strategies.organism_params import (
+    organism_parameters,
+    tree_organism_parameters,
+)
 from pathfinder.services.strategies.sync_state import WDKSyncState
 from pathfinder.tests.unit.ai.tools._strategy_edit_stubs import (
     StubAPI,
@@ -47,8 +50,8 @@ def _tree() -> StrategyStepNode:
 def read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     asked: list[str] = []
 
-    async def _record_type(*_args: Any, **_kwargs: Any) -> str:
-        return "transcript"
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        return dict.fromkeys(names, "transcript")
 
     async def _marked(_site: str, _record_type: str, search_name: str) -> str | None:
         asked.append(search_name)
@@ -56,7 +59,7 @@ def read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
             raise _NO_SUCH_SEARCH
         return _MARKS.get(search_name)
 
-    monkeypatch.setattr(organism_params, "resolve_search_record_type", _record_type)
+    monkeypatch.setattr(organism_params, "search_record_types", _listed)
     monkeypatch.setattr(organism_params, "organism_parameter", _marked)
     return asked
 
@@ -64,7 +67,7 @@ def read(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 async def test_each_search_of_the_tree_names_its_marked_parameter(
     read: list[str],
 ) -> None:
-    marks = await tree_organism_parameters("plasmodb", "transcript", _tree())
+    marks = await tree_organism_parameters("plasmodb", _tree())
 
     assert marks == _MARKS
     assert sorted(read) == sorted(_MARKS)
@@ -76,7 +79,7 @@ async def test_a_search_the_catalog_cannot_read_names_none(read: list[str]) -> N
         primary_input=StrategyStepNode(search_name="GenesByNothing"),
     )
 
-    marks = await tree_organism_parameters("plasmodb", "transcript", tree)
+    marks = await tree_organism_parameters("plasmodb", tree)
 
     assert (marks, sorted(read)) == (
         {"GenesByOrthologs": "organism"},
@@ -124,6 +127,31 @@ async def test_each_search_is_read_under_the_record_type_that_lists_it(
         primary_input=StrategyStepNode(search_name="ByBlast"),
     )
 
-    await tree_organism_parameters("orthomcl", "group", tree)
+    await tree_organism_parameters("orthomcl", tree)
 
     assert sorted(asked) == [("group", "GroupsFromSequences"), ("sequence", "ByBlast")]
+
+
+async def test_a_search_the_catalog_does_not_list_names_no_parameter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked: list[tuple[str, str]] = []
+
+    async def _listed(_site: str, names: Any) -> dict[str, str]:
+        return {name: "transcript" for name in names if name == "GenesByOrthologs"}
+
+    async def _marked(_site: str, record_type: str, search_name: str) -> str | None:
+        asked.append((record_type, search_name))
+        return _MARKS.get(search_name)
+
+    monkeypatch.setattr(organism_params, "search_record_types", _listed)
+    monkeypatch.setattr(organism_params, "organism_parameter", _marked)
+
+    marks = await organism_parameters(
+        "plasmodb", ["GenesByOrthologs", "GenesWithSignalPeptide"]
+    )
+
+    assert (marks, asked) == (
+        {"GenesByOrthologs": "organism"},
+        [("transcript", "GenesByOrthologs")],
+    )

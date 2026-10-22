@@ -8,7 +8,8 @@ Usage::
         --rationale "what this pins" [--turn ...] [--note ...]
     python -m pathfinder.devtools.evals corpus
     python -m pathfinder.devtools.evals run --sites FILE [--only NAME ...] \\
-        [--out FILE] [--effort EFFORT] [--via-worker]
+        [--out FILE] [--effort EFFORT] [--via-worker] [--model ID] \\
+        [--wdk-token-env NAME]
 
 ``promote`` writes the corpus file and ends the association: the staged row
 keeps its content hash and loses its user, its thread and its extract.
@@ -25,7 +26,7 @@ from uuid import UUID
 
 from assistant_core.platform.db import async_session_factory
 
-from pathfinder.devtools import chat
+from pathfinder.devtools import chat, run_models
 from pathfinder.devtools.chat import route_framework_logs_to_stderr
 from pathfinder.devtools.eval_runner import assumed_label, refusals_label, run_corpus
 from pathfinder.evals.case import ExpectedOutcome, GatePlan
@@ -160,16 +161,44 @@ _MARKS = {
 def _run(args: argparse.Namespace) -> int:
     try:
         sites = chat.chosen_sites_file(args.sites, via_worker=args.via_worker)
-    except chat.SitesChoiceError as exc:
+        token = (
+            None
+            if args.wdk_token_env is None
+            else chat.EnvToken.read(args.wdk_token_env)
+        )
+        with run_models.pinned_run(args.model, via_worker=args.via_worker) as roles:
+            identity = [] if token is None else [chat.identity_line(token)]
+            run_lines = (
+                [*run_models.role_lines(roles), chat.identity_line(token)]
+                if roles
+                else identity
+            )
+            return _run_and_print(args, sites, token, run_lines)
+    except (
+        chat.SitesChoiceError,
+        chat.MissingCredentialsError,
+        run_models.RunModelError,
+    ) as exc:
         print(f"✖ {exc}", file=sys.stderr)
         return 2
+
+
+def _run_and_print(
+    args: argparse.Namespace,
+    sites: Path,
+    token: chat.EnvToken | None,
+    run_lines: list[str],
+) -> int:
     use_sites_file(str(sites))
+    for line in run_lines:
+        print(line)
     summary = asyncio.run(
         run_corpus(
             run_root=RUN_ROOT,
             only=args.only,
             effort=args.effort,
             via_worker=args.via_worker,
+            wdk_token=token,
         ),
     )
     if args.out:
@@ -201,6 +230,8 @@ def _run(args: argparse.Namespace) -> int:
                 f"      {difference.field}: expected {difference.expected!r}, "
                 f"got {difference.actual!r}",
             )
+    for line in run_lines:
+        print(line)
     print(
         f"--- {summary.passed}/{summary.case_count} passed "
         f"(re-measure {summary.re_measure}, failed {summary.failed}, "
@@ -262,7 +293,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "run",
         help=(
             "run the corpus through the turn pipeline on the configured provider; "
-            "needs WDK_DEV_EMAIL and WDK_DEV_PASSWORD"
+            "needs WDK_DEV_EMAIL and WDK_DEV_PASSWORD, or --wdk-token-env"
         ),
     )
     run.add_argument(
@@ -289,6 +320,21 @@ def _build_parser() -> argparse.ArgumentParser:
         "--via-worker",
         action="store_true",
         help="run every turn through the real worker, so durable tools execute",
+    )
+    run.add_argument(
+        "--model",
+        default=None,
+        metavar="ID",
+        help=(
+            "one catalog model for every role of every case, the title generator, "
+            "the note compactor and the injection judge included"
+        ),
+    )
+    run.add_argument(
+        "--wdk-token-env",
+        default=None,
+        metavar="NAME",
+        help="read the WDK token from this environment variable, with no sign-in",
     )
     return parser
 

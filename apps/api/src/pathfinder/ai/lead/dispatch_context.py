@@ -28,6 +28,7 @@ from pathfinder.domain.strategy.constraints import (
 from pathfinder.domain.strategy.named_combine import NamedCombine, stated_operators
 from pathfinder.domain.strategy.operational_spec import OperationalSpec
 from pathfinder.domain.strategy.orthology_request import OrthologyRequest
+from pathfinder.domain.strategy.readings import ReadValues
 from pathfinder.domain.strategy.spec_diff import SpecDiff, diff_specs
 from pathfinder.domain.strategy.spec_reconciliation import (
     spec_without_pending_analyses,
@@ -66,6 +67,20 @@ def edit_message(deps: LeadDeps) -> EditMessage:
     )
 
 
+def offered_readings(state: PipelineState) -> list[ReadValues]:
+    answered = state.turn_markers.answered
+    asked = [
+        *state.domain.open_questions,
+        *([] if answered is None else answered.questions),
+    ]
+    return [
+        read
+        for question in asked
+        for option in question.options
+        if (read := option.offered_reading()) is not None
+    ]
+
+
 def agent_deps_for(deps: LeadDeps) -> AgentDeps:
     state = deps.state
     runtime = deps.runtime
@@ -93,10 +108,12 @@ def agent_deps_for(deps: LeadDeps) -> AgentDeps:
             orthology_request=OrthologyRequest.read(state.user_prompt),
             stated_operators=stated_operators(state.user_prompt),
             stated_requirements=list(state.domain.requirements),
+            held_record_roles=dict(state.domain.record_roles),
             spec_the_dispatch_found=found,
             created_gene_sets=deps.created_gene_sets,
             request_messages=state.researcher_messages(),
             turn_counts=deps.turn_counts,
+            offered_readings=offered_readings(state),
         ),
         turn_markers=state.turn_markers,
         ledger_summary=ledger.render_summary(),

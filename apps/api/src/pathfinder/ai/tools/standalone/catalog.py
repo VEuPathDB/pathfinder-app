@@ -301,18 +301,23 @@ async def lookup_phyletic_codes(
     query: str,
     record_type: str = "transcript",
 ) -> ToolReturn[JSONObject | ToolErrorPayload]:
-    """Look up phyletic species/clade codes by name for GenesByOrthologPattern.
+    """Look up phyletic genome and clade codes by name.
 
-    Returns {code, label, leaf} triples. Put a code or its label in
-    included_species or excluded_species; profile_pattern is derived from those
-    two lists and is never written by hand.
+    On a genomics site the codes are for GenesByOrthologPattern: put a code or
+    its label in included_species or excluded_species; profile_pattern is
+    derived from those two lists and is never written by hand. On OrthoMCL the
+    codes are for phyletic_expression: each match carries its code, label,
+    leaf and genomes, the number of genomes under a clade, and species groups
+    the matched genomes by species, so the strains of one species are several
+    genomes.
 
     Args:
         ctx: Agent run context.
         query: Species or clade name to search for (e.g., 'falciparum', 'human',
             'Apicomplexa'). A code with leaf=false is a clade and selects every
-            species under it.
-        record_type: Record type. Defaults to 'transcript'.
+            genome under it.
+        record_type: Record type. Defaults to 'transcript'. record_type is read
+            only on the genomics sites.
     """
     codes = await catalog.lookup_phyletic_codes(ctx.deps.site_id, record_type, query)
     return with_summary(

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { siteShortName } from "@pathfinder/shared";
 import type { ParameterFact, StepFact, TurnFacts } from "@pathfinder/shared";
 
 import { Figure } from "@/features/conversation/thread/Figure";
@@ -133,7 +134,7 @@ function Sentences({
 export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
   const noun = data.recordNoun ?? "gene";
   const steps = data.steps ?? [];
-  const url = data.strategyUrl ?? null;
+  const link = data.strategyLink ?? null;
   const sources = data.sources ?? [];
   const named = data.namedGenes ?? [];
   return (
@@ -170,15 +171,15 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           text: `Removed ${title}`,
         }))}
       />
-      {url === null ? null : (
+      {link === null ? null : (
         <a
           data-testid="facts-strategy-link"
-          href={url}
+          href={link.url}
           target="_blank"
           rel="noreferrer"
           className="mt-2 block text-sm font-medium text-primary underline-offset-2 hover:underline"
         >
-          Open the strategy on the site
+          {`Open on ${siteShortName(link.siteId)}`}
         </a>
       )}
       <Sentences
@@ -220,8 +221,16 @@ export function DataFacts({ data }: { data: TurnFacts }): ReactElement {
           text:
             saved.count == null
               ? `Saved ${saved.kind === "gene_set" ? "gene set" : "control set"} ${saved.name}`
-              : `Saved ${saved.kind === "gene_set" ? "gene set" : "control set"} ${saved.name}, ${counted(saved.count, "gene")}`,
+              : `Saved ${saved.kind === "gene_set" ? "gene set" : "control set"} ${saved.name}, ${counted(saved.count, saved.recordNoun ?? "gene")}`,
         }))}
+      />
+      <Sentences
+        testId="facts-unsaved-set"
+        items={
+          data.unsaved == null
+            ? []
+            : [{ key: "unsaved", kind: "gene_set", text: data.unsaved.sentence }]
+        }
       />
       <Sentences
         testId="facts-control-result"

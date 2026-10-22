@@ -1,0 +1,40 @@
+{
+  "name": "orthomcl-singletons-counted-by-organism",
+  "turns": [
+    "Which organisms in OrthoMCL have the most singletons (orthogroups with just a single protein)?"
+  ],
+  "siteId": "orthomcl",
+  "assistantId": "pathfinder",
+  "rationale": "Groups of one protein, transformed to their proteins, and those proteins counted by organism answer the question; the reply names the organisms with the most and their counts from the site.",
+  "expected": {
+    "buildsStrategy": true,
+    "structure": "FromGroups(GroupsBySequenceCount)",
+    "recordType": "sequence",
+    "stepCount": 2,
+    "verified": null,
+    "stepIdsUnchanged": null,
+    "parameters": {},
+    "replyMentions": [
+      "Brachionus plicatilis"
+    ],
+    "replyOmits": [],
+    "rootCount": {
+      "count": 523795,
+      "build": "8.2",
+      "measuredOn": "2026-10-21"
+    }
+  },
+  "provenance": {
+    "site": "orthomcl",
+    "assistant": "pathfinder",
+    "origin": "cataloged-failure",
+    "addedAt": "2026-10-21",
+    "stagingId": "",
+    "reference": "backlog/a-built-step-is-counted-by-a-column.md",
+    "curatorNote": "Needs a count of a built step by a column."
+  },
+  "gates": {
+    "policy": "auto",
+    "answers": []
+  }
+}

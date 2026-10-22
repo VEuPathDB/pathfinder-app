@@ -9,11 +9,13 @@ import pytest
 
 from pathfinder.ai.stream_part_payloads import ListedGeneSet, ListedGeneSets
 from pathfinder.ai.tools.standalone import gene_sets
+from pathfinder.ai.tools.standalone.gene_set_models import GeneSetListResponse
 from pathfinder.domain.gene_homes import GeneHome
-from pathfinder.services.gene_sets.types import GeneSet
+from pathfinder.services.gene_sets.types import GeneSet, ResultAboveTheCap
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
 _THIS = uuid4()
+_OUTGROWN = ResultAboveTheCap(count=309_068, cap=10_000)
 
 _PROTEINS = GeneSet(
     id="gs-ortho",
@@ -21,6 +23,8 @@ _PROTEINS = GeneSet(
     site_id="orthomcl",
     gene_ids=["PF3D7_0103400.1-p1", "PF3D7_0110100.1-p1", "TGME49_200250-t26_1-p1"],
     source="strategy",
+    record_type="sequence",
+    out_of_date=_OUTGROWN,
     homes={
         "PF3D7_0103400.1-p1": GeneHome(gene_id="PF3D7_0103400", site_id="plasmodb"),
         "PF3D7_0110100.1-p1": GeneHome(gene_id="PF3D7_0110100", site_id="plasmodb"),
@@ -71,8 +75,17 @@ async def test_the_listing_sends_a_card_of_every_set_and_its_genes_here(
                     genes_here=2,
                     saved_on="orthomcl",
                     saved_here=False,
+                    record_noun="protein",
+                    out_of_date=_OUTGROWN,
                 ),
             ],
         )
     ]
-    assert cards[0].data["geneSets"][1]["genesHere"] == 2
+    assert [
+        (row["genesHere"], row["recordNoun"]) for row in cards[0].data["geneSets"]
+    ] == [(2, "gene"), (2, "protein")]
+    rows = GeneSetListResponse.model_validate(result.return_value).gene_sets
+    assert [row.out_of_date for row in rows] == [
+        None,
+        _OUTGROWN,
+    ]

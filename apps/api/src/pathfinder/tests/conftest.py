@@ -76,7 +76,7 @@ from pathfinder.platform.model_catalog import install_catalog_prices
 from pathfinder.platform.security import create_user_token, limiter
 from pathfinder.services import wdk_identity
 from pathfinder.services.eda import catalog
-from pathfinder.tests._support.database import can_connect
+from pathfinder.tests._support.database import can_connect, create_checkpoint_tables
 
 pytest_plugins = [
     "pathfinder.tests._support.hermetic_guest",
@@ -203,6 +203,7 @@ async def db_engine(
         await conn.run_sync(EmbeddingBase.metadata.create_all)
 
     _apply_procrastinate_schema_sync(database_url)
+    await create_checkpoint_tables(database_url)
 
     try:
         yield engine

@@ -3,16 +3,28 @@ and is refused once per check with one sentence per departure."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 import pytest
 from pydantic_ai.exceptions import ModelRetry
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    RetryPromptPart,
+    ToolCallPart,
+)
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.tools import RunContext
 from veupathdb.domain.strategy import StrategyStepNode, flatten_tree
 
+from pathfinder.ai.agents.refusal_bound import REFUSALS_PER_CHECK
+from pathfinder.ai.agents.verification import build_verification_agent
 from pathfinder.ai.agents.verification_digest import hold_the_digest_to_the_evidence
 from pathfinder.ai.graph.runtime import AgentDeps, VerificationScope
 from pathfinder.ai.lead.deltas import VerificationDelta
+from pathfinder.domain.evidence import WithheldEvidence
 from pathfinder.domain.strategy.session import StrategyGraph, StrategySession
 from pathfinder.tests.unit.ai.tools.conftest import agent_run_context
 
@@ -166,11 +178,124 @@ def test_a_sample_count_the_sample_does_not_hold_is_refused() -> None:
     )
 
 
-def test_the_digest_is_refused_once_per_check() -> None:
+_UNREAD = WithheldEvidence(
+    kind="sampled_gene",
+    sentence=(
+        f"The review lists sampled gene `{_UNREAD_GENE}`, and no read_gene_record "
+        "call of this turn read its record."
+    ),
+)
+
+
+def _sampled() -> VerificationDelta:
+    return _delta(sampledGenes=[_gene(_READ_GENE, "yes"), _gene(_UNREAD_GENE, "yes")])
+
+
+def _withheld_from(
+    delta: VerificationDelta,
+) -> tuple[list[str], list[WithheldEvidence]]:
+    review = delta.digest.review
+    return [g.gene_id for g in review.sampled_genes], list(review.withheld)
+
+
+def test_the_digest_is_refused_once_per_check_then_loses_the_unread_gene() -> None:
     ctx = _context()
-    delta = _delta(sampledGenes=[_gene(_UNREAD_GENE, "yes")])
     with pytest.raises(ModelRetry):
+        hold_the_digest_to_the_evidence(ctx, _sampled())
+
+    held = hold_the_digest_to_the_evidence(ctx, _sampled())
+
+    assert isinstance(held, VerificationDelta)
+    assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
+    assert ctx.deps.turn_markers.refused_digests == ["call_v1"]
+
+
+def test_the_last_answer_the_run_allows_loses_the_unread_gene() -> None:
+    ctx = _context()
+
+    held = hold_the_digest_to_the_evidence(
+        replace(ctx, retry=ctx.max_retries), _sampled()
+    )
+
+    assert isinstance(held, VerificationDelta)
+    assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
+
+
+def test_the_digest_past_the_pass_s_refusals_loses_the_unread_gene() -> None:
+    ctx = _context()
+    ctx.deps.agent_state.refusals = REFUSALS_PER_CHECK
+
+    held = hold_the_digest_to_the_evidence(ctx, _sampled())
+
+    assert isinstance(held, VerificationDelta)
+    assert _withheld_from(held) == ([_READ_GENE], [_UNREAD])
+
+
+def test_a_met_row_with_no_answer_is_refused_then_stands_unmet() -> None:
+    ctx = _context()
+    delta = _delta(
+        requirements=[
+            {"text": "signal peptide", "turn": 1, "how": "search", "status": "met"}
+        ]
+    )
+    with pytest.raises(ModelRetry, match="a met requirement names the criterion"):
         hold_the_digest_to_the_evidence(ctx, delta)
 
-    assert hold_the_digest_to_the_evidence(ctx, delta) is delta
-    assert ctx.deps.turn_markers.refused_digests == ["call_v1"]
+    held = hold_the_digest_to_the_evidence(ctx, delta)
+
+    assert isinstance(held, VerificationDelta)
+    [row] = held.digest.review.requirements
+    assert (row.status, [w.kind for w in held.digest.review.withheld]) == (
+        "unmet",
+        ["status"],
+    )
+
+
+def test_a_source_that_cannot_be_opened_is_taken_off_the_review() -> None:
+    ctx = _context()
+    ctx.deps.agent_state.refusals = REFUSALS_PER_CHECK
+    delta = _delta(sources=[{"kind": "web", "label": "A page", "why": "it says so"}])
+
+    held = hold_the_digest_to_the_evidence(ctx, delta)
+
+    assert isinstance(held, VerificationDelta)
+    assert (held.digest.review.sources, held.digest.review.withheld) == (
+        [],
+        [
+            WithheldEvidence(
+                kind="source",
+                sentence="The review cites 'A page', which carries no url, DOI or PMID.",
+            )
+        ],
+    )
+
+
+async def test_verify_answering_the_unread_gene_every_time_ends_on_its_review() -> None:
+    told: list[str] = []
+    answer = {
+        "digest": {
+            "disposition": "done",
+            "prose": "The strategy answers the request.",
+            "reason": "Read the sample.",
+            "success": True,
+            "review": {"sampledGenes": [_gene(_UNREAD_GENE, "yes")]},
+        }
+    }
+
+    def _verify(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        del info
+        last = messages[-1]
+        assert isinstance(last, ModelRequest)
+        told.extend(
+            str(p.content) for p in last.parts if isinstance(p, RetryPromptPart)
+        )
+        return ModelResponse(parts=[ToolCallPart("final_result", answer)])
+
+    deps = _context().deps
+    agent = build_verification_agent()
+    with agent.override(model=FunctionModel(_verify, model_name="scripted")):
+        run = await agent.run("VERIFY work order: check it", deps=deps)
+
+    assert isinstance(run.output, VerificationDelta)
+    assert len(told) == 1
+    assert _withheld_from(run.output) == ([], [_UNREAD])

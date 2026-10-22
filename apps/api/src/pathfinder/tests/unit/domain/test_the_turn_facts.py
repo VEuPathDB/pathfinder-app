@@ -1,5 +1,8 @@
 """The facts a turn shows beside its reply, as lines and as carried values."""
 
+import pytest
+from pydantic import ValidationError
+
 from pathfinder.domain.comparison_facts import ComparedVariant, ComparisonFact
 from pathfinder.domain.control_result_facts import ControlResultFact
 from pathfinder.domain.membership_facts import MembershipFact
@@ -9,7 +12,9 @@ from pathfinder.domain.turn_facts import (
     RetiredFact,
     SavedSetFact,
     StepFact,
+    StrategyLinkFact,
     TurnFacts,
+    UnsavedSetFact,
 )
 from pathfinder.domain.uncarried_assumptions import uncarried_assumptions
 from pathfinder.domain.value_caveats import AssumedValueCaveat, UnmeasuredValueCaveat
@@ -118,6 +123,55 @@ def test_a_saved_set_and_a_control_result_read_with_their_counts() -> None:
             "1 of 5 negative controls returned"
         ),
     )
+
+
+def test_a_result_not_saved_as_a_set_reads_with_its_count_and_the_cap() -> None:
+    facts = TurnFacts(
+        unsaved=UnsavedSetFact(count=523_795, cap=10_000, record_noun="protein")
+    )
+
+    assert (facts.lines(), facts.empty()) == (
+        [
+            (
+                "The result was not saved as a gene set: it holds 523,795 "
+                "proteins, more than the 10,000 a gene set holds"
+            )
+        ],
+        False,
+    )
+
+
+def test_a_strategy_link_names_its_site_and_shows_its_url() -> None:
+    url = "https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/7/9"
+    facts = TurnFacts(strategy_link=StrategyLinkFact(site_id="orthomcl", url=url))
+
+    assert (facts.lines(), facts.empty(), facts.strategy_url()) == ([url], False, url)
+    assert facts.model_dump(by_alias=True, include={"strategy_link"}) == {
+        "strategyLink": {"siteId": "orthomcl", "url": url}
+    }
+
+
+def test_a_strategy_link_without_a_site_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        StrategyLinkFact(
+            site_id="",
+            url="https://qa.orthomcl.org/orthomcl.qa/app/workspace/strategies/7",
+        )
+
+
+def test_a_part_with_the_bare_url_shape_holds_no_link() -> None:
+    url = "https://qa.plasmodb.org/plasmo.qa/app/workspace/strategies/7/9"
+    facts = TurnFacts.model_validate({"strategyUrl": url, "rootCount": 9})
+
+    assert (facts.strategy_link, facts.lines()) == (None, ["Result: 9 genes"])
+
+
+def test_a_saved_set_counts_in_its_own_records() -> None:
+    saved = SavedSetFact(
+        kind="gene_set", name="singletons", count=4593, record_noun="protein"
+    )
+
+    assert saved.line() == "Saved gene set singletons, 4,593 proteins"
 
 
 def test_facts_with_nothing_in_them_are_empty() -> None:

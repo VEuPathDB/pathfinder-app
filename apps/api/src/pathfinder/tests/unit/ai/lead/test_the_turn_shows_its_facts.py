@@ -154,7 +154,7 @@ def test_a_draft_shows_its_bound_criteria_with_the_counts_they_bound_at() -> Non
         ("GO Term", None),
         ("Trophozoite RNA-Seq percentile", 1665),
     ]
-    assert (facts.draft, facts.root_count, facts.strategy_url) == (True, None, None)
+    assert (facts.draft, facts.root_count, facts.strategy_link) == (True, None, None)
 
 
 def test_a_withdrawn_requirement_is_shown_retired_and_never_as_a_gap() -> None:
