@@ -58,6 +58,8 @@ SCRATCHPAD_TOOL_NAMES = frozenset(
 
 FRAME_TOOL_NAMES = SCRATCHPAD_TOOL_NAMES | {
     "browse_search_categories",
+    "build_clade_only_expression",
+    "build_protein_count_comparison",
     "drop_criterion",
     "get_ai_expression_summary",
     "get_parameter_options",

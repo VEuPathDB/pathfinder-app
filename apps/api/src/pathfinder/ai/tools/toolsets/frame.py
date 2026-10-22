@@ -13,6 +13,8 @@ from pathfinder.ai.tools.standalone._catalog_elsewhere import (
 from pathfinder.ai.tools.standalone._frame_schema import name_the_open_sheets
 from pathfinder.ai.tools.standalone.catalog import (
     browse_search_categories,
+    build_clade_only_expression,
+    build_protein_count_comparison,
     get_record_types,
     list_searches,
     list_transforms,
@@ -78,6 +80,8 @@ def build_toolset() -> AbstractToolset[AgentDeps]:
             get_search_overview,
             get_parameter_options,
             lookup_phyletic_codes,
+            build_protein_count_comparison,
+            build_clade_only_expression,
             list_saved_strategies,
             list_gene_sets,
             Tool(set_criterion, prepare=name_the_open_sheets),

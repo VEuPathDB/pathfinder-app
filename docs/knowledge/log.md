@@ -2,6 +2,21 @@
 
 ## 2026-10-22
 
+* **FRAME builds two OrthoMCL expressions instead of writing them.** PathFinder takes
+  veupathdb-mcp v0.2.0-b35 (same veupathdb-py v0.1.0b18). FRAME carries
+  `build_protein_count_comparison`, which reads from the site the largest count a ladder of
+  "genome A holds more proteins than genome B" needs and returns that ladder's expression,
+  and `build_clade_only_expression`, which writes presence in a clade or genome list with no
+  protein outside it (or outside a larger clade) from the site's taxonomy; each counts the
+  groups its expression returns, and FRAME binds the expression whole. Called in process,
+  the comparison keeps the 120 s budget the served tool declares; past it the model reads a
+  failed call that says the site did not answer, and the run goes on. A refusal of the
+  library (a code that is not one genome, a code the taxonomy lacks) is sent back to the
+  model with the library's words. Both are read-only tools under the repetition guard, both
+  carry a label in the trace, and the conformance run samples both on OrthoMCL QA, with the
+  arguments of the library's recorded counts. The tests replay the library's recorded QA count reports
+  (`tests/fixtures/orthomcl_counts/`) under the client's recorded taxonomy.
+
 * **Stranded audit runs resume on a schedule, not at worker start.** The worker start reads no
   app table, because only the api migrates and the worker can start first. The periodic job
   `maintenance:resume_stranded_audits` (every 5 minutes) queues a job for every run that is

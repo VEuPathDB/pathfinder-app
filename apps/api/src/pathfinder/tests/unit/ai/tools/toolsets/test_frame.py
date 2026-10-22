@@ -19,6 +19,14 @@ from pathfinder.tests.unit.ai.tools.test_catalog_discovery import serve_go_overv
 # name -> (every argument, the required ones)
 _MOUNTED: dict[str, tuple[frozenset[str], frozenset[str]]] = {
     "browse_search_categories": (frozenset({"record_type"}), frozenset()),
+    "build_clade_only_expression": (
+        frozenset({"clade", "within"}),
+        frozenset({"clade"}),
+    ),
+    "build_protein_count_comparison": (
+        frozenset({"genome_a", "genome_b", "reverse"}),
+        frozenset({"genome_a", "genome_b"}),
+    ),
     "drop_criterion": (
         frozenset({"criterion_id", "reason"}),
         frozenset({"criterion_id", "reason"}),

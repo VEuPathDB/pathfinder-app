@@ -18,7 +18,9 @@ const REGISTERED = [
   "add_step_filter",
   "apply_operations",
   "browse_search_categories",
+  "build_clade_only_expression",
   "build_control_set",
+  "build_protein_count_comparison",
   "build_strategy",
   "classify_user_intent",
   "clear_strategy",
@@ -138,6 +140,15 @@ describe("humanizeToolName", () => {
 
   it("names the rename by what it does", () => {
     expect(humanizeToolName("rename_strategy")).toBe("Rename strategy");
+  });
+
+  it("names the two OrthoMCL expression builders by what they build", () => {
+    expect(humanizeToolName("build_protein_count_comparison")).toBe(
+      "Compare protein counts",
+    );
+    expect(humanizeToolName("build_clade_only_expression")).toBe(
+      "Find groups only in a clade",
+    );
   });
 
   it("says an experiment it reads belongs to another site", () => {

@@ -36,7 +36,9 @@ Between two single genomes the comparison needs no approximation. "More proteins
 A than in genome B" is `B=0 AND A>=1 OR B=1 AND A>=2 OR ... OR B=K AND A>=K+1`, where K is
 the smallest count for which `B>=K+1` returns no group; each term fixes B's count, AND
 binds before OR as the site reads it, and `B=0` is the only form that matches a group with
-no protein in B. The turn builds this reading instead of asking for thresholds.
+no protein in B. FRAME builds it with `build_protein_count_comparison` (veupathdb-mcp),
+which reads K from the site with count reports, and binds the expression whole; it never
+writes the ladder by hand. What remains of this item is the comparison between clades.
 
 ## Change
 

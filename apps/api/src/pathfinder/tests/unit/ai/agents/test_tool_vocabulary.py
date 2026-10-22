@@ -82,3 +82,24 @@ def test_a_third_identical_step_id_read_is_refused() -> None:
     assert answered[2].startswith(
         "You have called read_step_ids 3 times with identical arguments"
     )
+
+
+def test_a_third_identical_protein_count_comparison_is_refused() -> None:
+    answered = _identical_calls(
+        "build_protein_count_comparison", {"genome_a": "tgon", "genome_b": "pfal"}, 3
+    )
+
+    assert answered[:2] == ["", ""]
+    assert answered[2].startswith(
+        "You have called build_protein_count_comparison 3 times with identical "
+        "arguments"
+    )
+
+
+def test_a_third_identical_clade_only_expression_is_refused() -> None:
+    answered = _identical_calls("build_clade_only_expression", {"clade": ["APIC"]}, 3)
+
+    assert answered[:2] == ["", ""]
+    assert answered[2].startswith(
+        "You have called build_clade_only_expression 3 times with identical arguments"
+    )

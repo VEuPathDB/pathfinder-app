@@ -58,7 +58,7 @@ constraint-dependencies = [
 [tool.uv.sources]
 assistant-core = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/assistant-core", tag = "v0.3.0b9" }
 veupathdb-py = { git = "https://github.com/VEuPathDB/ai-veupathdb-client", tag = "v0.1.0b18" }
-veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b34" }
+veupathdb-mcp = { git = "https://github.com/VEuPathDB/ai-wdk-mcp", tag = "v0.2.0-b35" }
 veupathdb-mcp-conformance = { git = "https://github.com/VEuPathDB/ai-assistant-platform", subdirectory = "packages/mcp-conformance", tag = "v0.3.0b1" }
 
 [build-system]
@@ -379,12 +379,14 @@ forbidden_modules = [
     "veupathdb_mcp.catalog._param_filters",
     "veupathdb_mcp.catalog._param_validation_errors",
     "veupathdb_mcp.catalog.catalog_metadata",
+    "veupathdb_mcp.catalog.clade_only",
     "veupathdb_mcp.catalog.discovery",
     "veupathdb_mcp.catalog.discovery_service",
     "veupathdb_mcp.catalog.disk_cache",
     "veupathdb_mcp.catalog.eda_backed",
     "veupathdb_mcp.catalog.experiment_card",
     "veupathdb_mcp.catalog.experiments",
+    "veupathdb_mcp.catalog.group_counts",
     "veupathdb_mcp.catalog.models",
     "veupathdb_mcp.catalog.overview_formatting",
     "veupathdb_mcp.catalog.param_adapters",
@@ -398,6 +400,7 @@ forbidden_modules = [
     "veupathdb_mcp.catalog.param_specs_formatting",
     "veupathdb_mcp.catalog.param_validation",
     "veupathdb_mcp.catalog.parameters",
+    "veupathdb_mcp.catalog.protein_comparison",
     "veupathdb_mcp.catalog.public_strategy_search",
     "veupathdb_mcp.catalog.radio_pairs",
     "veupathdb_mcp.catalog.record_type_resolution",

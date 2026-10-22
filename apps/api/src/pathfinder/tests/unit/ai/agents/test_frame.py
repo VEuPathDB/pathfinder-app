@@ -242,3 +242,27 @@ def test_frame_instructions_write_absence_from_some_genomes_as_the_site_reads_it
     )
     assert "A genus with no clade code is the list of its genome codes." in text
     assert "Single copy over a list is only `L=NT AND L=N`" in text
+
+
+def test_frame_instructions_build_a_protein_count_comparison_and_never_write_it() -> (
+    None
+):
+    text = _normalized(_FRAME_INSTRUCTIONS)
+
+    assert (
+        "A comparison of the protein counts of two single genomes, genome A holding "
+        "more proteins than genome B, is never written by hand: "
+        "`build_protein_count_comparison(genome_a, genome_b)` reads from the site "
+        "the largest count the ladder needs and returns the expression; bind it whole."
+    ) in text
+
+
+def test_frame_instructions_build_a_presence_only_in_a_clade() -> None:
+    text = _normalized(_FRAME_INSTRUCTIONS)
+
+    assert (
+        "Presence in a clade or genome list L with no protein in any genome outside "
+        "L is built by `build_clade_only_expression(clade)`, with `within` a clade M "
+        "that holds L when only the genomes outside M must hold none; bind its "
+        "expression whole."
+    ) in text

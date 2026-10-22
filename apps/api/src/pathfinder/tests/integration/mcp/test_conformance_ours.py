@@ -63,6 +63,11 @@ ACCOUNT_HOOK = "pathfinder.tests.integration.mcp.conformance_account_hook"
 NEGATIVE_CONTROL = "TGME49_205250"
 CONTROL_GENE_COUNT = 3
 
+ORTHOMCL = "orthomcl"
+MORE_PROTEINS = "tgon"
+FEWER_PROTEINS = "pfal"
+CLADE = "APIC"
+
 RUN_SECONDS = 900.0
 
 # The slow read that drives family 5, and the budget the client gives it. The
@@ -146,10 +151,11 @@ class AdmissionRecord(CamelModel):
 
 
 def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
-    """The arguments a conformance call may use, on the one site kept warm.
+    """The arguments a conformance call may use, on the one site kept warm and,
+    for the two OrthoMCL expression builders, on the site they serve.
 
-    Sixteen of the seventeen tools appear. `enrich_gene_ids` does not: the suite
-    calls one non-destructive write, and the cheaper of the two answers it.
+    Eighteen of the served tools appear. `enrich_gene_ids` is not among them: the
+    suite calls one non-destructive write, and the cheaper of the two answers it.
     """
     return {
         "list_record_types": {"site_id": SITE},
@@ -158,6 +164,13 @@ def sample_arguments(step: OwnedStep, controls: list[str]) -> dict[str, Any]:
         "list_searches": {"site_id": SITE},
         "list_transforms": {"site_id": SITE},
         "lookup_phyletic_codes": {"site_id": SITE, "query": "falciparum"},
+        "build_protein_count_comparison": {
+            "site_id": ORTHOMCL,
+            "genome_a": MORE_PROTEINS,
+            "genome_b": FEWER_PROTEINS,
+            "reverse": True,
+        },
+        "build_clade_only_expression": {"site_id": ORTHOMCL, "clade": [CLADE]},
         "search_example_plans": {"site_id": SITE, "query": "gametocyte genes"},
         "get_search_overview": {"site_id": SITE, "search_name": TARGET_SEARCH},
         "get_parameter_options": {

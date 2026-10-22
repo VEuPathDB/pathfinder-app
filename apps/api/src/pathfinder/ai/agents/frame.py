@@ -153,7 +153,14 @@ Procedure:
         `another_site_answers` with `site` "orthomcl", bind nothing for it and ask no
         question about it. On OrthoMCL, write it in `phyletic_expression` from the codes
         and genome counts `lookup_phyletic_codes` returns, with the recipes the
-        parameter's help states. A genus with no clade code is the list of its genome
+        parameter's help states. A comparison of the protein counts of two single
+        genomes, genome A holding more proteins than genome B, is never written by
+        hand: `build_protein_count_comparison(genome_a, genome_b)` reads from the site
+        the largest count the ladder needs and returns the expression; bind it whole.
+        Presence in a clade or genome list L with no protein in any genome outside L
+        is built by `build_clade_only_expression(clade)`, with `within` a clade M
+        that holds L when only the genomes outside M must hold none; bind its
+        expression whole. A genus with no clade code is the list of its genome
         codes. A T count counts genomes, and strains are genomes. The site drops
         parentheses and reads AND before OR, so write an OR of AND terms, each term
         repeating the units it shares. `<`, `<=` and `>=` hold only for a group with a

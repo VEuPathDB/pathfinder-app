@@ -15,8 +15,9 @@ the suite as its own pytest process against the served endpoint, and reads the
 admission record the run writes. It is marked `live_wdk`, so it runs in the
 nightly lane and never blocks a pull request.
 
-**The first credential is the registered VEuPathDB account.** Sixteen of the
-seventeen tools carry sample arguments in that run, so family 3 calls real reads
+**The first credential is the registered VEuPathDB account.** Eighteen served
+tools carry sample arguments in that run, the two OrthoMCL expression builders on
+the OrthoMCL site and the rest on the site kept warm, so family 3 calls real reads
 twice and family 4 probes every read-only tool with an argument its own schema
 refuses. The account-state hook lists the account's WDK strategies, which is
 what a read must leave alone and what the one non-destructive write creates and

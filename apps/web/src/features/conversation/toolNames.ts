@@ -22,6 +22,8 @@ export const TOOL_LABELS: Record<string, string> = {
   get_record_types: "List record types",
   get_parameter_options: "Read parameter options",
   lookup_phyletic_codes: "Look up phyletic codes",
+  build_protein_count_comparison: "Compare protein counts",
+  build_clade_only_expression: "Find groups only in a clade",
   search_example_plans: "Find example plans",
   read_experiment: "Read another site's experiment",
   describe_site: "Describe site",
